@@ -23,30 +23,14 @@
     <DotNetCliToolReference Update="dotnet-xunit" Version="2.3.1" />
   </ItemGroup>
 
-  <!--Code coverage specific settings-->
-  <!--https://github.com/tonerdo/coverlet-->
-  <PropertyGroup Condition="'$(codecov)' == 'true' AND '$(IsTestProject)' == 'true'">
-    <CollectCoverage>true</CollectCoverage>
-    <UseSourceLink>true</UseSourceLink>
-    <Include>[SixLabors.*]*</Include>
-    <CoverletOutputFormat>lcov</CoverletOutputFormat>
-    <!--Output injects target framework into name despite explicit config. See build yml-->
-    <CoverletOutputPath>$(MSBuildThisFileDirectory)..\</CoverletOutputPath>
-    <CoverletOutput>$(CoverletOutputPath)$(AssemblyName).$(TargetFramework).lcov</CoverletOutput>
-    <!--Used by coverlet dues to reference issues-->
-    <!--https://github.com/tonerdo/coverlet/blob/master/Documentation/KnowIssues.md#4-failed-to-resolve-assembly-during-instrumentation-->
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-  </PropertyGroup>
-
   <ItemGroup>
     <!--Test Dependencies-->
     <PackageReference Update="BenchmarkDotNet" Version="0.12.0" />
     <PackageReference Update="Colourful" Version="2.0.3" />
-    <PackageReference Update="coverlet.collector" Version="1.1.0" PrivateAssets="All"/>
-    <PackageReference Update="coverlet.msbuild" Version="2.8.0" PrivateAssets="All"/>
+    <PackageReference Update="coverlet.collector" Version="1.2.0" PrivateAssets="All"/>
     <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.14.4" />
     <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="5.0.0-beta.20069.1" />
-    <PackageReference Update="Microsoft.NET.Test.Sdk" Version="16.4.0" />
+    <PackageReference Update="Microsoft.NET.Test.Sdk" Version="16.5.0-preview-20200116-01" />
     <PackageReference Update="Moq" Version="4.10.0" />
     <PackageReference Update="Pfim" Version="0.9.1" />
     <PackageReference Update="System.Drawing.Common" Version="4.7.0" />

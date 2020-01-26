@@ -85,11 +85,14 @@ jobs:
                   CI: True
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
+            # Avoid "Please provide the repository token to upload reports via `-t :repository-token`"
+            # https://community.codecov.io/t/whitelist-github-action-servers-to-upload-without-a-token/491/10
+            # https://github.community/t5/GitHub-Actions/Make-secrets-available-to-builds-of-forks/m-p/42814/highlight/true#M5129
             - name: Update Codecov
               uses: iansu/codecov-action-node@v1.0.0
-              if: matrix.options.codecov == true
+              if: matrix.options.codecov == true && startsWith(github.repository, 'SixLabors')
               with:
-                  token: ${{secrets.CODECOV_TOKEN}}
+                  token: 0ef021c7-2679-4012-b42f-4bed33d99450
                   flags: unittests
 
     Publish:

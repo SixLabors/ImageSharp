@@ -68,6 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                 {
                     // Rent the shared buffer only once per parallel item.
                     using IMemoryOwner<float> bins = configuration.MemoryAllocator.Allocate<float>(levels * 4);
+
                     ref float binsRef = ref bins.GetReference();
                     ref int intensityBinRef = ref Unsafe.As<float, int>(ref binsRef);
                     ref float redBinRef = ref Unsafe.Add(ref binsRef, levels);
@@ -128,7 +129,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                                 float alpha = sourceRow[x].ToVector4().W;
 
                                 ref TPixel pixel = ref targetRow[x];
-                                pixel.FromVector4(new Vector4(red, green, blue, sourceRow[x].ToVector4().W));
+                                pixel.FromVector4(new Vector4(red, green, blue, alpha));
                             }
                         }
                     }

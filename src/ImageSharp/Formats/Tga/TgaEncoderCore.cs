@@ -4,14 +4,12 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tga
 {
@@ -97,11 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 pixelDepth: (byte)this.bitsPerPixel.Value,
                 imageDescriptor: imageDescriptor);
 
-#if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[TgaFileHeader.Size];
-#else
-            byte[] buffer = new byte[TgaFileHeader.Size];
-#endif
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, TgaFileHeader.Size);

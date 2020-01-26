@@ -2,10 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -45,13 +47,12 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static string SolutionDirectoryFullPath => SolutionDirectoryFullPathLazy.Value;
 
+        private static readonly FileInfo TestAssemblyFile =
+            new FileInfo(typeof(TestEnvironment).GetTypeInfo().Assembly.Location);
+
         private static string GetSolutionDirectoryFullPathImpl()
         {
-            string assemblyLocation = typeof(TestEnvironment).GetTypeInfo().Assembly.Location;
-
-            var assemblyFile = new FileInfo(assemblyLocation);
-
-            DirectoryInfo directory = assemblyFile.Directory;
+            DirectoryInfo directory = TestAssemblyFile.Directory;
 
             while (!directory.EnumerateFiles(ImageSharpSolutionFileName).Any())
             {
@@ -62,20 +63,20 @@ namespace SixLabors.ImageSharp.Tests
                 catch (Exception ex)
                 {
                     throw new Exception(
-                        $"Unable to find ImageSharp solution directory from {assemblyLocation} because of {ex.GetType().Name}!",
+                        $"Unable to find ImageSharp solution directory from {TestAssemblyFile} because of {ex.GetType().Name}!",
                         ex);
                 }
 
                 if (directory == null)
                 {
-                    throw new Exception($"Unable to find ImageSharp solution directory from {assemblyLocation}!");
+                    throw new Exception($"Unable to find ImageSharp solution directory from {TestAssemblyFile}!");
                 }
             }
 
             return directory.FullName;
         }
 
-        private static string GetFullPath(string relativePath) => 
+        private static string GetFullPath(string relativePath) =>
             Path.Combine(SolutionDirectoryFullPath, relativePath)
             .Replace('\\', Path.DirectorySeparatorChar);
 
@@ -83,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
         /// Gets the correct full path to the Input Images directory.
         /// </summary>
         internal static string InputImagesDirectoryFullPath => GetFullPath(InputImagesRelativePath);
-        
+
         /// <summary>
         /// Gets the correct full path to the Actual Output directory. (To be written to by the test cases.)
         /// </summary>
@@ -100,12 +101,14 @@ namespace SixLabors.ImageSharp.Tests
             actualOutputFileName.Replace("ActualOutput", @"External\ReferenceOutput").Replace('\\', Path.DirectorySeparatorChar);
 
         internal static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-        
+
         internal static bool IsMono => Type.GetType("Mono.Runtime") != null; // https://stackoverflow.com/a/721194
 
         internal static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
         internal static bool Is64BitProcess => IntPtr.Size == 8;
+
+        internal static bool IsFramework => string.IsNullOrEmpty(NetCoreVersion);
 
         /// <summary>
         /// Creates the image output directory.
@@ -130,6 +133,95 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             return path;
+        }
+
+        /// <summary>
+        /// Creates Microsoft.DotNet.RemoteExecutor.exe.config for .NET framework,
+        /// When running in 32 bits, enforces 32 bit execution of Microsoft.DotNet.RemoteExecutor.exe
+        /// with the help of CorFlags.exe found in Windows SDK.
+        /// </summary>
+        internal static void PrepareRemoteExecutor()
+        {
+            if (!IsFramework)
+            {
+                return;
+            }
+
+            string remoteExecutorConfigPath =
+                Path.Combine(TestAssemblyFile.DirectoryName, "Microsoft.DotNet.RemoteExecutor.exe.config");
+
+            if (File.Exists(remoteExecutorConfigPath))
+            {
+                // already prepared
+                return;
+            }
+
+            string testProjectConfigPath = TestAssemblyFile.FullName + ".config";
+
+            File.Copy(testProjectConfigPath, remoteExecutorConfigPath);
+
+            if (Is64BitProcess)
+            {
+                return;
+            }
+
+            EnsureRemoteExecutorIs32Bit();
+        }
+
+        /// <summary>
+        /// Locate and run CorFlags.exe /32Bit+
+        /// https://docs.microsoft.com/en-us/dotnet/framework/tools/corflags-exe-corflags-conversion-tool
+        /// </summary>
+        private static void EnsureRemoteExecutorIs32Bit()
+        {
+            string windowsSdksDir = Path.Combine(Environment.GetEnvironmentVariable("PROGRAMFILES(x86)"),
+                "Microsoft SDKs", "Windows");
+
+            FileInfo corFlagsFile = Find(new DirectoryInfo(windowsSdksDir), "CorFlags.exe");
+
+            string remoteExecutorPath = Path.Combine(TestAssemblyFile.DirectoryName, "Microsoft.DotNet.RemoteExecutor.exe");
+
+            string args = $"{remoteExecutorPath} /32Bit+ /Force";
+
+            var si = new ProcessStartInfo()
+            {
+                FileName = corFlagsFile.FullName,
+                Arguments = args,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using var proc = Process.Start(si);
+            proc.WaitForExit();
+            string standardOutput = proc.StandardOutput.ReadToEnd();
+            string standardError = proc.StandardError.ReadToEnd();
+
+            if (proc.ExitCode != 0)
+            {
+                throw new Exception(
+                    $@"Failed to run {si.FileName} {si.Arguments}:\n STDOUT: {standardOutput}\n STDERR: {standardError}");
+            }
+
+            static FileInfo Find(DirectoryInfo root, string name)
+            {
+                FileInfo fi = root.EnumerateFiles(name).FirstOrDefault();
+                if (fi != null)
+                {
+                    return fi;
+                }
+
+                foreach (DirectoryInfo dir in root.EnumerateDirectories())
+                {
+                    fi = Find(dir, name);
+                    if (fi != null)
+                    {
+                        return fi;
+                    }
+                }
+
+                return null;
+            }
         }
 
         /// <summary>

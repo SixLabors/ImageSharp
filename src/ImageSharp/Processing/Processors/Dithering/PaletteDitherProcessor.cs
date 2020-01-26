@@ -4,7 +4,6 @@
 using System;
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {

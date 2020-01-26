@@ -4,7 +4,7 @@
 using System;
 using System.Threading.Tasks;
 
-using SixLabors.Memory;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Advanced.ParallelUtils
 {

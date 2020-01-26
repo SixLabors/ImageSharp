@@ -54,6 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
             int radius = brushSize >> 1;
             int levels = this.definition.Levels;
+            int width = this.SourceRectangle.Width;
 
             Configuration configuration = this.Configuration;
 
@@ -66,6 +67,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                 this.Configuration,
                 (rows) =>
                 {
+                    // Allocate the reusable source buffer, to enable vectorized bulk conversion
+                    using IMemoryOwner<Vector4> sourceRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(width);
+
+                    Span<Vector4> sourceRow = sourceRowBuffer.Memory.Span;
+
                     // Rent the shared buffer only once per parallel item.
                     using IMemoryOwner<float> bins = configuration.MemoryAllocator.Allocate<float>(levels * 4);
 
@@ -77,7 +83,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
                     for (int y = rows.Min; y < rows.Max; y++)
                     {
-                        Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
+                        PixelOperations<TPixel>.Instance.ToVector4(configuration, source.GetPixelRowSpan(y), sourceRow);
+
                         Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
 
                         for (int x = startX; x < endX; x++)
@@ -126,7 +133,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                                 float red = MathF.Abs(Unsafe.Add(ref redBinRef, maxIndex) / maxIntensity);
                                 float blue = MathF.Abs(Unsafe.Add(ref blueBinRef, maxIndex) / maxIntensity);
                                 float green = MathF.Abs(Unsafe.Add(ref greenBinRef, maxIndex) / maxIntensity);
-                                float alpha = sourceRow[x].ToVector4().W;
+                                float alpha = sourceRow[x].W;
 
                                 ref TPixel pixel = ref targetRow[x];
                                 pixel.FromVector4(new Vector4(red, green, blue, alpha));

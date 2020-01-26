@@ -68,11 +68,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                 this.Configuration,
                 (rows) =>
                 {
-                    // Allocate the reusable source buffer, to enable vectorized bulk conversion
+                    // Allocate the reusable source row buffer, to enable vectorized bulk conversions
                     using IMemoryOwner<Vector4> sourceRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(rowWidth);
 
                     Span<Vector4> sourceRowVector4Span = sourceRowBuffer.Memory.Span;
                     Span<Vector4> sourceRowAreaVector4Span = sourceRowVector4Span.Slice(startX, rectangleWidth);
+
+                    // Allocate the reusable target row buffer
+                    using IMemoryOwner<Vector4> targetRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(rowWidth);
+
+                    Span<Vector4> targetRowVector4Span = targetRowBuffer.Memory.Span;
+                    Span<Vector4> targetRowAreaVector4Span = targetRowVector4Span.Slice(startX, rectangleWidth);
 
                     // Rent the shared buffer only once per parallel item.
                     using IMemoryOwner<float> bins = configuration.MemoryAllocator.Allocate<float>(levels * 4);
@@ -89,8 +95,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                         Span<TPixel> sourceRowAreaPixelSpan = sourceRowPixelSpan.Slice(startX, rectangleWidth);
 
                         PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRowAreaPixelSpan, sourceRowAreaVector4Span);
-
-                        Span<TPixel> targetRow = targetPixels.GetRowSpan(y);
 
                         for (int x = startX; x < endX; x++)
                         {
@@ -140,10 +144,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                                 float green = MathF.Abs(Unsafe.Add(ref greenBinRef, maxIndex) / maxIntensity);
                                 float alpha = sourceRowVector4Span[x].W;
 
-                                ref TPixel pixel = ref targetRow[x];
-                                pixel.FromVector4(new Vector4(red, green, blue, alpha));
+                                targetRowVector4Span[x] = new Vector4(red, green, blue, alpha);
                             }
                         }
+
+                        Span<TPixel> targetRowAreaPixelSpan = targetPixels.GetRowSpan(y).Slice(startX, rectangleWidth);
+
+                        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, targetRowAreaVector4Span, targetRowAreaPixelSpan);
                     }
                 });
 

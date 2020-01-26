@@ -225,7 +225,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 case ExifTagValue.ImageUniqueID:
                 case ExifTagValue.OwnerName:
                 case ExifTagValue.SerialNumber:
-                case ExifTagValue.LensInfo:
+                case ExifTagValue.LensSpecification:
                 case ExifTagValue.LensMake:
                 case ExifTagValue.LensModel:
                 case ExifTagValue.LensSerialNumber:

@@ -12,7 +12,6 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
@@ -173,11 +172,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 reserved: 0,
                 offset: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize);
 
-#if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[infoHeaderSize];
-#else
-            var buffer = new byte[infoHeaderSize];
-#endif
             fileHeader.WriteTo(buffer);
 
             stream.Write(buffer, 0, BmpFileHeader.Size);

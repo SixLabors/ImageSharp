@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -113,11 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 Unsafe.Add(ref suffixRef, code) = (byte)code;
             }
 
-#if NETCOREAPP2_1
             Span<byte> buffer = stackalloc byte[255];
-#else
-            var buffer = new byte[255];
-#endif
 
             while (xyz < length)
             {
@@ -227,11 +222,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The <see cref="int"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NETCOREAPP2_1
         private int ReadBlock(Span<byte> buffer)
-#else
-        private int ReadBlock(byte[] buffer)
-#endif
         {
             int bufferSize = this.stream.ReadByte();
 

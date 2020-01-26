@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats;
@@ -19,6 +20,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// None of the methods in this class should ever be called, the code only has to exist at compile-time to be picked up by the AoT compiler.
     /// (Very similar to the LinkerIncludes.cs technique used in Xamarin.Android projects.)
     /// </summary>
+    [ExcludeFromCodeCoverage]
     internal static class AotCompilerTools
     {
         static AotCompilerTools()

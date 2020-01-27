@@ -201,20 +201,20 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 var m = new Vp8QuantMatrix();
-                m.Y1Mat[0] = WebPConstants.DcTable[this.Clip(q + dqy1Dc, 127)];
-                m.Y1Mat[1] = WebPConstants.AcTable[this.Clip(q + 0, 127)];
-                m.Y2Mat[0] = WebPConstants.DcTable[this.Clip(q + dqy2Dc, 127)] * 2;
+                m.Y1Mat[0] = WebPConstants.DcTable[Clip(q + dqy1Dc, 127)];
+                m.Y1Mat[1] = WebPConstants.AcTable[Clip(q + 0, 127)];
+                m.Y2Mat[0] = WebPConstants.DcTable[Clip(q + dqy2Dc, 127)] * 2;
 
                 // For all x in [0..284], x*155/100 is bitwise equal to (x*101581) >> 16.
                 // The smallest precision for that is '(x*6349) >> 12' but 16 is a good word size.
-                m.Y2Mat[1] = (WebPConstants.AcTable[this.Clip(q + dqy2Ac, 127)] * 101581) >> 16;
+                m.Y2Mat[1] = (WebPConstants.AcTable[Clip(q + dqy2Ac, 127)] * 101581) >> 16;
                 if (m.Y2Mat[1] < 8)
                 {
                     m.Y2Mat[1] = 8;
                 }
 
-                m.UvMat[0] = WebPConstants.DcTable[this.Clip(q + dquvDc, 117)];
-                m.UvMat[1] = WebPConstants.AcTable[this.Clip(q + dquvAc, 127)];
+                m.UvMat[0] = WebPConstants.DcTable[Clip(q + dquvDc, 117)];
+                m.UvMat[1] = WebPConstants.AcTable[Clip(q + dquvAc, 127)];
 
                 // For dithering strength evaluation.
                 m.UvQuant = q + dquvAc;
@@ -287,9 +287,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return true;
         }
 
-        private int Clip(int v, int M)
+        private static int Clip(int value, int max)
         {
-            return v < 0 ? 0 : v > M ? M : v;
+            return value < 0 ? 0 : value > max ? max : value;
         }
     }
 

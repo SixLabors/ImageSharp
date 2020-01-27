@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
@@ -24,10 +22,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         public ColorMatrix Matrix { get; }
 
         /// <inheritdoc />
-        public virtual IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public virtual IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new FilterProcessor<TPixel>(this, source, sourceRectangle);
-        }
+            => new FilterProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
         [Fact]
         public void ApplyProcessors_ListOfProcessors_AppliesAllProcessorsToOperation()
         {
-            var operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(null, false);
+            var operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(Configuration.Default, null, false);
             operations.ApplyProcessors(this.processorDefinition);
             Assert.Contains(this.processorDefinition, operations.Applied.Select(x => x.NonGenericProcessor));
         }

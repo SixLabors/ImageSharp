@@ -50,6 +50,6 @@
 
   <!-- Empty target so that `dotnet test` will work on the solution -->
   <!-- https://github.com/Microsoft/vstest/issues/411 -->
-  <Target Name="VSTest" />
+  <Target Name="VSTest" Condition="'$(IsTestProject)' == 'true'"/>
 
 </Project>

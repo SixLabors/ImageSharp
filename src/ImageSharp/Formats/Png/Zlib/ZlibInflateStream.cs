@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     internal sealed class ZlibInflateStream : Stream
     {
         /// <summary>
-        /// Used to read the Adler-32 and Crc-32 checksums
+        /// Used to read the Adler-32 and Crc-32 checksums.
         /// We don't actually use this for anything so it doesn't
         /// have to be threadsafe.
         /// </summary>
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private static readonly Func<int> GetDataNoOp = () => 0;
 
         /// <summary>
-        /// The inner raw memory stream
+        /// The inner raw memory stream.
         /// </summary>
         private readonly Stream innerStream;
 
@@ -43,12 +43,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private bool isDisposed;
 
         /// <summary>
-        /// The current data remaining to be read
+        /// The current data remaining to be read.
         /// </summary>
         private int currentDataRemaining;
 
         /// <summary>
-        /// Delegate to get more data once we've exhausted the current data remaining
+        /// Delegate to get more data once we've exhausted the current data remaining.
         /// </summary>
         private readonly Func<int> getData;
 
@@ -88,14 +88,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 
         /// <summary>
-        /// Gets the compressed stream over the deframed inner stream
+        /// Gets the compressed stream over the deframed inner stream.
         /// </summary>
         public DeflateStream CompressedStream { get; private set; }
 
         /// <summary>
-        /// Adds new bytes from a frame found in the original stream
+        /// Adds new bytes from a frame found in the original stream.
         /// </summary>
-        /// <param name="bytes">blabla</param>
+        /// <param name="bytes">The current remaining data according to the chunk length.</param>
         /// <param name="isCriticalChunk">Whether the chunk to be inflated is a critical chunk.</param>
         /// <returns>The <see cref="bool"/>.</returns>
         public bool AllocateNewBytes(int bytes, bool isCriticalChunk)
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             if (this.currentDataRemaining == 0)
             {
-                // last buffer was read in its entirety, let's make sure we don't actually have more
+                // Last buffer was read in its entirety, let's make sure we don't actually have more in additional IDAT chunks.
                 this.currentDataRemaining = this.getData();
 
                 if (this.currentDataRemaining == 0)
@@ -135,32 +135,35 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             int bytesToRead = Math.Min(count, this.currentDataRemaining);
             this.currentDataRemaining -= bytesToRead;
-            int bytesRead = this.innerStream.Read(buffer, offset, bytesToRead);
-            long length = this.innerStream.Length;
+            int totalBytesRead = this.innerStream.Read(buffer, offset, bytesToRead);
+            long innerStreamLength = this.innerStream.Length;
 
-            // Keep reading data until we've reached the end of the stream or filled the buffer
-            while (this.currentDataRemaining == 0 && bytesRead < count)
+            // Keep reading data until we've reached the end of the stream or filled the buffer.
+            int bytesRead = 0;
+            offset += totalBytesRead;
+            while (this.currentDataRemaining == 0 && totalBytesRead < count)
             {
                 this.currentDataRemaining = this.getData();
 
                 if (this.currentDataRemaining == 0)
                 {
-                    return bytesRead;
+                    return totalBytesRead;
                 }
 
                 offset += bytesRead;
 
-                if (offset >= length || offset >= count)
+                if (offset >= innerStreamLength || offset >= count)
                 {
-                    return bytesRead;
+                    return totalBytesRead;
                 }
 
-                bytesToRead = Math.Min(count - bytesRead, this.currentDataRemaining);
+                bytesToRead = Math.Min(count - totalBytesRead, this.currentDataRemaining);
                 this.currentDataRemaining -= bytesToRead;
-                bytesRead += this.innerStream.Read(buffer, offset, bytesToRead);
+                bytesRead = this.innerStream.Read(buffer, offset, bytesToRead);
+                totalBytesRead += bytesRead;
             }
 
-            return bytesRead;
+            return totalBytesRead;
         }
 
         /// <inheritdoc/>
@@ -191,7 +194,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
             if (disposing)
             {
-                // dispose managed resources
+                // Dispose managed resources.
                 if (this.CompressedStream != null)
                 {
                     this.CompressedStream.Dispose();

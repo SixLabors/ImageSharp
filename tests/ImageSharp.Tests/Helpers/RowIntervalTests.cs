@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
                 Span<int> span = buffer.GetMultiRowSpan(rows);
 
-                ref int expected0 = ref buffer.Span[min * width];
+                ref int expected0 = ref buffer.GetSpan()[min * width];
                 int expectedLength = (max - min) * width;
 
                 ref int actual0 = ref span[0];

@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 // ReSharper disable InconsistentNaming
 
@@ -16,22 +18,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DecodeProgressiveJpeg<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (SkipTest(provider))
+            static void RunTest(string providerDump)
             {
-                // skipping to avoid OutOfMemoryException on CI
-                return;
-            }
+                TestImageProvider<TPixel> provider =
+                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
 
-            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
-            {
+                using Image<TPixel> image = provider.GetImage(JpegDecoder);
                 image.DebugSave(provider);
 
                 provider.Utility.TestName = DecodeProgressiveJpegOutputName;
                 image.CompareToReferenceOutput(
-                    this.GetImageComparer(provider),
+                    GetImageComparer(provider),
                     provider,
                     appendPixelTypeToFileName: false);
             }
+
+            string dump = BasicSerializer.Serialize(provider);
+            RemoteExecutor.Invoke(RunTest, dump).Dispose();
         }
     }
 }

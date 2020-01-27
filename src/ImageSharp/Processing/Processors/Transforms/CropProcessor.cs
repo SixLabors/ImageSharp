@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
@@ -32,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Rectangle CropRectangle { get; }
 
         /// <inheritdoc />
-        public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
-            => new CropProcessor<TPixel>(this, source, sourceRectangle);
+        public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            => new CropProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

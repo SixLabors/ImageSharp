@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
     public class ExactImageComparer : ImageComparer

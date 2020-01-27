@@ -7,7 +7,6 @@ using System.IO;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 using Xunit;
 

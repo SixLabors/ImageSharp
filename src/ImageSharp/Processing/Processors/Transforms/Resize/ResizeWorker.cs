@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,8 +9,6 @@ using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -115,13 +113,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public void FillDestinationPixels(RowInterval rowInterval, Buffer2D<TPixel> destination)
         {
             Span<Vector4> tempColSpan = this.tempColumnBuffer.GetSpan();
+            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSpan();
 
             for (int y = rowInterval.Min; y < rowInterval.Max; y++)
             {
                 // Ensure offsets are normalized for cropping and padding.
                 ResizeKernel kernel = this.verticalKernelMap.GetKernel(y - this.targetOrigin.Y);
 
-                if (kernel.StartIndex + kernel.Length > this.currentWindow.Max)
+                while (kernel.StartIndex + kernel.Length > this.currentWindow.Max)
                 {
                     this.Slide();
                 }
@@ -129,8 +128,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempColSpan);
 
                 int top = kernel.StartIndex - this.currentWindow.Min;
-
-                ref Vector4 fpBase = ref this.transposedFirstPassBuffer.Span[top];
+                ref Vector4 fpBase = ref transposedFirstPassBufferSpan[top];
 
                 for (int x = 0; x < this.destWidth; x++)
                 {
@@ -167,6 +165,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private void CalculateFirstPassValues(RowInterval calculationInterval)
         {
             Span<Vector4> tempRowSpan = this.tempRowBuffer.GetSpan();
+            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSpan();
+
             for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
             {
                 Span<TPixel> sourceRow = this.source.GetRowSpan(y);
@@ -177,13 +177,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     tempRowSpan,
                     this.conversionModifiers);
 
-                // Span<Vector4> firstPassSpan = this.transposedFirstPassBuffer.Span.Slice(y - this.currentWindow.Min);
-                ref Vector4 firstPassBaseRef = ref this.transposedFirstPassBuffer.Span[y - this.currentWindow.Min];
+                // optimization for:
+                // Span<Vector4> firstPassSpan = transposedFirstPassBufferSpan.Slice(y - this.currentWindow.Min);
+                ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - this.currentWindow.Min];
 
                 for (int x = this.targetWorkingRect.Left; x < this.targetWorkingRect.Right; x++)
                 {
                     ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - this.targetOrigin.X);
 
+                    // optimization for:
                     // firstPassSpan[x * this.workerHeight] = kernel.Convolve(tempRowSpan);
                     Unsafe.Add(ref firstPassBaseRef, x * this.workerHeight) = kernel.Convolve(tempRowSpan);
                 }

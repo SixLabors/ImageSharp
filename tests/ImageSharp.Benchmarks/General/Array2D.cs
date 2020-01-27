@@ -5,7 +5,7 @@ using System;
 
 using BenchmarkDotNet.Attributes;
 
-using SixLabors.ImageSharp.Primitives;
+using SixLabors.ImageSharp;
 
 namespace SixLabors.ImageSharp.Benchmarks.General
 {

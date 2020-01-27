@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
     using BenchmarkDotNet.Attributes;
     using BenchmarkDotNet.Diagnosers;
+    using BenchmarkDotNet.Environments;
     using SixLabors.ImageSharp.Tests;
 
     using CoreImage = ImageSharp.Image;
@@ -36,7 +37,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                 public ShortClr()
                 {
                     this.Add(
-                        Job.Core.WithLaunchCount(1).WithWarmupCount(1).WithIterationCount(2)
+                        Job.Default.With(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(1).WithIterationCount(2)
                     );
                 }
             }

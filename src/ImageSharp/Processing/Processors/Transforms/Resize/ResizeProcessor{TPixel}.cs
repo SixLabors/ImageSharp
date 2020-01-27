@@ -4,11 +4,9 @@
 using System;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -33,8 +31,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private ResizeKernelMap horizontalKernelMap;
         private ResizeKernelMap verticalKernelMap;
 
-        public ResizeProcessor(ResizeProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public ResizeProcessor(Configuration configuration, ResizeProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.targetWidth = definition.TargetWidth;
             this.targetHeight = definition.TargetHeight;

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats;
@@ -19,6 +20,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// None of the methods in this class should ever be called, the code only has to exist at compile-time to be picked up by the AoT compiler.
     /// (Very similar to the LinkerIncludes.cs technique used in Xamarin.Android projects.)
     /// </summary>
+    [ExcludeFromCodeCoverage]
     internal static class AotCompilerTools
     {
         static AotCompilerTools()
@@ -40,7 +42,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         private static void SeedEverything()
         {
-            Seed<Alpha8>();
+            Seed<A8>();
             Seed<Argb32>();
             Seed<Bgr24>();
             Seed<Bgr565>();
@@ -48,8 +50,10 @@ namespace SixLabors.ImageSharp.Advanced
             Seed<Bgra4444>();
             Seed<Bgra5551>();
             Seed<Byte4>();
-            Seed<Gray16>();
-            Seed<Gray8>();
+            Seed<L16>();
+            Seed<L8>();
+            Seed<La16>();
+            Seed<La32>();
             Seed<HalfSingle>();
             Seed<HalfVector2>();
             Seed<HalfVector4>();
@@ -136,7 +140,7 @@ namespace SixLabors.ImageSharp.Advanced
             TPixel pixel = default;
             using (var image = new ImageFrame<TPixel>(Configuration.Default, 1, 1))
             {
-                test.Dither(image, pixel, pixel, 0, 0, 0, 0, 0, 0);
+                test.Dither(image, pixel, pixel, 0, 0, 0, 0, 0);
             }
         }
 

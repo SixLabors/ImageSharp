@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
 {
@@ -40,10 +39,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         public int BrushSize { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new OilPaintingProcessor<TPixel>(this, source, sourceRectangle);
-        }
+            => new OilPaintingProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

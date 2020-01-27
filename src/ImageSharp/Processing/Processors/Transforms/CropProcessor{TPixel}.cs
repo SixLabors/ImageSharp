@@ -3,9 +3,8 @@
 
 using System;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.ParallelUtils;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -21,11 +20,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Initializes a new instance of the <see cref="CropProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="definition">The <see cref="CropProcessor"/>.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public CropProcessor(CropProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public CropProcessor(Configuration configuration, CropProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
             => this.cropRectangle = definition.CropRectangle;
 
         /// <inheritdoc/>
@@ -47,10 +47,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle bounds = this.cropRectangle;
 
             // Copying is cheap, we should process more pixels per task:
-            ParallelExecutionSettings parallelSettings
-                = this.Configuration
-                      .GetParallelSettings()
-                      .MultiplyMinimumPixelsPerTask(4);
+            ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(this.Configuration)
+                .MultiplyMinimumPixelsPerTask(4);
 
             ParallelHelper.IterateRows(
                 bounds,

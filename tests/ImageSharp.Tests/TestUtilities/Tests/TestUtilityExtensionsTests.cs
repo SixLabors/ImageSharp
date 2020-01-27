@@ -99,13 +99,13 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ExpandAllTypes_1()
         {
-            PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.HalfVector2 | PixelTypes.Rgba32;
+            PixelTypes pixelTypes = PixelTypes.A8 | PixelTypes.Bgr565 | PixelTypes.HalfVector2 | PixelTypes.Rgba32;
 
             IEnumerable<KeyValuePair<PixelTypes, Type>> expanded = pixelTypes.ExpandAllTypes();
 
             Assert.Equal(4, expanded.Count());
 
-            AssertContainsPixelType<Alpha8>(PixelTypes.Alpha8, expanded);
+            AssertContainsPixelType<A8>(PixelTypes.A8, expanded);
             AssertContainsPixelType<Bgr565>(PixelTypes.Bgr565, expanded);
             AssertContainsPixelType<HalfVector2>(PixelTypes.HalfVector2, expanded);
             AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);

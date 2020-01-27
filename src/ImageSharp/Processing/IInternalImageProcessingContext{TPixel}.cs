@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Returns the result image to return by <see cref="ProcessingExtensions.Clone"/>
+        /// Returns the result image to return by <see cref="ProcessingExtensions.Clone(Image, Configuration, System.Action{IImageProcessingContext})"/>
         /// (and other overloads).
         /// </summary>
         /// <returns>The current image or a new image depending on whether it is requested to mutate the source image.</returns>

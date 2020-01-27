@@ -288,6 +288,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.currentStream.Read(this.buffer, 0, 4);
             uint dataSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
 
+            // remaining counts the available image data payload.
+            uint remaining = dataSize;
+
             // See paragraph 9.1 https://tools.ietf.org/html/rfc6386#page-30
             // Frame tag that contains four fields:
             // - A 1-bit frame type (0 for key frames, 1 for interframes).
@@ -296,6 +299,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // - A 19-bit field containing the size of the first data partition in bytes.
             this.currentStream.Read(this.buffer, 0, 3);
             uint frameTag = (uint)(this.buffer[0] | (this.buffer[1] << 8) | (this.buffer[2] << 16));
+            remaining -= 3;
             bool isKeyFrame = (frameTag & 0x1) is 0;
             if (!isKeyFrame)
             {
@@ -334,14 +338,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             tmp = (uint)BinaryPrimitives.ReadInt16LittleEndian(this.buffer.AsSpan(2));
             uint height = tmp & 0x3fff;
             sbyte yScale = (sbyte)(tmp >> 6);
+            remaining -= 7;
             if (width is 0 || height is 0)
             {
                 WebPThrowHelper.ThrowImageFormatException("width or height can not be zero");
             }
 
-            // The size of the encoded image data payload.
-            uint imageDataSize = dataSize - 10; // we have read 10 bytes already.
-            if (partitionLength > imageDataSize)
+            if (partitionLength > remaining)
             {
                 WebPThrowHelper.ThrowImageFormatException("bad partition length");
             }
@@ -355,10 +358,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             var bitReader = new Vp8BitReader(
                 this.currentStream,
-                imageDataSize,
+                remaining,
                 this.memoryAllocator);
 
-            // Paragraph 9.2: color space and clamp type follow
+            // Paragraph 9.2: color space and clamp type follow.
             sbyte colorSpace = (sbyte)bitReader.ReadValue(1);
             sbyte clampType = (sbyte)bitReader.ReadValue(1);
             var vp8PictureHeader = new Vp8PictureHeader()
@@ -372,90 +375,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
                                    };
 
             // Paragraph 9.3: Parse the segment header.
-            var vp8SegmentHeader = new Vp8SegmentHeader();
-            var proba = new Vp8Proba();
-            vp8SegmentHeader.UseSegment = bitReader.ReadBool();
             bool hasValue;
-            if (vp8SegmentHeader.UseSegment)
-            {
-                vp8SegmentHeader.UpdateMap = bitReader.ReadBool();
-                bool updateData = bitReader.ReadBool();
-                if (updateData)
-                {
-                    vp8SegmentHeader.Delta = bitReader.ReadBool();
-                    for (int i = 0; i < vp8SegmentHeader.Quantizer.Length; i++)
-                    {
-                        hasValue = bitReader.ReadBool();
-                        uint quantizeValue = hasValue ? bitReader.ReadValue(7) : 0;
-                        vp8SegmentHeader.Quantizer[i] = (byte)quantizeValue;
-                    }
-
-                    for (int i = 0; i < vp8SegmentHeader.FilterStrength.Length; i++)
-                    {
-                        hasValue = bitReader.ReadBool();
-                        uint filterStrengthValue = hasValue ? bitReader.ReadValue(6) : 0;
-                        vp8SegmentHeader.FilterStrength[i] = (byte)filterStrengthValue;
-                    }
-
-                    if (vp8SegmentHeader.UpdateMap)
-                    {
-                        for (int s = 0; s < proba.Segments.Length; ++s)
-                        {
-                            hasValue = bitReader.ReadBool();
-                            proba.Segments[s] = hasValue ? bitReader.ReadValue(8) : 255;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                vp8SegmentHeader.UpdateMap = false;
-            }
+            var proba = new Vp8Proba();
+            Vp8SegmentHeader vp8SegmentHeader = ParseSegmentHeader(bitReader, proba);
 
             // Paragraph 9.4: Parse the filter specs.
-            var vp8FilterHeader = new Vp8FilterHeader();
-            vp8FilterHeader.LoopFilter = bitReader.ReadBool() ? LoopFilter.Simple : LoopFilter.Complex;
-            vp8FilterHeader.Level = (int)bitReader.ReadValue(6);
-            vp8FilterHeader.Sharpness = (int)bitReader.ReadValue(3);
-            vp8FilterHeader.UseLfDelta = bitReader.ReadBool();
+            Vp8FilterHeader vp8FilterHeader = ParseFilterHeader(bitReader);
 
-            // TODO: use enum here?
-            // 0 = 0ff, 1 = simple, 2 = complex
-            int filterType = (vp8FilterHeader.Level is 0) ? 0 : vp8FilterHeader.LoopFilter is LoopFilter.Simple ? 1 : 2;
-            if (vp8FilterHeader.UseLfDelta)
-            {
-                // Update lf-delta?
-                if (bitReader.ReadBool())
-                {
-                    for (int i = 0; i < vp8FilterHeader.RefLfDelta.Length; i++)
-                    {
-                        hasValue = bitReader.ReadBool();
-                        if (hasValue)
-                        {
-                            vp8FilterHeader.RefLfDelta[i] = bitReader.ReadSignedValue(6);
-                        }
-                    }
-
-                    for (int i = 0; i < vp8FilterHeader.ModeLfDelta.Length; i++)
-                    {
-                        hasValue = bitReader.ReadBool();
-                        if (hasValue)
-                        {
-                            vp8FilterHeader.ModeLfDelta[i] = bitReader.ReadSignedValue(6);
-                        }
-                    }
-                }
-            }
-
-            // Paragraph 9.5: ParsePartitions.
+            // TODO: Review Paragraph 9.5: ParsePartitions.
             int numPartsMinusOne = (1 << (int)bitReader.ReadValue(2)) - 1;
             int lastPart = numPartsMinusOne;
             // TODO: check if we have enough data available here, throw exception if not
             int partStart = bitReader.Pos + (lastPart * 3);
-            for (int p = 0; p < lastPart; ++p)
-            {
-                // int psize = sz[0] | (sz[1] << 8) | (sz[2] << 16);
-            }
 
             // Paragraph 9.6: Dequantization Indices.
             int baseQ0 = (int)bitReader.ReadValue(7);
@@ -516,7 +447,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Ignore the value of update_proba
             bitReader.ReadBool();
 
-            // Parse probabilities.
+            // Paragraph 13.4: Parse probabilities.
             for (int t = 0; t < WebPConstants.NumTypes; ++t)
             {
                 for (int b = 0; b < WebPConstants.NumBands; ++b)
@@ -560,6 +491,90 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        Vp8PictureHeader = vp8PictureHeader,
                        Vp8BitReader = bitReader
                    };
+        }
+
+        private static Vp8FilterHeader ParseFilterHeader(Vp8BitReader bitReader)
+        {
+            var vp8FilterHeader = new Vp8FilterHeader();
+            vp8FilterHeader.LoopFilter = bitReader.ReadBool() ? LoopFilter.Simple : LoopFilter.Complex;
+            vp8FilterHeader.Level = (int)bitReader.ReadValue(6);
+            vp8FilterHeader.Sharpness = (int)bitReader.ReadValue(3);
+            vp8FilterHeader.UseLfDelta = bitReader.ReadBool();
+
+            // TODO: use enum here?
+            // 0 = 0ff, 1 = simple, 2 = complex
+            int filterType = (vp8FilterHeader.Level is 0) ? 0 : vp8FilterHeader.LoopFilter is LoopFilter.Simple ? 1 : 2;
+            bool hasValue;
+            if (vp8FilterHeader.UseLfDelta)
+            {
+                // Update lf-delta?
+                if (bitReader.ReadBool())
+                {
+                    for (int i = 0; i < vp8FilterHeader.RefLfDelta.Length; i++)
+                    {
+                        hasValue = bitReader.ReadBool();
+                        if (hasValue)
+                        {
+                            vp8FilterHeader.RefLfDelta[i] = bitReader.ReadSignedValue(6);
+                        }
+                    }
+
+                    for (int i = 0; i < vp8FilterHeader.ModeLfDelta.Length; i++)
+                    {
+                        hasValue = bitReader.ReadBool();
+                        if (hasValue)
+                        {
+                            vp8FilterHeader.ModeLfDelta[i] = bitReader.ReadSignedValue(6);
+                        }
+                    }
+                }
+            }
+
+            return vp8FilterHeader;
+        }
+
+        private static Vp8SegmentHeader ParseSegmentHeader(Vp8BitReader bitReader, Vp8Proba proba)
+        {
+            var vp8SegmentHeader = new Vp8SegmentHeader();
+            vp8SegmentHeader.UseSegment = bitReader.ReadBool();
+            bool hasValue;
+            if (vp8SegmentHeader.UseSegment)
+            {
+                vp8SegmentHeader.UpdateMap = bitReader.ReadBool();
+                bool updateData = bitReader.ReadBool();
+                if (updateData)
+                {
+                    vp8SegmentHeader.Delta = bitReader.ReadBool();
+                    for (int i = 0; i < vp8SegmentHeader.Quantizer.Length; i++)
+                    {
+                        hasValue = bitReader.ReadBool();
+                        uint quantizeValue = hasValue ? bitReader.ReadValue(7) : 0;
+                        vp8SegmentHeader.Quantizer[i] = (byte)quantizeValue;
+                    }
+
+                    for (int i = 0; i < vp8SegmentHeader.FilterStrength.Length; i++)
+                    {
+                        hasValue = bitReader.ReadBool();
+                        uint filterStrengthValue = hasValue ? bitReader.ReadValue(6) : 0;
+                        vp8SegmentHeader.FilterStrength[i] = (byte)filterStrengthValue;
+                    }
+
+                    if (vp8SegmentHeader.UpdateMap)
+                    {
+                        for (int s = 0; s < proba.Segments.Length; ++s)
+                        {
+                            hasValue = bitReader.ReadBool();
+                            proba.Segments[s] = hasValue ? bitReader.ReadValue(8) : 255;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                vp8SegmentHeader.UpdateMap = false;
+            }
+
+            return vp8SegmentHeader;
         }
 
         /// <summary>

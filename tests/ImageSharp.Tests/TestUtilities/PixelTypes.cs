@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -61,6 +61,12 @@ namespace SixLabors.ImageSharp.Tests
         Bgra5551 = 1 << 22,
 
         L8 = 1 << 23,
+
+        L16 = 1 << 24,
+
+        La16 = 1 << 25,
+
+        La32 = 1 << 26,
 
         // TODO: Add multi-flag entries by rules defined in PackedPixelConverterHelper
 

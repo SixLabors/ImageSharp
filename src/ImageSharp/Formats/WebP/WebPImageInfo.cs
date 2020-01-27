@@ -46,16 +46,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Vp8PictureHeader Vp8PictureHeader { get; set; }
 
         /// <summary>
-        /// Gets or sets the VP8 segment header.
-        /// </summary>
-        public Vp8SegmentHeader Vp8SegmentHeader { get; set; }
-
-        /// <summary>
-        /// Gets or sets the VP8 filter header.
-        /// </summary>
-        public Vp8FilterHeader Vp8FilterHeader { get; set; }
-
-        /// <summary>
         /// Gets or sets the VP8L bitreader. Will be null, if its not lossless image.
         /// </summary>
         public Vp8LBitReader Vp8LBitReader { get; set; } = null;

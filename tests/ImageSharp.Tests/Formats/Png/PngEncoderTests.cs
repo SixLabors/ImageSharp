@@ -202,46 +202,51 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
-        // does the following make sense? Or is it supposed to encode a 16bpp with two 8bit channels?
-        [WithBlankImages(1, 1, PixelTypes.Alpha8, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.A8, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
         [WithBlankImages(1, 1, PixelTypes.Argb32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-        // [WithBlankImages(1, 1, PixelTypes.Bgr565, Can't reasonably be inferred)]
-        // [WithBlankImages(1, 1, PixelTypes.Bgra4444, Can't reasonably be inferred)]
-        // [WithBlankImages(1, 1, PixelTypes.Byte4, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.HalfSingle, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.HalfVector2, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.HalfVector4, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.NormalizedByte2, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.NormalizedByte4, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.NormalizedShort4, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.Rg32, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.Rgba1010102, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.Rgba32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-        // [WithBlankImages(1, 1, PixelTypes.Rgba64, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
-        // [WithBlankImages(1, 1, PixelTypes.RgbaVector, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.Short2, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.Short4, I'm not sure)]
+        [WithBlankImages(1, 1, PixelTypes.Bgr565, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.Bgra4444, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.Byte4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.HalfSingle, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.HalfVector2, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.HalfVector4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.NormalizedByte2, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.NormalizedByte4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.NormalizedShort4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.Rg32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.Rgba1010102, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.Rgba32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.RgbaVector, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
+        [WithBlankImages(1, 1, PixelTypes.Short2, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.Short4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
         [WithBlankImages(1, 1, PixelTypes.Rgb24, PngColorType.Rgb, PngBitDepth.Bit8)]
-        // [WithBlankImages(1, 1, PixelTypes.Bgr24, I'm not sure)]
-        // [WithBlankImages(1, 1, PixelTypes.Bgra32, I'm not sure)]
+        [WithBlankImages(1, 1, PixelTypes.Bgr24, PngColorType.Rgb, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.Bgra32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
         [WithBlankImages(1, 1, PixelTypes.Rgb48, PngColorType.Rgb, PngBitDepth.Bit16)]
-        // [WithBlankImages(1, 1, PixelTypes.Bgra5551, I'm not sure)]
-        [WithBlankImages(1, 1, PixelTypes.Gray8, PngColorType.Grayscale, PngBitDepth.Bit8)]
-        [WithBlankImages(1, 1, PixelTypes.Gray16, PngColorType.Grayscale, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.Rgba64, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
+        [WithBlankImages(1, 1, PixelTypes.Bgra5551, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.L8, PngColorType.Grayscale, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.L16, PngColorType.Grayscale, PngBitDepth.Bit16)]
+        [WithBlankImages(1, 1, PixelTypes.La16, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
+        [WithBlankImages(1, 1, PixelTypes.La32, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit16)]
         public void InfersColorTypeAndBitDepth<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
             where TPixel : struct, IPixel<TPixel>
         {
-            Stream stream = new MemoryStream();
-            PngEncoder encoder = new PngEncoder();
-            encoder.Encode<TPixel>(provider.GetImage(), stream);
+            using (Stream stream = new MemoryStream())
+            {
+                var encoder = new PngEncoder();
+                encoder.Encode(provider.GetImage(), stream);
 
-            stream.Seek(0, SeekOrigin.Begin);
+                stream.Seek(0, SeekOrigin.Begin);
 
-            PngDecoder decoder = new PngDecoder();
+                var decoder = new PngDecoder();
 
-            Image image = decoder.Decode(Configuration.Default, stream);
+                Image image = decoder.Decode(Configuration.Default, stream);
 
-            Assert.True(image is Image<TPixel>);
+                PngMetadata metadata = image.Metadata.GetPngMetadata();
+                Assert.Equal(pngColorType, metadata.ColorType);
+                Assert.Equal(pngBitDepth, metadata.BitDepth);
+            }
         }
 
         [Theory]

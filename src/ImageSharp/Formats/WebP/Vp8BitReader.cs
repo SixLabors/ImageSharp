@@ -46,8 +46,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         private long pos;
 
-        public int Pos { get { return (int)pos; } }
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8BitReader"/> class.
         /// </summary>
@@ -59,6 +57,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             this.ReadImageDataFromStream(inputStream, (int)imageDataSize, memoryAllocator);
             this.InitBitreader(startPos);
+        }
+
+        public int Pos
+        {
+            get { return (int)this.pos; }
         }
 
         public int GetBit(int prob)

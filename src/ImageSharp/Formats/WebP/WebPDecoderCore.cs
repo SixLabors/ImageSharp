@@ -373,8 +373,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // Paragraph 9.3: Parse the segment header.
             var vp8SegmentHeader = new Vp8SegmentHeader();
+            var proba = new Vp8Proba();
             vp8SegmentHeader.UseSegment = bitReader.ReadBool();
-            bool hasValue = false;
+            bool hasValue;
             if (vp8SegmentHeader.UseSegment)
             {
                 vp8SegmentHeader.UpdateMap = bitReader.ReadBool();
@@ -398,9 +399,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                     if (vp8SegmentHeader.UpdateMap)
                     {
-                        // TODO: Read VP8Proba
+                        for (int s = 0; s < proba.Segments.Length; ++s)
+                        {
+                            hasValue = bitReader.ReadBool();
+                            proba.Segments[s] = hasValue ? bitReader.ReadValue(8) : 255;
+                        }
                     }
                 }
+            }
+            else
+            {
+                vp8SegmentHeader.UpdateMap = false;
             }
 
             // Paragraph 9.4: Parse the filter specs.
@@ -442,8 +451,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int numPartsMinusOne = (1 << (int)bitReader.ReadValue(2)) - 1;
             int lastPart = numPartsMinusOne;
             // TODO: check if we have enough data available here, throw exception if not
+            int partStart = bitReader.Pos + (lastPart * 3);
+            for (int p = 0; p < lastPart; ++p)
+            {
+                // int psize = sz[0] | (sz[1] << 8) | (sz[2] << 16);
+            }
 
-            // Paragraph 9.6: Dequantization Indices
+            // Paragraph 9.6: Dequantization Indices.
             int baseQ0 = (int)bitReader.ReadValue(7);
             hasValue = bitReader.ReadBool();
             int dqy1Dc = hasValue ? bitReader.ReadSignedValue(4) : 0;
@@ -497,6 +511,39 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 // For dithering strength evaluation.
                 m.UvQuant = q + dquvAc;
+            }
+
+            // Ignore the value of update_proba
+            bitReader.ReadBool();
+
+            // Parse probabilities.
+            for (int t = 0; t < WebPConstants.NumTypes; ++t)
+            {
+                for (int b = 0; b < WebPConstants.NumBands; ++b)
+                {
+                    for (int c = 0; c < WebPConstants.NumCtx; ++c)
+                    {
+                        for (int p = 0; p < WebPConstants.NumProbas; ++p)
+                        {
+                            var prob = WebPConstants.CoeffsUpdateProba[t, b, c, p];
+                            int v = bitReader.GetBit(prob) == 0 ? (int)bitReader.ReadValue(8) : WebPConstants.DefaultCoeffsProba[t, b, c, p];
+                            proba.Bands[t, b].Probabilities[c].Probabilities[p] = (uint)v;
+                        }
+                    }
+                }
+
+                for (int b = 0; b < 16 + 1; ++b)
+                {
+                    // TODO: This needs to be reviewed and fixed.
+                    // proba->bands_ptr_[t][b] = &proba->bands_[t][kBands[b]];
+                }
+            }
+
+            // TODO: those values needs to be stored somewhere
+            bool useSkipProba = bitReader.ReadBool();
+            if (useSkipProba)
+            {
+                var skipP = bitReader.ReadValue(8);
             }
 
             return new WebPImageInfo()

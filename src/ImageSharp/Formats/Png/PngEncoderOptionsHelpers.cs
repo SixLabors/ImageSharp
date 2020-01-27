@@ -30,8 +30,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Always take the encoder options over the metadata values.
             options.Gamma ??= pngMetadata.Gamma;
 
-            options.ColorType ??= SuggestColorType<TPixel>() ?? pngMetadata.ColorType;
-            options.BitDepth ??= SuggestBitDepth<TPixel>() ?? pngMetadata.BitDepth;
+            // Use options, then check metadata, if nothing set there then we suggest
+            // a sensible default based upon the pixel format.
+            options.ColorType ??= pngMetadata.ColorType ?? SuggestColorType<TPixel>();
+            options.BitDepth ??= pngMetadata.BitDepth ?? SuggestBitDepth<TPixel>();
 
             options.InterlaceMethod ??= pngMetadata.InterlaceMethod;
 
@@ -148,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Returns a suggested <see cref="PngColorType"/> for the given <typeparamref name="TPixel"/>
         /// This is not exhaustive but covers many common pixel formats.
         /// </summary>
-        private static PngColorType? SuggestColorType<TPixel>()
+        private static PngColorType SuggestColorType<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
             return typeof(TPixel) switch
@@ -166,7 +168,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 Type t when t == typeof(Rgb48) => PngColorType.Rgb,
                 Type t when t == typeof(Rgba64) => PngColorType.RgbWithAlpha,
                 Type t when t == typeof(RgbaVector) => PngColorType.RgbWithAlpha,
-                _ => default(PngColorType?)
+                _ => PngColorType.RgbWithAlpha
             };
         }
 
@@ -174,7 +176,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Returns a suggested <see cref="PngBitDepth"/> for the given <typeparamref name="TPixel"/>
         /// This is not exhaustive but covers many common pixel formats.
         /// </summary>
-        private static PngBitDepth? SuggestBitDepth<TPixel>()
+        private static PngBitDepth SuggestBitDepth<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
             return typeof(TPixel) switch
@@ -192,7 +194,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 Type t when t == typeof(Rgb48) => PngBitDepth.Bit16,
                 Type t when t == typeof(Rgba64) => PngBitDepth.Bit16,
                 Type t when t == typeof(RgbaVector) => PngBitDepth.Bit16,
-                _ => default(PngBitDepth?)
+                _ => PngBitDepth.Bit8
             };
         }
     }

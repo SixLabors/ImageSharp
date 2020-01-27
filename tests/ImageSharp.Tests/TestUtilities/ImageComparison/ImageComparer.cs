@@ -6,8 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.PixelFormats;
 
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
     public abstract class ImageComparer

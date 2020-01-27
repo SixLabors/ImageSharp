@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Tests
 
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.Rgba32, PixelTypes.Rgba32)]
-        [WithBlankImages(1, 1, PixelTypes.Alpha8, PixelTypes.Alpha8)]
+        [WithBlankImages(1, 1, PixelTypes.A8, PixelTypes.A8)]
         [WithBlankImages(1, 1, PixelTypes.Argb32, PixelTypes.Argb32)]
         public void PixelType_PropertyValueIsCorrect<TPixel>(TestImageProvider<TPixel> provider, PixelTypes expected)
             where TPixel : struct, IPixel<TPixel> =>

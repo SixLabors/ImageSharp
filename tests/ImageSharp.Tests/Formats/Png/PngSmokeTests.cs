@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         //    using (Image<TPixel> source = provider.GetImage())
         //    using (MemoryStream ms = new MemoryStream())
         //    {
-        //        source.MetaData.Quality = 256;
+        //        source.Metadata.Quality = 256;
         //        source.Save(ms, new PngEncoder(), new PngEncoderOptions {
         //            Threshold = 200
         //        });

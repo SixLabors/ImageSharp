@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -28,6 +28,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
         }
 
+        /// <inheritdoc />
+        public Image Decode(Configuration configuration, Stream stream)
+            => this.Decode<Rgba32>(configuration, stream);
+
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)
         {
@@ -38,8 +42,5 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return decoder.Identify(stream);
             }
         }
-
-        /// <inheritdoc />
-        public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
     }
 }

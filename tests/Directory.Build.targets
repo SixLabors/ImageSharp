@@ -16,4 +16,26 @@
 
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.targets" />
 
+  <!-- Tool versions for tool references across all projects -->
+  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+    <!--dotnet tools does not have an x86 runner. You have to use separate SDKs-->
+    <!--https://github.com/actions/setup-dotnet/issues/72-->
+    <DotNetCliToolReference Update="dotnet-xunit" Version="2.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--Test Dependencies-->
+    <PackageReference Update="BenchmarkDotNet" Version="0.12.0" />
+    <PackageReference Update="Colourful" Version="2.0.3" />
+    <PackageReference Update="coverlet.collector" Version="1.2.0" PrivateAssets="All"/>
+    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.14.4" />
+    <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="5.0.0-beta.20069.1" />
+    <PackageReference Update="Microsoft.NET.Test.Sdk" Version="16.5.0-preview-20200116-01" />
+    <PackageReference Update="Moq" Version="4.10.0" />
+    <PackageReference Update="Pfim" Version="0.9.1" />
+    <PackageReference Update="System.Drawing.Common" Version="4.7.0" />
+    <PackageReference Update="xunit" Version="2.4.1" />
+    <PackageReference Update="xunit.runner.visualstudio" Version="2.4.1" />
+  </ItemGroup>
+
 </Project>

@@ -7,14 +7,13 @@ using System.IO;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.Primitives;
 
 using Xunit;
 
@@ -678,16 +677,16 @@ namespace SixLabors.ImageSharp.Tests
 
         private class MakeOpaqueProcessor : IImageProcessor
         {
-            public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+            public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
                 where TPixel : struct, IPixel<TPixel>
-                => new MakeOpaqueProcessor<TPixel>(source, sourceRectangle);
+                => new MakeOpaqueProcessor<TPixel>(configuration, source, sourceRectangle);
         }
 
         private class MakeOpaqueProcessor<TPixel> : ImageProcessor<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
-            public MakeOpaqueProcessor(Image<TPixel> source, Rectangle sourceRectangle)
-                : base(source, sourceRectangle)
+            public MakeOpaqueProcessor(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+                : base(configuration, source, sourceRectangle)
             {
 
             }

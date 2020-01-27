@@ -221,7 +221,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             ushort expected = ushort.MaxValue;
 
             // act
-            bgr.FromGray8(new Gray8(byte.MaxValue));
+            bgr.FromL8(new L8(byte.MaxValue));
 
             // assert
             Assert.Equal(expected, bgr.PackedValue);
@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             ushort expected = ushort.MaxValue;
 
             // act
-            bgr.FromGray16(new Gray16(ushort.MaxValue));
+            bgr.FromL16(new L16(ushort.MaxValue));
 
             // assert
             Assert.Equal(expected, bgr.PackedValue);

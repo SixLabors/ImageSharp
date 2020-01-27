@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 using Xunit;
 
 // ReSharper disable InconsistentNaming

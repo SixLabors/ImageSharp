@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
@@ -35,9 +34,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public IOrderedDither Dither { get; }
 
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
-        {
-            return new OrderedDitherPaletteProcessor<TPixel>(this, source, sourceRectangle);
-        }
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            => new OrderedDitherPaletteProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

@@ -3,8 +3,6 @@
 
 using System;
 
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <inheritdoc />

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -46,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public float Degrees { get; }
 
         /// <inheritdoc />
-        public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
-            => new RotateProcessor<TPixel>(this, source, sourceRectangle);
+        public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            => new RotateProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

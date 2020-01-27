@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 using System;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Primitives;
 using Xunit;
 
 // ReSharper disable InconsistentNaming

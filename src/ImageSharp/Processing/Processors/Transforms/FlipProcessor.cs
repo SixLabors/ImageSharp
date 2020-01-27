@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -15,10 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Initializes a new instance of the <see cref="FlipProcessor"/> class.
         /// </summary>
         /// <param name="flipMode">The <see cref="FlipMode"/> used to perform flipping.</param>
-        public FlipProcessor(FlipMode flipMode)
-        {
-            this.FlipMode = flipMode;
-        }
+        public FlipProcessor(FlipMode flipMode) => this.FlipMode = flipMode;
 
         /// <summary>
         /// Gets the <see cref="FlipMode"/> used to perform flipping.
@@ -26,10 +22,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public FlipMode FlipMode { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new FlipProcessor<TPixel>(this, source, sourceRectangle);
-        }
+            => new FlipProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

@@ -46,23 +46,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         private long pos;
 
+        public int Pos { get { return (int)pos; } }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8BitReader"/> class.
         /// </summary>
         /// <param name="inputStream">The input stream to read from.</param>
         /// <param name="imageDataSize">The raw image data size in bytes.</param>
         /// <param name="memoryAllocator">Used for allocating memory during reading data from the stream.</param>
-        public Vp8BitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator)
+        /// <param name="startPos">Start index in the data array. Defaults to 0.</param>
+        public Vp8BitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator, int startPos = 0)
         {
             this.ReadImageDataFromStream(inputStream, (int)imageDataSize, memoryAllocator);
-
-            this.range = 255 - 1;
-            this.value = 0;
-            this.bits = -8; // to load the very first 8bits.
-            this.eof = false;
-            this.pos = 0;
-
-            this.LoadNewBytes();
+            this.InitBitreader(startPos);
         }
 
         public int GetBit(int prob)
@@ -122,6 +118,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             int value = (int)this.ReadValue(nBits);
             return this.ReadValue(1) != 0 ? -value : value;
+        }
+
+        private void InitBitreader(int pos = 0)
+        {
+            this.range = 255 - 1;
+            this.value = 0;
+            this.bits = -8; // to load the very first 8bits.
+            this.eof = false;
+            this.pos = 0;
+
+            this.LoadNewBytes();
         }
 
         private void LoadNewBytes()

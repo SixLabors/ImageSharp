@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
@@ -108,9 +109,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             // Collect the palette. Required before the second pass runs.
             ReadOnlyMemory<TPixel> palette = this.GetPalette();
-            this.paletteVector = image.Configuration.MemoryAllocator.Allocate<Vector4>(palette.Length);
+            Configuration configuration = image.GetConfiguration();
+            this.paletteVector = configuration.MemoryAllocator.Allocate<Vector4>(palette.Length);
             PixelOperations<TPixel>.Instance.ToVector4(
-                image.Configuration,
+                configuration,
                 palette.Span,
                 this.paletteVector.Memory.Span,
                 PixelConversionModifiers.Scale);

@@ -76,6 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
 
             float blendPercentage = this.definition.GraphicsOptions.BlendPercentage;
+            Configuration configuration = this.Configuration;
 
             using (IMemoryOwner<TPixel> rowColors = source.MemoryAllocator.Allocate<TPixel>(width))
             {
@@ -83,7 +84,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
                 ParallelHelper.IterateRowsWithTempBuffer<float>(
                     workingRect,
-                    this.Configuration,
+                    configuration,
                     (rows, amounts) =>
                         {
                             Span<float> amountsSpan = amounts.Span;
@@ -102,7 +103,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                                 Span<TPixel> destination = source.GetPixelRowSpan(offsetY).Slice(offsetX, width);
 
                                 this.blender.Blend(
-                                    source.Configuration,
+                                    configuration,
                                     destination,
                                     destination,
                                     rowColors.GetSpan(),

@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp
                 this.PixelBuffer.GetSpan().CopyTo(dest1);
             }
 
-            PixelOperations<TPixel>.Instance.To(this.Configuration, this.PixelBuffer.GetSpan(), destination);
+            PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), this.PixelBuffer.GetSpan(), destination);
         }
 
         /// <inheritdoc/>
@@ -229,7 +229,7 @@ namespace SixLabors.ImageSharp
         /// Clones the current instance.
         /// </summary>
         /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
-        internal ImageFrame<TPixel> Clone() => this.Clone(this.Configuration);
+        internal ImageFrame<TPixel> Clone() => this.Clone(this.GetConfiguration());
 
         /// <summary>
         /// Clones the current instance.
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
         /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
         internal ImageFrame<TPixel2> CloneAs<TPixel2>()
-            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
+            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.GetConfiguration());
 
         /// <summary>
         /// Returns a copy of the image frame in the given pixel format.

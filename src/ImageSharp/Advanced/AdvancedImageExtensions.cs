@@ -32,6 +32,22 @@ namespace SixLabors.ImageSharp.Advanced
             => GetConfiguration((IConfigurable)source);
 
         /// <summary>
+        /// Gets the configuration for the image frame.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <returns>Returns the configuration.</returns>
+        public static Configuration GetConfiguration(this ImageFrame source)
+            => GetConfiguration((IConfigurable)source);
+
+        /// <summary>
+        /// Gets the configuration .
+        /// </summary>
+        /// <param name="source">The source image</param>
+        /// <returns>Returns the bounds of the image</returns>
+        private static Configuration GetConfiguration(IConfigurable source)
+            => source?.Configuration ?? Configuration.Default;
+
+        /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory in the source image's pixel format
         /// stored in row major order.
         /// </summary>
@@ -160,14 +176,6 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>Returns the configuration.</returns>
         internal static MemoryAllocator GetMemoryAllocator(this IConfigurable source)
             => GetConfiguration(source).MemoryAllocator;
-
-        /// <summary>
-        /// Gets the configuration.
-        /// </summary>
-        /// <param name="source">The source image</param>
-        /// <returns>Returns the bounds of the image</returns>
-        private static Configuration GetConfiguration(IConfigurable source)
-            => source?.Configuration ?? Configuration.Default;
 
         /// <summary>
         /// Returns a reference to the 0th element of the Pixel buffer.

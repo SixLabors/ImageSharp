@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp
     /// For the non-generic <see cref="Image"/> type, the pixel type is only known at runtime.
     /// <see cref="Image"/> is always implemented by a pixel-specific <see cref="Image{TPixel}"/> instance.
     /// </summary>
-    public abstract partial class Image : IImage, IConfigurable
+    public abstract partial class Image : IImage, IConfigurationProvider
     {
         private Size size;
         private readonly Configuration configuration;
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp
         public ImageFrameCollection Frames => this.NonGenericFrameCollection;
 
         /// <inheritdoc/>
-        Configuration IConfigurable.Configuration => this.configuration;
+        Configuration IConfigurationProvider.Configuration => this.configuration;
 
         /// <inheritdoc />
         public void Dispose()

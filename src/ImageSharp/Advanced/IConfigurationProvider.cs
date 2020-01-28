@@ -4,9 +4,9 @@
 namespace SixLabors.ImageSharp.Advanced
 {
     /// <summary>
-    /// Encapsulates the properties for configuration.
+    /// Defines the contract for objects that can provide access to configuration.
     /// </summary>
-    internal interface IConfigurable
+    internal interface IConfigurationProvider
     {
         /// <summary>
         /// Gets the configuration which allows altering default behaviour or extending the library.

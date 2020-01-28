@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp
     /// In case of animated formats like gif, it contains the single frame in a animation.
     /// In all other cases it is the only frame of the image.
     /// </summary>
-    public abstract partial class ImageFrame : IConfigurable, IDisposable
+    public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     {
         private readonly Configuration configuration;
 
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp
         public ImageFrameMetadata Metadata { get; }
 
         /// <inheritdoc/>
-        Configuration IConfigurable.Configuration => this.configuration;
+        Configuration IConfigurationProvider.Configuration => this.configuration;
 
         /// <summary>
         /// Gets the size of the frame.

@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
     /// instance becomes invalid, throwing an exception on all operations.
     /// </remarks>
     /// <typeparam name="T">The element type.</typeparam>
-    public class UniformMemoryGroupView<T> : IUniformMemoryGroup<T> where T : struct
+    internal class UniformMemoryGroupView<T> : IUniformMemoryGroup<T> where T : struct
     {
         private readonly UniformMemoryGroup<T> owner;
         private readonly MemoryOwnerWrapper[] memoryWrappers;

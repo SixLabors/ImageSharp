@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source image.</param>
         /// <returns>Returns the configuration.</returns>
         public static Configuration GetConfiguration(this Image source)
-            => GetConfiguration((IConfigurable)source);
+            => GetConfiguration((IConfigurationProvider)source);
 
         /// <summary>
         /// Gets the configuration for the image frame.
@@ -37,14 +37,14 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source image.</param>
         /// <returns>Returns the configuration.</returns>
         public static Configuration GetConfiguration(this ImageFrame source)
-            => GetConfiguration((IConfigurable)source);
+            => GetConfiguration((IConfigurationProvider)source);
 
         /// <summary>
         /// Gets the configuration .
         /// </summary>
         /// <param name="source">The source image</param>
         /// <returns>Returns the bounds of the image</returns>
-        private static Configuration GetConfiguration(IConfigurable source)
+        private static Configuration GetConfiguration(IConfigurationProvider source)
             => source?.Configuration ?? Configuration.Default;
 
         /// <summary>
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <param name="source">The source image.</param>
         /// <returns>Returns the configuration.</returns>
-        internal static MemoryAllocator GetMemoryAllocator(this IConfigurable source)
+        internal static MemoryAllocator GetMemoryAllocator(this IConfigurationProvider source)
             => GetConfiguration(source).MemoryAllocator;
 
         /// <summary>

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -83,14 +83,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc />
         public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
             where TPixel : struct, IPixel<TPixel>
-            => new OctreeFrameQuantizer<TPixel>(this);
+            => new OctreeFrameQuantizer<TPixel>(configuration, this);
 
         /// <inheritdoc/>
         public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
             where TPixel : struct, IPixel<TPixel>
         {
             maxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
-            return new OctreeFrameQuantizer<TPixel>(this, maxColors);
+            return new OctreeFrameQuantizer<TPixel>(configuration, this, maxColors);
         }
 
         private static IErrorDiffuser GetDiffuser(bool dither) => dither ? KnownDiffusers.FloydSteinberg : null;

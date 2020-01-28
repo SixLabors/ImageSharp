@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileOctreeQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var test = new OctreeFrameQuantizer<TPixel>(new OctreeQuantizer(false)))
+            using (var test = new OctreeFrameQuantizer<TPixel>(Configuration.Default, new OctreeQuantizer(false)))
             {
                 test.AotGetPalette();
             }
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileWuQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var test = new WuFrameQuantizer<TPixel>(Configuration.Default.MemoryAllocator, new WuQuantizer(false)))
+            using (var test = new WuFrameQuantizer<TPixel>(Configuration.Default, new WuQuantizer(false)))
             {
                 test.QuantizeFrame(new ImageFrame<TPixel>(Configuration.Default, 1, 1));
                 test.AotGetPalette();

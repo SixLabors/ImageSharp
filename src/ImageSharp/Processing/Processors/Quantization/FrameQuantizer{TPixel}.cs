@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
@@ -40,6 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="FrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="quantizer">The quantizer</param>
         /// <param name="singlePass">
         /// If true, the quantization process only needs to loop through the source pixels once
@@ -49,10 +50,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// only call the <see cref="SecondPass(ImageFrame{TPixel}, Span{byte}, ReadOnlySpan{TPixel},  int, int)"/> method.
         /// If two passes are required, the code will also call <see cref="FirstPass(ImageFrame{TPixel}, int, int)"/>.
         /// </remarks>
-        protected FrameQuantizer(IQuantizer quantizer, bool singlePass)
+        protected FrameQuantizer(Configuration configuration, IQuantizer quantizer, bool singlePass)
         {
             Guard.NotNull(quantizer, nameof(quantizer));
 
+            this.Configuration = configuration;
             this.Diffuser = quantizer.Diffuser;
             this.Dither = this.Diffuser != null;
             this.singlePass = singlePass;
@@ -61,6 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="FrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="diffuser">The diffuser</param>
         /// <param name="singlePass">
         /// If true, the quantization process only needs to loop through the source pixels once
@@ -70,8 +73,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// only call the <see cref="SecondPass(ImageFrame{TPixel}, Span{byte}, ReadOnlySpan{TPixel},  int, int)"/> method.
         /// If two passes are required, the code will also call <see cref="FirstPass(ImageFrame{TPixel}, int, int)"/>.
         /// </remarks>
-        protected FrameQuantizer(IErrorDiffuser diffuser, bool singlePass)
+        protected FrameQuantizer(Configuration configuration, IErrorDiffuser diffuser, bool singlePass)
         {
+            this.Configuration = configuration;
             this.Diffuser = diffuser;
             this.Dither = this.Diffuser != null;
             this.singlePass = singlePass;
@@ -82,6 +86,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc />
         public bool Dither { get; }
+
+        /// <summary>
+        /// Gets the configuration which allows altering default behaviour or extending the library.
+        /// </summary>
+        protected Configuration Configuration { get; }
 
         /// <inheritdoc/>
         public void Dispose()
@@ -109,15 +118,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             // Collect the palette. Required before the second pass runs.
             ReadOnlyMemory<TPixel> palette = this.GetPalette();
-            Configuration configuration = image.GetConfiguration();
-            this.paletteVector = configuration.MemoryAllocator.Allocate<Vector4>(palette.Length);
+            MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
+
+            this.paletteVector = memoryAllocator.Allocate<Vector4>(palette.Length);
             PixelOperations<TPixel>.Instance.ToVector4(
-                configuration,
+                this.Configuration,
                 palette.Span,
                 this.paletteVector.Memory.Span,
                 PixelConversionModifiers.Scale);
 
-            var quantizedFrame = new QuantizedFrame<TPixel>(image.MemoryAllocator, width, height, palette);
+            var quantizedFrame = new QuantizedFrame<TPixel>(memoryAllocator, width, height, palette);
 
             Span<byte> pixelSpan = quantizedFrame.GetWritablePixelSpan();
             if (this.Dither)

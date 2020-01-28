@@ -37,27 +37,29 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeFrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="quantizer">The octree quantizer</param>
         /// <remarks>
         /// The Octree quantizer is a two pass algorithm. The initial pass sets up the Octree,
         /// the second pass quantizes a color based on the nodes in the tree
         /// </remarks>
-        public OctreeFrameQuantizer(OctreeQuantizer quantizer)
-            : this(quantizer, quantizer.MaxColors)
+        public OctreeFrameQuantizer(Configuration configuration, OctreeQuantizer quantizer)
+            : this(configuration, quantizer, quantizer.MaxColors)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeFrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="quantizer">The octree quantizer.</param>
         /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
         /// <remarks>
         /// The Octree quantizer is a two pass algorithm. The initial pass sets up the Octree,
         /// the second pass quantizes a color based on the nodes in the tree
         /// </remarks>
-        public OctreeFrameQuantizer(OctreeQuantizer quantizer, int maxColors)
-            : base(quantizer, false)
+        public OctreeFrameQuantizer(Configuration configuration, OctreeQuantizer quantizer, int maxColors)
+            : base(configuration, quantizer, false)
         {
             this.colors = maxColors;
             this.octree = new Octree(ImageMaths.GetBitsNeededForColorDepth(this.colors).Clamp(1, 8));

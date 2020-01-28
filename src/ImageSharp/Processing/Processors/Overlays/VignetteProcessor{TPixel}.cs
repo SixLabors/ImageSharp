@@ -81,8 +81,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
             float blendPercentage = this.definition.GraphicsOptions.BlendPercentage;
             Configuration configuration = this.Configuration;
+            MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
 
-            using (IMemoryOwner<TPixel> rowColors = source.MemoryAllocator.Allocate<TPixel>(width))
+            using (IMemoryOwner<TPixel> rowColors = memoryAllocator.Allocate<TPixel>(width))
             {
                 rowColors.GetSpan().Fill(vignetteColor);
 

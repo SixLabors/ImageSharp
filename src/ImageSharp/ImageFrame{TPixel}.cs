@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height, AllocationOptions.Clean);
+            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(width, height, AllocationOptions.Clean);
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height);
+            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(width, height);
             this.Clear(backgroundColor);
         }
 
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(source, nameof(source));
 
-            this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
+            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
             source.PixelBuffer.GetSpan().CopyTo(this.PixelBuffer.GetSpan());
         }
 

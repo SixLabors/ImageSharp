@@ -26,10 +26,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="diffuser">The palette quantizer.</param>
         /// <param name="colors">An array of all colors in the palette.</param>
-        public PaletteFrameQuantizer(IErrorDiffuser diffuser, ReadOnlyMemory<TPixel> colors)
-            : base(diffuser, true) => this.palette = colors;
+        public PaletteFrameQuantizer(Configuration configuration, IErrorDiffuser diffuser, ReadOnlyMemory<TPixel> colors)
+            : base(configuration, diffuser, true) => this.palette = colors;
 
         /// <inheritdoc/>
         protected override void SecondPass(

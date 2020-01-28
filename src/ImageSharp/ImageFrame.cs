@@ -31,16 +31,10 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(metadata, nameof(metadata));
 
             this.configuration = configuration ?? Configuration.Default;
-            this.MemoryAllocator = configuration.MemoryAllocator;
             this.Width = width;
             this.Height = height;
             this.Metadata = metadata;
         }
-
-        /// <summary>
-        /// Gets the <see cref="MemoryAllocator" /> to use for buffer allocations.
-        /// </summary>
-        public MemoryAllocator MemoryAllocator { get; }
 
         /// <summary>
         /// Gets the width.

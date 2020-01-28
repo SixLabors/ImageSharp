@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
 {
-    public abstract partial class UniformMemoryGroup<T>
+    internal abstract partial class UniformMemoryGroup<T>
     {
         // Analogous to the "consumed" variant of MemorySource
         private class Consumed : UniformMemoryGroup<T>

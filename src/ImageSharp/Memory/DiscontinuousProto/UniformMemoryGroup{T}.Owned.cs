@@ -6,7 +6,7 @@ using System.Linq;
 namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
 {
     // Analogous to the "owned" variant of MemorySource
-    public abstract partial class UniformMemoryGroup<T>
+    internal abstract partial class UniformMemoryGroup<T>
     {
         private class Owned : UniformMemoryGroup<T>
         {

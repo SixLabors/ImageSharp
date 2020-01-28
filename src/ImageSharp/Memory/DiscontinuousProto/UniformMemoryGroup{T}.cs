@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
     /// <see cref="Image{TPixel}"/> and <see cref="ImageFrame{TPixel}"/>.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    public abstract partial class UniformMemoryGroup<T> : IUniformMemoryGroup<T>, IDisposable where T : struct
+    internal abstract partial class UniformMemoryGroup<T> : IUniformMemoryGroup<T>, IDisposable where T : struct
     {
         public abstract IEnumerator<Memory<T>> GetEnumerator();
 

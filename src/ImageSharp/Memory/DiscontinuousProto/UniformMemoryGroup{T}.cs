@@ -34,7 +34,13 @@ namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
 
         public static UniformMemoryGroup<T> Wrap(ReadOnlyMemory<Memory<T>> source)
         {
-            return new External(source);
+            return new Consumed(source);
+        }
+
+        // Analogous to current MemorySource.SwapOrCopyContent()
+        public static void SwapOrCopyContent(UniformMemoryGroup<T> destination, UniformMemoryGroup<T> source)
+        {
+            throw new NotImplementedException();
         }
     }
 }

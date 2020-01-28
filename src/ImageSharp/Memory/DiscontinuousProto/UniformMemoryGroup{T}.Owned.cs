@@ -5,13 +5,14 @@ using System.Linq;
 
 namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
 {
+    // Analogous to the "owned" variant of MemorySource
     public abstract partial class UniformMemoryGroup<T>
     {
-        private class Allocated : UniformMemoryGroup<T>
+        private class Owned : UniformMemoryGroup<T>
         {
             private IMemoryOwner<T>[] memoryOwners;
 
-            public Allocated(IMemoryOwner<T>[] memoryOwners)
+            public Owned(IMemoryOwner<T>[] memoryOwners)
             {
                 this.memoryOwners = memoryOwners;
             }

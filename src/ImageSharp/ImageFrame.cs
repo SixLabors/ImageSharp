@@ -3,7 +3,6 @@
 
 using System;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -21,9 +20,9 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame"/> class.
         /// </summary>
-        /// <param name="configuration">The <see cref="Configuration"/>.</param>
-        /// <param name="width">The width.</param>
-        /// <param name="height">The height.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="width">The frame width.</param>
+        /// <param name="height">The frame height.</param>
         /// <param name="metadata">The <see cref="ImageFrameMetadata"/>.</param>
         protected ImageFrame(Configuration configuration, int width, int height, ImageFrameMetadata metadata)
         {

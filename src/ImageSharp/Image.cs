@@ -24,7 +24,9 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
         /// </summary>
-        /// <param name="configuration">The <see cref="IConfigurable.Configuration"/>.</param>
+        /// <param name="configuration">
+        /// The configuration which allows altering default behaviour or extending the library.
+        /// </param>
         /// <param name="pixelType">The <see cref="PixelTypeInfo"/>.</param>
         /// <param name="metadata">The <see cref="ImageMetadata"/>.</param>
         /// <param name="size">The <see cref="size"/>.</param>

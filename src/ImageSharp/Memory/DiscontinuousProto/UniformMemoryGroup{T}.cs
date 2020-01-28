@@ -5,7 +5,9 @@ using System.Collections.Generic;
 namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
 {
     /// <summary>
-    /// Represents a group of one or more uniformly-sized discontinuous memory segments, owned by this instance.
+    /// Represents discontinuous group of multiple uniformly-sized memory segments.
+    /// The underlying buffers may change with time, therefore it's not safe to expose them directly on
+    /// <see cref="Image{TPixel}"/> and <see cref="ImageFrame{TPixel}"/>.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     public abstract partial class UniformMemoryGroup<T> : IUniformMemoryGroup<T>, IDisposable where T : struct

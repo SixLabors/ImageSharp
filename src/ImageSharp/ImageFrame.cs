@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,8 +14,10 @@ namespace SixLabors.ImageSharp
     /// In case of animated formats like gif, it contains the single frame in a animation.
     /// In all other cases it is the only frame of the image.
     /// </summary>
-    public abstract partial class ImageFrame : IDisposable
+    public abstract partial class ImageFrame : IConfigurable, IDisposable
     {
+        private readonly Configuration configuration;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageFrame"/> class.
         /// </summary>
@@ -27,7 +30,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(metadata, nameof(metadata));
 
-            this.Configuration = configuration;
+            this.configuration = configuration ?? Configuration.Default;
             this.MemoryAllocator = configuration.MemoryAllocator;
             this.Width = width;
             this.Height = height;
@@ -38,11 +41,6 @@ namespace SixLabors.ImageSharp
         /// Gets the <see cref="MemoryAllocator" /> to use for buffer allocations.
         /// </summary>
         public MemoryAllocator MemoryAllocator { get; }
-
-        /// <summary>
-        /// Gets the <see cref="Configuration"/> instance associated with this <see cref="ImageFrame{TPixel}"/>.
-        /// </summary>
-        internal Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the width.
@@ -58,6 +56,9 @@ namespace SixLabors.ImageSharp
         /// Gets the metadata of the frame.
         /// </summary>
         public ImageFrameMetadata Metadata { get; }
+
+        /// <inheritdoc/>
+        Configuration IConfigurable.Configuration => this.configuration;
 
         /// <summary>
         /// Gets the size of the frame.

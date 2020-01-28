@@ -64,6 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             int width = maxX - minX;
 
             var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
+            Configuration configuration = this.Configuration;
 
             using (IMemoryOwner<TPixel> colors = source.MemoryAllocator.Allocate<TPixel>(width))
             using (IMemoryOwner<float> amount = source.MemoryAllocator.Allocate<float>(width))
@@ -79,7 +80,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
                 ParallelHelper.IterateRows(
                     workingRect,
-                    this.Configuration,
+                    configuration,
                     rows =>
                         {
                             for (int y = rows.Min; y < rows.Max; y++)
@@ -89,7 +90,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
                                 // This switched color & destination in the 2nd and 3rd places because we are applying the target color under the current one
                                 blender.Blend(
-                                    source.Configuration,
+                                    configuration,
                                     destination,
                                     colors.GetSpan(),
                                     destination,

@@ -5,11 +5,12 @@ namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
 {
     public abstract partial class UniformMemoryGroup<T>
     {
-        private class External : UniformMemoryGroup<T>
+        // Analogous to the "consumed" variant of MemorySource
+        private class Consumed : UniformMemoryGroup<T>
         {
             private readonly ReadOnlyMemory<Memory<T>> source;
 
-            public External(ReadOnlyMemory<Memory<T>> source)
+            public Consumed(ReadOnlyMemory<Memory<T>> source)
             {
                 // TODO: sizes should be uniform, validate!
 

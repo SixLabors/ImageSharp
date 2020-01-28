@@ -12,6 +12,9 @@ namespace SixLabors.ImageSharp.Memory
     public sealed class SimpleGcMemoryAllocator : MemoryAllocator
     {
         /// <inheritdoc />
+        protected internal override int GetMaximumContiguousBufferLength() => int.MaxValue;
+
+        /// <inheritdoc />
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));

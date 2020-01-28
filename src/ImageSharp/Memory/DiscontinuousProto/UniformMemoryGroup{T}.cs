@@ -24,11 +24,12 @@ namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
 
         public bool IsValid { get; protected set; }
 
-        public static UniformMemoryGroup<T> Allocate(MemoryAllocator allocator, long length)
+        // bufferLengthAlignment == image.Width in row-major images
+        public static UniformMemoryGroup<T> Allocate(MemoryAllocator allocator, long length, int bufferLengthAlignment)
         {
             long bufferCount = length / allocator.GetMaximumContiguousBufferLength();
 
-            // TODO: Allocate bufferCount buffers
+            // TODO: Adjust bufferCount to bufferLengthAlignment, and allocate bufferCount buffers
             throw new NotImplementedException();
         }
 

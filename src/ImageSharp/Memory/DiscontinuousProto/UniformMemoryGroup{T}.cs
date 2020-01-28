@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
         {
             long bufferCount = length / allocator.GetMaximumContiguousBufferLength();
 
-            // TODO: Adjust bufferCount to bufferLengthAlignment, and allocate bufferCount buffers
+            // TODO: Adjust bufferCount, and calculate the uniform buffer length with respect to bufferLengthAlignment, and allocate bufferCount buffers
             throw new NotImplementedException();
         }
 

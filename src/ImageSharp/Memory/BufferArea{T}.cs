@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Memory
     /// Represents a rectangular area inside a 2D memory buffer (<see cref="Buffer2D{T}"/>).
     /// This type is kind-of 2D Span, but it can live on heap.
     /// </summary>
-    /// <typeparam name="T">The element type</typeparam>
+    /// <typeparam name="T">The element type.</typeparam>
     internal readonly struct BufferArea<T>
         where T : struct
     {

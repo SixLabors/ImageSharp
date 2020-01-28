@@ -25,9 +25,9 @@
   </ItemGroup>
 
   <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) OR '$(TargetFramework)' == 'net472'">
-    <PackageReference Include="System.Numerics.Vectors"/>
-    <PackageReference Include="System.Buffers"/>
-    <PackageReference Include="System.Memory"/>
+    <PackageReference Include="System.Numerics.Vectors" />
+    <PackageReference Include="System.Buffers" />
+    <PackageReference Include="System.Memory" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3'">

@@ -24,6 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
         public IList<AllocationRequest> AllocationLog => this.allocationLog;
 
+        protected internal override int GetMaximumContiguousBufferLength() => int.MaxValue;
+
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
             T[] array = this.AllocateArray<T>(length, options);

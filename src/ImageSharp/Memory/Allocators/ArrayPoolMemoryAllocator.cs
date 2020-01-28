@@ -89,6 +89,14 @@ namespace SixLabors.ImageSharp.Memory
             this.InitArrayPools();
         }
 
+        /// <summary>
+        /// Gets or sets the length of the largest contiguous buffer that can be handled by this allocator instance.
+        /// </summary>
+        public int MaximumContiguousBufferLength { get; set; } = Int32.MaxValue;
+
+        /// <inheritdoc />
+        protected internal override int GetMaximumContiguousBufferLength() => this.MaximumContiguousBufferLength;
+
         /// <inheritdoc />
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {

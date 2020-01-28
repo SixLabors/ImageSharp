@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
-
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             this.pixelBlock.LoadAndStretchEdges(frame, x, y);
 
             Span<Rgb24> rgbSpan = this.rgbBlock.AsSpanUnsafe();
-            PixelOperations<TPixel>.Instance.ToRgb24(frame.Configuration, this.pixelBlock.AsSpanUnsafe(), rgbSpan);
+            PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelBlock.AsSpanUnsafe(), rgbSpan);
 
             ref float yBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Y);
             ref float cbBlockStart = ref Unsafe.As<Block8x8F, float>(ref this.Cb);

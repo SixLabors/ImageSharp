@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             var bBuffer = new Rgba64[width];
 
             var differences = new List<PixelDifference>();
-            Configuration configuration = expected.Configuration;
+            Configuration configuration = expected.GetConfiguration();
 
             for (int y = 0; y < actual.Height; y++)
             {

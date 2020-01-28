@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             float totalDifference = 0F;
 
             var differences = new List<PixelDifference>();
-            Configuration configuration = expected.Configuration;
+            Configuration configuration = expected.GetConfiguration();
 
             for (int y = 0; y < actual.Height; y++)
             {

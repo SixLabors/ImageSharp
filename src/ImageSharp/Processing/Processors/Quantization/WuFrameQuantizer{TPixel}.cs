@@ -37,6 +37,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     internal sealed class WuFrameQuantizer<TPixel> : FrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
+        private readonly MemoryAllocator memoryAllocator;
+
         // The following two variables determine the amount of bits to preserve when calculating the histogram.
         // Reducing the value of these numbers the granularity of the color maps produced, making it much faster
         // and using much less memory but potentially less accurate. Current results are very good though!
@@ -121,39 +123,39 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
         /// </summary>
-        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
-        /// <param name="quantizer">The wu quantizer</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="quantizer">The Wu quantizer</param>
         /// <remarks>
         /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
         /// the second pass quantizes a color based on the position in the histogram.
         /// </remarks>
-        public WuFrameQuantizer(MemoryAllocator memoryAllocator, WuQuantizer quantizer)
-            : this(memoryAllocator, quantizer, quantizer.MaxColors)
+        public WuFrameQuantizer(Configuration configuration, WuQuantizer quantizer)
+            : this(configuration, quantizer, quantizer.MaxColors)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
         /// </summary>
-        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
-        /// <param name="quantizer">The wu quantizer.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="quantizer">The Wu quantizer.</param>
         /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
         /// <remarks>
         /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
         /// the second pass quantizes a color based on the position in the histogram.
         /// </remarks>
-        public WuFrameQuantizer(MemoryAllocator memoryAllocator, WuQuantizer quantizer, int maxColors)
-            : base(quantizer, false)
+        public WuFrameQuantizer(Configuration configuration, WuQuantizer quantizer, int maxColors)
+            : base(configuration, quantizer, false)
         {
-            Guard.NotNull(memoryAllocator, nameof(memoryAllocator));
+            this.memoryAllocator = this.Configuration.MemoryAllocator;
 
-            this.vwt = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-            this.vmr = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-            this.vmg = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-            this.vmb = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-            this.vma = memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
-            this.m2 = memoryAllocator.Allocate<double>(TableLength, AllocationOptions.Clean);
-            this.tag = memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
+            this.vwt = this.memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vmr = this.memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vmg = this.memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vmb = this.memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.vma = this.memoryAllocator.Allocate<long>(TableLength, AllocationOptions.Clean);
+            this.m2 = this.memoryAllocator.Allocate<double>(TableLength, AllocationOptions.Clean);
+            this.tag = this.memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
 
             this.colors = maxColors;
         }
@@ -229,7 +231,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         protected override void FirstPass(ImageFrame<TPixel> source, int width, int height)
         {
             this.Build3DHistogram(source, width, height);
-            this.Get3DMoments(source.MemoryAllocator);
+            this.Get3DMoments(this.memoryAllocator);
             this.BuildCube();
         }
 
@@ -465,7 +467,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             // Build up the 3-D color histogram
             // Loop through each row
-            using (IMemoryOwner<Rgba32> rgbaBuffer = source.MemoryAllocator.Allocate<Rgba32>(source.Width))
+            using (IMemoryOwner<Rgba32> rgbaBuffer = this.memoryAllocator.Allocate<Rgba32>(source.Width))
             {
                 for (int y = 0; y < height; y++)
                 {
@@ -840,7 +842,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private void BuildCube()
         {
             this.colorCube = new Box[this.colors];
-            var vv = new double[this.colors];
+            Span<double> vv = stackalloc double[this.colors];
 
             ref Box cube = ref this.colorCube[0];
             cube.RMin = cube.GMin = cube.BMin = cube.AMin = 0;

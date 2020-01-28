@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Advanced
@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Advanced
     internal interface IConfigurable
     {
         /// <summary>
-        /// Gets the configuration.
+        /// Gets the configuration which allows altering default behaviour or extending the library.
         /// </summary>
         Configuration Configuration { get; }
     }

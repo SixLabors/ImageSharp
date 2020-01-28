@@ -9,31 +9,31 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
 {
     /// <summary>
-    /// Applies a user defined pixel shader effect through a given delegate.
+    /// Applies a user defined, position aware, row processing delegate to the image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class PixelShaderProcessor<TPixel> : PixelShaderProcessorBase<TPixel>
+    internal sealed class PositionAwarePixelRowDelegateProcessor<TPixel> : PixelRowDelegateProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// The user defined pixel shader.
         /// </summary>
-        private readonly PixelShader pixelShader;
+        private readonly PositionAwarePixelRowOperation pixelShader;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelShaderProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="PositionAwarePixelRowDelegateProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="definition">The <see cref="PixelShaderProcessor"/> defining the processor parameters.</param>
+        /// <param name="definition">The <see cref="PositionAwarePixelRowDelegateProcessor"/> defining the processor parameters.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public PixelShaderProcessor(Configuration configuration, PixelShaderProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+        public PositionAwarePixelRowDelegateProcessor(Configuration configuration, PositionAwarePixelRowDelegateProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, definition.Modifiers, source, sourceRectangle)
         {
-            this.pixelShader = definition.PixelShader;
+            this.pixelShader = definition.PixelRowOperation;
         }
 
         /// <inheritdoc/>
-        protected override void ApplyPixelShader(Span<Vector4> span, Point offset) => this.pixelShader(span);
+        protected override void ApplyPixelRowDelegate(Span<Vector4> span, Point offset) => this.pixelShader(span, offset);
     }
 }

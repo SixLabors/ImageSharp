@@ -8,14 +8,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     /// <summary>
     /// Applies a user defined, position aware, row processing delegate to the image.
     /// </summary>
-    public sealed class PositionAwarePixelRowDelegateProcessor : IImageProcessor
+    internal sealed class PositionAwarePixelRowDelegateProcessor : IImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PositionAwarePixelRowDelegateProcessor"/> class.
         /// </summary>
         /// <param name="pixelRowOperation">The user defined, position aware, row processing delegate.</param>
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
-        public PositionAwarePixelRowDelegateProcessor(PositionAwarePixelRowOperation pixelRowOperation, PixelConversionModifiers modifiers)
+        public PositionAwarePixelRowDelegateProcessor(PixelRowOperation<Point> pixelRowOperation, PixelConversionModifiers modifiers)
         {
             this.PixelRowOperation = pixelRowOperation;
             this.Modifiers = modifiers;
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// <summary>
         /// Gets the user defined, position aware, row processing delegate.
         /// </summary>
-        public PositionAwarePixelRowOperation PixelRowOperation { get; }
+        public PixelRowOperation<Point> PixelRowOperation { get; }
 
         /// <summary>
         /// Gets the <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.

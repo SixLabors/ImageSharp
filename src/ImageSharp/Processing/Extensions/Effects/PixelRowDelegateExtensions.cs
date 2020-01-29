@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="rowOperation">The user defined processing delegate to use to modify image rows.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
-        public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PositionAwarePixelRowOperation rowOperation)
+        public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PixelRowOperation<Point> rowOperation)
             => ProcessPixelRowsAsVector4(source, rowOperation, PixelConversionModifiers.None);
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="rowOperation">The user defined processing delegate to use to modify image rows.</param>
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
-        public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PositionAwarePixelRowOperation rowOperation, PixelConversionModifiers modifiers)
+        public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PixelRowOperation<Point> rowOperation, PixelConversionModifiers modifiers)
             => source.ApplyProcessor(new PositionAwarePixelRowDelegateProcessor(rowOperation, modifiers));
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
-        public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PositionAwarePixelRowOperation rowOperation, Rectangle rectangle)
+        public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PixelRowOperation<Point> rowOperation, Rectangle rectangle)
             => ProcessPixelRowsAsVector4(source, rowOperation, rectangle, PixelConversionModifiers.None);
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </param>
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
-        public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PositionAwarePixelRowOperation rowOperation, Rectangle rectangle, PixelConversionModifiers modifiers)
+        public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PixelRowOperation<Point> rowOperation, Rectangle rectangle, PixelConversionModifiers modifiers)
             => source.ApplyProcessor(new PositionAwarePixelRowDelegateProcessor(rowOperation, modifiers), rectangle);
     }
 }

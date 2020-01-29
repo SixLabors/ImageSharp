@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     /// <summary>
     /// Applies a user defined row processing delegate to the image.
     /// </summary>
-    public sealed class PixelRowDelegateProcessor : IImageProcessor
+    internal sealed class PixelRowDelegateProcessor : IImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PixelRowDelegateProcessor"/> class.

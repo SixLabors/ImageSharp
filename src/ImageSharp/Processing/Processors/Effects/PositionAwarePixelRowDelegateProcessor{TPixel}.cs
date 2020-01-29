@@ -15,10 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     internal sealed class PositionAwarePixelRowDelegateProcessor<TPixel> : PixelRowDelegateProcessorBase<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// The user defined pixel shader.
-        /// </summary>
-        private readonly PositionAwarePixelRowOperation pixelShader;
+        private readonly PixelRowOperation<Point> pixelRowOperation;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PositionAwarePixelRowDelegateProcessor{TPixel}"/> class.
@@ -30,10 +27,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         public PositionAwarePixelRowDelegateProcessor(Configuration configuration, PositionAwarePixelRowDelegateProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, definition.Modifiers, source, sourceRectangle)
         {
-            this.pixelShader = definition.PixelRowOperation;
+            this.pixelRowOperation = definition.PixelRowOperation;
         }
 
         /// <inheritdoc/>
-        protected override void ApplyPixelRowDelegate(Span<Vector4> span, Point offset) => this.pixelShader(span, offset);
+        protected override void ApplyPixelRowDelegate(Span<Vector4> span, Point offset) => this.pixelRowOperation(span, offset);
     }
 }

@@ -24,7 +24,7 @@
 
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
     <PackageReference Include="Microsoft.NET.Test.Sdk" IsImplicitlyDefined="true" />
     <PackageReference Include="xunit" IsImplicitlyDefined="true" />
     <PackageReference Include="xunit.runner.visualstudio" IsImplicitlyDefined="true" />
@@ -32,7 +32,6 @@
 
   <ItemGroup Condition="'$(codecov)' == 'true' AND '$(IsTestProject)' == 'true'">
     <PackageReference Include="coverlet.collector" IsImplicitlyDefined="true" />
-    <PackageReference Include="coverlet.msbuild" IsImplicitlyDefined="true" />
   </ItemGroup>
 
   <ItemGroup>

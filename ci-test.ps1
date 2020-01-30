@@ -17,7 +17,7 @@ if ($codecov -eq 'true') {
 
   # Allow toggling of profile to workaround any potential JIT errors caused by code injection.
   dotnet clean -c $codecovProfile
-  dotnet test -c $codecovProfile -f $targetFramework /p:codecov=true
+  dotnet test --collect "XPlat Code Coverage" --settings .\tests\coverlet.runsettings -c $codecovProfile -f $targetFramework /p:CodeCov=true
 }
 elseif ($platform -eq '-x86' -and $targetFramework -match $netFxRegex) {
 

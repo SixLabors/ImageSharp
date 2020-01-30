@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
+    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Moq" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -115,8 +116,25 @@ namespace SixLabors.ImageSharp
             using (var stream = new MemoryStream())
             {
                 source.Save(stream, format);
-                stream.Flush();
-                return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
+
+                // Always available.
+                stream.TryGetBuffer(out ArraySegment<byte> buffer);
+
+#if !SUPPORTS_BASE64SPAN
+
+                byte[] sharedBuffer = ArrayPool<byte>.Shared.Rent(buffer.Count);
+                try
+                {
+                    buffer.AsSpan().CopyTo(sharedBuffer);
+                    return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(sharedBuffer)}";
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(sharedBuffer);
+                }
+#else
+                return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(buffer)}";
+#endif
             }
         }
     }

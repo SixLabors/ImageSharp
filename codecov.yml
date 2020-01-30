@@ -1,0 +1,7 @@
+# Documentation: https://docs.codecov.io/docs/codecov-yaml
+
+codecov:
+    # Avoid "Missing base report"
+    # https://github.com/codecov/support/issues/363
+    # https://docs.codecov.io/docs/comparing-commits
+    allow_coverage_offsets: true

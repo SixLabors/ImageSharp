@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public abstract partial class TestImageProvider<TPixel>
+    public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
         where TPixel : struct, IPixel<TPixel>
     {
         private class FileProvider : TestImageProvider<TPixel>, IXunitSerializable

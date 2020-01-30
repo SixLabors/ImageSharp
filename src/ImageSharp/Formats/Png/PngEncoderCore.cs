@@ -144,8 +144,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.height = image.Height;
 
             ImageMetadata metadata = image.Metadata;
-            PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
-            PngEncoderOptionsHelpers.AdjustOptions(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
+            PngMetadata pngMetadata = metadata.GetPngMetadata();
+            PngEncoderOptionsHelpers.AdjustOptions<TPixel>(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
             IQuantizedFrame<TPixel> quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, image);
             this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, image, quantized);
 

@@ -91,8 +91,9 @@
     <RepositoryType>git</RepositoryType>
     <RestoreSources>
       https://www.myget.org/F/sixlabors/api/v3/index.json;
-      https://dotnetfeed.blob.core.windows.net/dotnet-core/index.json;
       https://api.nuget.org/v3/index.json;
+      <!-- Contains RemoteExecutor. Taken from: https://github.com/dotnet/runtime/blob/master/NuGet.config -->
+      https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/index.json;
     </RestoreSources>
     <SixLaborsPublicKey>002400000c8000009400000006020000002400005253413100040000010001000147e6fe6766715eec6cfed61f1e7dcdbf69748a3e355c67e9d8dfd953acab1d5e012ba34b23308166fdc61ee1d0390d5f36d814a6091dd4b5ed9eda5a26afced924c683b4bfb4b3d64b0586a57eff9f02b1f84e3cb0ddd518bd1697f2c84dcbb97eb8bb5c7801be12112ed0ec86db934b0e9a5171e6bb1384b6d2f7d54dfa97</SixLaborsPublicKey>
     <UseSharedCompilation>true</UseSharedCompilation>

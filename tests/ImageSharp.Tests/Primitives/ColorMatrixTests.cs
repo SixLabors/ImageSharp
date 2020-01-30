@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             ColorMatrix value1 = this.CreateAllTwos();
             ColorMatrix value2 = this.CreateAllThrees();
 
-            ColorMatrix m;
+            var m = default(ColorMatrix);
 
             // First row
             m.M11 = (value1.M11 * value2.M11) + (value1.M12 * value2.M21) + (value1.M13 * value2.M31) + (value1.M14 * value2.M41);

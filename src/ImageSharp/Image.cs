@@ -16,20 +16,23 @@ namespace SixLabors.ImageSharp
     /// For the non-generic <see cref="Image"/> type, the pixel type is only known at runtime.
     /// <see cref="Image"/> is always implemented by a pixel-specific <see cref="Image{TPixel}"/> instance.
     /// </summary>
-    public abstract partial class Image : IImage, IConfigurable
+    public abstract partial class Image : IImage, IConfigurationProvider
     {
         private Size size;
+        private readonly Configuration configuration;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image"/> class.
         /// </summary>
-        /// <param name="configuration">The <see cref="Configuration"/>.</param>
+        /// <param name="configuration">
+        /// The configuration which allows altering default behaviour or extending the library.
+        /// </param>
         /// <param name="pixelType">The <see cref="PixelTypeInfo"/>.</param>
         /// <param name="metadata">The <see cref="ImageMetadata"/>.</param>
         /// <param name="size">The <see cref="size"/>.</param>
         protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata metadata, Size size)
         {
-            this.Configuration = configuration ?? Configuration.Default;
+            this.configuration = configuration ?? Configuration.Default;
             this.PixelType = pixelType;
             this.size = size;
             this.Metadata = metadata ?? new ImageMetadata();
@@ -47,11 +50,6 @@ namespace SixLabors.ImageSharp
             : this(configuration, pixelType, metadata, new Size(width, height))
         {
         }
-
-        /// <summary>
-        /// Gets the <see cref="Configuration"/>.
-        /// </summary>
-        protected Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the <see cref="ImageFrameCollection"/> implementing the public <see cref="Frames"/> property.
@@ -75,10 +73,8 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public ImageFrameCollection Frames => this.NonGenericFrameCollection;
 
-        /// <summary>
-        /// Gets the pixel buffer.
-        /// </summary>
-        Configuration IConfigurable.Configuration => this.Configuration;
+        /// <inheritdoc/>
+        Configuration IConfigurationProvider.Configuration => this.configuration;
 
         /// <inheritdoc />
         public void Dispose()
@@ -108,7 +104,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
         /// <returns>The <see cref="Image{TPixel2}"/></returns>
         public Image<TPixel2> CloneAs<TPixel2>()
-            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
+            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.GetConfiguration());
 
         /// <summary>
         /// Returns a copy of the image in the given pixel format.

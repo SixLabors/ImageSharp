@@ -32,11 +32,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
         public float Alpha { get; set; }
 
-        public static implicit operator TPixel(TestPixel<TPixel> d)
-        {
-            return d?.AsPixel() ?? default(TPixel);
-        }
-
         public TPixel AsPixel()
         {
             var pix = default(TPixel);

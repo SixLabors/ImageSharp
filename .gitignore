@@ -216,7 +216,7 @@ artifacts/
 *.csproj.bak
 
 #CodeCoverage
-/ImageSharp.Coverage.xml
+*.lcov
 
 # Tests
 **/Images/ActualOutput

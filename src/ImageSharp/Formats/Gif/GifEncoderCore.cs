@@ -53,11 +53,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
-        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="options">The options for the encoder.</param>
-        public GifEncoderCore(MemoryAllocator memoryAllocator, IGifEncoderOptions options)
+        public GifEncoderCore(Configuration configuration, IGifEncoderOptions options)
         {
-            this.memoryAllocator = memoryAllocator;
+            this.configuration = configuration;
+            this.memoryAllocator = configuration.MemoryAllocator;
             this.quantizer = options.Quantizer;
             this.colorTableMode = options.ColorTableMode;
         }
@@ -74,16 +75,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            this.configuration = image.GetConfiguration();
-
             ImageMetadata metadata = image.Metadata;
             GifMetadata gifMetadata = metadata.GetGifMetadata();
-            this.colorTableMode = this.colorTableMode ?? gifMetadata.ColorTableMode;
+            this.colorTableMode ??= gifMetadata.ColorTableMode;
             bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
 
             // Quantize the image returning a palette.
             IQuantizedFrame<TPixel> quantized;
-            using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration()))
+            using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration))
             {
                 quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame);
             }
@@ -146,7 +145,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 else
                 {
                     using (IFrameQuantizer<TPixel> paletteFrameQuantizer =
-                        new PaletteFrameQuantizer<TPixel>(this.quantizer.Diffuser, quantized.Palette))
+                        new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Diffuser, quantized.Palette))
                     {
                         using (IQuantizedFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame))
                         {
@@ -172,14 +171,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     if (previousFrame != null && previousMeta.ColorTableLength != frameMetadata.ColorTableLength
                                               && frameMetadata.ColorTableLength > 0)
                     {
-                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration(), frameMetadata.ColorTableLength))
+                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, frameMetadata.ColorTableLength))
                         {
                             quantized = frameQuantizer.QuantizeFrame(frame);
                         }
                     }
                     else
                     {
-                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration()))
+                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration))
                         {
                             quantized = frameQuantizer.QuantizeFrame(frame);
                         }
@@ -202,9 +201,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Returns the index of the most transparent color in the palette.
         /// </summary>
-        /// <param name="quantized">
-        /// The quantized.
-        /// </param>
+        /// <param name="quantized">The quantized frame.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>
         /// The <see cref="int"/>.

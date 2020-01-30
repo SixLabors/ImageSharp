@@ -44,12 +44,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets or sets the number of bits per sample or per palette index (not per pixel).
         /// Not all values are allowed for all <see cref="ColorType"/> values.
         /// </summary>
-        public PngBitDepth BitDepth { get; set; } = PngBitDepth.Bit8;
+        public PngBitDepth? BitDepth { get; set; }
 
         /// <summary>
         /// Gets or sets the color type.
         /// </summary>
-        public PngColorType ColorType { get; set; } = PngColorType.RgbWithAlpha;
+        public PngColorType? ColorType { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance should write an Adam7 interlaced image.

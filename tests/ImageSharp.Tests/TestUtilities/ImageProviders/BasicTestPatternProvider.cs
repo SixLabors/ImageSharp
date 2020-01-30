@@ -5,10 +5,11 @@ using System;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Advanced;
+using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public abstract partial class TestImageProvider<TPixel>
+    public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
     {
         private class BasicTestPatternProvider : BlankProvider
         {

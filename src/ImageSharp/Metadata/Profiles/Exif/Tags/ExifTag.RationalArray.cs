@@ -50,5 +50,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// Gets the GPSDestLongitude exif tag.
         /// </summary>
         public static ExifTag<Rational[]> GPSDestLongitude { get; } = new ExifTag<Rational[]>(ExifTagValue.GPSDestLongitude);
+
+        /// <summary>
+        /// Gets the LensSpecification exif tag.
+        /// </summary>
+        public static ExifTag<Rational[]> LensSpecification { get; } = new ExifTag<Rational[]>(ExifTagValue.LensSpecification);
     }
 }

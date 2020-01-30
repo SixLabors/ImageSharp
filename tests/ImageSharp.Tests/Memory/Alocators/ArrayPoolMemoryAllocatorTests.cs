@@ -21,12 +21,12 @@ namespace SixLabors.ImageSharp.Memory.Tests
         private const int PoolSelectorThresholdInBytes = MaxPooledBufferSizeInBytes / 2;
 
         /// <summary>
-        /// Contains SUT for in-process tests.
+        /// Gets the SUT for in-process tests.
         /// </summary>
         private MemoryAllocatorFixture LocalFixture { get; } = new MemoryAllocatorFixture();
 
         /// <summary>
-        /// Contains SUT for tests executed by <see cref="RemoteExecutor"/>,
+        /// Gets the SUT for tests executed by <see cref="RemoteExecutor"/>,
         /// recreated in each external process.
         /// </summary>
         private static MemoryAllocatorFixture StaticFixture { get; } = new MemoryAllocatorFixture();

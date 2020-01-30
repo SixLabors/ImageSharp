@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             where TPixel : struct, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(
-                x => x.ApplyPixelShaderProcessor(
+                x => x.ProcessPixelRowsAsVector4(
                 span =>
                 {
                     for (int i = 0; i < span.Length; i++)
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             where TPixel : struct, IPixel<TPixel>
         {
             provider.RunRectangleConstrainedValidatingProcessorTest(
-                (x, rect) => x.ApplyPixelShaderProcessor(
+                (x, rect) => x.ProcessPixelRowsAsVector4(
                     span =>
                     {
                         for (int i = 0; i < span.Length; i++)
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             where TPixel : struct, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(
-                c => c.ApplyPixelShaderProcessor(
+                c => c.ProcessPixelRowsAsVector4(
                     (span, offset) =>
                     {
                         int y = offset.Y;
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             where TPixel : struct, IPixel<TPixel>
         {
             provider.RunRectangleConstrainedValidatingProcessorTest(
-                (c, rect) => c.ApplyPixelShaderProcessor(
+                (c, rect) => c.ProcessPixelRowsAsVector4(
                     (span, offset) =>
                     {
                         int y = offset.Y;

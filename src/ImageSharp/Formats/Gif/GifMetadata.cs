@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Gets or sets the number of times any animation is repeated.
         /// <remarks>
-        /// 0 means to repeat indefinitely, count is set as repeat n-1 times
+        /// 0 means to repeat indefinitely, count is set as repeat n-1 times. Defaults to 1.
         /// </remarks>
         /// </summary>
         public ushort RepeatCount { get; set; } = 1;

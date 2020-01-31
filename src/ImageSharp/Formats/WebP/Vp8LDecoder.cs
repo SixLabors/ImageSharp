@@ -6,10 +6,15 @@ using System.Collections.Generic;
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
-    /// Holds information for decoding a lossless image.
+    /// Holds information for decoding a lossless webp image.
     /// </summary>
     internal class Vp8LDecoder
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8LDecoder"/> class.
+        /// </summary>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
         public Vp8LDecoder(int width, int height)
         {
             this.Width = width;

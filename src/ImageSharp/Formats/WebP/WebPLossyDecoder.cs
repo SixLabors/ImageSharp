@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -77,6 +79,260 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        private bool ParseResiduals(Vp8Decoder decoder, Vp8MacroBlock mb)
+        {
+            byte tnz, lnz;
+            uint nonZeroY = 0;
+            uint nonZeroUv = 0;
+            int first;
+            var dst = new short[384];
+            var dstOffset = 0;
+            Vp8MacroBlockData block = decoder.MacroBlockData[decoder.MbX];
+            Vp8QuantMatrix q = decoder.DeQuantMatrices[block.Segment];
+            Vp8BandProbas[,] bands = decoder.Probabilities.BandsPtr;
+            Vp8BandProbas[] acProba;
+            Vp8MacroBlock leftMb = null; // TODO: this value needs to be set
+
+            if (!block.IsI4x4)
+            {
+                // Parse DC
+                var dc = new short[16];
+                int ctx = (int)(mb.NoneZeroDcCoeffs + leftMb.NoneZeroDcCoeffs);
+                int nz = this.GetCoeffs(GetBandsRow(bands, 1), ctx, q.Y2Mat, 0, dc);
+                mb.NoneZeroDcCoeffs = leftMb.NoneZeroDcCoeffs = (uint)(nz > 0 ? 1 : 0);
+                if (nz > 0)
+                {
+                    // More than just the DC -> perform the full transform.
+                    this.TransformWht(dc, dst);
+                }
+                else
+                {
+                    int dc0 = (dc[0] + 3) >> 3;
+                    for (int i = 0; i < 16 * 16; i += 16)
+                    {
+                        dst[i] = (short)dc0;
+                    }
+                }
+
+                first = 1;
+                acProba = GetBandsRow(bands, 1);
+            }
+            else
+            {
+                first = 0;
+                acProba = GetBandsRow(bands, 3);
+            }
+
+            tnz = (byte)(mb.NoneZeroAcDcCoeffs & 0x0f);
+            lnz = (byte)(leftMb.NoneZeroAcDcCoeffs & 0x0f);
+
+            for (int y = 0; y < 4; ++y)
+            {
+                int l = lnz & 1;
+                uint nzCoeffs = 0;
+                for (int x = 0; x < 4; ++x)
+                {
+                    int ctx = l + (tnz & 1);
+                    int nz = this.GetCoeffs(acProba, ctx, q.Y1Mat, first, dst.AsSpan(dstOffset));
+                    l = (nz > first) ? 1 : 0;
+                    tnz = (byte)((tnz >> 1) | (l << 7));
+                    nzCoeffs = NzCodeBits(nzCoeffs, nz, dst[0] != 0 ? 1 : 0);
+                    dstOffset += 16;
+                }
+
+                tnz >>= 4;
+                lnz = (byte)((lnz >> 1) | (l << 7));
+                nonZeroY = (nonZeroY << 8) | nzCoeffs;
+            }
+
+            uint outTnz = tnz;
+            uint outLnz = (uint)(lnz >> 4);
+
+            for (int ch = 0; ch < 4; ch += 2)
+            {
+                uint nzCoeffs = 0;
+                tnz = (byte)(mb.NoneZeroAcDcCoeffs >> (4 + ch));
+                lnz = (byte)(leftMb.NoneZeroAcDcCoeffs >> (4 + ch));
+                for (int y = 0; y < 2; ++y)
+                {
+                    int l = lnz & 1;
+                    for (int x = 0; x < 2; ++x)
+                    {
+                        int ctx = l + (tnz & 1);
+                        int nz = this.GetCoeffs(GetBandsRow(bands, 2), ctx, q.UvMat, 0, dst.AsSpan(dstOffset));
+                        l = (nz > 0) ? 1 : 0;
+                        tnz = (byte)((tnz >> 1) | (l << 3));
+                        nzCoeffs = NzCodeBits(nzCoeffs, nz, dst[0] != 0 ? 1 : 0);
+                        dstOffset += 16;
+                    }
+
+                    tnz >>= 2;
+                    lnz = (byte)((lnz >> 1) | (l << 5));
+                }
+
+                // Note: we don't really need the per-4x4 details for U/V blocks.
+                nonZeroUv |= nzCoeffs << (4 * ch);
+                outTnz |= (uint)((tnz << 4) << ch);
+                outLnz |= (uint)((lnz & 0xf0) << ch);
+            }
+
+            mb.NoneZeroAcDcCoeffs = outTnz;
+            leftMb.NoneZeroAcDcCoeffs = outLnz;
+
+            block.NonZeroY = nonZeroY;
+            block.NonZeroUv = nonZeroUv;
+
+            // We look at the mode-code of each block and check if some blocks have less
+            // than three non-zero coeffs (code < 2). This is to avoid dithering flat and
+            // empty blocks.
+            block.Dither = (byte)((nonZeroUv & 0xaaaa) > 0 ? 0 : q.Dither);
+
+            return (nonZeroY | nonZeroUv) is 0;
+        }
+
+        private int GetCoeffs(Vp8BandProbas[] prob, int ctx, int[] dq, int n, Span<short> coeffs)
+        {
+            // Returns the position of the last non - zero coeff plus one.
+            Vp8ProbaArray p = prob[n].Probabilities[ctx];
+            for (; n < 16; ++n)
+            {
+                if (this.bitReader.GetBit((int)p.Probabilities[0]) is 0)
+                {
+                    // Previous coeff was last non - zero coeff.
+                    return n;
+                }
+
+                // Sequence of zero coeffs.
+                while (this.bitReader.GetBit((int)p.Probabilities[1]) is 0)
+                {
+                    p = prob[++n].Probabilities[0];
+                    if (n is 16)
+                    {
+                        return 16;
+                    }
+                }
+
+                // Non zero coeffs.
+                int v;
+                if (this.bitReader.GetBit((int)p.Probabilities[2]) is 0)
+                {
+                    v = 1;
+                    p = prob[n + 1].Probabilities[1];
+                }
+                else
+                {
+                    v = this.GetLargeValue(p.Probabilities);
+                    p = prob[n + 1].Probabilities[2];
+                }
+
+                int idx = n > 0 ? 1 : 0;
+                coeffs[WebPConstants.Zigzag[n]] = (short)(this.bitReader.ReadSignedValue(v) * dq[idx]);
+            }
+
+            return 16;
+        }
+
+        private int GetLargeValue(byte[] p)
+        {
+            // See section 13 - 2: http://tools.ietf.org/html/rfc6386#section-13.2
+            int v;
+            if (this.bitReader.GetBit(p[3]) is 0)
+            {
+                if (this.bitReader.GetBit(p[4]) is 0)
+                {
+                    v = 2;
+                }
+                else
+                {
+                    v = 3 + this.bitReader.GetBit(p[5]);
+                }
+            }
+            else
+            {
+                if (this.bitReader.GetBit(p[6]) is 0)
+                {
+                    if (this.bitReader.GetBit(p[7]) is 0)
+                    {
+                        v = 5 + this.bitReader.GetBit(159);
+                    }
+                    else
+                    {
+                        v = 7 + (2 * this.bitReader.GetBit(165));
+                        v += this.bitReader.GetBit(145);
+                    }
+                }
+                else
+                {
+                    int bit1 = this.bitReader.GetBit(p[8]);
+                    int bit0 = this.bitReader.GetBit(p[9] + bit1);
+                    int cat = (2 * bit1) + bit0;
+                    v = 0;
+                    byte[] tab = null;
+                    switch (cat)
+                    {
+                        case 0:
+                            tab = WebPConstants.Cat3;
+                            break;
+                        case 1:
+                            tab = WebPConstants.Cat4;
+                            break;
+                        case 2:
+                            tab = WebPConstants.Cat5;
+                            break;
+                        case 3:
+                            tab = WebPConstants.Cat6;
+                            break;
+                        default:
+                            WebPThrowHelper.ThrowImageFormatException("VP8 parsing error");
+                            break;
+                    }
+
+                    for (int i = 0; i < tab.Length; i++)
+                    {
+                        v += v + this.bitReader.GetBit(tab[i]);
+                    }
+
+                    v += 3 + (8 << cat);
+                }
+            }
+
+            return v;
+        }
+
+        /// <summary>
+        /// Paragraph 14.3: Implementation of the Walsh-Hadamard transform inversion.
+        /// </summary>
+        private void TransformWht(short[] input, short[] output)
+        {
+            var tmp = new int[16];
+            for (int i = 0; i < 4; ++i)
+            {
+                int a0 = input[0 + i] + input[12 + i];
+                int a1 = input[4 + i] + input[8 + i];
+                int a2 = input[4 + i] - input[8 + i];
+                int a3 = input[0 + i] - input[12 + i];
+                tmp[0 + i] = a0 + a1;
+                tmp[8 + i] = a0 - a1;
+                tmp[4 + i] = a3 + a2;
+                tmp[12 + i] = a3 - a2;
+            }
+
+            int outputOffset = 0;
+            for (int i = 0; i < 4; ++i)
+            {
+                int dc = tmp[0 + (i * 4)] + 3;
+                int a0 = dc + tmp[3 + (i * 4)];
+                int a1 = tmp[1 + (i * 4)] + tmp[2 + (i * 4)];
+                int a2 = tmp[1 + (i * 4)] - tmp[2 + (i * 4)];
+                int a3 = dc - tmp[3 + (i * 4)];
+                output[outputOffset + 0] = (short)((a0 + a1) >> 3);
+                output[outputOffset + 16] = (short)((a3 + a2) >> 3);
+                output[outputOffset + 32] = (short)((a0 - a1) >> 3);
+                output[outputOffset + 48] = (short)((a3 - a2) >> 3);
+                outputOffset += 64;
+            }
+        }
+
         private Vp8SegmentHeader ParseSegmentHeader(Vp8Proba proba)
         {
             var vp8SegmentHeader = new Vp8SegmentHeader
@@ -109,8 +365,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     {
                         for (int s = 0; s < proba.Segments.Length; ++s)
                         {
-                            hasValue = bitReader.ReadBool();
-                            proba.Segments[s] = hasValue ? bitReader.ReadValue(8) : 255;
+                            hasValue = this.bitReader.ReadBool();
+                            proba.Segments[s] = hasValue ? this.bitReader.ReadValue(8) : 255;
                         }
                     }
                 }
@@ -235,15 +491,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
                             int v = this.bitReader.GetBit(prob) == 0
                                         ? (int)this.bitReader.ReadValue(8)
                                         : WebPConstants.DefaultCoeffsProba[t, b, c, p];
-                            proba.Bands[t, b].Probabilities[c].Probabilities[p] = (uint)v;
+                            proba.Bands[t, b].Probabilities[c].Probabilities[p] = (byte)v;
                         }
                     }
                 }
 
                 for (int b = 0; b < 16 + 1; ++b)
                 {
-                    // TODO: This needs to be reviewed and fixed.
-                    // proba->bands_ptr_[t][b] = &proba->bands_[t][kBands[b]];
+                    proba.BandsPtr[t, b] = proba.Bands[t, WebPConstants.Bands[b]];
                 }
             }
 
@@ -251,7 +506,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             bool useSkipProba = this.bitReader.ReadBool();
             if (useSkipProba)
             {
-                var skipP = this.bitReader.ReadValue(8);
+                uint skipP = this.bitReader.ReadValue(8);
             }
         }
 
@@ -285,6 +540,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             return true;
+        }
+
+        private static uint NzCodeBits(uint nzCoeffs, int nz, int dcNz)
+        {
+            nzCoeffs <<= 2;
+            nzCoeffs |= (uint)((nz > 3) ? 3 : (nz > 1) ? 2 : dcNz);
+            return nzCoeffs;
+        }
+
+        private static Vp8BandProbas[] GetBandsRow(Vp8BandProbas[,] bands, int rowIdx)
+        {
+            Vp8BandProbas[] bandsRow = Enumerable.Range(0, bands.GetLength(1)).Select(x => bands[rowIdx, x]).ToArray();
+            return bandsRow;
         }
 
         private static int Clip(int value, int max)

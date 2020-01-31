@@ -121,6 +121,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public const int NumCtx = 3;
 
+        /// <summary>
+        /// How many extra lines are needed on the MB boundary for caching, given a filtering level.
+        /// Simple filter:  up to 2 luma samples are read and 1 is written.
+        /// Complex filter: up to 4 luma samples are read and 3 are written. Same for U/V, so it's 8 samples total (because of the 2x upsampling).
+        /// </summary>
+        public static readonly byte[] FilterExtraRows = { 0, 2, 8 };
+
         // Paragraph 9.9
         public static readonly int[] Bands =
         {

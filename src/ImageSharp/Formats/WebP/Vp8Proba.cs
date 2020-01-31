@@ -14,10 +14,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             this.Segments = new uint[MbFeatureTreeProbs];
             this.Bands = new Vp8BandProbas[WebPConstants.NumTypes, WebPConstants.NumBands];
+            this.BandsPtr = new Vp8BandProbas[WebPConstants.NumTypes, 16 + 1];
         }
 
         public uint[] Segments { get; }
 
         public Vp8BandProbas[,] Bands { get; }
+
+        public Vp8BandProbas[,] BandsPtr { get; }
     }
 }

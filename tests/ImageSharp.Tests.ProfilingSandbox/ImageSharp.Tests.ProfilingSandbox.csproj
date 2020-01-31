@@ -15,10 +15,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\ImageSharp.Tests\**\*.cs" Link="Tests\%(RecursiveDir)%(Filename)%(Extension)" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Remove="..\ImageSharp.Tests\IO\LocalFileSystem.cs" />
   </ItemGroup>
 

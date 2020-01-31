@@ -353,6 +353,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rings = "Gif/rings.gif";
             public const string Giphy = "Gif/giphy.gif";
             public const string Cheers = "Gif/cheers.gif";
+            public const string Receipt = "Gif/receipt.gif";
             public const string Trans = "Gif/trans.gif";
             public const string Kumin = "Gif/kumin.gif";
             public const string Leo = "Gif/leo.gif";

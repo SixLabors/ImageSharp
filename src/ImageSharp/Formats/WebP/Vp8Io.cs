@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -61,6 +61,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Row stride for chroma
         /// </summary>
         public int UvStride { get; set; }
+
+        public int CropLeft { get; set; }
+
+        public int CropRight { get; set; }
+
+        public int CropTop { get; set; }
+
+        public int CropBottom { get; set; }
 
         /// <summary>
         /// User data

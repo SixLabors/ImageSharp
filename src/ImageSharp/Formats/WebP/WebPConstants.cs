@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                                                          NumDistanceCodes
         };
 
-        // VP8 constants from here on
+        // VP8 constants from here on:
         public const int NumMbSegments = 4;
 
         public const int MaxNumPartitions = 8;
@@ -168,6 +168,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             213, 217, 221, 225, 229, 234, 239, 245,
             249, 254, 259, 264, 269, 274, 279, 284
         };
+
+        // Residual decoding (Paragraph 13.2 / 13.3)
+        public static readonly byte[] Cat3 = { 173, 148, 140 };
+        public static readonly byte[] Cat4 = { 176, 155, 140, 135 };
+        public static readonly byte[] Cat5 = { 180, 157, 141, 134, 130 };
+        public static readonly byte[] Cat6 = { 254, 254, 243, 230, 196, 177, 153, 140, 133, 130, 129 };
+        public static readonly byte[] Zigzag = { 0, 1, 4, 8,  5, 2, 3, 6,  9, 12, 13, 10,  7, 11, 14, 15 };
 
         // Paragraph 13
         public static readonly byte[,,,] CoeffsUpdateProba =

@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
-    /// Info about a macro block.
+    /// Contextual macroblock information.
     /// </summary>
     internal class Vp8MacroBlock
     {

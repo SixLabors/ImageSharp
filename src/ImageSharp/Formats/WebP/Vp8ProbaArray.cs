@@ -10,9 +10,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
     {
         public Vp8ProbaArray()
         {
-            this.Probabilities = new uint[WebPConstants.NumProbas];
+            this.Probabilities = new byte[WebPConstants.NumProbas];
         }
 
-        public uint[] Probabilities { get; }
+        public byte[] Probabilities { get; }
     }
 }

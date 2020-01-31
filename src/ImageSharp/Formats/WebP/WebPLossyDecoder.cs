@@ -79,6 +79,33 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        private void DecodeMacroBlock(Vp8Decoder dec)
+        {
+            Vp8MacroBlock left = dec.MacroBlockInfo[dec.MacroBlockPos - 1]; // TODO: not sure if this - 1 is correct here
+            Vp8MacroBlock macroBlock = dec.MacroBlockInfo[dec.MacroBlockPos + dec.MbX];
+            Vp8MacroBlockData blockData = dec.MacroBlockData[dec.MacroBlockPos + dec.MbX];
+            int skip = dec.UseSkipProba ? blockData.Skip : 0;
+
+            if (skip is 0)
+            {
+                this.ParseResiduals(dec, macroBlock);
+            }
+            else
+            {
+                left.NoneZeroAcDcCoeffs = macroBlock.NoneZeroAcDcCoeffs = 0;
+                if (blockData.IsI4x4)
+                {
+                    left.NoneZeroDcCoeffs = macroBlock.NoneZeroDcCoeffs = 0;
+                }
+
+                blockData.NonZeroY = 0;
+                blockData.NonZeroUv = 0;
+                blockData.Dither = 0;
+            }
+
+            // TODO: store filter info
+        }
+
         private bool ParseResiduals(Vp8Decoder decoder, Vp8MacroBlock mb)
         {
             byte tnz, lnz;

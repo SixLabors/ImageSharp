@@ -35,9 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Bicubic), 500, 200 },
             { nameof(KnownResamplers.Bicubic), 200, 500 },
             { nameof(KnownResamplers.Bicubic), 3032, 400 },
-
             { nameof(KnownResamplers.Bicubic), 10, 25 },
-
             { nameof(KnownResamplers.Lanczos3), 16, 12 },
             { nameof(KnownResamplers.Lanczos3), 12, 16 },
             { nameof(KnownResamplers.Lanczos3), 12, 9 },
@@ -45,15 +43,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Lanczos3), 6, 8 },
             { nameof(KnownResamplers.Lanczos3), 8, 6 },
             { nameof(KnownResamplers.Lanczos3), 20, 12 },
-
             { nameof(KnownResamplers.Lanczos3), 5, 25 },
             { nameof(KnownResamplers.Lanczos3), 5, 50 },
-
             { nameof(KnownResamplers.Lanczos3), 25, 5 },
             { nameof(KnownResamplers.Lanczos3), 50, 5 },
             { nameof(KnownResamplers.Lanczos3), 49, 5 },
             { nameof(KnownResamplers.Lanczos3), 31, 5 },
-
             { nameof(KnownResamplers.Lanczos8), 500, 200 },
             { nameof(KnownResamplers.Lanczos8), 100, 10 },
             { nameof(KnownResamplers.Lanczos8), 100, 80 },
@@ -70,13 +65,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             { nameof(KnownResamplers.Box), 299, 10 },
             { nameof(KnownResamplers.Box), 301, 300 },
             { nameof(KnownResamplers.Box), 1180, 480 },
-
             { nameof(KnownResamplers.Lanczos2), 3264, 3032 },
-
             { nameof(KnownResamplers.Bicubic), 1280, 2240 },
             { nameof(KnownResamplers.Bicubic), 1920, 1680 },
             { nameof(KnownResamplers.Bicubic), 3072, 2240 },
-
             { nameof(KnownResamplers.Welch), 300, 2008 },
 
             // ResizeKernel.Length -related regression tests cherry-picked from GeneratedImageResizeData
@@ -91,10 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public static TheoryData<string, int, int> GeneratedImageResizeData =
             GenerateImageResizeData();
 
-
-        [Theory(
-            Skip = "Only for debugging and development"
-            )]
+        [Theory(Skip = "Only for debugging and development")]
         [MemberData(nameof(KernelMapData))]
         public void PrintNonNormalizedKernelMap(string resamplerName, int srcSize, int destSize)
         {
@@ -131,8 +120,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             var referenceMap = ReferenceKernelMap.Calculate(resampler, destSize, srcSize);
             var kernelMap = ResizeKernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
-
-
 #if DEBUG
             this.Output.WriteLine(kernelMap.Info);
             this.Output.WriteLine($"Expected KernelMap:\n{PrintKernelMap(referenceMap)}\n");
@@ -156,8 +143,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 Span<float> actualValues = kernel.Values;
 
                 Assert.Equal(expectedValues.Length, actualValues.Length);
-
-
 
                 for (int x = 0; x < expectedValues.Length; x++)
                 {
@@ -206,7 +191,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             return bld.ToString();
         }
-
 
         private static TheoryData<string, int, int> GenerateImageResizeData()
         {

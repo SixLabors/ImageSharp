@@ -128,6 +128,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             {
                 bmp.UnlockBits(data);
             }
+
             return image;
         }
 

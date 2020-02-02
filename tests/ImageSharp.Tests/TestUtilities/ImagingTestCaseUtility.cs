@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -19,25 +19,26 @@ namespace SixLabors.ImageSharp.Tests
     public class ImagingTestCaseUtility
     {
         /// <summary>
-        /// Name of the TPixel in the owner <see cref="TestImageProvider{TPixel}"/>
+        /// Gets or sets the name of the TPixel in the owner <see cref="TestImageProvider{TPixel}"/>
         /// </summary>
         public string PixelTypeName { get; set; } = string.Empty;
 
         /// <summary>
-        /// The name of the file which is provided by <see cref="TestImageProvider{TPixel}"/>
+        /// Gets or sets the name of the file which is provided by <see cref="TestImageProvider{TPixel}"/>
         /// Or a short string describing the image in the case of a non-file based image provider.
         /// </summary>
         public string SourceFileOrDescription { get; set; } = string.Empty;
 
         /// <summary>
-        /// By default this is the name of the test class, but it's possible to change it
+        /// Gets or sets the test group name.
+        /// By default this is the name of the test class, but it's possible to change it.
         /// </summary>
         public string TestGroupName { get; set; } = string.Empty;
 
         public string OutputSubfolderName { get; set; } = string.Empty;
 
         /// <summary>
-        /// The name of the test case (by default)
+        /// Gets or sets the name of the test case (by default).
         /// </summary>
         public string TestName { get; set; } = string.Empty;
 
@@ -54,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
 
             string fn = appendSourceFileOrDescription
                             ? Path.GetFileNameWithoutExtension(this.SourceFileOrDescription)
-                            : "";
+                            : string.Empty;
 
             if (string.IsNullOrWhiteSpace(extension))
             {
@@ -65,6 +66,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 extension = ".bmp";
             }
+
             extension = extension.ToLower();
 
             if (extension[0] != '.')
@@ -77,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests
                 fn = '_' + fn;
             }
 
-            string pixName = "";
+            string pixName = string.Empty;
 
             if (appendPixelTypeToFileName)
             {
@@ -137,8 +139,7 @@ namespace SixLabors.ImageSharp.Tests
                     detailsString = string.Join(
                         "_",
                         properties.ToDictionary(x => x.Name, x => x.GetValue(testOutputDetails))
-                            .Select(x => TestUtils.AsInvariantString($"{x.Key}-{x.Value}"))
-                        );
+                            .Select(x => TestUtils.AsInvariantString($"{x.Key}-{x.Value}")));
                 }
             }
 
@@ -152,12 +153,13 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Encodes image by the format matching the required extension, than saves it to the recommended output file.
         /// </summary>
-        /// <param name="image">The image instance</param>
-        /// <param name="extension">The requested extension</param>
-        /// <param name="encoder">Optional encoder</param>
-        /// <param name="appendPixelTypeToFileName">A value indicating whether to append the pixel type to the test output file name</param>
+        /// <param name="image">The image instance.</param>
+        /// <param name="extension">The requested extension.</param>
+        /// <param name="encoder">Optional encoder.</param>
+        /// <param name="testOutputDetails">Additional information to append to the test output file name.</param>
+        /// <param name="appendPixelTypeToFileName">A value indicating whether to append the pixel type to the test output file name.</param>
         /// <param name="appendSourceFileOrDescription">A boolean indicating whether to append <see cref="ITestImageProvider.SourceFileOrDescription"/> to the test output file name.</param>
-        /// <param name="testOutputDetails">Additional information to append to the test output file name</param>
+        /// <returns>The path to the saved image file.</returns>
         public string SaveTestOutputFile(
             Image image,
             string extension = null,
@@ -189,7 +191,7 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
         {
-            string baseDir = this.GetTestOutputFileName("", testOutputDetails, appendPixelTypeToFileName, appendSourceFileOrDescription);
+            string baseDir = this.GetTestOutputFileName(string.Empty, testOutputDetails, appendPixelTypeToFileName, appendSourceFileOrDescription);
 
             if (!Directory.Exists(baseDir))
             {
@@ -241,8 +243,7 @@ namespace SixLabors.ImageSharp.Tests
             bool appendSourceFileOrDescription)
         {
             return TestEnvironment.GetReferenceOutputFileName(
-                this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName, appendSourceFileOrDescription)
-                );
+                this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName, appendSourceFileOrDescription));
         }
 
         public string[] GetReferenceOutputFileNamesMultiFrame(

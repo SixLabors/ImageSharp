@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -9,10 +9,10 @@ namespace SixLabors.ImageSharp.Tests.Icc
     public class IccDataReaderMultiProcessElementTests
     {
         [Theory]
-        [MemberData(nameof(IccTestDataMultiProcessElement.MultiProcessElementTestData), MemberType = typeof(IccTestDataMultiProcessElement))]
+        [MemberData(nameof(IccTestDataMultiProcessElements.MultiProcessElementTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void ReadMultiProcessElement(byte[] data, IccMultiProcessElement expected)
         {
-            IccDataReader reader = CreateReader(data);
+            IccDataReader reader = this.CreateReader(data);
 
             IccMultiProcessElement output = reader.ReadMultiProcessElement();
 
@@ -20,10 +20,10 @@ namespace SixLabors.ImageSharp.Tests.Icc
         }
 
         [Theory]
-        [MemberData(nameof(IccTestDataMultiProcessElement.CurveSetTestData), MemberType = typeof(IccTestDataMultiProcessElement))]
+        [MemberData(nameof(IccTestDataMultiProcessElements.CurveSetTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void ReadCurveSetProcessElement(byte[] data, IccCurveSetProcessElement expected, int inChannelCount, int outChannelCount)
         {
-            IccDataReader reader = CreateReader(data);
+            IccDataReader reader = this.CreateReader(data);
 
             IccCurveSetProcessElement output = reader.ReadCurveSetProcessElement(inChannelCount, outChannelCount);
 
@@ -31,10 +31,10 @@ namespace SixLabors.ImageSharp.Tests.Icc
         }
 
         [Theory]
-        [MemberData(nameof(IccTestDataMultiProcessElement.MatrixTestData), MemberType = typeof(IccTestDataMultiProcessElement))]
+        [MemberData(nameof(IccTestDataMultiProcessElements.MatrixTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void ReadMatrixProcessElement(byte[] data, IccMatrixProcessElement expected, int inChannelCount, int outChannelCount)
         {
-            IccDataReader reader = CreateReader(data);
+            IccDataReader reader = this.CreateReader(data);
 
             IccMatrixProcessElement output = reader.ReadMatrixProcessElement(inChannelCount, outChannelCount);
 
@@ -42,10 +42,10 @@ namespace SixLabors.ImageSharp.Tests.Icc
         }
 
         [Theory]
-        [MemberData(nameof(IccTestDataMultiProcessElement.ClutTestData), MemberType = typeof(IccTestDataMultiProcessElement))]
+        [MemberData(nameof(IccTestDataMultiProcessElements.ClutTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void ReadClutProcessElement(byte[] data, IccClutProcessElement expected, int inChannelCount, int outChannelCount)
         {
-            IccDataReader reader = CreateReader(data);
+            IccDataReader reader = this.CreateReader(data);
 
             IccClutProcessElement output = reader.ReadClutProcessElement(inChannelCount, outChannelCount);
 

@@ -274,9 +274,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
 
                 // Could be XMP or something else not supported yet.
-                // Back up and skip.
-                this.stream.Position -= appLength + 1;
-                this.SkipBlock(appLength);
+                // Skip the subblock and terminator.
+                this.SkipBlock(subBlockSize);
                 return;
             }
 

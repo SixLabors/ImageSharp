@@ -8,8 +8,8 @@ using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters;
-using SixLabors.ImageSharp.Tests.Colorspaces.Conversion;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Tests.Colorspaces.Conversion;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -105,8 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 return;
             }
 
-            //JpegColorConverter.FromYCbCrSimdAvx2.LogPlz = s => this.Output.WriteLine(s);
-
+            // JpegColorConverter.FromYCbCrSimdAvx2.LogPlz = s => this.Output.WriteLine(s);
             ValidateRgbToYCbCrConversion(
                 new JpegColorConverter.FromYCbCrSimdAvx2(8),
                 3,
@@ -114,7 +113,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 resultBufferLength,
                 seed);
         }
-
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
@@ -129,9 +127,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         // Benchmark, for local execution only
-        //[Theory]
-        //[InlineData(false)]
-        //[InlineData(true)]
+        // [Theory]
+        // [InlineData(false)]
+        // [InlineData(true)]
         public void BenchmarkYCbCr(bool simd)
         {
             int count = 2053;
@@ -289,7 +287,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 for (int j = 0; j < inputBufferLength; j++)
                 {
-                    values[j] = (float)rnd.NextDouble() * (maxVal - minVal) + minVal;
+                    values[j] = ((float)rnd.NextDouble() * (maxVal - minVal)) + minVal;
                 }
 
                 // no need to dispose when buffer is not array owner
@@ -297,6 +295,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var source = new MemorySource<float>(memory);
                 buffers[i] = new Buffer2D<float>(source, values.Length, 1);
             }
+
             return new JpegColorConverter.ComponentValues(buffers, 0);
         }
 
@@ -308,7 +307,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             int seed)
         {
             ValidateRgbToYCbCrConversion(
-                JpegColorConverter.GetConverter(colorSpace,8),
+                JpegColorConverter.GetConverter(colorSpace, 8),
                 componentCount,
                 inputBufferLength,
                 resultBufferLength,

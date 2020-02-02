@@ -16,6 +16,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
         /// Returns an instance of <see cref="TolerantImageComparer"/>.
         /// Individual manhattan pixel difference is only added to total image difference when the individual difference is over 'perPixelManhattanThreshold'.
         /// </summary>
+        /// <returns>A ImageComparer instance.</returns>
         public static ImageComparer Tolerant(
             float imageThreshold = TolerantImageComparer.DefaultImageThreshold,
             int perPixelManhattanThreshold = 0)
@@ -26,13 +27,15 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
         /// <summary>
         /// Returns Tolerant(imageThresholdInPercents/100)
         /// </summary>
+        /// <returns>A ImageComparer instance.</returns>
         public static ImageComparer TolerantPercentage(float imageThresholdInPercents, int perPixelManhattanThreshold = 0)
             => Tolerant(imageThresholdInPercents / 100F, perPixelManhattanThreshold);
 
         public abstract ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
             ImageFrame<TPixelA> expected,
             ImageFrame<TPixelB> actual)
-            where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>;
+            where TPixelA : struct, IPixel<TPixelA>
+            where TPixelB : struct, IPixel<TPixelB>;
     }
 
     public static class ImageComparerExtensions
@@ -41,7 +44,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             this ImageComparer comparer,
             Image<TPixelA> expected,
             Image<TPixelB> actual)
-            where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
+            where TPixelA : struct, IPixel<TPixelA>
+            where TPixelB : struct, IPixel<TPixelB>
         {
             return comparer.CompareImagesOrFrames(expected.Frames.RootFrame, actual.Frames.RootFrame);
         }
@@ -50,7 +54,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             this ImageComparer comparer,
             Image<TPixelA> expected,
             Image<TPixelB> actual)
-            where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
+            where TPixelA : struct, IPixel<TPixelA>
+            where TPixelB : struct, IPixel<TPixelB>
         {
             var result = new List<ImageSimilarityReport<TPixelA, TPixelB>>();
 
@@ -58,6 +63,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             {
                 throw new Exception("Frame count does not match!");
             }
+
             for (int i = 0; i < expected.Frames.Count; i++)
             {
                 ImageSimilarityReport<TPixelA, TPixelB> report = comparer.CompareImagesOrFrames(expected.Frames[i], actual.Frames[i]);
@@ -74,7 +80,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             this ImageComparer comparer,
             Image<TPixelA> expected,
             Image<TPixelB> actual)
-            where TPixelA : struct, IPixel<TPixelA> where TPixelB : struct, IPixel<TPixelB>
+            where TPixelA : struct, IPixel<TPixelA>
+            where TPixelB : struct, IPixel<TPixelB>
         {
             if (expected.Size() != actual.Size())
             {

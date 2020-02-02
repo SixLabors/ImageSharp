@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [Fact]
         public void ReadProfile_NoEntries()
         {
-            IccReader reader = CreateReader();
+            IccReader reader = this.CreateReader();
 
             IccProfile output = reader.Read(IccTestDataProfiles.Header_Random_Array);
 
@@ -42,14 +42,13 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [Fact]
         public void ReadProfile_DuplicateEntry()
         {
-            IccReader reader = CreateReader();
+            IccReader reader = this.CreateReader();
 
             IccProfile output = reader.Read(IccTestDataProfiles.Profile_Random_Array);
 
             Assert.Equal(2, output.Entries.Length);
             Assert.True(ReferenceEquals(output.Entries[0], output.Entries[1]));
         }
-
 
         private IccReader CreateReader()
         {

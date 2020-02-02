@@ -42,22 +42,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public static Image<TPixel> DecodeWithMagick<TPixel>(Configuration configuration, FileInfo fileInfo)
             where TPixel : struct, IPixel<TPixel>
         {
-            using var magickImage = new MagickImage(fileInfo);
-            var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
-            Span<TPixel> resultPixels = result.GetPixelSpan();
-
-            using (IPixelCollection pixels = magickImage.GetPixelsUnsafe())
+            using (var magickImage = new MagickImage(fileInfo))
             {
-                byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
+                var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
+                Span<TPixel> resultPixels = result.GetPixelSpan();
 
-                PixelOperations<TPixel>.Instance.FromRgba32Bytes(
-                    configuration,
-                    data,
-                    resultPixels,
-                    resultPixels.Length);
+                using (IPixelCollection pixels = magickImage.GetPixelsUnsafe())
+                {
+                    byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
+
+                    PixelOperations<TPixel>.Instance.FromRgba32Bytes(
+                        configuration,
+                        data,
+                        resultPixels,
+                        resultPixels.Length);
+                }
+
+                return result;
             }
-
-            return result;
         }
     }
 }

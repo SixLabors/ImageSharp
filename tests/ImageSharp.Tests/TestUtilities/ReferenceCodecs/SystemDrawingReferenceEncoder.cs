@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing.Imaging;
@@ -25,8 +25,10 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
-            using System.Drawing.Bitmap sdBitmap = SystemDrawingBridge.To32bppArgbSystemDrawingBitmap(image);
-            sdBitmap.Save(stream, this.imageFormat);
+            using (System.Drawing.Bitmap sdBitmap = SystemDrawingBridge.To32bppArgbSystemDrawingBitmap(image))
+            {
+                sdBitmap.Save(stream, this.imageFormat);
+            }
         }
     }
 }

@@ -56,10 +56,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
             where TPixel : struct, IPixel<TPixel>
         {
-            using Image<TPixel> image = provider.GetImage();
-            image.Mutate(x => x.DetectEdges(detector));
-            image.DebugSave(provider, detector.ToString());
-            image.CompareToReferenceOutput(ValidatorComparer, provider, detector.ToString());
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.DetectEdges(detector));
+                image.DebugSave(provider, detector.ToString());
+                image.CompareToReferenceOutput(ValidatorComparer, provider, detector.ToString());
+            }
         }
 
         [Theory]
@@ -67,10 +69,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         public void DetectEdges_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using Image<TPixel> image = provider.GetImage();
-            image.Mutate(x => x.DetectEdges());
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider);
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.DetectEdges());
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
+            }
         }
 
         [Theory]
@@ -78,9 +82,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         public void DetectEdges_IsAppliedToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using Image<TPixel> image = provider.GetImage();
-            image.Mutate(x => x.DetectEdges());
-            image.DebugSave(provider, extension: "gif");
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.DetectEdges());
+                image.DebugSave(provider, extension: "gif");
+            }
         }
 
         [Theory]
@@ -88,12 +94,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         public void DetectEdges_InBox<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using Image<TPixel> image = provider.GetImage();
-            var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-            image.Mutate(x => x.DetectEdges(bounds));
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.Mutate(x => x.DetectEdges(bounds));
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider);
+            }
         }
     }
 }

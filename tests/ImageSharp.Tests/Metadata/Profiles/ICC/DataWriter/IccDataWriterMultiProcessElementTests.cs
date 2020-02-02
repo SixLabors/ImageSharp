@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -9,10 +9,10 @@ namespace SixLabors.ImageSharp.Tests.Icc
     public class IccDataWriterMultiProcessElementTests
     {
         [Theory]
-        [MemberData(nameof(IccTestDataMultiProcessElement.MultiProcessElementTestData), MemberType = typeof(IccTestDataMultiProcessElement))]
+        [MemberData(nameof(IccTestDataMultiProcessElements.MultiProcessElementTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void WriteMultiProcessElement(byte[] expected, IccMultiProcessElement data)
         {
-            IccDataWriter writer = CreateWriter();
+            IccDataWriter writer = this.CreateWriter();
 
             writer.WriteMultiProcessElement(data);
             byte[] output = writer.GetData();
@@ -21,10 +21,10 @@ namespace SixLabors.ImageSharp.Tests.Icc
         }
 
         [Theory]
-        [MemberData(nameof(IccTestDataMultiProcessElement.CurveSetTestData), MemberType = typeof(IccTestDataMultiProcessElement))]
+        [MemberData(nameof(IccTestDataMultiProcessElements.CurveSetTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void WriteCurveSetProcessElement(byte[] expected, IccCurveSetProcessElement data, int inChannelCount, int outChannelCount)
         {
-            IccDataWriter writer = CreateWriter();
+            IccDataWriter writer = this.CreateWriter();
 
             writer.WriteCurveSetProcessElement(data);
             byte[] output = writer.GetData();
@@ -33,10 +33,10 @@ namespace SixLabors.ImageSharp.Tests.Icc
         }
 
         [Theory]
-        [MemberData(nameof(IccTestDataMultiProcessElement.MatrixTestData), MemberType = typeof(IccTestDataMultiProcessElement))]
+        [MemberData(nameof(IccTestDataMultiProcessElements.MatrixTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void WriteMatrixProcessElement(byte[] expected, IccMatrixProcessElement data, int inChannelCount, int outChannelCount)
         {
-            IccDataWriter writer = CreateWriter();
+            IccDataWriter writer = this.CreateWriter();
 
             writer.WriteMatrixProcessElement(data);
             byte[] output = writer.GetData();
@@ -45,10 +45,10 @@ namespace SixLabors.ImageSharp.Tests.Icc
         }
 
         [Theory]
-        [MemberData(nameof(IccTestDataMultiProcessElement.ClutTestData), MemberType = typeof(IccTestDataMultiProcessElement))]
+        [MemberData(nameof(IccTestDataMultiProcessElements.ClutTestData), MemberType = typeof(IccTestDataMultiProcessElements))]
         internal void WriteClutProcessElement(byte[] expected, IccClutProcessElement data, int inChannelCount, int outChannelCount)
         {
-            IccDataWriter writer = CreateWriter();
+            IccDataWriter writer = this.CreateWriter();
 
             writer.WriteClutProcessElement(data);
             byte[] output = writer.GetData();

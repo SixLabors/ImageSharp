@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Collections.Generic;
 using System.Linq;
 
@@ -120,7 +123,6 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         public void VerifySimilarity_WhenAnImageFrameIsDifferent_Reports<TPixel>(TestImageProvider<TPixel> provider)
@@ -139,7 +141,6 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
         }
-
 
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]

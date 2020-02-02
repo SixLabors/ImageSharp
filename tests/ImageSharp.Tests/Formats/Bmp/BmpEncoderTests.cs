@@ -15,7 +15,6 @@ using Xunit;
 using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
-
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
     using static TestImages.Bmp;
@@ -32,8 +31,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
-            { Car, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
-            { V5Header, 3780, 3780 , PixelResolutionUnit.PixelsPerMeter },
+            { Car, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
+            { V5Header, 3780, 3780, PixelResolutionUnit.PixelsPerMeter },
             { RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
         };
 
@@ -117,7 +116,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
         [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
         public void Encode_32Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
-            // if supportTransparency is false, a v3 bitmap header will be written
+
+            // If supportTransparency is false, a v3 bitmap header will be written.
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
         [Theory]
@@ -129,8 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
         [Theory]
-        // WinBmpv3 is a 24 bits per pixel image
-        [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
+        [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)] // WinBmpv3 is a 24 bits per pixel image.
         [WithFile(F, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
         public void Encode_24Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
@@ -140,7 +139,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         [WithFile(F, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
         public void Encode_24Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
-
 
         [Theory]
         [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]

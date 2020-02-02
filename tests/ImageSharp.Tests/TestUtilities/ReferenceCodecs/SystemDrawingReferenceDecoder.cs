@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 return new ImageInfo(pixelType, sourceBitmap.Width, sourceBitmap.Height, new ImageMetadata());
             }
         }
-        
+
         public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
     }
 }

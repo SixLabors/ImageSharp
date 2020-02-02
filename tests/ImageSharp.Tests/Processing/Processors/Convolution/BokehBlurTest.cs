@@ -140,7 +140,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                     x => x.BokehBlur(value.Radius, value.Components, value.Gamma),
                     testOutputDetails: value.ToString(),
                     appendPixelTypeToFileName: false);
-
             }
 
             RemoteExecutor
@@ -149,8 +148,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         }
 
         [Theory]
-        // TODO: Re-enable L8 when we update the reference images.
-        // [WithTestPatternImages(200, 200, PixelTypes.Bgr24 | PixelTypes.Bgra32 | PixelTypes.L8)]
+        /*
+         TODO: Re-enable L8 when we update the reference images.
+         [WithTestPatternImages(200, 200, PixelTypes.Bgr24 | PixelTypes.Bgra32 | PixelTypes.L8)]
+        */
         [WithTestPatternImages(200, 200, PixelTypes.Bgr24 | PixelTypes.Bgra32)]
         public void BokehBlurFilterProcessor_WorksWithAllPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
@@ -168,7 +169,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                 .Invoke(RunTest, BasicSerializer.Serialize(provider))
                 .Dispose();
         }
-
 
         [Theory]
         [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32)]

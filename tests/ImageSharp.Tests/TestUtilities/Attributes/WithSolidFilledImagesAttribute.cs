@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -141,22 +141,22 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
-        /// Red
+        /// Gets the red component.
         /// </summary>
         public byte R { get; }
 
         /// <summary>
-        /// Green
+        /// Gets the green component.
         /// </summary>
         public byte G { get; }
 
         /// <summary>
-        /// Blue
+        /// Gets the blue component.
         /// </summary>
         public byte B { get; }
 
         /// <summary>
-        /// Alpha
+        /// Gets the alpha component.
         /// </summary>
         public byte A { get; }
 

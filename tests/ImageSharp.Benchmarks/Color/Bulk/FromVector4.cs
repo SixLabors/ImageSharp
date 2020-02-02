@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-// ReSharper disable InconsistentNaming
-
 using System;
 using System.Buffers;
 using System.Numerics;
@@ -14,6 +12,7 @@ using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     [Config(typeof(Config.ShortClr))]
@@ -26,10 +25,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         protected Configuration Configuration => Configuration.Default;
 
-        [Params(
-            64,
-            2048
-            )]
+        [Params(64, 2048)]
         public int Count { get; set; }
 
         [GlobalSetup]
@@ -46,12 +42,11 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             this.source.Dispose();
         }
 
-        //[Benchmark]
+        // [Benchmark]
         public void PerElement()
         {
             ref Vector4 s = ref MemoryMarshal.GetReference(this.source.GetSpan());
             ref TPixel d = ref MemoryMarshal.GetReference(this.destination.GetSpan());
-            
             for (int i = 0; i < this.Count; i++)
             {
                 Unsafe.Add(ref d, i).FromVector4(Unsafe.Add(ref s, i));

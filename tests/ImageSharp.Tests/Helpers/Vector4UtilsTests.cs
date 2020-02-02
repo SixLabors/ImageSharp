@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 {
     public class Vector4UtilsTests
     {
-        private readonly ApproximateFloatComparer ApproximateFloatComparer = new ApproximateFloatComparer(1e-6f);
+        private readonly ApproximateFloatComparer approximateFloatComparer = new ApproximateFloatComparer(1e-6f);
 
         [Theory]
         [InlineData(0)]
@@ -21,11 +21,15 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         {
             var rnd = new Random(42);
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
-            Vector4[] expected = source.Select(v => { Vector4Utils.Premultiply(ref v); return v; }).ToArray();
+            Vector4[] expected = source.Select(v =>
+            {
+                Vector4Utils.Premultiply(ref v);
+                return v;
+            }).ToArray();
 
             Vector4Utils.Premultiply(source);
 
-            Assert.Equal(expected, source, this.ApproximateFloatComparer);
+            Assert.Equal(expected, source, this.approximateFloatComparer);
         }
 
         [Theory]
@@ -36,11 +40,15 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         {
             var rnd = new Random(42);
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
-            Vector4[] expected = source.Select(v => { Vector4Utils.UnPremultiply(ref v); return v; }).ToArray();
+            Vector4[] expected = source.Select(v =>
+            {
+                Vector4Utils.UnPremultiply(ref v);
+                return v;
+            }).ToArray();
 
             Vector4Utils.UnPremultiply(source);
 
-            Assert.Equal(expected, source, this.ApproximateFloatComparer);
+            Assert.Equal(expected, source, this.approximateFloatComparer);
         }
     }
 }

@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -18,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         }
 
         /// <summary>
-        /// The value to initialize the result buffer with, with non-clean options (<see cref="AllocationOptions.None"/>)
+        /// Gets the value to initialize the result buffer with, with non-clean options (<see cref="AllocationOptions.None"/>)
         /// </summary>
         public byte DirtyValue { get; }
 
@@ -62,7 +65,6 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 if (elementType == typeof(Vector4))
                 {
-
                 }
             }
 
@@ -74,11 +76,13 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
 
             public Type ElementType { get; }
+
             public AllocationOptions AllocationOptions { get; }
+
             public int Length { get; }
+
             public int LengthInBytes { get; }
         }
-
 
         /// <summary>
         /// Wraps an array as an <see cref="IManagedByteBuffer"/> instance.

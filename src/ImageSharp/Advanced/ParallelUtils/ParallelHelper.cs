@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
         /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
         public static void IterateRows(Rectangle rectangle, Configuration configuration, Action<RowInterval> body)
         {
-            ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
+            var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
 
             IterateRows(rectangle, parallelSettings, body);
         }

@@ -22,8 +22,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.LightenSrcOver), PixelColorBlendingMode.Lighten },
             { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.AddSrcOver), PixelColorBlendingMode.Add },
             { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.SubtractSrcOver), PixelColorBlendingMode.Subtract },
-            { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.MultiplySrcOver), PixelColorBlendingMode.Multiply },            
-
+            { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.MultiplySrcOver), PixelColorBlendingMode.Multiply },
             { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.NormalSrcOver), PixelColorBlendingMode.Normal },
             { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.ScreenSrcOver), PixelColorBlendingMode.Screen },
             { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.HardLightSrcOver), PixelColorBlendingMode.HardLight },
@@ -33,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.AddSrcOver), PixelColorBlendingMode.Add },
             { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.SubtractSrcOver), PixelColorBlendingMode.Subtract },
             { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.MultiplySrcOver), PixelColorBlendingMode.Multiply },
-        };        
+        };
 
         [Theory]
         [MemberData(nameof(BlenderMappings))]
@@ -55,7 +54,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Add, new Rgba32(0xFFFFFDFF) },
             { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Subtract, new Rgba32(0xFF71CBE6) },
             { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Multiply, new Rgba32(0xFF631619) },
-
         };
 
         [Theory]
@@ -63,11 +61,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void TestColorBlendingModes(Rgba32 backdrop, Rgba32 source, float opacity, PixelColorBlendingMode mode, Rgba32 expectedResult)
         {
             PixelBlender<Rgba32> blender = PixelOperations<Rgba32>.Instance.GetPixelBlender(mode, PixelAlphaCompositionMode.SrcOver);
-
             Rgba32 actualResult = blender.Blend(backdrop, source, opacity);
 
             // var str = actualResult.Rgba.ToString("X8"); // used to extract expectedResults
-
             Assert.Equal(actualResult.ToVector4(), expectedResult.ToVector4());
         }
 
@@ -96,7 +92,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Rgba32 actualResult = blender.Blend(backdrop, source, opacity);
 
             // var str = actualResult.Rgba.ToString("X8"); // used to extract expectedResults
-
             Assert.Equal(actualResult.ToVector4(), expectedResult.ToVector4());
         }
     }

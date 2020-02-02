@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
     {
         public const PixelTypes CommonNonDefaultPixelTypes =
             PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24 | PixelTypes.RgbaVector;
-        
+
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial, TestImages.Png.Bike };
 
         public static readonly TheoryData<IErrorDiffuser> ErrorDiffusers = new TheoryData<IErrorDiffuser>
@@ -37,8 +37,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                                                                                      KnownDitherers.OrderedDither3x3,
                                                                                      KnownDitherers.BayerDither2x2
                                                                                  };
+
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f);
-        
+
         private static IOrderedDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 
         private static IErrorDiffuser DefaultErrorDiffuser => KnownDiffusers.Atkinson;
@@ -59,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 return;
             }
-            
+
             provider.RunRectangleConstrainedValidatingProcessorTest(
                 (x, rect) => x.Diffuse(DefaultErrorDiffuser, .5F, rect),
                 comparer: ValidatorComparer);
@@ -74,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 return;
             }
-            
+
             provider.RunRectangleConstrainedValidatingProcessorTest(
                 (x, rect) => x.Dither(DefaultDitherer, rect),
                 comparer: ValidatorComparer);
@@ -89,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 return;
             }
-            
+
             // Increased tolerance because of compatibility issues on .NET 4.6.2:
             var comparer = ImageComparer.TolerantPercentage(1f);
             provider.RunValidatingProcessorTest(x => x.Diffuse(DefaultErrorDiffuser, 0.5f), comparer: comparer);
@@ -106,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 return;
             }
-            
+
             provider.RunValidatingProcessorTest(
                 x => x.Diffuse(diffuser, 0.5f),
                 testOutputDetails: diffuser.GetType().Name,
@@ -123,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 return;
             }
-            
+
             provider.RunValidatingProcessorTest(
                 x => x.Dither(DefaultDitherer),
                 comparer: ValidatorComparer);
@@ -140,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 return;
             }
-            
+
             provider.RunValidatingProcessorTest(
                 x => x.Dither(ditherer),
                 testOutputDetails: ditherer.GetType().Name,

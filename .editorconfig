@@ -339,6 +339,7 @@ csharp_space_between_square_brackets = false
 #   warn when using var for built-in types,
 #   warn when using var when the type is not apparent, and
 #   warn when not using var when the type is apparent
+#   warn when using simplified "using" declaration
 ###############################################################################
 [*.cs]
 csharp_prefer_braces = true:silent
@@ -367,6 +368,8 @@ csharp_style_throw_expression = true:suggestion
 csharp_style_unused_value_expression_statement_preference = discard_variable:silent
 csharp_style_unused_value_assignment_preference = discard_variable:suggestion
 
-csharp_style_var_for_built_in_types = false:warning
-csharp_style_var_elsewhere = false:warning
+csharp_style_var_for_built_in_types = false:silent
 csharp_style_var_when_type_is_apparent = true:warning
+csharp_style_var_elsewhere = false:warning
+
+csharp_prefer_simple_using_statement = false:silent

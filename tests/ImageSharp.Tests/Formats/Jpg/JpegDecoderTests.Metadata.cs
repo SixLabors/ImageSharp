@@ -31,7 +31,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             { false, TestImages.Jpeg.Baseline.Jpeg400, 8, false, false },
             { false, TestImages.Jpeg.Baseline.Snake, 24, true, true },
             { false, TestImages.Jpeg.Baseline.Jpeg420Exif, 24, true, false },
-
             { true, TestImages.Jpeg.Progressive.Progress, 24, false, false },
             { true, TestImages.Jpeg.Progressive.Fb, 24, false, true },
             { true, TestImages.Jpeg.Baseline.Cmyk, 32, false, true },
@@ -44,8 +43,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
-            { TestImages.Jpeg.Baseline.Ratio1x1, 1, 1 , PixelResolutionUnit.AspectRatio},
-            { TestImages.Jpeg.Baseline.Snake, 300, 300 , PixelResolutionUnit.PixelsPerInch},
+            { TestImages.Jpeg.Baseline.Ratio1x1, 1, 1, PixelResolutionUnit.AspectRatio },
+            { TestImages.Jpeg.Baseline.Snake, 300, 300, PixelResolutionUnit.PixelsPerInch },
             { TestImages.Jpeg.Baseline.GammaDalaiLamaGray, 72, 72, PixelResolutionUnit.PixelsPerInch }
         };
 
@@ -236,12 +235,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(true)]
         public void Decoder_Reads_Correct_Resolution_From_Jfif(bool useIdentify)
         {
-            TestImageInfo(TestImages.Jpeg.Baseline.Floorplan, JpegDecoder, useIdentify,
+            TestImageInfo(
+                TestImages.Jpeg.Baseline.Floorplan,
+                JpegDecoder,
+                useIdentify,
                 imageInfo =>
-                    {
-                        Assert.Equal(300, imageInfo.Metadata.HorizontalResolution);
-                        Assert.Equal(300, imageInfo.Metadata.VerticalResolution);
-                    });
+                {
+                    Assert.Equal(300, imageInfo.Metadata.HorizontalResolution);
+                    Assert.Equal(300, imageInfo.Metadata.VerticalResolution);
+                });
         }
 
         [Theory]
@@ -249,7 +251,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(true)]
         public void Decoder_Reads_Correct_Resolution_From_Exif(bool useIdentify)
         {
-            TestImageInfo(TestImages.Jpeg.Baseline.Jpeg420Exif, JpegDecoder, useIdentify,
+            TestImageInfo(
+                TestImages.Jpeg.Baseline.Jpeg420Exif,
+                JpegDecoder,
+                useIdentify,
                 imageInfo =>
                     {
                         Assert.Equal(72, imageInfo.Metadata.HorizontalResolution);

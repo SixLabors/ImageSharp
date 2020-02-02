@@ -20,13 +20,14 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
         }
 
         public int ExecutionCount { get; set; } = 50;
-        
+
         [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
         [InlineData(100, 100)]
         [InlineData(2000, 2000)]
         public void ResizeBicubic(int width, int height)
         {
-            this.Measure(this.ExecutionCount,
+            this.Measure(
+                this.ExecutionCount,
                 () =>
                     {
                         using (var image = new Image<Rgba32>(this.configuration, width, height))
@@ -35,6 +36,5 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                         }
                     });
         }
-
     }
 }

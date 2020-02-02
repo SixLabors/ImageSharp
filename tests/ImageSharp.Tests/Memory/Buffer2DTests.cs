@@ -11,7 +11,6 @@ using SixLabors.ImageSharp.Memory;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
-
 namespace SixLabors.ImageSharp.Tests.Memory
 {
     public class Buffer2DTests
@@ -85,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 ref TestStructs.Foo actual = ref buffer[x, y];
 
-                ref TestStructs.Foo expected = ref span[y * width + x];
+                ref TestStructs.Foo expected = ref span[(y * width) + x];
 
                 Assert.True(Unsafe.AreSame(ref expected, ref actual));
             }

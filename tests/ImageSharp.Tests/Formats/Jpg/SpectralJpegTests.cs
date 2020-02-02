@@ -1,4 +1,6 @@
-// ReSharper disable InconsistentNaming
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.IO;
 using System.Linq;
@@ -10,6 +12,7 @@ using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using Xunit;
 using Xunit.Abstractions;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public class SpectralJpegTests
@@ -78,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.VerifySpectralCorrectnessImpl(provider, imageSharpData);
             }
         }
-        
+
         private void VerifySpectralCorrectnessImpl<TPixel>(
             TestImageProvider<TPixel> provider,
             LibJpegTools.SpectralData imageSharpData)
@@ -112,6 +115,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 totalDifference += diff.total;
                 tolerance += libJpegComponent.SpectralBlocks.MemorySource.GetSpan().Length;
             }
+
             averageDifference /= componentCount;
 
             tolerance /= 64; // fair enough?

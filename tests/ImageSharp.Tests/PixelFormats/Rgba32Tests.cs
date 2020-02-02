@@ -126,8 +126,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void Rgba32_PackedValues()
         {
             Assert.Equal(0x80001Au, new Rgba32(+0.1f, -0.3f, +0.5f, -0.7f).PackedValue);
+
             // Test the limits.
-            Assert.Equal((uint)0x0, new Rgba32(Vector4.Zero).PackedValue);
+            Assert.Equal(0x0U, new Rgba32(Vector4.Zero).PackedValue);
             Assert.Equal(0xFFFFFFFF, new Rgba32(Vector4.One).PackedValue);
         }
 
@@ -204,7 +205,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var actual = default(Rgba32);
             var expected = new Rgba32(0x1a, 0, 0x80, 0);
 
-            // act 
+            // act
             rgba.FromRgba32(expected);
             actual.FromRgba32(rgba);
 
@@ -220,7 +221,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var actual = default(Bgra32);
             var expected = new Bgra32(0x1a, 0, 0x80, 0);
 
-            // act 
+            // act
             rgba.FromBgra32(expected);
             actual.FromRgba32(rgba);
 
@@ -236,7 +237,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var actual = default(Argb32);
             var expected = new Argb32(0x1a, 0, 0x80, 0);
 
-            // act 
+            // act
             rgba.FromArgb32(expected);
             actual.FromRgba32(rgba);
 

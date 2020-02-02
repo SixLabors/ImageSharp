@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height, AllocationOptions.Clean);
+            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(width, height, AllocationOptions.Clean);
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-            this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(width, height);
+            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(width, height);
             this.Clear(backgroundColor);
         }
 
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(source, nameof(source));
 
-            this.PixelBuffer = this.MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
+            this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
             source.PixelBuffer.GetSpan().CopyTo(this.PixelBuffer.GetSpan());
         }
 
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp
                 this.PixelBuffer.GetSpan().CopyTo(dest1);
             }
 
-            PixelOperations<TPixel>.Instance.To(this.Configuration, this.PixelBuffer.GetSpan(), destination);
+            PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), this.PixelBuffer.GetSpan(), destination);
         }
 
         /// <inheritdoc/>
@@ -229,7 +229,7 @@ namespace SixLabors.ImageSharp
         /// Clones the current instance.
         /// </summary>
         /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
-        internal ImageFrame<TPixel> Clone() => this.Clone(this.Configuration);
+        internal ImageFrame<TPixel> Clone() => this.Clone(this.GetConfiguration());
 
         /// <summary>
         /// Clones the current instance.
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
         /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
         internal ImageFrame<TPixel2> CloneAs<TPixel2>()
-            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
+            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.GetConfiguration());
 
         /// <summary>
         /// Returns a copy of the image frame in the given pixel format.

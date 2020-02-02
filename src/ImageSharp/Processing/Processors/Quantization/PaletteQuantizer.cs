@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             var palette = new TPixel[this.Palette.Length];
             Color.ToPixel(configuration, this.Palette.Span, palette.AsSpan());
-            return new PaletteFrameQuantizer<TPixel>(this.Diffuser, palette);
+            return new PaletteFrameQuantizer<TPixel>(configuration, this.Diffuser, palette);
         }
 
         /// <inheritdoc/>
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             var palette = new TPixel[max];
             Color.ToPixel(configuration, this.Palette.Span.Slice(0, max), palette.AsSpan());
-            return new PaletteFrameQuantizer<TPixel>(this.Diffuser, palette);
+            return new PaletteFrameQuantizer<TPixel>(configuration, this.Diffuser, palette);
         }
 
         private static IErrorDiffuser GetDiffuser(bool dither) => dither ? KnownDiffusers.FloydSteinberg : null;

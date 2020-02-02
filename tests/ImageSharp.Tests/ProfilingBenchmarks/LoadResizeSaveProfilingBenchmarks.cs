@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -28,7 +28,8 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 
             using (var ms = new MemoryStream())
             {
-                this.Measure(30,
+                this.Measure(
+                    30,
                     () =>
                         {
                             using (var image = Image.Load(configuration, imageBytes))
@@ -36,6 +37,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                                 image.Mutate(x => x.Resize(image.Size() / 4));
                                 image.SaveAsJpeg(ms);
                             }
+
                             ms.Seek(0, SeekOrigin.Begin);
                         });
             }

@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Numerics;
 using System.Reflection;
 using SixLabors.ImageSharp.Advanced;
@@ -14,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
     public class AffineTransformTests
     {
-        private readonly ITestOutputHelper Output;
+        private readonly ITestOutputHelper output;
 
         // 1 byte difference on one color component.
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0134F, 3);
@@ -65,11 +68,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                     nameof(KnownResamplers.Lanczos8),
                 };
 
-        public AffineTransformTests(ITestOutputHelper output) => this.Output = output;
+        public AffineTransformTests(ITestOutputHelper output) => this.output = output;
 
         /// <summary>
         /// The output of an "all white" image should be "all white" or transparent, regardless of the transformation and the resampler.
         /// </summary>
+        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
         [Theory]
         [WithSolidFilledImages(nameof(Transform_DoesNotCreateEdgeArtifacts_ResamplerNames), 5, 5, 255, 255, 255, 255, PixelTypes.Rgba32)]
         public void Transform_DoesNotCreateEdgeArtifacts<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
@@ -93,8 +97,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void Transform_RotateScaleTranslate<TPixel>(
             TestImageProvider<TPixel> provider,
             float angleDeg,
-            float sx, float sy,
-            float tx, float ty)
+            float sx,
+            float sy,
+            float tx,
+            float ty)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -141,13 +147,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
                     { 0, 0, 5, 10 },
                     { 0, 0, 10, 5 },
                     { 5, 0, 5, 10 },
-                    {-5,-5, 20, 20 }
+                    { -5, -5, 20, 20 }
                 };
 
         /// <summary>
         /// Testing transforms using custom source rectangles:
         /// https://github.com/SixLabors/ImageSharp/pull/386#issuecomment-357104963
         /// </summary>
+        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
         [Theory]
         [WithTestPatternImages(96, 48, PixelTypes.Rgba32)]
         public void Transform_FromSourceRectangle1<TPixel>(TestImageProvider<TPixel> provider)
@@ -239,7 +246,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         private void PrintMatrix(Matrix3x2 a)
         {
             string s = $"{a.M11:F10},{a.M12:F10},{a.M21:F10},{a.M22:F10},{a.M31:F10},{a.M32:F10}";
-            this.Output.WriteLine(s);
+            this.output.WriteLine(s);
         }
     }
 }

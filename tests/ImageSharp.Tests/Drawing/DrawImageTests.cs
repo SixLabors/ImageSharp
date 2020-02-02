@@ -44,7 +44,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                     appendSourceFileOrDescription: false);
 
                 var comparer = ImageComparer.TolerantPercentage(0.01F);
-                background.CompareToReferenceOutput(comparer,
+                background.CompareToReferenceOutput(
+                    comparer,
                     provider,
                     new { mode = mode },
                     appendPixelTypeToFileName: false,
@@ -88,7 +89,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
 
                 image.DebugSave(provider, testInfo, encoder: encoder);
-                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f),
+                image.CompareToReferenceOutput(
+                    ImageComparer.TolerantPercentage(0.01f),
                     provider,
                     testInfo);
             }
@@ -166,7 +168,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 image.Mutate(x => x.DrawImage(blend, position, .75F));
 
                 image.DebugSave(provider, appendSourceFileOrDescription: false, appendPixelTypeToFileName: false);
-                image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.002f),
+                image.CompareToReferenceOutput(
+                    ImageComparer.TolerantPercentage(0.002f),
                     provider,
                     appendSourceFileOrDescription: false,
                     appendPixelTypeToFileName: false);
@@ -193,7 +196,5 @@ namespace SixLabors.ImageSharp.Tests.Drawing
                 }
             }
         }
-
-
     }
 }

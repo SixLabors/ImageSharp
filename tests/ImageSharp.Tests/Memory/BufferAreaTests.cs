@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 for (int x = 0; x < w; x++)
                 {
-                    buffer[x, y] = y * 100 + x;
+                    buffer[x, y] = (y * 100) + x;
                 }
             }
 
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 BufferArea<int> area = buffer.GetArea(r);
 
                 int value = area[x, y];
-                int expected = (ry + y) * 100 + rx + x;
+                int expected = ((ry + y) * 100) + rx + x;
                 Assert.Equal(expected, value);
             }
         }
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 for (int i = 0; i < w; i++)
                 {
-                    int expected = (ry + y) * 100 + rx + i;
+                    int expected = ((ry + y) * 100) + rx + i;
                     int value = span[i];
 
                     Assert.Equal(expected, value);
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Assert.Equal(buffer, area1.DestinationBuffer);
                 Assert.Equal(expectedRect, area1.Rectangle);
 
-                int value00 = 12 * 100 + 10;
+                int value00 = (12 * 100) + 10;
                 Assert.Equal(value00, area1[0, 0]);
             }
         }

@@ -39,15 +39,17 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
             ImageComparer comparer = ImageComparer.Exact;
 
-            using var mImage = Image.Load<TPixel>(path, magickDecoder);
-            using var sdImage = Image.Load<TPixel>(path, sdDecoder);
-            ImageSimilarityReport<TPixel, TPixel> report = comparer.CompareImagesOrFrames(mImage, sdImage);
-
-            mImage.DebugSave(dummyProvider);
-
-            if (TestEnvironment.IsWindows)
+            using (var mImage = Image.Load<TPixel>(path, magickDecoder))
+            using (var sdImage = Image.Load<TPixel>(path, sdDecoder))
             {
-                Assert.True(report.IsEmpty);
+                ImageSimilarityReport<TPixel, TPixel> report = comparer.CompareImagesOrFrames(mImage, sdImage);
+
+                mImage.DebugSave(dummyProvider);
+
+                if (TestEnvironment.IsWindows)
+                {
+                    Assert.True(report.IsEmpty);
+                }
             }
         }
 
@@ -68,15 +70,17 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
             // 1020 == 4 * 255 (Equivalent to manhattan distance of 1+1+1+1=4 in Rgba32 space)
             var comparer = ImageComparer.TolerantPercentage(1, 1020);
 
-            using var mImage = Image.Load<TPixel>(path, magickDecoder);
-            using var sdImage = Image.Load<TPixel>(path, sdDecoder);
-            ImageSimilarityReport<TPixel, TPixel> report = comparer.CompareImagesOrFrames(mImage, sdImage);
-
-            mImage.DebugSave(dummyProvider);
-
-            if (TestEnvironment.IsWindows)
+            using (var mImage = Image.Load<TPixel>(path, magickDecoder))
+            using (var sdImage = Image.Load<TPixel>(path, sdDecoder))
             {
-                Assert.True(report.IsEmpty);
+                ImageSimilarityReport<TPixel, TPixel> report = comparer.CompareImagesOrFrames(mImage, sdImage);
+
+                mImage.DebugSave(dummyProvider);
+
+                if (TestEnvironment.IsWindows)
+                {
+                    Assert.True(report.IsEmpty);
+                }
             }
         }
     }

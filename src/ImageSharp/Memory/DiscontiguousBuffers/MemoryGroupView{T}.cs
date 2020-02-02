@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Buffers;
 using System.Collections;
@@ -15,7 +18,8 @@ namespace SixLabors.ImageSharp.Memory
     /// instance becomes invalid, throwing an exception on all operations.
     /// </remarks>
     /// <typeparam name="T">The element type.</typeparam>
-    internal class MemoryGroupView<T> : IMemoryGroup<T> where T : struct
+    internal class MemoryGroupView<T> : IMemoryGroup<T>
+        where T : struct
     {
         private readonly Memory.MemoryGroup<T> owner;
         private readonly MemoryOwnerWrapper[] memoryWrappers;
@@ -32,23 +36,25 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
+        public int Count => this.owner.Count;
+
+        public int BufferLength => this.owner.BufferLength;
+
+        public long TotalLength => this.owner.TotalLength;
+
+        public bool IsValid { get; internal set; }
+
+        public Memory<T> this[int index] => throw new NotImplementedException();
+
         public IEnumerator<Memory<T>> GetEnumerator() => throw new NotImplementedException();
 
         IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
-        public int Count { get; }
-
-        public Memory<T> this[int index] => throw new NotImplementedException();
-
-        public int BufferSize => this.owner.BufferSize;
-
-        public bool IsValid { get; internal set; }
-
-        class MemoryOwnerWrapper : MemoryManager<T>
+        private class MemoryOwnerWrapper : MemoryManager<T>
         {
-            private MemoryGroupView<T> view;
+            private readonly MemoryGroupView<T> view;
 
-            private int index;
+            private readonly int index;
 
             public MemoryOwnerWrapper(MemoryGroupView<T> view, int index)
             {

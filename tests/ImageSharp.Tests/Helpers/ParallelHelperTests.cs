@@ -18,11 +18,11 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 {
     public class ParallelHelperTests
     {
-        private readonly ITestOutputHelper Output;
+        private readonly ITestOutputHelper output;
 
         public ParallelHelperTests(ITestOutputHelper output)
         {
-            this.Output = output;
+            this.output = output;
         }
 
         /// <summary>
@@ -92,7 +92,6 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                 Configuration.Default.MemoryAllocator);
 
             var rectangle = new Rectangle(0, minY, 10, maxY - minY);
-
 
             int[] expectedData = Enumerable.Repeat(0, minY).Concat(Enumerable.Range(minY, maxY - minY)).ToArray();
             var actualData = new int[maxY];
@@ -184,7 +183,6 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                     });
 
             Assert.Equal(expectedData, actualData);
-
         }
 
         public static TheoryData<int, int, int, int, int, int, int> IterateRows_WithEffectiveMinimumPixelsLimit_Data =
@@ -319,10 +317,12 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                 // Fill actual data using IterateRows:
                 var settings = new ParallelExecutionSettings(maxDegreeOfParallelism, memoryAllocator);
 
-                ParallelHelper.IterateRows(rect, settings,
+                ParallelHelper.IterateRows(
+                    rect,
+                    settings,
                     rows =>
                         {
-                            this.Output.WriteLine(rows.ToString());
+                            this.output.WriteLine(rows.ToString());
                             for (int y = rows.Min; y < rows.Max; y++)
                             {
                                 FillRow(y, actual);
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         [InlineData(10, -10)]
         public void IterateRowsRequiresValidRectangle(int width, int height)
         {
-            var parallelSettings = new ParallelExecutionSettings();
+            var parallelSettings = default(ParallelExecutionSettings);
 
             var rect = new Rectangle(0, 0, width, height);
 
@@ -358,7 +358,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         [InlineData(10, -10)]
         public void IterateRowsWithTempBufferRequiresValidRectangle(int width, int height)
         {
-            var parallelSettings = new ParallelExecutionSettings();
+            var parallelSettings = default(ParallelExecutionSettings);
 
             var rect = new Rectangle(0, 0, width, height);
 

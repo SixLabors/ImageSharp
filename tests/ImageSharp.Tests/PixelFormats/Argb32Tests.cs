@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void Argb32_PackedValue()
         {
             Assert.Equal(0x80001a00u, new Argb32(+0.1f, -0.3f, +0.5f, -0.7f).PackedValue);
-            Assert.Equal((uint)0x0, new Argb32(Vector4.Zero).PackedValue);
+            Assert.Equal(0x0U, new Argb32(Vector4.Zero).PackedValue);
             Assert.Equal(0xFFFFFFFF, new Argb32(Vector4.One).PackedValue);
         }
 

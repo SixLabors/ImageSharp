@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataPrimitives.AsciiTestData), MemberType = typeof(IccTestDataPrimitives))]
         public void ReadAsciiString(byte[] textBytes, int length, string expected)
         {
-            IccDataReader reader = CreateReader(textBytes);
+            IccDataReader reader = this.CreateReader(textBytes);
 
             string output = reader.ReadAsciiString(length);
 
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [Fact]
         public void ReadAsciiStringWithNegativeLengthThrowsArgumentException()
         {
-            IccDataReader reader = CreateReader(new byte[4]);
+            IccDataReader reader = this.CreateReader(new byte[4]);
 
             Assert.Throws<ArgumentOutOfRangeException>(() => reader.ReadAsciiString(-1));
         }
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [Fact]
         public void ReadUnicodeStringWithNegativeLengthThrowsArgumentException()
         {
-            IccDataReader reader = CreateReader(new byte[4]);
+            IccDataReader reader = this.CreateReader(new byte[4]);
 
             Assert.Throws<ArgumentOutOfRangeException>(() => reader.ReadUnicodeString(-1));
         }
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataPrimitives.Fix16TestData), MemberType = typeof(IccTestDataPrimitives))]
         public void ReadFix16(byte[] data, float expected)
         {
-            IccDataReader reader = CreateReader(data);
+            IccDataReader reader = this.CreateReader(data);
 
             float output = reader.ReadFix16();
 
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataPrimitives.UFix16TestData), MemberType = typeof(IccTestDataPrimitives))]
         public void ReadUFix16(byte[] data, float expected)
         {
-            IccDataReader reader = CreateReader(data);
+            IccDataReader reader = this.CreateReader(data);
 
             float output = reader.ReadUFix16();
 
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataPrimitives.U1Fix15TestData), MemberType = typeof(IccTestDataPrimitives))]
         public void ReadU1Fix15(byte[] data, float expected)
         {
-            IccDataReader reader = CreateReader(data);
+            IccDataReader reader = this.CreateReader(data);
 
             float output = reader.ReadU1Fix15();
 
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [MemberData(nameof(IccTestDataPrimitives.UFix8TestData), MemberType = typeof(IccTestDataPrimitives))]
         public void ReadUFix8(byte[] data, float expected)
         {
-            IccDataReader reader = CreateReader(data);
+            IccDataReader reader = this.CreateReader(data);
 
             float output = reader.ReadUFix8();
 

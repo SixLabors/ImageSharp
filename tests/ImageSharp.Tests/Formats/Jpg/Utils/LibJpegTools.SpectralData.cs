@@ -12,7 +12,6 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
-
     internal static partial class LibJpegTools
     {
         /// <summary>
@@ -40,7 +39,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public Image<Rgba32> TryCreateRGBSpectralImage()
             {
-                if (this.ComponentCount != 3) return null;
+                if (this.ComponentCount != 3)
+                {
+                    return null;
+                }
 
                 LibJpegTools.ComponentData c0 = this.Components[0];
                 LibJpegTools.ComponentData c1 = this.Components[1];
@@ -60,6 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                         this.WriteToImage(bx, by, result);
                     }
                 }
+
                 return result;
             }
 
@@ -73,9 +76,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 Block8x8 block1 = c1.SpectralBlocks[bx, by];
                 Block8x8 block2 = c2.SpectralBlocks[bx, by];
 
-                float d0 = (c0.MaxVal - c0.MinVal);
-                float d1 = (c1.MaxVal - c1.MinVal);
-                float d2 = (c2.MaxVal - c2.MinVal);
+                float d0 = c0.MaxVal - c0.MinVal;
+                float d1 = c1.MaxVal - c1.MinVal;
+                float d2 = c2.MaxVal - c2.MinVal;
 
                 for (int y = 0; y < 8; y++)
                 {
@@ -89,8 +92,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                         Rgba32 color = default;
                         color.FromVector4(v);
 
-                        int yy = by * 8 + y;
-                        int xx = bx * 8 + x;
+                        int yy = (by * 8) + y;
+                        int xx = (bx * 8) + x;
                         image[xx, yy] = color;
                     }
                 }
@@ -117,8 +120,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 {
                     LibJpegTools.ComponentData a = this.Components[i];
                     LibJpegTools.ComponentData b = other.Components[i];
-                    if (!a.Equals(b)) return false;
+                    if (!a.Equals(b))
+                    {
+                        return false;
+                    }
                 }
+
                 return true;
             }
 

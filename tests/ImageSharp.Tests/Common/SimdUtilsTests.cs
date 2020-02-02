@@ -55,6 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             {
                 data[i] = data[i - 4] + 100f;
             }
+
             return new Vector<float>(data);
         }
 
@@ -66,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             for (int i = 0; i < Vector<float>.Count; i++)
             {
-                float v = (float)rnd.NextDouble() * (max - min) + min;
+                float v = ((float)rnd.NextDouble() * (max - min)) + min;
                 data[i] = v;
             }
 
@@ -132,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByte(normalized, dest);
 
-            byte[] expected = orig.Select(f => (byte)(f)).ToArray();
+            byte[] expected = orig.Select(f => (byte)f).ToArray();
 
             Assert.Equal(expected, dest);
         }
@@ -229,9 +230,9 @@ namespace SixLabors.ImageSharp.Tests.Common
         [MemberData(nameof(ArraySizesDivisibleBy4))]
         public void FallbackIntrinsics128_BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
-                (s, d) => SimdUtils.FallbackIntrinsics128.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
-            );
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+                count,
+                (s, d) => SimdUtils.FallbackIntrinsics128.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span));
         }
 
         [Theory]
@@ -243,18 +244,16 @@ namespace SixLabors.ImageSharp.Tests.Common
                 return;
             }
 
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
-                (s, d) => SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
-                );
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count, (s, d) => SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span));
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void ExtendedIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
-                (s, d) => SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
-            );
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+                count,
+                (s, d) => SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span));
         }
 
         [Theory]
@@ -282,11 +281,9 @@ namespace SixLabors.ImageSharp.Tests.Common
         [MemberData(nameof(ArbitraryArraySizes))]
         public void BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
-                (s, d) => SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
-            );
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count, (s, d) => SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span));
 
-            // for small values, let's stress test the implementation a bit:
+            // For small values, let's stress test the implementation a bit:
             if (count > 0 && count < 10)
             {
                 for (int i = 0; i < 20; i++)
@@ -301,7 +298,9 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private static void TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
             int count,
-            Action<Memory<float>, Memory<byte>> convert, int seed = -1)
+            Action<Memory<float>,
+            Memory<byte>> convert,
+            int seed = -1)
         {
             seed = seed > 0 ? seed : count;
             float[] source = new Random(seed).GenerateRandomFloatArray(count, -0.2f, 1.2f);
@@ -313,7 +312,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected, actual);
         }
 
-        private static byte NormalizedFloatToByte(float f) => (byte)Math.Min(255f, Math.Max(0f, f * 255f + 0.5f));
+        private static byte NormalizedFloatToByte(float f) => (byte)Math.Min(255f, Math.Max(0f, (f * 255f) + 0.5f));
 
         [Theory]
         [InlineData(0)]

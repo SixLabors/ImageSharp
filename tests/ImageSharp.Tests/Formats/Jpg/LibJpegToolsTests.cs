@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System.IO;
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -12,7 +15,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void RunDumpJpegCoeffsTool()
         {
-            if (!TestEnvironment.IsWindows) return;
+            if (!TestEnvironment.IsWindows)
+            {
+                return;
+            }
 
             string inputFile = TestFile.GetInputFileFullPath(TestImages.Jpeg.Progressive.Progress);
             string outputDir = TestEnvironment.CreateOutputDirectory(nameof(SpectralJpegTests));

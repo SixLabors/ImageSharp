@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
 {
     public class BackgroundColorTest : BaseImageOperationsExtensionTest
     {
-        private static readonly GraphicsOptionsComparer graphicsOptionsComparer = new GraphicsOptionsComparer();
+        private static readonly GraphicsOptionsComparer GraphicsOptionsComparer = new GraphicsOptionsComparer();
 
         [Fact]
         public void BackgroundColor_amount_BackgroundColorProcessorDefaultsSet()
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
             this.operations.BackgroundColor(Color.BlanchedAlmond);
             BackgroundColorProcessor processor = this.Verify<BackgroundColorProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), processor.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(new GraphicsOptions(), processor.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.BlanchedAlmond, processor.Color);
         }
 
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
             this.operations.BackgroundColor(Color.BlanchedAlmond, this.rect);
             BackgroundColorProcessor processor = this.Verify<BackgroundColorProcessor>(this.rect);
 
-            Assert.Equal(new GraphicsOptions(), processor.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(new GraphicsOptions(), processor.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.BlanchedAlmond, processor.Color);
         }
 
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
             this.operations.BackgroundColor(this.options, Color.BlanchedAlmond);
             BackgroundColorProcessor processor = this.Verify<BackgroundColorProcessor>();
 
-            Assert.Equal(this.options, processor.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(this.options, processor.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.BlanchedAlmond, processor.Color);
         }
 
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
             this.operations.BackgroundColor(this.options, Color.BlanchedAlmond, this.rect);
             BackgroundColorProcessor processor = this.Verify<BackgroundColorProcessor>(this.rect);
 
-            Assert.Equal(this.options, processor.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(this.options, processor.GraphicsOptions, GraphicsOptionsComparer);
             Assert.Equal(Color.BlanchedAlmond, processor.Color);
         }
     }

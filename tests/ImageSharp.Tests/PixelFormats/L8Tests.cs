@@ -146,7 +146,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.Equal(expected, actual);
         }
 
-
         [Theory]
         [MemberData(nameof(LuminanceData))]
         public void L8_ToRgba32(byte luminance)
@@ -199,7 +198,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 Assert.Equal(original, mirror);
             }
 
-
             [Theory]
             [MemberData(nameof(LuminanceData))]
             public void Rgba32_ToL8_IsInverseOf_L8_ToRgba32(byte luminance)
@@ -224,10 +222,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 Rgba32 rgba = default;
                 original.ToRgba32(ref rgba);
 
-                var L8Vector = original.ToVector4();
+                var l8Vector = original.ToVector4();
                 var rgbaVector = original.ToVector4();
 
-                Assert.Equal(L8Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
+                Assert.Equal(l8Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
             }
 
             [Theory]
@@ -239,7 +237,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 Rgba32 rgba = default;
                 original.ToRgba32(ref rgba);
 
-                Vector4 rgbaVector = original.ToVector4();
+                var rgbaVector = original.ToVector4();
 
                 L8 mirror = default;
                 mirror.FromVector4(rgbaVector);
@@ -256,10 +254,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 Rgba32 rgba = default;
                 original.ToRgba32(ref rgba);
 
-                Vector4 L8Vector = original.ToScaledVector4();
+                Vector4 l8Vector = original.ToScaledVector4();
                 Vector4 rgbaVector = original.ToScaledVector4();
 
-                Assert.Equal(L8Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
+                Assert.Equal(l8Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
             }
 
             [Theory]

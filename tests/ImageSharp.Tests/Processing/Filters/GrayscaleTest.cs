@@ -4,8 +4,8 @@
 using System.Collections.Generic;
 
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors.Filters;
 using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Processing.Processors.Filters;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 using Xunit;
@@ -14,8 +14,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
 {
     public class GrayscaleTest : BaseImageOperationsExtensionTest
     {
-        public static IEnumerable<object[]> ModeTheoryData = new[] {
-            new object[]{ new TestType<GrayscaleBt709Processor>(), GrayscaleMode.Bt709 }
+        public static IEnumerable<object[]> ModeTheoryData = new[]
+        {
+            new object[] { new TestType<GrayscaleBt709Processor>(), GrayscaleMode.Bt709 }
         };
 
         [Theory]

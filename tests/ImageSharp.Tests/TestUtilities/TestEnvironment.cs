@@ -40,6 +40,7 @@ namespace SixLabors.ImageSharp.Tests
         internal static string NetCoreVersion => NetCoreVersionLazy.Value;
 
         // ReSharper disable once InconsistentNaming
+
         /// <summary>
         /// Gets a value indicating whether test execution runs on CI.
         /// </summary>
@@ -174,8 +175,10 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         private static void EnsureRemoteExecutorIs32Bit()
         {
-            string windowsSdksDir = Path.Combine(Environment.GetEnvironmentVariable("PROGRAMFILES(x86)"),
-                "Microsoft SDKs", "Windows");
+            string windowsSdksDir = Path.Combine(
+                Environment.GetEnvironmentVariable("PROGRAMFILES(x86)"),
+                "Microsoft SDKs",
+                "Windows");
 
             FileInfo corFlagsFile = Find(new DirectoryInfo(windowsSdksDir), "CorFlags.exe");
 
@@ -234,8 +237,11 @@ namespace SixLabors.ImageSharp.Tests
             string[] assemblyPath = assembly.CodeBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
             int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
             if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
+            {
                 return assemblyPath[netCoreAppIndex + 1];
-            return "";
+            }
+
+            return string.Empty;
         }
     }
 }

@@ -81,22 +81,22 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void ShortHex()
             {
-                Assert.Equal(new Rgb24(255, 255, 255), (Rgb24) Color.FromHex("#fff"));
-                Assert.Equal(new Rgb24(255, 255, 255), (Rgb24) Color.FromHex("fff"));
-                Assert.Equal(new Rgba32(0, 0, 0, 255), (Rgba32) Color.FromHex("000f"));
+                Assert.Equal(new Rgb24(255, 255, 255), (Rgb24)Color.FromHex("#fff"));
+                Assert.Equal(new Rgb24(255, 255, 255), (Rgb24)Color.FromHex("fff"));
+                Assert.Equal(new Rgba32(0, 0, 0, 255), (Rgba32)Color.FromHex("000f"));
             }
 
             [Fact]
             public void LeadingPoundIsOptional()
             {
-                Assert.Equal(new Rgb24(0, 128, 128), (Rgb24) Color.FromHex("#008080"));
-                Assert.Equal(new Rgb24(0, 128, 128), (Rgb24) Color.FromHex("008080"));
+                Assert.Equal(new Rgb24(0, 128, 128), (Rgb24)Color.FromHex("#008080"));
+                Assert.Equal(new Rgb24(0, 128, 128), (Rgb24)Color.FromHex("008080"));
             }
 
             [Fact]
             public void ThrowsOnEmpty()
             {
-                Assert.Throws<ArgumentException>(() => Color.FromHex(""));
+                Assert.Throws<ArgumentException>(() => Color.FromHex(string.Empty));
             }
 
             [Fact]

@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Memory
         public int MaximumContiguousBufferLength { get; set; } = Int32.MaxValue;
 
         /// <inheritdoc />
-        protected internal override int GetMaximumContiguousBufferLength() => this.MaximumContiguousBufferLength;
+        protected internal override int GetBlockCapacity() => this.MaximumContiguousBufferLength;
 
         /// <inheritdoc />
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)

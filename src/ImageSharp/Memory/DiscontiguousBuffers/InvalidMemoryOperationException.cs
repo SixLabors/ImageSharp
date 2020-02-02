@@ -1,6 +1,6 @@
 using System;
 
-namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
+namespace SixLabors.ImageSharp.Memory
 {
     public class InvalidMemoryOperationException : InvalidOperationException
     {

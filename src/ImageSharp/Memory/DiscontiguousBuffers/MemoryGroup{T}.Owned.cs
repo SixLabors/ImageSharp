@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -12,8 +15,8 @@ namespace SixLabors.ImageSharp.Memory
         {
             private IMemoryOwner<T>[] memoryOwners;
 
-            public Owned(IMemoryOwner<T>[] memoryOwners, int bufferSize)
-                : base(bufferSize)
+            public Owned(IMemoryOwner<T>[] memoryOwners, int bufferLength, long totalLength)
+                : base(bufferLength, totalLength)
             {
                 this.memoryOwners = memoryOwners;
             }

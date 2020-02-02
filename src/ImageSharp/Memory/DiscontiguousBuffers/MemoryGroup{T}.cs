@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Buffers;
 using System.Collections;
@@ -17,11 +20,17 @@ namespace SixLabors.ImageSharp.Memory
     {
         private static readonly int ElementSize = Unsafe.SizeOf<T>();
 
-        private MemoryGroup(int bufferSize) => this.BufferSize = bufferSize;
+        private MemoryGroup(int bufferLength, long totalLength)
+        {
+            this.BufferLength = bufferLength;
+            this.TotalLength = totalLength;
+        }
 
         public abstract int Count { get; }
 
-        public int BufferSize { get; }
+        public int BufferLength { get; }
+
+        public long TotalLength { get; }
 
         public bool IsValid { get; private set; } = true;
 
@@ -51,18 +60,18 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             int numberOfAlignedSegments = blockCapacityInElements / blockAlignment;
-            int bufferSize = numberOfAlignedSegments * blockAlignment;
-            if (totalLength > 0 && totalLength < bufferSize)
+            int bufferLength = numberOfAlignedSegments * blockAlignment;
+            if (totalLength > 0 && totalLength < bufferLength)
             {
-                bufferSize = (int)totalLength;
+                bufferLength = (int)totalLength;
             }
 
-            int sizeOfLastBuffer = (int)(totalLength % bufferSize);
-            long bufferCount = totalLength / bufferSize;
+            int sizeOfLastBuffer = (int)(totalLength % bufferLength);
+            long bufferCount = totalLength / bufferLength;
 
             if (sizeOfLastBuffer == 0)
             {
-                sizeOfLastBuffer = bufferSize;
+                sizeOfLastBuffer = bufferLength;
             }
             else
             {
@@ -72,7 +81,7 @@ namespace SixLabors.ImageSharp.Memory
             var buffers = new IMemoryOwner<T>[bufferCount];
             for (int i = 0; i < buffers.Length - 1; i++)
             {
-                buffers[i] = allocator.Allocate<T>(bufferSize, allocationOptions);
+                buffers[i] = allocator.Allocate<T>(bufferLength, allocationOptions);
             }
 
             if (bufferCount > 0)
@@ -80,28 +89,30 @@ namespace SixLabors.ImageSharp.Memory
                 buffers[^1] = allocator.Allocate<T>(sizeOfLastBuffer, allocationOptions);
             }
 
-            return new Owned(buffers, bufferSize);
+            return new Owned(buffers, bufferLength, totalLength);
         }
 
         public static MemoryGroup<T> Wrap(params Memory<T>[] source) => Wrap(source.AsMemory());
 
         public static MemoryGroup<T> Wrap(ReadOnlyMemory<Memory<T>> source)
         {
-            int bufferSize = source.Length > 0 ? source.Span[0].Length : 0;
+            int bufferLength = source.Length > 0 ? source.Span[0].Length : 0;
             for (int i = 1; i < source.Length - 1; i++)
             {
-                if (source.Span[i].Length != bufferSize)
+                if (source.Span[i].Length != bufferLength)
                 {
                     throw new InvalidMemoryOperationException("Wrap: buffers should be uniformly sized!");
                 }
             }
 
-            if (source.Length > 0 && source.Span[^1].Length > bufferSize)
+            if (source.Length > 0 && source.Span[^1].Length > bufferLength)
             {
                 throw new InvalidMemoryOperationException("Wrap: the last buffer is too large!");
             }
 
-            return new Consumed(source, bufferSize);
+            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source.Span[^1].Length : 0;
+
+            return new Consumed(source, bufferLength, totalLength);
         }
 
         // Analogous to current MemorySource.SwapOrCopyContent()

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// Gets the number of elements per contiguous sub-block.
         /// </summary>
-        public int BlockSize { get; }
+        public int BufferSize { get; }
 
         bool IsValid { get; }
     }

@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Memory
 
         public Memory<T> this[int index] => throw new NotImplementedException();
 
-        public int BlockSize => this.owner.BlockSize;
+        public int BufferSize => this.owner.BufferSize;
 
         public bool IsValid { get; internal set; }
 

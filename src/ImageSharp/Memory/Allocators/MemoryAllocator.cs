@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Memory
         /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
         /// </summary>
         /// <returns>The length of the largest contiguous buffer that can be handled by this allocator instance.</returns>
-        protected internal abstract int GetBlockCapacity();
+        protected internal abstract int GetBufferCapacity();
 
         /// <summary>
         /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="System.Memory{T}"/> of length <paramref name="length"/>.

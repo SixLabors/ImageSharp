@@ -10,12 +10,15 @@ namespace SixLabors.ImageSharp.Memory
         {
             private readonly ReadOnlyMemory<Memory<T>> source;
 
-            public Consumed(ReadOnlyMemory<Memory<T>> source)
+            public Consumed(ReadOnlyMemory<Memory<T>> source, int bufferSize)
+                : base(bufferSize)
             {
-                // TODO: sizes should be uniform, validate!
-
                 this.source = source;
             }
+
+            public override int Count => this.source.Length;
+
+            public override Memory<T> this[int index] => this.source.Span[index];
 
             public override IEnumerator<Memory<T>> GetEnumerator()
             {
@@ -24,10 +27,6 @@ namespace SixLabors.ImageSharp.Memory
                     yield return this.source.Span[i];
                 }
             }
-
-            public override int Count => this.source.Length;
-
-            public override Memory<T> this[int index] => this.source.Span[index];
 
             public override void Dispose()
             {

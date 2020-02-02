@@ -98,38 +98,40 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             {
                 RunDumpJpegCoeffsTool(testFile.FullPath, coeffFileFullPath);
 
-                using var dumpStream = new FileStream(coeffFileFullPath, FileMode.Open);
-                using var rdr = new BinaryReader(dumpStream);
-                int componentCount = rdr.ReadInt16();
-                var result = new ComponentData[componentCount];
-
-                for (int i = 0; i < componentCount; i++)
+                using (var dumpStream = new FileStream(coeffFileFullPath, FileMode.Open))
+                using (var rdr = new BinaryReader(dumpStream))
                 {
-                    int widthInBlocks = rdr.ReadInt16();
-                    int heightInBlocks = rdr.ReadInt16();
-                    var resultComponent = new ComponentData(widthInBlocks, heightInBlocks, i);
-                    result[i] = resultComponent;
-                }
+                    int componentCount = rdr.ReadInt16();
+                    var result = new ComponentData[componentCount];
 
-                var buffer = new byte[64 * sizeof(short)];
-
-                for (int i = 0; i < result.Length; i++)
-                {
-                    ComponentData c = result[i];
-
-                    for (int y = 0; y < c.HeightInBlocks; y++)
+                    for (int i = 0; i < componentCount; i++)
                     {
-                        for (int x = 0; x < c.WidthInBlocks; x++)
-                        {
-                            rdr.Read(buffer, 0, buffer.Length);
+                        int widthInBlocks = rdr.ReadInt16();
+                        int heightInBlocks = rdr.ReadInt16();
+                        var resultComponent = new ComponentData(widthInBlocks, heightInBlocks, i);
+                        result[i] = resultComponent;
+                    }
 
-                            short[] block = MemoryMarshal.Cast<byte, short>(buffer.AsSpan()).ToArray();
-                            c.MakeBlock(block, y, x);
+                    var buffer = new byte[64 * sizeof(short)];
+
+                    for (int i = 0; i < result.Length; i++)
+                    {
+                        ComponentData c = result[i];
+
+                        for (int y = 0; y < c.HeightInBlocks; y++)
+                        {
+                            for (int x = 0; x < c.WidthInBlocks; x++)
+                            {
+                                rdr.Read(buffer, 0, buffer.Length);
+
+                                short[] block = MemoryMarshal.Cast<byte, short>(buffer.AsSpan()).ToArray();
+                                c.MakeBlock(block, y, x);
+                            }
                         }
                     }
-                }
 
-                return new SpectralData(result);
+                    return new SpectralData(result);
+                }
             }
             finally
             {

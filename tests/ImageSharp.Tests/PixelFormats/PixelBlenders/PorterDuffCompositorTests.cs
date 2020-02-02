@@ -33,24 +33,28 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
         public void PorterDuffOutputIsCorrect(TestImageProvider<Rgba32> provider, PixelAlphaCompositionMode mode)
         {
             var srcFile = TestFile.Create(TestImages.Png.PDSrc);
-            using Image<Rgba32> src = srcFile.CreateRgba32Image();
-            using Image<Rgba32> dest = provider.GetImage();
-            var options = new GraphicsOptions
+            using (Image<Rgba32> src = srcFile.CreateRgba32Image())
+            using (Image<Rgba32> dest = provider.GetImage())
             {
-                Antialias = false,
-                AlphaCompositionMode = mode
-            };
+                var options = new GraphicsOptions
+                {
+                    Antialias = false,
+                    AlphaCompositionMode = mode
+                };
 
-            using Image<Rgba32> res = dest.Clone(x => x.DrawImage(src, options));
-            string combinedMode = mode.ToString();
+                using (Image<Rgba32> res = dest.Clone(x => x.DrawImage(src, options)))
+                {
+                    string combinedMode = mode.ToString();
 
-            if (combinedMode != "Src" && combinedMode.StartsWith("Src"))
-            {
-                combinedMode = combinedMode.Substring(3);
+                    if (combinedMode != "Src" && combinedMode.StartsWith("Src"))
+                    {
+                        combinedMode = combinedMode.Substring(3);
+                    }
+
+                    res.DebugSave(provider, combinedMode);
+                    res.CompareToReferenceOutput(provider, combinedMode);
+                }
             }
-
-            res.DebugSave(provider, combinedMode);
-            res.CompareToReferenceOutput(provider, combinedMode);
         }
     }
 }

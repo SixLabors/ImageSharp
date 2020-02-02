@@ -27,7 +27,10 @@ namespace SixLabors.ImageSharp.Memory
         public bool IsValid { get; protected set; }
 
         // bufferLengthAlignment == image.Width in row-major images
-        public static MemoryGroup<T> Allocate(MemoryAllocator allocator, long totalLength, int blockAlignment)
+        public static MemoryGroup<T> Allocate(MemoryAllocator allocator,
+            long totalLength,
+            int blockAlignment,
+            AllocationOptions allocationOptions = AllocationOptions.None)
         {
             long bufferCount = totalLength / allocator.GetBlockCapacity();
 

@@ -1,5 +1,5 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -13,9 +13,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
     public abstract class Basic1ParameterConvolutionTests
     {
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05F);
-        
+
         public static readonly TheoryData<int> Values = new TheoryData<int> { 3, 5 };
-        
+
         public static readonly string[] InputImages =
             {
                 TestImages.Bmp.Car,
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         }
 
         protected abstract void Apply(IImageProcessingContext ctx, int value);
-        
+
         protected abstract void Apply(IImageProcessingContext ctx, int value, Rectangle bounds);
     }
 }

@@ -85,8 +85,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
-            { TestImages.Png.Splash, 11810, 11810 , PixelResolutionUnit.PixelsPerMeter},
-            { TestImages.Png.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
+            { TestImages.Png.Splash, 11810, 11810, PixelResolutionUnit.PixelsPerMeter },
+            { TestImages.Png.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
             { TestImages.Png.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
         };
 
@@ -284,7 +284,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 image.Save(ms, new PngEncoder());
 
                 byte[] data = ms.ToArray().Take(8).ToArray();
-                byte[] expected = {
+                byte[] expected =
+                {
                     0x89, // Set the high bit.
                     0x50, // P
                     0x4E, // N
@@ -444,6 +445,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
                 // Compare to the Magick reference decoder.
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
+
                 // We compare using both our decoder and the reference decoder as pixel transformation
                 // occurs within the encoder itself leaving the input image unaffected.
                 // This means we are benefiting from testing our decoder also.

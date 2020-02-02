@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-// ReSharper disable InconsistentNaming
-
 using System.IO;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
@@ -11,6 +9,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     public partial class PngDecoderTests
@@ -52,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         };
 
         public static readonly string[] TestImages64Bpp =
-{
+        {
             TestImages.Png.Rgba64Bpp,
             TestImages.Png.Rgb48BppTrans
         };

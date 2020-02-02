@@ -28,6 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
             Assert.Equal(10, processor.Levels);
             Assert.Equal(15, processor.BrushSize);
         }
+
         [Fact]
         public void OilPaint_Levels_Brush_OilPaintingProcessorDefaultsSet()
         {

@@ -1,4 +1,3 @@
-﻿// Copyright (c) Six Labors and contributors.
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
@@ -7,8 +6,8 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Advanced
 {
     public class AdvancedImageExtensionsTests
@@ -39,7 +38,6 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                     }
                 }
             }
-
 
             [Theory]
             [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32 | PixelTypes.Bgr24)]
@@ -136,7 +134,6 @@ namespace SixLabors.ImageSharp.Tests.Advanced
 
                 ref byte source = ref Unsafe.As<TPixel, byte>(ref targetBuffer[0]);
                 ref byte dest = ref Unsafe.As<TPixel, byte>(ref image.DangerousGetPinnableReferenceToPixelBuffer());
-                
                 fixed (byte* targetPtr = &source)
                 fixed (byte* pixelBasePtr = &dest)
                 {

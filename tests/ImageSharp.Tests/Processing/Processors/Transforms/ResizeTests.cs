@@ -5,18 +5,15 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
 using Xunit;
 
 // ReSharper disable InconsistentNaming
-
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
     public class ResizeTests
@@ -38,15 +35,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 nameof(KnownResamplers.Lanczos5),
             };
 
-
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.07F);
 
         [Fact]
         public void Resize_PixelAgnostic()
         {
-            var filePath = TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora);
+            string filePath = TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora);
 
-            using (Image image = Image.Load(filePath))
+            using (var image = Image.Load(filePath))
             {
                 image.Mutate(x => x.Resize(image.Size() / 2));
                 string path = System.IO.Path.Combine(
@@ -71,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             provider.Configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInKilobytes * 1024;
 
-            using (var image = provider.GetImage())
+            using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.Resize(destSize, destSize));
                 image.DebugSave(provider, appendPixelTypeToFileName: false);
@@ -89,8 +85,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             // [WithBasicTestPatternImages(15, 12, PixelTypes.Rgba32, 2, 3, 1, 2)] means:
             // resizing: (15, 12) -> (10, 6)
             // kernel dimensions: (3, 4)
-
-
             using (Image<TPixel> image = provider.GetImage())
             {
                 var destSize = new Size(image.Width * wN / wD, image.Height * hN / hD);
@@ -120,10 +114,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             {
                 Size destSize = image0.Size() / 4;
 
-                Configuration configuration = Configuration.CreateDefaultInstance();
+                var configuration = Configuration.CreateDefaultInstance();
 
                 int workingBufferSizeHintInBytes = workingBufferLimitInRows * destSize.Width * SizeOfVector4;
-                TestMemoryAllocator allocator = new TestMemoryAllocator();
+                var allocator = new TestMemoryAllocator();
                 configuration.MemoryAllocator = allocator;
                 configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInBytes;
 
@@ -179,7 +173,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void Resize_DoesNotBleedAlphaPixels<TPixel>(TestImageProvider<TPixel> provider, bool compand)
             where TPixel : struct, IPixel<TPixel>
         {
-            string details = compand ? "Compand" : "";
+            string details = compand ? "Compand" : string.Empty;
 
             provider.RunValidatingProcessorTest(
                 x => x.Resize(x.GetCurrentSize() / 2, compand),
@@ -297,31 +291,31 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             provider.RunValidatingProcessorTest(
                 ctx =>
+                {
+                    SizeF newSize;
+                    string destSizeInfo;
+                    if (ratio.HasValue)
                     {
-                        SizeF newSize;
-                        string destSizeInfo;
-                        if (ratio.HasValue)
+                        newSize = ctx.GetCurrentSize() * ratio.Value;
+                        destSizeInfo = ratio.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                    else
+                    {
+                        if (!specificDestWidth.HasValue || !specificDestHeight.HasValue)
                         {
-                            newSize = ctx.GetCurrentSize() * ratio.Value;
-                            destSizeInfo = ratio.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        }
-                        else
-                        {
-                            if (!specificDestWidth.HasValue || !specificDestHeight.HasValue)
-                            {
-                                throw new InvalidOperationException(
-                                    "invalid dimensional input for Resize_WorksWithAllResamplers!");
-                            }
-
-                            newSize = new SizeF(specificDestWidth.Value, specificDestHeight.Value);
-                            destSizeInfo = $"{newSize.Width}x{newSize.Height}";
+                            throw new InvalidOperationException(
+                                "invalid dimensional input for Resize_WorksWithAllResamplers!");
                         }
 
-                        FormattableString testOutputDetails = $"{samplerName}-{destSizeInfo}";
+                        newSize = new SizeF(specificDestWidth.Value, specificDestHeight.Value);
+                        destSizeInfo = $"{newSize.Width}x{newSize.Height}";
+                    }
 
-                        ctx.Resize((Size)newSize, sampler, false);
-                        return testOutputDetails;
-                    },
+                    FormattableString testOutputDetails = $"{samplerName}-{destSizeInfo}";
+
+                    ctx.Resize((Size)newSize, sampler, false);
+                    return testOutputDetails;
+                },
                 comparer,
                 appendPixelTypeToFileName: false);
         }

@@ -6,8 +6,8 @@ using System.IO;
 using SixLabors.ImageSharp.Formats;
 
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
     public partial class ImageTests

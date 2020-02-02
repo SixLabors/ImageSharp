@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -14,9 +14,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             Assert.Equal(0xE6672CCC, new NormalizedShort2(0.35f, -0.2f).PackedValue);
             Assert.Equal(3650751693, new NormalizedShort2(0.1f, -0.3f).PackedValue);
-            Assert.Equal((uint)0x0, new NormalizedShort2(Vector2.Zero).PackedValue);
-            Assert.Equal((uint)0x7FFF7FFF, new NormalizedShort2(Vector2.One).PackedValue);
+            Assert.Equal(0x0U, new NormalizedShort2(Vector2.Zero).PackedValue);
+            Assert.Equal(0x7FFF7FFFU, new NormalizedShort2(Vector2.One).PackedValue);
             Assert.Equal(0x80018001, new NormalizedShort2(-Vector2.One).PackedValue);
+
             // TODO: I don't think this can ever pass since the bytes are already truncated.
             // Assert.Equal(3650751693, n.PackedValue);
         }
@@ -34,8 +35,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void NormalizedShort2_ToVector4()
         {
-            Assert.Equal(new Vector4(1, 1, 0, 1), (new NormalizedShort2(Vector2.One)).ToVector4());
-            Assert.Equal(new Vector4(0, 0, 0, 1), (new NormalizedShort2(Vector2.Zero)).ToVector4());
+            Assert.Equal(new Vector4(1, 1, 0, 1), new NormalizedShort2(Vector2.One).ToVector4());
+            Assert.Equal(new Vector4(0, 0, 0, 1), new NormalizedShort2(Vector2.Zero).ToVector4());
         }
 
         [Fact]

@@ -30,6 +30,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
             {
                 writer.WriteLine($"{kv.Key}{Separator}{kv.Value}");
             }
+
             writer.Flush();
             byte[] data = ms.ToArray();
             return System.Convert.ToBase64String(data);
@@ -42,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
             using var ms = new MemoryStream(data);
             using var reader = new StreamReader(ms);
             var type = Type.GetType(reader.ReadLine());
-            for (string s = reader.ReadLine(); s != null ; s = reader.ReadLine())
+            for (string s = reader.ReadLine(); s != null; s = reader.ReadLine())
             {
                 string[] kv = s.Split(Separator);
                 this.map[kv[0]] = kv[1];
@@ -58,12 +59,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
             return serializer.DumpToString(serializable.GetType());
         }
 
-        public static T Deserialize<T>(string dump) where T : IXunitSerializable
+        public static T Deserialize<T>(string dump)
+            where T : IXunitSerializable
         {
             var serializer = new BasicSerializer();
             Type type = serializer.LoadDump(dump);
 
-            var result = (T) Activator.CreateInstance(type);
+            var result = (T)Activator.CreateInstance(type);
             result.Deserialize(serializer);
             return result;
         }
@@ -75,6 +77,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
             {
                 return;
             }
+
             type ??= value.GetType();
 
             this.map[key] = TypeDescriptor.GetConverter(type).ConvertToInvariantString(value);

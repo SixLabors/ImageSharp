@@ -22,6 +22,7 @@ namespace SixLabors.ImageSharp.Tests
                 arrays[i].CopyTo(result, offset);
                 offset += arrays[i].Length;
             }
+
             return result;
         }
 
@@ -39,6 +40,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 result[i] = value;
             }
+
             return result;
         }
 
@@ -50,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>The filled string</returns>
         public static string Fill(char value, int length)
         {
-            return "".PadRight(length, value);
+            return string.Empty.PadRight(length, value);
         }
     }
 }

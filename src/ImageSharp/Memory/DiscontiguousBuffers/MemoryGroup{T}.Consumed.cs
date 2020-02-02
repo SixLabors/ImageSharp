@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
+namespace SixLabors.ImageSharp.Memory
 {
-    internal abstract partial class UniformMemoryGroup<T>
+    internal abstract partial class MemoryGroup<T>
     {
         // Analogous to the "consumed" variant of MemorySource
-        private class Consumed : UniformMemoryGroup<T>
+        private class Consumed : MemoryGroup<T>
         {
             private readonly ReadOnlyMemory<Memory<T>> source;
 

@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// Represents discontinuous group of multiple uniformly-sized memory segments.
@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
     /// <see cref="Image{TPixel}"/> and <see cref="ImageFrame{TPixel}"/>.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    internal abstract partial class UniformMemoryGroup<T> : IUniformMemoryGroup<T>, IDisposable where T : struct
+    internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable where T : struct
     {
         public abstract IEnumerator<Memory<T>> GetEnumerator();
 
@@ -22,26 +22,28 @@ namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
 
         public abstract void Dispose();
 
+        public int BlockSize { get; }
+
         public bool IsValid { get; protected set; }
 
         // bufferLengthAlignment == image.Width in row-major images
-        public static UniformMemoryGroup<T> Allocate(MemoryAllocator allocator, long length, int bufferLengthAlignment)
+        public static MemoryGroup<T> Allocate(MemoryAllocator allocator, long totalLength, int blockAlignment)
         {
-            long bufferCount = length / allocator.GetMaximumContiguousBufferLength();
+            long bufferCount = totalLength / allocator.GetBlockCapacity();
 
             // TODO: Adjust bufferCount, and calculate the uniform buffer length with respect to bufferLengthAlignment, and allocate bufferCount buffers
             throw new NotImplementedException();
         }
 
-        public static UniformMemoryGroup<T> Wrap(params Memory<T>[] source) => Wrap(source.AsMemory());
+        public static MemoryGroup<T> Wrap(params Memory<T>[] source) => Wrap(source.AsMemory());
 
-        public static UniformMemoryGroup<T> Wrap(ReadOnlyMemory<Memory<T>> source)
+        public static MemoryGroup<T> Wrap(ReadOnlyMemory<Memory<T>> source)
         {
             return new Consumed(source);
         }
 
         // Analogous to current MemorySource.SwapOrCopyContent()
-        public static void SwapOrCopyContent(UniformMemoryGroup<T> destination, UniformMemoryGroup<T> source)
+        public static void SwapOrCopyContent(MemoryGroup<T> destination, MemoryGroup<T> source)
         {
             throw new NotImplementedException();
         }

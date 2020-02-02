@@ -3,12 +3,12 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
+namespace SixLabors.ImageSharp.Memory
 {
     // Analogous to the "owned" variant of MemorySource
-    internal abstract partial class UniformMemoryGroup<T>
+    internal abstract partial class MemoryGroup<T>
     {
-        private class Owned : UniformMemoryGroup<T>
+        private class Owned : MemoryGroup<T>
         {
             private IMemoryOwner<T>[] memoryOwners;
 
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
             {
                 if (this.memoryOwners == null)
                 {
-                    throw new ObjectDisposedException(nameof(UniformMemoryGroup<T>));
+                    throw new ObjectDisposedException(nameof(MemoryGroup<T>));
                 }
             }
         }

@@ -3,24 +3,24 @@ using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
-    /// Implements <see cref="IUniformMemoryGroup{T}"/>, defining a view for <see cref="UniformMemoryGroup{T}"/>
+    /// Implements <see cref="IMemoryGroup{T}"/>, defining a view for <see cref="Memory.MemoryGroup{T}"/>
     /// rather than owning the segments.
     /// </summary>
     /// <remarks>
     /// This type provides an indirection, protecting the users of publicly exposed memory API-s
-    /// from internal memory-swaps. Whenever an internal swap happens, the <see cref="UniformMemoryGroupView{T}"/>
+    /// from internal memory-swaps. Whenever an internal swap happens, the <see cref="MemoryGroupView{T}"/>
     /// instance becomes invalid, throwing an exception on all operations.
     /// </remarks>
     /// <typeparam name="T">The element type.</typeparam>
-    internal class UniformMemoryGroupView<T> : IUniformMemoryGroup<T> where T : struct
+    internal class MemoryGroupView<T> : IMemoryGroup<T> where T : struct
     {
-        private readonly UniformMemoryGroup<T> owner;
+        private readonly Memory.MemoryGroup<T> owner;
         private readonly MemoryOwnerWrapper[] memoryWrappers;
 
-        public UniformMemoryGroupView(UniformMemoryGroup<T> owner)
+        public MemoryGroupView(Memory.MemoryGroup<T> owner)
         {
             this.IsValid = true;
             this.owner = owner;
@@ -40,15 +40,17 @@ namespace SixLabors.ImageSharp.Memory.DiscontinuousProto
 
         public Memory<T> this[int index] => throw new NotImplementedException();
 
+        public int BlockSize => this.owner.BlockSize;
+
         public bool IsValid { get; internal set; }
 
         class MemoryOwnerWrapper : MemoryManager<T>
         {
-            private UniformMemoryGroupView<T> view;
+            private MemoryGroupView<T> view;
 
             private int index;
 
-            public MemoryOwnerWrapper(UniformMemoryGroupView<T> view, int index)
+            public MemoryOwnerWrapper(MemoryGroupView<T> view, int index)
             {
                 this.view = view;
                 this.index = index;

@@ -25,9 +25,11 @@ namespace SixLabors.ImageSharp.Tests.Memory
         /// </summary>
         public byte DirtyValue { get; }
 
+        public int BlockCapacity { get; set; } = int.MaxValue;
+
         public IList<AllocationRequest> AllocationLog => this.allocationLog;
 
-        protected internal override int GetMaximumContiguousBufferLength() => int.MaxValue;
+        protected internal override int GetBlockCapacity() => this.BlockCapacity;
 
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {

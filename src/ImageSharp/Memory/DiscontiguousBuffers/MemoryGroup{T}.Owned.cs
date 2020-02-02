@@ -12,7 +12,8 @@ namespace SixLabors.ImageSharp.Memory
         {
             private IMemoryOwner<T>[] memoryOwners;
 
-            public Owned(IMemoryOwner<T>[] memoryOwners)
+            public Owned(IMemoryOwner<T>[] memoryOwners, int bufferSize)
+                : base(bufferSize)
             {
                 this.memoryOwners = memoryOwners;
             }

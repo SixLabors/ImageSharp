@@ -3,11 +3,14 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using Xunit;
+using Xunit.Sdk;
 
 namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 {
     public class MemoryGroupTests
     {
+        private readonly TestMemoryAllocator memoryAllocator = new TestMemoryAllocator();
+
         public class Allocate
         {
             private readonly TestMemoryAllocator memoryAllocator = new TestMemoryAllocator();
@@ -19,12 +22,12 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                     { default(S5), 22, 4, 4, 1, 4, 4 },
                     { default(S5), 22, 4, 7, 2, 4, 3 },
                     { default(S5), 22, 4, 8, 2, 4, 4 },
-                    { default(S5), 22, 4, 21, 5, 4, 1 },
-                    { default(S5), 22, 4, 0, 0, -1, -1 },
+                    { default(S5), 22, 4, 21, 6, 4, 1 },
+                    { default(S5), 22, 4, 0, 0, 4, -1 },
 
                     { default(S4), 50, 12, 12, 1, 12, 12 },
                     { default(S4), 50, 7, 12, 2, 7, 5 },
-                    { default(S4), 50, 6, 12, 2, 6, 6 },
+                    { default(S4), 50, 6, 12, 1, 12, 12 },
                     { default(S4), 50, 5, 12, 2, 10, 2 },
                     { default(S4), 50, 4, 12, 1, 12, 12 },
                     { default(S4), 50, 3, 12, 1, 12, 12 },
@@ -33,31 +36,34 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 
                     { default(S4), 50, 12, 13, 2, 12, 1 },
                     { default(S4), 50, 7, 21, 3, 7, 7 },
-                    { default(S4), 50, 7, 23, 3, 7, 2 },
+                    { default(S4), 50, 7, 23, 4, 7, 2 },
+                    { default(S4), 50, 6, 13, 2, 12, 1 },
 
+                    { default(short), 200, 50, 49, 1, 49, 49 },
+                    { default(short), 200, 50, 1, 1, 1, 1 },
                     { default(byte), 1000, 512, 2047, 4, 512, 511 }
                 };
 
             [Theory]
             [MemberData(nameof(AllocateData))]
-            public void CreatesBlocksOfCorrectSizes<T>(
+            public void BufferSizesAreCorrect<T>(
                 T dummy,
-                int blockCapacity,
-                int blockAlignment,
+                int bufferCapacity,
+                int bufferAlignment,
                 long totalLength,
-                int expectedNumberOfBlocks,
-                int expectedBlockSize,
-                int expectedSizeOfLastBlock)
+                int expectedNumberOfBuffers,
+                int expectedBufferSize,
+                int expectedSizeOfLastBuffer)
                 where T : struct
             {
-                this.memoryAllocator.BlockCapacity = blockCapacity;
+                this.memoryAllocator.BufferCapacity = bufferCapacity;
 
                 // Act:
-                using var g = MemoryGroup<T>.Allocate(this.memoryAllocator, totalLength, blockAlignment);
+                using var g = MemoryGroup<T>.Allocate(this.memoryAllocator, totalLength, bufferAlignment);
 
                 // Assert:
-                Assert.Equal(expectedNumberOfBlocks, g.Count);
-                Assert.Equal(expectedBlockSize, g.BlockSize);
+                Assert.Equal(expectedNumberOfBuffers, g.Count);
+                Assert.Equal(expectedBufferSize, g.BufferSize);
                 if (g.Count == 0)
                 {
                     return;
@@ -65,29 +71,29 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 
                 for (int i = 0; i < g.Count - 1; i++)
                 {
-                    Assert.Equal(g[i].Length, expectedBlockSize);
+                    Assert.Equal(g[i].Length, expectedBufferSize);
                 }
 
-                Assert.Equal(g.Last().Length, expectedSizeOfLastBlock);
+                Assert.Equal(g.Last().Length, expectedSizeOfLastBuffer);
             }
 
             [Fact]
             public void WhenBlockAlignmentIsOverCapacity_Throws_InvalidMemoryOperationException()
             {
-                this.memoryAllocator.BlockCapacity = 42;
+                this.memoryAllocator.BufferCapacity = 84; // 42 * Int16
 
                 Assert.Throws<InvalidMemoryOperationException>(() =>
                 {
-                    MemoryGroup<byte>.Allocate(this.memoryAllocator, 50, 43);
+                    MemoryGroup<short>.Allocate(this.memoryAllocator, 50, 43);
                 });
             }
 
             [Theory]
             [InlineData(AllocationOptions.None)]
             [InlineData(AllocationOptions.Clean)]
-            public void MemoryAllocator_IsUtilizedCorrectly(AllocationOptions allocationOptions)
+            public void MemoryAllocatorIsUtilizedCorrectly(AllocationOptions allocationOptions)
             {
-                this.memoryAllocator.BlockCapacity = 200;
+                this.memoryAllocator.BufferCapacity = 200;
 
                 HashSet<int> bufferHashes;
 
@@ -113,15 +119,33 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
             }
         }
 
+        [Fact]
+        public void IsValid_TrueAfterCreation()
+        {
+            using var g = MemoryGroup<byte>.Allocate(this.memoryAllocator, 10, 100);
+
+            Assert.True(g.IsValid);
+        }
+
+        [Fact]
+        public void IsValid_FalseAfterDisposal()
+        {
+            using var g = MemoryGroup<byte>.Allocate(this.memoryAllocator, 10, 100);
+
+            g.Dispose();
+            Assert.False(g.IsValid);
+        }
 
         [StructLayout(LayoutKind.Sequential, Size = 5)]
         private struct S5
         {
+            public override string ToString() => "S5";
         }
 
         [StructLayout(LayoutKind.Sequential, Size = 4)]
         private struct S4
         {
+            public override string ToString() => "S4";
         }
     }
 }

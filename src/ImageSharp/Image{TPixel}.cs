@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp
         /// Clones the current image
         /// </summary>
         /// <returns>Returns a new image with all the same metadata as the original.</returns>
-        public Image<TPixel> Clone() => this.Clone(this.Configuration);
+        public Image<TPixel> Clone() => this.Clone(this.GetConfiguration());
 
         /// <summary>
         /// Clones the current image with the given configuration.

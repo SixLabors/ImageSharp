@@ -64,8 +64,10 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                         var img = Image.Load<Rgba32>(bytes, decoder);
                         img.Dispose();
                     },
-                // ReSharper disable once ExplicitCallerInfoArgument
+#pragma warning disable SA1515 // Single-line comment should be preceded by blank line
+                              // ReSharper disable once ExplicitCallerInfoArgument
                 $"Decode {fileName}");
+#pragma warning restore SA1515 // Single-line comment should be preceded by blank line
         }
 
         // Benchmark, enable manually!
@@ -101,8 +103,10 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
                                 ms.Seek(0, SeekOrigin.Begin);
                             }
                         },
-                    // ReSharper disable once ExplicitCallerInfoArgument
+#pragma warning disable SA1515 // Single-line comment should be preceded by blank line
+                              // ReSharper disable once ExplicitCallerInfoArgument
                     $@"Encode {testFiles.Length} images");
+#pragma warning restore SA1515 // Single-line comment should be preceded by blank line
             }
 
             foreach (Image<Rgba32> image in testImages)

@@ -1,17 +1,20 @@
-﻿using System;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using BenchmarkDotNet.Attributes;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
 {
     public class Round
     {
-        private const float input = .51F;
+        private const float Input = .51F;
 
         [Benchmark]
-        public int ConvertTo() => Convert.ToInt32(input);
+        public int ConvertTo() => Convert.ToInt32(Input);
 
         [Benchmark]
-        public int MathRound() => (int)Math.Round(input);
+        public int MathRound() => (int)Math.Round(Input);
 
         // Results 20th Jan 2019
         //    Method |      Mean |     Error |    StdDev |    Median |

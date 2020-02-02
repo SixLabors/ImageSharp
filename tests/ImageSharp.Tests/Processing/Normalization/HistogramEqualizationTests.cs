@@ -120,6 +120,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         /// where it could happen that one too much start position was calculated in some cases.
         /// See: https://github.com/SixLabors/ImageSharp/pull/984
         /// </summary>
+        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
         [Theory]
         [WithTestPatternImages(110, 110, PixelTypes.Rgb24)]
         [WithTestPatternImages(170, 170, PixelTypes.Rgb24)]

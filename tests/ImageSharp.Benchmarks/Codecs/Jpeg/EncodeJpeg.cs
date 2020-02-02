@@ -1,16 +1,15 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
-
 using BenchmarkDotNet.Attributes;
+
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
-
     using CoreImage = SixLabors.ImageSharp.Image;
 
     public class EncodeJpeg : BenchmarkBase

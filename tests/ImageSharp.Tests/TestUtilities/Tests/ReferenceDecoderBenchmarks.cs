@@ -81,7 +81,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         private void BenchmarkDecoderImpl(IEnumerable<string> testFiles, IImageDecoder decoder, string info, int times = DefaultExecutionCount)
         {
             var measure = new MeasureFixture(this.Output);
-            measure.Measure(times,
+            measure.Measure(
+                times,
                 () =>
                     {
                         foreach (string testFile in testFiles)

@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 SaveBuffer(cp[2], provider);
             }
         }
-        
+
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void PostProcess<TPixel>(TestImageProvider<TPixel> provider)

@@ -13,9 +13,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
     {
         public static readonly TheoryData<int, int> OilPaintValues = new TheoryData<int, int>
                                                                          {
-                                                                             { 15, 10 }, 
+                                                                             { 15, 10 },
                                                                              { 6, 5 }
                                                                          };
+
         public static readonly string[] InputImages =
             {
                 TestImages.Png.CalliphoraPartial,

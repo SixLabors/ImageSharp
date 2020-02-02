@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests
 {
     public class GraphicsOptionsTests
     {
-        private static readonly GraphicsOptionsComparer graphicsOptionsComparer = new GraphicsOptionsComparer();
+        private static readonly GraphicsOptionsComparer GraphicsOptionsComparer = new GraphicsOptionsComparer();
         private readonly GraphicsOptions newGraphicsOptions = new GraphicsOptions();
         private readonly GraphicsOptions cloneGraphicsOptions = new GraphicsOptions().DeepClone();
 
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests
 
             GraphicsOptions actual = expected.DeepClone();
 
-            Assert.Equal(expected, actual, graphicsOptionsComparer);
+            Assert.Equal(expected, actual, GraphicsOptionsComparer);
         }
 
         [Fact]
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
             actual.BlendPercentage = .25F;
             actual.ColorBlendingMode = PixelColorBlendingMode.HardLight;
 
-            Assert.NotEqual(expected, actual, graphicsOptionsComparer);
+            Assert.NotEqual(expected, actual, GraphicsOptionsComparer);
         }
     }
 }

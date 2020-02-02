@@ -1,9 +1,5 @@
-﻿// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -38,8 +34,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         }
 
         [Theory]
-        [InlineData(PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale | PixelConversionModifiers.SRgbCompand, 
-            PixelConversionModifiers.Scale, PixelConversionModifiers.Premultiply | PixelConversionModifiers.SRgbCompand)]
+        [InlineData(PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale | PixelConversionModifiers.SRgbCompand, PixelConversionModifiers.Scale, PixelConversionModifiers.Premultiply | PixelConversionModifiers.SRgbCompand)]
         [InlineData(PixelConversionModifiers.None, PixelConversionModifiers.Premultiply, PixelConversionModifiers.None)]
         internal void Remove(
             PixelConversionModifiers baselineModifiers,

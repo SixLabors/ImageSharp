@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
                 for (int j = 0; j < inputBufferLength; j++)
                 {
-                    values[j] = (float)rnd.NextDouble() * (maxVal - minVal) + minVal;
+                    values[j] = ((float)rnd.NextDouble() * (maxVal - minVal)) + minVal;
                 }
 
                 // no need to dispose when buffer is not array owner

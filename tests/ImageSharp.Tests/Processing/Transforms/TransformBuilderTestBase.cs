@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -25,7 +25,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
         [Theory]
         [MemberData(nameof(ScaleTranslate_Data))]
+#pragma warning disable SA1300 // Element should begin with upper-case letter
         public void _1Scale_2Translate(Vector2 scale, Vector2 translate, Vector2 source, Vector2 expectedDest)
+#pragma warning restore SA1300 // Element should begin with upper-case letter
         {
             // These operations should be size-agnostic:
             var size = new Size(123, 321);
@@ -49,7 +51,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
         [Theory]
         [MemberData(nameof(TranslateScale_Data))]
+#pragma warning disable SA1300 // Element should begin with upper-case letter
         public void _1Translate_2Scale(Vector2 translate, Vector2 scale, Vector2 source, Vector2 expectedDest)
+#pragma warning restore SA1300 // Element should begin with upper-case letter
         {
             // Translate ans scale are size-agnostic:
             var size = new Size(456, 432);

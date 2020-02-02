@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format of the image</typeparam>
-    public abstract partial class TestImageProvider<TPixel>
+    public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
         where TPixel : struct, IPixel<TPixel>
     {
         private class MemberMethodProvider : TestImageProvider<TPixel>
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests
                 Type imgType = typeof(Image<>).MakeGenericType(pixelType);
                 Type funcType = typeof(Func<>).MakeGenericType(imgType);
                 MethodInfo genericMethod = m.MakeGenericMethod(pixelType);
-                return (Func<Image<TPixel>>) genericMethod.CreateDelegate(funcType);
+                return (Func<Image<TPixel>>)genericMethod.CreateDelegate(funcType);
             }
         }
     }

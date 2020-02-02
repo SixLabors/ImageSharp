@@ -29,7 +29,23 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source image.</param>
         /// <returns>Returns the configuration.</returns>
         public static Configuration GetConfiguration(this Image source)
-            => GetConfiguration((IConfigurable)source);
+            => GetConfiguration((IConfigurationProvider)source);
+
+        /// <summary>
+        /// Gets the configuration for the image frame.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <returns>Returns the configuration.</returns>
+        public static Configuration GetConfiguration(this ImageFrame source)
+            => GetConfiguration((IConfigurationProvider)source);
+
+        /// <summary>
+        /// Gets the configuration .
+        /// </summary>
+        /// <param name="source">The source image</param>
+        /// <returns>Returns the bounds of the image</returns>
+        private static Configuration GetConfiguration(IConfigurationProvider source)
+            => source?.Configuration ?? Configuration.Default;
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory in the source image's pixel format
@@ -158,16 +174,8 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <param name="source">The source image.</param>
         /// <returns>Returns the configuration.</returns>
-        internal static MemoryAllocator GetMemoryAllocator(this IConfigurable source)
+        internal static MemoryAllocator GetMemoryAllocator(this IConfigurationProvider source)
             => GetConfiguration(source).MemoryAllocator;
-
-        /// <summary>
-        /// Gets the configuration.
-        /// </summary>
-        /// <param name="source">The source image</param>
-        /// <returns>Returns the bounds of the image</returns>
-        private static Configuration GetConfiguration(IConfigurable source)
-            => source?.Configuration ?? Configuration.Default;
 
         /// <summary>
         /// Returns a reference to the 0th element of the Pixel buffer.

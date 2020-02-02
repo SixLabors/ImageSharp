@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -44,6 +44,5 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
             ColorMatrix saturation = KnownFilterMatrices.CreateSaturateFilter(1.5F);
             return brightness * hue * saturation;
         }
-
     }
 }

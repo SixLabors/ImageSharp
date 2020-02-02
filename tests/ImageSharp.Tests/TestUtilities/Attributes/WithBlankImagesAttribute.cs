@@ -42,6 +42,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         public int Width { get; }
+
         public int Height { get; }
 
         protected override string GetFactoryMethodName(MethodInfo testMethod) => "Blank";

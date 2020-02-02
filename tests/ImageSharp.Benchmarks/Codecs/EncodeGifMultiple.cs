@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -24,14 +24,19 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             {
                 // Try to get as close to System.Drawing's output as possible
                 var options = new GifEncoder { Quantizer = new WebSafePaletteQuantizer(false) };
-                img.Save(ms, options); return null;
+                img.Save(ms, options);
+                return null;
             });
         }
 
         [Benchmark(Baseline = true, Description = "EncodeGifMultiple - System.Drawing")]
         public void EncodeGifSystemDrawing()
         {
-            this.ForEachSystemDrawingImage((img, ms) => { img.Save(ms, ImageFormat.Gif); return null; });
+            this.ForEachSystemDrawingImage((img, ms) =>
+            {
+                img.Save(ms, ImageFormat.Gif);
+                return null;
+            });
         }
     }
 }

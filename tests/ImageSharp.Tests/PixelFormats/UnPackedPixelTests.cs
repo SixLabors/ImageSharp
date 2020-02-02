@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Colors
         [Fact]
         public void Color_Types_From_Hex_Produce_Equal_Scaled_Component_OutPut()
         {
-            var color = Rgba32.FromHex("183060C0");
+            var color = Rgba32.ParseHex("183060C0");
             var colorVector = RgbaVector.FromHex("183060C0");
 
             Assert.Equal(color.R, (byte)(colorVector.R * 255));

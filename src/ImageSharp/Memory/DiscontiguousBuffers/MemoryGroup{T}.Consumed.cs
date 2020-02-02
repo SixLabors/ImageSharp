@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Collections.Generic;
 
@@ -10,8 +13,8 @@ namespace SixLabors.ImageSharp.Memory
         {
             private readonly ReadOnlyMemory<Memory<T>> source;
 
-            public Consumed(ReadOnlyMemory<Memory<T>> source, int bufferSize)
-                : base(bufferSize)
+            public Consumed(ReadOnlyMemory<Memory<T>> source, int bufferLength, long totalLength)
+                : base(bufferLength, totalLength)
             {
                 this.source = source;
             }

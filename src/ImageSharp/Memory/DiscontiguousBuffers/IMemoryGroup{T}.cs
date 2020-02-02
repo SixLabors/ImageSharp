@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Collections.Generic;
 
@@ -12,10 +15,23 @@ namespace SixLabors.ImageSharp.Memory
         where T : struct
     {
         /// <summary>
-        /// Gets the number of elements per contiguous sub-block.
+        /// Gets the number of elements per contiguous sub-buffer preceding the last buffer.
+        /// The last buffer is allowed to be smaller.
         /// </summary>
-        public int BufferSize { get; }
+        public int BufferLength { get; }
 
+        /// <summary>
+        /// Gets the aggregate number of elements in the group.
+        /// </summary>
+        public long TotalLength { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the group has been invalidated.
+        /// </summary>
+        /// <remarks>
+        /// Invalidation usually occurs when an image processor capable to alter the image dimensions replaces
+        /// the image buffers internally.
+        /// </remarks>
         bool IsValid { get; }
     }
 }

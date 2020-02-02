@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Memory
             Guard.MustBeGreaterThanOrEqualTo(totalLength, 0, nameof(totalLength));
             Guard.MustBeGreaterThan(blockAlignment, 0, nameof(blockAlignment));
 
-            int blockCapacityInElements = allocator.GetBufferCapacity() / ElementSize;
+            int blockCapacityInElements = allocator.GetBufferCapacityInBytes() / ElementSize;
             if (blockAlignment > blockCapacityInElements)
             {
                 throw new InvalidMemoryOperationException();

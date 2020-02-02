@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using Xunit;
@@ -79,6 +80,36 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 {
                     MemoryGroup<byte>.Allocate(this.memoryAllocator, 50, 43);
                 });
+            }
+
+            [Theory]
+            [InlineData(AllocationOptions.None)]
+            [InlineData(AllocationOptions.Clean)]
+            public void MemoryAllocator_IsUtilizedCorrectly(AllocationOptions allocationOptions)
+            {
+                this.memoryAllocator.BlockCapacity = 200;
+
+                HashSet<int> bufferHashes;
+
+                int expectedBlockCount = 5;
+                using (var g = MemoryGroup<short>.Allocate(this.memoryAllocator, 500, 100, allocationOptions))
+                {
+                    IReadOnlyList<TestMemoryAllocator.AllocationRequest> allocationLog = this.memoryAllocator.AllocationLog;
+                    Assert.Equal(expectedBlockCount, allocationLog.Count);
+                    bufferHashes = allocationLog.Select(l => l.HashCodeOfBuffer).ToHashSet();
+                    Assert.Equal(expectedBlockCount, bufferHashes.Count);
+                    Assert.Equal(0, this.memoryAllocator.ReturnLog.Count);
+
+                    for (int i = 0; i < expectedBlockCount; i++)
+                    {
+                        Assert.Equal(allocationOptions, allocationLog[i].AllocationOptions);
+                        Assert.Equal(100, allocationLog[i].Length);
+                        Assert.Equal(200, allocationLog[i].LengthInBytes);
+                    }
+                }
+
+                Assert.Equal(expectedBlockCount, this.memoryAllocator.ReturnLog.Count);
+                Assert.True(bufferHashes.SetEquals(this.memoryAllocator.ReturnLog.Select(l => l.HashCodeOfBuffer)));
             }
         }
 

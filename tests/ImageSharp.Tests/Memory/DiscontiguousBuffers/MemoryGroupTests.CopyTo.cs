@@ -10,15 +10,20 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
     {
         public class CopyTo : MemoryGroupTestsBase
         {
+#pragma warning disable SA1509
             public static readonly TheoryData<int, int, int, int> WhenSourceBufferIsShorterOrEqual_Data =
                 new TheoryData<int, int, int, int>()
                 {
+                    { 20, 10, 20, 10 },
                     { 20, 5, 20, 4 },
                     { 20, 4, 20, 5 },
                     { 18, 6, 20, 5 },
                     { 19, 10, 20, 10 },
                     { 21, 10, 22, 2 },
                     { 1, 5, 5, 4 },
+
+                    { 30, 12, 40, 5 },
+                    { 30, 5, 40, 12 },
                 };
 
             [Theory]

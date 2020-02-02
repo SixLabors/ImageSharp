@@ -10,11 +10,13 @@ namespace SixLabors.ImageSharp.Memory
     /// </summary>
     public abstract class MemoryAllocator
     {
+        internal const int DefaultBufferCapacity = int.MaxValue / 2;
+
         /// <summary>
         /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
         /// </summary>
         /// <returns>The length of the largest contiguous buffer that can be handled by this allocator instance.</returns>
-        protected internal abstract int GetBufferCapacity();
+        protected internal abstract int GetBufferCapacityInBytes();
 
         /// <summary>
         /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="System.Memory{T}"/> of length <paramref name="length"/>.

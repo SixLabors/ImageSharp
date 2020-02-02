@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 int expectedSizeOfLastBuffer)
                 where T : struct
             {
-                this.MemoryAllocator.BufferCapacity = bufferCapacity;
+                this.MemoryAllocator.BufferCapacityInBytes = bufferCapacity;
 
                 // Act:
                 using var g = MemoryGroup<T>.Allocate(this.MemoryAllocator, totalLength, bufferAlignment);
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
             [Fact]
             public void WhenBlockAlignmentIsOverCapacity_Throws_InvalidMemoryOperationException()
             {
-                this.MemoryAllocator.BufferCapacity = 84; // 42 * Int16
+                this.MemoryAllocator.BufferCapacityInBytes = 84; // 42 * Int16
 
                 Assert.Throws<InvalidMemoryOperationException>(() =>
                 {
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
             [InlineData(AllocationOptions.Clean)]
             public void MemoryAllocatorIsUtilizedCorrectly(AllocationOptions allocationOptions)
             {
-                this.MemoryAllocator.BufferCapacity = 200;
+                this.MemoryAllocator.BufferCapacityInBytes = 200;
 
                 HashSet<int> bufferHashes;
 

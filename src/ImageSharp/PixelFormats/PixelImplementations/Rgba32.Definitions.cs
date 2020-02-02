@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.PixelFormats
@@ -139,6 +139,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static readonly Rgba32 DarkGreen = Color.DarkGreen;
 
         /// <summary>
+        /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #A9A9A9.
+        /// </summary>
+        public static readonly Rgba32 DarkGrey = Color.DarkGrey;
+
+        /// <summary>
         /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #BDB76B.
         /// </summary>
         public static readonly Rgba32 DarkKhaki = Color.DarkKhaki;
@@ -189,6 +194,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static readonly Rgba32 DarkSlateGray = Color.DarkSlateGray;
 
         /// <summary>
+        /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #2F4F4F.
+        /// </summary>
+        public static readonly Rgba32 DarkSlateGrey = Color.DarkSlateGrey;
+
+        /// <summary>
         /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #00CED1.
         /// </summary>
         public static readonly Rgba32 DarkTurquoise = Color.DarkTurquoise;
@@ -212,6 +222,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #696969.
         /// </summary>
         public static readonly Rgba32 DimGray = Color.DimGray;
+
+        /// <summary>
+        /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #696969.
+        /// </summary>
+        public static readonly Rgba32 DimGrey = Color.DimGrey;
 
         /// <summary>
         /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #1E90FF.
@@ -272,6 +287,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #ADFF2F.
         /// </summary>
         public static readonly Rgba32 GreenYellow = Color.GreenYellow;
+
+        /// <summary>
+        /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #808080.
+        /// </summary>
+        public static readonly Rgba32 Grey = Color.Grey;
 
         /// <summary>
         /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #F0FFF0.
@@ -354,6 +374,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static readonly Rgba32 LightGreen = Color.LightGreen;
 
         /// <summary>
+        /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #D3D3D3.
+        /// </summary>
+        public static readonly Rgba32 LightGrey = Color.LightGrey;
+
+        /// <summary>
         /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #FFB6C1.
         /// </summary>
         public static readonly Rgba32 LightPink = Color.LightPink;
@@ -377,6 +402,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #778899.
         /// </summary>
         public static readonly Rgba32 LightSlateGray = Color.LightSlateGray;
+
+        /// <summary>
+        /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #778899.
+        /// </summary>
+        public static readonly Rgba32 LightSlateGrey = Color.LightSlateGrey;
 
         /// <summary>
         /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #B0C4DE.
@@ -642,6 +672,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #708090.
         /// </summary>
         public static readonly Rgba32 SlateGray = Color.SlateGray;
+
+        /// <summary>
+        /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #708090.
+        /// </summary>
+        public static readonly Rgba32 SlateGrey = Color.SlateGrey;
 
         /// <summary>
         /// Represents a <see cref="Rgba32"/> matching the W3C definition that has an hex value of #FFFAFA.

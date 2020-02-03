@@ -9,6 +9,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
     {
         internal readonly TestMemoryAllocator MemoryAllocator = new TestMemoryAllocator();
 
+        /// <summary>
+        /// Create a group, either uninitialized or filled with incrementing numbers starting with 1.
+        /// </summary>
         internal MemoryGroup<int> CreateTestGroup(long totalLength, int bufferLength, bool fillSequence = false)
         {
             this.MemoryAllocator.BufferCapacityInBytes = bufferLength * sizeof(int);

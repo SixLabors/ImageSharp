@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Memory
                 : base(bufferLength, totalLength)
             {
                 this.source = source;
+                this.View = new MemoryGroupView<T>(this);
             }
 
             public override int Count => this.source.Length;
@@ -33,7 +34,7 @@ namespace SixLabors.ImageSharp.Memory
 
             public override void Dispose()
             {
-                // No ownership nothing to dispose
+                this.View.Invalidate();
             }
         }
     }

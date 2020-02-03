@@ -21,12 +21,11 @@ namespace SixLabors.ImageSharp.Memory
     internal class MemoryGroupView<T> : IMemoryGroup<T>
         where T : struct
     {
-        private readonly Memory.MemoryGroup<T> owner;
+        private MemoryGroup<T> owner;
         private readonly MemoryOwnerWrapper[] memoryWrappers;
 
-        public MemoryGroupView(Memory.MemoryGroup<T> owner)
+        public MemoryGroupView(MemoryGroup<T> owner)
         {
-            this.IsValid = true;
             this.owner = owner;
             this.memoryWrappers = new MemoryOwnerWrapper[owner.Count];
 
@@ -36,19 +35,67 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        public int Count => this.owner.Count;
+        public int Count
+        {
+            get
+            {
+                this.EnsureIsValid();
+                return this.owner.Count;
+            }
+        }
 
-        public int BufferLength => this.owner.BufferLength;
+        public int BufferLength
+        {
+            get
+            {
+                this.EnsureIsValid();
+                return this.owner.BufferLength;
+            }
+        }
 
-        public long TotalLength => this.owner.TotalLength;
+        public long TotalLength
+        {
+            get
+            {
+                this.EnsureIsValid();
+                return this.owner.TotalLength;
+            }
+        }
 
-        public bool IsValid { get; internal set; }
+        public bool IsValid => this.owner != null;
 
-        public Memory<T> this[int index] => throw new NotImplementedException();
+        public Memory<T> this[int index]
+        {
+            get
+            {
+                this.EnsureIsValid();
+                return this.memoryWrappers[index].Memory;
+            }
+        }
 
-        public IEnumerator<Memory<T>> GetEnumerator() => throw new NotImplementedException();
+        public IEnumerator<Memory<T>> GetEnumerator()
+        {
+            this.EnsureIsValid();
+            for (int i = 0; i < this.Count; i++)
+            {
+                yield return this.memoryWrappers[i].Memory;
+            }
+        }
 
         IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
+
+        internal void Invalidate()
+        {
+            this.owner = null;
+        }
+
+        private void EnsureIsValid()
+        {
+            if (!this.IsValid)
+            {
+                throw new InvalidMemoryOperationException("Can not access an invalidated MemoryGroupView!");
+            }
+        }
 
         private class MemoryOwnerWrapper : MemoryManager<T>
         {
@@ -68,17 +115,20 @@ namespace SixLabors.ImageSharp.Memory
 
             public override Span<T> GetSpan()
             {
-                if (!this.view.IsValid)
-                {
-                    throw new InvalidOperationException();
-                }
-
-                return this.view[this.index].Span;
+                this.view.EnsureIsValid();
+                return this.view.owner[this.index].Span;
             }
 
-            public override MemoryHandle Pin(int elementIndex = 0) => throw new NotImplementedException();
+            public override MemoryHandle Pin(int elementIndex = 0)
+            {
+                this.view.EnsureIsValid();
+                return this.view.owner[this.index].Pin();
+            }
 
-            public override void Unpin() => throw new NotImplementedException();
+            public override void Unpin()
+            {
+                throw new NotSupportedException();
+            }
         }
     }
 }

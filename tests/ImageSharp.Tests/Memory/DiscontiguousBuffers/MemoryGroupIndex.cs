@@ -112,12 +112,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
         public static MemoryGroupIndex MaxIndex<T>(this MemoryGroup<T> group)
             where T : struct
         {
-            if (group.Count == 0)
-            {
-                return new MemoryGroupIndex(group.BufferLength, 0, 0);
-            }
-
-            return new MemoryGroupIndex(group.BufferLength, group.Count - 1, group[^1].Length - 1);
+            return group.Count == 0
+                ? new MemoryGroupIndex(group.BufferLength, 0, 0)
+                : new MemoryGroupIndex(group.BufferLength, group.Count - 1, group[^1].Length);
         }
     }
 }

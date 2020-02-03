@@ -19,14 +19,8 @@ namespace SixLabors.ImageSharp.Memory
                 : base(bufferLength, totalLength)
             {
                 this.memoryOwners = memoryOwners;
+                this.View = new MemoryGroupView<T>(this);
             }
-
-            public override IEnumerator<Memory<T>> GetEnumerator()
-            {
-                this.EnsureNotDisposed();
-                return this.memoryOwners.Select(mo => mo.Memory).GetEnumerator();
-            }
-
 
             public override int Count
             {
@@ -46,12 +40,20 @@ namespace SixLabors.ImageSharp.Memory
                 }
             }
 
+            public override IEnumerator<Memory<T>> GetEnumerator()
+            {
+                this.EnsureNotDisposed();
+                return this.memoryOwners.Select(mo => mo.Memory).GetEnumerator();
+            }
+
             public override void Dispose()
             {
                 if (this.memoryOwners == null)
                 {
                     return;
                 }
+
+                this.View.Invalidate();
 
                 foreach (IMemoryOwner<T> memoryOwner in this.memoryOwners)
                 {
@@ -68,6 +70,29 @@ namespace SixLabors.ImageSharp.Memory
                 {
                     throw new ObjectDisposedException(nameof(MemoryGroup<T>));
                 }
+            }
+
+            internal static void SwapContents(Owned a, Owned b)
+            {
+                a.EnsureNotDisposed();
+                b.EnsureNotDisposed();
+
+                IMemoryOwner<T>[] tempOwners = a.memoryOwners;
+                long tempTotalLength = a.TotalLength;
+                int tempBufferLength = a.BufferLength;
+
+                a.memoryOwners = b.memoryOwners;
+                a.TotalLength = b.TotalLength;
+                a.BufferLength = b.BufferLength;
+
+                b.memoryOwners = tempOwners;
+                b.TotalLength = tempTotalLength;
+                b.BufferLength = tempBufferLength;
+
+                a.View.Invalidate();
+                b.View.Invalidate();
+                a.View = new MemoryGroupView<T>(a);
+                b.View = new MemoryGroupView<T>(b);
             }
         }
     }

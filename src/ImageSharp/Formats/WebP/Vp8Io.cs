@@ -62,6 +62,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         public int UvStride { get; set; }
 
+        public bool UseCropping { get; set; }
+
         public int CropLeft { get; set; }
 
         public int CropRight { get; set; }
@@ -69,6 +71,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public int CropTop { get; set; }
 
         public int CropBottom { get; set; }
+
+        public bool UseScaling { get; set; }
+
+        public int ScaledWidth { get; set; }
+
+        public int ScaledHeight { get; set; }
 
         /// <summary>
         /// User data

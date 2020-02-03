@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using Xunit;
@@ -103,8 +104,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 
                     Assert.True(b == 2 * a, $"Mismatch @ {pos} Expected: {a} Actual: {b}");
                 }
-
-
             }
 
             [Fact]
@@ -116,7 +115,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 Assert.Throws<ArgumentOutOfRangeException>(() => src.TransformTo(trg, MultiplyAllBy2));
             }
         }
-
 
         [Theory]
         [InlineData(100, 5)]
@@ -134,6 +132,26 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 Assert.Equal(expected: cnt * 2, val);
                 cnt++;
             }
+        }
+
+        [Fact]
+        public void Wrap()
+        {
+            int[] data0 = { 1, 2, 3, 4 };
+            int[] data1 = { 5, 6, 7, 8 };
+            int[] data2 = { 9, 10 };
+            using var mgr0 = new TestMemoryManager<int>(data0);
+            using var mgr1 = new TestMemoryManager<int>(data1);
+
+            using var group = MemoryGroup<int>.Wrap(mgr0.Memory, mgr1.Memory, data2);
+
+            Assert.Equal(3, group.Count);
+            Assert.Equal(4, group.BufferLength);
+            Assert.Equal(10, group.TotalLength);
+
+            Assert.True(group[0].Span.SequenceEqual(data0));
+            Assert.True(group[1].Span.SequenceEqual(data1));
+            Assert.True(group[2].Span.SequenceEqual(data2));
         }
 
         private static void MultiplyAllBy2(ReadOnlySpan<int> source, Span<int> target)

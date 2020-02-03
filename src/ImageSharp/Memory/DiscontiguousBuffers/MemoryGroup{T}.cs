@@ -26,41 +26,60 @@ namespace SixLabors.ImageSharp.Memory
             this.TotalLength = totalLength;
         }
 
+        /// <inheritdoc />
         public abstract int Count { get; }
 
-        public int BufferLength { get; }
+        /// <inheritdoc />
+        public int BufferLength { get; private set; }
 
-        public long TotalLength { get; }
+        /// <inheritdoc />
+        public long TotalLength { get; private set; }
 
+        /// <inheritdoc />
         public bool IsValid { get; private set; } = true;
 
+        public MemoryGroupView<T> View { get; private set; }
+
+        /// <inheritdoc />
         public abstract Memory<T> this[int index] { get; }
 
+        /// <inheritdoc />
         public abstract void Dispose();
 
+        /// <inheritdoc />
         public abstract IEnumerator<Memory<T>> GetEnumerator();
 
+        /// <inheritdoc />
         IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
-        // bufferLengthAlignment == image.Width in row-major images
+        /// <summary>
+        /// Creates a new memory group, allocating it's buffers with the provided allocator.
+        /// </summary>
+        /// <param name="allocator">The <see cref="MemoryAllocator"/> to use.</param>
+        /// <param name="totalLength">The total length of the buffer.</param>
+        /// <param name="bufferAlignment">The expected alignment (eg. to make sure image rows fit into single buffers).</param>
+        /// <param name="options">The <see cref="AllocationOptions"/>.</param>
+        /// <returns>A new <see cref="MemoryGroup{T}"/>.</returns>
+        /// <exception cref="InvalidMemoryOperationException">Thrown when 'blockAlignment' converted to bytes is greater than the buffer capacity of the allocator.</exception>
         public static MemoryGroup<T> Allocate(
             MemoryAllocator allocator,
             long totalLength,
-            int blockAlignment,
-            AllocationOptions allocationOptions = AllocationOptions.None)
+            int bufferAlignment,
+            AllocationOptions options = AllocationOptions.None)
         {
             Guard.NotNull(allocator, nameof(allocator));
             Guard.MustBeGreaterThanOrEqualTo(totalLength, 0, nameof(totalLength));
-            Guard.MustBeGreaterThan(blockAlignment, 0, nameof(blockAlignment));
+            Guard.MustBeGreaterThan(bufferAlignment, 0, nameof(bufferAlignment));
 
             int blockCapacityInElements = allocator.GetBufferCapacityInBytes() / ElementSize;
-            if (blockAlignment > blockCapacityInElements)
+            if (bufferAlignment > blockCapacityInElements)
             {
-                throw new InvalidMemoryOperationException();
+                throw new InvalidMemoryOperationException(
+                    $"The buffer capacity of the provided MemoryAllocator is insufficient for the requested buffer alignment: {bufferAlignment}.");
             }
 
-            int numberOfAlignedSegments = blockCapacityInElements / blockAlignment;
-            int bufferLength = numberOfAlignedSegments * blockAlignment;
+            int numberOfAlignedSegments = blockCapacityInElements / bufferAlignment;
+            int bufferLength = numberOfAlignedSegments * bufferAlignment;
             if (totalLength > 0 && totalLength < bufferLength)
             {
                 bufferLength = (int)totalLength;
@@ -81,12 +100,12 @@ namespace SixLabors.ImageSharp.Memory
             var buffers = new IMemoryOwner<T>[bufferCount];
             for (int i = 0; i < buffers.Length - 1; i++)
             {
-                buffers[i] = allocator.Allocate<T>(bufferLength, allocationOptions);
+                buffers[i] = allocator.Allocate<T>(bufferLength, options);
             }
 
             if (bufferCount > 0)
             {
-                buffers[^1] = allocator.Allocate<T>(sizeOfLastBuffer, allocationOptions);
+                buffers[^1] = allocator.Allocate<T>(sizeOfLastBuffer, options);
             }
 
             return new Owned(buffers, bufferLength, totalLength);
@@ -115,10 +134,27 @@ namespace SixLabors.ImageSharp.Memory
             return new Consumed(source, bufferLength, totalLength);
         }
 
-        // Analogous to current MemorySource.SwapOrCopyContent()
-        public static void SwapOrCopyContent(MemoryGroup<T> destination, MemoryGroup<T> source)
+        /// <summary>
+        /// Swaps the contents of 'target' with 'source' if the buffers are allocated (1),
+        /// copies the contents of 'source' to 'target' otherwise (2).
+        /// Groups should be of same TotalLength in case 2.
+        /// </summary>
+        public static void SwapOrCopyContent(MemoryGroup<T> target, MemoryGroup<T> source)
         {
-            throw new NotImplementedException();
+            if (source is Owned ownedSrc && target is Owned ownedTarget)
+            {
+                Owned.SwapContents(ownedTarget, ownedSrc);
+            }
+            else
+            {
+                if (target.TotalLength != source.TotalLength)
+                {
+                    throw new InvalidMemoryOperationException(
+                        "Trying to copy/swap incompatible buffers. This is most likely caused by applying an unsupported processor to wrapped-memory images.");
+                }
+
+                source.CopyTo(target);
+            }
         }
     }
 }

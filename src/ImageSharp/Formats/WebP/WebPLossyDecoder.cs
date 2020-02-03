@@ -138,13 +138,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
             else
             {
-                byte[] modes = block.Modes;
+                Span<byte> modes = block.Modes.AsSpan();
                 for (int y = 0; y < 4; ++y)
                 {
                     int yMode = left[y];
                     for (int x = 0; x < 4; ++x)
                     {
-                        byte[] prob = null; //= WebPConstants.BModesProba[top[x], yMode];
+                        byte[] prob = WebPConstants.BModesProba[top[x], yMode];
                         int i = WebPConstants.YModesIntra4[this.bitReader.GetBit(prob[0])];
                         while (i > 0)
                         {
@@ -155,8 +155,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         top[x] = (byte)yMode;
                     }
 
-                    // memcpy(modes, top, 4 * sizeof(*top));
-                    // modes += 4;
+                    top.CopyTo(modes);
+                    modes = modes.Slice(4);
                     left[y] = (byte)yMode;
                 }
             }

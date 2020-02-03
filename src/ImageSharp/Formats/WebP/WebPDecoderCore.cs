@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             else
             {
                 var lossyDecoder = new WebPLossyDecoder(imageInfo.Vp8BitReader, this.memoryAllocator);
-                lossyDecoder.Decode(pixels, image.Width, image.Height, imageInfo.Vp8Profile);
+                lossyDecoder.Decode(pixels, image.Width, image.Height, imageInfo);
             }
 
             // There can be optional chunks after the image data, like EXIF and XMP.

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.bitReader = bitReader;
         }
 
-        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, int vp8Version)
+        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, WebPImageInfo info)
             where TPixel : struct, IPixel<TPixel>
         {
             // we need buffers for Y U and V in size of the image
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             //  those prediction values are the base, the values from DCT processing are added to that
 
             // TODO residue signal from DCT: 4x4 blocks of DCT transforms, 16Y, 4U, 4V
-            Vp8Profile vp8Profile = this.DecodeProfile(vp8Version);
+            Vp8Profile vp8Profile = this.DecodeProfile(info.Vp8Profile);
 
             // Paragraph 9.3: Parse the segment header.
             var proba = new Vp8Proba();
@@ -57,6 +57,115 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // Paragraph 13.4: Parse probabilities.
             this.ParseProbabilities(proba);
+
+            var vp8Io = default(Vp8Io);
+            var decoder = new Vp8Decoder(info.Vp8FrameHeader, info.Vp8PictureHeader, vp8FilterHeader, vp8SegmentHeader, proba, vp8Io);
+            this.ParseFrame(decoder, vp8Io);
+        }
+
+        private void ParseFrame(Vp8Decoder dec, Vp8Io io)
+        {
+            for (dec.MbY = 0; dec.MbY < dec.BottomRightMbY; ++dec.MbY)
+            {
+                // Parse intra mode mode row.
+                for (int mbX = 0; mbX < dec.MbWidth; ++mbX)
+                {
+                    this.ParseIntraMode(dec, mbX);
+                }
+
+                for (; dec.MbX < dec.MbWidth; ++dec.MbX)
+                {
+                    this.DecodeMacroBlock(dec);
+                }
+
+                // Prepare for next scanline.
+                this.InitScanline(dec);
+
+                // TODO: Reconstruct, filter and emit the row.
+            }
+        }
+
+        private void InitScanline(Vp8Decoder dec)
+        {
+            Vp8MacroBlock left = dec.MacroBlockInfo[dec.MacroBlockIdx - 1];
+            left.NoneZeroAcDcCoeffs = 0;
+            left.NoneZeroDcCoeffs = 0;
+            for (int i = 0; i < dec.IntraL.Length; i++)
+            {
+                dec.IntraL[i] = 0;
+            }
+
+            dec.MbX = 0;
+        }
+
+        private void ParseIntraMode(Vp8Decoder dec, int mbX)
+        {
+            Vp8MacroBlockData block = dec.MacroBlockData[mbX];
+            byte[] left = dec.IntraL;
+            byte[] top = dec.IntraT;
+
+            if (dec.SegmentHeader.UpdateMap)
+            {
+                // Hardcoded tree parsing.
+                block.Segment = this.bitReader.GetBit((int)dec.Probabilities.Segments[0]) != 0
+                                    ? (byte)this.bitReader.GetBit((int)dec.Probabilities.Segments[1])
+                                    : (byte)this.bitReader.GetBit((int)dec.Probabilities.Segments[2]);
+            }
+            else
+            {
+                // default for intra
+                block.Segment = 0;
+            }
+
+            if (dec.UseSkipProba)
+            {
+                block.Skip = (byte)this.bitReader.GetBit(dec.SkipProbability);
+            }
+
+            block.IsI4x4 = this.bitReader.GetBit(145) != 0;
+            if (!block.IsI4x4)
+            {
+                // Hardcoded 16x16 intra-mode decision tree.
+                int yMode = this.bitReader.GetBit(156) > 0 ?
+                                this.bitReader.GetBit(128) > 0 ? WebPConstants.TmPred : WebPConstants.HPred :
+                                this.bitReader.GetBit(163) > 0 ? WebPConstants.VPred : WebPConstants.DcPred;
+                block.Modes[0] = (byte)yMode;
+                for (int i = 0; i < left.Length; i++)
+                {
+                    left[i] = (byte)yMode;
+                    top[i] = (byte)yMode;
+                }
+            }
+            else
+            {
+                byte[] modes = block.Modes;
+                for (int y = 0; y < 4; ++y)
+                {
+                    int yMode = left[y];
+                    for (int x = 0; x < 4; ++x)
+                    {
+                        byte[] prob = null; //= WebPConstants.BModesProba[top[x], yMode];
+                        int i = WebPConstants.YModesIntra4[this.bitReader.GetBit(prob[0])];
+                        while (i > 0)
+                        {
+                            i = WebPConstants.YModesIntra4[(2 * i) + this.bitReader.GetBit(prob[i])];
+                        }
+
+                        yMode = -i;
+                        top[x] = (byte)yMode;
+                    }
+
+                    // memcpy(modes, top, 4 * sizeof(*top));
+                    // modes += 4;
+                    left[y] = (byte)yMode;
+                }
+            }
+
+            // Hardcoded UVMode decision tree.
+            block.UvMode = (byte)(this.bitReader.GetBit(142) is 0 ? 0 :
+                           this.bitReader.GetBit(114) is 0 ? 2 :
+                           this.bitReader.GetBit(183) > 0 ? 1 : 3);
+
         }
 
         private Vp8Profile DecodeProfile(int version)
@@ -81,9 +190,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void DecodeMacroBlock(Vp8Decoder dec)
         {
-            Vp8MacroBlock left = dec.MacroBlockInfo[dec.MacroBlockPos - 1]; // TODO: not sure if this - 1 is correct here
-            Vp8MacroBlock macroBlock = dec.MacroBlockInfo[dec.MacroBlockPos + dec.MbX];
-            Vp8MacroBlockData blockData = dec.MacroBlockData[dec.MacroBlockPos + dec.MbX];
+            Vp8MacroBlock left = dec.MacroBlockInfo[dec.MacroBlockIdx - 1]; // TODO: not sure if this - 1 is correct here
+            Vp8MacroBlock macroBlock = dec.MacroBlockInfo[dec.MacroBlockIdx + dec.MbX];
+            Vp8MacroBlockData blockData = dec.MacroBlockData[dec.MacroBlockIdx + dec.MbX];
             int skip = dec.UseSkipProba ? blockData.Skip : 0;
 
             if (skip is 0)

@@ -8,14 +8,128 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class Vp8Decoder
     {
-        public Vp8Decoder()
+        public Vp8Decoder(Vp8FrameHeader frameHeader, Vp8PictureHeader pictureHeader, Vp8FilterHeader filterHeader, Vp8SegmentHeader segmentHeader, Vp8Proba probabilities, Vp8Io io)
         {
+            this.FrameHeader = frameHeader;
+            this.PictureHeader = pictureHeader;
+            this.FilterHeader = filterHeader;
+            this.SegmentHeader = segmentHeader;
+            this.Probabilities = probabilities;
             this.DeQuantMatrices = new Vp8QuantMatrix[WebPConstants.NumMbSegments];
             this.FilterStrength = new Vp8FilterInfo[WebPConstants.NumMbSegments, 2];
+            this.IntraL = new byte[4];
+
+            this.Init(io);
         }
+
+        public Vp8FrameHeader FrameHeader { get; }
+
+        public Vp8PictureHeader PictureHeader { get; }
+
+        public Vp8FilterHeader FilterHeader { get; }
+
+        public Vp8SegmentHeader SegmentHeader { get; }
+
+        public bool Dither { get; set; }
+
+        /// <summary>
+        /// Gets or sets dequantization matrices (one set of DC/AC dequant factor per segment).
+        /// </summary>
+        public Vp8QuantMatrix[] DeQuantMatrices { get; private set; }
+
+        public bool UseSkipProba { get; set; }
+
+        public byte SkipProbability { get; set; }
+
+        public Vp8Proba Probabilities { get; set; }
+
+        // top intra modes values: 4 * MbWidth
+        public byte[] IntraT { get; set; }
+
+        // left intra modes values
+        public byte[] IntraL { get; }
+
+        /// <summary>
+        /// Gets or sets the width in macroblock units.
+        /// </summary>
+        public int MbWidth { get; set; }
+
+        /// <summary>
+        /// Gets or sets the height in macroblock units.
+        /// </summary>
+        public int MbHeight { get; set; }
+
+        /// <summary>
+        /// Gets or sets the top-left x index of the macroblock that must be in-loop filtered.
+        /// </summary>
+        public int TopLeftMbX { get; set; }
+
+        /// <summary>
+        /// Gets or sets the top-left y index of the macroblock that must be in-loop filtered.
+        /// </summary>
+        public int TopLeftMbY { get; set; }
+
+        /// <summary>
+        /// Gets or sets the last bottom-right x index of the macroblock that must be decoded.
+        /// </summary>
+        public int BotomRightMbX { get; set; }
+
+        /// <summary>
+        /// Gets or sets the last bottom-right y index of the macroblock that must be decoded.
+        /// </summary>
+        public int BottomRightMbY { get; set; }
+
+        /// <summary>
+        /// Gets or sets the current x position in macroblock units.
+        /// </summary>
+        public int MbX { get; set; }
+
+        /// <summary>
+        /// Gets or sets the current y position in macroblock units.
+        /// </summary>
+        public int MbY { get; set; }
+
+        /// <summary>
+        /// Gets or sets the parsed reconstruction data.
+        /// </summary>
+        public Vp8MacroBlockData[] MacroBlockData { get; set; }
+
+        /// <summary>
+        /// Gets or sets contextual macroblock infos.
+        /// </summary>
+        public Vp8MacroBlock[] MacroBlockInfo { get; set; }
+
+        public int MacroBlockIdx { get; set; }
+
+        public LoopFilter Filter { get; set; }
+
+        public Vp8FilterInfo[,] FilterStrength { get; }
+
+        /// <summary>
+        /// Gets or sets filter strength info.
+        /// </summary>
+        public Vp8FilterInfo FilterInfo { get; set; }
 
         public void Init(Vp8Io io)
         {
+            this.MbWidth = (int)((this.PictureHeader.Width + 15) >> 4);
+            this.MbHeight = (int)((this.PictureHeader.Height + 15) >> 4);
+            int intraPredModeSize = 4 * this.MbWidth;
+            this.IntraT = new byte[intraPredModeSize];
+
+            io.Width = (int)this.PictureHeader.Width;
+            io.Height = (int)this.PictureHeader.Height;
+            io.UseCropping = false;
+            io.CropTop = 0;
+            io.CropLeft = 0;
+            io.CropRight = io.Width;
+            io.CropBottom = io.Height;
+            io.UseScaling = false;
+            io.ScaledWidth = io.Width;
+            io.ScaledHeight = io.ScaledHeight;
+            io.MbW = io.Width;
+            io.MbH = io.Height;
+
             int extraPixels = WebPConstants.FilterExtraRows[(int)this.Filter];
             if (this.Filter is LoopFilter.Complex)
             {
@@ -128,94 +242,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     }
                     else
                     {
-                        info.Limit = 0;  // no filtering
+                        info.Limit = 0;  // no filtering.
                     }
 
                     info.InnerLevel = (byte)i4x4;
                 }
             }
         }
-
-        public Vp8FrameHeader FrameHeader { get; set; }
-
-        public Vp8PictureHeader PictureHeader { get; set; }
-
-        public Vp8FilterHeader FilterHeader { get; set; }
-
-        public Vp8SegmentHeader SegmentHeader { get; set; }
-
-        public bool Dither { get; set; }
-
-        /// <summary>
-        /// Gets or sets dequantization matrices (one set of DC/AC dequant factor per segment).
-        /// </summary>
-        public Vp8QuantMatrix[] DeQuantMatrices { get; private set; }
-
-        public bool UseSkipProba { get; set; }
-
-        public byte SkipProbability { get; set; }
-
-        public Vp8Proba Probabilities { get; set; }
-
-        /// <summary>
-        /// Gets or sets the width in macroblock units.
-        /// </summary>
-        public int MbWidth { get; set; }
-
-        /// <summary>
-        /// Gets or sets the height in macroblock units.
-        /// </summary>
-        public int MbHeight { get; set; }
-
-        /// <summary>
-        /// Gets or sets the top-left x index of the macroblock that must be in-loop filtered.
-        /// </summary>
-        public int TopLeftMbX { get; set; }
-
-        /// <summary>
-        /// Gets or sets the top-left y index of the macroblock that must be in-loop filtered.
-        /// </summary>
-        public int TopLeftMbY { get; set; }
-
-        /// <summary>
-        /// Gets or sets the last bottom-right x index of the macroblock that must be decoded.
-        /// </summary>
-        public int BotomRightMbX { get; set; }
-
-        /// <summary>
-        /// Gets or sets the last bottom-right y index of the macroblock that must be decoded.
-        /// </summary>
-        public int BottomRightMbY { get; set; }
-
-        /// <summary>
-        /// Gets or sets the current x position in macroblock units.
-        /// </summary>
-        public int MbX { get; set; }
-
-        /// <summary>
-        /// Gets or sets the current y position in macroblock units.
-        /// </summary>
-        public int MbY { get; set; }
-
-        /// <summary>
-        /// Gets or sets the parsed reconstruction data.
-        /// </summary>
-        public Vp8MacroBlockData[] MacroBlockData { get; set; }
-
-        /// <summary>
-        /// Gets or sets contextual macroblock infos.
-        /// </summary>
-        public Vp8MacroBlock[] MacroBlockInfo { get; set; }
-
-        public int MacroBlockPos { get; set; }
-
-        public LoopFilter Filter { get; set; }
-
-        public Vp8FilterInfo[,] FilterStrength { get; }
-
-        /// <summary>
-        /// Gets or sets filter strength info.
-        /// </summary>
-        public Vp8FilterInfo FilterInfo { get; set; }
     }
 }

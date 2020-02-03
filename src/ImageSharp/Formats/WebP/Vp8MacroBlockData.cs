@@ -8,6 +8,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class Vp8MacroBlockData
     {
+        public Vp8MacroBlockData()
+        {
+            this.Modes = new byte[16];
+        }
+
         /// <summary>
         /// Gets or sets the coefficient. 384 coeffs = (16+4+4) * 4*4.
         /// </summary>
@@ -21,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets or sets the modes. One 16x16 mode (#0) or sixteen 4x4 modes.
         /// </summary>
-        public byte Modes { get; set; }
+        public byte[] Modes { get; }
 
         /// <summary>
         /// Gets or sets the chroma prediction mode.

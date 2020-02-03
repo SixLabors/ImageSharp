@@ -44,42 +44,6 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 { 30, 5, 40, 12 },
             };
 
-        public class CopyTo : MemoryGroupTestsBase
-        {
-            public static readonly TheoryData<int, int, int, int> WhenSourceBufferIsShorterOrEqual_Data =
-                CopyAndTransformData;
-
-            [Theory]
-            [MemberData(nameof(WhenSourceBufferIsShorterOrEqual_Data))]
-            public void WhenSourceBufferIsShorterOrEqual(int srcTotal, int srcBufLen, int trgTotal, int trgBufLen)
-            {
-                using MemoryGroup<int> src = this.CreateTestGroup(srcTotal, srcBufLen, true);
-                using MemoryGroup<int> trg = this.CreateTestGroup(trgTotal, trgBufLen, false);
-
-                src.CopyTo(trg);
-
-                int pos = 0;
-                MemoryGroupIndex i = src.MinIndex();
-                MemoryGroupIndex j = trg.MinIndex();
-                for (; i < src.MaxIndex(); i += 1, j += 1, pos++)
-                {
-                    int a = src.GetElementAt(i);
-                    int b = trg.GetElementAt(j);
-
-                    Assert.True(a == b, $"Mismatch @ {pos} Expected: {a} Actual: {b}");
-                }
-            }
-
-            [Fact]
-            public void WhenTargetBufferTooShort_Throws()
-            {
-                using MemoryGroup<int> src = this.CreateTestGroup(10, 20, true);
-                using MemoryGroup<int> trg = this.CreateTestGroup(5, 20, false);
-
-                Assert.Throws<ArgumentOutOfRangeException>(() => src.CopyTo(trg));
-            }
-        }
-
         public class TransformTo : MemoryGroupTestsBase
         {
             public static readonly TheoryData<int, int, int, int> WhenSourceBufferIsShorterOrEqual_Data =
@@ -152,6 +116,51 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
             Assert.True(group[0].Span.SequenceEqual(data0));
             Assert.True(group[1].Span.SequenceEqual(data1));
             Assert.True(group[2].Span.SequenceEqual(data2));
+        }
+
+        public static TheoryData<long, int, long, int> GetBoundedSlice_SuccessData = new TheoryData<long, int, long, int>()
+        {
+            { 300, 100, 110, 80 },
+            { 300, 100, 100, 100 },
+            { 280, 100, 201, 79 },
+            { 42, 7, 0, 0 },
+            { 42, 7, 0, 1 },
+            { 42, 7, 0, 7 },
+            { 42, 9, 9, 9 },
+        };
+
+        [Theory]
+        [MemberData(nameof(GetBoundedSlice_SuccessData))]
+        public void GetBoundedSlice_WhenArgsAreCorrect(long totalLength, int bufferLength, long start, int length)
+        {
+            using MemoryGroup<int> group = this.CreateTestGroup(totalLength, bufferLength, true);
+
+            Memory<int> slice = group.GetBoundedSlice(start, length);
+
+            Assert.Equal(length, slice.Length);
+
+            int expected = (int)start + 1;
+            foreach (int val in slice.Span)
+            {
+                Assert.Equal(expected, val);
+                expected++;
+            }
+        }
+
+        public static TheoryData<long, int, long, int> GetBoundedSlice_ErrorData = new TheoryData<long, int, long, int>()
+        {
+            { 300, 100, 110, 91 },
+            { 42, 7, 0, 8 },
+            { 42, 7, 1, 7 },
+            { 42, 7, 1, 30 },
+        };
+
+        [Theory]
+        [MemberData(nameof(GetBoundedSlice_ErrorData))]
+        public void GetBoundedSlice_WhenOverlapsBuffers_Throws(long totalLength, int bufferLength, long start, int length)
+        {
+            using MemoryGroup<int> group = this.CreateTestGroup(totalLength, bufferLength, true);
+            Assert.ThrowsAny<ArgumentOutOfRangeException>(() => group.GetBoundedSlice(start, length));
         }
 
         private static void MultiplyAllBy2(ReadOnlySpan<int> source, Span<int> target)

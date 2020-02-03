@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <typeparam name="T">The type of buffer items to allocate.</typeparam>
         /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="width">The buffer width.</param>
-        /// <param name="height">The buffer heght.</param>
+        /// <param name="height">The buffer height.</param>
         /// <param name="options">The allocation options.</param>
         /// <returns>The <see cref="Buffer2D{T}"/>.</returns>
         public static Buffer2D<T> Allocate2D<T>(
@@ -50,13 +50,13 @@ namespace SixLabors.ImageSharp.Memory
             Allocate2D<T>(memoryAllocator, size.Width, size.Height, options);
 
         /// <summary>
-        /// Allocates padded buffers for BMP encoder/decoder. (Replacing old PixelRow/PixelArea)
+        /// Allocates padded buffers for BMP encoder/decoder. (Replacing old PixelRow/PixelArea).
         /// </summary>
-        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/></param>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
         /// <param name="width">Pixel count in the row</param>
-        /// <param name="pixelSizeInBytes">The pixel size in bytes, eg. 3 for RGB</param>
-        /// <param name="paddingInBytes">The padding</param>
-        /// <returns>A <see cref="IManagedByteBuffer"/></returns>
+        /// <param name="pixelSizeInBytes">The pixel size in bytes, eg. 3 for RGB.</param>
+        /// <param name="paddingInBytes">The padding.</param>
+        /// <returns>A <see cref="IManagedByteBuffer"/>.</returns>
         internal static IManagedByteBuffer AllocatePaddedPixelRowBuffer(
             this MemoryAllocator memoryAllocator,
             int width,
@@ -66,5 +66,22 @@ namespace SixLabors.ImageSharp.Memory
             int length = (width * pixelSizeInBytes) + paddingInBytes;
             return memoryAllocator.AllocateManagedByteBuffer(length);
         }
+
+        /// <summary>
+        /// Allocates a <see cref="MemoryGroup{T}"/>.
+        /// </summary>
+        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use.</param>
+        /// <param name="totalLength">The total length of the buffer.</param>
+        /// <param name="bufferAlignment">The expected alignment (eg. to make sure image rows fit into single buffers).</param>
+        /// <param name="options">The <see cref="AllocationOptions"/>.</param>
+        /// <returns>A new <see cref="MemoryGroup{T}"/>.</returns>
+        /// <exception cref="InvalidMemoryOperationException">Thrown when 'blockAlignment' converted to bytes is greater than the buffer capacity of the allocator.</exception>
+        internal static MemoryGroup<T> AllocateGroup<T>(
+            this MemoryAllocator memoryAllocator,
+            long totalLength,
+            int bufferAlignment,
+            AllocationOptions options = AllocationOptions.None)
+            where T : struct
+            => MemoryGroup<T>.Allocate(memoryAllocator, totalLength, bufferAlignment, options);
     }
 }

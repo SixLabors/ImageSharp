@@ -7,6 +7,76 @@ namespace SixLabors.ImageSharp.Memory
 {
     internal static class MemoryGroupExtensions
     {
+        /// <summary>
+        /// Returns a slice that is expected to be within the bounds of a single buffer.
+        /// Otherwise <see cref="ArgumentOutOfRangeException"/> is thrown.
+        /// </summary>
+        public static Memory<T> GetBoundedSlice<T>(this IMemoryGroup<T> group, long start, int length)
+            where T : struct
+        {
+            Guard.NotNull(group, nameof(group));
+            Guard.IsTrue(group.IsValid, nameof(group), "Group must be valid!");
+            Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
+            Guard.MustBeLessThan(start, group.TotalLength, nameof(start));
+
+            int bufferIdx = (int)(start / group.BufferLength);
+            if (bufferIdx >= group.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(start));
+            }
+
+            int bufferStart = (int)(start % group.BufferLength);
+            int bufferEnd = bufferStart + length;
+            Memory<T> memory = group[bufferIdx];
+
+            if (bufferEnd > memory.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(length));
+            }
+
+            return memory.Slice(bufferStart, length);
+        }
+
+        public static void CopyTo<T>(this IMemoryGroup<T> source, Span<T> target)
+            where T : struct
+        {
+            Guard.NotNull(source, nameof(source));
+            Guard.MustBeGreaterThanOrEqualTo(target.Length, source.TotalLength, nameof(target));
+
+            var cur = new MemoryGroupCursor<T>(source);
+            long position = 0;
+            while (position < source.TotalLength)
+            {
+                int fwd = Math.Min(cur.LookAhead(), target.Length);
+                cur.GetSpan(fwd).CopyTo(target);
+
+                cur.Forward(fwd);
+                target = target.Slice(fwd);
+                position += fwd;
+            }
+        }
+
+        public static void CopyTo<T>(this Span<T> source, IMemoryGroup<T> target)
+            where T : struct
+            => CopyTo((ReadOnlySpan<T>)source, target);
+
+        public static void CopyTo<T>(this ReadOnlySpan<T> source, IMemoryGroup<T> target)
+            where T : struct
+        {
+            Guard.NotNull(target, nameof(target));
+            Guard.MustBeGreaterThanOrEqualTo(target.TotalLength, source.Length, nameof(target));
+
+            var cur = new MemoryGroupCursor<T>(target);
+
+            while (!source.IsEmpty)
+            {
+                int fwd = Math.Min(cur.LookAhead(), source.Length);
+                source.Slice(0, fwd).CopyTo(cur.GetSpan(fwd));
+                cur.Forward(fwd);
+                source = source.Slice(fwd);
+            }
+        }
+
         public static void CopyTo<T>(this IMemoryGroup<T> source, IMemoryGroup<T> target)
             where T : struct
         {

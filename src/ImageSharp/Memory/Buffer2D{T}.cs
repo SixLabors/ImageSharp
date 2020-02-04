@@ -14,21 +14,18 @@ namespace SixLabors.ImageSharp.Memory
     /// Before RC1, this class might be target of API changes, use it on your own risk!
     /// </remarks>
     /// <typeparam name="T">The value type.</typeparam>
-    // TODO: Consider moving this type to the SixLabors.ImageSharp.Memory namespace (SixLabors.Core).
     public sealed class Buffer2D<T> : IDisposable
         where T : struct
     {
-        private MemorySource<T> memorySource;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
         /// </summary>
-        /// <param name="memorySource">The buffer to wrap</param>
-        /// <param name="width">The number of elements in a row</param>
-        /// <param name="height">The number of rows</param>
-        internal Buffer2D(MemorySource<T> memorySource, int width, int height)
+        /// <param name="memoryGroup">The <see cref="MemoryGroup{T}"/> to wrap.</param>
+        /// <param name="width">The number of elements in a row.</param>
+        /// <param name="height">The number of rows.</param>
+        internal Buffer2D(MemoryGroup<T> memoryGroup, int width, int height)
         {
-            this.memorySource = memorySource;
+            this.MemoryGroup = memoryGroup;
             this.Width = width;
             this.Height = height;
         }
@@ -44,9 +41,9 @@ namespace SixLabors.ImageSharp.Memory
         public int Height { get; private set; }
 
         /// <summary>
-        /// Gets the backing <see cref="MemorySource{T}"/>
+        /// Gets the backing <see cref="MemoryGroup{T}"/>.
         /// </summary>
-        internal MemorySource<T> MemorySource => this.memorySource;
+        internal MemoryGroup<T> MemoryGroup { get; }
 
         /// <summary>
         /// Gets a reference to the element at the specified position.
@@ -62,8 +59,7 @@ namespace SixLabors.ImageSharp.Memory
                 DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
                 DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
 
-                Span<T> span = this.GetSpan();
-                return ref span[(this.Width * y) + x];
+                return ref this.GetRowSpan(y)[x];
             }
         }
 
@@ -72,7 +68,7 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         public void Dispose()
         {
-            this.MemorySource.Dispose();
+            this.MemoryGroup.Dispose();
         }
 
         /// <summary>
@@ -81,7 +77,7 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         internal static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
         {
-            MemorySource<T>.SwapOrCopyContent(ref destination.memorySource, ref source.memorySource);
+            MemoryGroup<T>.SwapOrCopyContent(destination.MemoryGroup, source.MemoryGroup);
             SwapDimensionData(destination, source);
         }
 

@@ -62,14 +62,23 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
 
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
 
+            int top = rectangle.Top;
+            int bottom = rectangle.Bottom;
+
             Parallel.For(
                 0,
                 numOfSteps,
                 parallelOptions,
                 i =>
                     {
-                        int yMin = rectangle.Top + (i * verticalStep);
-                        int yMax = Math.Min(yMin + verticalStep, rectangle.Bottom);
+                        int yMin = top + (i * verticalStep);
+
+                        if (yMin >= bottom)
+                        {
+                            return;
+                        }
+
+                        int yMax = Math.Min(yMin + verticalStep, bottom);
 
                         var rows = new RowInterval(yMin, yMax);
                         body(rows);
@@ -110,13 +119,22 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
 
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
 
+            int top = rectangle.Top;
+            int bottom = rectangle.Bottom;
+
             Parallel.For(
                 0,
                 numOfSteps,
                 parallelOptions,
                 i =>
                     {
-                        int yMin = rectangle.Top + (i * verticalStep);
+                        int yMin = top + (i * verticalStep);
+
+                        if (yMin >= bottom)
+                        {
+                            return;
+                        }
+
                         int yMax = Math.Min(yMin + verticalStep, rectangle.Bottom);
 
                         var rows = new RowInterval(yMin, yMax);

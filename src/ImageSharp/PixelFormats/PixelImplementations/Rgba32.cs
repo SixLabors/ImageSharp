@@ -230,7 +230,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgba32 left, Rgba32 right) => !left.Equals(right);
 
         /// <summary>
-        /// Creates a new instance of the <see cref="Rgba32"/> struct.
+        /// Creates a new instance of the <see cref="Rgba32"/> struct
+        /// from the given hexadecimal string.
         /// </summary>
         /// <param name="hex">
         /// The hexadecimal representation of the combined color components arranged
@@ -239,19 +240,50 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>
         /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Rgba32 FromHex(string hex)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static Rgba32 ParseHex(string hex)
         {
-            Guard.NotNullOrWhiteSpace(hex, nameof(hex));
+            Guard.NotNull(hex, nameof(hex));
+
+            if (!TryParseHex(hex, out Rgba32 rgba))
+            {
+                throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
+            }
+
+            return rgba;
+        }
+
+        /// <summary>
+        /// Attempts to creates a new instance of the <see cref="Rgba32"/> struct
+        /// from the given hexadecimal string.
+        /// </summary>
+        /// <param name="hex">
+        /// The hexadecimal representation of the combined color components arranged
+        /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
+        /// </param>
+        /// <param name="result">When this method returns, contains the <see cref="Rgba32"/> equivalent of the hexadecimal input.</param>
+        /// <returns>
+        /// The <see cref="bool"/>.
+        /// </returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool TryParseHex(string hex, out Rgba32 result)
+        {
+            result = default;
+            if (string.IsNullOrWhiteSpace(hex))
+            {
+                return false;
+            }
 
             hex = ToRgbaHex(hex);
 
             if (hex is null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
             {
-                throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
+                return false;
             }
 
             packedValue = BinaryPrimitives.ReverseEndianness(packedValue);
-            return Unsafe.As<uint, Rgba32>(ref packedValue);
+            result = Unsafe.As<uint, Rgba32>(ref packedValue);
+            return true;
         }
 
         /// <inheritdoc />

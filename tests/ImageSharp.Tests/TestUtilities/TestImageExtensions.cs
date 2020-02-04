@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Formats;
@@ -664,6 +664,15 @@ namespace SixLabors.ImageSharp.Tests
                 ImageComparer comparer = customComparer ?? ImageComparer.Exact;
                 comparer.VerifySimilarity(actualImage, image);
             }
+        }
+
+        internal static void LimitAllocatorBufferCapacity<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            int bufferCapacityInPixels = 40000) // 200 x 200
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var allocator = (ArrayPoolMemoryAllocator)provider.Configuration.MemoryAllocator;
+            allocator.BufferCapacityInBytes = Unsafe.SizeOf<TPixel>() * bufferCapacityInPixels;
         }
 
         internal static Image<Rgba32> ToGrayscaleImage(this Buffer2D<float> buffer, float scale)

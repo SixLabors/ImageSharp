@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -23,7 +24,7 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));
-            return buffer.MemorySource.GetSpan();
+            return buffer.MemoryGroup.Single().Span;
         }
 
         /// <summary>
@@ -36,7 +37,7 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));
-            return buffer.MemorySource.Memory;
+            return buffer.MemoryGroup.Single();
         }
 
         /// <summary>
@@ -51,7 +52,7 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));
-            return buffer.GetSpan().Slice(y * buffer.Width, buffer.Width);
+            return buffer.MemoryGroup.GetBoundedSlice(y * buffer.Width, buffer.Width).Span;
         }
 
         /// <summary>
@@ -66,10 +67,11 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));
-            return buffer.MemorySource.Memory.Slice(y * buffer.Width, buffer.Width);
+            return buffer.MemoryGroup.GetBoundedSlice(y * buffer.Width, buffer.Width);
         }
 
         /// <summary>
+        /// TODO: Does not work with multi-buffer groups, should be specific to Resize.
         /// Copy <paramref name="columnCount"/> columns of <paramref name="buffer"/> inplace,
         /// from positions starting at <paramref name="sourceIndex"/> to positions at <paramref name="destIndex"/>.
         /// </summary>

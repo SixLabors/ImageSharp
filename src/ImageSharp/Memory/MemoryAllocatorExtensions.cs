@@ -27,9 +27,8 @@ namespace SixLabors.ImageSharp.Memory
             AllocationOptions options = AllocationOptions.None)
             where T : struct
         {
-            IMemoryOwner<T> buffer = memoryAllocator.Allocate<T>(width * height, options);
-            var memorySource = new MemorySource<T>(buffer, true);
-
+            long groupLength = (long)width * height;
+            MemoryGroup<T> memorySource = memoryAllocator.AllocateGroup<T>(groupLength, width, options);
             return new Buffer2D<T>(memorySource, width, height);
         }
 

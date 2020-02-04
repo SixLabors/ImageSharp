@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp
         {
             Buffer2D<TPixel> uninitializedMemoryBuffer =
                 configuration.MemoryAllocator.Allocate2D<TPixel>(width, height);
-            return new Image<TPixel>(configuration, uninitializedMemoryBuffer.MemorySource, width, height, metadata);
+            return new Image<TPixel>(configuration, uninitializedMemoryBuffer.MemoryGroup, width, height, metadata);
         }
 
         /// <summary>

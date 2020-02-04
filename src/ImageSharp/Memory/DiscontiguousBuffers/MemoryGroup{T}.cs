@@ -108,30 +108,49 @@ namespace SixLabors.ImageSharp.Memory
                 buffers[^1] = allocator.Allocate<T>(sizeOfLastBuffer, options);
             }
 
-            return new Owned(buffers, bufferLength, totalLength);
+            return new Owned(buffers, bufferLength, totalLength, true);
         }
 
-        public static MemoryGroup<T> Wrap(params Memory<T>[] source) => Wrap(source.AsMemory());
-
-        public static MemoryGroup<T> Wrap(ReadOnlyMemory<Memory<T>> source)
+        public static MemoryGroup<T> Wrap(params Memory<T>[] source)
         {
-            int bufferLength = source.Length > 0 ? source.Span[0].Length : 0;
+            int bufferLength = source.Length > 0 ? source[0].Length : 0;
             for (int i = 1; i < source.Length - 1; i++)
             {
-                if (source.Span[i].Length != bufferLength)
+                if (source[i].Length != bufferLength)
                 {
                     throw new InvalidMemoryOperationException("Wrap: buffers should be uniformly sized!");
                 }
             }
 
-            if (source.Length > 0 && source.Span[^1].Length > bufferLength)
+            if (source.Length > 0 && source[^1].Length > bufferLength)
             {
                 throw new InvalidMemoryOperationException("Wrap: the last buffer is too large!");
             }
 
-            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source.Span[^1].Length : 0;
+            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source[^1].Length : 0;
 
             return new Consumed(source, bufferLength, totalLength);
+        }
+
+        public static MemoryGroup<T> Wrap(params IMemoryOwner<T>[] source)
+        {
+            int bufferLength = source.Length > 0 ? source[0].Memory.Length : 0;
+            for (int i = 1; i < source.Length - 1; i++)
+            {
+                if (source[i].Memory.Length != bufferLength)
+                {
+                    throw new InvalidMemoryOperationException("Wrap: buffers should be uniformly sized!");
+                }
+            }
+
+            if (source.Length > 0 && source[^1].Memory.Length > bufferLength)
+            {
+                throw new InvalidMemoryOperationException("Wrap: the last buffer is too large!");
+            }
+
+            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source[^1].Memory.Length : 0;
+
+            return new Owned(source, bufferLength, totalLength, false);
         }
 
         /// <summary>
@@ -141,7 +160,8 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         public static void SwapOrCopyContent(MemoryGroup<T> target, MemoryGroup<T> source)
         {
-            if (source is Owned ownedSrc && target is Owned ownedTarget)
+            if (source is Owned ownedSrc && ownedSrc.Swappable &&
+                target is Owned ownedTarget && ownedTarget.Swappable)
             {
                 Owned.SwapContents(ownedTarget, ownedSrc);
             }

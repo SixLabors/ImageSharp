@@ -15,12 +15,15 @@ namespace SixLabors.ImageSharp.Memory
         {
             private IMemoryOwner<T>[] memoryOwners;
 
-            public Owned(IMemoryOwner<T>[] memoryOwners, int bufferLength, long totalLength)
+            public Owned(IMemoryOwner<T>[] memoryOwners, int bufferLength, long totalLength, bool swappable)
                 : base(bufferLength, totalLength)
             {
                 this.memoryOwners = memoryOwners;
+                this.Swappable = swappable;
                 this.View = new MemoryGroupView<T>(this);
             }
+
+            public bool Swappable { get; }
 
             public override int Count
             {

@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Advanced
         internal static Memory<TPixel> GetPixelMemory<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
-            return source.PixelBuffer.MemorySource.Memory;
+            return source.PixelBuffer.GetMemory();
         }
 
         /// <summary>

@@ -243,6 +243,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public static Rgba32 ParseHex(string hex)
         {
+            Guard.NotNull(hex, nameof(hex));
+
             if (!TryParseHex(hex, out Rgba32 rgba))
             {
                 throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));

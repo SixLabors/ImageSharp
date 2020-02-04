@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -11,9 +13,9 @@ namespace SixLabors.ImageSharp.Memory
         // Analogous to the "consumed" variant of MemorySource
         private class Consumed : MemoryGroup<T>
         {
-            private readonly ReadOnlyMemory<Memory<T>> source;
+            private readonly Memory<T>[] source;
 
-            public Consumed(ReadOnlyMemory<Memory<T>> source, int bufferLength, long totalLength)
+            public Consumed(Memory<T>[] source, int bufferLength, long totalLength)
                 : base(bufferLength, totalLength)
             {
                 this.source = source;
@@ -22,13 +24,13 @@ namespace SixLabors.ImageSharp.Memory
 
             public override int Count => this.source.Length;
 
-            public override Memory<T> this[int index] => this.source.Span[index];
+            public override Memory<T> this[int index] => this.source[index];
 
             public override IEnumerator<Memory<T>> GetEnumerator()
             {
                 for (int i = 0; i < this.source.Length; i++)
                 {
-                    yield return this.source.Span[i];
+                    yield return this.source[i];
                 }
             }
 

@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="memorySource">The memory source.</param>
-        internal ImageFrame(Configuration configuration, int width, int height, MemorySource<TPixel> memorySource)
+        internal ImageFrame(Configuration configuration, int width, int height, MemoryGroup<TPixel> memorySource)
             : this(configuration, width, height, memorySource, new ImageFrameMetadata())
         {
         }
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="memorySource">The memory source.</param>
         /// <param name="metadata">The metadata.</param>
-        internal ImageFrame(Configuration configuration, int width, int height, MemorySource<TPixel> memorySource, ImageFrameMetadata metadata)
+        internal ImageFrame(Configuration configuration, int width, int height, MemoryGroup<TPixel> memorySource, ImageFrameMetadata metadata)
             : base(configuration, width, height, metadata)
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));

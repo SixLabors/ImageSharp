@@ -74,22 +74,22 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
-        /// wrapping an external <see cref="MemorySource{T}"/>.
+        /// wrapping an external <see cref="MemoryGroup{T}"/>.
         /// </summary>
         /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
-        /// <param name="memorySource">The memory source.</param>
+        /// <param name="memoryGroup">The memory source.</param>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
         /// <param name="metadata">The images metadata.</param>
         internal Image(
             Configuration configuration,
-            MemorySource<TPixel> memorySource,
+            MemoryGroup<TPixel> memoryGroup,
             int width,
             int height,
             ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
-            this.Frames = new ImageFrameCollection<TPixel>(this, width, height, memorySource);
+            this.Frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
         }
 
         /// <summary>

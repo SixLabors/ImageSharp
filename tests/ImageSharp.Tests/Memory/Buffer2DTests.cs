@@ -50,12 +50,30 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
+        [Theory]
+        [InlineData(Big, 0, 42)]
+        [InlineData(Big, 1, 0)]
+        [InlineData(60, 42, 0)]
+        [InlineData(3, 0, 0)]
+        public unsafe void Construct_Empty(int bufferCapacity, int width, int height)
+        {
+            this.MemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
+
+            using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
+            {
+                Assert.Equal(width, buffer.Width);
+                Assert.Equal(height, buffer.Height);
+                Assert.Equal(0, buffer.MemoryGroup.TotalLength);
+                Assert.Equal(0, buffer.GetSingleSpan().Length);
+            }
+        }
+
         [Fact]
         public void CreateClean()
         {
             using (Buffer2D<int> buffer = this.MemoryAllocator.Allocate2D<int>(42, 42, AllocationOptions.Clean))
             {
-                Span<int> span = buffer.GetSpan();
+                Span<int> span = buffer.GetSingleSpan();
                 for (int j = 0; j < span.Length; j++)
                 {
                     Assert.Equal(0, span[j]);
@@ -114,9 +132,12 @@ namespace SixLabors.ImageSharp.Tests.Memory
         [Fact]
         public void SwapOrCopyContent()
         {
-            using (Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5))
-            using (Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7))
+            using (Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5, AllocationOptions.Clean))
+            using (Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7, AllocationOptions.Clean))
             {
+                a[1, 3] = 666;
+                b[1, 3] = 444;
+
                 Memory<int> aa = a.MemoryGroup.Single();
                 Memory<int> bb = b.MemoryGroup.Single();
 
@@ -127,6 +148,9 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 Assert.Equal(new Size(3, 7), a.Size());
                 Assert.Equal(new Size(10, 5), b.Size());
+
+                Assert.Equal(666, b[1, 3]);
+                Assert.Equal(444, a[1, 3]);
             }
         }
 
@@ -142,7 +166,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             var rnd = new Random(123);
             using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(width, height))
             {
-                rnd.RandomFill(b.GetSpan(), 0, 1);
+                rnd.RandomFill(b.GetSingleSpan(), 0, 1);
 
                 b.CopyColumns(startIndex, destIndex, columnCount);
 
@@ -164,7 +188,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             var rnd = new Random(123);
             using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(100, 100))
             {
-                rnd.RandomFill(b.GetSpan(), 0, 1);
+                rnd.RandomFill(b.GetSingleSpan(), 0, 1);
 
                 b.CopyColumns(0, 50, 22);
                 b.CopyColumns(0, 50, 22);

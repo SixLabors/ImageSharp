@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public void FillDestinationPixels(RowInterval rowInterval, Buffer2D<TPixel> destination)
         {
             Span<Vector4> tempColSpan = this.tempColumnBuffer.GetSpan();
-            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSpan();
+            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSingleSpan();
 
             for (int y = rowInterval.Min; y < rowInterval.Max; y++)
             {
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private void CalculateFirstPassValues(RowInterval calculationInterval)
         {
             Span<Vector4> tempRowSpan = this.tempRowBuffer.GetSpan();
-            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSpan();
+            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSingleSpan();
 
             for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
             {

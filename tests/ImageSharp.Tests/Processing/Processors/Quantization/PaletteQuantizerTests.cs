@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
 {
     public class PaletteQuantizerTests
     {
-        private static readonly Color[] Rgb = new Color[] { Rgba32.Red, Rgba32.Green, Rgba32.Blue };
+        private static readonly Color[] Rgb = new Color[] { Color.Red, Color.Green, Color.Blue };
 
         [Fact]
         public void PaletteQuantizerConstructor()

@@ -152,6 +152,8 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public static Color Parse(string input)
         {
+            Guard.NotNull(input, nameof(input));
+
             if (!TryParse(input, out Color color))
             {
                 throw new ArgumentException("Input string is not in the correct format.", nameof(input));

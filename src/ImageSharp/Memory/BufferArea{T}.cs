@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="x">The position inside a row</param>
         /// <param name="y">The row index</param>
         /// <returns>The reference to the value</returns>
-        public ref T this[int x, int y] => ref this.DestinationBuffer.GetSingleSpan()[this.GetIndexOf(x, y)];
+        public ref T this[int x, int y] => ref this.DestinationBuffer[x + this.Rectangle.X, y + this.Rectangle.Y];
 
         /// <summary>
         /// Gets a reference to the [0,0] element.
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <returns>The reference to the [0,0] element</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T GetReferenceToOrigin() =>
-            ref this.DestinationBuffer.GetSingleSpan()[(this.Rectangle.Y * this.DestinationBuffer.Width) + this.Rectangle.X];
+            ref this.GetRowSpan(0)[0];
 
         /// <summary>
         /// Gets a span to row 'y' inside this area.
@@ -94,16 +94,16 @@ namespace SixLabors.ImageSharp.Memory
             int xx = this.Rectangle.X;
             int width = this.Rectangle.Width;
 
-            return this.DestinationBuffer.GetSingleSpan().Slice(yy + xx, width);
+            return this.DestinationBuffer.MemoryGroup.GetBoundedSlice(yy + xx, width).Span;
         }
 
         /// <summary>
         /// Returns a sub-area as <see cref="BufferArea{T}"/>. (Similar to <see cref="Span{T}.Slice(int, int)"/>.)
         /// </summary>
-        /// <param name="x">The x index at the subarea origo</param>
-        /// <param name="y">The y index at the subarea origo</param>
-        /// <param name="width">The desired width of the subarea</param>
-        /// <param name="height">The desired height of the subarea</param>
+        /// <param name="x">The x index at the subarea origin.</param>
+        /// <param name="y">The y index at the subarea origin.</param>
+        /// <param name="width">The desired width of the subarea.</param>
+        /// <param name="height">The desired height of the subarea.</param>
         /// <returns>The subarea</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public BufferArea<T> GetSubArea(int x, int y, int width, int height)
@@ -130,14 +130,6 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int GetIndexOf(int x, int y)
-        {
-            int yy = this.GetRowIndex(y);
-            int xx = this.Rectangle.X + x;
-            return yy + xx;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal int GetRowIndex(int y)
         {
             return (y + this.Rectangle.Y) * this.DestinationBuffer.Width;
@@ -148,7 +140,7 @@ namespace SixLabors.ImageSharp.Memory
             // Optimization for when the size of the area is the same as the buffer size.
             if (this.IsFullBufferArea)
             {
-                this.DestinationBuffer.GetSingleSpan().Clear();
+                this.DestinationBuffer.MemoryGroup.Clear();
                 return;
             }
 

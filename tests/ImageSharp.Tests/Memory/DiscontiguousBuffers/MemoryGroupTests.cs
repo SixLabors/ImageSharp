@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Linq;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using Xunit;
@@ -161,6 +162,32 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
         {
             using MemoryGroup<int> group = this.CreateTestGroup(totalLength, bufferLength, true);
             Assert.ThrowsAny<ArgumentOutOfRangeException>(() => group.GetBoundedSlice(start, length));
+        }
+
+        [Fact]
+        public void Fill()
+        {
+            using MemoryGroup<int> group = this.CreateTestGroup(100, 10, true);
+            group.Fill(42);
+
+            int[] expectedRow = Enumerable.Repeat(42, 10).ToArray();
+            foreach (Memory<int> memory in group)
+            {
+                Assert.True(memory.Span.SequenceEqual(expectedRow));
+            }
+        }
+
+        [Fact]
+        public void Clear()
+        {
+            using MemoryGroup<int> group = this.CreateTestGroup(100, 10, true);
+            group.Clear();
+
+            var expectedRow = new int[10];
+            foreach (Memory<int> memory in group)
+            {
+                Assert.True(memory.Span.SequenceEqual(expectedRow));
+            }
         }
 
         private static void MultiplyAllBy2(ReadOnlySpan<int> source, Span<int> target)

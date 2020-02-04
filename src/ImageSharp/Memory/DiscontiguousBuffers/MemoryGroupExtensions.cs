@@ -7,6 +7,24 @@ namespace SixLabors.ImageSharp.Memory
 {
     internal static class MemoryGroupExtensions
     {
+        public static void Fill<T>(this IMemoryGroup<T> group, T value)
+            where T : struct
+        {
+            foreach (Memory<T> memory in group)
+            {
+                memory.Span.Fill(value);
+            }
+        }
+
+        public static void Clear<T>(this IMemoryGroup<T> group)
+            where T : struct
+        {
+            foreach (Memory<T> memory in group)
+            {
+                memory.Span.Clear();
+            }
+        }
+
         /// <summary>
         /// Returns a slice that is expected to be within the bounds of a single buffer.
         /// Otherwise <see cref="ArgumentOutOfRangeException"/> is thrown.

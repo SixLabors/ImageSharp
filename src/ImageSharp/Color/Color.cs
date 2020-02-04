@@ -174,6 +174,13 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public static bool TryParse(string input, out Color result)
         {
+            result = default;
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return false;
+            }
+
             if (NamedColorsLookupLazy.Value.TryGetValue(input, out result))
             {
                 return true;

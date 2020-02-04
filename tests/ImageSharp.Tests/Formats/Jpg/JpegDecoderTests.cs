@@ -95,19 +95,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void JpegDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            static void RunTest(string providerDump)
-            {
-                TestImageProvider<TPixel> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
-                using Image<TPixel> image = provider.GetImage(JpegDecoder);
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            image.DebugSave(provider);
 
-                provider.Utility.TestName = DecodeBaselineJpegOutputName;
-                image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance), provider, appendPixelTypeToFileName: false);
-            }
-
-            string dump = BasicSerializer.Serialize(provider);
-            RemoteExecutor.Invoke(RunTest, dump).Dispose();
+            provider.Utility.TestName = DecodeBaselineJpegOutputName;
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                appendPixelTypeToFileName: false);
         }
 
         // DEBUG ONLY!

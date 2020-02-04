@@ -4,6 +4,7 @@
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -12,17 +13,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     public partial class JpegDecoderTests
     {
         [Theory]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
-        public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32, false)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32, true)]
+        public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider, bool enforceNonContiguousBuffers)
             where TPixel : struct, IPixel<TPixel>
         {
-            static void RunTest(string providerDump)
+            static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
                 TestImageProvider<TPixel> provider =
                     BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
 
+                if (!string.IsNullOrEmpty(nonContiguousBuffersStr))
+                {
+                    provider.LimitAllocatorBufferCapacity();
+                }
+
                 using Image<TPixel> image = provider.GetImage(JpegDecoder);
-                image.DebugSave(provider);
+                image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(
@@ -32,7 +39,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             string providerDump = BasicSerializer.Serialize(provider);
-            RemoteExecutor.Invoke(RunTest, providerDump).Dispose();
+            RemoteExecutor.Invoke(
+                    RunTest,
+                    providerDump,
+                    enforceNonContiguousBuffers ? "NonContiguous" : string.Empty)
+                .Dispose();
         }
 
         [Theory]

@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(source, nameof(source));
 
             this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
-            source.PixelBuffer.GetSingleSpan().CopyTo(this.PixelBuffer.GetSingleSpan());
+            source.PixelBuffer.MemoryGroup.CopyTo(this.PixelBuffer.MemoryGroup);
         }
 
         /// <summary>

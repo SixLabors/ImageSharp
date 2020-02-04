@@ -21,7 +21,10 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                     { default(S5), 22, 4, 7, 2, 4, 3 },
                     { default(S5), 22, 4, 8, 2, 4, 4 },
                     { default(S5), 22, 4, 21, 6, 4, 1 },
-                    { default(S5), 22, 4, 0, 0, 4, -1 },
+
+                    // empty:
+                    { default(S5), 22, 0, 0, 1, -1, 0 },
+                    { default(S5), 22, 4, 0, 1, -1, 0 },
 
                     { default(S4), 50, 12, 12, 1, 12, 12 },
                     { default(S4), 50, 7, 12, 2, 7, 5 },
@@ -61,7 +64,12 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 
                 // Assert:
                 Assert.Equal(expectedNumberOfBuffers, g.Count);
-                Assert.Equal(expectedBufferSize, g.BufferLength);
+
+                if (expectedBufferSize >= 0)
+                {
+                    Assert.Equal(expectedBufferSize, g.BufferLength);
+                }
+
                 if (g.Count == 0)
                 {
                     return;

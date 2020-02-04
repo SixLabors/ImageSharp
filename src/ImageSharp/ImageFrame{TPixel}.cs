@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(source, nameof(source));
 
             this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
-            source.PixelBuffer.GetSpan().CopyTo(this.PixelBuffer.GetSpan());
+            source.PixelBuffer.GetSingleSpan().CopyTo(this.PixelBuffer.GetSingleSpan());
         }
 
         /// <summary>
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp
                 throw new ArgumentException("ImageFrame<TPixel>.CopyTo(): target must be of the same size!", nameof(target));
             }
 
-            this.GetPixelSpan().CopyTo(target.GetSpan());
+            this.GetPixelSpan().CopyTo(target.GetSingleSpan());
         }
 
         /// <summary>
@@ -216,10 +216,10 @@ namespace SixLabors.ImageSharp
             if (typeof(TPixel) == typeof(TDestinationPixel))
             {
                 Span<TPixel> dest1 = MemoryMarshal.Cast<TDestinationPixel, TPixel>(destination);
-                this.PixelBuffer.GetSpan().CopyTo(dest1);
+                this.PixelBuffer.GetSingleSpan().CopyTo(dest1);
             }
 
-            PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), this.PixelBuffer.GetSpan(), destination);
+            PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), this.PixelBuffer.GetSingleSpan(), destination);
         }
 
         /// <inheritdoc/>

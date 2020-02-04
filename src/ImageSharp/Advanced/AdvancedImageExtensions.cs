@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Advanced
         internal static Memory<TPixel> GetPixelMemory<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
-            return source.PixelBuffer.GetMemory();
+            return source.PixelBuffer.GetSingleMemory();
         }
 
         /// <summary>
@@ -185,6 +185,6 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>A reference to the element.</returns>
         private static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(IPixelSource<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => ref MemoryMarshal.GetReference(source.PixelBuffer.GetSpan());
+            => ref MemoryMarshal.GetReference(source.PixelBuffer.GetSingleSpan());
     }
 }

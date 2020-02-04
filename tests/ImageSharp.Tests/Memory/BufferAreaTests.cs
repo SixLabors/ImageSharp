@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             using (Buffer2D<int> buffer = CreateTestBuffer(22, 13))
             {
                 buffer.GetArea().Clear();
-                Span<int> fullSpan = buffer.GetSpan();
+                Span<int> fullSpan = buffer.GetSingleSpan();
                 Assert.True(fullSpan.SequenceEqual(new int[fullSpan.Length]));
             }
         }

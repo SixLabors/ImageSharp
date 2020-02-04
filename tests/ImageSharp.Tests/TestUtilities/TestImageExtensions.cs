@@ -672,7 +672,7 @@ namespace SixLabors.ImageSharp.Tests
 
             Span<Rgba32> pixels = image.Frames.RootFrame.GetPixelSpan();
 
-            Span<float> bufferSpan = buffer.GetSpan();
+            Span<float> bufferSpan = buffer.GetSingleSpan();
 
             for (int i = 0; i < bufferSpan.Length; i++)
             {

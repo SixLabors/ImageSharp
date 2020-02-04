@@ -15,59 +15,49 @@ namespace SixLabors.ImageSharp.Memory
     public static class Buffer2DExtensions
     {
         /// <summary>
-        /// Gets a <see cref="Span{T}"/> to the backing buffer of <paramref name="buffer"/>.
+        /// Gets a <see cref="Span{T}"/> to the backing data of <paramref name="buffer"/>
+        /// if the backing group consists of one single contiguous memory buffer.
+        /// Throws <see cref="InvalidOperationException"/> otherwise.
         /// </summary>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
         /// <typeparam name="T">The value type.</typeparam>
         /// <returns>The <see cref="Span{T}"/> referencing the memory area.</returns>
-        public static Span<T> GetSpan<T>(this Buffer2D<T> buffer)
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the backing group is discontiguous.
+        /// </exception>
+        public static Span<T> GetSingleSpan<T>(this Buffer2D<T> buffer)
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));
+            if (buffer.MemoryGroup.Count > 1)
+            {
+                throw new InvalidOperationException("GetSingleSpan is only valid for a single-buffer group!");
+            }
+
             return buffer.MemoryGroup.Single().Span;
         }
 
         /// <summary>
-        /// Gets the <see cref="Memory{T}"/> holding the backing buffer of <paramref name="buffer"/>.
+        /// Gets a <see cref="Memory{T}"/> to the backing data of <paramref name="buffer"/>
+        /// if the backing group consists of one single contiguous memory buffer.
+        /// Throws <see cref="InvalidOperationException"/> otherwise.
         /// </summary>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
         /// <typeparam name="T">The value type.</typeparam>
         /// <returns>The <see cref="Memory{T}"/>.</returns>
-        public static Memory<T> GetMemory<T>(this Buffer2D<T> buffer)
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the backing group is discontiguous.
+        /// </exception>
+        public static Memory<T> GetSingleMemory<T>(this Buffer2D<T> buffer)
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));
+            if (buffer.MemoryGroup.Count > 1)
+            {
+                throw new InvalidOperationException("GetSingleMemory is only valid for a single-buffer group!");
+            }
+
             return buffer.MemoryGroup.Single();
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
-        /// </summary>
-        /// <param name="buffer">The buffer</param>
-        /// <param name="y">The y (row) coordinate</param>
-        /// <typeparam name="T">The element type</typeparam>
-        /// <returns>The <see cref="Span{T}"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Span<T> GetRowSpan<T>(this Buffer2D<T> buffer, int y)
-            where T : struct
-        {
-            Guard.NotNull(buffer, nameof(buffer));
-            return buffer.MemoryGroup.GetBoundedSlice(y * buffer.Width, buffer.Width).Span;
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Memory{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
-        /// </summary>
-        /// <param name="buffer">The buffer</param>
-        /// <param name="y">The y (row) coordinate</param>
-        /// <typeparam name="T">The element type</typeparam>
-        /// <returns>The <see cref="Span{T}"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Memory<T> GetRowMemory<T>(this Buffer2D<T> buffer, int y)
-            where T : struct
-        {
-            Guard.NotNull(buffer, nameof(buffer));
-            return buffer.MemoryGroup.GetBoundedSlice(y * buffer.Width, buffer.Width);
         }
 
         /// <summary>
@@ -93,7 +83,7 @@ namespace SixLabors.ImageSharp.Memory
             int dOffset = destIndex * elementSize;
             long count = columnCount * elementSize;
 
-            Span<byte> span = MemoryMarshal.AsBytes(buffer.GetMemory().Span);
+            Span<byte> span = MemoryMarshal.AsBytes(buffer.GetSingleMemory().Span);
 
             fixed (byte* ptr = span)
             {
@@ -153,7 +143,7 @@ namespace SixLabors.ImageSharp.Memory
         internal static Span<T> GetMultiRowSpan<T>(this Buffer2D<T> buffer, in RowInterval rows)
             where T : struct
         {
-            return buffer.GetSpan().Slice(rows.Min * buffer.Width, rows.Height * buffer.Width);
+            return buffer.GetSingleSpan().Slice(rows.Min * buffer.Width, rows.Height * buffer.Width);
         }
 
         /// <summary>

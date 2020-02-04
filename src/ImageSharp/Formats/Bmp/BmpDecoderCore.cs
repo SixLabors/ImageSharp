@@ -301,11 +301,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 Span<bool> rowsWithUndefinedPixelsSpan = rowsWithUndefinedPixels.Memory.Span;
                 if (compression == BmpCompression.RLE8)
                 {
-                    this.UncompressRle8(width, buffer.GetSpan(), undefinedPixels.GetSpan(), rowsWithUndefinedPixelsSpan);
+                    this.UncompressRle8(width, buffer.GetSingleSpan(), undefinedPixels.GetSingleSpan(), rowsWithUndefinedPixelsSpan);
                 }
                 else
                 {
-                    this.UncompressRle4(width, buffer.GetSpan(), undefinedPixels.GetSpan(), rowsWithUndefinedPixelsSpan);
+                    this.UncompressRle4(width, buffer.GetSingleSpan(), undefinedPixels.GetSingleSpan(), rowsWithUndefinedPixelsSpan);
                 }
 
                 for (int y = 0; y < height; y++)
@@ -377,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 Span<bool> rowsWithUndefinedPixelsSpan = rowsWithUndefinedPixels.Memory.Span;
                 Span<byte> bufferSpan = buffer.GetSpan();
-                this.UncompressRle24(width, bufferSpan, undefinedPixels.GetSpan(), rowsWithUndefinedPixelsSpan);
+                this.UncompressRle24(width, bufferSpan, undefinedPixels.GetSingleSpan(), rowsWithUndefinedPixelsSpan);
                 for (int y = 0; y < height; y++)
                 {
                     int newY = Invert(y, height, inverted);

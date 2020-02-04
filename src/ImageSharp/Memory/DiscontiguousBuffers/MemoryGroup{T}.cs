@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -69,13 +70,20 @@ namespace SixLabors.ImageSharp.Memory
         {
             Guard.NotNull(allocator, nameof(allocator));
             Guard.MustBeGreaterThanOrEqualTo(totalLength, 0, nameof(totalLength));
-            Guard.MustBeGreaterThan(bufferAlignment, 0, nameof(bufferAlignment));
+            Guard.MustBeGreaterThanOrEqualTo(bufferAlignment, 0, nameof(bufferAlignment));
 
             int blockCapacityInElements = allocator.GetBufferCapacityInBytes() / ElementSize;
+
             if (bufferAlignment > blockCapacityInElements)
             {
                 throw new InvalidMemoryOperationException(
                     $"The buffer capacity of the provided MemoryAllocator is insufficient for the requested buffer alignment: {bufferAlignment}.");
+            }
+
+            if (totalLength == 0)
+            {
+                var buffers0 = new IMemoryOwner<T>[1] { allocator.Allocate<T>(0, options) };
+                return new Owned(buffers0, 0, 0, true);
             }
 
             int numberOfAlignedSegments = blockCapacityInElements / bufferAlignment;

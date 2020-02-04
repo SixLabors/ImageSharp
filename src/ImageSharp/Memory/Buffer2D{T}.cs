@@ -17,6 +17,8 @@ namespace SixLabors.ImageSharp.Memory
     public sealed class Buffer2D<T> : IDisposable
         where T : struct
     {
+        private Memory<T> cachedMemory = default;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Buffer2D{T}"/> class.
         /// </summary>
@@ -28,6 +30,11 @@ namespace SixLabors.ImageSharp.Memory
             this.MemoryGroup = memoryGroup;
             this.Width = width;
             this.Height = height;
+
+            if (memoryGroup.Count == 1)
+            {
+                this.cachedMemory = memoryGroup[0];
+            }
         }
 
         /// <summary>
@@ -64,11 +71,38 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
+        /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
+        /// </summary>
+        /// <param name="y">The y (row) coordinate.</param>
+        /// <returns>The <see cref="Span{T}"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Span<T> GetRowSpan(int y)
+        {
+            return this.cachedMemory.Length > 0
+                ? this.cachedMemory.Span.Slice(y * this.Width, this.Width)
+                : this.GetRowMemorySlow(y).Span;
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Memory{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
+        /// </summary>
+        /// <param name="y">The y (row) coordinate.</param>
+        /// <returns>The <see cref="Span{T}"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Memory<T> GetRowMemory(int y)
+        {
+            return this.cachedMemory.Length > 0
+                ? this.cachedMemory.Slice(y * this.Width, this.Width)
+                : this.GetRowMemorySlow(y);
+        }
+
+        /// <summary>
         /// Disposes the <see cref="Buffer2D{T}"/> instance
         /// </summary>
         public void Dispose()
         {
             this.MemoryGroup.Dispose();
+            this.cachedMemory = default;
         }
 
         /// <summary>
@@ -78,10 +112,13 @@ namespace SixLabors.ImageSharp.Memory
         internal static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
         {
             MemoryGroup<T>.SwapOrCopyContent(destination.MemoryGroup, source.MemoryGroup);
-            SwapDimensionData(destination, source);
+            SwapOwnData(destination, source);
         }
 
-        private static void SwapDimensionData(Buffer2D<T> a, Buffer2D<T> b)
+        [MethodImpl(InliningOptions.ColdPath)]
+        private Memory<T> GetRowMemorySlow(int y) => this.MemoryGroup.GetBoundedSlice(y * this.Width, this.Width);
+
+        private static void SwapOwnData(Buffer2D<T> a, Buffer2D<T> b)
         {
             Size aSize = a.Size();
             Size bSize = b.Size();
@@ -91,6 +128,10 @@ namespace SixLabors.ImageSharp.Memory
 
             a.Width = bSize.Width;
             a.Height = bSize.Height;
+
+            Memory<T> aCached = a.cachedMemory;
+            a.cachedMemory = b.cachedMemory;
+            b.cachedMemory = aCached;
         }
     }
 }

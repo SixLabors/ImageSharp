@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             Rgba32 color = default;
             Buffer2D<TPixel> pixels = image.PixelBuffer;
-            Span<TPixel> pixelSpan = pixels.GetSpan();
+            Span<TPixel> pixelSpan = pixels.GetSingleSpan();
             int totalPixels = image.Width * image.Height;
             int encodedPixels = 0;
             while (encodedPixels < totalPixels)

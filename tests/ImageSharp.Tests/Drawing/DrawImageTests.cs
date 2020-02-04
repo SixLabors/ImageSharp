@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             using (Image<Rgba32> background = provider.GetImage())
             using (var overlay = new Image<Rgba32>(50, 50))
             {
-                overlay.GetPixelSpan().Fill(Rgba32.Black);
+                overlay.GetPixelSpan().Fill(Color.Black);
 
                 background.Mutate(c => c.DrawImage(overlay, new Point(x, y), PixelColorBlendingMode.Normal, 1F));
 
@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         public void NonOverlappingImageThrows(TestImageProvider<Rgba32> provider, int x, int y)
         {
             using (Image<Rgba32> background = provider.GetImage())
-            using (var overlay = new Image<Rgba32>(Configuration.Default, 10, 10, Rgba32.Black))
+            using (var overlay = new Image<Rgba32>(Configuration.Default, 10, 10, Color.Black))
             {
                 ImageProcessingException ex = Assert.Throws<ImageProcessingException>(Test);
 

@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
 
                 Rgba32[] expectedAllBlue =
-                    Enumerable.Repeat(Rgba32.Blue, this.Image.Width * this.Image.Height).ToArray();
+                    Enumerable.Repeat((Rgba32)Color.Blue, this.Image.Width * this.Image.Height).ToArray();
 
                 Assert.Equal(2, this.Collection.Count);
                 var actualFrame = (ImageFrame<Rgba32>)this.Collection[1];
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
 
                 Rgba32[] expectedAllBlue =
-                    Enumerable.Repeat(Rgba32.Blue, this.Image.Width * this.Image.Height).ToArray();
+                    Enumerable.Repeat((Rgba32)Color.Blue, this.Image.Width * this.Image.Height).ToArray();
 
                 Assert.Equal(2, this.Collection.Count);
                 var actualFrame = (ImageFrame<Rgba32>)this.Collection[0];
@@ -201,13 +201,13 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void CreateFrame_CustomFillColor()
             {
-                this.Image.Frames.CreateFrame(Rgba32.HotPink);
+                this.Image.Frames.CreateFrame(Color.HotPink);
 
                 Assert.Equal(2, this.Image.Frames.Count);
 
                 var frame = (ImageFrame<Rgba32>)this.Image.Frames[1];
 
-                frame.ComparePixelBufferTo(Rgba32.HotPink);
+                frame.ComparePixelBufferTo(Color.HotPink);
             }
 
             [Fact]

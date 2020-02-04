@@ -45,15 +45,15 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         public static TheoryData<Rgba32, Rgba32, float, PixelColorBlendingMode, Rgba32> ColorBlendingExpectedResults = new TheoryData<Rgba32, Rgba32, float, PixelColorBlendingMode, Rgba32>
         {
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Normal, Rgba32.MidnightBlue },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Screen, new Rgba32(0xFFEEE7FF) },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.HardLight, new Rgba32(0xFFC62D32) },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Overlay, new Rgba32(0xFFDDCEFF) },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Darken, new Rgba32(0xFF701919) },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Lighten, new Rgba32(0xFFE1E4FF) },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Add, new Rgba32(0xFFFFFDFF) },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Subtract, new Rgba32(0xFF71CBE6) },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelColorBlendingMode.Multiply, new Rgba32(0xFF631619) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelColorBlendingMode.Normal, Color.MidnightBlue },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelColorBlendingMode.Screen, new Rgba32(0xFFEEE7FF) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelColorBlendingMode.HardLight, new Rgba32(0xFFC62D32) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelColorBlendingMode.Overlay, new Rgba32(0xFFDDCEFF) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelColorBlendingMode.Darken, new Rgba32(0xFF701919) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelColorBlendingMode.Lighten, new Rgba32(0xFFE1E4FF) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelColorBlendingMode.Add, new Rgba32(0xFFFFFDFF) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelColorBlendingMode.Subtract, new Rgba32(0xFF71CBE6) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelColorBlendingMode.Multiply, new Rgba32(0xFF631619) },
         };
 
         [Theory]
@@ -69,18 +69,18 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
         public static TheoryData<Rgba32, Rgba32, float, PixelAlphaCompositionMode, Rgba32> AlphaCompositionExpectedResults = new TheoryData<Rgba32, Rgba32, float, PixelAlphaCompositionMode, Rgba32>
         {
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.Clear, new Rgba32(0) },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.Xor, new Rgba32(0) },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.Dest, Rgba32.MistyRose },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.DestAtop, Rgba32.MistyRose },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.DestIn, Rgba32.MistyRose },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.DestOut, new Rgba32(0) },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.DestOver, Rgba32.MistyRose },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.Src, Rgba32.MidnightBlue },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.SrcAtop, Rgba32.MidnightBlue },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.SrcIn, Rgba32.MidnightBlue },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.SrcOut, new Rgba32(0) },
-            { Rgba32.MistyRose, Rgba32.MidnightBlue, 1, PixelAlphaCompositionMode.SrcOver, Rgba32.MidnightBlue },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.Clear, new Rgba32(0) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.Xor, new Rgba32(0) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.Dest, Color.MistyRose },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.DestAtop, Color.MistyRose },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.DestIn, Color.MistyRose },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.DestOut, new Rgba32(0) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.DestOver, Color.MistyRose },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.Src, Color.MidnightBlue },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.SrcAtop, Color.MidnightBlue },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.SrcIn, Color.MidnightBlue },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.SrcOut, new Rgba32(0) },
+            { Color.MistyRose, Color.MidnightBlue, 1, PixelAlphaCompositionMode.SrcOver, Color.MidnightBlue },
         };
 
         [Theory]

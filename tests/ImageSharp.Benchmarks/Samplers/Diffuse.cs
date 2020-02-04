@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
         [Benchmark]
         public Size DoDiffuse()
         {
-            using (var image = new Image<Rgba32>(Configuration.Default, 800, 800, Rgba32.BlanchedAlmond))
+            using (var image = new Image<Rgba32>(Configuration.Default, 800, 800, Color.BlanchedAlmond))
             {
                 image.Mutate(x => x.Diffuse());
 

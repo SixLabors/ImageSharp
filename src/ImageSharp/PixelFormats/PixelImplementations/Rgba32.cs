@@ -267,7 +267,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool TryParseHex(string hex, out Rgba32 result)
         {
             result = default;
-            Guard.NotNullOrWhiteSpace(hex, nameof(hex));
+            if (string.IsNullOrWhiteSpace(hex))
+            {
+                return false;
+            }
 
             hex = ToRgbaHex(hex);
 

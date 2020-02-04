@@ -1,6 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+
 namespace SixLabors.ImageSharp
 {
     /// <content>
@@ -8,6 +11,8 @@ namespace SixLabors.ImageSharp
     /// </content>
     public readonly partial struct Color
     {
+        private static readonly Lazy<Dictionary<string, Color>> NamedColorsLookupLazy = new Lazy<Dictionary<string, Color>>(CreateNamedColorsLookup, true);
+
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #F0F8FF.
         /// </summary>
@@ -111,7 +116,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #00FFFF.
         /// </summary>
-        public static readonly Color Cyan = FromRgba(0, 255, 255, 255);
+        public static readonly Color Cyan = Aqua;
 
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #00008B.
@@ -137,6 +142,11 @@ namespace SixLabors.ImageSharp
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #006400.
         /// </summary>
         public static readonly Color DarkGreen = FromRgba(0, 100, 0, 255);
+
+        /// <summary>
+        /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #A9A9A9.
+        /// </summary>
+        public static readonly Color DarkGrey = DarkGray;
 
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #BDB76B.
@@ -189,6 +199,11 @@ namespace SixLabors.ImageSharp
         public static readonly Color DarkSlateGray = FromRgba(47, 79, 79, 255);
 
         /// <summary>
+        /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #2F4F4F.
+        /// </summary>
+        public static readonly Color DarkSlateGrey = DarkSlateGray;
+
+        /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #00CED1.
         /// </summary>
         public static readonly Color DarkTurquoise = FromRgba(0, 206, 209, 255);
@@ -212,6 +227,11 @@ namespace SixLabors.ImageSharp
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #696969.
         /// </summary>
         public static readonly Color DimGray = FromRgba(105, 105, 105, 255);
+
+        /// <summary>
+        /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #696969.
+        /// </summary>
+        public static readonly Color DimGrey = DimGray;
 
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #1E90FF.
@@ -272,6 +292,11 @@ namespace SixLabors.ImageSharp
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #ADFF2F.
         /// </summary>
         public static readonly Color GreenYellow = FromRgba(173, 255, 47, 255);
+
+        /// <summary>
+        /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #808080.
+        /// </summary>
+        public static readonly Color Grey = Gray;
 
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #F0FFF0.
@@ -354,6 +379,11 @@ namespace SixLabors.ImageSharp
         public static readonly Color LightGreen = FromRgba(144, 238, 144, 255);
 
         /// <summary>
+        /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #D3D3D3.
+        /// </summary>
+        public static readonly Color LightGrey = LightGray;
+
+        /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #FFB6C1.
         /// </summary>
         public static readonly Color LightPink = FromRgba(255, 182, 193, 255);
@@ -377,6 +407,11 @@ namespace SixLabors.ImageSharp
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #778899.
         /// </summary>
         public static readonly Color LightSlateGray = FromRgba(119, 136, 153, 255);
+
+        /// <summary>
+        /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #778899.
+        /// </summary>
+        public static readonly Color LightSlateGrey = LightSlateGray;
 
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #B0C4DE.
@@ -406,7 +441,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #FF00FF.
         /// </summary>
-        public static readonly Color Magenta = FromRgba(255, 0, 255, 255);
+        public static readonly Color Magenta = Fuchsia;
 
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #800000.
@@ -644,6 +679,11 @@ namespace SixLabors.ImageSharp
         public static readonly Color SlateGray = FromRgba(112, 128, 144, 255);
 
         /// <summary>
+        /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #708090.
+        /// </summary>
+        public static readonly Color SlateGrey = SlateGray;
+
+        /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #FFFAFA.
         /// </summary>
         public static readonly Color Snow = FromRgba(255, 250, 250, 255);
@@ -717,5 +757,161 @@ namespace SixLabors.ImageSharp
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #9ACD32.
         /// </summary>
         public static readonly Color YellowGreen = FromRgba(154, 205, 50, 255);
+
+        private static Dictionary<string, Color> CreateNamedColorsLookup()
+        {
+            return new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase)
+            {
+                { nameof(AliceBlue), AliceBlue },
+                { nameof(AntiqueWhite), AntiqueWhite },
+                { nameof(Aqua), Aqua },
+                { nameof(Aquamarine), Aquamarine },
+                { nameof(Azure), Azure },
+                { nameof(Beige), Beige },
+                { nameof(Bisque), Bisque },
+                { nameof(Black), Black },
+                { nameof(BlanchedAlmond), BlanchedAlmond },
+                { nameof(Blue), Blue },
+                { nameof(BlueViolet), BlueViolet },
+                { nameof(Brown), Brown },
+                { nameof(BurlyWood), BurlyWood },
+                { nameof(CadetBlue), CadetBlue },
+                { nameof(Chartreuse), Chartreuse },
+                { nameof(Chocolate), Chocolate },
+                { nameof(Coral), Coral },
+                { nameof(CornflowerBlue), CornflowerBlue },
+                { nameof(Cornsilk), Cornsilk },
+                { nameof(Crimson), Crimson },
+                { nameof(Cyan), Cyan },
+                { nameof(DarkBlue), DarkBlue },
+                { nameof(DarkCyan), DarkCyan },
+                { nameof(DarkGoldenrod), DarkGoldenrod },
+                { nameof(DarkGray), DarkGray },
+                { nameof(DarkGreen), DarkGreen },
+                { nameof(DarkGrey), DarkGrey },
+                { nameof(DarkKhaki), DarkKhaki },
+                { nameof(DarkMagenta), DarkMagenta },
+                { nameof(DarkOliveGreen), DarkOliveGreen },
+                { nameof(DarkOrange), DarkOrange },
+                { nameof(DarkOrchid), DarkOrchid },
+                { nameof(DarkRed), DarkRed },
+                { nameof(DarkSalmon), DarkSalmon },
+                { nameof(DarkSeaGreen), DarkSeaGreen },
+                { nameof(DarkSlateBlue), DarkSlateBlue },
+                { nameof(DarkSlateGray), DarkSlateGray },
+                { nameof(DarkSlateGrey), DarkSlateGrey },
+                { nameof(DarkTurquoise), DarkTurquoise },
+                { nameof(DarkViolet), DarkViolet },
+                { nameof(DeepPink), DeepPink },
+                { nameof(DeepSkyBlue), DeepSkyBlue },
+                { nameof(DimGray), DimGray },
+                { nameof(DimGrey), DimGrey },
+                { nameof(DodgerBlue), DodgerBlue },
+                { nameof(Firebrick), Firebrick },
+                { nameof(FloralWhite), FloralWhite },
+                { nameof(ForestGreen), ForestGreen },
+                { nameof(Fuchsia), Fuchsia },
+                { nameof(Gainsboro), Gainsboro },
+                { nameof(GhostWhite), GhostWhite },
+                { nameof(Gold), Gold },
+                { nameof(Goldenrod), Goldenrod },
+                { nameof(Gray), Gray },
+                { nameof(Green), Green },
+                { nameof(GreenYellow), GreenYellow },
+                { nameof(Grey), Grey },
+                { nameof(Honeydew), Honeydew },
+                { nameof(HotPink), HotPink },
+                { nameof(IndianRed), IndianRed },
+                { nameof(Indigo), Indigo },
+                { nameof(Ivory), Ivory },
+                { nameof(Khaki), Khaki },
+                { nameof(Lavender), Lavender },
+                { nameof(LavenderBlush), LavenderBlush },
+                { nameof(LawnGreen), LawnGreen },
+                { nameof(LemonChiffon), LemonChiffon },
+                { nameof(LightBlue), LightBlue },
+                { nameof(LightCoral), LightCoral },
+                { nameof(LightCyan), LightCyan },
+                { nameof(LightGoldenrodYellow), LightGoldenrodYellow },
+                { nameof(LightGray), LightGray },
+                { nameof(LightGreen), LightGreen },
+                { nameof(LightGrey), LightGrey },
+                { nameof(LightPink), LightPink },
+                { nameof(LightSalmon), LightSalmon },
+                { nameof(LightSeaGreen), LightSeaGreen },
+                { nameof(LightSkyBlue), LightSkyBlue },
+                { nameof(LightSlateGray), LightSlateGray },
+                { nameof(LightSlateGrey), LightSlateGrey },
+                { nameof(LightSteelBlue), LightSteelBlue },
+                { nameof(LightYellow), LightYellow },
+                { nameof(Lime), Lime },
+                { nameof(LimeGreen), LimeGreen },
+                { nameof(Linen), Linen },
+                { nameof(Magenta), Magenta },
+                { nameof(Maroon), Maroon },
+                { nameof(MediumAquamarine), MediumAquamarine },
+                { nameof(MediumBlue), MediumBlue },
+                { nameof(MediumOrchid), MediumOrchid },
+                { nameof(MediumPurple), MediumPurple },
+                { nameof(MediumSeaGreen), MediumSeaGreen },
+                { nameof(MediumSlateBlue), MediumSlateBlue },
+                { nameof(MediumSpringGreen), MediumSpringGreen },
+                { nameof(MediumTurquoise), MediumTurquoise },
+                { nameof(MediumVioletRed), MediumVioletRed },
+                { nameof(MidnightBlue), MidnightBlue },
+                { nameof(MintCream), MintCream },
+                { nameof(MistyRose), MistyRose },
+                { nameof(Moccasin), Moccasin },
+                { nameof(NavajoWhite), NavajoWhite },
+                { nameof(Navy), Navy },
+                { nameof(OldLace), OldLace },
+                { nameof(Olive), Olive },
+                { nameof(OliveDrab), OliveDrab },
+                { nameof(Orange), Orange },
+                { nameof(OrangeRed), OrangeRed },
+                { nameof(Orchid), Orchid },
+                { nameof(PaleGoldenrod), PaleGoldenrod },
+                { nameof(PaleGreen), PaleGreen },
+                { nameof(PaleTurquoise), PaleTurquoise },
+                { nameof(PaleVioletRed), PaleVioletRed },
+                { nameof(PapayaWhip), PapayaWhip },
+                { nameof(PeachPuff), PeachPuff },
+                { nameof(Peru), Peru },
+                { nameof(Pink), Pink },
+                { nameof(Plum), Plum },
+                { nameof(PowderBlue), PowderBlue },
+                { nameof(Purple), Purple },
+                { nameof(RebeccaPurple), RebeccaPurple },
+                { nameof(Red), Red },
+                { nameof(RosyBrown), RosyBrown },
+                { nameof(RoyalBlue), RoyalBlue },
+                { nameof(SaddleBrown), SaddleBrown },
+                { nameof(Salmon), Salmon },
+                { nameof(SandyBrown), SandyBrown },
+                { nameof(SeaGreen), SeaGreen },
+                { nameof(SeaShell), SeaShell },
+                { nameof(Sienna), Sienna },
+                { nameof(Silver), Silver },
+                { nameof(SkyBlue), SkyBlue },
+                { nameof(SlateBlue), SlateBlue },
+                { nameof(SlateGray), SlateGray },
+                { nameof(SlateGrey), SlateGrey },
+                { nameof(Snow), Snow },
+                { nameof(SpringGreen), SpringGreen },
+                { nameof(SteelBlue), SteelBlue },
+                { nameof(Tan), Tan },
+                { nameof(Teal), Teal },
+                { nameof(Thistle), Thistle },
+                { nameof(Tomato), Tomato },
+                { nameof(Transparent), Transparent },
+                { nameof(Turquoise), Turquoise },
+                { nameof(Violet), Violet },
+                { nameof(Wheat), Wheat },
+                { nameof(White), White },
+                { nameof(WhiteSmoke), WhiteSmoke },
+                { nameof(Yellow), Yellow },
+                { nameof(YellowGreen), YellowGreen }
+            };
+        }
     }
 }

@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         }
 
         [Theory]
-        [WithSolidFilledImages(nameof(TaperMatrixData), 30, 30, nameof(Rgba32.Red), PixelTypes.Rgba32)]
+        [WithSolidFilledImages(nameof(TaperMatrixData), 30, 30, nameof(Color.Red), PixelTypes.Rgba32)]
         public void Transform_WithTaperMatrix<TPixel>(TestImageProvider<TPixel> provider, TaperSide taperSide, TaperCorner taperCorner)
             where TPixel : struct, IPixel<TPixel>
         {

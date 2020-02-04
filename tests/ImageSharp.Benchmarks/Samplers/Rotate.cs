@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
         [Benchmark]
         public Size DoRotate()
         {
-            using (var image = new Image<Rgba32>(Configuration.Default, 400, 400, Rgba32.BlanchedAlmond))
+            using (var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.BlanchedAlmond))
             {
                 image.Mutate(x => x.Rotate(37.5F));
 

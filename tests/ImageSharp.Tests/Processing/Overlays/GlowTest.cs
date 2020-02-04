@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
         [Fact]
         public void Glow_Color_GlowProcessorWithDefaultValues()
         {
-            this.operations.Glow(Rgba32.Aquamarine);
+            this.operations.Glow(Color.Aquamarine);
             GlowProcessor p = this.Verify<GlowProcessor>();
 
             Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);

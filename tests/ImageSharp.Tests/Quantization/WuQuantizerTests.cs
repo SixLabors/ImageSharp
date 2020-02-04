@@ -17,13 +17,13 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             Configuration config = Configuration.Default;
             var quantizer = new WuQuantizer(false);
 
-            using (var image = new Image<Rgba32>(config, 1, 1, Rgba32.Black))
+            using (var image = new Image<Rgba32>(config, 1, 1, Color.Black))
             using (IQuantizedFrame<Rgba32> result = quantizer.CreateFrameQuantizer<Rgba32>(config).QuantizeFrame(image.Frames[0]))
             {
                 Assert.Equal(1, result.Palette.Length);
                 Assert.Equal(1, result.GetPixelSpan().Length);
 
-                Assert.Equal(Rgba32.Black, result.Palette.Span[0]);
+                Assert.Equal(Color.Black, (Color)result.Palette.Span[0]);
                 Assert.Equal(0, result.GetPixelSpan()[0]);
             }
         }

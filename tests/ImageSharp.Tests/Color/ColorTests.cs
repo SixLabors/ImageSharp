@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests
 
             for (int i = 0; i < ReferencePalette.WebSafeColors.Length; i++)
             {
-                Assert.Equal(ReferencePalette.WebSafeColors[i], actualPalette[i]);
+                Assert.Equal((Rgba32)ReferencePalette.WebSafeColors[i], actualPalette[i]);
             }
         }
 
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests
 
             for (int i = 0; i < ReferencePalette.WernerColors.Length; i++)
             {
-                Assert.Equal(ReferencePalette.WernerColors[i], actualPalette[i]);
+                Assert.Equal((Rgba32)ReferencePalette.WernerColors[i], actualPalette[i]);
             }
         }
 
@@ -119,9 +119,33 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public void ThrowsOnInvalid()
+            {
+                Assert.Throws<ArgumentException>(() => Color.ParseHex("!"));
+            }
+
+            [Fact]
             public void ThrowsOnNull()
             {
                 Assert.Throws<ArgumentNullException>(() => Color.ParseHex(null));
+            }
+
+            [Fact]
+            public void FalseOnEmpty()
+            {
+                Assert.False(Color.TryParseHex(string.Empty, out Color _));
+            }
+
+            [Fact]
+            public void FalseOnInvalid()
+            {
+                Assert.False(Color.TryParseHex("!", out Color _));
+            }
+
+            [Fact]
+            public void FalseOnNull()
+            {
+                Assert.False(Color.TryParseHex(null, out Color _));
             }
         }
 
@@ -155,6 +179,42 @@ namespace SixLabors.ImageSharp.Tests
                     Assert.True(Color.TryParse(expected.ToHex(), out actual));
                     Assert.Equal(expected, (Rgba32)actual);
                 }
+            }
+
+            [Fact]
+            public void ThrowsOnEmpty()
+            {
+                Assert.Throws<ArgumentException>(() => Color.Parse(string.Empty));
+            }
+
+            [Fact]
+            public void ThrowsOnInvalid()
+            {
+                Assert.Throws<ArgumentException>(() => Color.Parse("!"));
+            }
+
+            [Fact]
+            public void ThrowsOnNull()
+            {
+                Assert.Throws<ArgumentNullException>(() => Color.Parse(null));
+            }
+
+            [Fact]
+            public void FalseOnEmpty()
+            {
+                Assert.False(Color.TryParse(string.Empty, out Color _));
+            }
+
+            [Fact]
+            public void FalseOnInvalid()
+            {
+                Assert.False(Color.TryParse("!", out Color _));
+            }
+
+            [Fact]
+            public void FalseOnNull()
+            {
+                Assert.False(Color.TryParse(null, out Color _));
             }
         }
     }

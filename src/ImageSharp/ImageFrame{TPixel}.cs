@@ -284,15 +284,15 @@ namespace SixLabors.ImageSharp
         /// <param name="value">The value to initialize the bitmap with.</param>
         internal void Clear(TPixel value)
         {
-            Span<TPixel> span = this.GetPixelSpan();
+            MemoryGroup<TPixel> group = this.PixelBuffer.MemoryGroup;
 
             if (value.Equals(default))
             {
-                span.Clear();
+                group.Clear();
             }
             else
             {
-                span.Fill(value);
+                group.Fill(value);
             }
         }
     }

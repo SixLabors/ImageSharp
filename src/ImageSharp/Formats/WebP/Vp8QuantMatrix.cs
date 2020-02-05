@@ -5,11 +5,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
 {
     internal class Vp8QuantMatrix
     {
-        public int[] Y1Mat { get; set; }
+        public int[] Y1Mat { get; } = new int[2];
 
-        public int[] Y2Mat { get; set; }
+        public int[] Y2Mat { get; } = new int[2];
 
-        public int[] UvMat { get; set; }
+        public int[] UvMat { get; } = new int[2];
 
         /// <summary>
         /// Gets or sets the U/V quantizer value.

@@ -291,7 +291,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // remaining counts the available image data payload.
             uint remaining = dataSize;
 
-            // See paragraph 9.1 https://tools.ietf.org/html/rfc6386#page-30
+            // Paragraph 9.1 https://tools.ietf.org/html/rfc6386#page-30
             // Frame tag that contains four fields:
             // - A 1-bit frame type (0 for key frames, 1 for interframes).
             // - A 3-bit version number.
@@ -359,31 +359,21 @@ namespace SixLabors.ImageSharp.Formats.WebP
             var bitReader = new Vp8BitReader(
                 this.currentStream,
                 remaining,
-                this.memoryAllocator);
-
-            // Paragraph 9.2: color space and clamp type follow.
-            sbyte colorSpace = (sbyte)bitReader.ReadValue(1);
-            sbyte clampType = (sbyte)bitReader.ReadValue(1);
-            var vp8PictureHeader = new Vp8PictureHeader()
-                                   {
-                                       Width = (uint)width,
-                                       Height = (uint)height,
-                                       XScale = xScale,
-                                       YScale = yScale,
-                                       ColorSpace = colorSpace,
-                                       ClampType = clampType
-                                   };
+                this.memoryAllocator,
+                partitionLength);
+            bitReader.Remaining = remaining;
 
             return new WebPImageInfo()
                    {
                        Width = width,
                        Height = height,
+                       XScale = xScale,
+                       YScale = yScale,
                        BitsPerPixel = features?.Alpha is true ? WebPBitsPerPixel.Pixel32 : WebPBitsPerPixel.Pixel24,
                        IsLossLess = false,
                        Features = features,
                        Vp8Profile = (sbyte)version,
                        Vp8FrameHeader = vp8FrameHeader,
-                       Vp8PictureHeader = vp8PictureHeader,
                        Vp8BitReader = bitReader
                    };
         }

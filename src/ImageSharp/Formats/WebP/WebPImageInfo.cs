@@ -15,6 +15,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         public uint Height { get; set; }
 
+        public sbyte XScale { get; set; }
+
+        public sbyte YScale { get; set; }
+
         /// <summary>
         /// Gets or sets the bits per pixel.
         /// </summary>
@@ -39,11 +43,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Gets or sets the VP8 frame header.
         /// </summary>
         public Vp8FrameHeader Vp8FrameHeader { get; set; }
-
-        /// <summary>
-        /// Gets or sets the VP8 picture header.
-        /// </summary>
-        public Vp8PictureHeader Vp8PictureHeader { get; set; }
 
         /// <summary>
         /// Gets or sets the VP8L bitreader. Will be null, if its not lossless image.

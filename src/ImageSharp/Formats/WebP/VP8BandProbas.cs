@@ -11,6 +11,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Vp8BandProbas()
         {
             this.Probabilities = new Vp8ProbaArray[WebPConstants.NumCtx];
+            for (int i = 0; i < WebPConstants.NumCtx; i++)
+            {
+                this.Probabilities[i] = new Vp8ProbaArray();
+            }
         }
 
         public Vp8ProbaArray[] Probabilities { get; }

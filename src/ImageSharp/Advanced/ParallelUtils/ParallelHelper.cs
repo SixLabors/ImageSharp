@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
         /// <param name="configuration">The <see cref="Configuration"/> to get the parallel settings from.</param>
         /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
         public static void IterateRowsFast<T>(Rectangle rectangle, Configuration configuration, ref T body)
-            where T : struct, IRowAction
+            where T : struct, IRowIntervalAction
         {
             var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
 
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
             ref T body)
-            where T : struct, IRowAction
+            where T : struct, IRowIntervalAction
         {
             ValidateRectangle(rectangle);
 
@@ -74,28 +74,14 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
 
             int top = rectangle.Top;
             int bottom = rectangle.Bottom;
-
-            var rowAction = new WrappingRowAction<T>(ref body);
+            var rowInfo = new WrappingRowIntervalInfo(top, bottom, verticalStep);
+            var rowAction = new WrappingRowIntervalAction<T>(in rowInfo, ref body);
 
             Parallel.For(
                 0,
                 numOfSteps,
                 parallelOptions,
-                i =>
-                {
-                    int yMin = top + (i * verticalStep);
-
-                    if (yMin >= bottom)
-                    {
-                        return;
-                    }
-
-                    int yMax = Math.Min(yMin + verticalStep, bottom);
-
-                    var rows = new RowInterval(yMin, yMax);
-
-                    rowAction.Invoke(in rows);
-                });
+                i => rowAction.Invoke(i));
         }
 
         /// <summary>

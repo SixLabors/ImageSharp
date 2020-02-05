@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Advanced.ParallelUtils;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -50,18 +52,49 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(this.Configuration)
                 .MultiplyMinimumPixelsPerTask(4);
 
-            ParallelHelper.IterateRows(
+            // ParallelHelper.IterateRows(
+            //    bounds,
+            //    parallelSettings,
+            //    rows =>
+            //        {
+            //            for (int y = rows.Min; y < rows.Max; y++)
+            //            {
+            //                Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(bounds.Left);
+            //                Span<TPixel> targetRow = destination.GetPixelRowSpan(y - bounds.Top);
+            //                sourceRow.Slice(0, bounds.Width).CopyTo(targetRow);
+            //            }
+            //        });
+            var rowAction = new RowAction(ref bounds, source, destination);
+
+            ParallelHelper.IterateRowsFast(
                 bounds,
-                parallelSettings,
-                rows =>
-                    {
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(bounds.Left);
-                            Span<TPixel> targetRow = destination.GetPixelRowSpan(y - bounds.Top);
-                            sourceRow.Slice(0, bounds.Width).CopyTo(targetRow);
-                        }
-                    });
+                in parallelSettings,
+                ref rowAction);
+        }
+
+        private readonly struct RowAction : IRowAction
+        {
+            private readonly Rectangle bounds;
+            private readonly ImageFrame<TPixel> source;
+            private readonly ImageFrame<TPixel> destination;
+
+            public RowAction(ref Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+            {
+                this.bounds = bounds;
+                this.source = source;
+                this.destination = destination;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y).Slice(this.bounds.Left);
+                    Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y - this.bounds.Top);
+                    sourceRow.Slice(0, this.bounds.Width).CopyTo(targetRow);
+                }
+            }
         }
     }
 }

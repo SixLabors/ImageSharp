@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
         }
     }
 
-    internal readonly struct WrappingRowIntervalAction<T> : IRowIntervalAction
+    internal readonly struct WrappingRowIntervalAction<T>
         where T : struct, IRowIntervalAction
     {
         private readonly WrappingRowIntervalInfo info;
@@ -63,13 +63,9 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
             }
 
             int yMax = Math.Min(yMin + this.info.StepY, this.info.MaxY);
-
             var rows = new RowInterval(yMin, yMax);
 
-            this.Invoke(in rows);
+            this.action.Invoke(in rows);
         }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(in RowInterval rows) => this.action.Invoke(in rows);
     }
 }

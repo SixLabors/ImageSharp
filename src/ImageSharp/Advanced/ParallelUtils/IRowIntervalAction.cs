@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Advanced.ParallelUtils
 {
     /// <summary>
-    /// Defines the contract for.
+    /// Defines the contract for an action that operates on a row interval.
     /// </summary>
     public interface IRowIntervalAction
     {
@@ -21,15 +21,22 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
 
     internal readonly struct WrappingRowIntervalInfo
     {
-        public readonly int Min;
-        public readonly int Max;
-        public readonly int Step;
+        public readonly int MinY;
+        public readonly int MaxY;
+        public readonly int StepY;
+        public readonly int MaxX;
 
-        public WrappingRowIntervalInfo(int min, int max, int step)
+        public WrappingRowIntervalInfo(int minY, int maxY, int stepY)
+            : this(minY, maxY, stepY, 0)
         {
-            this.Min = min;
-            this.Max = max;
-            this.Step = step;
+        }
+
+        public WrappingRowIntervalInfo(int minY, int maxY, int stepY, int maxX)
+        {
+            this.MinY = minY;
+            this.MaxY = maxY;
+            this.StepY = stepY;
+            this.MaxX = maxX;
         }
     }
 
@@ -39,7 +46,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
         private readonly WrappingRowIntervalInfo info;
         private readonly T action;
 
-        public WrappingRowIntervalAction(in WrappingRowIntervalInfo info, ref T action)
+        public WrappingRowIntervalAction(in WrappingRowIntervalInfo info, in T action)
         {
             this.info = info;
             this.action = action;
@@ -48,14 +55,14 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int i)
         {
-            int yMin = this.info.Min + (i * this.info.Step);
+            int yMin = this.info.MinY + (i * this.info.StepY);
 
-            if (yMin >= this.info.Max)
+            if (yMin >= this.info.MaxY)
             {
                 return;
             }
 
-            int yMax = Math.Min(yMin + this.info.Step, this.info.Max);
+            int yMax = Math.Min(yMin + this.info.StepY, this.info.MaxY);
 
             var rows = new RowInterval(yMin, yMax);
 

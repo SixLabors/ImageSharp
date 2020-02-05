@@ -15,30 +15,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     public class JpegEncoderTests
     {
         public static readonly TheoryData<string, int> QualityFiles =
-        new TheoryData<string, int>
-        {
-            { TestImages.Jpeg.Baseline.Calliphora, 80 },
-            { TestImages.Jpeg.Progressive.Fb, 75 }
-        };
+            new TheoryData<string, int>
+            {
+                { TestImages.Jpeg.Baseline.Calliphora, 80 },
+                { TestImages.Jpeg.Progressive.Fb, 75 }
+            };
 
         public static readonly TheoryData<JpegSubsample, int> BitsPerPixel_Quality =
-        new TheoryData<JpegSubsample, int>
-        {
-            { JpegSubsample.Ratio420, 40 },
-            { JpegSubsample.Ratio420, 60 },
-            { JpegSubsample.Ratio420, 100 },
-            { JpegSubsample.Ratio444, 40 },
-            { JpegSubsample.Ratio444, 60 },
-            { JpegSubsample.Ratio444, 100 },
-        };
+            new TheoryData<JpegSubsample, int>
+            {
+                { JpegSubsample.Ratio420, 40 },
+                { JpegSubsample.Ratio420, 60 },
+                { JpegSubsample.Ratio420, 100 },
+                { JpegSubsample.Ratio444, 40 },
+                { JpegSubsample.Ratio444, 60 },
+                { JpegSubsample.Ratio444, 100 },
+            };
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-        new TheoryData<string, int, int, PixelResolutionUnit>
-        {
-            { TestImages.Jpeg.Baseline.Ratio1x1, 1, 1, PixelResolutionUnit.AspectRatio },
-            { TestImages.Jpeg.Baseline.Snake, 300, 300, PixelResolutionUnit.PixelsPerInch },
-            { TestImages.Jpeg.Baseline.GammaDalaiLamaGray, 72, 72, PixelResolutionUnit.PixelsPerInch }
-        };
+            new TheoryData<string, int, int, PixelResolutionUnit>
+            {
+                { TestImages.Jpeg.Baseline.Ratio1x1, 1, 1, PixelResolutionUnit.AspectRatio },
+                { TestImages.Jpeg.Baseline.Snake, 300, 300, PixelResolutionUnit.PixelsPerInch },
+                { TestImages.Jpeg.Baseline.GammaDalaiLamaGray, 72, 72, PixelResolutionUnit.PixelsPerInch }
+            };
 
         [Theory]
         [MemberData(nameof(QualityFiles))]
@@ -71,6 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 51, 7, PixelTypes.Rgba32)]
         [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 255, 100, 50, 255, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 7, 5, PixelTypes.Rgba32)]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 600, 400, PixelTypes.Rgba32)]
         public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
             where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 
@@ -78,6 +79,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
             where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
+
+        [Theory]
+        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 600, 400, PixelTypes.Rgba32)]
+        public void EncodeBaseline_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
+            where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality, true, ImageComparer.TolerantPercentage(0.1f));
 
         /// <summary>
         /// Anton's SUPER-SCIENTIFIC tolerance threshold calculation
@@ -105,25 +111,36 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private static void TestJpegEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             JpegSubsample subsample,
-            int quality = 100)
+            int quality = 100,
+            bool enforceDiscontiguousBuffers = false,
+            ImageComparer comparer = null)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
+            if (enforceDiscontiguousBuffers)
             {
-                // There is no alpha in Jpeg!
-                image.Mutate(c => c.MakeOpaque());
-
-                var encoder = new JpegEncoder
-                {
-                    Subsample = subsample,
-                    Quality = quality
-                };
-                string info = $"{subsample}-Q{quality}";
-                ImageComparer comparer = GetComparer(quality, subsample);
-
-                // Does DebugSave & load reference CompareToReferenceInput():
-                image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "png");
+                provider.LimitAllocatorBufferCapacity();
             }
+
+            using Image<TPixel> image = provider.GetImage();
+
+            // There is no alpha in Jpeg!
+            image.Mutate(c => c.MakeOpaque());
+
+            var encoder = new JpegEncoder
+            {
+                Subsample = subsample,
+                Quality = quality
+            };
+            string info = $"{subsample}-Q{quality}";
+            if (enforceDiscontiguousBuffers)
+            {
+                info += "-Disco";
+            }
+
+            comparer ??= GetComparer(quality, subsample);
+
+            // Does DebugSave & load reference CompareToReferenceInput():
+            image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "png");
         }
 
         [Fact]

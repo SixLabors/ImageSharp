@@ -28,17 +28,21 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         /// <summary>
         /// maxDegreeOfParallelism, minY, maxY, expectedStepLength, expectedLastStepLength
         /// </summary>
-        public static TheoryData<int, int, int, int, int> IterateRows_OverMinimumPixelsLimit_Data =
-            new TheoryData<int, int, int, int, int>
+        public static TheoryData<int, int, int, int, int, int> IterateRows_OverMinimumPixelsLimit_Data =
+            new TheoryData<int, int, int, int, int, int>
                 {
-                    { 1, 0, 100, -1, 100 },
-                    { 2, 0, 9, 5, 4 },
-                    { 4, 0, 19, 5, 4 },
-                    { 2, 10, 19, 5, 4 },
-                    { 4, 0, 200, 50, 50 },
-                    { 4, 123, 323, 50, 50 },
-                    { 4, 0, 1201, 301, 298 },
-                    { 8, 10, 236, 29, 23 }
+                    { 1, 0, 100, -1, 100, 1 },
+                    { 2, 0, 9, 5, 4, 2 },
+                    { 4, 0, 19, 5, 4, 4 },
+                    { 2, 10, 19, 5, 4, 2 },
+                    { 4, 0, 200, 50, 50, 4 },
+                    { 4, 123, 323, 50, 50, 4 },
+                    { 4, 0, 1201, 301, 298, 4 },
+                    { 8, 10, 236, 29, 23, 8 },
+                    { 16, 0, 209, 14, 13, 15 },
+                    { 24, 0, 209, 9, 2, 24 },
+                    { 32, 0, 209, 7, 6, 30 },
+                    { 64, 0, 209, 4, 1, 53 },
                 };
 
         [Theory]
@@ -48,7 +52,8 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             int minY,
             int maxY,
             int expectedStepLength,
-            int expectedLastStepLength)
+            int expectedLastStepLength,
+            int expectedNumberOfSteps)
         {
             var parallelSettings = new ParallelExecutionSettings(
                 maxDegreeOfParallelism,
@@ -74,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                         Assert.Equal(expected, step);
                     });
 
-            Assert.Equal(maxDegreeOfParallelism, actualNumberOfSteps);
+            Assert.Equal(expectedNumberOfSteps, actualNumberOfSteps);
         }
 
         [Theory]
@@ -84,7 +89,8 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             int minY,
             int maxY,
             int expectedStepLength,
-            int expectedLastStepLength)
+            int expectedLastStepLength,
+            int expectedNumberOfSteps)
         {
             var parallelSettings = new ParallelExecutionSettings(
                 maxDegreeOfParallelism,
@@ -117,7 +123,8 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             int minY,
             int maxY,
             int expectedStepLength,
-            int expectedLastStepLength)
+            int expectedLastStepLength,
+            int expectedNumberOfSteps)
         {
             var parallelSettings = new ParallelExecutionSettings(
                 maxDegreeOfParallelism,
@@ -146,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                         Assert.Equal(expected, step);
                     });
 
-            Assert.Equal(maxDegreeOfParallelism, actualNumberOfSteps);
+            Assert.Equal(expectedNumberOfSteps, actualNumberOfSteps);
 
             int numberOfDifferentBuffers = bufferHashes.Distinct().Count();
             Assert.Equal(actualNumberOfSteps, numberOfDifferentBuffers);
@@ -159,7 +166,8 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             int minY,
             int maxY,
             int expectedStepLength,
-            int expectedLastStepLength)
+            int expectedLastStepLength,
+            int expectedNumberOfSteps)
         {
             var parallelSettings = new ParallelExecutionSettings(
                 maxDegreeOfParallelism,

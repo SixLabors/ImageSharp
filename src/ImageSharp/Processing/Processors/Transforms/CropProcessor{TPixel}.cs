@@ -54,10 +54,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             var rowAction = new RowAction(ref bounds, source, destination);
 
-            ParallelHelper.IterateRowsFast(
+            ParallelHelper.IterateRows(
                 bounds,
                 in parallelSettings,
-                ref rowAction);
+                in rowAction);
         }
 
         private readonly struct RowAction : IRowIntervalAction

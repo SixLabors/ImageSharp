@@ -28,7 +28,74 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
         {
             var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
 
-            IterateRows(rectangle, parallelSettings, body);
+            IterateRows(rectangle, in parallelSettings, body);
+        }
+
+        /// <summary>
+        /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
+        /// </summary>
+        /// <typeparam name="T">The type of row action to perform.</typeparam>
+        /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
+        /// <param name="configuration">The <see cref="Configuration"/> to get the parallel settings from.</param>
+        /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
+        public static void IterateRowsFast<T>(Rectangle rectangle, Configuration configuration, ref T body)
+            where T : struct, IRowAction
+        {
+            var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
+
+            IterateRowsFast(rectangle, in parallelSettings, ref body);
+        }
+
+        internal static void IterateRowsFast<T>(
+            Rectangle rectangle,
+            in ParallelExecutionSettings parallelSettings,
+            ref T body)
+            where T : struct, IRowAction
+        {
+            ValidateRectangle(rectangle);
+
+            int maxSteps = DivideCeil(
+                rectangle.Width * rectangle.Height,
+                parallelSettings.MinimumPixelsProcessedPerTask);
+
+            int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
+
+            // Avoid TPL overhead in this trivial case:
+            if (numOfSteps == 1)
+            {
+                var rows = new RowInterval(rectangle.Top, rectangle.Bottom);
+                body.Invoke(in rows);
+                return;
+            }
+
+            int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
+
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
+
+            int top = rectangle.Top;
+            int bottom = rectangle.Bottom;
+
+            var rowAction = new WrappingRowAction<T>(ref body);
+
+            Parallel.For(
+                0,
+                numOfSteps,
+                parallelOptions,
+                i =>
+                {
+                    int yMin = top + (i * verticalStep);
+
+                    if (yMin >= bottom)
+                    {
+                        return;
+                    }
+
+                    int yMax = Math.Min(yMin + verticalStep, bottom);
+
+                    var rows = new RowInterval(yMin, yMax);
+
+                    rowAction.Invoke(in rows);
+                });
         }
 
         /// <summary>
@@ -38,9 +105,9 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
         /// <param name="parallelSettings">The <see cref="ParallelExecutionSettings"/>.</param>
         /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
         public static void IterateRows(
-            Rectangle rectangle,
-            in ParallelExecutionSettings parallelSettings,
-            Action<RowInterval> body)
+        Rectangle rectangle,
+        in ParallelExecutionSettings parallelSettings,
+        Action<RowInterval> body)
         {
             ValidateRectangle(rectangle);
 
@@ -72,6 +139,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
                         int yMax = Math.Min(yMin + verticalStep, rectangle.Bottom);
 
                         var rows = new RowInterval(yMin, yMax);
+
                         body(rows);
                     });
         }

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
         void Invoke(in RowInterval rows, Memory<TBuffer> memory);
     }
 
-    internal readonly struct WrappingRowIntervalAction<T, TBuffer> : IRowIntervalAction<TBuffer>
+    internal readonly struct WrappingRowIntervalAction<T, TBuffer>
         where T : struct, IRowIntervalAction<TBuffer>
         where TBuffer : unmanaged
     {
@@ -52,16 +52,12 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
             }
 
             int yMax = Math.Min(yMin + this.info.StepY, this.info.MaxY);
-
             var rows = new RowInterval(yMin, yMax);
 
             using (IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.MaxX))
             {
-                this.Invoke(in rows, buffer.Memory);
+                this.action.Invoke(in rows, buffer.Memory);
             }
         }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(in RowInterval rows, Memory<TBuffer> memory) => this.action.Invoke(in rows, memory);
     }
 }

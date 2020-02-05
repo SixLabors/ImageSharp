@@ -121,6 +121,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public const int NumCtx = 3;
 
+        // this is the common stride for enc/dec
+        public const int Bps = 32;
+
         // intra prediction modes (TODO: maybe use an enum for this)
         public const int DcPred = 0;
         public const int TmPred = 1;

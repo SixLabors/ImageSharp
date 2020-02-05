@@ -15,10 +15,32 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.FilterHeader = filterHeader;
             this.SegmentHeader = segmentHeader;
             this.Probabilities = probabilities;
+            this.IntraL = new byte[4];
+            this.YuvBuffer = new byte[(WebPConstants.Bps * 17) + (WebPConstants.Bps * 9)];
+            this.MbWidth = (int)((this.PictureHeader.Width + 15) >> 4);
+            this.MbHeight = (int)((this.PictureHeader.Height + 15) >> 4);
+            this.MacroBlockInfo = new Vp8MacroBlock[this.MbWidth];
+            this.MacroBlockData = new Vp8MacroBlockData[this.MbWidth];
+            this.YuvTopSamples = new Vp8TopSamples[this.MbWidth];
+            for (int i = 0; i < this.MbWidth; i++)
+            {
+                this.MacroBlockInfo[i] = new Vp8MacroBlock();
+                this.MacroBlockData[i] = new Vp8MacroBlockData();
+                this.YuvTopSamples[i] = new Vp8TopSamples();
+            }
+
             this.DeQuantMatrices = new Vp8QuantMatrix[WebPConstants.NumMbSegments];
             this.FilterStrength = new Vp8FilterInfo[WebPConstants.NumMbSegments, 2];
-            this.IntraL = new byte[4];
+            for (int i = 0; i < WebPConstants.NumMbSegments; i++)
+            {
+                this.DeQuantMatrices[i] = new Vp8QuantMatrix();
+                for (int j = 0; j < 2; j++)
+                {
+                    this.FilterStrength[i, j] = new Vp8FilterInfo();
+                }
+            }
 
+            this.Vp8BitReaders = new Vp8BitReader[WebPConstants.MaxNumPartitions];
             this.Init(io);
         }
 
@@ -30,14 +52,20 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public Vp8SegmentHeader SegmentHeader { get; }
 
+        // number of partitions minus one.
+        public uint NumPartsMinusOne { get; }
+
+        // per-partition boolean decoders.
+        public Vp8BitReader[] Vp8BitReaders { get; }
+
         public bool Dither { get; set; }
 
         /// <summary>
         /// Gets or sets dequantization matrices (one set of DC/AC dequant factor per segment).
         /// </summary>
-        public Vp8QuantMatrix[] DeQuantMatrices { get; private set; }
+        public Vp8QuantMatrix[] DeQuantMatrices { get; }
 
-        public bool UseSkipProba { get; set; }
+        public bool UseSkipProbability { get; set; }
 
         public byte SkipProbability { get; set; }
 
@@ -52,12 +80,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets or sets the width in macroblock units.
         /// </summary>
-        public int MbWidth { get; set; }
+        public int MbWidth { get; }
 
         /// <summary>
         /// Gets or sets the height in macroblock units.
         /// </summary>
-        public int MbHeight { get; set; }
+        public int MbHeight { get; }
 
         /// <summary>
         /// Gets or sets the top-left x index of the macroblock that must be in-loop filtered.
@@ -72,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets or sets the last bottom-right x index of the macroblock that must be decoded.
         /// </summary>
-        public int BotomRightMbX { get; set; }
+        public int BottomRightMbX { get; set; }
 
         /// <summary>
         /// Gets or sets the last bottom-right y index of the macroblock that must be decoded.
@@ -90,20 +118,24 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public int MbY { get; set; }
 
         /// <summary>
-        /// Gets or sets the parsed reconstruction data.
+        /// Gets the parsed reconstruction data.
         /// </summary>
-        public Vp8MacroBlockData[] MacroBlockData { get; set; }
+        public Vp8MacroBlockData[] MacroBlockData { get; }
 
         /// <summary>
-        /// Gets or sets contextual macroblock infos.
+        /// Gets contextual macroblock infos.
         /// </summary>
-        public Vp8MacroBlock[] MacroBlockInfo { get; set; }
+        public Vp8MacroBlock[] MacroBlockInfo { get;  }
 
         public int MacroBlockIdx { get; set; }
 
         public LoopFilter Filter { get; set; }
 
         public Vp8FilterInfo[,] FilterStrength { get; }
+
+        public byte[] YuvBuffer { get; }
+
+        public Vp8TopSamples[] YuvTopSamples { get; }
 
         /// <summary>
         /// Gets or sets filter strength info.
@@ -112,8 +144,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public void Init(Vp8Io io)
         {
-            this.MbWidth = (int)((this.PictureHeader.Width + 15) >> 4);
-            this.MbHeight = (int)((this.PictureHeader.Height + 15) >> 4);
             int intraPredModeSize = 4 * this.MbWidth;
             this.IntraT = new byte[intraPredModeSize];
 
@@ -157,10 +187,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // We need some 'extra' pixels on the right/bottom.
             this.BottomRightMbY = (io.CropBottom + 15 + extraPixels) >> 4;
-            this.BotomRightMbX = (io.CropRight + 15 + extraPixels) >> 4;
-            if (this.BotomRightMbX > this.MbWidth)
+            this.BottomRightMbX = (io.CropRight + 15 + extraPixels) >> 4;
+            if (this.BottomRightMbX > this.MbWidth)
             {
-                this.BotomRightMbX = this.MbWidth;
+                this.BottomRightMbX = this.MbWidth;
             }
 
             if (this.BottomRightMbY > this.MbHeight)

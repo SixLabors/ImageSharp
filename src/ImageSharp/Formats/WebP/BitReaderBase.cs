@@ -15,9 +15,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
     internal abstract class BitReaderBase
     {
         /// <summary>
-        /// Gets raw encoded image data.
+        /// Gets or sets the raw encoded image data.
         /// </summary>
-        protected byte[] Data { get; private set; }
+        public byte[] Data { get; set; }
 
         /// <summary>
         /// Copies the raw encoded image data from the stream into a byte array.

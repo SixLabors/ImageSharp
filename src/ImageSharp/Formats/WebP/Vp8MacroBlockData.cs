@@ -11,12 +11,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Vp8MacroBlockData()
         {
             this.Modes = new byte[16];
+            this.Coeffs = new short[384];
         }
 
         /// <summary>
         /// Gets or sets the coefficient. 384 coeffs = (16+4+4) * 4*4.
         /// </summary>
-        public short Coeffs { get; set; }
+        public short[] Coeffs { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether its intra4x4.

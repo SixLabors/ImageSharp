@@ -32,9 +32,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private int bits;
 
         /// <summary>
-        /// The next byte to be read.
+        /// Max packed-read position on buffer.
         /// </summary>
-        private byte buf;
+        private uint bufferMax;
+
+        private uint bufferEnd;
 
         /// <summary>
         /// True if input is exhausted.
@@ -53,16 +55,32 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="imageDataSize">The raw image data size in bytes.</param>
         /// <param name="memoryAllocator">Used for allocating memory during reading data from the stream.</param>
         /// <param name="startPos">Start index in the data array. Defaults to 0.</param>
-        public Vp8BitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator, int startPos = 0)
+        public Vp8BitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator, uint partitionLength, int startPos = 0)
         {
+            this.ImageDataSize = imageDataSize;
+            this.PartitionLength = partitionLength;
             this.ReadImageDataFromStream(inputStream, (int)imageDataSize, memoryAllocator);
-            this.InitBitreader(startPos);
+            this.InitBitreader(partitionLength, startPos);
+        }
+
+        public Vp8BitReader(byte[] imageData, uint partitionLength, int startPos = 0)
+        {
+            this.Data = imageData;
+            this.ImageDataSize = (uint)imageData.Length;
+            this.PartitionLength = partitionLength;
+            this.InitBitreader(partitionLength, startPos);
         }
 
         public int Pos
         {
             get { return (int)this.pos; }
         }
+
+        public uint ImageDataSize { get; }
+
+        public uint PartitionLength { get; }
+
+        public uint Remaining { get; set; }
 
         public int GetBit(int prob)
         {
@@ -123,26 +141,26 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return this.ReadValue(1) != 0 ? -value : value;
         }
 
-        private void InitBitreader(int pos = 0)
+        private void InitBitreader(uint size, int pos = 0)
         {
             this.range = 255 - 1;
             this.value = 0;
-            this.bits = -8; // to load the very first 8bits.
+            this.bits = -8; // to load the very first 8 bits.
             this.eof = false;
-            this.pos = 0;
+            this.pos = pos;
+            this.bufferEnd = (uint)(pos + size);
+            this.bufferMax = (uint)(size > 8 ? pos + size - 8 + 1 : pos);
 
             this.LoadNewBytes();
         }
 
         private void LoadNewBytes()
         {
-            if (this.pos < this.Data.Length)
+            if (this.pos < this.bufferMax)
             {
-                ulong bits;
-                ulong inBits = BinaryPrimitives.ReadUInt64LittleEndian(this.Data.AsSpan().Slice((int)this.pos, 8));
+                ulong inBits = BinaryPrimitives.ReadUInt64LittleEndian(this.Data.AsSpan((int)this.pos, 8));
                 this.pos += BitsCount >> 3;
-                this.buf = this.Data[this.pos];
-                bits = this.ByteSwap64(inBits);
+                ulong bits = this.ByteSwap64(inBits);
                 bits >>= 64 - BitsCount;
                 this.value = bits | (this.value << BitsCount);
                 this.bits += BitsCount;
@@ -156,7 +174,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void LoadFinalBytes()
         {
             // Only read 8bits at a time.
-            if (this.pos < this.Data.Length)
+            if (this.pos < this.bufferEnd)
             {
                 this.bits += 8;
                 this.value = this.Data[this.pos++] | (this.value << 8);

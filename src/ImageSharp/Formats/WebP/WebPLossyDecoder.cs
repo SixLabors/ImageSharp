@@ -36,6 +36,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // TODO residue signal from DCT: 4x4 blocks of DCT transforms, 16Y, 4U, 4V
             Vp8Profile vp8Profile = this.DecodeProfile(info.Vp8Profile);
 
+            // Paragraph 9.2: color space and clamp type follow.
+            sbyte colorSpace = (sbyte)this.bitReader.ReadValue(1);
+            sbyte clampType = (sbyte)this.bitReader.ReadValue(1);
+            var vp8PictureHeader = new Vp8PictureHeader()
+                                   {
+                                       Width = (uint)width,
+                                       Height = (uint)height,
+                                       XScale = info.XScale,
+                                       YScale = info.YScale,
+                                       ColorSpace = colorSpace,
+                                       ClampType = clampType
+                                   };
+
             // Paragraph 9.3: Parse the segment header.
             var proba = new Vp8Proba();
             Vp8SegmentHeader vp8SegmentHeader = this.ParseSegmentHeader(proba);
@@ -43,23 +56,21 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Paragraph 9.4: Parse the filter specs.
             Vp8FilterHeader vp8FilterHeader = this.ParseFilterHeader();
 
-            // TODO: Review Paragraph 9.5: ParsePartitions.
-            int numPartsMinusOne = (1 << (int)this.bitReader.ReadValue(2)) - 1;
-            int lastPart = numPartsMinusOne;
-            // TODO: check if we have enough data available here, throw exception if not
-            int partStart = this.bitReader.Pos + (lastPart * 3);
+            var vp8Io = default(Vp8Io);
+            var decoder = new Vp8Decoder(info.Vp8FrameHeader, vp8PictureHeader, vp8FilterHeader, vp8SegmentHeader, proba, vp8Io);
+
+            // Paragraph 9.5: Parse partitions.
+            this.ParsePartitions(decoder);
 
             // Paragraph 9.6: Dequantization Indices.
-            this.ParseDequantizationIndices(vp8SegmentHeader);
+            this.ParseDequantizationIndices(decoder.SegmentHeader);
 
             // Ignore the value of update_proba
             this.bitReader.ReadBool();
 
             // Paragraph 13.4: Parse probabilities.
-            this.ParseProbabilities(proba);
+            this.ParseProbabilities(decoder, decoder.Probabilities);
 
-            var vp8Io = default(Vp8Io);
-            var decoder = new Vp8Decoder(info.Vp8FrameHeader, info.Vp8PictureHeader, vp8FilterHeader, vp8SegmentHeader, proba, vp8Io);
             this.ParseFrame(decoder, vp8Io);
         }
 
@@ -81,21 +92,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // Prepare for next scanline.
                 this.InitScanline(dec);
 
-                // TODO: Reconstruct, filter and emit the row.
+                // Reconstruct, filter and emit the row.
+                this.ProcessRow(dec);
             }
-        }
-
-        private void InitScanline(Vp8Decoder dec)
-        {
-            Vp8MacroBlock left = dec.MacroBlockInfo[dec.MacroBlockIdx - 1];
-            left.NoneZeroAcDcCoeffs = 0;
-            left.NoneZeroDcCoeffs = 0;
-            for (int i = 0; i < dec.IntraL.Length; i++)
-            {
-                dec.IntraL[i] = 0;
-            }
-
-            dec.MbX = 0;
         }
 
         private void ParseIntraMode(Vp8Decoder dec, int mbX)
@@ -117,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 block.Segment = 0;
             }
 
-            if (dec.UseSkipProba)
+            if (dec.UseSkipProbability)
             {
                 block.Skip = (byte)this.bitReader.GetBit(dec.SkipProbability);
             }
@@ -165,7 +164,144 @@ namespace SixLabors.ImageSharp.Formats.WebP
             block.UvMode = (byte)(this.bitReader.GetBit(142) is 0 ? 0 :
                            this.bitReader.GetBit(114) is 0 ? 2 :
                            this.bitReader.GetBit(183) > 0 ? 1 : 3);
+        }
 
+        private void InitScanline(Vp8Decoder dec)
+        {
+            Vp8MacroBlock left = dec.MacroBlockInfo[dec.MacroBlockIdx - 1];
+            left.NoneZeroAcDcCoeffs = 0;
+            left.NoneZeroDcCoeffs = 0;
+            for (int i = 0; i < dec.IntraL.Length; i++)
+            {
+                dec.IntraL[i] = 0;
+            }
+
+            dec.MbX = 0;
+        }
+
+        private void ProcessRow(Vp8Decoder dec)
+        {
+            bool filterRow = (dec.Filter != LoopFilter.None) &&
+                             (dec.MbY >= dec.TopLeftMbY) && (dec.MbY <= dec.BottomRightMbY);
+
+            this.ReconstructRow(dec, filterRow);
+        }
+
+        private void ReconstructRow(Vp8Decoder dec, bool filterRow)
+        {
+            int mby = dec.MbY;
+
+            int yOff = (WebPConstants.Bps * 1) + 8;
+            int uOff = yOff + (WebPConstants.Bps * 16) + WebPConstants.Bps;
+            int vOff = uOff + 16;
+
+            Span<byte> yDst = dec.YuvBuffer.AsSpan(yOff);
+            Span<byte> uDst = dec.YuvBuffer.AsSpan(uOff);
+            Span<byte> vDst = dec.YuvBuffer.AsSpan(vOff);
+
+            // Initialize left-most block.
+            for (int i = 0; i < 16; ++i)
+            {
+                yDst[(i * WebPConstants.Bps) - 1] = 129;
+            }
+
+            for (int i = 0; i < 8; ++i)
+            {
+                uDst[(i * WebPConstants.Bps) - 1] = 129;
+                vDst[(i * WebPConstants.Bps) - 1] = 129;
+            }
+
+            // Init top-left sample on left column too.
+            if (mby > 0)
+            {
+                yDst[-1 - WebPConstants.Bps] = uDst[-1 - WebPConstants.Bps] = vDst[-1 - WebPConstants.Bps] = 129;
+            }
+            else
+            {
+                // We only need to do this init once at block (0,0).
+                // Afterward, it remains valid for the whole topmost row.
+                Span<byte> tmp = dec.YuvBuffer.AsSpan(yOff - WebPConstants.Bps - 1, 16 + 4 + 1);
+                for (int i = 0; i < tmp.Length; ++i)
+                {
+                    tmp[i] = 127;
+                }
+
+                tmp = dec.YuvBuffer.AsSpan(uOff - WebPConstants.Bps - 1, 8 + 1);
+                for (int i = 0; i < tmp.Length; ++i)
+                {
+                    tmp[i] = 127;
+                }
+
+                tmp = dec.YuvBuffer.AsSpan(vOff - WebPConstants.Bps - 1, 8 + 1);
+                for (int i = 0; i < tmp.Length; ++i)
+                {
+                    tmp[i] = 127;
+                }
+            }
+
+            // Reconstruct one row.
+            for (int mbx = 0; mbx < dec.MbWidth; ++mbx)
+            {
+                Vp8MacroBlockData block = dec.MacroBlockData[mbx];
+
+                // Rotate in the left samples from previously decoded block. We move four
+                // pixels at a time for alignment reason, and because of in-loop filter.
+                if (mbx > 0)
+                {
+                    for (int i = -1; i < 16; ++i)
+                    {
+                        // Copy32b(&y_dst[j * BPS - 4], &y_dst[j * BPS + 12]);
+                    }
+
+                    for (int i = -1; i < 8; ++i)
+                    {
+                        // Copy32b(&u_dst[j * BPS - 4], &u_dst[j * BPS + 4]);
+                        // Copy32b(&v_dst[j * BPS - 4], &v_dst[j * BPS + 4]);
+                    }
+
+                    // Bring top samples into the cache.
+                    Vp8TopSamples topSamples = dec.YuvTopSamples[mbx];
+                    short[] coeffs = block.Coeffs;
+                    uint bits = block.NonZeroY;
+                    if (mby > 0)
+                    {
+                        //memcpy(y_dst - BPS, top_yuv[0].y, 16);
+                        //memcpy(u_dst - BPS, top_yuv[0].u, 8);
+                        //memcpy(v_dst - BPS, top_yuv[0].v, 8);
+                    }
+
+                    // Predict and add residuals.
+                    if (block.IsI4x4)
+                    {
+                        if (mby > 0)
+                        {
+                            if (mbx >= dec.MbWidth - 1)
+                            {
+                                // On rightmost border.
+                                //memset(top_right, top_yuv[0].y[15], sizeof(*top_right));
+                            }
+                            else
+                            {
+                                // memcpy(top_right, top_yuv[1].y, sizeof(*top_right));
+                            }
+                        }
+
+                        // Replicate the top-right pixels below.
+
+
+                        // Predict and add residuals for all 4x4 blocks in turn.
+                        for (int n = 0; n < 16; ++n, bits <<= 2)
+                        {
+
+                        }
+                    }
+                    else
+                    {
+                        // 16x16
+
+                    }
+                }
+            }
         }
 
         private Vp8Profile DecodeProfile(int version)
@@ -193,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Vp8MacroBlock left = dec.MacroBlockInfo[dec.MacroBlockIdx - 1]; // TODO: not sure if this - 1 is correct here
             Vp8MacroBlock macroBlock = dec.MacroBlockInfo[dec.MacroBlockIdx + dec.MbX];
             Vp8MacroBlockData blockData = dec.MacroBlockData[dec.MacroBlockIdx + dec.MbX];
-            int skip = dec.UseSkipProba ? blockData.Skip : 0;
+            int skip = dec.UseSkipProbability ? blockData.Skip : 0;
 
             if (skip is 0)
             {
@@ -555,6 +691,34 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return vp8FilterHeader;
         }
 
+        private void ParsePartitions(Vp8Decoder dec)
+        {
+            uint size = this.bitReader.Remaining - this.bitReader.PartitionLength;
+            int startIdx = (int)this.bitReader.PartitionLength;
+            Span<byte> sz = this.bitReader.Data.AsSpan(startIdx);
+            int sizeLeft = (int)size;
+            int numPartsMinusOne = (1 << (int)this.bitReader.ReadValue(2)) - 1;
+            int lastPart = numPartsMinusOne;
+
+            int partStart = startIdx + (lastPart * 3);
+            sizeLeft -= lastPart * 3;
+            for (int p = 0; p < lastPart; ++p)
+            {
+                int pSize = sz[0] | (sz[1] << 8) | (sz[2] << 16);
+                if (pSize > sizeLeft)
+                {
+                    pSize = sizeLeft;
+                }
+
+                dec.Vp8BitReaders[p] = new Vp8BitReader(this.bitReader.Data, (uint)pSize, partStart);
+                partStart += pSize;
+                sizeLeft -= pSize;
+                sz = sz.Slice(3);
+            }
+
+            dec.Vp8BitReaders[lastPart] = new Vp8BitReader(this.bitReader.Data, (uint)sizeLeft, partStart);
+        }
+
         private void ParseDequantizationIndices(Vp8SegmentHeader vp8SegmentHeader)
         {
             int baseQ0 = (int)this.bitReader.ReadValue(7);
@@ -613,7 +777,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private void ParseProbabilities(Vp8Proba proba)
+        private void ParseProbabilities(Vp8Decoder dec, Vp8Proba proba)
         {
             for (int t = 0; t < WebPConstants.NumTypes; ++t)
             {
@@ -623,8 +787,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     {
                         for (int p = 0; p < WebPConstants.NumProbas; ++p)
                         {
-                            var prob = WebPConstants.CoeffsUpdateProba[t, b, c, p];
-                            int v = this.bitReader.GetBit(prob) == 0
+                            byte prob = WebPConstants.CoeffsUpdateProba[t, b, c, p];
+                            int v = this.bitReader.GetBit(prob) > 0
                                         ? (int)this.bitReader.ReadValue(8)
                                         : WebPConstants.DefaultCoeffsProba[t, b, c, p];
                             proba.Bands[t, b].Probabilities[c].Probabilities[p] = (byte)v;
@@ -638,11 +802,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
-            // TODO: those values needs to be stored somewhere
-            bool useSkipProba = this.bitReader.ReadBool();
-            if (useSkipProba)
+            dec.UseSkipProbability = this.bitReader.ReadBool();
+            if (dec.UseSkipProbability)
             {
-                uint skipP = this.bitReader.ReadValue(8);
+                dec.SkipProbability = (byte)this.bitReader.ReadValue(8);
             }
         }
 

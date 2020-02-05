@@ -52,18 +52,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(this.Configuration)
                 .MultiplyMinimumPixelsPerTask(4);
 
-            // ParallelHelper.IterateRows(
-            //    bounds,
-            //    parallelSettings,
-            //    rows =>
-            //        {
-            //            for (int y = rows.Min; y < rows.Max; y++)
-            //            {
-            //                Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(bounds.Left);
-            //                Span<TPixel> targetRow = destination.GetPixelRowSpan(y - bounds.Top);
-            //                sourceRow.Slice(0, bounds.Width).CopyTo(targetRow);
-            //            }
-            //        });
             var rowAction = new RowAction(ref bounds, source, destination);
 
             ParallelHelper.IterateRowsFast(
@@ -72,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 ref rowAction);
         }
 
-        private readonly struct RowAction : IRowAction
+        private readonly struct RowAction : IRowIntervalAction
         {
             private readonly Rectangle bounds;
             private readonly ImageFrame<TPixel> source;

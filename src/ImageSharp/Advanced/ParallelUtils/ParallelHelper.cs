@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
                 0,
                 numOfSteps,
                 parallelOptions,
-                i => rowAction.Invoke(i));
+                rowAction.Invoke);
         }
 
         /// <summary>
@@ -136,8 +136,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
                 0,
                 numOfSteps,
                 parallelOptions,
-                i =>
-                rowAction.Invoke(i));
+                rowAction.Invoke);
         }
 
         /// <summary>

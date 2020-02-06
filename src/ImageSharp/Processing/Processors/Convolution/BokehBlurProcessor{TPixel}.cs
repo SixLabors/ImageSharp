@@ -434,7 +434,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         /// <summary>
-        /// A <see langword="struct"/> implementing the convolution logic for <see cref="BokehBlurProcessor{T}"/>.
+        /// A <see langword="struct"/> implementing the gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
         private readonly struct ApplyGammaExposureRowIntervalAction : IRowIntervalAction<Vector4>
         {
@@ -490,7 +490,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         /// <summary>
-        /// A <see langword="struct"/> implementing the convolution logic for <see cref="BokehBlurProcessor{T}"/>.
+        /// A <see langword="struct"/> implementing the inverse gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
         private readonly struct ApplyInverseGammaExposureRowIntervalAction : IRowIntervalAction
         {

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Advanced.ParallelUtils
+namespace SixLabors.ImageSharp.Advanced
 {
     /// <summary>
     /// Utility methods for batched processing of pixel row intervals.
@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
     /// <see cref="ParallelExecutionSettings"/> or <see cref="Configuration"/>.
     /// Using this class is preferred over direct usage of <see cref="Parallel"/> utility methods.
     /// </summary>
-    public static class ParallelHelper
+    public static class ParallelRowIterator
     {
         /// <summary>
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.

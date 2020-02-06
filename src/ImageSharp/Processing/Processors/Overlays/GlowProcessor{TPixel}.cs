@@ -4,9 +4,7 @@
 using System;
 using System.Buffers;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -83,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             {
                 rowColors.GetSpan().Fill(glowColor);
 
-                ParallelHelper.IterateRowsWithTempBuffer<float>(
+                ParallelRowIterator.IterateRowsWithTempBuffer<float>(
                     workingRect,
                     configuration,
                     (rows, amounts) =>

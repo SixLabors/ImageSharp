@@ -7,8 +7,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Convolution.Parameters;
@@ -342,7 +341,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
             int width = workingRectangle.Width;
 
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 workingRectangle,
                 configuration,
                 rows =>
@@ -389,7 +388,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
             int width = workingRectangle.Width;
 
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 workingRectangle,
                 configuration,
                 rows =>
@@ -428,7 +427,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             int width = workingRectangle.Width;
             float exp = this.gamma;
 
-            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+            ParallelRowIterator.IterateRowsWithTempBuffer<Vector4>(
                 workingRectangle,
                 configuration,
                 (rows, vectorBuffer) =>
@@ -479,7 +478,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             int width = workingRectangle.Width;
             float expGamma = 1 / this.gamma;
 
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 workingRectangle,
                 configuration,
                 rows =>

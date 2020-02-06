@@ -4,9 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -262,7 +260,7 @@ namespace SixLabors.ImageSharp
 
             var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.Metadata.DeepClone());
 
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 this.Bounds(),
                 configuration,
                 rows =>

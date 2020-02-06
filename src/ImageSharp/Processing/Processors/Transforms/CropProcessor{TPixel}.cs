@@ -4,7 +4,6 @@
 using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -54,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             var rowAction = new RowAction(ref bounds, source, destination);
 
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 bounds,
                 in parallelSettings,
                 in rowAction);

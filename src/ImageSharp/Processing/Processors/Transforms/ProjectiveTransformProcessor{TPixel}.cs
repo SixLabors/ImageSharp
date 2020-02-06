@@ -3,9 +3,7 @@
 
 using System;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -59,7 +57,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             if (this.resampler is NearestNeighborResampler)
             {
-                ParallelHelper.IterateRows(
+                ParallelRowIterator.IterateRows(
                     targetBounds,
                     configuration,
                     rows =>
@@ -89,7 +87,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             try
             {
-                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+                ParallelRowIterator.IterateRowsWithTempBuffer<Vector4>(
                     targetBounds,
                     configuration,
                     (rows, vectorBuffer) =>

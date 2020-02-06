@@ -4,7 +4,6 @@
 using System;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -101,7 +100,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float widthFactor = sourceRectangle.Width / (float)this.targetRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)this.targetRectangle.Height;
 
-                ParallelHelper.IterateRows(
+                ParallelRowIterator.IterateRows(
                     targetWorkingRect,
                     configuration,
                     rows =>

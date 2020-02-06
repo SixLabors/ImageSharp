@@ -6,7 +6,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Advanced.ParallelUtils
+namespace SixLabors.ImageSharp.Advanced
 {
     /// <summary>
     /// Defines the contract for an action that operates on a row interval with a temporary buffer.
@@ -31,6 +31,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
         private readonly MemoryAllocator allocator;
         private readonly T action;
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public WrappingRowIntervalAction(
             in WrappingRowIntervalInfo info,
             MemoryAllocator allocator,
@@ -54,10 +55,8 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
             int yMax = Math.Min(yMin + this.info.StepY, this.info.MaxY);
             var rows = new RowInterval(yMin, yMax);
 
-            using (IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.MaxX))
-            {
-                this.action.Invoke(in rows, buffer.Memory);
-            }
+            using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.MaxX);
+            this.action.Invoke(in rows, buffer.Memory);
         }
     }
 }

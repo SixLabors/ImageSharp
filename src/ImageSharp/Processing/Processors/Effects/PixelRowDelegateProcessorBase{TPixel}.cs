@@ -3,7 +3,9 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
@@ -35,28 +37,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-            int startX = interest.X;
-            Configuration configuration = this.Configuration;
-            PixelConversionModifiers modifiers = this.modifiers;
 
-            ParallelRowIterator.IterateRows<Vector4>(
+            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
                 interest,
                 this.Configuration,
-                (rows, vectorBuffer) =>
-                {
-                    for (int y = rows.Min; y < rows.Max; y++)
-                    {
-                        Span<Vector4> vectorSpan = vectorBuffer.Span;
-                        int length = vectorSpan.Length;
-                        Span<TPixel> rowSpan = source.GetPixelRowSpan(y).Slice(startX, length);
-                        PixelOperations<TPixel>.Instance.ToVector4(configuration, rowSpan, vectorSpan, modifiers);
-
-                        // Run the user defined pixel shader to the current row of pixels
-                        this.ApplyPixelRowDelegate(vectorSpan, new Point(startX, y));
-
-                        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, rowSpan, modifiers);
-                    }
-                });
+                new RowIntervalAction(interest.X, source, this.Configuration, this.modifiers, this));
         }
 
         /// <summary>
@@ -65,5 +50,50 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// <param name="span">The target row of <see cref="Vector4"/> pixels to process.</param>
         /// <param name="offset">The initial horizontal and vertical offset for the input pixels to process.</param>
         protected abstract void ApplyPixelRowDelegate(Span<Vector4> span, Point offset);
+
+        /// <summary>
+        /// A <see langword="struct"/> implementing the convolution logic for <see cref="PixelRowDelegateProcessorBase{T}"/>.
+        /// </summary>
+        private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
+        {
+            private readonly int startX;
+            private readonly ImageFrame<TPixel> source;
+            private readonly Configuration configuration;
+            private readonly PixelConversionModifiers modifiers;
+            private readonly PixelRowDelegateProcessorBase<TPixel> processor;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalAction(
+                int startX,
+                ImageFrame<TPixel> source,
+                Configuration configuration,
+                PixelConversionModifiers modifiers,
+                PixelRowDelegateProcessorBase<TPixel> processor)
+            {
+                this.startX = startX;
+                this.source = source;
+                this.configuration = configuration;
+                this.modifiers = modifiers;
+                this.processor = processor;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+            {
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<Vector4> vectorSpan = memory.Span;
+                    int length = vectorSpan.Length;
+                    Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, length);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, vectorSpan, this.modifiers);
+
+                    // Run the user defined pixel shader to the current row of pixels
+                    this.processor.ApplyPixelRowDelegate(vectorSpan, new Point(this.startX, y));
+
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorSpan, rowSpan, this.modifiers);
+                }
+            }
+        }
     }
 }

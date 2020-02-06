@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Advanced.ParallelUtils
+namespace SixLabors.ImageSharp.Advanced
 {
     /// <summary>
     /// Defines the contract for an action that operates on a row interval.
@@ -46,6 +46,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
         private readonly WrappingRowIntervalInfo info;
         private readonly T action;
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public WrappingRowIntervalAction(in WrappingRowIntervalInfo info, in T action)
         {
             this.info = info;

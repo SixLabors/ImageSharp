@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
@@ -40,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             Configuration configuration = this.Configuration;
             PixelConversionModifiers modifiers = this.modifiers;
 
-            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+            ParallelRowIterator.IterateRowsWithTempBuffer<Vector4>(
                 interest,
                 this.Configuration,
                 (rows, vectorBuffer) =>

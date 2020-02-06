@@ -5,9 +5,7 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -63,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             source.CopyTo(targetPixels);
 
             var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 workingRect,
                 this.Configuration,
                 (rows) =>

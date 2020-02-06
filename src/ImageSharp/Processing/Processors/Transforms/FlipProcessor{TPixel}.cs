@@ -3,9 +3,7 @@
 
 using System;
 using System.Buffers;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -79,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void FlipY(ImageFrame<TPixel> source, Configuration configuration)
         {
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
                 rows =>

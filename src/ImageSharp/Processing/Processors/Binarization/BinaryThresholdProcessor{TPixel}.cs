@@ -2,9 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
@@ -51,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 
             var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
 
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 workingRect,
                 configuration,
                 rows =>

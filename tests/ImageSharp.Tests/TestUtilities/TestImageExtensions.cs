@@ -7,7 +7,6 @@ using System.IO;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -703,7 +702,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Rectangle sourceRectangle = this.SourceRectangle;
                 Configuration configuration = this.Configuration;
-                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+                ParallelRowIterator.IterateRowsWithTempBuffer<Vector4>(
                     sourceRectangle,
                     configuration,
                     (rows, temp) =>

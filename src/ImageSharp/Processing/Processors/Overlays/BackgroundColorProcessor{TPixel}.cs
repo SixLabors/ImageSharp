@@ -3,9 +3,7 @@
 
 using System;
 using System.Buffers;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -79,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
                 PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(graphicsOptions);
 
-                ParallelHelper.IterateRows(
+                ParallelRowIterator.IterateRows(
                     workingRect,
                     configuration,
                     rows =>

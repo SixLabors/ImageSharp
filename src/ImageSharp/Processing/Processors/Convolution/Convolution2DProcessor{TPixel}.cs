@@ -4,8 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -79,7 +78,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
                 int width = workingRectangle.Width;
 
-                ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
+                ParallelRowIterator.IterateRowsWithTempBuffer<Vector4>(
                     workingRectangle,
                     this.Configuration,
                     (rows, vectorBuffer) =>

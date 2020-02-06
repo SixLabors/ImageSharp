@@ -3,7 +3,9 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -48,7 +50,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             int width = this.targetSize.Width;
-            Rectangle sourceBounds = this.SourceRectangle;
             var targetBounds = new Rectangle(Point.Empty, this.targetSize);
             Configuration configuration = this.Configuration;
 
@@ -57,70 +58,124 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             if (this.resampler is NearestNeighborResampler)
             {
+                Rectangle sourceBounds = this.SourceRectangle;
+                var nearestRowAction = new NearestNeighborRowIntervalAction(ref sourceBounds, ref matrix, width, source, destination);
+
                 ParallelRowIterator.IterateRows(
                     targetBounds,
                     configuration,
-                    rows =>
-                        {
-                            for (int y = rows.Min; y < rows.Max; y++)
-                            {
-                                Span<TPixel> destRow = destination.GetPixelRowSpan(y);
-
-                                for (int x = 0; x < width; x++)
-                                {
-                                    var point = Point.Transform(new Point(x, y), matrix);
-                                    if (sourceBounds.Contains(point.X, point.Y))
-                                    {
-                                        destRow[x] = source[point.X, point.Y];
-                                    }
-                                }
-                            }
-                        });
+                    in nearestRowAction);
 
                 return;
             }
 
-            var kernel = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.resampler);
+            using var kernelMap = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.resampler);
+            var rowAction = new RowIntervalAction(configuration, kernelMap, ref matrix, width, source, destination);
 
-            try
+            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
+                targetBounds,
+                configuration,
+                in rowAction);
+        }
+
+        private readonly struct NearestNeighborRowIntervalAction : IRowIntervalAction
+        {
+            private readonly Rectangle bounds;
+            private readonly Matrix3x2 matrix;
+            private readonly int maxX;
+            private readonly ImageFrame<TPixel> source;
+            private readonly ImageFrame<TPixel> destination;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public NearestNeighborRowIntervalAction(
+                ref Rectangle bounds,
+                ref Matrix3x2 matrix,
+                int maxX,
+                ImageFrame<TPixel> source,
+                ImageFrame<TPixel> destination)
             {
-                ParallelRowIterator.IterateRowsWithTempBuffer<Vector4>(
-                    targetBounds,
-                    configuration,
-                    (rows, vectorBuffer) =>
-                        {
-                            Span<Vector4> vectorSpan = vectorBuffer.Span;
-                            for (int y = rows.Min; y < rows.Max; y++)
-                            {
-                                Span<TPixel> targetRowSpan = destination.GetPixelRowSpan(y);
-                                PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan, vectorSpan);
-                                ref float ySpanRef = ref kernel.GetYStartReference(y);
-                                ref float xSpanRef = ref kernel.GetXStartReference(y);
-
-                                for (int x = 0; x < width; x++)
-                                {
-                                    // Use the single precision position to calculate correct bounding pixels
-                                    // otherwise we get rogue pixels outside of the bounds.
-                                    var point = Vector2.Transform(new Vector2(x, y), matrix);
-                                    kernel.Convolve(
-                                        point,
-                                        x,
-                                        ref ySpanRef,
-                                        ref xSpanRef,
-                                        source.PixelBuffer,
-                                        vectorSpan);
-                                }
-
-                                PixelOperations<TPixel>.Instance.FromVector4Destructive(
-                                    configuration,
-                                    vectorSpan,
-                                    targetRowSpan);
-                            }
-                        });
+                this.bounds = bounds;
+                this.matrix = matrix;
+                this.maxX = maxX;
+                this.source = source;
+                this.destination = destination;
             }
-            finally
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
             {
-                kernel.Dispose();
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> destRow = this.destination.GetPixelRowSpan(y);
+
+                    for (int x = 0; x < this.maxX; x++)
+                    {
+                        var point = Point.Transform(new Point(x, y), this.matrix);
+                        if (this.bounds.Contains(point.X, point.Y))
+                        {
+                            destRow[x] = this.source[point.X, point.Y];
+                        }
+                    }
+                }
+            }
+        }
+
+        private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
+        {
+            private readonly Configuration configuration;
+            private readonly TransformKernelMap kernelMap;
+            private readonly Matrix3x2 matrix;
+            private readonly int maxX;
+            private readonly ImageFrame<TPixel> source;
+            private readonly ImageFrame<TPixel> destination;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalAction(
+                Configuration configuration,
+                TransformKernelMap kernelMap,
+                ref Matrix3x2 matrix,
+                int maxX,
+                ImageFrame<TPixel> source,
+                ImageFrame<TPixel> destination)
+            {
+                this.configuration = configuration;
+                this.kernelMap = kernelMap;
+                this.matrix = matrix;
+                this.maxX = maxX;
+                this.source = source;
+                this.destination = destination;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+            {
+                Span<Vector4> vectorSpan = memory.Span;
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> targetRowSpan = this.destination.GetPixelRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan, vectorSpan);
+                    ref float ySpanRef = ref this.kernelMap.GetYStartReference(y);
+                    ref float xSpanRef = ref this.kernelMap.GetXStartReference(y);
+
+                    for (int x = 0; x < this.maxX; x++)
+                    {
+                        // Use the single precision position to calculate correct bounding pixels
+                        // otherwise we get rogue pixels outside of the bounds.
+                        var point = Vector2.Transform(new Vector2(x, y), this.matrix);
+                        this.kernelMap.Convolve(
+                            point,
+                            x,
+                            ref ySpanRef,
+                            ref xSpanRef,
+                            this.source.PixelBuffer,
+                            vectorSpan);
+                    }
+
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(
+                        this.configuration,
+                        vectorSpan,
+                        targetRowSpan);
+                }
             }
         }
     }

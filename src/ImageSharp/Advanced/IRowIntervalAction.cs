@@ -40,6 +40,35 @@ namespace SixLabors.ImageSharp.Advanced
         }
     }
 
+    internal readonly struct WrappingRowIntervalAction
+    {
+        private readonly WrappingRowIntervalInfo info;
+        private readonly Action<RowInterval> action;
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public WrappingRowIntervalAction(in WrappingRowIntervalInfo info, Action<RowInterval> action)
+        {
+            this.info = info;
+            this.action = action;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void Invoke(int i)
+        {
+            int yMin = this.info.MinY + (i * this.info.StepY);
+
+            if (yMin >= this.info.MaxY)
+            {
+                return;
+            }
+
+            int yMax = Math.Min(yMin + this.info.StepY, this.info.MaxY);
+            var rows = new RowInterval(yMin, yMax);
+
+            this.action(rows);
+        }
+    }
+
     internal readonly struct WrappingRowIntervalAction<T>
         where T : struct, IRowIntervalAction
     {

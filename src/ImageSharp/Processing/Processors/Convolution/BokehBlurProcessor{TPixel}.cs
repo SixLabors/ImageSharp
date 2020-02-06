@@ -427,7 +427,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             int width = workingRectangle.Width;
             float exp = this.gamma;
 
-            ParallelRowIterator.IterateRowsWithTempBuffer<Vector4>(
+            ParallelRowIterator.IterateRows<Vector4>(
                 workingRectangle,
                 configuration,
                 (rows, vectorBuffer) =>

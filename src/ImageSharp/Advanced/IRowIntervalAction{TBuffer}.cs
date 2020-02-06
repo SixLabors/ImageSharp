@@ -23,7 +23,43 @@ namespace SixLabors.ImageSharp.Advanced
         void Invoke(in RowInterval rows, Memory<TBuffer> memory);
     }
 
-    internal readonly struct WrappingRowIntervalAction<T, TBuffer>
+    internal readonly struct WrappingRowIntervalBufferAction<TBuffer>
+        where TBuffer : unmanaged
+    {
+        private readonly WrappingRowIntervalInfo info;
+        private readonly MemoryAllocator allocator;
+        private readonly Action<RowInterval, Memory<TBuffer>> action;
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public WrappingRowIntervalBufferAction(
+            in WrappingRowIntervalInfo info,
+            MemoryAllocator allocator,
+            Action<RowInterval, Memory<TBuffer>> action)
+        {
+            this.info = info;
+            this.allocator = allocator;
+            this.action = action;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void Invoke(int i)
+        {
+            int yMin = this.info.MinY + (i * this.info.StepY);
+
+            if (yMin >= this.info.MaxY)
+            {
+                return;
+            }
+
+            int yMax = Math.Min(yMin + this.info.StepY, this.info.MaxY);
+            var rows = new RowInterval(yMin, yMax);
+
+            using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.MaxX);
+            this.action(rows, buffer.Memory);
+        }
+    }
+
+    internal readonly struct WrappingRowIntervalBufferAction<T, TBuffer>
         where T : struct, IRowIntervalAction<TBuffer>
         where TBuffer : unmanaged
     {
@@ -32,7 +68,7 @@ namespace SixLabors.ImageSharp.Advanced
         private readonly T action;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public WrappingRowIntervalAction(
+        public WrappingRowIntervalBufferAction(
             in WrappingRowIntervalInfo info,
             MemoryAllocator allocator,
             in T action)

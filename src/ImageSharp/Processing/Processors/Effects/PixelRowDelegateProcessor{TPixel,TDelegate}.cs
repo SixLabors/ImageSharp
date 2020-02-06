@@ -14,24 +14,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     /// The base class for all processors that accept a user defined row processing delegate.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class PixelRowDelegateProcessorBase<TPixel> : ImageProcessor<TPixel>
+    /// <typeparam name="TDelegate">The row processor type.</typeparam>
+    internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
+        where TDelegate : struct, IPixelRowDelegate
     {
+        private readonly TDelegate rowDelegate;
+
         /// <summary>
         /// The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.
         /// </summary>
         private readonly PixelConversionModifiers modifiers;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelRowDelegateProcessorBase{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="PixelRowDelegateProcessor{TPixel,TDelegate}"/> class.
         /// </summary>
+        /// <param name="rowDelegate">The row processor to use to process each pixel row</param>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        protected PixelRowDelegateProcessorBase(Configuration configuration, PixelConversionModifiers modifiers, Image<TPixel> source, Rectangle sourceRectangle)
+        public PixelRowDelegateProcessor(
+            in TDelegate rowDelegate,
+            Configuration configuration,
+            PixelConversionModifiers modifiers,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
-            => this.modifiers = modifiers;
+        {
+            this.rowDelegate = rowDelegate;
+            this.modifiers = modifiers;
+        }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
@@ -41,18 +54,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
                 interest,
                 this.Configuration,
-                new RowIntervalAction(interest.X, source, this.Configuration, this.modifiers, this));
+                new RowIntervalAction(interest.X, source, this.Configuration, this.modifiers, this.rowDelegate));
         }
 
         /// <summary>
-        /// Applies the current pixel row delegate to a target row of preprocessed pixels.
-        /// </summary>
-        /// <param name="span">The target row of <see cref="Vector4"/> pixels to process.</param>
-        /// <param name="offset">The initial horizontal and vertical offset for the input pixels to process.</param>
-        protected abstract void ApplyPixelRowDelegate(Span<Vector4> span, Point offset);
-
-        /// <summary>
-        /// A <see langword="struct"/> implementing the convolution logic for <see cref="PixelRowDelegateProcessorBase{T}"/>.
+        /// A <see langword="struct"/> implementing the convolution logic for <see cref="PixelRowDelegateProcessor{TPixel,TDelegate}"/>.
         /// </summary>
         private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
         {
@@ -60,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             private readonly ImageFrame<TPixel> source;
             private readonly Configuration configuration;
             private readonly PixelConversionModifiers modifiers;
-            private readonly PixelRowDelegateProcessorBase<TPixel> processor;
+            private readonly TDelegate rowProcessor;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalAction(
@@ -68,13 +74,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                 ImageFrame<TPixel> source,
                 Configuration configuration,
                 PixelConversionModifiers modifiers,
-                PixelRowDelegateProcessorBase<TPixel> processor)
+                in TDelegate rowProcessor)
             {
                 this.startX = startX;
                 this.source = source;
                 this.configuration = configuration;
                 this.modifiers = modifiers;
-                this.processor = processor;
+                this.rowProcessor = rowProcessor;
             }
 
             /// <inheritdoc/>
@@ -89,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                     PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, vectorSpan, this.modifiers);
 
                     // Run the user defined pixel shader to the current row of pixels
-                    this.processor.ApplyPixelRowDelegate(vectorSpan, new Point(this.startX, y));
+                    this.rowProcessor.Invoke(vectorSpan, new Point(this.startX, y));
 
                     PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorSpan, rowSpan, this.modifiers);
                 }

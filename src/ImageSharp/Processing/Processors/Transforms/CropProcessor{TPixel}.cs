@@ -48,10 +48,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle bounds = this.cropRectangle;
 
             // Copying is cheap, we should process more pixels per task:
-            ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(this.Configuration)
-                .MultiplyMinimumPixelsPerTask(4);
+            ParallelExecutionSettings parallelSettings =
+                ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
 
-            var rowAction = new RowAction(ref bounds, source, destination);
+            var rowAction = new RowIntervalAction(ref bounds, source, destination);
 
             ParallelRowIterator.IterateRows(
                 bounds,
@@ -59,13 +59,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 in rowAction);
         }
 
-        private readonly struct RowAction : IRowIntervalAction
+        private readonly struct RowIntervalAction : IRowIntervalAction
         {
             private readonly Rectangle bounds;
             private readonly ImageFrame<TPixel> source;
             private readonly ImageFrame<TPixel> destination;
 
-            public RowAction(ref Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalAction(ref Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
             {
                 this.bounds = bounds;
                 this.source = source;

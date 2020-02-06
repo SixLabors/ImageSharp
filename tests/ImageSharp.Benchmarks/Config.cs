@@ -3,10 +3,10 @@
 
 #if Windows_NT
 using System.Security.Principal;
+using BenchmarkDotNet.Diagnostics.Windows;
 #endif
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
-using BenchmarkDotNet.Diagnostics.Windows;
 using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Jobs;
 

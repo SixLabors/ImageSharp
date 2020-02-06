@@ -337,13 +337,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly Buffer2D<TPixel> sourcePixels;
             private readonly Complex64[] kernel;
 
-            /// <summary>
-            /// Initializes a new instance of the <see cref="ApplyVerticalConvolutionRowIntervalAction"/> struct.
-            /// </summary>
-            /// <param name="bounds">The target processing bounds for the current instance.</param>
-            /// <param name="targetValues">The target <see cref="ComplexVector4"/> values to use to store the results.</param>
-            /// <param name="sourcePixels">The source pixels. Cannot be null.</param>
-            /// <param name="kernel">The 1D kernel.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
             public ApplyVerticalConvolutionRowIntervalAction(
                 ref Rectangle bounds,
@@ -388,15 +381,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly float z;
             private readonly float w;
 
-            /// <summary>
-            /// Initializes a new instance of the <see cref="ApplyHorizontalConvolutionRowIntervalAction"/> struct.
-            /// </summary>
-            /// <param name="bounds">The target processing bounds for the current instance.</param>
-            /// <param name="targetValues">The target <see cref="Vector4"/> values to use to store the results.</param>
-            /// <param name="sourceValues">The source complex values. Cannot be null.</param>
-            /// <param name="kernel">The 1D kernel.</param>
-            /// <param name="z">The weight factor for the real component of the complex pixel values.</param>
-            /// <param name="w">The weight factor for the imaginary component of the complex pixel values.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
             public ApplyHorizontalConvolutionRowIntervalAction(
                 ref Rectangle bounds,
@@ -443,13 +427,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly Configuration configuration;
             private readonly float gamma;
 
-            /// <summary>
-            /// Initializes a new instance of the <see cref="ApplyGammaExposureRowIntervalAction"/> struct.
-            /// </summary>
-            /// <param name="bounds">The target processing bounds for the current instance.</param>
-            /// <param name="targetPixels">The target pixel buffer to adjust.</param>
-            /// <param name="configuration">The <see cref="Configuration"/></param>
-            /// <param name="gamma">The gamma parameter to use.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
             public ApplyGammaExposureRowIntervalAction(
                 Rectangle bounds,
@@ -500,14 +477,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly Configuration configuration;
             private readonly float inverseGamma;
 
-            /// <summary>
-            /// Initializes a new instance of the <see cref="ApplyInverseGammaExposureRowIntervalAction"/> struct.
-            /// </summary>
-            /// <param name="bounds">The target processing bounds for the current instance.</param>
-            /// <param name="targetPixels">The target pixels to apply the process to.</param>
-            /// <param name="sourceValues">The source <see cref="Vector4"/> values. Cannot be null.</param>
-            /// <param name="configuration">The <see cref="Configuration"/></param>
-            /// <param name="inverseGamma">The inverse gamma parameter to use.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
             public ApplyInverseGammaExposureRowIntervalAction(
                 Rectangle bounds,

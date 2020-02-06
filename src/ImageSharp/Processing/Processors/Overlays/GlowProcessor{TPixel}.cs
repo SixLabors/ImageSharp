@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             {
                 rowColors.GetSpan().Fill(glowColor);
 
-                ParallelRowIterator.IterateRowsWithTempBuffer<float>(
+                ParallelRowIterator.IterateRows<float>(
                     workingRect,
                     configuration,
                     (rows, amounts) =>

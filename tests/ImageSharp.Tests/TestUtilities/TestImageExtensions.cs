@@ -702,7 +702,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Rectangle sourceRectangle = this.SourceRectangle;
                 Configuration configuration = this.Configuration;
-                ParallelRowIterator.IterateRowsWithTempBuffer<Vector4>(
+                ParallelRowIterator.IterateRows<Vector4>(
                     sourceRectangle,
                     configuration,
                     (rows, temp) =>

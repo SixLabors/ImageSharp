@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             {
                 rowColors.GetSpan().Fill(vignetteColor);
 
-                ParallelRowIterator.IterateRowsWithTempBuffer<float>(
+                ParallelRowIterator.IterateRows<float>(
                     workingRect,
                     configuration,
                     (rows, amounts) =>

@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             Configuration configuration = this.Configuration;
             PixelConversionModifiers modifiers = this.modifiers;
 
-            ParallelRowIterator.IterateRowsWithTempBuffer<Vector4>(
+            ParallelRowIterator.IterateRows<Vector4>(
                 interest,
                 this.Configuration,
                 (rows, vectorBuffer) =>

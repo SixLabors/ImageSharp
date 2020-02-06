@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class CropProcessor<TPixel> : TransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Rectangle cropRectangle;
+        private readonly Rectangle cropRectangle;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CropProcessor{TPixel}"/> class.
@@ -59,12 +59,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 in rowAction);
         }
 
+        /// <summary>
+        /// A <see langword="struct"/> implementing the processor logic for <see cref="CropProcessor{T}"/>.
+        /// </summary>
         private readonly struct RowIntervalAction : IRowIntervalAction
         {
             private readonly Rectangle bounds;
             private readonly ImageFrame<TPixel> source;
             private readonly ImageFrame<TPixel> destination;
 
+            /// <summary>
+            /// Initializes a new instance of the <see cref="RowIntervalAction"/> struct.
+            /// </summary>
+            /// <param name="bounds">The target processing bounds for the current instance.</param>
+            /// <param name="source">The source <see cref="Image{TPixel}"/> for the current instance.</param>
+            /// <param name="destination">The destination <see cref="Image{TPixel}"/> for the current instance.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalAction(ref Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
             {
@@ -73,6 +82,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 this.destination = destination;
             }
 
+            /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)
             {

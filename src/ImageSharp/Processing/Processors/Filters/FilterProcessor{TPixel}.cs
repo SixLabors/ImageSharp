@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
 
             ColorMatrix matrix = this.definition.Matrix;
 
-            ParallelRowIterator.IterateRowsWithTempBuffer<Vector4>(
+            ParallelRowIterator.IterateRows<Vector4>(
                 interest,
                 this.Configuration,
                 (rows, vectorBuffer) =>

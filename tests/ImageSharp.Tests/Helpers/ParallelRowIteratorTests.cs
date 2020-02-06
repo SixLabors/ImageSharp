@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var bufferHashes = new ConcurrentBag<int>();
 
             int actualNumberOfSteps = 0;
-            ParallelRowIterator.IterateRowsWithTempBuffer(
+            ParallelRowIterator.IterateRows(
                 rectangle,
                 parallelSettings,
                 (RowInterval rows, Memory<Vector4> buffer) =>
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             int[] expectedData = Enumerable.Repeat(0, minY).Concat(Enumerable.Range(minY, maxY - minY)).ToArray();
             var actualData = new int[maxY];
 
-            ParallelRowIterator.IterateRowsWithTempBuffer(
+            ParallelRowIterator.IterateRows(
                 rectangle,
                 parallelSettings,
                 (RowInterval rows, Memory<Vector4> buffer) =>
@@ -262,7 +262,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var rectangle = new Rectangle(0, 0, width, height);
 
             int actualNumberOfSteps = 0;
-            ParallelRowIterator.IterateRowsWithTempBuffer(
+            ParallelRowIterator.IterateRows(
                 rectangle,
                 parallelSettings,
                 (RowInterval rows, Memory<Vector4> buffer) =>
@@ -371,7 +371,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var rect = new Rectangle(0, 0, width, height);
 
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
-                () => ParallelRowIterator.IterateRowsWithTempBuffer<Rgba32>(rect, parallelSettings, (rows, memory) => { }));
+                () => ParallelRowIterator.IterateRows<Rgba32>(rect, parallelSettings, (rows, memory) => { }));
 
             Assert.Contains(width <= 0 ? "Width" : "Height", ex.Message);
         }

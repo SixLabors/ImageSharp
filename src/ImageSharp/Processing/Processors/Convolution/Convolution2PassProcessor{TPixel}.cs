@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
             int width = workingRectangle.Width;
 
-            ParallelRowIterator.IterateRowsWithTempBuffer<Vector4>(
+            ParallelRowIterator.IterateRows<Vector4>(
                 workingRectangle,
                 configuration,
                 (rows, vectorBuffer) =>

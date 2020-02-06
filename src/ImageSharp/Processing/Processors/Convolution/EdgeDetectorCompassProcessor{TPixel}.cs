@@ -121,15 +121,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly int shiftY;
             private readonly int shiftX;
 
-            /// <summary>
-            /// Initializes a new instance of the <see cref="RowIntervalAction"/> struct.
-            /// </summary>
-            /// <param name="targetPixels">The target pixel buffer to adjust.</param>
-            /// <param name="passPixels">The processed pixels for the current iteration. Cannot be null.</param>
-            /// <param name="minX">The minimum horizontal offset.</param>
-            /// <param name="maxX">The maximum horizontal offset.</param>
-            /// <param name="shiftY">The vertical offset shift.</param>
-            /// <param name="shiftX">The horizontal offset shift.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalAction(
                 Buffer2D<TPixel> targetPixels,

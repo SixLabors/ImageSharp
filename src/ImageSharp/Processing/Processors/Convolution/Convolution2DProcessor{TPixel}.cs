@@ -87,16 +87,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly Configuration configuration;
             private readonly bool preserveAlpha;
 
-            /// <summary>
-            /// Initializes a new instance of the <see cref="Convolution2DProcessor{TPixel}.RowIntervalAction"/> struct.
-            /// </summary>
-            /// <param name="bounds">The target processing bounds for the current instance.</param>
-            /// <param name="targetPixels">The target pixel buffer to adjust.</param>
-            /// <param name="sourcePixels">The source pixels. Cannot be null.</param>
-            /// <param name="kernelY">The vertical kernel operator.</param>
-            /// <param name="kernelX">The horizontal kernel operator.</param>
-            /// <param name="configuration">The <see cref="Configuration"/></param>
-            /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalAction(
                 Rectangle bounds,

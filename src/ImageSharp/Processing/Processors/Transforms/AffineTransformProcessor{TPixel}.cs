@@ -17,8 +17,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Size targetSize;
-        private Matrix3x2 transformMatrix;
+        private readonly Size targetSize;
+        private readonly Matrix3x2 transformMatrix;
         private readonly IResampler resampler;
 
         /// <summary>
@@ -58,26 +58,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             if (this.resampler is NearestNeighborResampler)
             {
-                Rectangle sourceBounds = this.SourceRectangle;
-                var nearestRowAction = new NearestNeighborRowIntervalAction(ref sourceBounds, ref matrix, width, source, destination);
-
                 ParallelRowIterator.IterateRows(
                     targetBounds,
                     configuration,
-                    in nearestRowAction);
+                    new NearestNeighborRowIntervalAction(this.SourceRectangle, ref matrix, width, source, destination));
 
                 return;
             }
 
             using var kernelMap = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.resampler);
-            var rowAction = new RowIntervalAction(configuration, kernelMap, ref matrix, width, source, destination);
 
             ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
                 targetBounds,
                 configuration,
-                in rowAction);
+                new RowIntervalAction(configuration, kernelMap, ref matrix, width, source, destination));
         }
 
+        /// <summary>
+        /// A <see langword="struct"/> implementing the nearest neighbor resampler logic for <see cref="AffineTransformProcessor{T}"/>.
+        /// </summary>
         private readonly struct NearestNeighborRowIntervalAction : IRowIntervalAction
         {
             private readonly Rectangle bounds;
@@ -88,7 +87,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public NearestNeighborRowIntervalAction(
-                ref Rectangle bounds,
+                Rectangle bounds,
                 ref Matrix3x2 matrix,
                 int maxX,
                 ImageFrame<TPixel> source,
@@ -101,6 +100,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 this.destination = destination;
             }
 
+            /// <inheritdoc/>
+            /// <param name="rows"></param>
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)
             {
@@ -120,6 +121,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
+        /// <summary>
+        /// A <see langword="struct"/> implementing the transformation logic for <see cref="AffineTransformProcessor{T}"/>.
+        /// </summary>
         private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
         {
             private readonly Configuration configuration;
@@ -146,6 +150,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 this.destination = destination;
             }
 
+            /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows, Memory<Vector4> memory)
             {

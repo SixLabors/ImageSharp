@@ -6,9 +6,7 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -55,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             using (IMemoryOwner<int> cdfBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean))
             {
                 // Build the histogram of the grayscale levels.
-                ParallelHelper.IterateRows(
+                ParallelRowIterator.IterateRows(
                     workingRect,
                     this.Configuration,
                     rows =>
@@ -88,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
 
                 // Apply the cdf to each pixel of the image
-                ParallelHelper.IterateRows(
+                ParallelRowIterator.IterateRows(
                     workingRect,
                     this.Configuration,
                     rows =>

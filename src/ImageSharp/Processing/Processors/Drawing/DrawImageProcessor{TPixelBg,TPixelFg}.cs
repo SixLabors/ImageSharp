@@ -2,9 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Drawing
@@ -99,7 +97,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     "Cannot draw image because the source image does not overlap the target image.");
             }
 
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 workingRect,
                 configuration,
                 rows =>

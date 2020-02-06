@@ -2,9 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -136,7 +134,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int width = source.Width;
             int height = source.Height;
 
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
                 rows =>
@@ -166,7 +164,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int height = source.Height;
             Rectangle destinationBounds = destination.Bounds();
 
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
                 rows =>
@@ -201,7 +199,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int height = source.Height;
             Rectangle destinationBounds = destination.Bounds();
 
-            ParallelHelper.IterateRows(
+            ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
                 rows =>

@@ -59,23 +59,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (this.resampler is NearestNeighborResampler)
             {
                 Rectangle sourceBounds = this.SourceRectangle;
-                var nearestRowAction = new NearestNeighborRowIntervalAction(ref sourceBounds, ref matrix, width, source, destination);
 
                 ParallelRowIterator.IterateRows(
                     targetBounds,
                     configuration,
-                    in nearestRowAction);
+                    new NearestNeighborRowIntervalAction(ref sourceBounds, ref matrix, width, source, destination));
 
                 return;
             }
 
             using var kernelMap = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.resampler);
-            var rowAction = new RowIntervalAction(configuration, kernelMap, ref matrix, width, source, destination);
 
             ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
                 targetBounds,
                 configuration,
-                in rowAction);
+                new RowIntervalAction(configuration, kernelMap, ref matrix, width, source, destination));
         }
 
         private readonly struct NearestNeighborRowIntervalAction : IRowIntervalAction

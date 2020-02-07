@@ -97,6 +97,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             public void Invoke(in RowInterval rows, Memory<float> memory)
             {
                 Span<float> amountsSpan = memory.Span;
+                Span<TPixel> colorSpan = this.colors.GetSpan();
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
@@ -112,7 +113,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                         this.configuration,
                         destination,
                         destination,
-                        this.colors.GetSpan(),
+                        colorSpan,
                         amountsSpan);
                 }
             }

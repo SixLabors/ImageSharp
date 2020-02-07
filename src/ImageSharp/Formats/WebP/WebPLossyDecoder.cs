@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 block.Skip = (byte)this.bitReader.GetBit(dec.SkipProbability);
             }
 
-            block.IsI4x4 = this.bitReader.GetBit(145) != 0;
+            block.IsI4x4 = this.bitReader.GetBit(145) is 0;
             if (!block.IsI4x4)
             {
                 // Hardcoded 16x16 intra-mode decision tree.

@@ -92,7 +92,8 @@ namespace SixLabors.ImageSharp.Advanced
             var rows = new RowInterval(yMin, yMax);
 
             using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.MaxX);
-            this.action.Invoke(in rows, buffer.Memory);
+
+            Unsafe.AsRef(this.action).Invoke(in rows, buffer.Memory);
         }
     }
 }

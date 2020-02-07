@@ -95,7 +95,8 @@ namespace SixLabors.ImageSharp.Advanced
             int yMax = Math.Min(yMin + this.info.StepY, this.info.MaxY);
             var rows = new RowInterval(yMin, yMax);
 
-            this.action.Invoke(in rows);
+            // Skip the safety copy when invoking a potentially impure method on a readonly field
+            Unsafe.AsRef(this.action).Invoke(in rows);
         }
     }
 }

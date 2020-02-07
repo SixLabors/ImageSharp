@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -66,7 +66,8 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                     MemoryMarshal.Cast<Rgba32, byte>(lastQuarterOfDestBuffer),
                     MemoryMarshal.Cast<Vector4, float>(destVectors.Slice(0, countWithoutLastItem)));
 
-                destVectors[countWithoutLastItem] = sourcePixels[countWithoutLastItem].ToVector4();
+                // Reinterpret as a mutable reference to skip the safety copy of the readonly value
+                destVectors[countWithoutLastItem] = Unsafe.AsRef(sourcePixels[countWithoutLastItem]).ToVector4();
 
                 // TODO: Investigate optimized 1-pass approach!
                 ApplyForwardConversionModifiers(destVectors, modifiers);

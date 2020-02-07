@@ -554,8 +554,14 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return;
             }
 
-            // Grab the palette and write it to the stream.
-            ReadOnlySpan<TPixel> palette = quantized.Palette.Span;
+            /* Grab the palette and write it to the stream.
+             * Here the palette is reinterpreted as a mutable Memory<TPixel> value,
+             * which is possible because the two memory types have the same layout.
+             * This is done so that the Span<TPixel> we're working on is mutable,
+             * so that we can skip the safety copies done by the compiler when we
+             * invoke the IPixel.ToRgba32 method below, which is not marked as readonly. */
+            ReadOnlyMemory<TPixel> paletteMemory = quantized.Palette;
+            Span<TPixel> palette = Unsafe.As<ReadOnlyMemory<TPixel>, Memory<TPixel>>(ref paletteMemory).Span;
             int paletteLength = Math.Min(palette.Length, 256);
             int colorTableLength = paletteLength * 3;
             bool anyAlpha = false;

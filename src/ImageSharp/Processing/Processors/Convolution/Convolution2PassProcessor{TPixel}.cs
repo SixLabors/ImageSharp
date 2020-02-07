@@ -64,13 +64,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
             // Horizontal convolution
-            ParallelRowIterator.IterateRows2<RowAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowAction, Vector4>(
                 interest,
                 this.Configuration,
                 new RowAction(interest, firstPassPixels, source.PixelBuffer, this.KernelX, this.Configuration, this.PreserveAlpha));
 
             // Vertical convolution
-            ParallelRowIterator.IterateRows2<RowAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowAction, Vector4>(
                 interest,
                 this.Configuration,
                 new RowAction(interest, source.PixelBuffer, firstPassPixels, this.KernelY, this.Configuration, this.PreserveAlpha));

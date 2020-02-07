@@ -63,13 +63,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             using IMemoryOwner<TPixel> rowColors = allocator.Allocate<TPixel>(interest.Width);
             rowColors.GetSpan().Fill(vignetteColor);
 
-            ParallelRowIterator.IterateRows<RowIntervalAction, float>(
+            ParallelRowIterator.IterateRows2<RowAction, float>(
                 interest,
                 configuration,
-                new RowIntervalAction(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source));
+                new RowAction(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source));
         }
 
-        private readonly struct RowIntervalAction : IRowIntervalAction<float>
+        private readonly struct RowAction : IRowAction<float>
         {
             private readonly Configuration configuration;
             private readonly Rectangle bounds;
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             private readonly ImageFrame<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowAction(
                 Configuration configuration,
                 Rectangle bounds,
                 IMemoryOwner<TPixel> colors,
@@ -102,28 +102,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Memory<float> memory)
+            public void Invoke(int y, Span<float> span)
             {
-                Span<float> amountsSpan = memory.Span;
                 Span<TPixel> colorSpan = this.colors.GetSpan();
 
-                for (int y = rows.Min; y < rows.Max; y++)
+                for (int i = 0; i < this.bounds.Width; i++)
                 {
-                    for (int i = 0; i < this.bounds.Width; i++)
-                    {
-                        float distance = Vector2.Distance(this.center, new Vector2(i + this.bounds.X, y));
-                        amountsSpan[i] = (this.blendPercent * (.9F * (distance / this.maxDistance))).Clamp(0, 1);
-                    }
-
-                    Span<TPixel> destination = this.source.GetPixelRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
-
-                    this.blender.Blend(
-                        this.configuration,
-                        destination,
-                        destination,
-                        colorSpan,
-                        amountsSpan);
+                    float distance = Vector2.Distance(this.center, new Vector2(i + this.bounds.X, y));
+                    span[i] = (this.blendPercent * (.9F * (distance / this.maxDistance))).Clamp(0, 1);
                 }
+
+                Span<TPixel> destination = this.source.GetPixelRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+
+                this.blender.Blend(
+                    this.configuration,
+                    destination,
+                    destination,
+                    colorSpan,
+                    span);
             }
         }
     }

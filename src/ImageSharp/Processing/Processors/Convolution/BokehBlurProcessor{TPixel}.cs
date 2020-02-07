@@ -268,10 +268,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // Preliminary gamma highlight pass
-            ParallelRowIterator.IterateRows<ApplyGammaExposureRowIntervalAction, Vector4>(
+            ParallelRowIterator.IterateRows2<ApplyGammaExposureRowAction, Vector4>(
                 this.SourceRectangle,
                 this.Configuration,
-                new ApplyGammaExposureRowIntervalAction(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma));
+                new ApplyGammaExposureRowAction(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma));
 
             // Create a 0-filled buffer to use to store the result of the component convolutions
             using Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean);
@@ -416,7 +416,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// A <see langword="struct"/> implementing the gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        private readonly struct ApplyGammaExposureRowIntervalAction : IRowIntervalAction<Vector4>
+        private readonly struct ApplyGammaExposureRowAction : IRowAction<Vector4>
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> targetPixels;
@@ -424,7 +424,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly float gamma;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyGammaExposureRowIntervalAction(
+            public ApplyGammaExposureRowAction(
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 Configuration configuration,
@@ -438,27 +438,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+            public void Invoke(int y, Span<Vector4> span)
             {
-                Span<Vector4> vectorSpan = memory.Span;
-                int length = vectorSpan.Length;
+                int length = span.Length;
 
-                for (int y = rows.Min; y < rows.Max; y++)
+                Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, length), span, PixelConversionModifiers.Premultiply);
+                ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
+
+                for (int x = 0; x < this.bounds.Width; x++)
                 {
-                    Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, length), vectorSpan, PixelConversionModifiers.Premultiply);
-                    ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectorSpan);
-
-                    for (int x = 0; x < this.bounds.Width; x++)
-                    {
-                        ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
-                        v.X = MathF.Pow(v.X, this.gamma);
-                        v.Y = MathF.Pow(v.Y, this.gamma);
-                        v.Z = MathF.Pow(v.Z, this.gamma);
-                    }
-
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorSpan.Slice(0, length), targetRowSpan);
+                    ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
+                    v.X = MathF.Pow(v.X, this.gamma);
+                    v.Y = MathF.Pow(v.Y, this.gamma);
+                    v.Z = MathF.Pow(v.Z, this.gamma);
                 }
+
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span.Slice(0, length), targetRowSpan);
             }
         }
 

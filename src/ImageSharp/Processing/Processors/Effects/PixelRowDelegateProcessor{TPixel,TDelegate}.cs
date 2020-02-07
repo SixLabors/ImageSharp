@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                     PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, vectorSpan, this.modifiers);
 
                     // Run the user defined pixel shader to the current row of pixels
-                    this.rowProcessor.Invoke(vectorSpan, new Point(this.startX, y));
+                    Unsafe.AsRef(this.rowProcessor).Invoke(vectorSpan, new Point(this.startX, y));
 
                     PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorSpan, rowSpan, this.modifiers);
                 }

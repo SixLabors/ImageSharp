@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / Max;
+        public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / Max;
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Rgba32"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgba32 ToRgba32()
+        public readonly Rgba32 ToRgba32()
         {
             byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
             byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
@@ -357,7 +357,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Bgra32"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Bgra32 ToBgra32()
+        public readonly Bgra32 ToBgra32()
         {
             byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
             byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
@@ -371,7 +371,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Argb32"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Argb32 ToArgb32()
+        public readonly Argb32 ToArgb32()
         {
             byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
             byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
@@ -385,7 +385,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Rgb24"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgb24 ToRgb24()
+        public readonly Rgb24 ToRgb24()
         {
             byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
             byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
@@ -398,7 +398,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Bgr24"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Bgr24 ToBgr24()
+        public readonly Bgr24 ToBgr24()
         {
             byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
             byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);

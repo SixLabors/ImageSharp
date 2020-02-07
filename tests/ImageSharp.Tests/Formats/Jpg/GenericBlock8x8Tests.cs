@@ -41,7 +41,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (Image<TPixel> s = provider.GetImage())
             {
                 var d = default(GenericBlock8x8<TPixel>);
-                d.LoadAndStretchEdges(s.Frames.RootFrame, 0, 0);
+                var rowOctet = new RowOctet<TPixel>(s.GetRootFramePixelBuffer(), 0);
+                d.LoadAndStretchEdges(s.Frames.RootFrame.PixelBuffer, 0, 0, rowOctet);
 
                 TPixel a = s.Frames.RootFrame[0, 0];
                 TPixel b = d[0, 0];
@@ -65,7 +66,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (Image<TPixel> s = provider.GetImage())
             {
                 var d = default(GenericBlock8x8<TPixel>);
-                d.LoadAndStretchEdges(s.Frames.RootFrame, 6, 7);
+                var rowOctet = new RowOctet<TPixel>(s.GetRootFramePixelBuffer(), 7);
+                d.LoadAndStretchEdges(s.Frames.RootFrame.PixelBuffer, 6, 7, rowOctet);
 
                 Assert.Equal(s[6, 7], d[0, 0]);
                 Assert.Equal(s[6, 8], d[0, 1]);

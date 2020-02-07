@@ -657,12 +657,12 @@ namespace SixLabors.ImageSharp.Tests
                 testOutputDetails,
                 appendPixelTypeToFileName);
 
-            referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(actualOutputFile);
+            referenceDecoder ??= TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
-            using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
+            using (var encodedImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
             {
                 ImageComparer comparer = customComparer ?? ImageComparer.Exact;
-                comparer.VerifySimilarity(actualImage, image);
+                comparer.VerifySimilarity(encodedImage, image);
             }
         }
 

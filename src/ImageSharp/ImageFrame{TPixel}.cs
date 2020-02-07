@@ -260,10 +260,10 @@ namespace SixLabors.ImageSharp
 
             var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.Metadata.DeepClone());
 
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRows2(
                 this.Bounds(),
                 configuration,
-                new RowIntervalAction<TPixel2>(this, target, configuration));
+                new RowAction<TPixel2>(this, target, configuration));
 
             return target;
         }
@@ -289,7 +289,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// A <see langword="struct"/> implementing the clone logic for <see cref="ImageFrame{TPixel}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction<TPixel2> : IRowIntervalAction
+        private readonly struct RowAction<TPixel2> : IRowAction
             where TPixel2 : struct, IPixel<TPixel2>
         {
             private readonly ImageFrame<TPixel> source;
@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp
             private readonly Configuration configuration;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowAction(
                 ImageFrame<TPixel> source,
                 ImageFrame<TPixel2> target,
                 Configuration configuration)
@@ -309,14 +309,11 @@ namespace SixLabors.ImageSharp
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
-                    Span<TPixel2> targetRow = this.target.GetPixelRowSpan(y);
-                    PixelOperations<TPixel>.Instance.To(this.configuration, sourceRow, targetRow);
-                }
+                Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
+                Span<TPixel2> targetRow = this.target.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.To(this.configuration, sourceRow, targetRow);
             }
         }
     }

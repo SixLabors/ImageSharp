@@ -3,6 +3,7 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -81,9 +82,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 
         [Theory]
-        [WithTestPatternImages(nameof(BitsPerPixel_Quality), 600, 400, PixelTypes.Rgba32)]
-        public void EncodeBaseline_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
-            where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality, true, ImageComparer.TolerantPercentage(0.1f));
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, JpegSubsample.Ratio444)]
+        [WithTestPatternImages(587, 821, PixelTypes.Rgba32, JpegSubsample.Ratio444)]
+        [WithTestPatternImages(677, 683, PixelTypes.Bgra32, JpegSubsample.Ratio420)]
+        [WithSolidFilledImages(400, 400, "Red", PixelTypes.Bgr24, JpegSubsample.Ratio420)]
+        public void EncodeBaseline_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            ImageComparer comparer = subsample == JpegSubsample.Ratio444
+                ? ImageComparer.TolerantPercentage(0.1f)
+                : ImageComparer.TolerantPercentage(5f);
+
+            provider.LimitAllocatorBufferCapacity();
+            TestJpegEncoderCore(provider, subsample, 100, comparer);
+        }
 
         /// <summary>
         /// Anton's SUPER-SCIENTIFIC tolerance threshold calculation
@@ -112,15 +124,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImageProvider<TPixel> provider,
             JpegSubsample subsample,
             int quality = 100,
-            bool enforceDiscontiguousBuffers = false,
             ImageComparer comparer = null)
             where TPixel : struct, IPixel<TPixel>
         {
-            if (enforceDiscontiguousBuffers)
-            {
-                provider.LimitAllocatorBufferCapacity();
-            }
-
             using Image<TPixel> image = provider.GetImage();
 
             // There is no alpha in Jpeg!
@@ -132,10 +138,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Quality = quality
             };
             string info = $"{subsample}-Q{quality}";
-            if (enforceDiscontiguousBuffers)
-            {
-                info += "-Disco";
-            }
 
             comparer ??= GetComparer(quality, subsample);
 

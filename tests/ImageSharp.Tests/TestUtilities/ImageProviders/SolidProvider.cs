@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit.Abstractions;
 
@@ -53,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests
                 Image<TPixel> image = base.GetImage();
                 Color color = new Rgba32(this.r, this.g, this.b, this.a);
 
-                image.GetPixelSpan().Fill(color.ToPixel<TPixel>());
+                image.GetRootFramePixelBuffer().MemoryGroup.Fill(color.ToPixel<TPixel>());
                 return image;
             }
 

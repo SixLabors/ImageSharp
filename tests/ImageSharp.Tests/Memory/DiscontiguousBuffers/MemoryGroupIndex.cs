@@ -91,25 +91,25 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 
     internal static class MemoryGroupIndexExtensions
     {
-        public static T GetElementAt<T>(this MemoryGroup<T> group, MemoryGroupIndex idx)
+        public static T GetElementAt<T>(this IMemoryGroup<T> group, MemoryGroupIndex idx)
             where T : struct
         {
             return group[idx.BufferIndex].Span[idx.ElementIndex];
         }
 
-        public static void SetElementAt<T>(this MemoryGroup<T> group, MemoryGroupIndex idx, T value)
+        public static void SetElementAt<T>(this IMemoryGroup<T> group, MemoryGroupIndex idx, T value)
             where T : struct
         {
             group[idx.BufferIndex].Span[idx.ElementIndex] = value;
         }
 
-        public static MemoryGroupIndex MinIndex<T>(this MemoryGroup<T> group)
+        public static MemoryGroupIndex MinIndex<T>(this IMemoryGroup<T> group)
             where T : struct
         {
             return new MemoryGroupIndex(group.BufferLength, 0, 0);
         }
 
-        public static MemoryGroupIndex MaxIndex<T>(this MemoryGroup<T> group)
+        public static MemoryGroupIndex MaxIndex<T>(this IMemoryGroup<T> group)
             where T : struct
         {
             return group.Count == 0

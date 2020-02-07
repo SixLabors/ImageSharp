@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -25,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                     var targetBuffer = new TPixel[image0.Width * image0.Height];
 
                     // Act:
-                    Memory<TPixel> memory = image0.GetPixelMemory();
+                    Memory<TPixel> memory = image0.GetRootFramePixelBuffer().GetSingleMemory();
 
                     // Assert:
                     Assert.Equal(image0.Width * image0.Height, memory.Length);
@@ -56,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
 
                     using (var image1 = Image.WrapMemory(externalMemory, image0.Width, image0.Height))
                     {
-                        Memory<TPixel> internalMemory = image1.GetPixelMemory();
+                        Memory<TPixel> internalMemory = image1.GetRootFramePixelBuffer().GetSingleMemory();
                         Assert.Equal(targetBuffer.Length, internalMemory.Length);
                         Assert.True(Unsafe.AreSame(ref targetBuffer[0], ref internalMemory.Span[0]));
 
@@ -118,30 +119,6 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                     // We are using a copy of the original image for assertion
                     image1.ComparePixelBufferTo(targetBuffer);
                 }
-            }
-        }
-
-        #pragma warning disable 0618
-
-        [Theory]
-        [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-        public unsafe void DangerousGetPinnableReference_CopyToBuffer<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var targetBuffer = new TPixel[image.Width * image.Height];
-
-                ref byte source = ref Unsafe.As<TPixel, byte>(ref targetBuffer[0]);
-                ref byte dest = ref Unsafe.As<TPixel, byte>(ref image.DangerousGetPinnableReferenceToPixelBuffer());
-                fixed (byte* targetPtr = &source)
-                fixed (byte* pixelBasePtr = &dest)
-                {
-                    uint dataSizeInBytes = (uint)(image.Width * image.Height * Unsafe.SizeOf<TPixel>());
-                    Unsafe.CopyBlock(targetPtr, pixelBasePtr, dataSizeInBytes);
-                }
-
-                image.ComparePixelBufferTo(targetBuffer);
             }
         }
     }

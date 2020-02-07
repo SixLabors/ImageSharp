@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
@@ -40,7 +41,7 @@ namespace SixLabors.ImageSharp.Advanced
             => GetConfiguration((IConfigurationProvider)source);
 
         /// <summary>
-        /// Gets the configuration .
+        /// Gets the configuration.
         /// </summary>
         /// <param name="source">The source image</param>
         /// <returns>Returns the bounds of the image</returns>
@@ -48,15 +49,56 @@ namespace SixLabors.ImageSharp.Advanced
             => source?.Configuration ?? Configuration.Default;
 
         /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory in the source image's pixel format
-        /// stored in row major order.
+        /// Gets the representation of the pixels as a <see cref="IMemoryGroup{T}"/> containing the backing pixel data of the image
+        /// stored in row major order, as a list of contiguous <see cref="Memory{T}"/> blocks in the source image's pixel format.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <returns>The <see cref="IMemoryGroup{T}"/>.</returns>
+        /// <remarks>
+        /// Certain Image Processors may invalidate the returned <see cref="IMemoryGroup{T}"/> and all it's buffers,
+        /// therefore it's not recommended to mutate the image while holding a reference to it's <see cref="IMemoryGroup{T}"/>.
+        /// </remarks>
+        public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this ImageFrame<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => source.PixelBuffer.MemoryGroup.View;
+
+        /// <summary>
+        /// Gets the representation of the pixels as a <see cref="IMemoryGroup{T}"/> containing the backing pixel data of the image
+        /// stored in row major order, as a list of contiguous <see cref="Memory{T}"/> blocks in the source image's pixel format.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <returns>The <see cref="IMemoryGroup{T}"/>.</returns>
+        /// <remarks>
+        /// Certain Image Processors may invalidate the returned <see cref="IMemoryGroup{T}"/> and all it's buffers,
+        /// therefore it's not recommended to mutate the image while holding a reference to it's <see cref="IMemoryGroup{T}"/>.
+        /// </remarks>
+        public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this Image<TPixel> source)
+            where TPixel : struct, IPixel<TPixel>
+            => source.Frames.RootFrame.GetPixelMemoryGroup();
+
+        /// <summary>
+        /// Gets the representation of the pixels as a <see cref="Span{T}"/> in the source image's pixel format
+        /// stored in row major order, if the backing buffer is contiguous.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source.</param>
+        /// <param name="source">The source image.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
+        /// <exception cref="InvalidOperationException">Thrown when the backing buffer is discontiguous.</exception>
+        [Obsolete(
+            @"GetPixelSpan might fail, because the backing buffer allowed to be discontiguous for large images. Use GetPixelMemoryGroup or GetPixelRowSpan instead!")]
         public static Span<TPixel> GetPixelSpan<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => source.GetPixelMemory().Span;
+        {
+            IMemoryGroup<TPixel> mg = source.GetPixelMemoryGroup();
+            if (mg.Count > 1)
+            {
+                throw new InvalidOperationException($"GetPixelSpan is invalid, since the backing buffer of this {source.Width}x{source.Height} sized image is discontiguos!");
+            }
+
+            return mg.Single().Span;
+        }
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory in the source image's pixel format
@@ -65,6 +107,9 @@ namespace SixLabors.ImageSharp.Advanced
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="source">The source.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
+        /// <exception cref="InvalidOperationException">Thrown when the backing buffer is discontiguous.</exception>
+        [Obsolete(
+            @"GetPixelSpan might fail, because the backing buffer allowed to be discontiguous for large images. Use GetPixelMemoryGroup or GetPixelRowSpan instead!")]
         public static Span<TPixel> GetPixelSpan<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => source.Frames.RootFrame.GetPixelSpan();
@@ -92,58 +137,6 @@ namespace SixLabors.ImageSharp.Advanced
         public static Span<TPixel> GetPixelRowSpan<TPixel>(this Image<TPixel> source, int rowIndex)
             where TPixel : struct, IPixel<TPixel>
             => source.Frames.RootFrame.GetPixelRowSpan(rowIndex);
-
-        /// <summary>
-        /// Returns a reference to the 0th element of the Pixel buffer,
-        /// allowing direct manipulation of pixel data through unsafe operations.
-        /// The pixel buffer is a contiguous memory area containing Width*Height TPixel elements laid out in row-major order.
-        /// </summary>
-        /// <typeparam name="TPixel">The Pixel format.</typeparam>
-        /// <param name="source">The source image frame</param>
-        /// <returns>A pinnable reference the first root of the pixel buffer.</returns>
-        [Obsolete("This method will be removed in our next release! Please use MemoryMarshal.GetReference(source.GetPixelSpan())!")]
-        public static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(this ImageFrame<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => ref DangerousGetPinnableReferenceToPixelBuffer((IPixelSource<TPixel>)source);
-
-        /// <summary>
-        /// Returns a reference to the 0th element of the Pixel buffer,
-        /// allowing direct manipulation of pixel data through unsafe operations.
-        /// The pixel buffer is a contiguous memory area containing Width*Height TPixel elements laid out in row-major order.
-        /// </summary>
-        /// <typeparam name="TPixel">The Pixel format.</typeparam>
-        /// <param name="source">The source image</param>
-        /// <returns>A pinnable reference the first root of the pixel buffer.</returns>
-        [Obsolete("This method will be removed in our next release! Please use MemoryMarshal.GetReference(source.GetPixelSpan())!")]
-        public static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(this Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => ref source.Frames.RootFrame.DangerousGetPinnableReferenceToPixelBuffer();
-
-        /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Memory{T}"/> of contiguous memory in the source image's pixel format
-        /// stored in row major order.
-        /// </summary>
-        /// <typeparam name="TPixel">The Pixel format.</typeparam>
-        /// <param name="source">The source <see cref="ImageFrame{TPixel}"/></param>
-        /// <returns>The <see cref="Memory{T}"/></returns>
-        internal static Memory<TPixel> GetPixelMemory<TPixel>(this ImageFrame<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            return source.PixelBuffer.GetSingleMemory();
-        }
-
-        /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Memory{T}"/> of contiguous memory in the source image's pixel format
-        /// stored in row major order.
-        /// </summary>
-        /// <typeparam name="TPixel">The Pixel format.</typeparam>
-        /// <param name="source">The source <see cref="Image{TPixel}"/></param>
-        /// <returns>The <see cref="Memory{T}"/></returns>
-        internal static Memory<TPixel> GetPixelMemory<TPixel>(this Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            return source.Frames.RootFrame.GetPixelMemory();
-        }
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory

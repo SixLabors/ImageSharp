@@ -3,7 +3,9 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
@@ -34,27 +36,52 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-            int startX = interest.X;
 
-            ColorMatrix matrix = this.definition.Matrix;
-
-            ParallelRowIterator.IterateRows<Vector4>(
+            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
                 interest,
                 this.Configuration,
-                (rows, vectorBuffer) =>
-                    {
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<Vector4> vectorSpan = vectorBuffer.Span;
-                            int length = vectorSpan.Length;
-                            Span<TPixel> rowSpan = source.GetPixelRowSpan(y).Slice(startX, length);
-                            PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, rowSpan, vectorSpan);
+                new RowIntervalAction(interest.X, source, this.definition.Matrix, this.Configuration));
+        }
 
-                            Vector4Utils.Transform(vectorSpan, ref matrix);
+        /// <summary>
+        /// A <see langword="struct"/> implementing the convolution logic for <see cref="FilterProcessor{TPixel}"/>.
+        /// </summary>
+        private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
+        {
+            private readonly int startX;
+            private readonly ImageFrame<TPixel> source;
+            private readonly ColorMatrix matrix;
+            private readonly Configuration configuration;
 
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, vectorSpan, rowSpan);
-                        }
-                    });
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalAction(
+                int startX,
+                ImageFrame<TPixel> source,
+                ColorMatrix matrix,
+                Configuration configuration)
+            {
+                this.startX = startX;
+                this.source = source;
+                this.matrix = matrix;
+                this.configuration = configuration;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+            {
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<Vector4> vectorSpan = memory.Span;
+                    int length = vectorSpan.Length;
+                    Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, length);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, vectorSpan);
+
+                    Vector4Utils.Transform(vectorSpan, ref Unsafe.AsRef(this.matrix));
+
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorSpan, rowSpan);
+                }
+            }
         }
     }
 }

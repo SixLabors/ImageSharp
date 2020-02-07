@@ -19,15 +19,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.YuvBuffer = new byte[(WebPConstants.Bps * 17) + (WebPConstants.Bps * 9)];
             this.MbWidth = (int)((this.PictureHeader.Width + 15) >> 4);
             this.MbHeight = (int)((this.PictureHeader.Height + 15) >> 4);
-            this.MacroBlockInfo = new Vp8MacroBlock[this.MbWidth];
+            this.MacroBlockInfo = new Vp8MacroBlock[this.MbWidth + 1];
             this.MacroBlockData = new Vp8MacroBlockData[this.MbWidth];
             this.YuvTopSamples = new Vp8TopSamples[this.MbWidth];
+            this.FilterInfo = new Vp8FilterInfo[this.MbWidth];
             for (int i = 0; i < this.MbWidth; i++)
             {
                 this.MacroBlockInfo[i] = new Vp8MacroBlock();
                 this.MacroBlockData[i] = new Vp8MacroBlockData();
                 this.YuvTopSamples[i] = new Vp8TopSamples();
+                this.FilterInfo[i] = new Vp8FilterInfo();
             }
+
+            this.MacroBlockInfo[this.MbWidth] = new Vp8MacroBlock();
 
             this.DeQuantMatrices = new Vp8QuantMatrix[WebPConstants.NumMbSegments];
             this.FilterStrength = new Vp8FilterInfo[WebPConstants.NumMbSegments, 2];
@@ -123,11 +127,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Vp8MacroBlockData[] MacroBlockData { get; }
 
         /// <summary>
-        /// Gets contextual macroblock infos.
+        /// Gets contextual contextual macroblock info (mbw + 1).
         /// </summary>
         public Vp8MacroBlock[] MacroBlockInfo { get;  }
-
-        public int MacroBlockIdx { get; set; }
 
         public LoopFilter Filter { get; set; }
 
@@ -140,7 +142,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets or sets filter strength info.
         /// </summary>
-        public Vp8FilterInfo FilterInfo { get; set; }
+        public Vp8FilterInfo[] FilterInfo { get; set; }
 
         public void Init(Vp8Io io)
         {

@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             using var kernelMap = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.resampler);
 
-            ParallelRowIterator.IterateRows2<RowAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowAction, Vector4>(
                 targetBounds,
                 configuration,
                 new RowAction(configuration, kernelMap, ref matrix, width, source, destination));

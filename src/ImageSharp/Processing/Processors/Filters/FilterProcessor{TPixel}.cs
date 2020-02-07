@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-            ParallelRowIterator.IterateRows2<RowAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowAction, Vector4>(
                 interest,
                 this.Configuration,
                 new RowAction(interest.X, source, this.definition.Matrix, this.Configuration));

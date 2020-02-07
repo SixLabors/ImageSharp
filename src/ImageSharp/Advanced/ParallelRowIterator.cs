@@ -142,6 +142,72 @@ namespace SixLabors.ImageSharp.Advanced
         }
 
         /// <summary>
+        /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s
+        /// instantiating a temporary buffer for each <paramref name="body"/> invocation.
+        /// </summary>
+        /// <typeparam name="T">The type of row action to perform.</typeparam>
+        /// <typeparam name="TBuffer">The type of buffer elements.</typeparam>
+        /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
+        /// <param name="configuration">The <see cref="Configuration"/> to get the parallel settings from.</param>
+        /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
+        public static void IterateRows2<T, TBuffer>(Rectangle rectangle, Configuration configuration, in T body)
+            where T : struct, IRowAction<TBuffer>
+            where TBuffer : unmanaged
+        {
+            var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
+            IterateRows2<T, TBuffer>(rectangle, in parallelSettings, in body);
+        }
+
+        /// <summary>
+        /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s
+        /// instantiating a temporary buffer for each <paramref name="body"/> invocation.
+        /// </summary>
+        internal static void IterateRows2<T, TBuffer>(
+            Rectangle rectangle,
+            in ParallelExecutionSettings parallelSettings,
+            in T body)
+            where T : struct, IRowAction<TBuffer>
+            where TBuffer : unmanaged
+        {
+            ValidateRectangle(rectangle);
+
+            int top = rectangle.Top;
+            int bottom = rectangle.Bottom;
+            int width = rectangle.Width;
+            int height = rectangle.Height;
+
+            int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
+            int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
+            MemoryAllocator allocator = parallelSettings.MemoryAllocator;
+
+            // Avoid TPL overhead in this trivial case:
+            if (numOfSteps == 1)
+            {
+                using (IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(width))
+                {
+                    Span<TBuffer> span = buffer.Memory.Span;
+
+                    for (int y = top; y < bottom; y++)
+                    {
+                        Unsafe.AsRef(body).Invoke(y, span);
+                    }
+                }
+
+                return;
+            }
+
+            int verticalStep = DivideCeil(height, numOfSteps);
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
+            var rowAction = new WrappingRowAction<T, TBuffer>(top, bottom, verticalStep, width, allocator, in body);
+
+            Parallel.For(
+                0,
+                numOfSteps,
+                parallelOptions,
+                rowAction.Invoke);
+        }
+
+        /// <summary>
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
         /// </summary>
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>

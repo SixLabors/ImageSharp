@@ -19,86 +19,28 @@ namespace SixLabors.ImageSharp.Advanced
     public static class ParallelRowIterator
     {
         /// <summary>
-        /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
+        /// Iterate through the rows of a rectangle in optimized batches.
         /// </summary>
         /// <typeparam name="T">The type of row action to perform.</typeparam>
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
         /// <param name="configuration">The <see cref="Configuration"/> to get the parallel settings from.</param>
-        /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
+        /// <param name="body">The method body defining the iteration logic on a single row.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void IterateRows<T>(Rectangle rectangle, Configuration configuration, in T body)
-            where T : struct, IRowIntervalAction
+            where T : struct, IRowAction
         {
             var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
             IterateRows(rectangle, in parallelSettings, in body);
         }
 
         /// <summary>
-        /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
+        /// Iterate through the rows of a rectangle in optimized batches.
         /// </summary>
         /// <typeparam name="T">The type of row action to perform.</typeparam>
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
         /// <param name="parallelSettings">The <see cref="ParallelExecutionSettings"/>.</param>
-        /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
+        /// <param name="body">The method body defining the iteration logic on a single row.</param>
         public static void IterateRows<T>(
-            Rectangle rectangle,
-            in ParallelExecutionSettings parallelSettings,
-            in T body)
-            where T : struct, IRowIntervalAction
-        {
-            ValidateRectangle(rectangle);
-
-            int top = rectangle.Top;
-            int bottom = rectangle.Bottom;
-            int width = rectangle.Width;
-            int height = rectangle.Height;
-
-            int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
-            int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
-
-            // Avoid TPL overhead in this trivial case:
-            if (numOfSteps == 1)
-            {
-                var rows = new RowInterval(top, bottom);
-                Unsafe.AsRef(body).Invoke(in rows);
-                return;
-            }
-
-            int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
-            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-            var rowInfo = new WrappingRowIntervalInfo(top, bottom, verticalStep);
-            var rowAction = new WrappingRowIntervalAction<T>(in rowInfo, in body);
-
-            Parallel.For(
-                0,
-                numOfSteps,
-                parallelOptions,
-                rowAction.Invoke);
-        }
-
-        /// <summary>
-        /// Iterate through the rows of a rectangle in optimized batches.
-        /// </summary>
-        /// <typeparam name="T">The type of row action to perform.</typeparam>
-        /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
-        /// <param name="configuration">The <see cref="Configuration"/> to get the parallel settings from.</param>
-        /// <param name="body">The method body defining the iteration logic on a single row.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static void IterateRows2<T>(Rectangle rectangle, Configuration configuration, in T body)
-            where T : struct, IRowAction
-        {
-            var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
-            IterateRows2(rectangle, in parallelSettings, in body);
-        }
-
-        /// <summary>
-        /// Iterate through the rows of a rectangle in optimized batches.
-        /// </summary>
-        /// <typeparam name="T">The type of row action to perform.</typeparam>
-        /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
-        /// <param name="parallelSettings">The <see cref="ParallelExecutionSettings"/>.</param>
-        /// <param name="body">The method body defining the iteration logic on a single row.</param>
-        public static void IterateRows2<T>(
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
             in T body)

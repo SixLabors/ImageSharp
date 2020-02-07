@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 
             var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
 
-            ParallelRowIterator.IterateRows2(
+            ParallelRowIterator.IterateRows(
                 workingRect,
                 configuration,
                 new RowAction(source, upper, lower, threshold, startX, endX, isAlphaOnly));

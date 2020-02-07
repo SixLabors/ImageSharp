@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 Rectangle sourceBounds = this.SourceRectangle;
 
-                ParallelRowIterator.IterateRows2(
+                ParallelRowIterator.IterateRows(
                     targetBounds,
                     configuration,
                     new NearestNeighborRowAction(ref sourceBounds, ref matrix, width, source, destination));

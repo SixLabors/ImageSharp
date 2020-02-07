@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // Copying is cheap, we should process more pixels per task:
             ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
 
-            ParallelRowIterator.IterateRows2(
+            ParallelRowIterator.IterateRows(
                 bounds,
                 in parallelSettings,
                 new RowAction(ref bounds, source, destination));

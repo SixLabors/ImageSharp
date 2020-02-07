@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
             source.CopyTo(targetPixels);
 
-            ParallelRowIterator.IterateRows2(
+            ParallelRowIterator.IterateRows(
                 this.SourceRectangle,
                 this.Configuration,
                 new RowAction(this.SourceRectangle, targetPixels, source, this.Configuration, brushSize >> 1, this.definition.Levels));

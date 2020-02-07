@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
             PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(graphicsOptions);
 
-            ParallelRowIterator.IterateRows2(
+            ParallelRowIterator.IterateRows(
                 interest,
                 configuration,
                 new RowAction(configuration, interest, blender, amount, colors, source));

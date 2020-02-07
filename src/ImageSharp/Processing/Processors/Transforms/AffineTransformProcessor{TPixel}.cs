@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             if (this.resampler is NearestNeighborResampler)
             {
-                ParallelRowIterator.IterateRows2(
+                ParallelRowIterator.IterateRows(
                     targetBounds,
                     configuration,
                     new NearestNeighborRowAction(this.SourceRectangle, ref matrix, width, source, destination));

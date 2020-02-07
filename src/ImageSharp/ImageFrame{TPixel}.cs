@@ -260,7 +260,7 @@ namespace SixLabors.ImageSharp
 
             var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.Metadata.DeepClone());
 
-            ParallelRowIterator.IterateRows2(
+            ParallelRowIterator.IterateRows(
                 this.Bounds(),
                 configuration,
                 new RowAction<TPixel2>(this, target, configuration));

@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void FlipY(ImageFrame<TPixel> source, Configuration configuration)
         {
-            ParallelRowIterator.IterateRows2(
+            ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
                 new RowAction(source));

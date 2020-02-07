@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float widthFactor = sourceRectangle.Width / (float)this.targetRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)this.targetRectangle.Height;
 
-                ParallelRowIterator.IterateRows2(
+                ParallelRowIterator.IterateRows(
                     interest,
                     configuration,
                     new RowAction(sourceRectangle, this.targetRectangle, widthFactor, heightFactor, source, destination));

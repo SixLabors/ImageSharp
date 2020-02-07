@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     processor.Apply(pass);
                 }
 
-                ParallelRowIterator.IterateRows2(
+                ParallelRowIterator.IterateRows(
                     Rectangle.FromLTRB(minX, minY, maxX, maxY),
                     this.Configuration,
                     new RowAction(source.PixelBuffer, pass.PixelBuffer, minX, maxX, shiftY, shiftX));

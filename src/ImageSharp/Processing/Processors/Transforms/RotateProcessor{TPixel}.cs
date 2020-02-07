@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void Rotate180(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
         {
-            ParallelRowIterator.IterateRows2(
+            ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
                 new Rotate180RowAction(source.Width, source.Height, source, destination));
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void Rotate270(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
         {
-            ParallelRowIterator.IterateRows2(
+            ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
                 new Rotate270RowAction(destination.Bounds(), source.Width, source.Height, source, destination));
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void Rotate90(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
         {
-            ParallelRowIterator.IterateRows2(
+            ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
                 new Rotate90RowAction(destination.Bounds(), source.Width, source.Height, source, destination));

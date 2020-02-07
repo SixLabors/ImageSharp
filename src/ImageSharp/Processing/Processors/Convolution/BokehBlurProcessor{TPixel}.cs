@@ -282,7 +282,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             float inverseGamma = 1 / this.gamma;
 
             // Apply the inverse gamma exposure pass, and write the final pixel data
-            ParallelRowIterator.IterateRows2(
+            ParallelRowIterator.IterateRows(
                 this.SourceRectangle,
                 this.Configuration,
                 new ApplyInverseGammaExposureRowAction(this.SourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, inverseGamma));
@@ -314,13 +314,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Vector4 parameters = Unsafe.Add(ref paramsRef, i);
 
                 // Compute the vertical 1D convolution
-                ParallelRowIterator.IterateRows2(
+                ParallelRowIterator.IterateRows(
                     sourceRectangle,
                     configuration,
                     new ApplyVerticalConvolutionRowAction(ref sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel));
 
                 // Compute the horizontal 1D convolutions and accumulate the partial results on the target buffer
-                ParallelRowIterator.IterateRows2(
+                ParallelRowIterator.IterateRows(
                     sourceRectangle,
                     configuration,
                     new ApplyHorizontalConvolutionRowAction(ref sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W));

@@ -336,6 +336,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly Buffer2D<ComplexVector4> targetValues;
             private readonly Buffer2D<TPixel> sourcePixels;
             private readonly Complex64[] kernel;
+            private readonly int maxY;
+            private readonly int maxX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public ApplyVerticalConvolutionRowIntervalAction(
@@ -345,6 +347,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Complex64[] kernel)
             {
                 this.bounds = bounds;
+                this.maxY = this.bounds.Bottom - 1;
+                this.maxX = this.bounds.Right - 1;
                 this.targetValues = targetValues;
                 this.sourcePixels = sourcePixels;
                 this.kernel = kernel;
@@ -354,16 +358,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)
             {
-                int maxY = this.bounds.Bottom - 1;
-                int maxX = this.bounds.Right - 1;
-
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<ComplexVector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
 
                     for (int x = 0; x < this.bounds.Width; x++)
                     {
-                        Buffer2DUtils.Convolve4(this.kernel, this.sourcePixels, targetRowSpan, y, x, this.bounds.Y, maxY, this.bounds.X, maxX);
+                        Buffer2DUtils.Convolve4(this.kernel, this.sourcePixels, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX);
                     }
                 }
             }
@@ -380,6 +381,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly Complex64[] kernel;
             private readonly float z;
             private readonly float w;
+            private readonly int maxY;
+            private readonly int maxX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public ApplyHorizontalConvolutionRowIntervalAction(
@@ -391,6 +394,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 float w)
             {
                 this.bounds = bounds;
+                this.maxY = this.bounds.Bottom - 1;
+                this.maxX = this.bounds.Right - 1;
                 this.targetValues = targetValues;
                 this.sourceValues = sourceValues;
                 this.kernel = kernel;
@@ -402,16 +407,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)
             {
-                int maxY = this.bounds.Bottom - 1;
-                int maxX = this.bounds.Right - 1;
-
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<Vector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
 
                     for (int x = 0; x < this.bounds.Width; x++)
                     {
-                        Buffer2DUtils.Convolve4AndAccumulatePartials(this.kernel, this.sourceValues, targetRowSpan, y, x, this.bounds.Y, maxY, this.bounds.X, maxX, this.z, this.w);
+                        Buffer2DUtils.Convolve4AndAccumulatePartials(this.kernel, this.sourceValues, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX, this.z, this.w);
                     }
                 }
             }

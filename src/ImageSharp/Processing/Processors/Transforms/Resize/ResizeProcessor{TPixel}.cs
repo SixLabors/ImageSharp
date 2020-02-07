@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private readonly int targetWidth;
         private readonly int targetHeight;
         private readonly IResampler resampler;
-        private Rectangle targetRectangle;
+        private readonly Rectangle targetRectangle;
         private readonly bool compand;
 
         // The following fields are not immutable but are optionally created on demand.

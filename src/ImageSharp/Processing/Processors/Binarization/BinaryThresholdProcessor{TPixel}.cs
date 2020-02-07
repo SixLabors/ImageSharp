@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
@@ -52,24 +54,61 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             ParallelRowIterator.IterateRows(
                 workingRect,
                 configuration,
-                rows =>
+                new RowIntervalAction(source, upper, lower, threshold, startX, endX, isAlphaOnly));
+        }
+
+        /// <summary>
+        /// A <see langword="struct"/> implementing the clone logic for <see cref="BinaryThresholdProcessor{TPixel}"/>.
+        /// </summary>
+        private readonly struct RowIntervalAction : IRowIntervalAction
+        {
+            private readonly ImageFrame<TPixel> source;
+            private readonly TPixel upper;
+            private readonly TPixel lower;
+            private readonly byte threshold;
+            private readonly int startX;
+            private readonly int endX;
+            private readonly bool isAlphaOnly;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalAction(
+                ImageFrame<TPixel> source,
+                TPixel upper,
+                TPixel lower,
+                byte threshold,
+                int startX,
+                int endX,
+                bool isAlphaOnly)
+            {
+                this.source = source;
+                this.upper = upper;
+                this.lower = lower;
+                this.threshold = threshold;
+                this.startX = startX;
+                this.endX = endX;
+                this.isAlphaOnly = isAlphaOnly;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                Rgba32 rgba = default;
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
+
+                    for (int x = this.startX; x < this.endX; x++)
                     {
-                        Rgba32 rgba = default;
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixel> row = source.GetPixelRowSpan(y);
+                        ref TPixel color = ref row[x];
+                        color.ToRgba32(ref rgba);
 
-                            for (int x = startX; x < endX; x++)
-                            {
-                                ref TPixel color = ref row[x];
-                                color.ToRgba32(ref rgba);
-
-                                // Convert to grayscale using ITU-R Recommendation BT.709 if required
-                                byte luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
-                                color = luminance >= threshold ? upper : lower;
-                            }
-                        }
-                    });
+                        // Convert to grayscale using ITU-R Recommendation BT.709 if required
+                        byte luminance = this.isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                        color = luminance >= this.threshold ? this.upper : this.lower;
+                    }
+                }
+            }
         }
     }
 }

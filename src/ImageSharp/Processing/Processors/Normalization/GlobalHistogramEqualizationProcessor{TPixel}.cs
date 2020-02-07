@@ -52,10 +52,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             using IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
 
             // Build the histogram of the grayscale levels
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRows2(
                 workingRect,
                 this.Configuration,
-                new GrayscaleLevelsRowIntervalAction(workingRect, histogramBuffer, source, this.LuminanceLevels));
+                new GrayscaleLevelsRowAction(workingRect, histogramBuffer, source, this.LuminanceLevels));
 
             Span<int> histogram = histogramBuffer.GetSpan();
             if (this.ClipHistogramEnabled)
@@ -74,16 +74,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
 
             // Apply the cdf to each pixel of the image
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRows2(
                 workingRect,
                 this.Configuration,
-                new CdfApplicationRowIntervalAction(workingRect, cdfBuffer, source, this.LuminanceLevels, numberOfPixelsMinusCdfMin));
+                new CdfApplicationRowAction(workingRect, cdfBuffer, source, this.LuminanceLevels, numberOfPixelsMinusCdfMin));
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the grayscale levels logic for <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/>.
         /// </summary>
-        private readonly struct GrayscaleLevelsRowIntervalAction : IRowIntervalAction
+        private readonly struct GrayscaleLevelsRowAction : IRowAction
         {
             private readonly Rectangle bounds;
             private readonly IMemoryOwner<int> histogramBuffer;
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             private readonly int luminanceLevels;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public GrayscaleLevelsRowIntervalAction(
+            public GrayscaleLevelsRowAction(
                 in Rectangle bounds,
                 IMemoryOwner<int> histogramBuffer,
                 ImageFrame<TPixel> source,
@@ -105,18 +105,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
                 ref int histogramBase = ref MemoryMarshal.GetReference(this.histogramBuffer.GetSpan());
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    ref TPixel pixelBase = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
+                ref TPixel pixelBase = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
 
-                    for (int x = 0; x < this.bounds.Width; x++)
-                    {
-                        int luminance = GetLuminance(Unsafe.Add(ref pixelBase, x), this.luminanceLevels);
-                        Unsafe.Add(ref histogramBase, luminance)++;
-                    }
+                for (int x = 0; x < this.bounds.Width; x++)
+                {
+                    int luminance = GetLuminance(Unsafe.Add(ref pixelBase, x), this.luminanceLevels);
+                    Unsafe.Add(ref histogramBase, luminance)++;
                 }
             }
         }
@@ -124,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// A <see langword="struct"/> implementing the cdf application levels logic for <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/>.
         /// </summary>
-        private readonly struct CdfApplicationRowIntervalAction : IRowIntervalAction
+        private readonly struct CdfApplicationRowAction : IRowAction
         {
             private readonly Rectangle bounds;
             private readonly IMemoryOwner<int> cdfBuffer;
@@ -133,7 +130,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             private readonly float numberOfPixelsMinusCdfMin;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public CdfApplicationRowIntervalAction(
+            public CdfApplicationRowAction(
                 in Rectangle bounds,
                 IMemoryOwner<int> cdfBuffer,
                 ImageFrame<TPixel> source,
@@ -149,20 +146,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
                 ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    ref TPixel pixelBase = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
+                ref TPixel pixelBase = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
 
-                    for (int x = 0; x < this.bounds.Width; x++)
-                    {
-                        ref TPixel pixel = ref Unsafe.Add(ref pixelBase, x);
-                        int luminance = GetLuminance(pixel, this.luminanceLevels);
-                        float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / this.numberOfPixelsMinusCdfMin;
-                        pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
-                    }
+                for (int x = 0; x < this.bounds.Width; x++)
+                {
+                    ref TPixel pixel = ref Unsafe.Add(ref pixelBase, x);
+                    int luminance = GetLuminance(pixel, this.luminanceLevels);
+                    float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / this.numberOfPixelsMinusCdfMin;
+                    pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                 }
             }
         }

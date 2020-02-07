@@ -60,10 +60,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 Rectangle sourceBounds = this.SourceRectangle;
 
-                ParallelRowIterator.IterateRows(
+                ParallelRowIterator.IterateRows2(
                     targetBounds,
                     configuration,
-                    new NearestNeighborRowIntervalAction(ref sourceBounds, ref matrix, width, source, destination));
+                    new NearestNeighborRowAction(ref sourceBounds, ref matrix, width, source, destination));
 
                 return;
             }
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 new RowIntervalAction(configuration, kernelMap, ref matrix, width, source, destination));
         }
 
-        private readonly struct NearestNeighborRowIntervalAction : IRowIntervalAction
+        private readonly struct NearestNeighborRowAction : IRowAction
         {
             private readonly Rectangle bounds;
             private readonly Matrix4x4 matrix;
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public NearestNeighborRowIntervalAction(
+            public NearestNeighborRowAction(
                 ref Rectangle bounds,
                 ref Matrix4x4 matrix,
                 int maxX,
@@ -100,22 +100,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
+                Span<TPixel> destRow = this.destination.GetPixelRowSpan(y);
+
+                for (int x = 0; x < this.maxX; x++)
                 {
-                    Span<TPixel> destRow = this.destination.GetPixelRowSpan(y);
+                    Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, this.matrix);
+                    int px = (int)MathF.Round(point.X);
+                    int py = (int)MathF.Round(point.Y);
 
-                    for (int x = 0; x < this.maxX; x++)
+                    if (this.bounds.Contains(px, py))
                     {
-                        Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, this.matrix);
-                        int px = (int)MathF.Round(point.X);
-                        int py = (int)MathF.Round(point.Y);
-
-                        if (this.bounds.Contains(px, py))
-                        {
-                            destRow[x] = this.source[px, py];
-                        }
+                        destRow[x] = this.source[px, py];
                     }
                 }
             }

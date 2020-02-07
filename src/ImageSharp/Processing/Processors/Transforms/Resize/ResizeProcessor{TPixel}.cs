@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -76,7 +76,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Configuration configuration = this.Configuration;
 
             // Handle resize dimensions identical to the original
-            if (source.Width == destination.Width && source.Height == destination.Height && sourceRectangle == this.targetRectangle)
+            if (source.Width == destination.Width
+                && source.Height == destination.Height
+                && sourceRectangle == this.targetRectangle)
             {
                 // The cloned will be blank here copy all the pixel data over
                 source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
@@ -85,14 +87,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             int width = this.targetWidth;
             int height = this.targetHeight;
-            int sourceX = sourceRectangle.X;
-            int sourceY = sourceRectangle.Y;
-            int startY = this.targetRectangle.Y;
-            int startX = this.targetRectangle.X;
-
-            var targetWorkingRect = Rectangle.Intersect(
-                this.targetRectangle,
-                new Rectangle(0, 0, width, height));
+            var interest = Rectangle.Intersect(this.targetRectangle, new Rectangle(0, 0, width, height));
 
             if (this.resampler is NearestNeighborResampler)
             {
@@ -101,23 +96,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float heightFactor = sourceRectangle.Height / (float)this.targetRectangle.Height;
 
                 ParallelRowIterator.IterateRows(
-                    targetWorkingRect,
+                    interest,
                     configuration,
-                    rows =>
-                    {
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            // Y coordinates of source points
-                            Span<TPixel> sourceRow = source.GetPixelRowSpan((int)(((y - startY) * heightFactor) + sourceY));
-                            Span<TPixel> targetRow = destination.GetPixelRowSpan(y);
-
-                            for (int x = targetWorkingRect.Left; x < targetWorkingRect.Right; x++)
-                            {
-                                // X coordinates of source points
-                                targetRow[x] = sourceRow[(int)(((x - startX) * widthFactor) + sourceX)];
-                            }
-                        }
-                    });
+                    new RowIntervalAction(sourceRectangle, this.targetRectangle, widthFactor, heightFactor, source, destination));
 
                 return;
             }
@@ -136,12 +117,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 this.horizontalKernelMap,
                 this.verticalKernelMap,
                 width,
-                targetWorkingRect,
+                interest,
                 this.targetRectangle.Location))
             {
                 worker.Initialize();
 
-                var workingInterval = new RowInterval(targetWorkingRect.Top, targetWorkingRect.Bottom);
+                var workingInterval = new RowInterval(interest.Top, interest.Bottom);
                 worker.FillDestinationPixels(workingInterval, destination.PixelBuffer);
             }
         }
@@ -164,6 +145,57 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             this.isDisposed = true;
             base.Dispose(disposing);
+        }
+
+        private readonly struct RowIntervalAction : IRowIntervalAction
+        {
+            private readonly Rectangle sourceBounds;
+            private readonly Rectangle destinationBounds;
+            private readonly float widthFactor;
+            private readonly float heightFactor;
+            private readonly ImageFrame<TPixel> source;
+            private readonly ImageFrame<TPixel> destination;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalAction(
+                Rectangle sourceBounds,
+                Rectangle destinationBounds,
+                float widthFactor,
+                float heightFactor,
+                ImageFrame<TPixel> source,
+                ImageFrame<TPixel> destination)
+            {
+                this.sourceBounds = sourceBounds;
+                this.destinationBounds = destinationBounds;
+                this.widthFactor = widthFactor;
+                this.heightFactor = heightFactor;
+                this.source = source;
+                this.destination = destination;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                int sourceX = this.sourceBounds.X;
+                int sourceY = this.sourceBounds.Y;
+                int destX = this.destinationBounds.X;
+                int destY = this.destinationBounds.Y;
+                int destLeft = this.destinationBounds.Left;
+                int destRight = this.destinationBounds.Right;
+
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    // Y coordinates of source points
+                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan((int)(((y - destY) * this.heightFactor) + sourceY));
+                    Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y);
+
+                    for (int x = destLeft; x < destRight; x++)
+                    {
+                        // X coordinates of source points
+                        targetRow[x] = sourceRow[(int)(((x - destX) * this.widthFactor) + sourceX)];
+                    }
+                }
+            }
         }
     }
 }

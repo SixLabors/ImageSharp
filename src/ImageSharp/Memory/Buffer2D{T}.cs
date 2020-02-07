@@ -84,19 +84,6 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Gets a <see cref="Memory{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
-        /// </summary>
-        /// <param name="y">The y (row) coordinate.</param>
-        /// <returns>The <see cref="Span{T}"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Memory<T> GetRowMemory(int y)
-        {
-            return this.cachedMemory.Length > 0
-                ? this.cachedMemory.Slice(y * this.Width, this.Width)
-                : this.GetRowMemorySlow(y);
-        }
-
-        /// <summary>
         /// Disposes the <see cref="Buffer2D{T}"/> instance
         /// </summary>
         public void Dispose()
@@ -104,6 +91,28 @@ namespace SixLabors.ImageSharp.Memory
             this.MemoryGroup.Dispose();
             this.cachedMemory = default;
         }
+
+        /// <summary>
+        /// Gets a <see cref="Memory{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
+        /// This method is intended for internal use only, since it does not use the indirection provided by
+        /// <see cref="MemoryGroupView{T}"/>.
+        /// </summary>
+        /// <param name="y">The y (row) coordinate.</param>
+        /// <returns>The <see cref="Span{T}"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Memory<T> GetRowMemoryFast(int y)
+        {
+            return this.cachedMemory.Length > 0
+                ? this.cachedMemory.Slice(y * this.Width, this.Width)
+                : this.GetRowMemorySlow(y);
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Memory{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
+        /// </summary>
+        /// <param name="y">The y (row) coordinate.</param>
+        /// <returns>The <see cref="Span{T}"/>.</returns>
+        internal Memory<T> GetRowMemorySafe(int y) => this.MemoryGroup.View.GetBoundedSlice(y * this.Width, this.Width);
 
         /// <summary>
         /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),

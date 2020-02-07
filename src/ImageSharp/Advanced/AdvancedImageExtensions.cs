@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>The <see cref="Span{TPixel}"/></returns>
         /// <exception cref="InvalidOperationException">Thrown when the backing buffer is discontiguous.</exception>
         [Obsolete(
-            @"GetPixelSpan might fail, because the backing buffer allowed to be discontiguous for large images. Use GetPixelMemoryGroup or GetPixelRowSpan instead!")]
+            @"GetPixelSpan might fail, because the backing buffer could be discontiguous for large images. Use GetPixelMemoryGroup or GetPixelRowSpan instead!")]
         public static Span<TPixel> GetPixelSpan<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>The <see cref="Span{TPixel}"/></returns>
         /// <exception cref="InvalidOperationException">Thrown when the backing buffer is discontiguous.</exception>
         [Obsolete(
-            @"GetPixelSpan might fail, because the backing buffer allowed to be discontiguous for large images. Use GetPixelMemoryGroup or GetPixelRowSpan instead!")]
+            @"GetPixelSpan might fail, because the backing buffer could be discontiguous for large images. Use GetPixelMemoryGroup or GetPixelRowSpan instead!")]
         public static Span<TPixel> GetPixelSpan<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
             => source.Frames.RootFrame.GetPixelSpan();
@@ -146,9 +146,9 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source.</param>
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
-        internal static Memory<TPixel> GetPixelRowMemory<TPixel>(this ImageFrame<TPixel> source, int rowIndex)
+        public static Memory<TPixel> GetPixelRowMemory<TPixel>(this ImageFrame<TPixel> source, int rowIndex)
             where TPixel : struct, IPixel<TPixel>
-            => source.PixelBuffer.GetRowMemory(rowIndex);
+            => source.PixelBuffer.GetRowMemorySafe(rowIndex);
 
         /// <summary>
         /// Gets the representation of the pixels as <see cref="Span{T}"/> of of contiguous memory
@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source.</param>
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
-        internal static Memory<TPixel> GetPixelRowMemory<TPixel>(this Image<TPixel> source, int rowIndex)
+        public static Memory<TPixel> GetPixelRowMemory<TPixel>(this Image<TPixel> source, int rowIndex)
             where TPixel : struct, IPixel<TPixel>
             => source.Frames.RootFrame.GetPixelRowMemory(rowIndex);
 
@@ -169,15 +169,5 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>Returns the configuration.</returns>
         internal static MemoryAllocator GetMemoryAllocator(this IConfigurationProvider source)
             => GetConfiguration(source).MemoryAllocator;
-
-        /// <summary>
-        /// Returns a reference to the 0th element of the Pixel buffer.
-        /// Such a reference can be used for pinning but must never be dereferenced.
-        /// </summary>
-        /// <param name="source">The source image frame</param>
-        /// <returns>A reference to the element.</returns>
-        private static ref TPixel DangerousGetPinnableReferenceToPixelBuffer<TPixel>(IPixelSource<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => ref MemoryMarshal.GetReference(source.PixelBuffer.GetSingleSpan());
     }
 }

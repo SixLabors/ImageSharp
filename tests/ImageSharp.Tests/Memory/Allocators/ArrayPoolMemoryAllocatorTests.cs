@@ -1,18 +1,15 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-// ReSharper disable InconsistentNaming
 using System;
 using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
-using Microsoft.Win32;
-using SixLabors.ImageSharp.Tests;
+using SixLabors.ImageSharp.Memory;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Memory.Tests
+namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 {
     public class ArrayPoolMemoryAllocatorTests
     {
@@ -116,13 +113,13 @@ namespace SixLabors.ImageSharp.Memory.Tests
             MemoryAllocator memoryAllocator = this.LocalFixture.MemoryAllocator;
             using (IMemoryOwner<int> firstAlloc = memoryAllocator.Allocate<int>(42))
             {
-                firstAlloc.GetSpan().Fill(666);
+                BufferExtensions.GetSpan(firstAlloc).Fill(666);
             }
 
             using (IMemoryOwner<int> secondAlloc = memoryAllocator.Allocate<int>(42, options))
             {
                 int expected = options == AllocationOptions.Clean ? 0 : 666;
-                Assert.Equal(expected, secondAlloc.GetSpan()[0]);
+                Assert.Equal(expected, BufferExtensions.GetSpan(secondAlloc)[0]);
             }
         }
 
@@ -133,7 +130,7 @@ namespace SixLabors.ImageSharp.Memory.Tests
         {
             MemoryAllocator memoryAllocator = this.LocalFixture.MemoryAllocator;
             IMemoryOwner<int> buffer = memoryAllocator.Allocate<int>(32);
-            ref int ptrToPrev0 = ref MemoryMarshal.GetReference(buffer.GetSpan());
+            ref int ptrToPrev0 = ref MemoryMarshal.GetReference(BufferExtensions.GetSpan(buffer));
 
             if (!keepBufferAlive)
             {
@@ -144,7 +141,7 @@ namespace SixLabors.ImageSharp.Memory.Tests
 
             buffer = memoryAllocator.Allocate<int>(32);
 
-            Assert.False(Unsafe.AreSame(ref ptrToPrev0, ref buffer.GetReference()));
+            Assert.False(Unsafe.AreSame(ref ptrToPrev0, ref BufferExtensions.GetReference(buffer)));
         }
 
         [Fact]
@@ -164,12 +161,12 @@ namespace SixLabors.ImageSharp.Memory.Tests
                 const int ArrayLengthThreshold = PoolSelectorThresholdInBytes / sizeof(int);
 
                 IMemoryOwner<int> small = StaticFixture.MemoryAllocator.Allocate<int>(ArrayLengthThreshold - 1);
-                ref int ptr2Small = ref small.GetReference();
+                ref int ptr2Small = ref BufferExtensions.GetReference(small);
                 small.Dispose();
 
                 IMemoryOwner<int> large = StaticFixture.MemoryAllocator.Allocate<int>(ArrayLengthThreshold + 1);
 
-                Assert.False(Unsafe.AreSame(ref ptr2Small, ref large.GetReference()));
+                Assert.False(Unsafe.AreSame(ref ptr2Small, ref BufferExtensions.GetReference(large)));
             }
 
             RemoteExecutor.Invoke(RunTest).Dispose();
@@ -216,12 +213,32 @@ namespace SixLabors.ImageSharp.Memory.Tests
 
         [Theory]
         [InlineData(-1)]
-        [InlineData((int.MaxValue / SizeOfLargeStruct) + 1)]
-        public void AllocateIncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
+        [InlineData(-111)]
+        public void Allocate_Negative_Throws_ArgumentOutOfRangeException(int length)
         {
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
                 this.LocalFixture.MemoryAllocator.Allocate<LargeStruct>(length));
             Assert.Equal("length", ex.ParamName);
+        }
+
+        [Fact]
+        public void AllocateZero()
+        {
+            using IMemoryOwner<int> buffer = this.LocalFixture.MemoryAllocator.Allocate<int>(0);
+            Assert.Equal(0, buffer.Memory.Length);
+        }
+
+        [Theory]
+        [InlineData(101)]
+        [InlineData((int.MaxValue / SizeOfLargeStruct) - 1)]
+        [InlineData(int.MaxValue / SizeOfLargeStruct)]
+        [InlineData((int.MaxValue / SizeOfLargeStruct) + 1)]
+        [InlineData((int.MaxValue / SizeOfLargeStruct) + 137)]
+        public void Allocate_OverCapacity_Throws_InvalidMemoryOperationException(int length)
+        {
+            this.LocalFixture.MemoryAllocator.BufferCapacityInBytes = 100 * SizeOfLargeStruct;
+            Assert.Throws<InvalidMemoryOperationException>(() =>
+                this.LocalFixture.MemoryAllocator.Allocate<LargeStruct>(length));
         }
 
         [Theory]
@@ -235,7 +252,7 @@ namespace SixLabors.ImageSharp.Memory.Tests
 
         private class MemoryAllocatorFixture
         {
-            public MemoryAllocator MemoryAllocator { get; set; } =
+            public ArrayPoolMemoryAllocator MemoryAllocator { get; set; } =
                 new ArrayPoolMemoryAllocator(MaxPooledBufferSizeInBytes, PoolSelectorThresholdInBytes);
 
             /// <summary>
@@ -245,11 +262,11 @@ namespace SixLabors.ImageSharp.Memory.Tests
                 where T : struct
             {
                 IMemoryOwner<T> buffer = this.MemoryAllocator.Allocate<T>(length);
-                ref T ptrToPrevPosition0 = ref buffer.GetReference();
+                ref T ptrToPrevPosition0 = ref BufferExtensions.GetReference(buffer);
                 buffer.Dispose();
 
                 buffer = this.MemoryAllocator.Allocate<T>(length);
-                bool sameBuffers = Unsafe.AreSame(ref ptrToPrevPosition0, ref buffer.GetReference());
+                bool sameBuffers = Unsafe.AreSame(ref ptrToPrevPosition0, ref BufferExtensions.GetReference(buffer));
                 buffer.Dispose();
 
                 return sameBuffers;

@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             using IMemoryOwner<TPixel> rowColors = allocator.Allocate<TPixel>(interest.Width);
             rowColors.GetSpan().Fill(vignetteColor);
 
-            ParallelRowIterator.IterateRows2<RowAction, float>(
+            ParallelRowIterator.IterateRows<RowAction, float>(
                 interest,
                 configuration,
                 new RowAction(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source));

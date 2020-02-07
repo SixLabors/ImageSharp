@@ -268,7 +268,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // Preliminary gamma highlight pass
-            ParallelRowIterator.IterateRows2<ApplyGammaExposureRowAction, Vector4>(
+            ParallelRowIterator.IterateRows<ApplyGammaExposureRowAction, Vector4>(
                 this.SourceRectangle,
                 this.Configuration,
                 new ApplyGammaExposureRowAction(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma));

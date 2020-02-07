@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Advanced
             if (numOfSteps == 1)
             {
                 var rows = new RowInterval(top, bottom);
-                body.Invoke(in rows);
+                Unsafe.AsRef(body).Invoke(in rows);
                 return;
             }
 
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Advanced
                 var rows = new RowInterval(top, bottom);
                 using (IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(width))
                 {
-                    body.Invoke(rows, buffer.Memory);
+                    Unsafe.AsRef(body).Invoke(rows, buffer.Memory);
                 }
 
                 return;

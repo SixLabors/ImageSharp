@@ -78,6 +78,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             for (dec.MbY = 0; dec.MbY < dec.BottomRightMbY; ++dec.MbY)
             {
+                // Parse bitstream for this row.
+                long bitreaderIdx = dec.MbY & dec.NumPartsMinusOne;
+                Vp8BitReader bitreader = dec.Vp8BitReaders[bitreaderIdx];
+
                 // Parse intra mode mode row.
                 for (int mbX = 0; mbX < dec.MbWidth; ++mbX)
                 {
@@ -86,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 for (; dec.MbX < dec.MbWidth; ++dec.MbX)
                 {
-                    this.DecodeMacroBlock(dec);
+                    this.DecodeMacroBlock(dec, bitreader);
                 }
 
                 // Prepare for next scanline.
@@ -168,7 +172,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void InitScanline(Vp8Decoder dec)
         {
-            Vp8MacroBlock left = dec.MacroBlockInfo[dec.MacroBlockIdx - 1];
+            Vp8MacroBlock left = dec.MacroBlockInfo[0];
             left.NoneZeroAcDcCoeffs = 0;
             left.NoneZeroDcCoeffs = 0;
             for (int i = 0; i < dec.IntraL.Length; i++)
@@ -324,16 +328,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private void DecodeMacroBlock(Vp8Decoder dec)
+        private void DecodeMacroBlock(Vp8Decoder dec, Vp8BitReader bitreader)
         {
-            Vp8MacroBlock left = dec.MacroBlockInfo[dec.MacroBlockIdx - 1]; // TODO: not sure if this - 1 is correct here
-            Vp8MacroBlock macroBlock = dec.MacroBlockInfo[dec.MacroBlockIdx + dec.MbX];
-            Vp8MacroBlockData blockData = dec.MacroBlockData[dec.MacroBlockIdx + dec.MbX];
+            Vp8MacroBlock left = dec.MacroBlockInfo[0];
+            Vp8MacroBlock macroBlock = dec.MacroBlockInfo[1 + dec.MbX];
+            Vp8MacroBlockData blockData = dec.MacroBlockData[dec.MbX];
             int skip = dec.UseSkipProbability ? blockData.Skip : 0;
 
             if (skip is 0)
             {
-                this.ParseResiduals(dec, macroBlock);
+                this.ParseResiduals(dec, bitreader, macroBlock);
             }
             else
             {
@@ -348,29 +352,33 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 blockData.Dither = 0;
             }
 
-            // TODO: store filter info
+            // Store filter info.
+            if (dec.Filter != LoopFilter.None)
+            {
+                dec.FilterInfo[dec.MbX] = dec.FilterStrength[blockData.Segment, blockData.IsI4x4 ? 1 : 0];
+                dec.FilterInfo[dec.MbX].InnerFiltering |= (byte)(skip is 0 ? 1 : 0);
+            }
         }
 
-        private bool ParseResiduals(Vp8Decoder decoder, Vp8MacroBlock mb)
+        private bool ParseResiduals(Vp8Decoder dec, Vp8BitReader br, Vp8MacroBlock mb)
         {
-            byte tnz, lnz;
             uint nonZeroY = 0;
             uint nonZeroUv = 0;
             int first;
             var dst = new short[384];
-            var dstOffset = 0;
-            Vp8MacroBlockData block = decoder.MacroBlockData[decoder.MbX];
-            Vp8QuantMatrix q = decoder.DeQuantMatrices[block.Segment];
-            Vp8BandProbas[,] bands = decoder.Probabilities.BandsPtr;
+            int dstOffset = 0;
+            Vp8MacroBlockData block = dec.MacroBlockData[dec.MbX];
+            Vp8QuantMatrix q = dec.DeQuantMatrices[block.Segment];
+            Vp8BandProbas[,] bands = dec.Probabilities.BandsPtr;
             Vp8BandProbas[] acProba;
-            Vp8MacroBlock leftMb = null; // TODO: this value needs to be set
+            Vp8MacroBlock leftMb = dec.MacroBlockInfo[0];
 
             if (!block.IsI4x4)
             {
                 // Parse DC
                 var dc = new short[16];
                 int ctx = (int)(mb.NoneZeroDcCoeffs + leftMb.NoneZeroDcCoeffs);
-                int nz = this.GetCoeffs(GetBandsRow(bands, 1), ctx, q.Y2Mat, 0, dc);
+                int nz = this.GetCoeffs(br, GetBandsRow(bands, 1), ctx, q.Y2Mat, 0, dc);
                 mb.NoneZeroDcCoeffs = leftMb.NoneZeroDcCoeffs = (uint)(nz > 0 ? 1 : 0);
                 if (nz > 0)
                 {
@@ -395,8 +403,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 acProba = GetBandsRow(bands, 3);
             }
 
-            tnz = (byte)(mb.NoneZeroAcDcCoeffs & 0x0f);
-            lnz = (byte)(leftMb.NoneZeroAcDcCoeffs & 0x0f);
+            byte tnz = (byte)(mb.NoneZeroAcDcCoeffs & 0x0f);
+            byte lnz = (byte)(leftMb.NoneZeroAcDcCoeffs & 0x0f);
 
             for (int y = 0; y < 4; ++y)
             {
@@ -405,7 +413,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 for (int x = 0; x < 4; ++x)
                 {
                     int ctx = l + (tnz & 1);
-                    int nz = this.GetCoeffs(acProba, ctx, q.Y1Mat, first, dst.AsSpan(dstOffset));
+                    int nz = this.GetCoeffs(br, acProba, ctx, q.Y1Mat, first, dst.AsSpan(dstOffset));
                     l = (nz > first) ? 1 : 0;
                     tnz = (byte)((tnz >> 1) | (l << 7));
                     nzCoeffs = NzCodeBits(nzCoeffs, nz, dst[0] != 0 ? 1 : 0);
@@ -431,7 +439,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     for (int x = 0; x < 2; ++x)
                     {
                         int ctx = l + (tnz & 1);
-                        int nz = this.GetCoeffs(GetBandsRow(bands, 2), ctx, q.UvMat, 0, dst.AsSpan(dstOffset));
+                        int nz = this.GetCoeffs(br, GetBandsRow(bands, 2), ctx, q.UvMat, 0, dst.AsSpan(dstOffset));
                         l = (nz > 0) ? 1 : 0;
                         tnz = (byte)((tnz >> 1) | (l << 3));
                         nzCoeffs = NzCodeBits(nzCoeffs, nz, dst[0] != 0 ? 1 : 0);
@@ -462,7 +470,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return (nonZeroY | nonZeroUv) is 0;
         }
 
-        private int GetCoeffs(Vp8BandProbas[] prob, int ctx, int[] dq, int n, Span<short> coeffs)
+        private int GetCoeffs(Vp8BitReader br, Vp8BandProbas[] prob, int ctx, int[] dq, int n, Span<short> coeffs)
         {
             // Returns the position of the last non - zero coeff plus one.
             Vp8ProbaArray p = prob[n].Probabilities[ctx];
@@ -475,7 +483,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 // Sequence of zero coeffs.
-                while (this.bitReader.GetBit((int)p.Probabilities[1]) is 0)
+                while (br.GetBit((int)p.Probabilities[1]) is 0)
                 {
                     p = prob[++n].Probabilities[0];
                     if (n is 16)
@@ -486,7 +494,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 // Non zero coeffs.
                 int v;
-                if (this.bitReader.GetBit((int)p.Probabilities[2]) is 0)
+                if (br.GetBit((int)p.Probabilities[2]) is 0)
                 {
                     v = 1;
                     p = prob[n + 1].Probabilities[1];
@@ -498,7 +506,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 int idx = n > 0 ? 1 : 0;
-                coeffs[WebPConstants.Zigzag[n]] = (short)(this.bitReader.ReadSignedValue(v) * dq[idx]);
+                coeffs[WebPConstants.Zigzag[n]] = (short)(br.ReadSignedValue(v) * dq[idx]);
             }
 
             return 16;

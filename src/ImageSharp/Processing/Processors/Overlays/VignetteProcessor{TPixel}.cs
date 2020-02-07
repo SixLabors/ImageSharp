@@ -60,15 +60,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             Configuration configuration = this.Configuration;
             MemoryAllocator allocator = configuration.MemoryAllocator;
 
-            using (IMemoryOwner<TPixel> rowColors = allocator.Allocate<TPixel>(interest.Width))
-            {
-                rowColors.GetSpan().Fill(vignetteColor);
+            using IMemoryOwner<TPixel> rowColors = allocator.Allocate<TPixel>(interest.Width);
+            rowColors.GetSpan().Fill(vignetteColor);
 
-                ParallelRowIterator.IterateRows<RowIntervalAction, float>(
-                    interest,
-                    configuration,
-                    new RowIntervalAction(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source));
-            }
+            ParallelRowIterator.IterateRows<RowIntervalAction, float>(
+                interest,
+                configuration,
+                new RowIntervalAction(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source));
         }
 
         private readonly struct RowIntervalAction : IRowIntervalAction<float>

@@ -80,6 +80,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
         {
             private readonly Rectangle bounds;
+            private readonly int maxY;
+            private readonly int maxX;
             private readonly Buffer2D<TPixel> targetPixels;
             private readonly Buffer2D<TPixel> sourcePixels;
             private readonly DenseMatrix<float> kernelY;
@@ -98,6 +100,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 bool preserveAlpha)
             {
                 this.bounds = bounds;
+                this.maxY = this.bounds.Bottom - 1;
+                this.maxX = this.bounds.Right - 1;
                 this.targetPixels = targetPixels;
                 this.sourcePixels = sourcePixels;
                 this.kernelY = kernelY;
@@ -113,9 +117,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Span<Vector4> vectorSpan = memory.Span;
                 int length = vectorSpan.Length;
                 ref Vector4 vectorSpanRef = ref MemoryMarshal.GetReference(vectorSpan);
-
-                int maxY = this.bounds.Bottom - 1;
-                int maxX = this.bounds.Right - 1;
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
@@ -134,9 +135,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                 y,
                                 x,
                                 this.bounds.Y,
-                                maxY,
+                                this.maxY,
                                 this.bounds.X,
-                                maxX);
+                                this.maxX);
                         }
                     }
                     else
@@ -151,9 +152,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                 y,
                                 x,
                                 this.bounds.Y,
-                                maxY,
+                                this.maxY,
                                 this.bounds.X,
-                                maxX);
+                                this.maxX);
                         }
                     }
 

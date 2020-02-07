@@ -199,22 +199,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return x;
         }
 
+        // Returns 31 ^ clz(n) = log2(n).Returns 31 ^ clz(n) = log2(n).
         private int BitsLog2Floor(uint n)
         {
-            // Search the mask data from most significant bit (MSB) to least significant bit (LSB) for a set bit (1).
-            // https://docs.microsoft.com/en-us/cpp/intrinsics/bitscanreverse-bitscanreverse64?view=vs-2019
-            uint mask = 1;
-            for (int y = 0; y < 32; y++)
+            int logValue = 0;
+            while (n >= 256)
             {
-                if ((mask & n) == mask)
-                {
-                    return y;
-                }
-
-                mask <<= 1;
+                logValue += 8;
+                n >>= 8;
             }
 
-            return 0;
+            return logValue + WebPConstants.LogTable8bit[n];
         }
     }
 }

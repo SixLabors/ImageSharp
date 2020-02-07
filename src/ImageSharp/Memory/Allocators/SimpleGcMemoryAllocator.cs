@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Memory
     public sealed class SimpleGcMemoryAllocator : MemoryAllocator
     {
         /// <inheritdoc />
-        protected internal override int GetBufferCapacityInBytes() => DefaultBufferCapacity;
+        protected internal override int GetBufferCapacityInBytes() => int.MaxValue;
 
         /// <inheritdoc />
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)

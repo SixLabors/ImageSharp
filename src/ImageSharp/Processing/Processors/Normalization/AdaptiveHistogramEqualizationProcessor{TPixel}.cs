@@ -473,7 +473,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             private readonly Buffer2D<int> cdfLutBuffer2D;
             private readonly int pixelsInTile;
             private readonly int sourceWidth;
-            private readonly int sourceHeight;
             private readonly int tileWidth;
             private readonly int tileHeight;
             private readonly int luminanceLevels;
@@ -495,7 +494,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 this.cdfMinBuffer2D = this.memoryAllocator.Allocate2D<int>(tileCountX, tileCountY);
                 this.cdfLutBuffer2D = this.memoryAllocator.Allocate2D<int>(tileCountX * luminanceLevels, tileCountY);
                 this.sourceWidth = sourceWidth;
-                this.sourceHeight = sourceHeight;
                 this.tileWidth = tileWidth;
                 this.tileHeight = tileHeight;
                 this.pixelsInTile = tileWidth * tileHeight;

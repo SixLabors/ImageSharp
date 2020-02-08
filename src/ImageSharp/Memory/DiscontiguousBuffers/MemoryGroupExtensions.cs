@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Memory
 {
     internal static class MemoryGroupExtensions
     {
-        public static void Fill<T>(this IMemoryGroup<T> group, T value)
+        internal static void Fill<T>(this IMemoryGroup<T> group, T value)
             where T : struct
         {
             foreach (Memory<T> memory in group)
@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        public static void Clear<T>(this IMemoryGroup<T> group)
+        internal static void Clear<T>(this IMemoryGroup<T> group)
             where T : struct
         {
             foreach (Memory<T> memory in group)
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Memory
         /// Returns a slice that is expected to be within the bounds of a single buffer.
         /// Otherwise <see cref="ArgumentOutOfRangeException"/> is thrown.
         /// </summary>
-        public static Memory<T> GetBoundedSlice<T>(this IMemoryGroup<T> group, long start, int length)
+        internal static Memory<T> GetBoundedSlice<T>(this IMemoryGroup<T> group, long start, int length)
             where T : struct
         {
             Guard.NotNull(group, nameof(group));
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Memory
             return memory.Slice(bufferStart, length);
         }
 
-        public static void CopyTo<T>(this IMemoryGroup<T> source, Span<T> target)
+        internal static void CopyTo<T>(this IMemoryGroup<T> source, Span<T> target)
             where T : struct
         {
             Guard.NotNull(source, nameof(source));
@@ -74,11 +74,11 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        public static void CopyTo<T>(this Span<T> source, IMemoryGroup<T> target)
+        internal static void CopyTo<T>(this Span<T> source, IMemoryGroup<T> target)
             where T : struct
             => CopyTo((ReadOnlySpan<T>)source, target);
 
-        public static void CopyTo<T>(this ReadOnlySpan<T> source, IMemoryGroup<T> target)
+        internal static void CopyTo<T>(this ReadOnlySpan<T> source, IMemoryGroup<T> target)
             where T : struct
         {
             Guard.NotNull(target, nameof(target));
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        public static void CopyTo<T>(this IMemoryGroup<T> source, IMemoryGroup<T> target)
+        internal static void CopyTo<T>(this IMemoryGroup<T> source, IMemoryGroup<T> target)
             where T : struct
         {
             Guard.NotNull(source, nameof(source));
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        public static void TransformTo<T>(
+        internal static void TransformTo<T>(
             this IMemoryGroup<T> source,
             IMemoryGroup<T> target,
             TransformItemsDelegate<T> transform)
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        public static void TransformInplace<T>(
+        internal static void TransformInplace<T>(
             this IMemoryGroup<T> memoryGroup,
             TransformItemsInplaceDelegate<T> transform)
             where T : struct
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        public static bool IsEmpty<T>(this IMemoryGroup<T> group)
+        internal static bool IsEmpty<T>(this IMemoryGroup<T> group)
             where T : struct
             => group.Count == 0;
 

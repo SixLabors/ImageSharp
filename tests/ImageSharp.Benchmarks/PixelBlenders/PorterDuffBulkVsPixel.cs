@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                     Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
                     for (int y = 0; y < image.Height; y++)
                     {
-                        Span<Rgba32> span = pixels.GetRowSpan(y);
+                        Span<Rgba32> span = pixels.GetRowSpanUnchecked(y);
                         this.BulkVectorConvert(span, span, span, amounts.GetSpan());
                     }
 
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Benchmarks
                     Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
                     for (int y = 0; y < image.Height; y++)
                     {
-                        Span<Rgba32> span = pixels.GetRowSpan(y);
+                        Span<Rgba32> span = pixels.GetRowSpanUnchecked(y);
                         this.BulkPixelConvert(span, span, span, amounts.GetSpan());
                     }
 

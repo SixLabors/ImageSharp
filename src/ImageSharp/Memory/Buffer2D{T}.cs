@@ -50,6 +50,11 @@ namespace SixLabors.ImageSharp.Memory
         /// <summary>
         /// Gets the backing <see cref="MemoryGroup{T}"/>.
         /// </summary>
+        /// <remarks>
+        /// This property has been kept internal intentionally.
+        /// It's public counterpart is <see cref="Buffer2DExtensions.GetMemoryGroup{T}"/>,
+        /// which only exposes the view of the MemoryGroup.
+        /// </remarks>
         internal MemoryGroup<T> MemoryGroup { get; }
 
         /// <summary>
@@ -66,7 +71,7 @@ namespace SixLabors.ImageSharp.Memory
                 DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
                 DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
 
-                return ref this.GetRowSpan(y)[x];
+                return ref this.GetRowSpanUnchecked(y)[x];
             }
         }
 
@@ -78,6 +83,9 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<T> GetRowSpan(int y)
         {
+            Guard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
+            Guard.MustBeLessThan(y, this.Height, nameof(y));
+
             return this.cachedMemory.Length > 0
                 ? this.cachedMemory.Span.Slice(y * this.Width, this.Width)
                 : this.GetRowMemorySlow(y).Span;
@@ -93,6 +101,20 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
+        /// Same as <see cref="GetRowSpan"/>, but does not validate index in Release mode.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Span<T> GetRowSpanUnchecked(int y)
+        {
+            DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
+            DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
+
+            return this.cachedMemory.Length > 0
+                ? this.cachedMemory.Span.Slice(y * this.Width, this.Width)
+                : this.GetRowMemorySlow(y).Span;
+        }
+
+        /// <summary>
         /// Gets a <see cref="Memory{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
         /// This method is intended for internal use only, since it does not use the indirection provided by
         /// <see cref="MemoryGroupView{T}"/>.
@@ -102,6 +124,8 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal Memory<T> GetRowMemoryFast(int y)
         {
+            DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
+            DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
             return this.cachedMemory.Length > 0
                 ? this.cachedMemory.Slice(y * this.Width, this.Width)
                 : this.GetRowMemorySlow(y);
@@ -112,7 +136,12 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <param name="y">The y (row) coordinate.</param>
         /// <returns>The <see cref="Span{T}"/>.</returns>
-        internal Memory<T> GetRowMemorySafe(int y) => this.MemoryGroup.View.GetBoundedSlice(y * this.Width, this.Width);
+        internal Memory<T> GetRowMemorySafe(int y)
+        {
+            DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
+            DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
+            return this.MemoryGroup.View.GetBoundedSlice(y * this.Width, this.Width);
+        }
 
         /// <summary>
         /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),

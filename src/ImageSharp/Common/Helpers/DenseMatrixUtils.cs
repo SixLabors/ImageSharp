@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp
             for (int y = 0; y < matrixHeight; y++)
             {
                 int offsetY = (row + y - radiusY).Clamp(minRow, maxRow);
-                Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
+                Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpanUnchecked(offsetY);
 
                 for (int x = 0; x < matrixWidth; x++)
                 {
@@ -264,7 +264,7 @@ namespace SixLabors.ImageSharp
             for (int y = 0; y < matrixHeight; y++)
             {
                 int offsetY = (row + y - radiusY).Clamp(minRow, maxRow);
-                Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
+                Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpanUnchecked(offsetY);
 
                 for (int x = 0; x < matrixWidth; x++)
                 {

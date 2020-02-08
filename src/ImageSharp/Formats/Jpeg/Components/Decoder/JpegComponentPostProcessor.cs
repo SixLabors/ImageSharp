@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 int yBuffer = y * this.blockAreaSize.Height;
 
-                Span<Block8x8> blockRow = this.Component.SpectralBlocks.GetRowSpan(yBlock);
+                Span<Block8x8> blockRow = this.Component.SpectralBlocks.GetRowSpanUnchecked(yBlock);
 
                 ref Block8x8 blockRowBase = ref MemoryMarshal.GetReference(blockRow);
 

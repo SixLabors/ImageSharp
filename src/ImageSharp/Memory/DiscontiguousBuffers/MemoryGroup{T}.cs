@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Memory
 
             if (bufferCount > 0)
             {
-                buffers[^1] = allocator.Allocate<T>(sizeOfLastBuffer, options);
+                buffers[buffers.Length - 1] = allocator.Allocate<T>(sizeOfLastBuffer, options);
             }
 
             return new Owned(buffers, bufferLength, totalLength, true);
@@ -130,12 +130,12 @@ namespace SixLabors.ImageSharp.Memory
                 }
             }
 
-            if (source.Length > 0 && source[^1].Length > bufferLength)
+            if (source.Length > 0 && source[source.Length - 1].Length > bufferLength)
             {
                 throw new InvalidMemoryOperationException("Wrap: the last buffer is too large!");
             }
 
-            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source[^1].Length : 0;
+            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source[source.Length - 1].Length : 0;
 
             return new Consumed(source, bufferLength, totalLength);
         }
@@ -151,12 +151,12 @@ namespace SixLabors.ImageSharp.Memory
                 }
             }
 
-            if (source.Length > 0 && source[^1].Memory.Length > bufferLength)
+            if (source.Length > 0 && source[source.Length - 1].Memory.Length > bufferLength)
             {
                 throw new InvalidMemoryOperationException("Wrap: the last buffer is too large!");
             }
 
-            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source[^1].Memory.Length : 0;
+            long totalLength = bufferLength > 0 ? ((long)bufferLength * (source.Length - 1)) + source[source.Length - 1].Memory.Length : 0;
 
             return new Owned(source, bufferLength, totalLength, false);
         }

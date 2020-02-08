@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             ParallelRowIterator.IterateRows(
                 this.SourceRectangle,
                 this.Configuration,
-                new RowIntervalAction(this.SourceRectangle, targetPixels, source, this.Configuration, brushSize >> 1, this.definition.Levels));
+                new RowIntervalOperation(this.SourceRectangle, targetPixels, source, this.Configuration, brushSize >> 1, this.definition.Levels));
 
             Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
         }
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// <summary>
         /// A <see langword="struct"/> implementing the convolution logic for <see cref="OilPaintingProcessor{T}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction : IRowIntervalAction
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> targetPixels;
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             private readonly int levels;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 ImageFrame<TPixel> source,

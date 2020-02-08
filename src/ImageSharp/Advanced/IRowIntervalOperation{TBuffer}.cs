@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// Defines the contract for an action that operates on a row interval with a temporary buffer.
     /// </summary>
     /// <typeparam name="TBuffer">The type of buffer elements.</typeparam>
-    public interface IRowIntervalAction<TBuffer>
+    public interface IRowIntervalOperation<TBuffer>
         where TBuffer : unmanaged
     {
         /// <summary>
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Advanced
         void Invoke(in RowInterval rows, Memory<TBuffer> memory);
     }
 
-    internal readonly struct WrappingRowIntervalBufferAction<TBuffer>
+    internal readonly struct WrappingRowIntervalBufferOperation<TBuffer>
         where TBuffer : unmanaged
     {
         private readonly WrappingRowIntervalInfo info;
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Advanced
         private readonly Action<RowInterval, Memory<TBuffer>> action;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public WrappingRowIntervalBufferAction(
+        public WrappingRowIntervalBufferOperation(
             in WrappingRowIntervalInfo info,
             MemoryAllocator allocator,
             Action<RowInterval, Memory<TBuffer>> action)
@@ -59,23 +59,23 @@ namespace SixLabors.ImageSharp.Advanced
         }
     }
 
-    internal readonly struct WrappingRowIntervalBufferAction<T, TBuffer>
-        where T : struct, IRowIntervalAction<TBuffer>
+    internal readonly struct WrappingRowIntervalBufferOperation<T, TBuffer>
+        where T : struct, IRowIntervalOperation<TBuffer>
         where TBuffer : unmanaged
     {
         private readonly WrappingRowIntervalInfo info;
         private readonly MemoryAllocator allocator;
-        private readonly T action;
+        private readonly T operation;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public WrappingRowIntervalBufferAction(
+        public WrappingRowIntervalBufferOperation(
             in WrappingRowIntervalInfo info,
             MemoryAllocator allocator,
-            in T action)
+            in T operation)
         {
             this.info = info;
             this.allocator = allocator;
-            this.action = action;
+            this.operation = operation;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Advanced
 
             using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.MaxX);
 
-            Unsafe.AsRef(this.action).Invoke(in rows, buffer.Memory);
+            Unsafe.AsRef(this.operation).Invoke(in rows, buffer.Memory);
         }
     }
 }

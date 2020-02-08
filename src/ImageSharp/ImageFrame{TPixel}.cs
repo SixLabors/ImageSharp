@@ -263,7 +263,7 @@ namespace SixLabors.ImageSharp
             ParallelRowIterator.IterateRows(
                 this.Bounds(),
                 configuration,
-                new RowIntervalAction<TPixel2>(this, target, configuration));
+                new RowIntervalOperation<TPixel2>(this, target, configuration));
 
             return target;
         }
@@ -289,7 +289,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// A <see langword="struct"/> implementing the clone logic for <see cref="ImageFrame{TPixel}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction<TPixel2> : IRowIntervalAction
+        private readonly struct RowIntervalOperation<TPixel2> : IRowIntervalOperation
             where TPixel2 : struct, IPixel<TPixel2>
         {
             private readonly ImageFrame<TPixel> source;
@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp
             private readonly Configuration configuration;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 ImageFrame<TPixel> source,
                 ImageFrame<TPixel2> target,
                 Configuration configuration)

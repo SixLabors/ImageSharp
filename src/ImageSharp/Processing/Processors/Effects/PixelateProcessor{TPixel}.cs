@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -29,9 +28,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public PixelateProcessor(Configuration configuration, PixelateProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
-        {
-            this.definition = definition;
-        }
+            => this.definition = definition;
 
         private int Size => this.definition.Size;
 
@@ -51,10 +48,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             Parallel.ForEach(
             range,
             this.Configuration.GetParallelOptions(),
-            new RowAction(interest, size, source).Invoke);
+            new RowOperation(interest, size, source).Invoke);
         }
 
-        private readonly struct RowAction
+        private readonly struct RowOperation
         {
             private readonly int minX;
             private readonly int maxX;
@@ -66,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             private readonly ImageFrame<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowAction(
+            public RowOperation(
                 Rectangle bounds,
                 int size,
                 ImageFrame<TPixel> source)

@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 ParallelRowIterator.IterateRows(
                     interest,
                     configuration,
-                    new RowIntervalAction(sourceRectangle, this.targetRectangle, widthFactor, heightFactor, source, destination));
+                    new RowIntervalOperation(sourceRectangle, this.targetRectangle, widthFactor, heightFactor, source, destination));
 
                 return;
             }
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             base.Dispose(disposing);
         }
 
-        private readonly struct RowIntervalAction : IRowIntervalAction
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle sourceBounds;
             private readonly Rectangle destinationBounds;
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 Rectangle sourceBounds,
                 Rectangle destinationBounds,
                 float widthFactor,

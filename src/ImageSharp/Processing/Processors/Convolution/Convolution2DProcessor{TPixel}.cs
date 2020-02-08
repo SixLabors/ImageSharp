@@ -66,10 +66,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
                 interest,
                 this.Configuration,
-                new RowIntervalAction(interest, targetPixels, source.PixelBuffer, this.KernelY, this.KernelX, this.Configuration, this.PreserveAlpha));
+                new RowIntervalOperation(interest, targetPixels, source.PixelBuffer, this.KernelY, this.KernelX, this.Configuration, this.PreserveAlpha));
 
             Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
         }
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// A <see langword="struct"/> implementing the convolution logic for <see cref="Convolution2DProcessor{T}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
+        private readonly struct RowIntervalOperation : IRowIntervalOperation<Vector4>
         {
             private readonly Rectangle bounds;
             private readonly int maxY;
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly bool preserveAlpha;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<TPixel> sourcePixels,

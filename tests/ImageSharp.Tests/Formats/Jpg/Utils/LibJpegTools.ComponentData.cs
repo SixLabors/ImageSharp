@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                 for (int y = 0; y < result.HeightInBlocks; y++)
                 {
-                    Span<Block8x8> blockRow = c.SpectralBlocks.GetRowSpan(y);
+                    Span<Block8x8> blockRow = c.SpectralBlocks.GetRowSpanUnchecked(y);
                     for (int x = 0; x < result.WidthInBlocks; x++)
                     {
                         short[] data = blockRow[x].ToArray();

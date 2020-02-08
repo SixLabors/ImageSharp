@@ -241,7 +241,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     $"Error in KernelMap.CreateKernel({dataRowIndex},{left},{right}): left > this.data.Width");
             }
 
-            Span<float> rowSpan = this.data.GetRowSpan(dataRowIndex);
+            Span<float> rowSpan = this.data.GetRowSpanUnchecked(dataRowIndex);
 
             ref float rowReference = ref MemoryMarshal.GetReference(rowSpan);
             float* rowPtr = (float*)Unsafe.AsPointer(ref rowReference);

@@ -487,7 +487,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             int y = this.tileYStartPositions[index].y;
                             int endY = Math.Min(y + tileHeight, sourceHeight);
                             ref TPixel sourceBase = ref source.GetPixelReference(0, 0);
-                            ref int cdfMinBase = ref MemoryMarshal.GetReference(this.cdfMinBuffer2D.GetRowSpan(cdfY));
+                            ref int cdfMinBase = ref MemoryMarshal.GetReference(this.cdfMinBuffer2D.GetRowSpanUnchecked(cdfY));
 
                             using (IMemoryOwner<int> histogramBuffer = this.memoryAllocator.Allocate<int>(luminanceLevels))
                             {
@@ -524,7 +524,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public Span<int> GetCdfLutSpan(int tileX, int tileY) => this.cdfLutBuffer2D.GetRowSpan(tileY).Slice(tileX * this.luminanceLevels, this.luminanceLevels);
+            public Span<int> GetCdfLutSpan(int tileX, int tileY) => this.cdfLutBuffer2D.GetRowSpanUnchecked(tileY).Slice(tileX * this.luminanceLevels, this.luminanceLevels);
 
             /// <summary>
             /// Remaps the grey value with the cdf.

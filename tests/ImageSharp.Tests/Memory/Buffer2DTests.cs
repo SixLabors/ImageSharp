@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
             using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
-                Span<TestStructs.Foo> span = buffer.GetRowSpan(y);
+                Span<TestStructs.Foo> span = buffer.GetRowSpanUnchecked(y);
 
                 Assert.Equal(width, span.Length);
 
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 for (int y = 0; y < b.Height; y++)
                 {
-                    Span<float> row = b.GetRowSpan(y);
+                    Span<float> row = b.GetRowSpanUnchecked(y);
 
                     Span<float> s = row.Slice(startIndex, columnCount);
                     Span<float> d = row.Slice(destIndex, columnCount);
@@ -195,7 +195,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 for (int y = 0; y < b.Height; y++)
                 {
-                    Span<float> row = b.GetRowSpan(y);
+                    Span<float> row = b.GetRowSpanUnchecked(y);
 
                     Span<float> s = row.Slice(0, 22);
                     Span<float> d = row.Slice(50, 22);

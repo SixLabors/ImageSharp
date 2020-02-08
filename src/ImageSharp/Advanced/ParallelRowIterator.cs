@@ -19,32 +19,32 @@ namespace SixLabors.ImageSharp.Advanced
     public static class ParallelRowIterator
     {
         /// <summary>
-        /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
+        /// Iterate through the rows of a rectangle in optimized batches.
         /// </summary>
         /// <typeparam name="T">The type of row action to perform.</typeparam>
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
         /// <param name="configuration">The <see cref="Configuration"/> to get the parallel settings from.</param>
-        /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
+        /// <param name="body">The method body defining the iteration logic on a single row.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void IterateRows<T>(Rectangle rectangle, Configuration configuration, in T body)
-            where T : struct, IRowIntervalAction
+            where T : struct, IRowAction
         {
             var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
             IterateRows(rectangle, in parallelSettings, in body);
         }
 
         /// <summary>
-        /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
+        /// Iterate through the rows of a rectangle in optimized batches.
         /// </summary>
         /// <typeparam name="T">The type of row action to perform.</typeparam>
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
         /// <param name="parallelSettings">The <see cref="ParallelExecutionSettings"/>.</param>
-        /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
+        /// <param name="body">The method body defining the iteration logic on a single row.</param>
         public static void IterateRows<T>(
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
             in T body)
-            where T : struct, IRowIntervalAction
+            where T : struct, IRowAction
         {
             ValidateRectangle(rectangle);
 
@@ -59,15 +59,17 @@ namespace SixLabors.ImageSharp.Advanced
             // Avoid TPL overhead in this trivial case:
             if (numOfSteps == 1)
             {
-                var rows = new RowInterval(top, bottom);
-                Unsafe.AsRef(body).Invoke(in rows);
+                for (int y = top; y < bottom; y++)
+                {
+                    Unsafe.AsRef(body).Invoke(y);
+                }
+
                 return;
             }
 
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-            var rowInfo = new WrappingRowIntervalInfo(top, bottom, verticalStep);
-            var rowAction = new WrappingRowIntervalAction<T>(in rowInfo, in body);
+            var rowAction = new WrappingRowAction<T>(top, bottom, verticalStep, in body);
 
             Parallel.For(
                 0,
@@ -86,7 +88,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="configuration">The <see cref="Configuration"/> to get the parallel settings from.</param>
         /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
         public static void IterateRows<T, TBuffer>(Rectangle rectangle, Configuration configuration, in T body)
-            where T : struct, IRowIntervalAction<TBuffer>
+            where T : struct, IRowAction<TBuffer>
             where TBuffer : unmanaged
         {
             var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
@@ -101,7 +103,7 @@ namespace SixLabors.ImageSharp.Advanced
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
             in T body)
-            where T : struct, IRowIntervalAction<TBuffer>
+            where T : struct, IRowAction<TBuffer>
             where TBuffer : unmanaged
         {
             ValidateRectangle(rectangle);
@@ -118,10 +120,14 @@ namespace SixLabors.ImageSharp.Advanced
             // Avoid TPL overhead in this trivial case:
             if (numOfSteps == 1)
             {
-                var rows = new RowInterval(top, bottom);
                 using (IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(width))
                 {
-                    Unsafe.AsRef(body).Invoke(rows, buffer.Memory);
+                    Span<TBuffer> span = buffer.Memory.Span;
+
+                    for (int y = top; y < bottom; y++)
+                    {
+                        Unsafe.AsRef(body).Invoke(y, span);
+                    }
                 }
 
                 return;
@@ -129,8 +135,7 @@ namespace SixLabors.ImageSharp.Advanced
 
             int verticalStep = DivideCeil(height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-            var rowInfo = new WrappingRowIntervalInfo(top, bottom, verticalStep, width);
-            var rowAction = new WrappingRowIntervalBufferAction<T, TBuffer>(in rowInfo, allocator, in body);
+            var rowAction = new WrappingRowAction<T, TBuffer>(top, bottom, verticalStep, width, allocator, in body);
 
             Parallel.For(
                 0,

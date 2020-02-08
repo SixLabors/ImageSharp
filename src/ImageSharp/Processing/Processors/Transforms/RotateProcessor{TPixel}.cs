@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
-                new Rotate180RowIntervalAction(source.Width, source.Height, source, destination));
+                new Rotate180RowAction(source.Width, source.Height, source, destination));
         }
 
         /// <summary>
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
-                new Rotate270RowIntervalAction(destination.Bounds(), source.Width, source.Height, source, destination));
+                new Rotate270RowAction(destination.Bounds(), source.Width, source.Height, source, destination));
         }
 
         /// <summary>
@@ -162,10 +162,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
-                new Rotate90RowIntervalAction(destination.Bounds(), source.Width, source.Height, source, destination));
+                new Rotate90RowAction(destination.Bounds(), source.Width, source.Height, source, destination));
         }
 
-        private readonly struct Rotate180RowIntervalAction : IRowIntervalAction
+        private readonly struct Rotate180RowAction : IRowAction
         {
             private readonly int width;
             private readonly int height;
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public Rotate180RowIntervalAction(
+            public Rotate180RowAction(
                 int width,
                 int height,
                 ImageFrame<TPixel> source,
@@ -186,22 +186,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
-                    Span<TPixel> targetRow = this.destination.GetPixelRowSpan(this.height - y - 1);
+                Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
+                Span<TPixel> targetRow = this.destination.GetPixelRowSpan(this.height - y - 1);
 
-                    for (int x = 0; x < this.width; x++)
-                    {
-                        targetRow[this.width - x - 1] = sourceRow[x];
-                    }
+                for (int x = 0; x < this.width; x++)
+                {
+                    targetRow[this.width - x - 1] = sourceRow[x];
                 }
             }
         }
 
-        private readonly struct Rotate270RowIntervalAction : IRowIntervalAction
+        private readonly struct Rotate270RowAction : IRowAction
         {
             private readonly Rectangle bounds;
             private readonly int width;
@@ -210,7 +207,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public Rotate270RowIntervalAction(
+            public Rotate270RowAction(
                 Rectangle bounds,
                 int width,
                 int height,
@@ -225,62 +222,56 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
+                Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
+                for (int x = 0; x < this.width; x++)
                 {
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
-                    for (int x = 0; x < this.width; x++)
-                    {
-                        int newX = this.height - y - 1;
-                        newX = this.height - newX - 1;
-                        int newY = this.width - x - 1;
-
-                        if (this.bounds.Contains(newX, newY))
-                        {
-                            this.destination[newX, newY] = sourceRow[x];
-                        }
-                    }
-                }
-            }
-        }
-
-        private readonly struct Rotate90RowIntervalAction : IRowIntervalAction
-        {
-            private readonly Rectangle bounds;
-            private readonly int width;
-            private readonly int height;
-            private readonly ImageFrame<TPixel> source;
-            private readonly ImageFrame<TPixel> destination;
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public Rotate90RowIntervalAction(
-                Rectangle bounds,
-                int width,
-                int height,
-                ImageFrame<TPixel> source,
-                ImageFrame<TPixel> destination)
-            {
-                this.bounds = bounds;
-                this.width = width;
-                this.height = height;
-                this.source = source;
-                this.destination = destination;
-            }
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
-            {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
                     int newX = this.height - y - 1;
-                    for (int x = 0; x < this.width; x++)
+                    newX = this.height - newX - 1;
+                    int newY = this.width - x - 1;
+
+                    if (this.bounds.Contains(newX, newY))
                     {
-                        if (this.bounds.Contains(newX, x))
-                        {
-                            this.destination[newX, x] = sourceRow[x];
-                        }
+                        this.destination[newX, newY] = sourceRow[x];
+                    }
+                }
+            }
+        }
+
+        private readonly struct Rotate90RowAction : IRowAction
+        {
+            private readonly Rectangle bounds;
+            private readonly int width;
+            private readonly int height;
+            private readonly ImageFrame<TPixel> source;
+            private readonly ImageFrame<TPixel> destination;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public Rotate90RowAction(
+                Rectangle bounds,
+                int width,
+                int height,
+                ImageFrame<TPixel> source,
+                ImageFrame<TPixel> destination)
+            {
+                this.bounds = bounds;
+                this.width = width;
+                this.height = height;
+                this.source = source;
+                this.destination = destination;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(int y)
+            {
+                Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
+                int newX = this.height - y - 1;
+                for (int x = 0; x < this.width; x++)
+                {
+                    if (this.bounds.Contains(newX, x))
+                    {
+                        this.destination[newX, x] = sourceRow[x];
                     }
                 }
             }

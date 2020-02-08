@@ -4,7 +4,6 @@
 using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Drawing
@@ -102,13 +101,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             ParallelRowIterator.IterateRows(
                 workingRect,
                 configuration,
-                new RowIntervalAction(source, targetImage, blender, configuration, minX, width, locationY, targetX, this.Opacity));
+                new RowAction(source, targetImage, blender, configuration, minX, width, locationY, targetX, this.Opacity));
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the draw logic for <see cref="DrawImageProcessor{TPixelBg,TPixelFg}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction : IRowIntervalAction
+        private readonly struct RowAction : IRowAction
         {
             private readonly ImageFrame<TPixelBg> sourceFrame;
             private readonly Image<TPixelFg> targetImage;
@@ -121,7 +120,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             private readonly float opacity;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowAction(
                 ImageFrame<TPixelBg> sourceFrame,
                 Image<TPixelFg> targetImage,
                 PixelBlender<TPixelBg> blender,
@@ -145,14 +144,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixelBg> background = this.sourceFrame.GetPixelRowSpan(y).Slice(this.minX, this.width);
-                    Span<TPixelFg> foreground = this.targetImage.GetPixelRowSpan(y - this.locationY).Slice(this.targetX, this.width);
-                    this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity);
-                }
+                Span<TPixelBg> background = this.sourceFrame.GetPixelRowSpan(y).Slice(this.minX, this.width);
+                Span<TPixelFg> foreground = this.targetImage.GetPixelRowSpan(y - this.locationY).Slice(this.targetX, this.width);
+                this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity);
             }
         }
     }

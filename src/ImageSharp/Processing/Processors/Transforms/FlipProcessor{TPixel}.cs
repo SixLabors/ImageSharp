@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -79,23 +78,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
-                new RowIntervalAction(source));
+                new RowAction(source));
         }
 
-        private readonly struct RowIntervalAction : IRowIntervalAction
+        /// <summary>
+        /// A <see langword="struct"/> implementing the reverse logic for <see cref="FlipProcessor{T}"/>.
+        /// </summary>
+        private readonly struct RowAction : IRowAction
         {
             private readonly ImageFrame<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(ImageFrame<TPixel> source) => this.source = source;
+            public RowAction(ImageFrame<TPixel> source) => this.source = source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    this.source.GetPixelRowSpan(y).Reverse();
-                }
+                this.source.GetPixelRowSpan(y).Reverse();
             }
         }
     }

@@ -5,7 +5,6 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
@@ -37,16 +36,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowAction, Vector4>(
                 interest,
                 this.Configuration,
-                new RowIntervalAction(interest.X, source, this.definition.Matrix, this.Configuration));
+                new RowAction(interest.X, source, this.definition.Matrix, this.Configuration));
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the convolution logic for <see cref="FilterProcessor{TPixel}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
+        private readonly struct RowAction : IRowAction<Vector4>
         {
             private readonly int startX;
             private readonly ImageFrame<TPixel> source;
@@ -54,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
             private readonly Configuration configuration;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowAction(
                 int startX,
                 ImageFrame<TPixel> source,
                 ColorMatrix matrix,
@@ -68,19 +67,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+            public void Invoke(int y, Span<Vector4> span)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<Vector4> vectorSpan = memory.Span;
-                    int length = vectorSpan.Length;
-                    Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, length);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, vectorSpan);
+                int length = span.Length;
+                Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, length);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span);
 
-                    Vector4Utils.Transform(vectorSpan, ref Unsafe.AsRef(this.matrix));
+                Vector4Utils.Transform(span, ref Unsafe.AsRef(this.matrix));
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorSpan, rowSpan);
-                }
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan);
             }
         }
     }

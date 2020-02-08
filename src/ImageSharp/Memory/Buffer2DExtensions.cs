@@ -39,6 +39,7 @@ namespace SixLabors.ImageSharp.Memory
         /// Thrown when the backing group is discontiguous.
         /// </exception>
         // TODO: Review all usages, should be only used with buffers which do not scale fully with image size!
+        // Remove [Obsolete], when done!
         [Obsolete("TODO: Review all usages!")]
         internal static Span<T> GetSingleSpan<T>(this Buffer2D<T> buffer)
             where T : struct
@@ -64,6 +65,7 @@ namespace SixLabors.ImageSharp.Memory
         /// Thrown when the backing group is discontiguous.
         /// </exception>
         // TODO: Review all usages, should be only used with buffers which do not scale fully with image size!
+        // Remove [Obsolete], when done!
         [Obsolete("TODO: Review all usages!")]
         internal static Memory<T> GetSingleMemory<T>(this Buffer2D<T> buffer)
             where T : struct

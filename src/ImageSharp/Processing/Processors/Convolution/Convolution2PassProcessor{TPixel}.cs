@@ -64,22 +64,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
             // Horizontal convolution
-            ParallelRowIterator.IterateRows<RowAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
                 interest,
                 this.Configuration,
-                new RowAction(interest, firstPassPixels, source.PixelBuffer, this.KernelX, this.Configuration, this.PreserveAlpha));
+                new RowIntervalAction(interest, firstPassPixels, source.PixelBuffer, this.KernelX, this.Configuration, this.PreserveAlpha));
 
             // Vertical convolution
-            ParallelRowIterator.IterateRows<RowAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
                 interest,
                 this.Configuration,
-                new RowAction(interest, source.PixelBuffer, firstPassPixels, this.KernelY, this.Configuration, this.PreserveAlpha));
+                new RowIntervalAction(interest, source.PixelBuffer, firstPassPixels, this.KernelY, this.Configuration, this.PreserveAlpha));
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the convolution logic for <see cref="Convolution2PassProcessor{T}"/>.
         /// </summary>
-        private readonly struct RowAction : IRowAction<Vector4>
+        private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> targetPixels;
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly bool preserveAlpha;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowAction(
+            public RowIntervalAction(
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<TPixel> sourcePixels,
@@ -107,51 +107,55 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y, Span<Vector4> span)
+            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
             {
-                int length = span.Length;
-                ref Vector4 vectorSpanRef = ref MemoryMarshal.GetReference(span);
+                Span<Vector4> vectorSpan = memory.Span;
+                int length = vectorSpan.Length;
+                ref Vector4 vectorSpanRef = ref MemoryMarshal.GetReference(vectorSpan);
 
                 int maxY = this.bounds.Bottom - 1;
                 int maxX = this.bounds.Right - 1;
 
-                Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, length), span);
-
-                if (this.preserveAlpha)
+                for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    for (int x = 0; x < this.bounds.Width; x++)
-                    {
-                        DenseMatrixUtils.Convolve3(
-                            in this.kernel,
-                            this.sourcePixels,
-                            ref vectorSpanRef,
-                            y,
-                            x,
-                            this.bounds.Y,
-                            maxY,
-                            this.bounds.X,
-                            maxX);
-                    }
-                }
-                else
-                {
-                    for (int x = 0; x < this.bounds.Width; x++)
-                    {
-                        DenseMatrixUtils.Convolve4(
-                            in this.kernel,
-                            this.sourcePixels,
-                            ref vectorSpanRef,
-                            y,
-                            x,
-                            this.bounds.Y,
-                            maxY,
-                            this.bounds.X,
-                            maxX);
-                    }
-                }
+                    Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, length), vectorSpan);
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
+                    if (this.preserveAlpha)
+                    {
+                        for (int x = 0; x < this.bounds.Width; x++)
+                        {
+                            DenseMatrixUtils.Convolve3(
+                                in this.kernel,
+                                this.sourcePixels,
+                                ref vectorSpanRef,
+                                y,
+                                x,
+                                this.bounds.Y,
+                                maxY,
+                                this.bounds.X,
+                                maxX);
+                        }
+                    }
+                    else
+                    {
+                        for (int x = 0; x < this.bounds.Width; x++)
+                        {
+                            DenseMatrixUtils.Convolve4(
+                                in this.kernel,
+                                this.sourcePixels,
+                                ref vectorSpanRef,
+                                y,
+                                x,
+                                this.bounds.Y,
+                                maxY,
+                                this.bounds.X,
+                                maxX);
+                        }
+                    }
+
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorSpan, targetRowSpan);
+                }
             }
         }
     }

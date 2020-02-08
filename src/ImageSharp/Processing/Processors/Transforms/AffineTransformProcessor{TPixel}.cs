@@ -5,6 +5,7 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -60,23 +61,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 ParallelRowIterator.IterateRows(
                     targetBounds,
                     configuration,
-                    new NearestNeighborRowAction(this.SourceRectangle, ref matrix, width, source, destination));
+                    new NearestNeighborRowIntervalAction(this.SourceRectangle, ref matrix, width, source, destination));
 
                 return;
             }
 
             using var kernelMap = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.resampler);
 
-            ParallelRowIterator.IterateRows<RowAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
                 targetBounds,
                 configuration,
-                new RowAction(configuration, kernelMap, ref matrix, width, source, destination));
+                new RowIntervalAction(configuration, kernelMap, ref matrix, width, source, destination));
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the nearest neighbor resampler logic for <see cref="AffineTransformProcessor{T}"/>.
         /// </summary>
-        private readonly struct NearestNeighborRowAction : IRowAction
+        private readonly struct NearestNeighborRowIntervalAction : IRowIntervalAction
         {
             private readonly Rectangle bounds;
             private readonly Matrix3x2 matrix;
@@ -85,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public NearestNeighborRowAction(
+            public NearestNeighborRowIntervalAction(
                 Rectangle bounds,
                 ref Matrix3x2 matrix,
                 int maxX,
@@ -100,17 +101,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             /// <inheritdoc/>
+            /// <param name="rows"></param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y)
+            public void Invoke(in RowInterval rows)
             {
-                Span<TPixel> destRow = this.destination.GetPixelRowSpan(y);
-
-                for (int x = 0; x < this.maxX; x++)
+                for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    var point = Point.Transform(new Point(x, y), this.matrix);
-                    if (this.bounds.Contains(point.X, point.Y))
+                    Span<TPixel> destRow = this.destination.GetPixelRowSpan(y);
+
+                    for (int x = 0; x < this.maxX; x++)
                     {
-                        destRow[x] = this.source[point.X, point.Y];
+                        var point = Point.Transform(new Point(x, y), this.matrix);
+                        if (this.bounds.Contains(point.X, point.Y))
+                        {
+                            destRow[x] = this.source[point.X, point.Y];
+                        }
                     }
                 }
             }
@@ -119,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// A <see langword="struct"/> implementing the transformation logic for <see cref="AffineTransformProcessor{T}"/>.
         /// </summary>
-        private readonly struct RowAction : IRowAction<Vector4>
+        private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
         {
             private readonly Configuration configuration;
             private readonly TransformKernelMap kernelMap;
@@ -129,7 +134,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowAction(
+            public RowIntervalAction(
                 Configuration configuration,
                 TransformKernelMap kernelMap,
                 ref Matrix3x2 matrix,
@@ -147,31 +152,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y, Span<Vector4> span)
+            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
             {
-                Span<TPixel> targetRowSpan = this.destination.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan, span);
-                ref float ySpanRef = ref this.kernelMap.GetYStartReference(y);
-                ref float xSpanRef = ref this.kernelMap.GetXStartReference(y);
-
-                for (int x = 0; x < this.maxX; x++)
+                Span<Vector4> vectorSpan = memory.Span;
+                for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    // Use the single precision position to calculate correct bounding pixels
-                    // otherwise we get rogue pixels outside of the bounds.
-                    var point = Vector2.Transform(new Vector2(x, y), this.matrix);
-                    this.kernelMap.Convolve(
-                        point,
-                        x,
-                        ref ySpanRef,
-                        ref xSpanRef,
-                        this.source.PixelBuffer,
-                        span);
-                }
+                    Span<TPixel> targetRowSpan = this.destination.GetPixelRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan, vectorSpan);
+                    ref float ySpanRef = ref this.kernelMap.GetYStartReference(y);
+                    ref float xSpanRef = ref this.kernelMap.GetXStartReference(y);
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(
-                    this.configuration,
-                    span,
-                    targetRowSpan);
+                    for (int x = 0; x < this.maxX; x++)
+                    {
+                        // Use the single precision position to calculate correct bounding pixels
+                        // otherwise we get rogue pixels outside of the bounds.
+                        var point = Vector2.Transform(new Vector2(x, y), this.matrix);
+                        this.kernelMap.Convolve(
+                            point,
+                            x,
+                            ref ySpanRef,
+                            ref xSpanRef,
+                            this.source.PixelBuffer,
+                            vectorSpan);
+                    }
+
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(
+                        this.configuration,
+                        vectorSpan,
+                        targetRowSpan);
+                }
             }
         }
     }

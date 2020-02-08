@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -47,25 +48,34 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle bounds = this.cropRectangle;
 
             // Copying is cheap, we should process more pixels per task:
-            ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
+            ParallelExecutionSettings parallelSettings =
+                ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
+
+            var rowAction = new RowIntervalAction(ref bounds, source, destination);
 
             ParallelRowIterator.IterateRows(
                 bounds,
                 in parallelSettings,
-                new RowAction(ref bounds, source, destination));
+                in rowAction);
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the processor logic for <see cref="CropProcessor{T}"/>.
         /// </summary>
-        private readonly struct RowAction : IRowAction
+        private readonly struct RowIntervalAction : IRowIntervalAction
         {
             private readonly Rectangle bounds;
             private readonly ImageFrame<TPixel> source;
             private readonly ImageFrame<TPixel> destination;
 
+            /// <summary>
+            /// Initializes a new instance of the <see cref="RowIntervalAction"/> struct.
+            /// </summary>
+            /// <param name="bounds">The target processing bounds for the current instance.</param>
+            /// <param name="source">The source <see cref="Image{TPixel}"/> for the current instance.</param>
+            /// <param name="destination">The destination <see cref="Image{TPixel}"/> for the current instance.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowAction(ref Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+            public RowIntervalAction(ref Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
             {
                 this.bounds = bounds;
                 this.source = source;
@@ -74,11 +84,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y)
+            public void Invoke(in RowInterval rows)
             {
-                Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y).Slice(this.bounds.Left);
-                Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y - this.bounds.Top);
-                sourceRow.Slice(0, this.bounds.Width).CopyTo(targetRow);
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y).Slice(this.bounds.Left);
+                    Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y - this.bounds.Top);
+                    sourceRow.Slice(0, this.bounds.Width).CopyTo(targetRow);
+                }
             }
         }
     }

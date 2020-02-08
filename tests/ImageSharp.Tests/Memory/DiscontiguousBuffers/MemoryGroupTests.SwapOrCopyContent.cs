@@ -24,8 +24,9 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 Memory<int> b0 = b[0];
                 Memory<int> b1 = b[1];
 
-                MemoryGroup<int>.SwapOrCopyContent(a, b);
+                bool swap = MemoryGroup<int>.SwapOrCopyContent(a, b);
 
+                Assert.True(swap);
                 Assert.Equal(b0, a[0]);
                 Assert.Equal(b1, a[1]);
                 Assert.Equal(a0, b[0]);
@@ -72,9 +73,10 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
                 source[0].Span[10] = color;
 
                 // Act:
-                MemoryGroup<Rgba32>.SwapOrCopyContent(dest, source);
+                bool swap = MemoryGroup<Rgba32>.SwapOrCopyContent(dest, source);
 
                 // Assert:
+                Assert.False(swap);
                 Assert.Equal(color, dest[0].Span[10]);
                 Assert.NotEqual(source[0], dest[0]);
             }

@@ -166,12 +166,13 @@ namespace SixLabors.ImageSharp.Memory
         /// copies the contents of 'source' to 'target' otherwise (2).
         /// Groups should be of same TotalLength in case 2.
         /// </summary>
-        public static void SwapOrCopyContent(MemoryGroup<T> target, MemoryGroup<T> source)
+        public static bool SwapOrCopyContent(MemoryGroup<T> target, MemoryGroup<T> source)
         {
             if (source is Owned ownedSrc && ownedSrc.Swappable &&
                 target is Owned ownedTarget && ownedTarget.Swappable)
             {
                 Owned.SwapContents(ownedTarget, ownedSrc);
+                return true;
             }
             else
             {
@@ -182,6 +183,7 @@ namespace SixLabors.ImageSharp.Memory
                 }
 
                 source.CopyTo(target);
+                return false;
             }
         }
     }

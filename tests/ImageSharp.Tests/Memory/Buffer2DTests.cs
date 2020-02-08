@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         }
 
         [Fact]
-        public void SwapOrCopyContent()
+        public void SwapOrCopyContent_WhenBothAllocated()
         {
             using (Buffer2D<int> a = this.MemoryAllocator.Allocate2D<int>(10, 5, AllocationOptions.Clean))
             using (Buffer2D<int> b = this.MemoryAllocator.Allocate2D<int>(3, 7, AllocationOptions.Clean))
@@ -152,6 +152,33 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Assert.Equal(666, b[1, 3]);
                 Assert.Equal(444, a[1, 3]);
             }
+        }
+
+        [Fact]
+        public void SwapOrCopyContent_WhenDestinationIsOwned_ShouldNotSwapInDisposedSourceBuffer()
+        {
+            using var destData = MemoryGroup<int>.Wrap(new int[100]);
+            using var dest = new Buffer2D<int>(destData, 10, 10);
+
+            using (Buffer2D<int> source = this.MemoryAllocator.Allocate2D<int>(10, 10, AllocationOptions.Clean))
+            {
+                source[0, 0] = 1;
+                dest[0, 0] = 2;
+
+                Buffer2D<int>.SwapOrCopyContent(dest, source);
+            }
+
+            int actual1 = dest.GetRowSpanUnchecked(0)[0];
+            int actual2 = dest.GetRowSpan(0)[0];
+            int actual3 = dest.GetRowMemorySafe(0).Span[0];
+            int actual4 = dest.GetRowMemoryFast(0).Span[0];
+            int actual5 = dest[0, 0];
+
+            Assert.Equal(1, actual1);
+            Assert.Equal(1, actual2);
+            Assert.Equal(1, actual3);
+            Assert.Equal(1, actual4);
+            Assert.Equal(1, actual5);
         }
 
         [Theory]

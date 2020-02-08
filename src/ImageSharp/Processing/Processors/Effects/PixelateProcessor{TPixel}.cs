@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             new RowAction(interest, size, source).Invoke);
         }
 
-        private readonly struct RowAction : IRowAction
+        private readonly struct RowAction
         {
             private readonly int minX;
             private readonly int maxX;

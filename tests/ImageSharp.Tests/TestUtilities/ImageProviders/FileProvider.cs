@@ -151,6 +151,11 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Guard.NotNull(decoder, nameof(decoder));
 
+                if (!TestEnvironment.Is64BitProcess)
+                {
+                    return this.LoadImage(decoder);
+                }
+
                 int bufferCapacity = this.Configuration.MemoryAllocator.GetBufferCapacityInBytes();
                 var key = new Key(this.PixelType, this.FilePath, bufferCapacity, decoder);
 

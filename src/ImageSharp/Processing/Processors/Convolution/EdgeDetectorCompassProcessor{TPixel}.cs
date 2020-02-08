@@ -118,8 +118,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                                     {
                                         int offsetY = y - shiftY;
 
-                                        ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(passPixels.GetRowSpan(offsetY));
-                                        ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(targetPixels.GetRowSpan(offsetY));
+                                        ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(passPixels.GetRowSpanUnchecked(offsetY));
+                                        ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(targetPixels.GetRowSpanUnchecked(offsetY));
 
                                         for (int x = minX; x < maxX; x++)
                                         {

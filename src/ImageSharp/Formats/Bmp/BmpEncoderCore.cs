@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpanUnchecked(y);
                     PixelOperations<TPixel>.Instance.ToBgra32Bytes(
                         this.configuration,
                         pixelSpan,
@@ -264,7 +264,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpanUnchecked(y);
                     PixelOperations<TPixel>.Instance.ToBgr24Bytes(
                         this.configuration,
                         pixelSpan,
@@ -288,7 +288,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpanUnchecked(y);
 
                     PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
                         this.configuration,

@@ -136,20 +136,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
                 this.ComponentCount = componentBuffers.Count;
 
-                this.Component0 = componentBuffers[0].GetRowSpan(row);
+                this.Component0 = componentBuffers[0].GetRowSpanUnchecked(row);
                 this.Component1 = Span<float>.Empty;
                 this.Component2 = Span<float>.Empty;
                 this.Component3 = Span<float>.Empty;
 
                 if (this.ComponentCount > 1)
                 {
-                    this.Component1 = componentBuffers[1].GetRowSpan(row);
+                    this.Component1 = componentBuffers[1].GetRowSpanUnchecked(row);
                     if (this.ComponentCount > 2)
                     {
-                        this.Component2 = componentBuffers[2].GetRowSpan(row);
+                        this.Component2 = componentBuffers[2].GetRowSpanUnchecked(row);
                         if (this.ComponentCount > 3)
                         {
-                            this.Component3 = componentBuffers[3].GetRowSpan(row);
+                            this.Component3 = componentBuffers[3].GetRowSpanUnchecked(row);
                         }
                     }
                 }

@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </remarks>
         public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => source.PixelBuffer.MemoryGroup.View;
+            => source?.PixelBuffer.MemoryGroup.View ?? throw new ArgumentNullException(nameof(source));
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="IMemoryGroup{T}"/> containing the backing pixel data of the image
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </remarks>
         public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => source.Frames.RootFrame.GetPixelMemoryGroup();
+            => source?.Frames.RootFrame.GetPixelMemoryGroup() ?? throw new ArgumentNullException(nameof(source));
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> in the source image's pixel format
@@ -91,6 +91,8 @@ namespace SixLabors.ImageSharp.Advanced
         public static Span<TPixel> GetPixelSpan<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
         {
+            Guard.NotNull(source, nameof(source));
+
             IMemoryGroup<TPixel> mg = source.GetPixelMemoryGroup();
             if (mg.Count > 1)
             {
@@ -112,7 +114,11 @@ namespace SixLabors.ImageSharp.Advanced
             @"GetPixelSpan might fail, because the backing buffer could be discontiguous for large images. Use GetPixelMemoryGroup or GetPixelRowSpan instead!")]
         public static Span<TPixel> GetPixelSpan<TPixel>(this Image<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => source.Frames.RootFrame.GetPixelSpan();
+        {
+            Guard.NotNull(source, nameof(source));
+
+            return source.Frames.RootFrame.GetPixelSpan();
+        }
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
@@ -124,7 +130,13 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>The <see cref="Span{TPixel}"/></returns>
         public static Span<TPixel> GetPixelRowSpan<TPixel>(this ImageFrame<TPixel> source, int rowIndex)
             where TPixel : struct, IPixel<TPixel>
-            => source.PixelBuffer.GetRowSpan(rowIndex);
+        {
+            Guard.NotNull(source, nameof(source));
+            Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
+            Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
+
+            return source.PixelBuffer.GetRowSpanUnchecked(rowIndex);
+        }
 
         /// <summary>
         /// Gets the representation of the pixels as <see cref="Span{T}"/> of of contiguous memory
@@ -136,7 +148,13 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>The <see cref="Span{TPixel}"/></returns>
         public static Span<TPixel> GetPixelRowSpan<TPixel>(this Image<TPixel> source, int rowIndex)
             where TPixel : struct, IPixel<TPixel>
-            => source.Frames.RootFrame.GetPixelRowSpan(rowIndex);
+        {
+            Guard.NotNull(source, nameof(source));
+            Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
+            Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
+
+            return source.Frames.RootFrame.PixelBuffer.GetRowSpanUnchecked(rowIndex);
+        }
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
@@ -148,7 +166,13 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>The <see cref="Span{TPixel}"/></returns>
         public static Memory<TPixel> GetPixelRowMemory<TPixel>(this ImageFrame<TPixel> source, int rowIndex)
             where TPixel : struct, IPixel<TPixel>
-            => source.PixelBuffer.GetRowMemorySafe(rowIndex);
+        {
+            Guard.NotNull(source, nameof(source));
+            Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
+            Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
+
+            return source.PixelBuffer.GetRowMemorySafe(rowIndex);
+        }
 
         /// <summary>
         /// Gets the representation of the pixels as <see cref="Span{T}"/> of of contiguous memory
@@ -160,7 +184,13 @@ namespace SixLabors.ImageSharp.Advanced
         /// <returns>The <see cref="Span{TPixel}"/></returns>
         public static Memory<TPixel> GetPixelRowMemory<TPixel>(this Image<TPixel> source, int rowIndex)
             where TPixel : struct, IPixel<TPixel>
-            => source.Frames.RootFrame.GetPixelRowMemory(rowIndex);
+        {
+            Guard.NotNull(source, nameof(source));
+            Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
+            Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
+
+            return source.Frames.RootFrame.PixelBuffer.GetRowMemorySafe(rowIndex);
+        }
 
         /// <summary>
         /// Gets the <see cref="MemoryAllocator"/> assigned to 'source'.

@@ -131,10 +131,10 @@ namespace SixLabors.ImageSharp.Memory
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
-            if (bufferSizeInBytes < 0 || bufferSizeInBytes > BufferCapacityInBytes)
+            if (bufferSizeInBytes < 0 || bufferSizeInBytes > this.BufferCapacityInBytes)
             {
                 throw new InvalidMemoryOperationException(
-                    $"Requested allocation {length} elements of {typeof(T).Name} is over the capacity of the MemoryAllocator.");
+                    $"Requested allocation: {length} elements of {typeof(T).Name} is over the capacity of the MemoryAllocator.");
             }
 
             ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);

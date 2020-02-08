@@ -15,6 +15,19 @@ namespace SixLabors.ImageSharp.Memory
     public static class Buffer2DExtensions
     {
         /// <summary>
+        /// Gets the backing <see cref="IMemoryGroup{T}"/>.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <returns>The MemoryGroup.</returns>
+        public static IMemoryGroup<T> GetMemoryGroup<T>(this Buffer2D<T> buffer)
+            where T : struct
+        {
+            Guard.NotNull(buffer, nameof(buffer));
+            return buffer.MemoryGroup.View;
+        }
+
+        /// <summary>
         /// Gets a <see cref="Span{T}"/> to the backing data of <paramref name="buffer"/>
         /// if the backing group consists of one single contiguous memory buffer.
         /// Throws <see cref="InvalidOperationException"/> otherwise.
@@ -25,7 +38,9 @@ namespace SixLabors.ImageSharp.Memory
         /// <exception cref="InvalidOperationException">
         /// Thrown when the backing group is discontiguous.
         /// </exception>
-        public static Span<T> GetSingleSpan<T>(this Buffer2D<T> buffer)
+        // TODO: Review all usages, should be only used with buffers which do not scale fully with image size!
+        [Obsolete("TODO: Review all usages!")]
+        internal static Span<T> GetSingleSpan<T>(this Buffer2D<T> buffer)
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));
@@ -48,7 +63,9 @@ namespace SixLabors.ImageSharp.Memory
         /// <exception cref="InvalidOperationException">
         /// Thrown when the backing group is discontiguous.
         /// </exception>
-        public static Memory<T> GetSingleMemory<T>(this Buffer2D<T> buffer)
+        // TODO: Review all usages, should be only used with buffers which do not scale fully with image size!
+        [Obsolete("TODO: Review all usages!")]
+        internal static Memory<T> GetSingleMemory<T>(this Buffer2D<T> buffer)
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));

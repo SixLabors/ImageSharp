@@ -149,14 +149,14 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         internal static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
         {
-            MemoryGroup<T>.SwapOrCopyContent(destination.MemoryGroup, source.MemoryGroup);
-            SwapOwnData(destination, source);
+            bool swap = MemoryGroup<T>.SwapOrCopyContent(destination.MemoryGroup, source.MemoryGroup);
+            SwapOwnData(destination, source, swap);
         }
 
         [MethodImpl(InliningOptions.ColdPath)]
         private Memory<T> GetRowMemorySlow(int y) => this.MemoryGroup.GetBoundedSlice(y * this.Width, this.Width);
 
-        private static void SwapOwnData(Buffer2D<T> a, Buffer2D<T> b)
+        private static void SwapOwnData(Buffer2D<T> a, Buffer2D<T> b, bool swapCachedMemory)
         {
             Size aSize = a.Size();
             Size bSize = b.Size();
@@ -167,9 +167,12 @@ namespace SixLabors.ImageSharp.Memory
             a.Width = bSize.Width;
             a.Height = bSize.Height;
 
-            Memory<T> aCached = a.cachedMemory;
-            a.cachedMemory = b.cachedMemory;
-            b.cachedMemory = aCached;
+            if (swapCachedMemory)
+            {
+                Memory<T> aCached = a.cachedMemory;
+                a.cachedMemory = b.cachedMemory;
+                b.cachedMemory = aCached;
+            }
         }
     }
 }

@@ -54,19 +54,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             set => this[(y * 8) + x] = value;
         }
 
-        // public void LoadAndStretchEdges<TPixel>(IPixelSource<TPixel> source, int sourceX, RowOctet<TPixel> currentRows)
-        //     where TPixel : struct, IPixel<TPixel>
-        // {
-        //     if (source.PixelBuffer is Buffer2D<T> buffer)
-        //     {
-        //         this.LoadAndStretchEdges(buffer, sourceX, sourceY);
-        //     }
-        //     else
-        //     {
-        //         throw new InvalidOperationException("LoadAndStretchEdges<TPixels>() is only valid for TPixel == T !");
-        //     }
-        // }
-
         /// <summary>
         /// Load a 8x8 region of an image into the block.
         /// The "outlying" area of the block will be stretched out with pixels on the right and bottom edge of the image.

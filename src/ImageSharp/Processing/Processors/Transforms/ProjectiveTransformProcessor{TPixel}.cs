@@ -63,20 +63,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 ParallelRowIterator.IterateRows(
                     targetBounds,
                     configuration,
-                    new NearestNeighborRowIntervalAction(ref sourceBounds, ref matrix, width, source, destination));
+                    new NearestNeighborRowIntervalOperation(ref sourceBounds, ref matrix, width, source, destination));
 
                 return;
             }
 
             using var kernelMap = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.resampler);
 
-            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
                 targetBounds,
                 configuration,
-                new RowIntervalAction(configuration, kernelMap, ref matrix, width, source, destination));
+                new RowIntervalOperation(configuration, kernelMap, ref matrix, width, source, destination));
         }
 
-        private readonly struct NearestNeighborRowIntervalAction : IRowIntervalAction
+        private readonly struct NearestNeighborRowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle bounds;
             private readonly Matrix4x4 matrix;
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public NearestNeighborRowIntervalAction(
+            public NearestNeighborRowIntervalOperation(
                 ref Rectangle bounds,
                 ref Matrix4x4 matrix,
                 int maxX,
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
+        private readonly struct RowIntervalOperation : IRowIntervalOperation<Vector4>
         {
             private readonly Configuration configuration;
             private readonly TransformKernelMap kernelMap;
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 Configuration configuration,
                 TransformKernelMap kernelMap,
                 ref Matrix4x4 matrix,

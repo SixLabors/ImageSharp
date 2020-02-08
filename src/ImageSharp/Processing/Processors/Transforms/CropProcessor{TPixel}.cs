@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelExecutionSettings parallelSettings =
                 ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
 
-            var rowAction = new RowIntervalAction(ref bounds, source, destination);
+            var rowAction = new RowIntervalOperation(ref bounds, source, destination);
 
             ParallelRowIterator.IterateRows(
                 bounds,
@@ -62,20 +62,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// A <see langword="struct"/> implementing the processor logic for <see cref="CropProcessor{T}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction : IRowIntervalAction
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle bounds;
             private readonly ImageFrame<TPixel> source;
             private readonly ImageFrame<TPixel> destination;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="RowIntervalAction"/> struct.
+            /// Initializes a new instance of the <see cref="RowIntervalOperation"/> struct.
             /// </summary>
             /// <param name="bounds">The target processing bounds for the current instance.</param>
             /// <param name="source">The source <see cref="Image{TPixel}"/> for the current instance.</param>
             /// <param name="destination">The destination <see cref="Image{TPixel}"/> for the current instance.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(ref Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+            public RowIntervalOperation(ref Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
             {
                 this.bounds = bounds;
                 this.source = source;

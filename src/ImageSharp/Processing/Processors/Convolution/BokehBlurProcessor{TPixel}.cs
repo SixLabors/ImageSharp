@@ -268,10 +268,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // Preliminary gamma highlight pass
-            ParallelRowIterator.IterateRows<ApplyGammaExposureRowIntervalAction, Vector4>(
+            ParallelRowIterator.IterateRows<ApplyGammaExposureRowIntervalOperation, Vector4>(
                 this.SourceRectangle,
                 this.Configuration,
-                new ApplyGammaExposureRowIntervalAction(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma));
+                new ApplyGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma));
 
             // Create a 0-filled buffer to use to store the result of the component convolutions
             using Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean);
@@ -285,7 +285,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             ParallelRowIterator.IterateRows(
                 this.SourceRectangle,
                 this.Configuration,
-                new ApplyInverseGammaExposureRowIntervalAction(this.SourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, inverseGamma));
+                new ApplyInverseGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, inverseGamma));
         }
 
         /// <summary>
@@ -317,20 +317,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 ParallelRowIterator.IterateRows(
                     sourceRectangle,
                     configuration,
-                    new ApplyVerticalConvolutionRowIntervalAction(ref sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel));
+                    new ApplyVerticalConvolutionRowIntervalOperation(ref sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel));
 
                 // Compute the horizontal 1D convolutions and accumulate the partial results on the target buffer
                 ParallelRowIterator.IterateRows(
                     sourceRectangle,
                     configuration,
-                    new ApplyHorizontalConvolutionRowIntervalAction(ref sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W));
+                    new ApplyHorizontalConvolutionRowIntervalOperation(ref sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W));
             }
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the vertical convolution logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        private readonly struct ApplyVerticalConvolutionRowIntervalAction : IRowIntervalAction
+        private readonly struct ApplyVerticalConvolutionRowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<ComplexVector4> targetValues;
@@ -340,7 +340,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly int maxX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyVerticalConvolutionRowIntervalAction(
+            public ApplyVerticalConvolutionRowIntervalOperation(
                 ref Rectangle bounds,
                 Buffer2D<ComplexVector4> targetValues,
                 Buffer2D<TPixel> sourcePixels,
@@ -373,7 +373,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// A <see langword="struct"/> implementing the horizontal convolution logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        private readonly struct ApplyHorizontalConvolutionRowIntervalAction : IRowIntervalAction
+        private readonly struct ApplyHorizontalConvolutionRowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<Vector4> targetValues;
@@ -385,7 +385,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly int maxX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyHorizontalConvolutionRowIntervalAction(
+            public ApplyHorizontalConvolutionRowIntervalOperation(
                 ref Rectangle bounds,
                 Buffer2D<Vector4> targetValues,
                 Buffer2D<ComplexVector4> sourceValues,
@@ -422,7 +422,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// A <see langword="struct"/> implementing the gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        private readonly struct ApplyGammaExposureRowIntervalAction : IRowIntervalAction<Vector4>
+        private readonly struct ApplyGammaExposureRowIntervalOperation : IRowIntervalOperation<Vector4>
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> targetPixels;
@@ -430,7 +430,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly float gamma;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyGammaExposureRowIntervalAction(
+            public ApplyGammaExposureRowIntervalOperation(
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 Configuration configuration,
@@ -471,7 +471,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// A <see langword="struct"/> implementing the inverse gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        private readonly struct ApplyInverseGammaExposureRowIntervalAction : IRowIntervalAction
+        private readonly struct ApplyInverseGammaExposureRowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> targetPixels;
@@ -480,7 +480,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly float inverseGamma;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyInverseGammaExposureRowIntervalAction(
+            public ApplyInverseGammaExposureRowIntervalOperation(
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<Vector4> sourceValues,

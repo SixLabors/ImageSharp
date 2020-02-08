@@ -61,23 +61,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 ParallelRowIterator.IterateRows(
                     targetBounds,
                     configuration,
-                    new NearestNeighborRowIntervalAction(this.SourceRectangle, ref matrix, width, source, destination));
+                    new NearestNeighborRowIntervalOperation(this.SourceRectangle, ref matrix, width, source, destination));
 
                 return;
             }
 
             using var kernelMap = new TransformKernelMap(configuration, source.Size(), destination.Size(), this.resampler);
 
-            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
                 targetBounds,
                 configuration,
-                new RowIntervalAction(configuration, kernelMap, ref matrix, width, source, destination));
+                new RowIntervalOperation(configuration, kernelMap, ref matrix, width, source, destination));
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the nearest neighbor resampler logic for <see cref="AffineTransformProcessor{T}"/>.
         /// </summary>
-        private readonly struct NearestNeighborRowIntervalAction : IRowIntervalAction
+        private readonly struct NearestNeighborRowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle bounds;
             private readonly Matrix3x2 matrix;
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public NearestNeighborRowIntervalAction(
+            public NearestNeighborRowIntervalOperation(
                 Rectangle bounds,
                 ref Matrix3x2 matrix,
                 int maxX,
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// A <see langword="struct"/> implementing the transformation logic for <see cref="AffineTransformProcessor{T}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
+        private readonly struct RowIntervalOperation : IRowIntervalOperation<Vector4>
         {
             private readonly Configuration configuration;
             private readonly TransformKernelMap kernelMap;
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 Configuration configuration,
                 TransformKernelMap kernelMap,
                 ref Matrix3x2 matrix,

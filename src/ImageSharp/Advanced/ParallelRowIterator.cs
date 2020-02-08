@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Advanced
@@ -21,13 +20,13 @@ namespace SixLabors.ImageSharp.Advanced
         /// <summary>
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
         /// </summary>
-        /// <typeparam name="T">The type of row action to perform.</typeparam>
+        /// <typeparam name="T">The type of row operation to perform.</typeparam>
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
         /// <param name="configuration">The <see cref="Configuration"/> to get the parallel settings from.</param>
         /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void IterateRows<T>(Rectangle rectangle, Configuration configuration, in T body)
-            where T : struct, IRowIntervalAction
+            where T : struct, IRowIntervalOperation
         {
             var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
             IterateRows(rectangle, in parallelSettings, in body);
@@ -36,15 +35,15 @@ namespace SixLabors.ImageSharp.Advanced
         /// <summary>
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
         /// </summary>
-        /// <typeparam name="T">The type of row action to perform.</typeparam>
+        /// <typeparam name="T">The type of row operation to perform.</typeparam>
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
         /// <param name="parallelSettings">The <see cref="ParallelExecutionSettings"/>.</param>
-        /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
+        /// <param name="operation">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
         public static void IterateRows<T>(
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
-            in T body)
-            where T : struct, IRowIntervalAction
+            in T operation)
+            where T : struct, IRowIntervalOperation
         {
             ValidateRectangle(rectangle);
 
@@ -60,14 +59,14 @@ namespace SixLabors.ImageSharp.Advanced
             if (numOfSteps == 1)
             {
                 var rows = new RowInterval(top, bottom);
-                Unsafe.AsRef(body).Invoke(in rows);
+                Unsafe.AsRef(operation).Invoke(in rows);
                 return;
             }
 
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
             var rowInfo = new WrappingRowIntervalInfo(top, bottom, verticalStep);
-            var rowAction = new WrappingRowIntervalAction<T>(in rowInfo, in body);
+            var rowAction = new WrappingRowIntervalOperation<T>(in rowInfo, in operation);
 
             Parallel.For(
                 0,
@@ -78,30 +77,35 @@ namespace SixLabors.ImageSharp.Advanced
 
         /// <summary>
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s
-        /// instantiating a temporary buffer for each <paramref name="body"/> invocation.
+        /// instantiating a temporary buffer for each <paramref name="operation"/> invocation.
         /// </summary>
-        /// <typeparam name="T">The type of row action to perform.</typeparam>
+        /// <typeparam name="T">The type of row operation to perform.</typeparam>
         /// <typeparam name="TBuffer">The type of buffer elements.</typeparam>
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
         /// <param name="configuration">The <see cref="Configuration"/> to get the parallel settings from.</param>
-        /// <param name="body">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
-        public static void IterateRows<T, TBuffer>(Rectangle rectangle, Configuration configuration, in T body)
-            where T : struct, IRowIntervalAction<TBuffer>
+        /// <param name="operation">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
+        public static void IterateRows<T, TBuffer>(Rectangle rectangle, Configuration configuration, in T operation)
+            where T : struct, IRowIntervalOperation<TBuffer>
             where TBuffer : unmanaged
         {
             var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
-            IterateRows<T, TBuffer>(rectangle, in parallelSettings, in body);
+            IterateRows<T, TBuffer>(rectangle, in parallelSettings, in operation);
         }
 
         /// <summary>
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s
-        /// instantiating a temporary buffer for each <paramref name="body"/> invocation.
+        /// instantiating a temporary buffer for each <paramref name="operation"/> invocation.
         /// </summary>
-        internal static void IterateRows<T, TBuffer>(
+        /// <typeparam name="T">The type of row operation to perform.</typeparam>
+        /// <typeparam name="TBuffer">The type of buffer elements.</typeparam>
+        /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
+        /// <param name="parallelSettings">The <see cref="ParallelExecutionSettings"/>.</param>
+        /// <param name="operation">The method body defining the iteration logic on a single <see cref="RowInterval"/>.</param>
+        public static void IterateRows<T, TBuffer>(
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
-            in T body)
-            where T : struct, IRowIntervalAction<TBuffer>
+            in T operation)
+            where T : struct, IRowIntervalOperation<TBuffer>
             where TBuffer : unmanaged
         {
             ValidateRectangle(rectangle);
@@ -121,7 +125,7 @@ namespace SixLabors.ImageSharp.Advanced
                 var rows = new RowInterval(top, bottom);
                 using (IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(width))
                 {
-                    Unsafe.AsRef(body).Invoke(rows, buffer.Memory);
+                    Unsafe.AsRef(operation).Invoke(rows, buffer.Memory);
                 }
 
                 return;
@@ -130,13 +134,13 @@ namespace SixLabors.ImageSharp.Advanced
             int verticalStep = DivideCeil(height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
             var rowInfo = new WrappingRowIntervalInfo(top, bottom, verticalStep, width);
-            var rowAction = new WrappingRowIntervalBufferAction<T, TBuffer>(in rowInfo, allocator, in body);
+            var rowOperation = new WrappingRowIntervalBufferOperation<T, TBuffer>(in rowInfo, allocator, in operation);
 
             Parallel.For(
                 0,
                 numOfSteps,
                 parallelOptions,
-                rowAction.Invoke);
+                rowOperation.Invoke);
         }
 
         /// <summary>
@@ -183,7 +187,7 @@ namespace SixLabors.ImageSharp.Advanced
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
             var rowInfo = new WrappingRowIntervalInfo(top, bottom, verticalStep);
-            var rowAction = new WrappingRowIntervalAction(in rowInfo, body);
+            var rowAction = new WrappingRowIntervalOperation(in rowInfo, body);
 
             Parallel.For(
                 0,
@@ -242,7 +246,7 @@ namespace SixLabors.ImageSharp.Advanced
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
             var rowInfo = new WrappingRowIntervalInfo(top, bottom, verticalStep, width);
-            var rowAction = new WrappingRowIntervalBufferAction<TBuffer>(in rowInfo, allocator, body);
+            var rowAction = new WrappingRowIntervalBufferOperation<TBuffer>(in rowInfo, allocator, body);
 
             Parallel.For(
                 0,

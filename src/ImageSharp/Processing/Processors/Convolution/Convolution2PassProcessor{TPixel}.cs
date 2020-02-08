@@ -64,22 +64,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
             // Horizontal convolution
-            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
                 interest,
                 this.Configuration,
-                new RowIntervalAction(interest, firstPassPixels, source.PixelBuffer, this.KernelX, this.Configuration, this.PreserveAlpha));
+                new RowIntervalOperation(interest, firstPassPixels, source.PixelBuffer, this.KernelX, this.Configuration, this.PreserveAlpha));
 
             // Vertical convolution
-            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
                 interest,
                 this.Configuration,
-                new RowIntervalAction(interest, source.PixelBuffer, firstPassPixels, this.KernelY, this.Configuration, this.PreserveAlpha));
+                new RowIntervalOperation(interest, source.PixelBuffer, firstPassPixels, this.KernelY, this.Configuration, this.PreserveAlpha));
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the convolution logic for <see cref="Convolution2PassProcessor{T}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
+        private readonly struct RowIntervalOperation : IRowIntervalOperation<Vector4>
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> targetPixels;
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly bool preserveAlpha;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<TPixel> sourcePixels,

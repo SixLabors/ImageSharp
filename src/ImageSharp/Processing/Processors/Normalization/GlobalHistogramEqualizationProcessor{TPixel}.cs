@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             ParallelRowIterator.IterateRows(
                 workingRect,
                 this.Configuration,
-                new GrayscaleLevelsRowIntervalAction(workingRect, histogramBuffer, source, this.LuminanceLevels));
+                new GrayscaleLevelsRowIntervalOperation(workingRect, histogramBuffer, source, this.LuminanceLevels));
 
             Span<int> histogram = histogramBuffer.GetSpan();
             if (this.ClipHistogramEnabled)
@@ -77,13 +77,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             ParallelRowIterator.IterateRows(
                 workingRect,
                 this.Configuration,
-                new CdfApplicationRowIntervalAction(workingRect, cdfBuffer, source, this.LuminanceLevels, numberOfPixelsMinusCdfMin));
+                new CdfApplicationRowIntervalOperation(workingRect, cdfBuffer, source, this.LuminanceLevels, numberOfPixelsMinusCdfMin));
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the grayscale levels logic for <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/>.
         /// </summary>
-        private readonly struct GrayscaleLevelsRowIntervalAction : IRowIntervalAction
+        private readonly struct GrayscaleLevelsRowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle bounds;
             private readonly IMemoryOwner<int> histogramBuffer;
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             private readonly int luminanceLevels;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public GrayscaleLevelsRowIntervalAction(
+            public GrayscaleLevelsRowIntervalOperation(
                 in Rectangle bounds,
                 IMemoryOwner<int> histogramBuffer,
                 ImageFrame<TPixel> source,
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// A <see langword="struct"/> implementing the cdf application levels logic for <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/>.
         /// </summary>
-        private readonly struct CdfApplicationRowIntervalAction : IRowIntervalAction
+        private readonly struct CdfApplicationRowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle bounds;
             private readonly IMemoryOwner<int> cdfBuffer;
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             private readonly float numberOfPixelsMinusCdfMin;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public CdfApplicationRowIntervalAction(
+            public CdfApplicationRowIntervalOperation(
                 in Rectangle bounds,
                 IMemoryOwner<int> cdfBuffer,
                 ImageFrame<TPixel> source,

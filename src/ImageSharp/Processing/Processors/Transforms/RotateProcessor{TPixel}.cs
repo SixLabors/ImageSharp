@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
-                new Rotate180RowIntervalAction(source.Width, source.Height, source, destination));
+                new Rotate180RowIntervalOperation(source.Width, source.Height, source, destination));
         }
 
         /// <summary>
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
-                new Rotate270RowIntervalAction(destination.Bounds(), source.Width, source.Height, source, destination));
+                new Rotate270RowIntervalOperation(destination.Bounds(), source.Width, source.Height, source, destination));
         }
 
         /// <summary>
@@ -162,10 +162,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
-                new Rotate90RowIntervalAction(destination.Bounds(), source.Width, source.Height, source, destination));
+                new Rotate90RowIntervalOperation(destination.Bounds(), source.Width, source.Height, source, destination));
         }
 
-        private readonly struct Rotate180RowIntervalAction : IRowIntervalAction
+        private readonly struct Rotate180RowIntervalOperation : IRowIntervalOperation
         {
             private readonly int width;
             private readonly int height;
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public Rotate180RowIntervalAction(
+            public Rotate180RowIntervalOperation(
                 int width,
                 int height,
                 ImageFrame<TPixel> source,
@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        private readonly struct Rotate270RowIntervalAction : IRowIntervalAction
+        private readonly struct Rotate270RowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle bounds;
             private readonly int width;
@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public Rotate270RowIntervalAction(
+            public Rotate270RowIntervalOperation(
                 Rectangle bounds,
                 int width,
                 int height,
@@ -245,7 +245,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        private readonly struct Rotate90RowIntervalAction : IRowIntervalAction
+        private readonly struct Rotate90RowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle bounds;
             private readonly int width;
@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public Rotate90RowIntervalAction(
+            public Rotate90RowIntervalOperation(
                 Rectangle bounds,
                 int width,
                 int height,

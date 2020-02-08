@@ -37,16 +37,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-            ParallelRowIterator.IterateRows<RowIntervalAction, Vector4>(
+            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
                 interest,
                 this.Configuration,
-                new RowIntervalAction(interest.X, source, this.definition.Matrix, this.Configuration));
+                new RowIntervalOperation(interest.X, source, this.definition.Matrix, this.Configuration));
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the convolution logic for <see cref="FilterProcessor{TPixel}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction : IRowIntervalAction<Vector4>
+        private readonly struct RowIntervalOperation : IRowIntervalOperation<Vector4>
         {
             private readonly int startX;
             private readonly ImageFrame<TPixel> source;
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
             private readonly Configuration configuration;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 int startX,
                 ImageFrame<TPixel> source,
                 ColorMatrix matrix,

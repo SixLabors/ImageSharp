@@ -54,13 +54,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             ParallelRowIterator.IterateRows(
                 workingRect,
                 configuration,
-                new RowIntervalAction(source, upper, lower, threshold, startX, endX, isAlphaOnly));
+                new RowIntervalOperation(source, upper, lower, threshold, startX, endX, isAlphaOnly));
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the clone logic for <see cref="BinaryThresholdProcessor{TPixel}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction : IRowIntervalAction
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
         {
             private readonly ImageFrame<TPixel> source;
             private readonly TPixel upper;
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             private readonly bool isAlphaOnly;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 ImageFrame<TPixel> source,
                 TPixel upper,
                 TPixel lower,

@@ -79,15 +79,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelRowIterator.IterateRows(
                 source.Bounds(),
                 configuration,
-                new RowIntervalAction(source));
+                new RowIntervalOperation(source));
         }
 
-        private readonly struct RowIntervalAction : IRowIntervalAction
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
         {
             private readonly ImageFrame<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(ImageFrame<TPixel> source) => this.source = source;
+            public RowIntervalOperation(ImageFrame<TPixel> source) => this.source = source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)

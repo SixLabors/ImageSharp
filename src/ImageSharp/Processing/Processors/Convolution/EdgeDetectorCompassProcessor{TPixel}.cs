@@ -105,14 +105,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 ParallelRowIterator.IterateRows(
                     Rectangle.FromLTRB(minX, minY, maxX, maxY),
                     this.Configuration,
-                    new RowIntervalAction(source.PixelBuffer, pass.PixelBuffer, minX, maxX, shiftY, shiftX));
+                    new RowIntervalOperation(source.PixelBuffer, pass.PixelBuffer, minX, maxX, shiftY, shiftX));
             }
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the convolution logic for <see cref="EdgeDetectorCompassProcessor{T}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction : IRowIntervalAction
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
         {
             private readonly Buffer2D<TPixel> targetPixels;
             private readonly Buffer2D<TPixel> passPixels;
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly int shiftX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<TPixel> passPixels,
                 int minX,

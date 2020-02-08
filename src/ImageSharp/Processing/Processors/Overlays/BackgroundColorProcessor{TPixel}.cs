@@ -52,10 +52,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             ParallelRowIterator.IterateRows(
                 interest,
                 configuration,
-                new RowIntervalAction(configuration, interest, blender, amount, colors, source));
+                new RowIntervalOperation(configuration, interest, blender, amount, colors, source));
         }
 
-        private readonly struct RowIntervalAction : IRowIntervalAction
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
         {
             private readonly Configuration configuration;
             private readonly Rectangle bounds;
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             private readonly ImageFrame<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 Configuration configuration,
                 Rectangle bounds,
                 PixelBlender<TPixel> blender,

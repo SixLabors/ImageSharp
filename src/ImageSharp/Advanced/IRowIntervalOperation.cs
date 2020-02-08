@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// <summary>
     /// Defines the contract for an action that operates on a row interval.
     /// </summary>
-    public interface IRowIntervalAction
+    public interface IRowIntervalOperation
     {
         /// <summary>
         /// Invokes the method passing the row interval.
@@ -40,13 +40,13 @@ namespace SixLabors.ImageSharp.Advanced
         }
     }
 
-    internal readonly struct WrappingRowIntervalAction
+    internal readonly struct WrappingRowIntervalOperation
     {
         private readonly WrappingRowIntervalInfo info;
         private readonly Action<RowInterval> action;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public WrappingRowIntervalAction(in WrappingRowIntervalInfo info, Action<RowInterval> action)
+        public WrappingRowIntervalOperation(in WrappingRowIntervalInfo info, Action<RowInterval> action)
         {
             this.info = info;
             this.action = action;
@@ -69,17 +69,17 @@ namespace SixLabors.ImageSharp.Advanced
         }
     }
 
-    internal readonly struct WrappingRowIntervalAction<T>
-        where T : struct, IRowIntervalAction
+    internal readonly struct WrappingRowIntervalOperation<T>
+        where T : struct, IRowIntervalOperation
     {
         private readonly WrappingRowIntervalInfo info;
-        private readonly T action;
+        private readonly T operation;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public WrappingRowIntervalAction(in WrappingRowIntervalInfo info, in T action)
+        public WrappingRowIntervalOperation(in WrappingRowIntervalInfo info, in T operation)
         {
             this.info = info;
-            this.action = action;
+            this.operation = operation;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Advanced
             var rows = new RowInterval(yMin, yMax);
 
             // Skip the safety copy when invoking a potentially impure method on a readonly field
-            Unsafe.AsRef(this.action).Invoke(in rows);
+            Unsafe.AsRef(this.operation).Invoke(in rows);
         }
     }
 }

@@ -102,13 +102,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             ParallelRowIterator.IterateRows(
                 workingRect,
                 configuration,
-                new RowIntervalAction(source, targetImage, blender, configuration, minX, width, locationY, targetX, this.Opacity));
+                new RowIntervalOperation(source, targetImage, blender, configuration, minX, width, locationY, targetX, this.Opacity));
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the draw logic for <see cref="DrawImageProcessor{TPixelBg,TPixelFg}"/>.
         /// </summary>
-        private readonly struct RowIntervalAction : IRowIntervalAction
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
         {
             private readonly ImageFrame<TPixelBg> sourceFrame;
             private readonly Image<TPixelFg> targetImage;
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             private readonly float opacity;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 ImageFrame<TPixelBg> sourceFrame,
                 Image<TPixelFg> targetImage,
                 PixelBlender<TPixelBg> blender,

@@ -55,13 +55,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             using IMemoryOwner<TPixel> rowColors = allocator.Allocate<TPixel>(interest.Width);
             rowColors.GetSpan().Fill(glowColor);
 
-            ParallelRowIterator.IterateRows<RowIntervalAction, float>(
+            ParallelRowIterator.IterateRows<RowIntervalOperation, float>(
                 interest,
                 configuration,
-                new RowIntervalAction(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source));
+                new RowIntervalOperation(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source));
         }
 
-        private readonly struct RowIntervalAction : IRowIntervalAction<float>
+        private readonly struct RowIntervalOperation : IRowIntervalOperation<float>
         {
             private readonly Configuration configuration;
             private readonly Rectangle bounds;
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             private readonly ImageFrame<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalAction(
+            public RowIntervalOperation(
                 Configuration configuration,
                 Rectangle bounds,
                 IMemoryOwner<TPixel> colors,

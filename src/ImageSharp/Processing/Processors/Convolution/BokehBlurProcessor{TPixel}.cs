@@ -448,16 +448,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+            public void Invoke(in RowInterval rows, Span<Vector4> span)
             {
-                Span<Vector4> vectorSpan = memory.Span;
-                int length = vectorSpan.Length;
-
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, length), vectorSpan, PixelConversionModifiers.Premultiply);
-                    ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectorSpan);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Premultiply);
+                    ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
 
                     for (int x = 0; x < this.bounds.Width; x++)
                     {
@@ -467,7 +464,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         v.Z = MathF.Pow(v.Z, this.gamma);
                     }
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorSpan.Slice(0, length), targetRowSpan);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
                 }
             }
         }

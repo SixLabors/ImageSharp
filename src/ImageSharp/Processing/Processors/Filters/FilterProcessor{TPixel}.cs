@@ -69,18 +69,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+            public void Invoke(in RowInterval rows, Span<Vector4> span)
             {
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<Vector4> vectorSpan = memory.Span;
-                    int length = vectorSpan.Length;
-                    Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, length);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, vectorSpan);
+                    Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span);
 
-                    Vector4Utils.Transform(vectorSpan, ref Unsafe.AsRef(this.matrix));
+                    Vector4Utils.Transform(span, ref Unsafe.AsRef(this.matrix));
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorSpan, rowSpan);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan);
                 }
             }
         }

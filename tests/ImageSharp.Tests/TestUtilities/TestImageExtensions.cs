@@ -724,20 +724,19 @@ namespace SixLabors.ImageSharp.Tests
                     this.source = source;
                 }
 
-                public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+                public void Invoke(in RowInterval rows, Span<Vector4> span)
                 {
-                    Span<Vector4> tempSpan = memory.Span;
                     for (int y = rows.Min; y < rows.Max; y++)
                     {
                         Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.bounds.Left, this.bounds.Width);
-                        PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, tempSpan, PixelConversionModifiers.Scale);
-                        for (int i = 0; i < tempSpan.Length; i++)
+                        PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale);
+                        for (int i = 0; i < span.Length; i++)
                         {
-                            ref Vector4 v = ref tempSpan[i];
+                            ref Vector4 v = ref span[i];
                             v.W = 1F;
                         }
 
-                        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, tempSpan, rowSpan, PixelConversionModifiers.Scale);
+                        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, PixelConversionModifiers.Scale);
                     }
                 }
             }

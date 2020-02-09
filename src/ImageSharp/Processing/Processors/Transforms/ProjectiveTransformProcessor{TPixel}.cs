@@ -150,13 +150,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+            public void Invoke(in RowInterval rows, Span<Vector4> span)
             {
-                Span<Vector4> vectorSpan = memory.Span;
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<TPixel> targetRowSpan = this.destination.GetPixelRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan, vectorSpan);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan, span);
                     ref float ySpanRef = ref this.kernelMap.GetYStartReference(y);
                     ref float xSpanRef = ref this.kernelMap.GetXStartReference(y);
 
@@ -171,12 +170,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             ref ySpanRef,
                             ref xSpanRef,
                             this.source.PixelBuffer,
-                            vectorSpan);
+                            span);
                     }
 
                     PixelOperations<TPixel>.Instance.FromVector4Destructive(
                         this.configuration,
-                        vectorSpan,
+                        span,
                         targetRowSpan);
                 }
             }

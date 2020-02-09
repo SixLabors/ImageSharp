@@ -109,11 +109,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+            public void Invoke(in RowInterval rows, Span<Vector4> span)
             {
-                Span<Vector4> vectorSpan = memory.Span;
-                int length = vectorSpan.Length;
-                ref Vector4 vectorSpanRef = ref MemoryMarshal.GetReference(vectorSpan);
+                ref Vector4 spanRef = ref MemoryMarshal.GetReference(span);
 
                 int maxY = this.bounds.Bottom - 1;
                 int maxX = this.bounds.Right - 1;
@@ -121,7 +119,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, length), vectorSpan);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
 
                     if (this.preserveAlpha)
                     {
@@ -130,7 +128,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             DenseMatrixUtils.Convolve3(
                                 in this.kernel,
                                 this.sourcePixels,
-                                ref vectorSpanRef,
+                                ref spanRef,
                                 y,
                                 x,
                                 this.bounds.Y,
@@ -146,7 +144,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             DenseMatrixUtils.Convolve4(
                                 in this.kernel,
                                 this.sourcePixels,
-                                ref vectorSpanRef,
+                                ref spanRef,
                                 y,
                                 x,
                                 this.bounds.Y,
@@ -156,7 +154,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                         }
                     }
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorSpan, targetRowSpan);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
                 }
             }
         }

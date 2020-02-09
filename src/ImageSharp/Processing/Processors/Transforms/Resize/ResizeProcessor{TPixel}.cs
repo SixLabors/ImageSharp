@@ -95,10 +95,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float widthFactor = sourceRectangle.Width / (float)this.targetRectangle.Width;
                 float heightFactor = sourceRectangle.Height / (float)this.targetRectangle.Height;
 
+                var operation = new RowIntervalOperation(sourceRectangle, this.targetRectangle, widthFactor, heightFactor, source, destination);
                 ParallelRowIterator.IterateRows(
-                    interest,
                     configuration,
-                    new RowIntervalOperation(sourceRectangle, this.targetRectangle, widthFactor, heightFactor, source, destination));
+                    interest,
+                    in operation);
 
                 return;
             }

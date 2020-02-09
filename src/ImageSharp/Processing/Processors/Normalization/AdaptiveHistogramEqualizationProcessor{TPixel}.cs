@@ -80,10 +80,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     yStart += tileHeight;
                 }
 
+                var operation = new RowIntervalOperation(cdfData, tileYStartPositions, tileWidth, tileHeight, tileCount, halfTileWidth, luminanceLevels, source);
                 ParallelRowIterator.IterateRows(
-                    new Rectangle(0, 0, sourceWidth, tileYStartPositions.Count),
                     this.Configuration,
-                    new RowIntervalOperation(cdfData, tileYStartPositions, tileWidth, tileHeight, tileCount, halfTileWidth, luminanceLevels, source));
+                    new Rectangle(0, 0, sourceWidth, tileYStartPositions.Count),
+                    in operation);
 
                 ref TPixel pixelsBase = ref source.GetPixelReference(0, 0);
 
@@ -510,7 +511,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             public void CalculateLookupTables(ImageFrame<TPixel> source, HistogramEqualizationProcessor<TPixel> processor)
             {
-                var rowOperation = new RowIntervalOperation(
+                var operation = new RowIntervalOperation(
                     processor,
                     this.memoryAllocator,
                     this.cdfMinBuffer2D,
@@ -522,9 +523,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     source);
 
                 ParallelRowIterator.IterateRows(
-                    new Rectangle(0, 0, this.sourceWidth, this.tileYStartPositions.Count),
                     this.configuration,
-                    in rowOperation);
+                    new Rectangle(0, 0, this.sourceWidth, this.tileYStartPositions.Count),
+                    in operation);
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]

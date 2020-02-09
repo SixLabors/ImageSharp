@@ -268,10 +268,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // Preliminary gamma highlight pass
+            var gammaOperation = new ApplyGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
             ParallelRowIterator.IterateRows<ApplyGammaExposureRowIntervalOperation, Vector4>(
-                this.SourceRectangle,
                 this.Configuration,
-                new ApplyGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma));
+                this.SourceRectangle,
+                in gammaOperation);
 
             // Create a 0-filled buffer to use to store the result of the component convolutions
             using Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean);
@@ -282,10 +283,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             float inverseGamma = 1 / this.gamma;
 
             // Apply the inverse gamma exposure pass, and write the final pixel data
+            var operation = new ApplyInverseGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, inverseGamma);
             ParallelRowIterator.IterateRows(
-                this.SourceRectangle,
                 this.Configuration,
-                new ApplyInverseGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, inverseGamma));
+                this.SourceRectangle,
+                in operation);
         }
 
         /// <summary>
@@ -314,16 +316,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Vector4 parameters = Unsafe.Add(ref paramsRef, i);
 
                 // Compute the vertical 1D convolution
+                var verticalOperation = new ApplyVerticalConvolutionRowIntervalOperation(ref sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel);
                 ParallelRowIterator.IterateRows(
-                    sourceRectangle,
                     configuration,
-                    new ApplyVerticalConvolutionRowIntervalOperation(ref sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel));
+                    sourceRectangle,
+                    in verticalOperation);
 
                 // Compute the horizontal 1D convolutions and accumulate the partial results on the target buffer
+                var horizontalOperation = new ApplyHorizontalConvolutionRowIntervalOperation(ref sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W);
                 ParallelRowIterator.IterateRows(
-                    sourceRectangle,
                     configuration,
-                    new ApplyHorizontalConvolutionRowIntervalOperation(ref sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W));
+                    sourceRectangle,
+                    in horizontalOperation);
             }
         }
 

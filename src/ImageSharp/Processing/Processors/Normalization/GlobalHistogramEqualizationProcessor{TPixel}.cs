@@ -52,10 +52,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             using IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
 
             // Build the histogram of the grayscale levels
+            var grayscaleOperation = new GrayscaleLevelsRowIntervalOperation(workingRect, histogramBuffer, source, this.LuminanceLevels);
             ParallelRowIterator.IterateRows(
-                workingRect,
                 this.Configuration,
-                new GrayscaleLevelsRowIntervalOperation(workingRect, histogramBuffer, source, this.LuminanceLevels));
+                workingRect,
+                in grayscaleOperation);
 
             Span<int> histogram = histogramBuffer.GetSpan();
             if (this.ClipHistogramEnabled)
@@ -74,10 +75,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
 
             // Apply the cdf to each pixel of the image
+            var cdfOperation = new CdfApplicationRowIntervalOperation(workingRect, cdfBuffer, source, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
             ParallelRowIterator.IterateRows(
-                workingRect,
                 this.Configuration,
-                new CdfApplicationRowIntervalOperation(workingRect, cdfBuffer, source, this.LuminanceLevels, numberOfPixelsMinusCdfMin));
+                workingRect,
+                in cdfOperation);
         }
 
         /// <summary>

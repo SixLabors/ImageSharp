@@ -99,10 +99,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     "Cannot draw image because the source image does not overlap the target image.");
             }
 
+            var operation = new RowIntervalOperation(source, targetImage, blender, configuration, minX, width, locationY, targetX, this.Opacity);
             ParallelRowIterator.IterateRows(
-                workingRect,
                 configuration,
-                new RowIntervalOperation(source, targetImage, blender, configuration, minX, width, locationY, targetX, this.Opacity));
+                workingRect,
+                in operation);
         }
 
         /// <summary>

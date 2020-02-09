@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class RotateProcessor<TPixel> : AffineTransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private float degrees;
+        private readonly float degrees;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RotateProcessor{TPixel}"/> class.
@@ -131,10 +131,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void Rotate180(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
         {
+            var operation = new Rotate180RowIntervalOperation(source.Width, source.Height, source, destination);
             ParallelRowIterator.IterateRows(
-                source.Bounds(),
                 configuration,
-                new Rotate180RowIntervalOperation(source.Width, source.Height, source, destination));
+                source.Bounds(),
+                in operation);
         }
 
         /// <summary>
@@ -145,10 +146,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void Rotate270(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
         {
+            var operation = new Rotate270RowIntervalOperation(destination.Bounds(), source.Width, source.Height, source, destination);
             ParallelRowIterator.IterateRows(
-                source.Bounds(),
                 configuration,
-                new Rotate270RowIntervalOperation(destination.Bounds(), source.Width, source.Height, source, destination));
+                source.Bounds(),
+                in operation);
         }
 
         /// <summary>
@@ -159,10 +161,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void Rotate90(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
         {
+            var operation = new Rotate90RowIntervalOperation(destination.Bounds(), source.Width, source.Height, source, destination);
             ParallelRowIterator.IterateRows(
-                source.Bounds(),
                 configuration,
-                new Rotate90RowIntervalOperation(destination.Bounds(), source.Width, source.Height, source, destination));
+                source.Bounds(),
+                in operation);
         }
 
         private readonly struct Rotate180RowIntervalOperation : IRowIntervalOperation

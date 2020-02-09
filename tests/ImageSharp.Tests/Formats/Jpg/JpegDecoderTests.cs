@@ -105,6 +105,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 appendPixelTypeToFileName: false);
         }
 
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Progressive.Festzug, PixelTypes.Rgba32)]
+        public void DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity(100);
+            ImageFormatException ex = Assert.Throws<ImageFormatException>(provider.GetImage);
+            this.Output.WriteLine(ex.Message);
+            Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
+        }
+
         // DEBUG ONLY!
         // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"

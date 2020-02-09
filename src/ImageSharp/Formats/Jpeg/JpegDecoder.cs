@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -22,9 +23,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             Guard.NotNull(stream, nameof(stream));
 
-            using (var decoder = new JpegDecoderCore(configuration, this))
+            using var decoder = new JpegDecoderCore(configuration, this);
+            try
             {
                 return decoder.Decode<TPixel>(stream);
+            }
+            catch (InvalidMemoryOperationException ex)
+            {
+                (int w, int h) = (decoder.ImageWidth, decoder.ImageHeight);
+
+                // TODO: use InvalidImageContentException here, if we decide to define it
+                // https://github.com/SixLabors/ImageSharp/issues/1110
+                throw new ImageFormatException($"Can not decode the image having degenerate dimensions of {w}x{h}.", ex);
             }
         }
 

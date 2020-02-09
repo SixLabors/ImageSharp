@@ -6,7 +6,8 @@ using System;
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
-    /// Exception thrown on invalid memory (allocation) requests.
+    /// Exception thrown when the library detects an invalid memory allocation request,
+    /// or an attempt has been made to use an invalidated <see cref="IMemoryGroup{T}"/>.
     /// </summary>
     public class InvalidMemoryOperationException : InvalidOperationException
     {

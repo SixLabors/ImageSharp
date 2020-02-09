@@ -259,11 +259,12 @@ namespace SixLabors.ImageSharp
             }
 
             var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.Metadata.DeepClone());
+            var operation = new RowIntervalOperation<TPixel2>(this, target, configuration);
 
             ParallelRowIterator.IterateRows(
-                this.Bounds(),
                 configuration,
-                new RowIntervalOperation<TPixel2>(this, target, configuration));
+                this.Bounds(),
+                in operation);
 
             return target;
         }

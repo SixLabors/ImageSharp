@@ -50,11 +50,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+            var operation = new RowIntervalOperation(interest.X, source, this.Configuration, this.modifiers, this.rowDelegate);
 
             ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
-                interest,
                 this.Configuration,
-                new RowIntervalOperation(interest.X, source, this.Configuration, this.modifiers, this.rowDelegate));
+                interest,
+                in operation);
         }
 
         /// <summary>

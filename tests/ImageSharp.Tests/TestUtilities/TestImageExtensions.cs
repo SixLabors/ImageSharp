@@ -702,25 +702,44 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Rectangle sourceRectangle = this.SourceRectangle;
                 Configuration configuration = this.Configuration;
-                ParallelRowIterator.IterateRows<Vector4>(
-                    sourceRectangle,
-                    configuration,
-                    (rows, temp) =>
-                        {
-                            Span<Vector4> tempSpan = temp.Span;
-                            for (int y = rows.Min; y < rows.Max; y++)
-                            {
-                                Span<TPixel> rowSpan = source.GetPixelRowSpan(y).Slice(sourceRectangle.Left, sourceRectangle.Width);
-                                PixelOperations<TPixel>.Instance.ToVector4(configuration, rowSpan, tempSpan, PixelConversionModifiers.Scale);
-                                for (int i = 0; i < tempSpan.Length; i++)
-                                {
-                                    ref Vector4 v = ref tempSpan[i];
-                                    v.W = 1F;
-                                }
 
-                                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, tempSpan, rowSpan, PixelConversionModifiers.Scale);
-                            }
-                        });
+                var operation = new RowOperation(configuration, sourceRectangle, source);
+
+                ParallelRowIterator.IterateRows<RowOperation, Vector4>(
+                    configuration,
+                    sourceRectangle,
+                    in operation);
+            }
+
+            private readonly struct RowOperation : IRowIntervalOperation<Vector4>
+            {
+                private readonly Configuration configuration;
+                private readonly Rectangle bounds;
+                private readonly ImageFrame<TPixel> source;
+
+                public RowOperation(Configuration configuration, Rectangle bounds, ImageFrame<TPixel> source)
+                {
+                    this.configuration = configuration;
+                    this.bounds = bounds;
+                    this.source = source;
+                }
+
+                public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+                {
+                    Span<Vector4> tempSpan = memory.Span;
+                    for (int y = rows.Min; y < rows.Max; y++)
+                    {
+                        Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.bounds.Left, this.bounds.Width);
+                        PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, tempSpan, PixelConversionModifiers.Scale);
+                        for (int i = 0; i < tempSpan.Length; i++)
+                        {
+                            ref Vector4 v = ref tempSpan[i];
+                            v.W = 1F;
+                        }
+
+                        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, tempSpan, rowSpan, PixelConversionModifiers.Scale);
+                    }
+                }
             }
         }
     }

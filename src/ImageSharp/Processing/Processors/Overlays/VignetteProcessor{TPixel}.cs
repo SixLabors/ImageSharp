@@ -103,9 +103,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Memory<float> memory)
+            public void Invoke(in RowInterval rows, Span<float> span)
             {
-                Span<float> amountsSpan = memory.Span;
                 Span<TPixel> colorSpan = this.colors.GetSpan();
 
                 for (int y = rows.Min; y < rows.Max; y++)
@@ -113,7 +112,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                     for (int i = 0; i < this.bounds.Width; i++)
                     {
                         float distance = Vector2.Distance(this.center, new Vector2(i + this.bounds.X, y));
-                        amountsSpan[i] = (this.blendPercent * (.9F * (distance / this.maxDistance))).Clamp(0, 1);
+                        span[i] = (this.blendPercent * (.9F * (distance / this.maxDistance))).Clamp(0, 1);
                     }
 
                     Span<TPixel> destination = this.source.GetPixelRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
@@ -123,7 +122,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                         destination,
                         destination,
                         colorSpan,
-                        amountsSpan);
+                        span);
                 }
             }
         }

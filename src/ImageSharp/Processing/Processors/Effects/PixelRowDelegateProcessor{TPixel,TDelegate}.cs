@@ -86,19 +86,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Memory<Vector4> memory)
+            public void Invoke(in RowInterval rows, Span<Vector4> span)
             {
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<Vector4> vectorSpan = memory.Span;
-                    int length = vectorSpan.Length;
-                    Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, length);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, vectorSpan, this.modifiers);
+                    Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, this.modifiers);
 
                     // Run the user defined pixel shader to the current row of pixels
-                    Unsafe.AsRef(this.rowProcessor).Invoke(vectorSpan, new Point(this.startX, y));
+                    Unsafe.AsRef(this.rowProcessor).Invoke(span, new Point(this.startX, y));
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorSpan, rowSpan, this.modifiers);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, this.modifiers);
                 }
             }
         }

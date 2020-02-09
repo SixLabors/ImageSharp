@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
@@ -17,6 +16,8 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 {
     public class ParallelRowIteratorTests
     {
+        public delegate void RowIntervalAction<T>(RowInterval rows, Span<T> span);
+
         private readonly ITestOutputHelper output;
 
         public ParallelRowIteratorTests(ITestOutputHelper output)
@@ -140,16 +141,12 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             var rectangle = new Rectangle(0, minY, 10, maxY - minY);
 
-            var bufferHashes = new ConcurrentBag<int>();
-
             int actualNumberOfSteps = 0;
 
-            void RowAction(RowInterval rows, Memory<Vector4> buffer)
+            void RowAction(RowInterval rows, Span<Vector4> buffer)
             {
                 Assert.True(rows.Min >= minY);
                 Assert.True(rows.Max <= maxY);
-
-                bufferHashes.Add(buffer.GetHashCode());
 
                 int step = rows.Max - rows.Min;
                 int expected = rows.Max < maxY ? expectedStepLength : expectedLastStepLength;
@@ -166,9 +163,6 @@ namespace SixLabors.ImageSharp.Tests.Helpers
                 in operation);
 
             Assert.Equal(expectedNumberOfSteps, actualNumberOfSteps);
-
-            int numberOfDifferentBuffers = bufferHashes.Distinct().Count();
-            Assert.Equal(actualNumberOfSteps, numberOfDifferentBuffers);
         }
 
         [Theory]
@@ -191,7 +185,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             int[] expectedData = Enumerable.Repeat(0, minY).Concat(Enumerable.Range(minY, maxY - minY)).ToArray();
             var actualData = new int[maxY];
 
-            void RowAction(RowInterval rows, Memory<Vector4> buffer)
+            void RowAction(RowInterval rows, Span<Vector4> buffer)
             {
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
@@ -283,7 +277,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             int actualNumberOfSteps = 0;
 
-            void RowAction(RowInterval rows, Memory<Vector4> buffer)
+            void RowAction(RowInterval rows, Span<Vector4> buffer)
             {
                 Assert.True(rows.Min >= 0);
                 Assert.True(rows.Max <= height);
@@ -405,7 +399,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             var rect = new Rectangle(0, 0, width, height);
 
-            void RowAction(RowInterval rows, Memory<Rgba32> memory)
+            void RowAction(RowInterval rows, Span<Rgba32> memory)
             {
             }
 
@@ -430,13 +424,13 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         private readonly struct TestRowIntervalOperation<TBuffer> : IRowIntervalOperation<TBuffer>
             where TBuffer : unmanaged
         {
-            private readonly Action<RowInterval, Memory<TBuffer>> action;
+            private readonly RowIntervalAction<TBuffer> action;
 
-            public TestRowIntervalOperation(Action<RowInterval, Memory<TBuffer>> action)
+            public TestRowIntervalOperation(RowIntervalAction<TBuffer> action)
                 => this.action = action;
 
-            public void Invoke(in RowInterval rows, Memory<TBuffer> memory)
-                => this.action(rows, memory);
+            public void Invoke(in RowInterval rows, Span<TBuffer> span)
+                => this.action(rows, span);
         }
     }
 }

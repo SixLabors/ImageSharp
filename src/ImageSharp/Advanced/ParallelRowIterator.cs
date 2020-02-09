@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// <see cref="ParallelExecutionSettings"/> or <see cref="Configuration"/>.
     /// Using this class is preferred over direct usage of <see cref="Parallel"/> utility methods.
     /// </summary>
-    public static class ParallelRowIterator
+    public static partial class ParallelRowIterator
     {
         /// <summary>
         /// Iterate through the rows of a rectangle in optimized batches defined by <see cref="RowInterval"/>-s.
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Advanced
                 var rows = new RowInterval(top, bottom);
                 using (IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(width))
                 {
-                    Unsafe.AsRef(operation).Invoke(rows, buffer.Memory);
+                    Unsafe.AsRef(operation).Invoke(rows, buffer.Memory.Span);
                 }
 
                 return;

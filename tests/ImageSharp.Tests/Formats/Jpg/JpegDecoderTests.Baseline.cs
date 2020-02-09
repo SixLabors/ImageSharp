@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Microsoft.DotNet.RemoteExecutor;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -48,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [WithFileCollection(nameof(UnrecoverableTestJpegs), PixelTypes.Rgba32)]
-        public void UnrecoverableImagesShouldThrowCorrectError<TPixel>(TestImageProvider<TPixel> provider)
+        public void UnrecoverableImage_Throws_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel> => Assert.Throws<ImageFormatException>(provider.GetImage);
     }
 }

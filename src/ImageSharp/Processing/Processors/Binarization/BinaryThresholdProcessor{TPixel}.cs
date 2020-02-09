@@ -50,11 +50,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
             var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
-
+            var operation = new RowIntervalOperation(source, upper, lower, threshold, startX, endX, isAlphaOnly);
             ParallelRowIterator.IterateRows(
-                workingRect,
                 configuration,
-                new RowIntervalOperation(source, upper, lower, threshold, startX, endX, isAlphaOnly));
+                workingRect,
+                in operation);
         }
 
         /// <summary>

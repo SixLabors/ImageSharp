@@ -49,10 +49,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
             PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(graphicsOptions);
 
+            var operation = new RowIntervalOperation(configuration, interest, blender, amount, colors, source);
             ParallelRowIterator.IterateRows(
-                interest,
                 configuration,
-                new RowIntervalOperation(configuration, interest, blender, amount, colors, source));
+                interest,
+                in operation);
         }
 
         private readonly struct RowIntervalOperation : IRowIntervalOperation

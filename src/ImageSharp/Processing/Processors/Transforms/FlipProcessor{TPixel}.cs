@@ -76,10 +76,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void FlipY(ImageFrame<TPixel> source, Configuration configuration)
         {
+            var operation = new RowIntervalOperation(source);
             ParallelRowIterator.IterateRows(
-                source.Bounds(),
                 configuration,
-                new RowIntervalOperation(source));
+                source.Bounds(),
+                in operation);
         }
 
         private readonly struct RowIntervalOperation : IRowIntervalOperation

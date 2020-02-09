@@ -47,10 +47,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
             source.CopyTo(targetPixels);
 
+            var operation = new RowIntervalOperation(this.SourceRectangle, targetPixels, source, this.Configuration, brushSize >> 1, this.definition.Levels);
             ParallelRowIterator.IterateRows(
-                this.SourceRectangle,
                 this.Configuration,
-                new RowIntervalOperation(this.SourceRectangle, targetPixels, source, this.Configuration, brushSize >> 1, this.definition.Levels));
+                this.SourceRectangle,
+                in operation);
 
             Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
         }

@@ -240,6 +240,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void Encode_PreservesAlpha<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
+        [Theory]
+        [WithFile(Car, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
+        [WithFile(V5Header, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
+        public void Encode_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity();
+            TestBmpEncoderCore(provider, bitsPerPixel);
+        }
+
         private static void TestBmpEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             BmpBitsPerPixel bitsPerPixel,

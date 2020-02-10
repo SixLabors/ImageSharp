@@ -1,9 +1,12 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Tga;
-using SixLabors.ImageSharp.PixelFormats;
+using Microsoft.DotNet.RemoteExecutor;
 
+using SixLabors.ImageSharp.Formats.Tga;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -191,6 +194,48 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
             }
+        }
+
+        // TODO: A InvalidMemoryOperationException is thrown here, review the thrown exception.
+        [Theory(Skip = "Review Exception")]
+        [WithFile(Bit16, PixelTypes.Rgba32)]
+        [WithFile(Bit24, PixelTypes.Rgba32)]
+        [WithFile(Bit32, PixelTypes.Rgba32)]
+        public void TgaDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity(100);
+            ImageFormatException ex = Assert.Throws<ImageFormatException>(provider.GetImage);
+            Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
+        }
+
+        [Theory]
+        [WithFile(Bit24, PixelTypes.Rgba32)]
+        [WithFile(Bit32, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            static void RunTest(string providerDump, string nonContiguousBuffersStr)
+            {
+                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+
+                provider.LimitAllocatorBufferCapacity();
+
+                using Image<TPixel> image = provider.GetImage(new TgaDecoder());
+                image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
+
+                if (TestEnvironment.IsWindows)
+                {
+                    image.CompareToOriginal(provider);
+                }
+            }
+
+            string providerDump = BasicSerializer.Serialize(provider);
+            RemoteExecutor.Invoke(
+                    RunTest,
+                    providerDump,
+                    "Disco")
+                .Dispose();
         }
     }
 }

@@ -122,6 +122,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void Encode_Bit32_WithRunLengthEncoding_Works<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel = TgaBitsPerPixel.Pixel32)
             where TPixel : struct, IPixel<TPixel> => TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.RunLength);
 
+        [Theory]
+        [WithFile(Bit32, PixelTypes.Rgba32, TgaBitsPerPixel.Pixel32)]
+        [WithFile(Bit24, PixelTypes.Rgba32, TgaBitsPerPixel.Pixel24)]
+        public void Encode_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity(10000);
+            TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.RunLength);
+        }
+
         private static void TestTgaEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             TgaBitsPerPixel bitsPerPixel,

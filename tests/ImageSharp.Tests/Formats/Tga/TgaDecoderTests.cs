@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             {
                 TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
 
-                provider.LimitAllocatorBufferCapacity().InPixels(200);
+                provider.LimitAllocatorBufferCapacity().InPixels(100);
 
                 using Image<TPixel> image = provider.GetImage(new TgaDecoder());
                 image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);

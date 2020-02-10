@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -54,21 +53,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             DenseMatrix<float>[] kernels = this.Kernels.Flatten();
 
-            int startY = this.SourceRectangle.Y;
-            int endY = this.SourceRectangle.Bottom;
-            int startX = this.SourceRectangle.X;
-            int endX = this.SourceRectangle.Right;
-
-            // Align start/end positions.
-            int minX = Math.Max(0, startX);
-            int maxX = Math.Min(source.Width, endX);
-            int minY = Math.Max(0, startY);
-            int maxY = Math.Min(source.Height, endY);
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
             // We need a clean copy for each pass to start from
             using ImageFrame<TPixel> cleanCopy = source.Clone();
 
-            using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, kernels[0], true, this.Source, this.SourceRectangle))
+            using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, kernels[0], true, this.Source, interest))
             {
                 processor.Apply(source);
             }
@@ -78,34 +68,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 return;
             }
 
-            int shiftY = startY;
-            int shiftX = startX;
-
-            // Reset offset if necessary
-            if (minX > 0)
-            {
-                shiftX = 0;
-            }
-
-            if (minY > 0)
-            {
-                shiftY = 0;
-            }
-
             // Additional runs
             for (int i = 1; i < kernels.Length; i++)
             {
                 using ImageFrame<TPixel> pass = cleanCopy.Clone();
 
-                using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, kernels[i], true, this.Source, this.SourceRectangle))
+                using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, kernels[i], true, this.Source, interest))
                 {
                     processor.Apply(pass);
                 }
 
-                var operation = new RowIntervalOperation(source.PixelBuffer, pass.PixelBuffer, minX, maxX, shiftY, shiftX);
+                var operation = new RowIntervalOperation(source.PixelBuffer, pass.PixelBuffer, interest);
                 ParallelRowIterator.IterateRows(
                     this.Configuration,
-                    Rectangle.FromLTRB(minX, minY, maxX, maxY),
+                    interest,
                     in operation);
             }
         }
@@ -119,24 +95,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly Buffer2D<TPixel> passPixels;
             private readonly int minX;
             private readonly int maxX;
-            private readonly int shiftY;
-            private readonly int shiftX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalOperation(
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<TPixel> passPixels,
-                int minX,
-                int maxX,
-                int shiftY,
-                int shiftX)
+                Rectangle bounds)
             {
                 this.targetPixels = targetPixels;
                 this.passPixels = passPixels;
-                this.minX = minX;
-                this.maxX = maxX;
-                this.shiftY = shiftY;
-                this.shiftX = shiftX;
+                this.minX = bounds.X;
+                this.maxX = bounds.Right;
             }
 
             /// <inheritdoc/>
@@ -145,22 +114,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    int offsetY = y - this.shiftY;
-
-                    ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(this.passPixels.GetRowSpan(offsetY));
-                    ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(this.targetPixels.GetRowSpan(offsetY));
+                    ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(this.passPixels.GetRowSpan(y));
+                    ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(this.targetPixels.GetRowSpan(y));
 
                     for (int x = this.minX; x < this.maxX; x++)
                     {
-                        int offsetX = x - this.shiftX;
-
                         // Grab the max components of the two pixels
-                        ref TPixel currentPassPixel = ref Unsafe.Add(ref passPixelsBase, offsetX);
-                        ref TPixel currentTargetPixel = ref Unsafe.Add(ref targetPixelsBase, offsetX);
+                        ref TPixel currentPassPixel = ref Unsafe.Add(ref passPixelsBase, x);
+                        ref TPixel currentTargetPixel = ref Unsafe.Add(ref targetPixelsBase, x);
 
-                        var pixelValue = Vector4.Max(
-                            currentPassPixel.ToVector4(),
-                            currentTargetPixel.ToVector4());
+                        var pixelValue = Vector4.Max(currentPassPixel.ToVector4(), currentTargetPixel.ToVector4());
 
                         currentTargetPixel.FromVector4(pixelValue);
                     }

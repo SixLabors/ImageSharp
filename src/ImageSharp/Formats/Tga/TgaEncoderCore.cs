@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         /// <summary>
-        /// Finds consecutive pixels, which have the same value starting from the pixel span offset 0.
+        /// Finds consecutive pixels which have the same value.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <param name="pixels">The pixels of the image.</param>
@@ -212,13 +212,14 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : struct, IPixel<TPixel>
         {
             byte equalPixelCount = 0;
+            bool firstRow = true;
+            TPixel startPixel = pixels[xStart, yStart];
             for (int y = yStart; y < pixels.Height; y++)
             {
-                for (int x = xStart; x < pixels.Width - 1; x++)
+                for (int x = firstRow ? xStart + 1 : 0; x < pixels.Width; x++)
                 {
-                    TPixel currentPixel = pixels[x, y];
-                    TPixel nextPixel = pixels[x + 1, y];
-                    if (currentPixel.Equals(nextPixel))
+                    TPixel nextPixel = pixels[x, y];
+                    if (startPixel.Equals(nextPixel))
                     {
                         equalPixelCount++;
                     }
@@ -229,9 +230,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
                     if (equalPixelCount >= 127)
                     {
-                        break;
+                        return equalPixelCount;
                     }
                 }
+
+                firstRow = false;
             }
 
             return equalPixelCount;

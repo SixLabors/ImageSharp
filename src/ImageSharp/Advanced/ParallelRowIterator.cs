@@ -65,14 +65,14 @@ namespace SixLabors.ImageSharp.Advanced
 
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-            var rowInfo = new WrappingRowIntervalInfo(top, bottom, verticalStep);
-            var rowAction = new WrappingRowIntervalOperation<T>(in rowInfo, in operation);
+            var info = new WrappingRowIntervalInfo(top, bottom, verticalStep);
+            var wrappingOperation = new WrappingRowIntervalOperation<T>(in info, in operation);
 
             Parallel.For(
                 0,
                 numOfSteps,
                 parallelOptions,
-                rowAction.Invoke);
+                wrappingOperation.Invoke);
         }
 
         /// <summary>
@@ -133,14 +133,14 @@ namespace SixLabors.ImageSharp.Advanced
 
             int verticalStep = DivideCeil(height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-            var rowInfo = new WrappingRowIntervalInfo(top, bottom, verticalStep, width);
-            var rowOperation = new WrappingRowIntervalBufferOperation<T, TBuffer>(in rowInfo, allocator, in operation);
+            var info = new WrappingRowIntervalInfo(top, bottom, verticalStep, width);
+            var wrappingOperation = new WrappingRowIntervalBufferOperation<T, TBuffer>(in info, allocator, in operation);
 
             Parallel.For(
                 0,
                 numOfSteps,
                 parallelOptions,
-                rowOperation.Invoke);
+                wrappingOperation.Invoke);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -204,7 +204,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.LimitAllocatorBufferCapacity(100);
+            provider.LimitAllocatorBufferCapacity().InPixels(10);
             ImageFormatException ex = Assert.Throws<ImageFormatException>(provider.GetImage);
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             {
                 TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
 
-                provider.LimitAllocatorBufferCapacity();
+                provider.LimitAllocatorBufferCapacity().InPixels(200);
 
                 using Image<TPixel> image = provider.GetImage(new TgaDecoder());
                 image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);

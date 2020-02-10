@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.LimitAllocatorBufferCapacity(100);
+            provider.LimitAllocatorBufferCapacity().InBytes(10);
             ImageFormatException ex = Assert.Throws<ImageFormatException>(provider.GetImage);
             this.Output.WriteLine(ex.Message);
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);

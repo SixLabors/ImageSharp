@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Advanced
             IMemoryGroup<TPixel> mg = source.GetPixelMemoryGroup();
             if (mg.Count > 1)
             {
-                throw new InvalidOperationException($"GetPixelSpan is invalid, since the backing buffer of this {source.Width}x{source.Height} sized image is discontiguos!");
+                throw new InvalidOperationException($"GetPixelSpan is invalid, since the backing buffer of this {source.Width}x{source.Height} sized image is discontiguous!");
             }
 
             return mg.Single().Span;

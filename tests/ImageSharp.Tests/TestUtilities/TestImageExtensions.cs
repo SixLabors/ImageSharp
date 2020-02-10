@@ -666,13 +666,12 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        internal static void LimitAllocatorBufferCapacity<TPixel>(
-            this TestImageProvider<TPixel> provider,
-            int bufferCapacityInPixels = 40000) // 200 x 200
+        internal static AllocatorBufferCapacityConfigurator LimitAllocatorBufferCapacity<TPixel>(
+            this TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             var allocator = (ArrayPoolMemoryAllocator)provider.Configuration.MemoryAllocator;
-            allocator.BufferCapacityInBytes = Unsafe.SizeOf<TPixel>() * bufferCapacityInPixels;
+            return new AllocatorBufferCapacityConfigurator(allocator, Unsafe.SizeOf<TPixel>());
         }
 
         internal static Image<Rgba32> ToGrayscaleImage(this Buffer2D<float> buffer, float scale)
@@ -732,6 +731,34 @@ namespace SixLabors.ImageSharp.Tests
                             }
                         });
             }
+        }
+    }
+
+    internal class AllocatorBufferCapacityConfigurator
+    {
+        private readonly ArrayPoolMemoryAllocator allocator;
+        private readonly int pixelSizeInBytes;
+
+        public AllocatorBufferCapacityConfigurator(ArrayPoolMemoryAllocator allocator, int pixelSizeInBytes)
+        {
+            this.allocator = allocator;
+            this.pixelSizeInBytes = pixelSizeInBytes;
+        }
+
+        /// <summary>
+        /// Set the maximum buffer capacity to (areaDimensionBytes x areaDimensionBytes) bytes.
+        /// </summary>
+        public void InBytes(int areaDimensionBytes)
+        {
+            this.allocator.BufferCapacityInBytes = areaDimensionBytes * areaDimensionBytes;
+        }
+
+        /// <summary>
+        /// Set the maximum buffer capacity to (areaDimensionPixels x areaDimensionPixels x size of the pixel) bytes.
+        /// </summary>
+        public void InPixels(int areaDimensionPixels)
+        {
+            this.allocator.BufferCapacityInBytes = areaDimensionPixels * areaDimensionPixels * this.pixelSizeInBytes;
         }
     }
 }

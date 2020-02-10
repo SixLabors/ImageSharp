@@ -114,6 +114,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.options = options;
         }
 
+        public Size Dimensions => new Size(this.infoHeader.Width, this.infoHeader.Height);
+
         /// <summary>
         /// Decodes the image from the specified this._stream and sets
         /// the data to image.

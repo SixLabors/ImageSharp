@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 // TODO: use InvalidImageContentException here, if we decide to define it
                 // https://github.com/SixLabors/ImageSharp/issues/1110
-                throw new ImageFormatException($"Can not decode the image having degenerate dimensions of {w}x{h}.", ex);
+                throw new ImageFormatException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {w}x{h}.", ex);
             }
         }
 

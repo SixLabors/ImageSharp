@@ -17,9 +17,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Size targetSize;
+        private readonly Size targetSize;
         private readonly IResampler resampler;
-        private Matrix4x4 transformMatrix;
+        private readonly Matrix4x4 transformMatrix;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.

@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
             if (this.compression is TgaCompression.RunLength)
             {
-                this.WriteRunLengthEndcodedImage(stream, image.Frames.RootFrame);
+                this.WriteRunLengthEncodedImage(stream, image.Frames.RootFrame);
             }
             else
             {
@@ -150,19 +150,20 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <param name="stream">The stream to write the image to.</param>
         /// <param name="image">The image to encode.</param>
-        private void WriteRunLengthEndcodedImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
+        private void WriteRunLengthEncodedImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
             where TPixel : struct, IPixel<TPixel>
         {
             Rgba32 color = default;
             Buffer2D<TPixel> pixels = image.PixelBuffer;
-            Span<TPixel> pixelSpan = pixels.GetSingleSpan();
             int totalPixels = image.Width * image.Height;
             int encodedPixels = 0;
             while (encodedPixels < totalPixels)
             {
-                TPixel currentPixel = pixelSpan[encodedPixels];
+                int x = encodedPixels % pixels.Width;
+                int y = encodedPixels / pixels.Width;
+                TPixel currentPixel = pixels[x, y];
                 currentPixel.ToRgba32(ref color);
-                byte equalPixelCount = this.FindEqualPixels(pixelSpan.Slice(encodedPixels));
+                byte equalPixelCount = this.FindEqualPixels(pixels, x, y);
 
                 // Write the number of equal pixels, with the high bit set, indicating ist a compressed pixel run.
                 stream.WriteByte((byte)(equalPixelCount | 128));
@@ -203,27 +204,34 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// Finds consecutive pixels, which have the same value starting from the pixel span offset 0.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
-        /// <param name="pixelSpan">The pixel span to search in.</param>
+        /// <param name="pixels">The pixels of the image.</param>
+        /// <param name="xStart">X coordinate to start searching for the same pixels.</param>
+        /// <param name="yStart">Y coordinate to start searching for the same pixels.</param>
         /// <returns>The number of equal pixels.</returns>
-        private byte FindEqualPixels<TPixel>(Span<TPixel> pixelSpan)
+        private byte FindEqualPixels<TPixel>(Buffer2D<TPixel> pixels, int xStart, int yStart)
             where TPixel : struct, IPixel<TPixel>
         {
-            int idx = 0;
             byte equalPixelCount = 0;
-            while (equalPixelCount < 127 && idx < pixelSpan.Length - 1)
+            for (int y = yStart; y < pixels.Height; y++)
             {
-                TPixel currentPixel = pixelSpan[idx];
-                TPixel nextPixel = pixelSpan[idx + 1];
-                if (currentPixel.Equals(nextPixel))
+                for (int x = xStart; x < pixels.Width - 1; x++)
                 {
-                    equalPixelCount++;
-                }
-                else
-                {
-                    return equalPixelCount;
-                }
+                    TPixel currentPixel = pixels[x, y];
+                    TPixel nextPixel = pixels[x + 1, y];
+                    if (currentPixel.Equals(nextPixel))
+                    {
+                        equalPixelCount++;
+                    }
+                    else
+                    {
+                        return equalPixelCount;
+                    }
 
-                idx++;
+                    if (equalPixelCount >= 127)
+                    {
+                        break;
+                    }
+                }
             }
 
             return equalPixelCount;

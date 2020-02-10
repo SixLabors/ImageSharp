@@ -70,8 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 .Dispose();
         }
 
-        // TODO: A InvalidMemoryOperationException is thrown here, review the thrown exception.
-        [Theory(Skip = "Review Exception")]
+        [Theory]
         [WithFile(Bit32Rgb, PixelTypes.Rgba32)]
         [WithFile(Bit16, PixelTypes.Rgba32)]
         public void BmpDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)

@@ -42,18 +42,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             Configuration configuration = this.Configuration;
 
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-            int startY = interest.Y;
-            int endY = interest.Bottom;
-            int startX = interest.X;
-            int endX = interest.Right;
-
             bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
-            var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
-            var operation = new RowIntervalOperation(source, upper, lower, threshold, startX, endX, isAlphaOnly);
+            var operation = new RowIntervalOperation(interest, source, upper, lower, threshold, isAlphaOnly);
             ParallelRowIterator.IterateRows(
                 configuration,
-                workingRect,
+                interest,
                 in operation);
         }
 
@@ -66,26 +60,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             private readonly TPixel upper;
             private readonly TPixel lower;
             private readonly byte threshold;
-            private readonly int startX;
-            private readonly int endX;
+            private readonly int minX;
+            private readonly int maxX;
             private readonly bool isAlphaOnly;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalOperation(
+                Rectangle bounds,
                 ImageFrame<TPixel> source,
                 TPixel upper,
                 TPixel lower,
                 byte threshold,
-                int startX,
-                int endX,
                 bool isAlphaOnly)
             {
                 this.source = source;
                 this.upper = upper;
                 this.lower = lower;
                 this.threshold = threshold;
-                this.startX = startX;
-                this.endX = endX;
+                this.minX = bounds.X;
+                this.maxX = bounds.Right;
                 this.isAlphaOnly = isAlphaOnly;
             }
 
@@ -98,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 {
                     Span<TPixel> row = this.source.GetPixelRowSpan(y);
 
-                    for (int x = this.startX; x < this.endX; x++)
+                    for (int x = this.minX; x < this.maxX; x++)
                     {
                         ref TPixel color = ref row[x];
                         color.ToRgba32(ref rgba);

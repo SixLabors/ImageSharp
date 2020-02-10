@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixels(10);
-            ImageFormatException ex = Assert.Throws<ImageFormatException>(provider.GetImage);
+            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(BmpDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 

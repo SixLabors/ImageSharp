@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void Encode_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.LimitAllocatorBufferCapacity(10000);
+            provider.LimitAllocatorBufferCapacity().InPixels(100);
             TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.RunLength);
         }
 

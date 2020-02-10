@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
                 if (!string.IsNullOrEmpty(nonContiguousBuffersStr))
                 {
-                    provider.LimitAllocatorBufferCapacity();
+                    provider.LimitAllocatorBufferCapacity().InPixels(100);
                 }
 
                 using Image<TPixel> image = provider.GetImage(BmpDecoder);
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.LimitAllocatorBufferCapacity(100);
+            provider.LimitAllocatorBufferCapacity().InPixels(10);
             ImageFormatException ex = Assert.Throws<ImageFormatException>(provider.GetImage);
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
@@ -253,11 +253,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
-        [WithFile(RLE8, PixelTypes.Rgba32)]
-        [WithFile(RLE8Inverted, PixelTypes.Rgba32)]
-        public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(RLE8, PixelTypes.Rgba32, false)]
+        [WithFile(RLE8Inverted, PixelTypes.Rgba32, false)]
+        [WithFile(RLE8, PixelTypes.Rgba32, true)]
+        [WithFile(RLE8Inverted, PixelTypes.Rgba32, true)]
+        public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit<TPixel>(TestImageProvider<TPixel> provider, bool enforceDiscontiguousBuffers)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (enforceDiscontiguousBuffers)
+            {
+                provider.LimitAllocatorBufferCapacity().InBytes(100);
+            }
+
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette }))
             {
                 image.DebugSave(provider);
@@ -266,12 +273,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
-        [WithFile(RLE24, PixelTypes.Rgba32)]
-        [WithFile(RLE24Cut, PixelTypes.Rgba32)]
-        [WithFile(RLE24Delta, PixelTypes.Rgba32)]
-        public void BmpDecoder_CanDecode_RunLengthEncoded_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(RLE24, PixelTypes.Rgba32, false)]
+        [WithFile(RLE24Cut, PixelTypes.Rgba32, false)]
+        [WithFile(RLE24Delta, PixelTypes.Rgba32, false)]
+        [WithFile(RLE24, PixelTypes.Rgba32, true)]
+        [WithFile(RLE24Cut, PixelTypes.Rgba32, true)]
+        [WithFile(RLE24Delta, PixelTypes.Rgba32, true)]
+        public void BmpDecoder_CanDecode_RunLengthEncoded_24Bit<TPixel>(TestImageProvider<TPixel> provider, bool enforceNonContiguous)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (enforceNonContiguous)
+            {
+                provider.LimitAllocatorBufferCapacity().InBytes(50);
+            }
+
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))
             {
                 image.DebugSave(provider);

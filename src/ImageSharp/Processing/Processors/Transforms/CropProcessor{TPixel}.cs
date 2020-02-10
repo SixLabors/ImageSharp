@@ -51,12 +51,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelExecutionSettings parallelSettings =
                 ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
 
-            var rowAction = new RowIntervalOperation(ref bounds, source, destination);
+            var operation = new RowIntervalOperation(ref bounds, source, destination);
 
             ParallelRowIterator.IterateRows(
                 bounds,
                 in parallelSettings,
-                in rowAction);
+                in operation);
         }
 
         /// <summary>

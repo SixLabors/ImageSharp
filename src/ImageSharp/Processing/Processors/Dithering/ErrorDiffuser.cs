@@ -54,6 +54,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
             // Calculate the error
             Vector4 error = source.ToVector4() - transformed.ToVector4();
+
+            if (Vector4.Dot(error, error) > 16F / 255F)
+            {
+                error *= .75F;
+            }
+
             this.DoDither(image, x, y, minX, maxX, maxY, error);
         }
 
@@ -65,27 +71,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             DenseMatrix<float> matrix = this.matrix;
 
             // Loop through and distribute the error amongst neighboring pixels.
-            for (int row = 0, targetY = y; row < matrix.Rows && targetY < maxY; row++, targetY++)
+            for (int row = 0, targetY = y; row < matrix.Rows; row++, targetY++)
             {
+                // TODO: Quantize rectangle.
+                if (targetY >= maxY)
+                {
+                    continue;
+                }
+
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(targetY);
 
                 for (int col = 0; col < matrix.Columns; col++)
                 {
                     int targetX = x + (col - offset);
-                    if (targetX >= minX && targetX < maxX)
+                    if (targetX < minX || targetX >= maxX)
                     {
-                        float coefficient = matrix[row, col];
-                        if (coefficient == 0)
-                        {
-                            continue;
-                        }
-
-                        ref TPixel pixel = ref rowSpan[targetX];
-                        var result = pixel.ToVector4();
-
-                        result += error * coefficient;
-                        pixel.FromVector4(result);
+                        continue;
                     }
+
+                    float coefficient = matrix[row, col];
+                    if (coefficient == 0)
+                    {
+                        continue;
+                    }
+
+                    ref TPixel pixel = ref rowSpan[targetX];
+                    var result = pixel.ToVector4();
+
+                    result += error * coefficient;
+                    pixel.FromVector4(result);
                 }
             }
         }

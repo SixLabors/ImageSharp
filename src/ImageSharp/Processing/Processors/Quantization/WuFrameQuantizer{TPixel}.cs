@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
+                ReadOnlySpan<TPixel> row = source.GetPixelRowSpan(y);
 
                 // And loop through each column
                 for (int x = 0; x < width; x++)
@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="b">The blue value.</param>
         /// <param name="a">The alpha value.</param>
         /// <returns>The index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetPaletteIndex(int r, int g, int b, int a)
         {
             return (r << ((IndexBits * 2) + IndexAlphaBits))
@@ -409,28 +409,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             // Build up the 3-D color histogram
             // Loop through each row
-            using (IMemoryOwner<Rgba32> rgbaBuffer = this.memoryAllocator.Allocate<Rgba32>(source.Width))
+            using IMemoryOwner<Rgba32> rgbaBuffer = this.memoryAllocator.Allocate<Rgba32>(source.Width);
+            Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
+            ref Rgba32 scanBaseRef = ref MemoryMarshal.GetReference(rgbaSpan);
+
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < height; y++)
+                Span<TPixel> row = source.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToRgba32(source.GetConfiguration(), row, rgbaSpan);
+
+                // And loop through each column
+                for (int x = 0; x < width; x++)
                 {
-                    Span<TPixel> row = source.GetPixelRowSpan(y);
-                    Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
-                    PixelOperations<TPixel>.Instance.ToRgba32(source.GetConfiguration(), row, rgbaSpan);
-                    ref Rgba32 scanBaseRef = ref MemoryMarshal.GetReference(rgbaSpan);
+                    ref Rgba32 rgba = ref Unsafe.Add(ref scanBaseRef, x);
 
-                    // And loop through each column
-                    for (int x = 0; x < width; x++)
-                    {
-                        ref Rgba32 rgba = ref Unsafe.Add(ref scanBaseRef, x);
+                    int r = (rgba.R >> (8 - IndexBits)) + 1;
+                    int g = (rgba.G >> (8 - IndexBits)) + 1;
+                    int b = (rgba.B >> (8 - IndexBits)) + 1;
+                    int a = (rgba.A >> (8 - IndexAlphaBits)) + 1;
 
-                        int r = rgba.R >> (8 - IndexBits);
-                        int g = rgba.G >> (8 - IndexBits);
-                        int b = rgba.B >> (8 - IndexBits);
-                        int a = rgba.A >> (8 - IndexAlphaBits);
-
-                        int index = GetPaletteIndex(r + 1, g + 1, b + 1, a + 1);
-                        momentSpan[index] += rgba;
-                    }
+                    int index = GetPaletteIndex(r, g, b, a);
+                    momentSpan[index] += rgba;
                 }
             }
         }
@@ -441,38 +440,38 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="memoryAllocator">The memory allocator used for allocating buffers.</param>
         private void Get3DMoments(MemoryAllocator memoryAllocator)
         {
+            using IMemoryOwner<Moment> volume = memoryAllocator.Allocate<Moment>(IndexCount * IndexAlphaCount);
+            using IMemoryOwner<Moment> area = memoryAllocator.Allocate<Moment>(IndexAlphaCount);
+
             Span<Moment> momentSpan = this.moments.GetSpan();
-            using (IMemoryOwner<Moment> volume = memoryAllocator.Allocate<Moment>(IndexCount * IndexAlphaCount))
-            using (IMemoryOwner<Moment> area = memoryAllocator.Allocate<Moment>(IndexAlphaCount))
+            Span<Moment> volumeSpan = volume.GetSpan();
+            Span<Moment> areaSpan = area.GetSpan();
+            int baseIndex = GetPaletteIndex(1, 0, 0, 0);
+
+            for (int r = 1; r < IndexCount; r++)
             {
-                Span<Moment> volumeSpan = volume.GetSpan();
-                Span<Moment> areaSpan = area.GetSpan();
+                volumeSpan.Clear();
 
-                for (int r = 1; r < IndexCount; r++)
+                for (int g = 1; g < IndexCount; g++)
                 {
-                    volume.Clear();
+                    areaSpan.Clear();
 
-                    for (int g = 1; g < IndexCount; g++)
+                    for (int b = 1; b < IndexCount; b++)
                     {
-                        area.Clear();
+                        Moment line = default;
 
-                        for (int b = 1; b < IndexCount; b++)
+                        for (int a = 1; a < IndexAlphaCount; a++)
                         {
-                            Moment line = default;
+                            int ind1 = GetPaletteIndex(r, g, b, a);
+                            line += momentSpan[ind1];
 
-                            for (int a = 1; a < IndexAlphaCount; a++)
-                            {
-                                int ind1 = GetPaletteIndex(r, g, b, a);
-                                line += momentSpan[ind1];
+                            areaSpan[a] += line;
 
-                                areaSpan[a] += line;
+                            int inv = (b * IndexAlphaCount) + a;
+                            volumeSpan[inv] += areaSpan[a];
 
-                                int inv = (b * IndexAlphaCount) + a;
-                                volumeSpan[inv] += areaSpan[a];
-
-                                int ind2 = ind1 - GetPaletteIndex(1, 0, 0, 0);
-                                momentSpan[ind1] = momentSpan[ind2] + volumeSpan[inv];
-                            }
+                            int ind2 = ind1 - baseIndex;
+                            momentSpan[ind1] = momentSpan[ind2] + volumeSpan[inv];
                         }
                     }
                 }
@@ -573,7 +572,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>Returns a value indicating whether the box has been split.</returns>
         private bool Cut(ref Box set1, ref Box set2)
         {
-            Moment whole = Volume(ref set1, this.moments.GetSpan());
+            ReadOnlySpan<Moment> momentSpan = this.moments.GetSpan();
+            Moment whole = Volume(ref set1, momentSpan);
 
             float maxR = this.Maximize(ref set1, 3, set1.RMin + 1, set1.RMax, out int cutR, whole);
             float maxG = this.Maximize(ref set1, 2, set1.GMin + 1, set1.GMax, out int cutG, whole);
@@ -731,7 +731,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>
         /// The quantized value
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private byte QuantizePixel(ref TPixel pixel)
         {
             if (this.Dither)
@@ -750,8 +750,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             int b = rgba.B >> (8 - IndexBits);
             int a = rgba.A >> (8 - IndexAlphaBits);
 
-            Span<byte> tagSpan = this.tag.GetSpan();
-
+            ReadOnlySpan<byte> tagSpan = this.tag.GetSpan();
             return tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
         }
 
@@ -894,10 +893,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             public int Volume;
 
             /// <inheritdoc/>
-            public override bool Equals(object obj) => obj is Box box && this.Equals(box);
+            public readonly override bool Equals(object obj)
+                => obj is Box box
+                && this.Equals(box);
 
             /// <inheritdoc/>
-            public bool Equals(Box other) =>
+            public readonly bool Equals(Box other) =>
                 this.RMin == other.RMin
                 && this.RMax == other.RMax
                 && this.GMin == other.GMin
@@ -909,7 +910,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 && this.Volume == other.Volume;
 
             /// <inheritdoc/>
-            public override int GetHashCode()
+            public readonly override int GetHashCode()
             {
                 HashCode hash = default;
                 hash.Add(this.RMin);

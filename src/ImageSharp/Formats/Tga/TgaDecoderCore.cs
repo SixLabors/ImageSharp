@@ -61,6 +61,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.options = options;
         }
 
+        public Size Dimensions => new Size(this.fileHeader.Width, this.fileHeader.Height);
+
         /// <summary>
         /// Decodes the image from the specified stream.
         /// </summary>

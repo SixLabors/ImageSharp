@@ -196,8 +196,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             }
         }
 
-        // TODO: A InvalidMemoryOperationException is thrown here, review the thrown exception.
-        [Theory(Skip = "Review Exception")]
+        [Theory]
         [WithFile(Bit16, PixelTypes.Rgba32)]
         [WithFile(Bit24, PixelTypes.Rgba32)]
         [WithFile(Bit32, PixelTypes.Rgba32)]

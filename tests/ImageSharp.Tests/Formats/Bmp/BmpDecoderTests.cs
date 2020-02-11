@@ -261,7 +261,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         {
             if (enforceDiscontiguousBuffers)
             {
-                provider.LimitAllocatorBufferCapacity().InBytes(100);
+                provider.LimitAllocatorBufferCapacity().InBytes(400);
             }
 
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette }))
@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         {
             if (enforceNonContiguous)
             {
-                provider.LimitAllocatorBufferCapacity().InBytes(50);
+                provider.LimitAllocatorBufferCapacity().InBytes(400);
             }
 
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))

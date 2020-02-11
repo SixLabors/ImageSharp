@@ -4,10 +4,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Tga;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
@@ -162,6 +166,42 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     first.ComparePixelBufferTo(second.GetPixelSpan());
                 }
             }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Gif.Kumin, PixelTypes.Rgba32)]
+        public void GifDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity().InPixels(10);
+            ImageFormatException ex = Assert.Throws<ImageFormatException>(provider.GetImage);
+            Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Gif.Kumin, PixelTypes.Rgba32)]
+        public void GifDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            static void RunTest(string providerDump, string nonContiguousBuffersStr)
+            {
+                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+
+                provider.LimitAllocatorBufferCapacity().InPixels(100);
+
+                using Image<TPixel> image = provider.GetImage(new GifDecoder());
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+
+            string providerDump = BasicSerializer.Serialize(provider);
+            RemoteExecutor.Invoke(
+                    RunTest,
+                    providerDump,
+                    "Disco")
+                .Dispose();
         }
     }
 }

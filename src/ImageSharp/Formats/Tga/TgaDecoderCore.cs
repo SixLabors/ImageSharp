@@ -61,6 +61,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.options = options;
         }
 
+        /// <summary>
+        /// Gets the dimensions of the image.
+        /// </summary>
         public Size Dimensions => new Size(this.fileHeader.Width, this.fileHeader.Height);
 
         /// <summary>

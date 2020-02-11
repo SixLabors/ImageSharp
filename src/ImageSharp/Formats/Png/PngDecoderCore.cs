@@ -132,6 +132,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.ignoreMetadata = options.IgnoreMetadata;
         }
 
+        /// <summary>
+        /// Gets the dimensions of the image.
+        /// </summary>
         public Size Dimensions => new Size(this.header.Width, this.header.Height);
 
         /// <summary>

@@ -246,7 +246,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void Encode_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.LimitAllocatorBufferCapacity();
+            provider.LimitAllocatorBufferCapacity().InBytes(100);
             TestBmpEncoderCore(provider, bitsPerPixel);
         }
 

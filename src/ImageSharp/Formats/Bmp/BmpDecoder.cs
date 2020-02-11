@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 // TODO: use InvalidImageContentException here, if we decide to define it
                 // https://github.com/SixLabors/ImageSharp/issues/1110
-                throw new ImageFormatException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
+                throw new ImageFormatException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}. This error can happen for very large RLE bitmaps, which are not supported.", ex);
             }
         }
 

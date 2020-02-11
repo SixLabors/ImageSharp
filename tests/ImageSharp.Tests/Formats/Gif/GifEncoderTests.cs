@@ -26,10 +26,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         };
 
         [Theory]
-        [WithTestPatternImages(100, 100, TestPixelTypes)]
-        public void EncodeGeneratedPatterns<TPixel>(TestImageProvider<TPixel> provider)
+        [WithTestPatternImages(100, 100, TestPixelTypes, false)]
+        [WithTestPatternImages(100, 100, TestPixelTypes, false)]
+        public void EncodeGeneratedPatterns<TPixel>(TestImageProvider<TPixel> provider, bool limitAllocationBuffer)
             where TPixel : struct, IPixel<TPixel>
         {
+            if (limitAllocationBuffer)
+            {
+                provider.LimitAllocatorBufferCapacity().InPixels(100);
+            }
+
             using (Image<TPixel> image = provider.GetImage())
             {
                 var encoder = new GifEncoder

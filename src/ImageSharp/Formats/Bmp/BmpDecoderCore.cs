@@ -114,6 +114,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.options = options;
         }
 
+        /// <summary>
+        /// Gets the dimensions of the image.
+        /// </summary>
         public Size Dimensions => new Size(this.infoHeader.Width, this.infoHeader.Height);
 
         /// <summary>

@@ -47,15 +47,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
             int numberOfPixels = source.Width * source.Height;
-            var workingRect = new Rectangle(0, 0, source.Width, source.Height);
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
             using IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
 
             // Build the histogram of the grayscale levels
-            var grayscaleOperation = new GrayscaleLevelsRowIntervalOperation(workingRect, histogramBuffer, source, this.LuminanceLevels);
+            var grayscaleOperation = new GrayscaleLevelsRowIntervalOperation(interest, histogramBuffer, source, this.LuminanceLevels);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
-                workingRect,
+                interest,
                 in grayscaleOperation);
 
             Span<int> histogram = histogramBuffer.GetSpan();
@@ -75,10 +75,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
 
             // Apply the cdf to each pixel of the image
-            var cdfOperation = new CdfApplicationRowIntervalOperation(workingRect, cdfBuffer, source, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
+            var cdfOperation = new CdfApplicationRowIntervalOperation(interest, cdfBuffer, source, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
-                workingRect,
+                interest,
                 in cdfOperation);
         }
 
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public GrayscaleLevelsRowIntervalOperation(
-                in Rectangle bounds,
+                Rectangle bounds,
                 IMemoryOwner<int> histogramBuffer,
                 ImageFrame<TPixel> source,
                 int luminanceLevels)
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public CdfApplicationRowIntervalOperation(
-                in Rectangle bounds,
+                Rectangle bounds,
                 IMemoryOwner<int> cdfBuffer,
                 ImageFrame<TPixel> source,
                 int luminanceLevels,

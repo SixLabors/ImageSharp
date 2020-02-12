@@ -316,14 +316,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Vector4 parameters = Unsafe.Add(ref paramsRef, i);
 
                 // Compute the vertical 1D convolution
-                var verticalOperation = new ApplyVerticalConvolutionRowIntervalOperation(ref sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel);
+                var verticalOperation = new ApplyVerticalConvolutionRowIntervalOperation(sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel);
                 ParallelRowIterator.IterateRows(
                     configuration,
                     sourceRectangle,
                     in verticalOperation);
 
                 // Compute the horizontal 1D convolutions and accumulate the partial results on the target buffer
-                var horizontalOperation = new ApplyHorizontalConvolutionRowIntervalOperation(ref sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W);
+                var horizontalOperation = new ApplyHorizontalConvolutionRowIntervalOperation(sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W);
                 ParallelRowIterator.IterateRows(
                     configuration,
                     sourceRectangle,
@@ -345,7 +345,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public ApplyVerticalConvolutionRowIntervalOperation(
-                ref Rectangle bounds,
+                Rectangle bounds,
                 Buffer2D<ComplexVector4> targetValues,
                 Buffer2D<TPixel> sourcePixels,
                 Complex64[] kernel)
@@ -390,7 +390,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public ApplyHorizontalConvolutionRowIntervalOperation(
-                ref Rectangle bounds,
+                Rectangle bounds,
                 Buffer2D<Vector4> targetValues,
                 Buffer2D<ComplexVector4> sourceValues,
                 Complex64[] kernel,

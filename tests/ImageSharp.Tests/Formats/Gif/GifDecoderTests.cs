@@ -5,14 +5,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Microsoft.DotNet.RemoteExecutor;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Gif;
-using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -21,6 +22,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
     public class GifDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
+
+        private static GifDecoder GifDecoder => new GifDecoder();
 
         public static readonly string[] MultiFrameTestFiles =
         {
@@ -76,9 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             {
                 using (var stream = new UnmanagedMemoryStream(data, length))
                 {
-                    var decoder = new GifDecoder();
-
-                    using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                    using (Image<Rgba32> image = GifDecoder.Decode<Rgba32>(Configuration.Default, stream))
                     {
                         Assert.Equal((200, 200), (image.Width, image.Height));
                     }
@@ -175,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             where TPixel : struct, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixels(10);
-            ImageFormatException ex = Assert.Throws<ImageFormatException>(provider.GetImage);
+            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(GifDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
@@ -191,7 +192,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
                 provider.LimitAllocatorBufferCapacity().InPixels(100);
 
-                using Image<TPixel> image = provider.GetImage(new GifDecoder());
+                using Image<TPixel> image = provider.GetImage(GifDecoder);
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider);
             }

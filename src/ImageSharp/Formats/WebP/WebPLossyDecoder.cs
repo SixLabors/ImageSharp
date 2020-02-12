@@ -199,6 +199,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int uOff = yOff + (WebPConstants.Bps * 16) + WebPConstants.Bps;
             int vOff = uOff + 16;
 
+            byte[] yuv = dec.YuvBuffer;
             Span<byte> yDst = dec.YuvBuffer.AsSpan(yOff);
             Span<byte> uDst = dec.YuvBuffer.AsSpan(uOff);
             Span<byte> vDst = dec.YuvBuffer.AsSpan(vOff);
@@ -206,19 +207,20 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Initialize left-most block.
             for (int i = 0; i < 16; ++i)
             {
-                yDst[(i * WebPConstants.Bps) - 1] = 129;
+                yuv[(i * WebPConstants.Bps) - 1 + yOff] = 129;
             }
 
             for (int i = 0; i < 8; ++i)
             {
-                uDst[(i * WebPConstants.Bps) - 1] = 129;
-                vDst[(i * WebPConstants.Bps) - 1] = 129;
+                yuv[(i * WebPConstants.Bps) - 1 + uOff] = 129;
+                yuv[(i * WebPConstants.Bps) - 1 + vOff] = 129;
             }
 
             // Init top-left sample on left column too.
             if (mby > 0)
             {
-                yDst[-1 - WebPConstants.Bps] = uDst[-1 - WebPConstants.Bps] = vDst[-1 - WebPConstants.Bps] = 129;
+                // TODO:
+                // yDst[-1 - WebPConstants.Bps] = uDst[-1 - WebPConstants.Bps] = vDst[-1 - WebPConstants.Bps] = 129;
             }
             else
             {
@@ -254,56 +256,193 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 {
                     for (int i = -1; i < 16; ++i)
                     {
-                        // Copy32b(&y_dst[j * BPS - 4], &y_dst[j * BPS + 12]);
+                        int srcIdx = (i * WebPConstants.Bps) + 12 + yOff;
+                        int dstIdx = (i * WebPConstants.Bps) - 4 + yOff;
+                        yuv.AsSpan(srcIdx, 4).CopyTo(yuv.AsSpan(dstIdx));
                     }
 
                     for (int i = -1; i < 8; ++i)
                     {
-                        // Copy32b(&u_dst[j * BPS - 4], &u_dst[j * BPS + 4]);
-                        // Copy32b(&v_dst[j * BPS - 4], &v_dst[j * BPS + 4]);
+                        int srcIdx = (i * WebPConstants.Bps) + 4 + uOff;
+                        int dstIdx = (i * WebPConstants.Bps) - 4 + uOff;
+                        yuv.AsSpan(srcIdx, 4).CopyTo(yuv.AsSpan(dstIdx));
+                        srcIdx = (i * WebPConstants.Bps) + 4 + vOff;
+                        dstIdx = (i * WebPConstants.Bps) - 4 + vOff;
+                        yuv.AsSpan(srcIdx, 4).CopyTo(yuv.AsSpan(dstIdx));
                     }
+                }
 
-                    // Bring top samples into the cache.
-                    Vp8TopSamples topSamples = dec.YuvTopSamples[mbx];
-                    short[] coeffs = block.Coeffs;
-                    uint bits = block.NonZeroY;
+                // Bring top samples into the cache.
+                Vp8TopSamples topYuv = dec.YuvTopSamples[mbx];
+                short[] coeffs = block.Coeffs;
+                uint bits = block.NonZeroY;
+                if (mby > 0)
+                {
+                    topYuv.Y.CopyTo(yuv.AsSpan(yOff - WebPConstants.Bps));
+                    topYuv.U.CopyTo(yuv.AsSpan(uOff - WebPConstants.Bps));
+                    topYuv.V.CopyTo(yuv.AsSpan(vOff - WebPConstants.Bps));
+                }
+
+                // Predict and add residuals.
+                if (block.IsI4x4)
+                {
                     if (mby > 0)
                     {
-                        //memcpy(y_dst - BPS, top_yuv[0].y, 16);
-                        //memcpy(u_dst - BPS, top_yuv[0].u, 8);
-                        //memcpy(v_dst - BPS, top_yuv[0].v, 8);
+                        if (mbx >= dec.MbWidth - 1)
+                        {
+                            // On rightmost border.
+                            //memset(top_right, top_yuv[0].y[15], sizeof(*top_right));
+                        }
+                        else
+                        {
+                            // memcpy(top_right, top_yuv[1].y, sizeof(*top_right));
+                        }
                     }
 
-                    // Predict and add residuals.
-                    if (block.IsI4x4)
+                    // Replicate the top-right pixels below.
+
+
+                    // Predict and add residuals for all 4x4 blocks in turn.
+                    for (int n = 0; n < 16; ++n, bits <<= 2)
                     {
-                        if (mby > 0)
+                        // uint8_t * const dst = y_dst + kScan[n];
+                        byte lumaMode = block.Modes[n];
+                        switch (lumaMode)
                         {
-                            if (mbx >= dec.MbWidth - 1)
-                            {
-                                // On rightmost border.
-                                //memset(top_right, top_yuv[0].y[15], sizeof(*top_right));
-                            }
-                            else
-                            {
-                                // memcpy(top_right, top_yuv[1].y, sizeof(*top_right));
-                            }
+                            case 0:
+                                break;
+                            case 1:
+                                break;
+                            case 2:
+                                break;
+                            case 3:
+                                break;
+                            case 4:
+                                break;
+                            case 5:
+                                break;
+                            case 6:
+                                break;
+                            case 7:
+                                break;
+                            case 8:
+                                break;
+                            case 9:
+                                break;
                         }
 
-                        // Replicate the top-right pixels below.
+                        //DoTransform(bits, coeffs + n * 16, dst);
+                    }
+                }
+                else
+                {
+                    // 16x16
+                    int mode = CheckMode(mbx, mby, block.Modes[0]);
+                    switch (mode)
+                    {
+                        case 0:
+                            LossyUtils.DC16_C(yDst, yuv, yOff);
+                            break;
+                        case 1:
+                            LossyUtils.TM16_C(yDst);
+                            break;
+                        case 2:
+                            LossyUtils.VE16_C(yDst, yuv, yOff);
+                            break;
+                        case 3:
+                            LossyUtils.HE16_C(yDst, yuv, yOff);
+                            break;
+                        case 4:
+                            LossyUtils.DC16NoTop_C(yDst, yuv, yOff);
+                            break;
+                        case 5:
+                            LossyUtils.DC16NoLeft_C(yDst, yuv, yOff);
+                            break;
+                        case 6:
+                            LossyUtils.DC16NoTopLeft_C(yDst);
+                            break;
+                    }
 
-
-                        // Predict and add residuals for all 4x4 blocks in turn.
+                    if (bits != 0)
+                    {
                         for (int n = 0; n < 16; ++n, bits <<= 2)
                         {
-
+                            this.DoTransform(bits, coeffs.AsSpan(n * 16), yDst.Slice(WebPConstants.KScan[n]));
                         }
                     }
-                    else
-                    {
-                        // 16x16
+                }
 
-                    }
+                // Chroma
+                uint bitsUv = block.NonZeroUv;
+                int chromaMode = CheckMode(mbx, mby, block.UvMode);
+                switch (chromaMode)
+                {
+                    case 0:
+                        LossyUtils.DC8uv_C(uDst, yuv, uOff);
+                        LossyUtils.DC8uv_C(vDst, yuv, vOff);
+                        break;
+                    case 1:
+                        LossyUtils.TM8uv_C(uDst);
+                        LossyUtils.TM8uv_C(vDst);
+                        break;
+                    case 2:
+                        LossyUtils.VE8uv_C(uDst, yuv.AsSpan(uOff - WebPConstants.Bps, 8));
+                        LossyUtils.VE8uv_C(vDst, yuv.AsSpan(vOff - WebPConstants.Bps, 8));
+                        break;
+                    case 3:
+                        LossyUtils.HE8uv_C(uDst, yuv, uOff);
+                        LossyUtils.HE8uv_C(vDst, yuv, vOff);
+                        break;
+                    case 4:
+                        LossyUtils.DC8uvNoTop_C(uDst, yuv, uOff);
+                        LossyUtils.DC8uvNoTop_C(vDst, yuv, vOff);
+                        break;
+                    case 5:
+                        LossyUtils.DC8uvNoLeft_C(uDst, yuv, uOff);
+                        LossyUtils.DC8uvNoLeft_C(vDst, yuv, vOff);
+                        break;
+                    case 6:
+                        LossyUtils.DC8uvNoTopLeft_C(uDst, yuv, uOff);
+                        LossyUtils.DC8uvNoTopLeft_C(vDst, yuv, vOff);
+                        break;
+                }
+
+                this.DoUVTransform(bitsUv >> 0, coeffs.AsSpan(16 * 16), uDst);
+                this.DoUVTransform(bitsUv >> 8, coeffs.AsSpan(20 * 16), vDst);
+            }
+        }
+
+        private void DoTransform(uint bits, Span<short> src, Span<byte> dst)
+        {
+            switch (bits >> 30)
+            {
+                case 3:
+                    LossyUtils.Transform(src, dst, false);
+                    break;
+                case 2:
+                    LossyUtils.TransformAc3(src, dst);
+                    break;
+                case 1:
+                    LossyUtils.TransformDc(src, dst);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void DoUVTransform(uint bits, Span<short> src, Span<byte> dst)
+        {
+            // any non-zero coeff at all?
+            if ((bits & 0xff) > 0)
+            {
+                // any non-zero AC coefficient?
+                if ((bits & 0xaa) > 0)
+                {
+                    LossyUtils.TransformUv(src, dst); // note we don't use the AC3 variant for U/V.
+                }
+                else
+                {
+                    LossyUtils.TransformDcuv(src, dst);
                 }
             }
         }
@@ -860,6 +999,26 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             Vp8BandProbas[] bandsRow = Enumerable.Range(0, bands.GetLength(1)).Select(x => bands[rowIdx, x]).ToArray();
             return bandsRow;
+        }
+
+        private static int CheckMode(int mbx, int mby, int mode)
+        {
+            // B_DC_PRED
+            if (mode is 0)
+            {
+                if (mbx is 0)
+                {
+                    return (mby is 0)
+                               ? 6 // B_DC_PRED_NOTOPLEFT
+                               : 5; // B_DC_PRED_NOLEFT
+                }
+
+                return (mby is 0)
+                           ? 4 // B_DC_PRED_NOTOP
+                           : 0; // B_DC_PRED
+            }
+
+            return mode;
         }
 
         private static int Clip(int value, int max)

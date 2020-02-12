@@ -2,8 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
@@ -35,27 +36,50 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             Configuration configuration = this.Configuration;
-            using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(configuration))
-            using (IQuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source))
+            using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(configuration);
+            using IQuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source);
+
+            var operation = new RowIntervalOperation(this.SourceRectangle, source, quantized);
+            ParallelRowIterator.IterateRows(
+                configuration,
+                this.SourceRectangle,
+                in operation);
+        }
+
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        {
+            private readonly Rectangle bounds;
+            private readonly ImageFrame<TPixel> source;
+            private readonly IQuantizedFrame<TPixel> quantized;
+            private readonly int maxPaletteIndex;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalOperation(
+                Rectangle bounds,
+                ImageFrame<TPixel> source,
+                IQuantizedFrame<TPixel> quantized)
             {
-                int paletteCount = quantized.Palette.Length - 1;
+                this.bounds = bounds;
+                this.source = source;
+                this.quantized = quantized;
+                this.maxPaletteIndex = quantized.Palette.Length - 1;
+            }
 
-                // Not parallel to remove "quantized" closure allocation.
-                // We can operate directly on the source here as we've already read it to get the
-                // quantized result
-                for (int y = 0; y < source.Height; y++)
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                ReadOnlySpan<byte> quantizedPixelSpan = this.quantized.GetPixelSpan();
+                ReadOnlySpan<TPixel> paletteSpan = this.quantized.Palette.Span;
+
+                for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> row = source.GetPixelRowSpan(y);
-                    ReadOnlySpan<byte> quantizedPixelSpan = quantized.GetPixelSpan();
+                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
+                    int yy = y * this.bounds.Width;
 
-                    ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
-
-                    int yy = y * source.Width;
-
-                    for (int x = 0; x < source.Width; x++)
+                    for (int x = this.bounds.X; x < this.bounds.Right; x++)
                     {
                         int i = x + yy;
-                        row[x] = paletteSpan[Math.Min(paletteCount, quantizedPixelSpan[i])];
+                        row[x] = paletteSpan[Math.Min(this.maxPaletteIndex, quantizedPixelSpan[i])];
                     }
                 }
             }

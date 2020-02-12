@@ -17,35 +17,35 @@ namespace SixLabors.ImageSharp.Advanced
     /// </content>
     public static partial class ParallelRowIterator
     {
-        private readonly struct WrappingRowIntervalInfo
+        private readonly struct IterationParameters
         {
             public readonly int MinY;
             public readonly int MaxY;
             public readonly int StepY;
-            public readonly int MaxX;
+            public readonly int Width;
 
-            public WrappingRowIntervalInfo(int minY, int maxY, int stepY)
+            public IterationParameters(int minY, int maxY, int stepY)
                 : this(minY, maxY, stepY, 0)
             {
             }
 
-            public WrappingRowIntervalInfo(int minY, int maxY, int stepY, int maxX)
+            public IterationParameters(int minY, int maxY, int stepY, int width)
             {
                 this.MinY = minY;
                 this.MaxY = maxY;
                 this.StepY = stepY;
-                this.MaxX = maxX;
+                this.Width = width;
             }
         }
 
-        private readonly struct WrappingRowIntervalOperation<T>
+        private readonly struct RowIntervalOperationWrapper<T>
             where T : struct, IRowIntervalOperation
         {
-            private readonly WrappingRowIntervalInfo info;
+            private readonly IterationParameters info;
             private readonly T operation;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public WrappingRowIntervalOperation(in WrappingRowIntervalInfo info, in T operation)
+            public RowIntervalOperationWrapper(in IterationParameters info, in T operation)
             {
                 this.info = info;
                 this.operation = operation;
@@ -69,17 +69,17 @@ namespace SixLabors.ImageSharp.Advanced
             }
         }
 
-        private readonly struct WrappingRowIntervalBufferOperation<T, TBuffer>
+        private readonly struct RowIntervalOperationWrapper<T, TBuffer>
             where T : struct, IRowIntervalOperation<TBuffer>
             where TBuffer : unmanaged
         {
-            private readonly WrappingRowIntervalInfo info;
+            private readonly IterationParameters info;
             private readonly MemoryAllocator allocator;
             private readonly T operation;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public WrappingRowIntervalBufferOperation(
-                in WrappingRowIntervalInfo info,
+            public RowIntervalOperationWrapper(
+                in IterationParameters info,
                 MemoryAllocator allocator,
                 in T operation)
             {
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Advanced
                 int yMax = Math.Min(yMin + this.info.StepY, this.info.MaxY);
                 var rows = new RowInterval(yMin, yMax);
 
-                using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.MaxX);
+                using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.Width);
 
                 Unsafe.AsRef(in this.operation).Invoke(in rows, buffer.Memory.Span);
             }

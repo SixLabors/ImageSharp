@@ -65,8 +65,8 @@ namespace SixLabors.ImageSharp.Advanced
 
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-            var info = new WrappingRowIntervalInfo(top, bottom, verticalStep);
-            var wrappingOperation = new WrappingRowIntervalOperation<T>(in info, in operation);
+            var info = new IterationParameters(top, bottom, verticalStep);
+            var wrappingOperation = new RowIntervalOperationWrapper<T>(in info, in operation);
 
             Parallel.For(
                 0,
@@ -133,8 +133,8 @@ namespace SixLabors.ImageSharp.Advanced
 
             int verticalStep = DivideCeil(height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-            var info = new WrappingRowIntervalInfo(top, bottom, verticalStep, width);
-            var wrappingOperation = new WrappingRowIntervalBufferOperation<T, TBuffer>(in info, allocator, in operation);
+            var info = new IterationParameters(top, bottom, verticalStep, width);
+            var wrappingOperation = new RowIntervalOperationWrapper<T, TBuffer>(in info, allocator, in operation);
 
             Parallel.For(
                 0,

@@ -4,9 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -261,19 +259,12 @@ namespace SixLabors.ImageSharp
             }
 
             var target = new ImageFrame<TPixel2>(configuration, this.Width, this.Height, this.Metadata.DeepClone());
+            var operation = new RowIntervalOperation<TPixel2>(this, target, configuration);
 
-            ParallelHelper.IterateRows(
-                this.Bounds(),
+            ParallelRowIterator.IterateRows(
                 configuration,
-                rows =>
-                    {
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixel> sourceRow = this.GetPixelRowSpan(y);
-                            Span<TPixel2> targetRow = target.GetPixelRowSpan(y);
-                            PixelOperations<TPixel>.Instance.To(configuration, sourceRow, targetRow);
-                        }
-                    });
+                this.Bounds(),
+                in operation);
 
             return target;
         }
@@ -293,6 +284,40 @@ namespace SixLabors.ImageSharp
             else
             {
                 group.Fill(value);
+            }
+        }
+
+        /// <summary>
+        /// A <see langword="struct"/> implementing the clone logic for <see cref="ImageFrame{TPixel}"/>.
+        /// </summary>
+        private readonly struct RowIntervalOperation<TPixel2> : IRowIntervalOperation
+            where TPixel2 : struct, IPixel<TPixel2>
+        {
+            private readonly ImageFrame<TPixel> source;
+            private readonly ImageFrame<TPixel2> target;
+            private readonly Configuration configuration;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalOperation(
+                ImageFrame<TPixel> source,
+                ImageFrame<TPixel2> target,
+                Configuration configuration)
+            {
+                this.source = source;
+                this.target = target;
+                this.configuration = configuration;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
+                    Span<TPixel2> targetRow = this.target.GetPixelRowSpan(y);
+                    PixelOperations<TPixel>.Instance.To(this.configuration, sourceRow, targetRow);
+                }
             }
         }
     }

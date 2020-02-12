@@ -21,10 +21,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             var color1 = new Rgba32(0, 0, 0);
             var color2 = new Rgba32(0, 0, 0, 1F);
-            var color3 = Rgba32.FromHex("#000");
-            var color4 = Rgba32.FromHex("#000F");
-            var color5 = Rgba32.FromHex("#000000");
-            var color6 = Rgba32.FromHex("#000000FF");
+            var color3 = Rgba32.ParseHex("#000");
+            var color4 = Rgba32.ParseHex("#000F");
+            var color5 = Rgba32.ParseHex("#000000");
+            var color6 = Rgba32.ParseHex("#000000FF");
 
             Assert.Equal(color1, color2);
             Assert.Equal(color1, color3);
@@ -41,9 +41,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             var color1 = new Rgba32(255, 0, 0, 255);
             var color2 = new Rgba32(0, 0, 0, 255);
-            var color3 = Rgba32.FromHex("#000");
-            var color4 = Rgba32.FromHex("#000000");
-            var color5 = Rgba32.FromHex("#FF000000");
+            var color3 = Rgba32.ParseHex("#000");
+            var color4 = Rgba32.ParseHex("#000000");
+            var color5 = Rgba32.ParseHex("#FF000000");
 
             Assert.NotEqual(color1, color2);
             Assert.NotEqual(color1, color3);
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void FromAndToHex()
         {
             // 8 digit hex matches css4 spec. RRGGBBAA
-            var color = Rgba32.FromHex("#AABBCCDD"); // 170, 187, 204, 221
+            var color = Rgba32.ParseHex("#AABBCCDD"); // 170, 187, 204, 221
             Assert.Equal(170, color.R);
             Assert.Equal(187, color.G);
             Assert.Equal(204, color.B);

@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
@@ -42,36 +42,66 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             Configuration configuration = this.Configuration;
 
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-            int startY = interest.Y;
-            int endY = interest.Bottom;
-            int startX = interest.X;
-            int endX = interest.Right;
-
             bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
-            var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
-
-            ParallelHelper.IterateRows(
-                workingRect,
+            var operation = new RowIntervalOperation(interest, source, upper, lower, threshold, isAlphaOnly);
+            ParallelRowIterator.IterateRows(
                 configuration,
-                rows =>
+                interest,
+                in operation);
+        }
+
+        /// <summary>
+        /// A <see langword="struct"/> implementing the clone logic for <see cref="BinaryThresholdProcessor{TPixel}"/>.
+        /// </summary>
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        {
+            private readonly ImageFrame<TPixel> source;
+            private readonly TPixel upper;
+            private readonly TPixel lower;
+            private readonly byte threshold;
+            private readonly int minX;
+            private readonly int maxX;
+            private readonly bool isAlphaOnly;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalOperation(
+                Rectangle bounds,
+                ImageFrame<TPixel> source,
+                TPixel upper,
+                TPixel lower,
+                byte threshold,
+                bool isAlphaOnly)
+            {
+                this.source = source;
+                this.upper = upper;
+                this.lower = lower;
+                this.threshold = threshold;
+                this.minX = bounds.X;
+                this.maxX = bounds.Right;
+                this.isAlphaOnly = isAlphaOnly;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                Rgba32 rgba = default;
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
+
+                    for (int x = this.minX; x < this.maxX; x++)
                     {
-                        Rgba32 rgba = default;
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixel> row = source.GetPixelRowSpan(y);
+                        ref TPixel color = ref row[x];
+                        color.ToRgba32(ref rgba);
 
-                            for (int x = startX; x < endX; x++)
-                            {
-                                ref TPixel color = ref row[x];
-                                color.ToRgba32(ref rgba);
-
-                                // Convert to grayscale using ITU-R Recommendation BT.709 if required
-                                byte luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
-                                color = luminance >= threshold ? upper : lower;
-                            }
-                        }
-                    });
+                        // Convert to grayscale using ITU-R Recommendation BT.709 if required
+                        byte luminance = this.isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                        color = luminance >= this.threshold ? this.upper : this.lower;
+                    }
+                }
+            }
         }
     }
 }

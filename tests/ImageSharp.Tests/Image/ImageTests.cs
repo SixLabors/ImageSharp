@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests
             public void Configuration_Width_Height_BackgroundColor()
             {
                 Configuration configuration = Configuration.Default.Clone();
-                Rgba32 color = Rgba32.Aquamarine;
+                Rgba32 color = Color.Aquamarine;
 
                 using (var image = new Image<Rgba32>(configuration, 11, 23, color))
                 {

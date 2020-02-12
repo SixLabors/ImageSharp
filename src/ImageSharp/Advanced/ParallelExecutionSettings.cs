@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Advanced.ParallelUtils
+namespace SixLabors.ImageSharp.Advanced
 {
     /// <summary>
-    /// Defines execution settings for methods in <see cref="ParallelHelper"/>.
+    /// Defines execution settings for methods in <see cref="ParallelRowIterator"/>.
     /// </summary>
     public readonly struct ParallelExecutionSettings
     {
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Advanced.ParallelUtils
         }
 
         /// <summary>
-        /// Get the default <see cref="SixLabors.ImageSharp.Advanced.ParallelUtils.ParallelExecutionSettings"/> for a <see cref="SixLabors.ImageSharp.Configuration"/>
+        /// Get the default <see cref="SixLabors.ImageSharp.Advanced.ParallelExecutionSettings"/> for a <see cref="SixLabors.ImageSharp.Configuration"/>
         /// </summary>
         /// <param name="configuration">The <see cref="Configuration"/>.</param>
         /// <returns>The <see cref="ParallelExecutionSettings"/>.</returns>

@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// When sliding the window, the contents of the bottom window band are copied to the new top band.
     /// For more details, and visual explanation, see "ResizeWorker.pptx".
     /// </summary>
-    internal class ResizeWorker<TPixel> : IDisposable
+    internal sealed class ResizeWorker<TPixel> : IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Buffer2D<Vector4> transposedFirstPassBuffer;

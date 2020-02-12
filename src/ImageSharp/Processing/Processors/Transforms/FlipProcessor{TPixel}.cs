@@ -3,9 +3,9 @@
 
 using System;
 using System.Buffers;
-
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -55,20 +55,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private void FlipX(ImageFrame<TPixel> source, Configuration configuration)
         {
             int height = source.Height;
+            using IMemoryOwner<TPixel> tempBuffer = configuration.MemoryAllocator.Allocate<TPixel>(source.Width);
+            Span<TPixel> temp = tempBuffer.Memory.Span;
 
-            using (IMemoryOwner<TPixel> tempBuffer = configuration.MemoryAllocator.Allocate<TPixel>(source.Width))
+            for (int yTop = 0; yTop < height / 2; yTop++)
             {
-                Span<TPixel> temp = tempBuffer.Memory.Span;
-
-                for (int yTop = 0; yTop < height / 2; yTop++)
-                {
-                    int yBottom = height - yTop - 1;
-                    Span<TPixel> topRow = source.GetPixelRowSpan(yBottom);
-                    Span<TPixel> bottomRow = source.GetPixelRowSpan(yTop);
-                    topRow.CopyTo(temp);
-                    bottomRow.CopyTo(topRow);
-                    temp.CopyTo(bottomRow);
-                }
+                int yBottom = height - yTop - 1;
+                Span<TPixel> topRow = source.GetPixelRowSpan(yBottom);
+                Span<TPixel> bottomRow = source.GetPixelRowSpan(yTop);
+                topRow.CopyTo(temp);
+                bottomRow.CopyTo(topRow);
+                temp.CopyTo(bottomRow);
             }
         }
 
@@ -79,16 +76,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void FlipY(ImageFrame<TPixel> source, Configuration configuration)
         {
-            ParallelHelper.IterateRows(
-                source.Bounds(),
+            var operation = new RowIntervalOperation(source);
+            ParallelRowIterator.IterateRows(
                 configuration,
-                rows =>
-                    {
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            source.GetPixelRowSpan(y).Reverse();
-                        }
-                    });
+                source.Bounds(),
+                in operation);
+        }
+
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        {
+            private readonly ImageFrame<TPixel> source;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalOperation(ImageFrame<TPixel> source) => this.source = source;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    this.source.GetPixelRowSpan(y).Reverse();
+                }
+            }
         }
     }
 }

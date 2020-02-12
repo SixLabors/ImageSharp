@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 Rectangle sourceBounds = this.SourceRectangle;
 
-                var nnOperation = new NearestNeighborRowIntervalOperation(ref sourceBounds, ref matrix, width, source, destination);
+                var nnOperation = new NearestNeighborRowIntervalOperation(sourceBounds, ref matrix, width, source, destination);
                 ParallelRowIterator.IterateRows(
                     configuration,
                     targetBounds,
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public NearestNeighborRowIntervalOperation(
-                ref Rectangle bounds,
+                Rectangle bounds,
                 ref Matrix4x4 matrix,
                 int maxX,
                 ImageFrame<TPixel> source,

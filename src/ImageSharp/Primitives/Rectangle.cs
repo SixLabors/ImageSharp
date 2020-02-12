@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp
         public Point Location
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            readonly get => new Point(this.X, this.Y);
+            get => new Point(this.X, this.Y);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp
         public Size Size
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            readonly get => new Size(this.Width, this.Height);
+            get => new Size(this.Width, this.Height);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
@@ -112,17 +112,17 @@ namespace SixLabors.ImageSharp
         /// Gets a value indicating whether this <see cref="Rectangle"/> is empty.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public readonly bool IsEmpty => this.Equals(Empty);
+        public bool IsEmpty => this.Equals(Empty);
 
         /// <summary>
         /// Gets the y-coordinate of the top edge of this <see cref="Rectangle"/>.
         /// </summary>
-        public readonly int Top => this.Y;
+        public int Top => this.Y;
 
         /// <summary>
         /// Gets the x-coordinate of the right edge of this <see cref="Rectangle"/>.
         /// </summary>
-        public readonly int Right
+        public int Right
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => unchecked(this.X + this.Width);
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the y-coordinate of the bottom edge of this <see cref="Rectangle"/>.
         /// </summary>
-        public readonly int Bottom
+        public int Bottom
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => unchecked(this.Y + this.Height);
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the x-coordinate of the left edge of this <see cref="Rectangle"/>.
         /// </summary>
-        public readonly int Left => this.X;
+        public int Left => this.X;
 
         /// <summary>
         /// Creates a <see cref="RectangleF"/> with the coordinates of the specified <see cref="Rectangle"/>.
@@ -327,7 +327,7 @@ namespace SixLabors.ImageSharp
         /// <param name="y">The out value for Y.</param>
         /// <param name="width">The out value for the width.</param>
         /// <param name="height">The out value for the height.</param>
-        public readonly void Deconstruct(out int x, out int y, out int width, out int height)
+        public void Deconstruct(out int x, out int y, out int width, out int height)
         {
             x = this.X;
             y = this.Y;
@@ -383,7 +383,7 @@ namespace SixLabors.ImageSharp
         /// <param name="y">The y-coordinate of the given point.</param>
         /// <returns>The <see cref="bool"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool Contains(int x, int y) => this.X <= x && x < this.Right && this.Y <= y && y < this.Bottom;
+        public bool Contains(int x, int y) => this.X <= x && x < this.Right && this.Y <= y && y < this.Bottom;
 
         /// <summary>
         /// Determines if the specified point is contained within the rectangular region defined by this <see cref="Rectangle"/> .
@@ -391,7 +391,7 @@ namespace SixLabors.ImageSharp
         /// <param name="point">The point.</param>
         /// <returns>The <see cref="bool"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool Contains(Point point) => this.Contains(point.X, point.Y);
+        public bool Contains(Point point) => this.Contains(point.X, point.Y);
 
         /// <summary>
         /// Determines if the rectangular region represented by <paramref name="rectangle"/> is entirely contained
@@ -400,7 +400,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rectangle">The rectangle.</param>
         /// <returns>The <see cref="bool"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool Contains(Rectangle rectangle) =>
+        public bool Contains(Rectangle rectangle) =>
             (this.X <= rectangle.X) && (rectangle.Right <= this.Right) &&
             (this.Y <= rectangle.Y) && (rectangle.Bottom <= this.Bottom);
 
@@ -411,7 +411,7 @@ namespace SixLabors.ImageSharp
         /// <param name="rectangle">The other Rectange. </param>
         /// <returns>The <see cref="bool"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool IntersectsWith(Rectangle rectangle) =>
+        public bool IntersectsWith(Rectangle rectangle) =>
             (rectangle.X < this.Right) && (this.X < rectangle.Right) &&
             (rectangle.Y < this.Bottom) && (this.Y < rectangle.Bottom);
 
@@ -438,13 +438,13 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        public override readonly int GetHashCode()
+        public override int GetHashCode()
         {
             return HashCode.Combine(this.X, this.Y, this.Width, this.Height);
         }
 
         /// <inheritdoc/>
-        public override readonly string ToString()
+        public override string ToString()
         {
             return $"Rectangle [ X={this.X}, Y={this.Y}, Width={this.Width}, Height={this.Height} ]";
         }
@@ -454,7 +454,7 @@ namespace SixLabors.ImageSharp
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool Equals(Rectangle other) =>
+        public bool Equals(Rectangle other) =>
             this.X.Equals(other.X) &&
             this.Y.Equals(other.Y) &&
             this.Width.Equals(other.Width) &&

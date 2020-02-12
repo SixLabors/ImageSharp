@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Advanced
                 var rows = new RowInterval(yMin, yMax);
 
                 // Skip the safety copy when invoking a potentially impure method on a readonly field
-                Unsafe.AsRef(this.operation).Invoke(in rows);
+                Unsafe.AsRef(in this.operation).Invoke(in rows);
             }
         }
 
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Advanced
 
                 using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.MaxX);
 
-                Unsafe.AsRef(this.operation).Invoke(in rows, buffer.Memory.Span);
+                Unsafe.AsRef(in this.operation).Invoke(in rows, buffer.Memory.Span);
             }
         }
     }

@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         public void Dispose()
         {
-            Unsafe.AsRef(this.pinHandle).Dispose();
+            this.pinHandle.Dispose();
             this.data.Dispose();
         }
 

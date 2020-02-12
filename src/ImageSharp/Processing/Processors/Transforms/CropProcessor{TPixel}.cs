@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelExecutionSettings parallelSettings =
                 ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
 
-            var operation = new RowIntervalOperation(ref bounds, source, destination);
+            var operation = new RowIntervalOperation(bounds, source, destination);
 
             ParallelRowIterator.IterateRows(
                 bounds,
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             /// <param name="source">The source <see cref="Image{TPixel}"/> for the current instance.</param>
             /// <param name="destination">The destination <see cref="Image{TPixel}"/> for the current instance.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalOperation(ref Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+            public RowIntervalOperation(Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
             {
                 this.bounds = bounds;
                 this.source = source;

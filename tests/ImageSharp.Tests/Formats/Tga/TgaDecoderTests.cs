@@ -16,12 +16,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
     public class TgaDecoderTests
     {
+        private static TgaDecoder TgaDecoder => new TgaDecoder();
+
         [Theory]
         [WithFile(Grey, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_Uncompressed_MonoChrome<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -33,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_Uncompressed_15Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -45,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_RunLengthEncoded_15Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -57,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_Uncompressed_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -69,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_RunLengthEncoded_WithPalette_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -81,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_Uncompressed_24Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -93,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_RunLengthEncoded_WithTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -105,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_Palette_WithTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -117,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_Uncompressed_32Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -129,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_RunLengthEncoded_MonoChrome<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -141,7 +143,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_RunLengthEncoded_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -153,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_RunLengthEncoded_24Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -165,7 +167,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_RunLengthEncoded_32Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -177,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_WithPalette_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -189,7 +191,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_WithPalette_24Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TgaDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
@@ -204,7 +206,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             where TPixel : struct, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixels(10);
-            ImageFormatException ex = Assert.Throws<ImageFormatException>(provider.GetImage);
+            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(TgaDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
@@ -220,7 +222,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
                 provider.LimitAllocatorBufferCapacity().InPixels(100);
 
-                using Image<TPixel> image = provider.GetImage(new TgaDecoder());
+                using Image<TPixel> image = provider.GetImage(TgaDecoder);
                 image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
 
                 if (TestEnvironment.IsWindows)

@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : struct, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InBytes(10);
-            ImageFormatException ex = Assert.Throws<ImageFormatException>(provider.GetImage);
+            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(JpegDecoder));
             this.Output.WriteLine(ex.Message);
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }

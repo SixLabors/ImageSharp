@@ -63,10 +63,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc />
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            using (var processor = new Convolution2DProcessor<TPixel>(this.Configuration, this.KernelX, this.KernelY, true, this.Source, this.SourceRectangle))
-            {
-                processor.Apply(source);
-            }
+            using var processor = new Convolution2DProcessor<TPixel>(this.Configuration, this.KernelX, this.KernelY, true, this.Source, this.SourceRectangle);
+
+            processor.Apply(source);
         }
     }
 }

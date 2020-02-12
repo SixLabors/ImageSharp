@@ -3,10 +3,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Common;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
@@ -29,86 +28,76 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public PixelateProcessor(Configuration configuration, PixelateProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
-        {
-            this.definition = definition;
-        }
+            => this.definition = definition;
 
         private int Size => this.definition.Size;
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            if (this.Size <= 0 || this.Size > source.Height || this.Size > source.Width)
-            {
-                throw new ArgumentOutOfRangeException(nameof(this.Size));
-            }
-
-            int startY = this.SourceRectangle.Y;
-            int endY = this.SourceRectangle.Bottom;
-            int startX = this.SourceRectangle.X;
-            int endX = this.SourceRectangle.Right;
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             int size = this.Size;
-            int offset = this.Size / 2;
 
-            // Align start/end positions.
-            int minX = Math.Max(0, startX);
-            int maxX = Math.Min(source.Width, endX);
-            int minY = Math.Max(0, startY);
-            int maxY = Math.Min(source.Height, endY);
-
-            // Reset offset if necessary.
-            if (minX > 0)
-            {
-                startX = 0;
-            }
-
-            if (minY > 0)
-            {
-                startY = 0;
-            }
+            Guard.MustBeBetweenOrEqualTo(size, 0, interest.Width, nameof(size));
+            Guard.MustBeBetweenOrEqualTo(size, 0, interest.Height, nameof(size));
 
             // Get the range on the y-plane to choose from.
-            IEnumerable<int> range = EnumerableExtensions.SteppedRange(minY, i => i < maxY, size);
-
+            // TODO: It would be nice to be able to pool this somehow but neither Memory<T> nor Span<T>
+            // implement IEnumerable<T>.
+            IEnumerable<int> range = EnumerableExtensions.SteppedRange(interest.Y, i => i < interest.Bottom, size);
             Parallel.ForEach(
-                range,
-                this.Configuration.GetParallelOptions(),
-                y =>
+            range,
+            this.Configuration.GetParallelOptions(),
+            new RowOperation(interest, size, source).Invoke);
+        }
+
+        private readonly struct RowOperation
+        {
+            private readonly int minX;
+            private readonly int maxX;
+            private readonly int maxXIndex;
+            private readonly int maxY;
+            private readonly int maxYIndex;
+            private readonly int size;
+            private readonly int radius;
+            private readonly ImageFrame<TPixel> source;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowOperation(
+                Rectangle bounds,
+                int size,
+                ImageFrame<TPixel> source)
+            {
+                this.minX = bounds.X;
+                this.maxX = bounds.Right;
+                this.maxXIndex = bounds.Right - 1;
+                this.maxY = bounds.Bottom;
+                this.maxYIndex = bounds.Bottom - 1;
+                this.size = size;
+                this.radius = size >> 1;
+                this.source = source;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(int y)
+            {
+                Span<TPixel> rowSpan = this.source.GetPixelRowSpan(Math.Min(y + this.radius, this.maxYIndex));
+
+                for (int x = this.minX; x < this.maxX; x += this.size)
+                {
+                    // Get the pixel color in the centre of the soon to be pixelated area.
+                    TPixel pixel = rowSpan[Math.Min(x + this.radius, this.maxXIndex)];
+
+                    // For each pixel in the pixelate size, set it to the centre color.
+                    for (int oY = y; oY < y + this.size && oY < this.maxY; oY++)
                     {
-                        int offsetY = y - startY;
-                        int offsetPy = offset;
-
-                        // Make sure that the offset is within the boundary of the image.
-                        while (offsetY + offsetPy >= maxY)
+                        for (int oX = x; oX < x + this.size && oX < this.maxX; oX++)
                         {
-                            offsetPy--;
+                            this.source[oX, oY] = pixel;
                         }
-
-                        Span<TPixel> row = source.GetPixelRowSpan(offsetY + offsetPy);
-
-                        for (int x = minX; x < maxX; x += size)
-                        {
-                            int offsetX = x - startX;
-                            int offsetPx = offset;
-
-                            while (x + offsetPx >= maxX)
-                            {
-                                offsetPx--;
-                            }
-
-                            // Get the pixel color in the centre of the soon to be pixelated area.
-                            TPixel pixel = row[offsetX + offsetPx];
-
-                            // For each pixel in the pixelate size, set it to the centre color.
-                            for (int l = offsetY; l < offsetY + size && l < maxY; l++)
-                            {
-                                for (int k = offsetX; k < offsetX + size && k < maxX; k++)
-                                {
-                                    source[k, l] = pixel;
-                                }
-                            }
-                        }
-                    });
+                    }
+                }
+            }
         }
     }
 }

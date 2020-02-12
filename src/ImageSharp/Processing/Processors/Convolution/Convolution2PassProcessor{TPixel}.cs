@@ -3,9 +3,9 @@
 
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -59,95 +59,104 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            using (Buffer2D<TPixel> firstPassPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
-            {
-                var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-                this.ApplyConvolution(firstPassPixels, source.PixelBuffer, interest, this.KernelX, this.Configuration);
-                this.ApplyConvolution(source.PixelBuffer, firstPassPixels, interest, this.KernelY, this.Configuration);
-            }
+            using Buffer2D<TPixel> firstPassPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size());
+
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+
+            // Horizontal convolution
+            var horizontalOperation = new RowIntervalOperation(interest, firstPassPixels, source.PixelBuffer, this.KernelX, this.Configuration, this.PreserveAlpha);
+            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
+                this.Configuration,
+                interest,
+                in horizontalOperation);
+
+            // Vertical convolution
+            var verticalOperation = new RowIntervalOperation(interest, source.PixelBuffer, firstPassPixels, this.KernelY, this.Configuration, this.PreserveAlpha);
+            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
+                this.Configuration,
+                interest,
+                in verticalOperation);
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}"/> at the specified location
-        /// and with the specified size.
+        /// A <see langword="struct"/> implementing the convolution logic for <see cref="Convolution2PassProcessor{T}"/>.
         /// </summary>
-        /// <param name="targetPixels">The target pixels to apply the process to.</param>
-        /// <param name="sourcePixels">The source pixels. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        /// <param name="kernel">The kernel operator.</param>
-        /// <param name="configuration">The <see cref="Configuration"/></param>
-        private void ApplyConvolution(
-            Buffer2D<TPixel> targetPixels,
-            Buffer2D<TPixel> sourcePixels,
-            Rectangle sourceRectangle,
-            in DenseMatrix<float> kernel,
-            Configuration configuration)
+        private readonly struct RowIntervalOperation : IRowIntervalOperation<Vector4>
         {
-            DenseMatrix<float> matrix = kernel;
-            bool preserveAlpha = this.PreserveAlpha;
+            private readonly Rectangle bounds;
+            private readonly Buffer2D<TPixel> targetPixels;
+            private readonly Buffer2D<TPixel> sourcePixels;
+            private readonly DenseMatrix<float> kernel;
+            private readonly Configuration configuration;
+            private readonly bool preserveAlpha;
 
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
-            int maxY = endY - 1;
-            int maxX = endX - 1;
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalOperation(
+                Rectangle bounds,
+                Buffer2D<TPixel> targetPixels,
+                Buffer2D<TPixel> sourcePixels,
+                DenseMatrix<float> kernel,
+                Configuration configuration,
+                bool preserveAlpha)
+            {
+                this.bounds = bounds;
+                this.targetPixels = targetPixels;
+                this.sourcePixels = sourcePixels;
+                this.kernel = kernel;
+                this.configuration = configuration;
+                this.preserveAlpha = preserveAlpha;
+            }
 
-            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
-            int width = workingRectangle.Width;
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows, Span<Vector4> span)
+            {
+                ref Vector4 spanRef = ref MemoryMarshal.GetReference(span);
 
-            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
-                workingRectangle,
-                configuration,
-                (rows, vectorBuffer) =>
+                int maxY = this.bounds.Bottom - 1;
+                int maxX = this.bounds.Right - 1;
+
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpanUnchecked(y).Slice(this.bounds.X);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
+
+                    if (this.preserveAlpha)
                     {
-                        Span<Vector4> vectorSpan = vectorBuffer.Span;
-                        int length = vectorSpan.Length;
-                        ref Vector4 vectorSpanRef = ref MemoryMarshal.GetReference(vectorSpan);
-
-                        for (int y = rows.Min; y < rows.Max; y++)
+                        for (int x = 0; x < this.bounds.Width; x++)
                         {
-                            Span<TPixel> targetRowSpan = targetPixels.GetRowSpanUnchecked(y).Slice(startX);
-                            PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan);
-
-                            if (preserveAlpha)
-                            {
-                                for (int x = 0; x < width; x++)
-                                {
-                                    DenseMatrixUtils.Convolve3(
-                                        in matrix,
-                                        sourcePixels,
-                                        ref vectorSpanRef,
-                                        y,
-                                        x,
-                                        startY,
-                                        maxY,
-                                        startX,
-                                        maxX);
-                                }
-                            }
-                            else
-                            {
-                                for (int x = 0; x < width; x++)
-                                {
-                                    DenseMatrixUtils.Convolve4(
-                                        in matrix,
-                                        sourcePixels,
-                                        ref vectorSpanRef,
-                                        y,
-                                        x,
-                                        startY,
-                                        maxY,
-                                        startX,
-                                        maxX);
-                                }
-                            }
-
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan, targetRowSpan);
+                            DenseMatrixUtils.Convolve3(
+                                in this.kernel,
+                                this.sourcePixels,
+                                ref spanRef,
+                                y,
+                                x,
+                                this.bounds.Y,
+                                maxY,
+                                this.bounds.X,
+                                maxX);
                         }
-                    });
+                    }
+                    else
+                    {
+                        for (int x = 0; x < this.bounds.Width; x++)
+                        {
+                            DenseMatrixUtils.Convolve4(
+                                in this.kernel,
+                                this.sourcePixels,
+                                ref spanRef,
+                                y,
+                                x,
+                                this.bounds.Y,
+                                maxY,
+                                this.bounds.X,
+                                maxX);
+                        }
+                    }
+
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
+                }
+            }
         }
     }
 }

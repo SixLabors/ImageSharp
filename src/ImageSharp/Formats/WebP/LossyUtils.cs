@@ -298,22 +298,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public static void TransformDcuv(Span<short> src, Span<byte> dst)
         {
-            if (src[0 * 16] > 0)
+            if (src[0 * 16] != 0)
             {
                 TransformDc(src.Slice(0 * 16), dst);
             }
 
-            if (src[1 * 16] > 0)
+            if (src[1 * 16] != 0)
             {
                 TransformDc(src.Slice(1 * 16), dst.Slice(4));
             }
 
-            if (src[2 * 16] > 0)
+            if (src[2 * 16] != 0)
             {
                 TransformDc(src.Slice(2 * 16), dst.Slice(4 * WebPConstants.Bps));
             }
 
-            if (src[3 * 16] > 0)
+            if (src[3 * 16] != 0)
             {
                 TransformDc(src.Slice(3 * 16), dst.Slice((4 * WebPConstants.Bps) + 4));
             }

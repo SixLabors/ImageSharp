@@ -8,35 +8,49 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Processors.Filters
+namespace SixLabors.ImageSharp.Processing.Processors.Effects
 {
     /// <summary>
-    /// Provides methods that accept a <see cref="ColorMatrix"/> matrix to apply free-form filters to images.
+    /// The base class for all processors that accept a user defined row processing delegate.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>
+    /// <typeparam name="TDelegate">The row processor type.</typeparam>
+    internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
+        where TDelegate : struct, IPixelRowDelegate
     {
-        private readonly FilterProcessor definition;
+        private readonly TDelegate rowDelegate;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FilterProcessor{TPixel}"/> class.
+        /// The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.
         /// </summary>
+        private readonly PixelConversionModifiers modifiers;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PixelRowDelegateProcessor{TPixel,TDelegate}"/> class.
+        /// </summary>
+        /// <param name="rowDelegate">The row processor to use to process each pixel row</param>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="definition">The <see cref="FilterProcessor"/>.</param>
+        /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public FilterProcessor(Configuration configuration, FilterProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+        public PixelRowDelegateProcessor(
+            in TDelegate rowDelegate,
+            Configuration configuration,
+            PixelConversionModifiers modifiers,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
-            this.definition = definition;
+            this.rowDelegate = rowDelegate;
+            this.modifiers = modifiers;
         }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-            var operation = new RowIntervalOperation(interest.X, source, this.definition.Matrix, this.Configuration);
+            var operation = new RowIntervalOperation(interest.X, source, this.Configuration, this.modifiers, this.rowDelegate);
 
             ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
                 this.Configuration,
@@ -45,26 +59,29 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         }
 
         /// <summary>
-        /// A <see langword="struct"/> implementing the convolution logic for <see cref="FilterProcessor{TPixel}"/>.
+        /// A <see langword="struct"/> implementing the convolution logic for <see cref="PixelRowDelegateProcessor{TPixel,TDelegate}"/>.
         /// </summary>
         private readonly struct RowIntervalOperation : IRowIntervalOperation<Vector4>
         {
             private readonly int startX;
             private readonly ImageFrame<TPixel> source;
-            private readonly ColorMatrix matrix;
             private readonly Configuration configuration;
+            private readonly PixelConversionModifiers modifiers;
+            private readonly TDelegate rowProcessor;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalOperation(
                 int startX,
                 ImageFrame<TPixel> source,
-                ColorMatrix matrix,
-                Configuration configuration)
+                Configuration configuration,
+                PixelConversionModifiers modifiers,
+                in TDelegate rowProcessor)
             {
                 this.startX = startX;
                 this.source = source;
-                this.matrix = matrix;
                 this.configuration = configuration;
+                this.modifiers = modifiers;
+                this.rowProcessor = rowProcessor;
             }
 
             /// <inheritdoc/>
@@ -74,11 +91,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, this.modifiers);
 
-                    Vector4Utils.Transform(span, ref Unsafe.AsRef(this.matrix));
+                    // Run the user defined pixel shader to the current row of pixels
+                    Unsafe.AsRef(this.rowProcessor).Invoke(span, new Point(this.startX, y));
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, this.modifiers);
                 }
             }
         }

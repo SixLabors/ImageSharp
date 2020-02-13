@@ -3,9 +3,8 @@
 
 using System;
 using System.Buffers;
-
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -29,9 +28,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public BackgroundColorProcessor(Configuration configuration, BackgroundColorProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
-        {
-            this.definition = definition;
-        }
+            => this.definition = definition;
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
@@ -39,65 +36,70 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             TPixel color = this.definition.Color.ToPixel<TPixel>();
             GraphicsOptions graphicsOptions = this.definition.GraphicsOptions;
 
-            int startY = this.SourceRectangle.Y;
-            int endY = this.SourceRectangle.Bottom;
-            int startX = this.SourceRectangle.X;
-            int endX = this.SourceRectangle.Right;
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-            // Align start/end positions.
-            int minX = Math.Max(0, startX);
-            int maxX = Math.Min(source.Width, endX);
-            int minY = Math.Max(0, startY);
-            int maxY = Math.Min(source.Height, endY);
-
-            // Reset offset if necessary.
-            if (minX > 0)
-            {
-                startX = 0;
-            }
-
-            if (minY > 0)
-            {
-                startY = 0;
-            }
-
-            int width = maxX - minX;
-
-            var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
             Configuration configuration = this.Configuration;
             MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
 
-            using (IMemoryOwner<TPixel> colors = memoryAllocator.Allocate<TPixel>(width))
-            using (IMemoryOwner<float> amount = memoryAllocator.Allocate<float>(width))
+            using IMemoryOwner<TPixel> colors = memoryAllocator.Allocate<TPixel>(interest.Width);
+            using IMemoryOwner<float> amount = memoryAllocator.Allocate<float>(interest.Width);
+
+            colors.GetSpan().Fill(color);
+            amount.GetSpan().Fill(graphicsOptions.BlendPercentage);
+
+            PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(graphicsOptions);
+
+            var operation = new RowIntervalOperation(configuration, interest, blender, amount, colors, source);
+            ParallelRowIterator.IterateRows(
+                configuration,
+                interest,
+                in operation);
+        }
+
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        {
+            private readonly Configuration configuration;
+            private readonly Rectangle bounds;
+            private readonly PixelBlender<TPixel> blender;
+            private readonly IMemoryOwner<float> amount;
+            private readonly IMemoryOwner<TPixel> colors;
+            private readonly ImageFrame<TPixel> source;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalOperation(
+                Configuration configuration,
+                Rectangle bounds,
+                PixelBlender<TPixel> blender,
+                IMemoryOwner<float> amount,
+                IMemoryOwner<TPixel> colors,
+                ImageFrame<TPixel> source)
             {
-                // Be careful! Do not capture colorSpan & amountSpan in the lambda below!
-                Span<TPixel> colorSpan = colors.GetSpan();
-                Span<float> amountSpan = amount.GetSpan();
+                this.configuration = configuration;
+                this.bounds = bounds;
+                this.blender = blender;
+                this.amount = amount;
+                this.colors = colors;
+                this.source = source;
+            }
 
-                colorSpan.Fill(color);
-                amountSpan.Fill(graphicsOptions.BlendPercentage);
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> destination =
+                        this.source.GetPixelRowSpan(y)
+                                   .Slice(this.bounds.X, this.bounds.Width);
 
-                PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(graphicsOptions);
-
-                ParallelHelper.IterateRows(
-                    workingRect,
-                    configuration,
-                    rows =>
-                        {
-                            for (int y = rows.Min; y < rows.Max; y++)
-                            {
-                                Span<TPixel> destination =
-                                    source.GetPixelRowSpan(y - startY).Slice(minX - startX, width);
-
-                                // This switched color & destination in the 2nd and 3rd places because we are applying the target color under the current one
-                                blender.Blend(
-                                    configuration,
-                                    destination,
-                                    colors.GetSpan(),
-                                    destination,
-                                    amount.GetSpan());
-                            }
-                        });
+                    // Switch color & destination in the 2nd and 3rd places because we are
+                    // applying the target color under the current one.
+                    this.blender.Blend(
+                        this.configuration,
+                        destination,
+                        this.colors.GetSpan(),
+                        destination,
+                        this.amount.GetSpan());
+                }
             }
         }
     }

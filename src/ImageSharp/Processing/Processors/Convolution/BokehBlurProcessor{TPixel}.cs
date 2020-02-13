@@ -7,8 +7,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Convolution.Parameters;
@@ -269,17 +268,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // Preliminary gamma highlight pass
-            this.ApplyGammaExposure(source.PixelBuffer, this.SourceRectangle, this.Configuration);
+            var gammaOperation = new ApplyGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
+            ParallelRowIterator.IterateRows<ApplyGammaExposureRowIntervalOperation, Vector4>(
+                this.Configuration,
+                this.SourceRectangle,
+                in gammaOperation);
 
             // Create a 0-filled buffer to use to store the result of the component convolutions
-            using (Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean))
-            {
-                // Perform the 1D convolutions on all the kernel components and accumulate the results
-                this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processingBuffer);
+            using Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean);
 
-                // Apply the inverse gamma exposure pass, and write the final pixel data
-                this.ApplyInverseGammaExposure(source.PixelBuffer, processingBuffer, this.SourceRectangle, this.Configuration);
-            }
+            // Perform the 1D convolutions on all the kernel components and accumulate the results
+            this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processingBuffer);
+
+            float inverseGamma = 1 / this.gamma;
+
+            // Apply the inverse gamma exposure pass, and write the final pixel data
+            var operation = new ApplyInverseGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, inverseGamma);
+            ParallelRowIterator.IterateRows(
+                this.Configuration,
+                this.SourceRectangle,
+                in operation);
         }
 
         /// <summary>
@@ -295,216 +303,223 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             Configuration configuration,
             Buffer2D<Vector4> processingBuffer)
         {
-            using (Buffer2D<ComplexVector4> firstPassBuffer = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size()))
-            {
-                // Perform two 1D convolutions for each component in the current instance
-                ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
-                ref Vector4 paramsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
-                for (int i = 0; i < this.kernels.Length; i++)
-                {
-                    // Compute the resulting complex buffer for the current component
-                    var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-                    Complex64[] kernel = Unsafe.Add(ref baseRef, i);
-                    Vector4 parameters = Unsafe.Add(ref paramsRef, i);
+            // Allocate the buffer with the intermediate convolution results
+            using Buffer2D<ComplexVector4> firstPassBuffer = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size());
 
-                    // Compute the two 1D convolutions and accumulate the partial results on the target buffer
-                    this.ApplyConvolution(firstPassBuffer, source.PixelBuffer, interest, kernel, configuration);
-                    this.ApplyConvolution(processingBuffer, firstPassBuffer, interest, kernel, configuration, parameters.Z, parameters.W);
+            // Perform two 1D convolutions for each component in the current instance
+            ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
+            ref Vector4 paramsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
+            for (int i = 0; i < this.kernels.Length; i++)
+            {
+                // Compute the resulting complex buffer for the current component
+                Complex64[] kernel = Unsafe.Add(ref baseRef, i);
+                Vector4 parameters = Unsafe.Add(ref paramsRef, i);
+
+                // Compute the vertical 1D convolution
+                var verticalOperation = new ApplyVerticalConvolutionRowIntervalOperation(sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel);
+                ParallelRowIterator.IterateRows(
+                    configuration,
+                    sourceRectangle,
+                    in verticalOperation);
+
+                // Compute the horizontal 1D convolutions and accumulate the partial results on the target buffer
+                var horizontalOperation = new ApplyHorizontalConvolutionRowIntervalOperation(sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W);
+                ParallelRowIterator.IterateRows(
+                    configuration,
+                    sourceRectangle,
+                    in horizontalOperation);
+            }
+        }
+
+        /// <summary>
+        /// A <see langword="struct"/> implementing the vertical convolution logic for <see cref="BokehBlurProcessor{T}"/>.
+        /// </summary>
+        private readonly struct ApplyVerticalConvolutionRowIntervalOperation : IRowIntervalOperation
+        {
+            private readonly Rectangle bounds;
+            private readonly Buffer2D<ComplexVector4> targetValues;
+            private readonly Buffer2D<TPixel> sourcePixels;
+            private readonly Complex64[] kernel;
+            private readonly int maxY;
+            private readonly int maxX;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public ApplyVerticalConvolutionRowIntervalOperation(
+                Rectangle bounds,
+                Buffer2D<ComplexVector4> targetValues,
+                Buffer2D<TPixel> sourcePixels,
+                Complex64[] kernel)
+            {
+                this.bounds = bounds;
+                this.maxY = this.bounds.Bottom - 1;
+                this.maxX = this.bounds.Right - 1;
+                this.targetValues = targetValues;
+                this.sourcePixels = sourcePixels;
+                this.kernel = kernel;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<ComplexVector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
+
+                    for (int x = 0; x < this.bounds.Width; x++)
+                    {
+                        Buffer2DUtils.Convolve4(this.kernel, this.sourcePixels, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX);
+                    }
                 }
             }
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="ImageFrame{TPixel}"/> at the specified location
-        /// and with the specified size.
+        /// A <see langword="struct"/> implementing the horizontal convolution logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        /// <param name="targetValues">The target <see cref="ComplexVector4"/> values to use to store the results.</param>
-        /// <param name="sourcePixels">The source pixels. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        /// <param name="kernel">The 1D kernel.</param>
-        /// <param name="configuration">The <see cref="Configuration"/></param>
-        private void ApplyConvolution(
-            Buffer2D<ComplexVector4> targetValues,
-            Buffer2D<TPixel> sourcePixels,
-            Rectangle sourceRectangle,
-            Complex64[] kernel,
-            Configuration configuration)
+        private readonly struct ApplyHorizontalConvolutionRowIntervalOperation : IRowIntervalOperation
         {
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
-            int maxY = endY - 1;
-            int maxX = endX - 1;
+            private readonly Rectangle bounds;
+            private readonly Buffer2D<Vector4> targetValues;
+            private readonly Buffer2D<ComplexVector4> sourceValues;
+            private readonly Complex64[] kernel;
+            private readonly float z;
+            private readonly float w;
+            private readonly int maxY;
+            private readonly int maxX;
 
-            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
-            int width = workingRectangle.Width;
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public ApplyHorizontalConvolutionRowIntervalOperation(
+                Rectangle bounds,
+                Buffer2D<Vector4> targetValues,
+                Buffer2D<ComplexVector4> sourceValues,
+                Complex64[] kernel,
+                float z,
+                float w)
+            {
+                this.bounds = bounds;
+                this.maxY = this.bounds.Bottom - 1;
+                this.maxX = this.bounds.Right - 1;
+                this.targetValues = targetValues;
+                this.sourceValues = sourceValues;
+                this.kernel = kernel;
+                this.z = z;
+                this.w = w;
+            }
 
-            ParallelHelper.IterateRows(
-                workingRectangle,
-                configuration,
-                rows =>
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    for (int y = rows.Min; y < rows.Max; y++)
-                    {
-                        Span<ComplexVector4> targetRowSpan = targetValues.GetRowSpan(y).Slice(startX);
+                    Span<Vector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
 
-                        for (int x = 0; x < width; x++)
-                        {
-                            Buffer2DUtils.Convolve4(kernel, sourcePixels, targetRowSpan, y, x, startY, maxY, startX, maxX);
-                        }
+                    for (int x = 0; x < this.bounds.Width; x++)
+                    {
+                        Buffer2DUtils.Convolve4AndAccumulatePartials(this.kernel, this.sourceValues, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX, this.z, this.w);
                     }
-                });
+                }
+            }
         }
 
         /// <summary>
-        /// Applies the process to the specified portion of the specified <see cref="Buffer2D{T}"/> buffer at the specified location
-        /// and with the specified size.
+        /// A <see langword="struct"/> implementing the gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        /// <param name="targetValues">The target <see cref="Vector4"/> values to use to store the results.</param>
-        /// <param name="sourceValues">The source complex values. Cannot be null.</param>
-        /// <param name="sourceRectangle">The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.</param>
-        /// <param name="kernel">The 1D kernel.</param>
-        /// <param name="configuration">The <see cref="Configuration"/></param>
-        /// <param name="z">The weight factor for the real component of the complex pixel values.</param>
-        /// <param name="w">The weight factor for the imaginary component of the complex pixel values.</param>
-        private void ApplyConvolution(
-            Buffer2D<Vector4> targetValues,
-            Buffer2D<ComplexVector4> sourceValues,
-            Rectangle sourceRectangle,
-            Complex64[] kernel,
-            Configuration configuration,
-            float z,
-            float w)
+        private readonly struct ApplyGammaExposureRowIntervalOperation : IRowIntervalOperation<Vector4>
         {
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
-            int maxY = endY - 1;
-            int maxX = endX - 1;
+            private readonly Rectangle bounds;
+            private readonly Buffer2D<TPixel> targetPixels;
+            private readonly Configuration configuration;
+            private readonly float gamma;
 
-            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
-            int width = workingRectangle.Width;
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public ApplyGammaExposureRowIntervalOperation(
+                Rectangle bounds,
+                Buffer2D<TPixel> targetPixels,
+                Configuration configuration,
+                float gamma)
+            {
+                this.bounds = bounds;
+                this.targetPixels = targetPixels;
+                this.configuration = configuration;
+                this.gamma = gamma;
+            }
 
-            ParallelHelper.IterateRows(
-                workingRectangle,
-                configuration,
-                rows =>
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows, Span<Vector4> span)
+            {
+                for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    for (int y = rows.Min; y < rows.Max; y++)
-                    {
-                        Span<Vector4> targetRowSpan = targetValues.GetRowSpan(y).Slice(startX);
+                    Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Premultiply);
+                    ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
 
-                        for (int x = 0; x < width; x++)
-                        {
-                            Buffer2DUtils.Convolve4AndAccumulatePartials(kernel, sourceValues, targetRowSpan, y, x, startY, maxY, startX, maxX, z, w);
-                        }
+                    for (int x = 0; x < this.bounds.Width; x++)
+                    {
+                        ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
+                        v.X = MathF.Pow(v.X, this.gamma);
+                        v.Y = MathF.Pow(v.Y, this.gamma);
+                        v.Z = MathF.Pow(v.Z, this.gamma);
                     }
-                });
+
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
+                }
+            }
         }
 
         /// <summary>
-        /// Applies the gamma correction/highlight to the input pixel buffer.
+        /// A <see langword="struct"/> implementing the inverse gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        /// <param name="targetPixels">The target pixel buffer to adjust.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        /// <param name="configuration">The <see cref="Configuration"/></param>
-        private void ApplyGammaExposure(
-            Buffer2D<TPixel> targetPixels,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        private readonly struct ApplyInverseGammaExposureRowIntervalOperation : IRowIntervalOperation
         {
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            private readonly Rectangle bounds;
+            private readonly Buffer2D<TPixel> targetPixels;
+            private readonly Buffer2D<Vector4> sourceValues;
+            private readonly Configuration configuration;
+            private readonly float inverseGamma;
 
-            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
-            int width = workingRectangle.Width;
-            float exp = this.gamma;
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public ApplyInverseGammaExposureRowIntervalOperation(
+                Rectangle bounds,
+                Buffer2D<TPixel> targetPixels,
+                Buffer2D<Vector4> sourceValues,
+                Configuration configuration,
+                float inverseGamma)
+            {
+                this.bounds = bounds;
+                this.targetPixels = targetPixels;
+                this.sourceValues = sourceValues;
+                this.configuration = configuration;
+                this.inverseGamma = inverseGamma;
+            }
 
-            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
-                workingRectangle,
-                configuration,
-                (rows, vectorBuffer) =>
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                Vector4 low = Vector4.Zero;
+                var high = new Vector4(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> targetPixelSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+                    Span<Vector4> sourceRowSpan = this.sourceValues.GetRowSpan(y).Slice(this.bounds.X);
+                    ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
+
+                    for (int x = 0; x < this.bounds.Width; x++)
                     {
-                        Span<Vector4> vectorSpan = vectorBuffer.Span;
-                        int length = vectorSpan.Length;
+                        ref Vector4 v = ref Unsafe.Add(ref sourceRef, x);
+                        var clamp = Vector4.Clamp(v, low, high);
+                        v.X = MathF.Pow(clamp.X, this.inverseGamma);
+                        v.Y = MathF.Pow(clamp.Y, this.inverseGamma);
+                        v.Z = MathF.Pow(clamp.Z, this.inverseGamma);
+                    }
 
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixel> targetRowSpan = targetPixels.GetRowSpan(y).Slice(startX);
-                            PixelOperations<TPixel>.Instance.ToVector4(configuration, targetRowSpan.Slice(0, length), vectorSpan, PixelConversionModifiers.Premultiply);
-                            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectorSpan);
-
-                            for (int x = 0; x < width; x++)
-                            {
-                                ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
-                                v.X = MathF.Pow(v.X, exp);
-                                v.Y = MathF.Pow(v.Y, exp);
-                                v.Z = MathF.Pow(v.Z, exp);
-                            }
-
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorSpan.Slice(0, length), targetRowSpan);
-                        }
-                    });
-        }
-
-        /// <summary>
-        /// Applies the inverse gamma correction/highlight pass, and converts the input <see cref="Vector4"/> buffer into pixel values.
-        /// </summary>
-        /// <param name="targetPixels">The target pixels to apply the process to.</param>
-        /// <param name="sourceValues">The source <see cref="Vector4"/> values. Cannot be null.</param>
-        /// <param name="sourceRectangle">
-        /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to draw.
-        /// </param>
-        /// <param name="configuration">The <see cref="Configuration"/></param>
-        private void ApplyInverseGammaExposure(
-            Buffer2D<TPixel> targetPixels,
-            Buffer2D<Vector4> sourceValues,
-            Rectangle sourceRectangle,
-            Configuration configuration)
-        {
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
-
-            var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
-            int width = workingRectangle.Width;
-            float expGamma = 1 / this.gamma;
-
-            ParallelHelper.IterateRows(
-                workingRectangle,
-                configuration,
-                rows =>
-                    {
-                        Vector4 low = Vector4.Zero;
-                        var high = new Vector4(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixel> targetPixelSpan = targetPixels.GetRowSpan(y).Slice(startX);
-                            Span<Vector4> sourceRowSpan = sourceValues.GetRowSpan(y).Slice(startX);
-                            ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
-
-                            for (int x = 0; x < width; x++)
-                            {
-                                ref Vector4 v = ref Unsafe.Add(ref sourceRef, x);
-                                var clamp = Vector4.Clamp(v, low, high);
-                                v.X = MathF.Pow(clamp.X, expGamma);
-                                v.Y = MathF.Pow(clamp.Y, expGamma);
-                                v.Z = MathF.Pow(clamp.Z, expGamma);
-                            }
-
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, sourceRowSpan.Slice(0, width), targetPixelSpan, PixelConversionModifiers.Premultiply);
-                        }
-                    });
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan.Slice(0, this.bounds.Width), targetPixelSpan, PixelConversionModifiers.Premultiply);
+                }
+            }
         }
     }
 }

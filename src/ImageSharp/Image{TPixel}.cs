@@ -145,6 +145,7 @@ namespace SixLabors.ImageSharp
         /// <param name="x">The x-coordinate of the pixel. Must be greater than or equal to zero and less than the width of the image.</param>
         /// <param name="y">The y-coordinate of the pixel. Must be greater than or equal to zero and less than the height of the image.</param>
         /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the provided (x,y) coordinates are outside the image boundary.</exception>
         public TPixel this[int x, int y]
         {
             [MethodImpl(InliningOptions.ShortMethod)]

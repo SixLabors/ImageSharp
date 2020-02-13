@@ -27,14 +27,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         {
             int y = startY;
             int height = buffer.Height;
-            this.row0 = y < height ? buffer.GetRowSpanUnchecked(y++) : default;
-            this.row1 = y < height ? buffer.GetRowSpanUnchecked(y++) : default;
-            this.row2 = y < height ? buffer.GetRowSpanUnchecked(y++) : default;
-            this.row3 = y < height ? buffer.GetRowSpanUnchecked(y++) : default;
-            this.row4 = y < height ? buffer.GetRowSpanUnchecked(y++) : default;
-            this.row5 = y < height ? buffer.GetRowSpanUnchecked(y++) : default;
-            this.row6 = y < height ? buffer.GetRowSpanUnchecked(y++) : default;
-            this.row7 = y < height ? buffer.GetRowSpanUnchecked(y) : default;
+            this.row0 = y < height ? buffer.GetRowSpan(y++) : default;
+            this.row1 = y < height ? buffer.GetRowSpan(y++) : default;
+            this.row2 = y < height ? buffer.GetRowSpan(y++) : default;
+            this.row3 = y < height ? buffer.GetRowSpan(y++) : default;
+            this.row4 = y < height ? buffer.GetRowSpan(y++) : default;
+            this.row5 = y < height ? buffer.GetRowSpan(y++) : default;
+            this.row6 = y < height ? buffer.GetRowSpan(y++) : default;
+            this.row7 = y < height ? buffer.GetRowSpan(y) : default;
         }
 
         public Span<T> this[int y]

@@ -150,11 +150,19 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
         public TPixel this[int x, int y]
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.PixelBuffer[x, y];
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get
+            {
+                this.VerifyCoords(x, y);
+                return this.PixelBuffer.GetElementUnsafe(x, y);
+            }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set => this.PixelBuffer[x, y] = value;
+            [MethodImpl(InliningOptions.ShortMethod)]
+            set
+            {
+                this.VerifyCoords(x, y);
+                this.PixelBuffer.GetElementUnsafe(x, y) = value;
+            }
         }
 
         /// <summary>
@@ -285,6 +293,26 @@ namespace SixLabors.ImageSharp
             {
                 group.Fill(value);
             }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void VerifyCoords(int x, int y)
+        {
+            if (x < 0 || x >= this.Width)
+            {
+                ThrowArgumentOutOfRangeException(nameof(x));
+            }
+
+            if (y < 0 || y >= this.Height)
+            {
+                ThrowArgumentOutOfRangeException(nameof(y));
+            }
+        }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowArgumentOutOfRangeException(string paramName)
+        {
+            throw new ArgumentOutOfRangeException(paramName);
         }
 
         /// <summary>

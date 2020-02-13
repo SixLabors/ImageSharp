@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         for (int y = 0; y < v; y++)
                         {
                             int blockRow = (mcuRow * v) + y;
-                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpanUnchecked(blockRow);
+                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
                             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                             for (int x = 0; x < h; x++)
@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             for (int j = 0; j < h; j++)
             {
-                Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpanUnchecked(j);
+                Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
                 ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                 for (int i = 0; i < w; i++)
@@ -334,7 +334,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                         for (int y = 0; y < v; y++)
                         {
                             int blockRow = (mcuRow * v) + y;
-                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpanUnchecked(blockRow);
+                            Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(blockRow);
                             ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                             for (int x = 0; x < h; x++)
@@ -377,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int j = 0; j < h; j++)
                 {
-                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpanUnchecked(j);
+                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
                     ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                     for (int i = 0; i < w; i++)
@@ -403,7 +403,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int j = 0; j < h; j++)
                 {
-                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpanUnchecked(j);
+                    Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
                     ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
                     for (int i = 0; i < w; i++)

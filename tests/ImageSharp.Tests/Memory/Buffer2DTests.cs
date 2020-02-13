@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -95,13 +96,55 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
             using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
-                Span<TestStructs.Foo> span = buffer.GetRowSpanUnchecked(y);
+                Span<TestStructs.Foo> span = buffer.GetRowSpan(y);
 
                 Assert.Equal(width, span.Length);
 
                 int expectedSubBufferOffset = (width * y) - (expectedBufferIndex * buffer.MemoryGroup.BufferLength);
                 Assert.SpanPointsTo(span, buffer.MemoryGroup[expectedBufferIndex], expectedSubBufferOffset);
             }
+        }
+
+        public static TheoryData<int, int, int, int> GetRowSpanY_OutOfRange_Data = new TheoryData<int, int, int, int>()
+        {
+            { Big, 10, 8, -1 },
+            { Big, 10, 8, 8 },
+            { 20, 10, 8, -1 },
+            { 20, 10, 8, 10 },
+        };
+
+        [Theory]
+        [MemberData(nameof(GetRowSpanY_OutOfRange_Data))]
+        public void GetRowSpan_OutOfRange(int bufferCapacity, int width, int height, int y)
+        {
+            this.MemoryAllocator.BufferCapacityInBytes = bufferCapacity;
+            using Buffer2D<byte> buffer = this.MemoryAllocator.Allocate2D<byte>(width, height);
+
+            Exception ex = Assert.ThrowsAny<Exception>(() => buffer.GetRowSpan(y));
+            Assert.True(ex is ArgumentOutOfRangeException || ex is IndexOutOfRangeException);
+        }
+
+        public static TheoryData<int, int, int, int, int> Indexer_OutOfRange_Data = new TheoryData<int, int, int, int, int>()
+        {
+            { Big, 10, 8, 1, -1 },
+            { Big, 10, 8, 1, 8 },
+            { Big, 10, 8, -1, 1 },
+            { Big, 10, 8, 10, 1 },
+            { 20, 10, 8, 1, -1 },
+            { 20, 10, 8, 1, 10 },
+            { 20, 10, 8, -1, 1 },
+            { 20, 10, 8, 10, 1 },
+        };
+
+        [Theory]
+        [MemberData(nameof(Indexer_OutOfRange_Data))]
+        public void Indexer_OutOfRange(int bufferCapacity, int width, int height, int x, int y)
+        {
+            this.MemoryAllocator.BufferCapacityInBytes = bufferCapacity;
+            using Buffer2D<byte> buffer = this.MemoryAllocator.Allocate2D<byte>(width, height);
+
+            Exception ex = Assert.ThrowsAny<Exception>(() => buffer[x, y]++);
+            Assert.True(ex is ArgumentOutOfRangeException || ex is IndexOutOfRangeException);
         }
 
         [Theory]
@@ -168,10 +211,10 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 Buffer2D<int>.SwapOrCopyContent(dest, source);
             }
 
-            int actual1 = dest.GetRowSpanUnchecked(0)[0];
+            int actual1 = dest.GetRowSpan(0)[0];
             int actual2 = dest.GetRowSpan(0)[0];
-            int actual3 = dest.GetRowMemorySafe(0).Span[0];
-            int actual4 = dest.GetRowMemoryFast(0).Span[0];
+            int actual3 = dest.GetSafeRowMemory(0).Span[0];
+            int actual4 = dest.GetFastRowMemory(0).Span[0];
             int actual5 = dest[0, 0];
 
             Assert.Equal(1, actual1);
@@ -199,7 +242,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 for (int y = 0; y < b.Height; y++)
                 {
-                    Span<float> row = b.GetRowSpanUnchecked(y);
+                    Span<float> row = b.GetRowSpan(y);
 
                     Span<float> s = row.Slice(startIndex, columnCount);
                     Span<float> d = row.Slice(destIndex, columnCount);
@@ -222,7 +265,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 for (int y = 0; y < b.Height; y++)
                 {
-                    Span<float> row = b.GetRowSpanUnchecked(y);
+                    Span<float> row = b.GetRowSpan(y);
 
                     Span<float> s = row.Slice(0, 22);
                     Span<float> d = row.Slice(50, 22);

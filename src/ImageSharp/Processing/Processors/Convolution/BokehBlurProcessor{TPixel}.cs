@@ -364,7 +364,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<ComplexVector4> targetRowSpan = this.targetValues.GetRowSpanUnchecked(y).Slice(this.bounds.X);
+                    Span<ComplexVector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
 
                     for (int x = 0; x < this.bounds.Width; x++)
                     {
@@ -413,7 +413,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<Vector4> targetRowSpan = this.targetValues.GetRowSpanUnchecked(y).Slice(this.bounds.X);
+                    Span<Vector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
 
                     for (int x = 0; x < this.bounds.Width; x++)
                     {
@@ -452,7 +452,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpanUnchecked(y).Slice(this.bounds.X);
+                    Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
                     PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Premultiply);
                     ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
 
@@ -504,8 +504,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> targetPixelSpan = this.targetPixels.GetRowSpanUnchecked(y).Slice(this.bounds.X);
-                    Span<Vector4> sourceRowSpan = this.sourceValues.GetRowSpanUnchecked(y).Slice(this.bounds.X);
+                    Span<TPixel> targetPixelSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+                    Span<Vector4> sourceRowSpan = this.sourceValues.GetRowSpan(y).Slice(this.bounds.X);
                     ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
 
                     for (int x = 0; x < this.bounds.Width; x++)

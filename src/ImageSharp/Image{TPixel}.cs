@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
@@ -146,8 +147,19 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see typeparam="TPixel"/> at the specified position.</returns>
         public TPixel this[int x, int y]
         {
-            get => this.PixelSource.PixelBuffer[x, y];
-            set => this.PixelSource.PixelBuffer[x, y] = value;
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get
+            {
+                this.VerifyCoords(x, y);
+                return this.PixelSource.PixelBuffer.GetElementUnsafe(x, y);
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            set
+            {
+                this.VerifyCoords(x, y);
+                this.PixelSource.PixelBuffer.GetElementUnsafe(x, y) = value;
+            }
         }
 
         /// <summary>
@@ -264,6 +276,26 @@ namespace SixLabors.ImageSharp
             }
 
             return rootSize;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void VerifyCoords(int x, int y)
+        {
+            if (x < 0 || x >= this.Width)
+            {
+                ThrowArgumentOutOfRangeException(nameof(x));
+            }
+
+            if (y < 0 || y >= this.Height)
+            {
+                ThrowArgumentOutOfRangeException(nameof(y));
+            }
+        }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowArgumentOutOfRangeException(string paramName)
+        {
+            throw new ArgumentOutOfRangeException(paramName);
         }
     }
 }

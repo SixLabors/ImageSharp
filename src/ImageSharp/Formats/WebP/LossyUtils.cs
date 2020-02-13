@@ -11,11 +11,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             for (int j = 0; j < 16; ++j)
             {
-                Span<byte> tmp = dst.Slice(j * WebPConstants.Bps);
-                for (int i = 0; i < 16; i++)
-                {
-                    tmp[i] = (byte)v;
-                }
+                Memset(dst.Slice(j * WebPConstants.Bps), (byte)v, 0, 16);
             }
         }
 
@@ -54,14 +50,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             for (int j = 16; j > 0; --j)
             {
                 // memset(dst, dst[-1], 16);
-                dst = dst.Slice(WebPConstants.Bps);
                 byte v = yuv[offset - 1];
-                for (int i = 0; i < 16; i++)
-                {
-                    dst[i] = v;
-                }
-
+                Memset(dst, v, 0, 16);
                 offset += WebPConstants.Bps;
+                dst = dst.Slice(WebPConstants.Bps);
             }
         }
 
@@ -131,10 +123,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 // memset(dst, dst[-1], 8);
                 byte v = yuv[offset - 1];
-                for (int i = 0; i < 8; i++)
-                {
-                    yuv[offset + i] = v;
-                }
+                Memset(dst, v, 0, 8);
+                dst = dst.Slice(WebPConstants.Bps);
             }
         }
 
@@ -164,17 +154,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put8x8uv((byte)(dc0 >> 3), dst);
         }
 
-        public static void DC8uvNoTopLeft_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC8uvNoTopLeft_C(Span<byte> dst)
         {
-            // DC with no top samples.
-            int dc0 = 4;
-            for (int i = 0; i < 8; ++i)
-            {
-                // dc0 += dst[-1 + i * BPS];
-                dc0 += yuv[offset - 1 + (i * WebPConstants.Bps)];
-            }
-
-            Put8x8uv((byte)(dc0 >> 3), dst);
+            // DC with nothing.
+            Put8x8uv(0x80, dst);
         }
 
         public static void DC4_C(Span<byte> dst)
@@ -366,10 +349,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private static void Put8x8uv(byte value, Span<byte> dst)
         {
-            // memset(dst + j * BPS, value, 8);
             for (int j = 0; j < 8; ++j)
             {
-                dst[j * WebPConstants.Bps] = value;
+                // memset(dst + j * BPS, value, 8);
+                Memset(dst, value, j * WebPConstants.Bps, 8);
+            }
+        }
+
+        private static void Memset(Span<byte> dst, byte value, int startIdx, int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                dst[startIdx + i] = value;
             }
         }
 

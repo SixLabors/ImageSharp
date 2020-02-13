@@ -4,9 +4,8 @@
 using System;
 using System.Buffers;
 using System.Numerics;
-
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -39,78 +38,84 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            // TODO: can we simplify the rectangle calculation?
-            int startY = this.SourceRectangle.Y;
-            int endY = this.SourceRectangle.Bottom;
-            int startX = this.SourceRectangle.X;
-            int endX = this.SourceRectangle.Right;
             TPixel glowColor = this.definition.GlowColor.ToPixel<TPixel>();
-            Vector2 center = Rectangle.Center(this.SourceRectangle);
+            float blendPercent = this.definition.GraphicsOptions.BlendPercentage;
 
-            float finalRadius = this.definition.Radius.Calculate(source.Size());
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
+            Vector2 center = Rectangle.Center(interest);
+            float finalRadius = this.definition.Radius.Calculate(interest.Size);
             float maxDistance = finalRadius > 0
-                                    ? MathF.Min(finalRadius, this.SourceRectangle.Width * .5F)
-                                    : this.SourceRectangle.Width * .5F;
+                ? MathF.Min(finalRadius, interest.Width * .5F)
+                : interest.Width * .5F;
 
-            // Align start/end positions.
-            int minX = Math.Max(0, startX);
-            int maxX = Math.Min(source.Width, endX);
-            int minY = Math.Max(0, startY);
-            int maxY = Math.Min(source.Height, endY);
-
-            // Reset offset if necessary.
-            if (minX > 0)
-            {
-                startX = 0;
-            }
-
-            if (minY > 0)
-            {
-                startY = 0;
-            }
-
-            int width = maxX - minX;
-            int offsetX = minX - startX;
-
-            var workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
-
-            float blendPercentage = this.definition.GraphicsOptions.BlendPercentage;
             Configuration configuration = this.Configuration;
-            MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
+            MemoryAllocator allocator = configuration.MemoryAllocator;
 
-            using (IMemoryOwner<TPixel> rowColors = memoryAllocator.Allocate<TPixel>(width))
+            using IMemoryOwner<TPixel> rowColors = allocator.Allocate<TPixel>(interest.Width);
+            rowColors.GetSpan().Fill(glowColor);
+
+            var operation = new RowIntervalOperation(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source);
+            ParallelRowIterator.IterateRows<RowIntervalOperation, float>(
+                configuration,
+                interest,
+                in operation);
+        }
+
+        private readonly struct RowIntervalOperation : IRowIntervalOperation<float>
+        {
+            private readonly Configuration configuration;
+            private readonly Rectangle bounds;
+            private readonly PixelBlender<TPixel> blender;
+            private readonly Vector2 center;
+            private readonly float maxDistance;
+            private readonly float blendPercent;
+            private readonly IMemoryOwner<TPixel> colors;
+            private readonly ImageFrame<TPixel> source;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalOperation(
+                Configuration configuration,
+                Rectangle bounds,
+                IMemoryOwner<TPixel> colors,
+                PixelBlender<TPixel> blender,
+                Vector2 center,
+                float maxDistance,
+                float blendPercent,
+                ImageFrame<TPixel> source)
             {
-                rowColors.GetSpan().Fill(glowColor);
+                this.configuration = configuration;
+                this.bounds = bounds;
+                this.colors = colors;
+                this.blender = blender;
+                this.center = center;
+                this.maxDistance = maxDistance;
+                this.blendPercent = blendPercent;
+                this.source = source;
+            }
 
-                ParallelHelper.IterateRowsWithTempBuffer<float>(
-                    workingRect,
-                    configuration,
-                    (rows, amounts) =>
-                        {
-                            Span<float> amountsSpan = amounts.Span;
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows, Span<float> span)
+            {
+                Span<TPixel> colorSpan = this.colors.GetSpan();
 
-                            for (int y = rows.Min; y < rows.Max; y++)
-                            {
-                                int offsetY = y - startY;
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    for (int i = 0; i < this.bounds.Width; i++)
+                    {
+                        float distance = Vector2.Distance(this.center, new Vector2(i + this.bounds.X, y));
+                        span[i] = (this.blendPercent * (1 - (.95F * (distance / this.maxDistance)))).Clamp(0, 1);
+                    }
 
-                                for (int i = 0; i < width; i++)
-                                {
-                                    float distance = Vector2.Distance(center, new Vector2(i + offsetX, offsetY));
-                                    amountsSpan[i] =
-                                        (blendPercentage * (1 - (.95F * (distance / maxDistance)))).Clamp(0, 1);
-                                }
+                    Span<TPixel> destination = this.source.GetPixelRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
-                                Span<TPixel> destination = source.GetPixelRowSpan(offsetY).Slice(offsetX, width);
-
-                                this.blender.Blend(
-                                    configuration,
-                                    destination,
-                                    destination,
-                                    rowColors.GetSpan(),
-                                    amountsSpan);
-                            }
-                        });
+                    this.blender.Blend(
+                        this.configuration,
+                        destination,
+                        destination,
+                        colorSpan,
+                        span);
+                }
             }
         }
     }

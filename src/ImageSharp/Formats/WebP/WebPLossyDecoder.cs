@@ -63,14 +63,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.ParsePartitions(decoder);
 
             // Paragraph 9.6: Dequantization Indices.
-            this.ParseDequantizationIndices(decoder.SegmentHeader);
+            this.ParseDequantizationIndices(decoder);
 
             // Ignore the value of update_proba
             this.bitReader.ReadBool();
 
             // Paragraph 13.4: Parse probabilities.
-            this.ParseProbabilities(decoder, decoder.Probabilities);
+            this.ParseProbabilities(decoder);
 
+            // Decode image data.
             this.ParseFrame(decoder, vp8Io);
         }
 
@@ -219,8 +220,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Init top-left sample on left column too.
             if (mby > 0)
             {
-                // TODO:
-                // yDst[-1 - WebPConstants.Bps] = uDst[-1 - WebPConstants.Bps] = vDst[-1 - WebPConstants.Bps] = 129;
+                yuv[yOff - 1 - WebPConstants.Bps] = yuv[uOff - 1 - WebPConstants.Bps] = yuv[vOff - 1 - WebPConstants.Bps] = 129;
             }
             else
             {
@@ -286,12 +286,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // Predict and add residuals.
                 if (block.IsI4x4)
                 {
+                    // uint32_t* const top_right = (uint32_t*)(y_dst - BPS + 16);
                     if (mby > 0)
                     {
                         if (mbx >= dec.MbWidth - 1)
                         {
                             // On rightmost border.
-                            //memset(top_right, top_yuv[0].y[15], sizeof(*top_right));
+                            // memset(top_right, top_yuv[0].y[15], sizeof(*top_right));
                         }
                         else
                         {
@@ -300,38 +301,49 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     }
 
                     // Replicate the top-right pixels below.
-
+                    // top_right[BPS] = top_right[2 * BPS] = top_right[3 * BPS] = top_right[0];
 
                     // Predict and add residuals for all 4x4 blocks in turn.
                     for (int n = 0; n < 16; ++n, bits <<= 2)
                     {
                         // uint8_t * const dst = y_dst + kScan[n];
+                        Span<byte> dst = yDst.Slice(WebPConstants.KScan[n]);
                         byte lumaMode = block.Modes[n];
                         switch (lumaMode)
                         {
                             case 0:
+                                LossyUtils.DC4_C(dst);
                                 break;
                             case 1:
+                                LossyUtils.TM4_C(dst);
                                 break;
                             case 2:
+                                LossyUtils.VE4_C(dst);
                                 break;
                             case 3:
+                                LossyUtils.HE4_C(dst);
                                 break;
                             case 4:
+                                LossyUtils.RD4_C(dst);
                                 break;
                             case 5:
+                                LossyUtils.VR4_C(dst);
                                 break;
                             case 6:
+                                LossyUtils.LD4_C(dst);
                                 break;
                             case 7:
+                                LossyUtils.VL4_C(dst);
                                 break;
                             case 8:
+                                LossyUtils.HD4_C(dst);
                                 break;
                             case 9:
+                                LossyUtils.HU4_C(dst);
                                 break;
                         }
 
-                        //DoTransform(bits, coeffs + n * 16, dst);
+                        this.DoTransform(bits,  coeffs.AsSpan(n * 16), dst);
                     }
                 }
                 else
@@ -409,6 +421,32 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 this.DoUVTransform(bitsUv >> 0, coeffs.AsSpan(16 * 16), uDst);
                 this.DoUVTransform(bitsUv >> 8, coeffs.AsSpan(20 * 16), vDst);
+
+                // Stash away top samples for next block.
+                if (mby < dec.MbHeight - 1)
+                {
+                    yDst.Slice(15 * WebPConstants.Bps, 16).CopyTo(topYuv.Y);
+                    uDst.Slice(7 * WebPConstants.Bps, 8).CopyTo(topYuv.U);
+                    vDst.Slice(7 * WebPConstants.Bps, 8).CopyTo(topYuv.V);
+                }
+
+                // Transfer reconstructed samples from yuv_b_ cache to final destination.
+                int cacheId = 0; // TODO: what should be cacheId?
+                int yOffset = cacheId * 16 * dec.YStride;
+                int uvOffset = cacheId * 8 * dec.UvStride;
+                Span<byte> yOut = dec.Y.AsSpan((mbx * 16) + yOffset);
+                Span<byte> uOut = dec.U.AsSpan((mbx * 8) + uvOffset);
+                Span<byte> vOut = dec.V.AsSpan((mbx * 8) + uvOffset);
+                for (int j = 0; j < 16; ++j)
+                {
+                    yDst.Slice(j * WebPConstants.Bps, 16).CopyTo(yOut.Slice(j * dec.YStride));
+                }
+
+                for (int j = 0; j < 8; ++j)
+                {
+                    uDst.Slice(j * WebPConstants.Bps, 8).CopyTo(uOut);
+                    vDst.Slice(j * WebPConstants.Bps, 8).CopyTo(vOut);
+                }
             }
         }
 
@@ -504,13 +542,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint nonZeroY = 0;
             uint nonZeroUv = 0;
             int first;
-            var dst = new short[384];
             int dstOffset = 0;
             Vp8MacroBlockData block = dec.MacroBlockData[dec.MbX];
             Vp8QuantMatrix q = dec.DeQuantMatrices[block.Segment];
             Vp8BandProbas[,] bands = dec.Probabilities.BandsPtr;
             Vp8BandProbas[] acProba;
             Vp8MacroBlock leftMb = dec.MacroBlockInfo[0];
+            short[] dst = block.Coeffs;
 
             if (!block.IsI4x4)
             {
@@ -519,7 +557,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 int ctx = (int)(mb.NoneZeroDcCoeffs + leftMb.NoneZeroDcCoeffs);
                 int nz = this.GetCoeffs(br, GetBandsRow(bands, 1), ctx, q.Y2Mat, 0, dc);
                 mb.NoneZeroDcCoeffs = leftMb.NoneZeroDcCoeffs = (uint)(nz > 0 ? 1 : 0);
-                if (nz > 0)
+                if (nz > 1)
                 {
                     // More than just the DC -> perform the full transform.
                     this.TransformWht(dc, dst);
@@ -534,7 +572,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 first = 1;
-                acProba = GetBandsRow(bands, 1);
+                acProba = GetBandsRow(bands, 0);
             }
             else
             {
@@ -615,14 +653,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Vp8ProbaArray p = prob[n].Probabilities[ctx];
             for (; n < 16; ++n)
             {
-                if (this.bitReader.GetBit((int)p.Probabilities[0]) is 0)
+                if (br.GetBit(p.Probabilities[0]) is 0)
                 {
                     // Previous coeff was last non - zero coeff.
                     return n;
                 }
 
                 // Sequence of zero coeffs.
-                while (br.GetBit((int)p.Probabilities[1]) is 0)
+                while (br.GetBit(p.Probabilities[1]) is 0)
                 {
                     p = prob[++n].Probabilities[0];
                     if (n is 16)
@@ -633,57 +671,57 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 // Non zero coeffs.
                 int v;
-                if (br.GetBit((int)p.Probabilities[2]) is 0)
+                if (br.GetBit(p.Probabilities[2]) is 0)
                 {
                     v = 1;
                     p = prob[n + 1].Probabilities[1];
                 }
                 else
                 {
-                    v = this.GetLargeValue(p.Probabilities);
+                    v = this.GetLargeValue(br, p.Probabilities);
                     p = prob[n + 1].Probabilities[2];
                 }
 
                 int idx = n > 0 ? 1 : 0;
-                coeffs[WebPConstants.Zigzag[n]] = (short)(br.ReadSignedValue(v) * dq[idx]);
+                coeffs[WebPConstants.Zigzag[n]] = (short)(br.GetSigned(v) * dq[idx]);
             }
 
             return 16;
         }
 
-        private int GetLargeValue(byte[] p)
+        private int GetLargeValue(Vp8BitReader br, byte[] p)
         {
             // See section 13 - 2: http://tools.ietf.org/html/rfc6386#section-13.2
             int v;
-            if (this.bitReader.GetBit(p[3]) is 0)
+            if (br.GetBit(p[3]) is 0)
             {
-                if (this.bitReader.GetBit(p[4]) is 0)
+                if (br.GetBit(p[4]) is 0)
                 {
                     v = 2;
                 }
                 else
                 {
-                    v = 3 + this.bitReader.GetBit(p[5]);
+                    v = 3 + br.GetBit(p[5]);
                 }
             }
             else
             {
-                if (this.bitReader.GetBit(p[6]) is 0)
+                if (br.GetBit(p[6]) is 0)
                 {
-                    if (this.bitReader.GetBit(p[7]) is 0)
+                    if (br.GetBit(p[7]) is 0)
                     {
-                        v = 5 + this.bitReader.GetBit(159);
+                        v = 5 + br.GetBit(159);
                     }
                     else
                     {
-                        v = 7 + (2 * this.bitReader.GetBit(165));
-                        v += this.bitReader.GetBit(145);
+                        v = 7 + (2 * br.GetBit(165));
+                        v += br.GetBit(145);
                     }
                 }
                 else
                 {
-                    int bit1 = this.bitReader.GetBit(p[8]);
-                    int bit0 = this.bitReader.GetBit(p[9] + bit1);
+                    int bit1 = br.GetBit(p[8]);
+                    int bit0 = br.GetBit(p[9] + bit1);
                     int cat = (2 * bit1) + bit0;
                     v = 0;
                     byte[] tab = null;
@@ -708,7 +746,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                     for (int i = 0; i < tab.Length; i++)
                     {
-                        v += v + this.bitReader.GetBit(tab[i]);
+                        v += v + br.GetBit(tab[i]);
                     }
 
                     v += 3 + (8 << cat);
@@ -866,8 +904,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             dec.Vp8BitReaders[lastPart] = new Vp8BitReader(this.bitReader.Data, (uint)sizeLeft, partStart);
         }
 
-        private void ParseDequantizationIndices(Vp8SegmentHeader vp8SegmentHeader)
+        private void ParseDequantizationIndices(Vp8Decoder decoder)
         {
+            Vp8SegmentHeader vp8SegmentHeader = decoder.SegmentHeader;
+
             int baseQ0 = (int)this.bitReader.ReadValue(7);
             bool hasValue = this.bitReader.ReadBool();
             int dqy1Dc = hasValue ? this.bitReader.ReadSignedValue(4) : 0;
@@ -894,7 +934,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 {
                     if (i > 0)
                     {
-                        // dec->dqm_[i] = dec->dqm_[0];
+                        decoder.DeQuantMatrices[i] = decoder.DeQuantMatrices[0];
                         continue;
                     }
                     else
@@ -903,7 +943,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     }
                 }
 
-                var m = new Vp8QuantMatrix();
+                Vp8QuantMatrix m = decoder.DeQuantMatrices[i];
                 m.Y1Mat[0] = WebPConstants.DcTable[Clip(q + dqy1Dc, 127)];
                 m.Y1Mat[1] = WebPConstants.AcTable[Clip(q + 0, 127)];
                 m.Y2Mat[0] = WebPConstants.DcTable[Clip(q + dqy2Dc, 127)] * 2;
@@ -924,8 +964,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private void ParseProbabilities(Vp8Decoder dec, Vp8Proba proba)
+        private void ParseProbabilities(Vp8Decoder dec)
         {
+            Vp8Proba proba = dec.Probabilities;
+
             for (int t = 0; t < WebPConstants.NumTypes; ++t)
             {
                 for (int b = 0; b < WebPConstants.NumBands; ++b)

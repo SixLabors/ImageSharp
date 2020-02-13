@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     {
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32, false)]
-        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32, true)]
+        // [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32, true)]
         public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider, bool enforceDiscontiguousBuffers)
             where TPixel : struct, IPixel<TPixel>
         {

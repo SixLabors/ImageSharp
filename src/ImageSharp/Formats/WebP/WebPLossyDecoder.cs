@@ -414,8 +414,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         LossyUtils.DC8uvNoLeft_C(vDst, yuv, vOff);
                         break;
                     case 6:
-                        LossyUtils.DC8uvNoTopLeft_C(uDst, yuv, uOff);
-                        LossyUtils.DC8uvNoTopLeft_C(vDst, yuv, vOff);
+                        LossyUtils.DC8uvNoTopLeft_C(uDst);
+                        LossyUtils.DC8uvNoTopLeft_C(vDst);
                         break;
                 }
 

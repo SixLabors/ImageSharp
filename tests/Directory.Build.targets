@@ -26,6 +26,7 @@
   <ItemGroup>
     <!--Test Dependencies-->
     <PackageReference Update="BenchmarkDotNet" Version="0.12.0" />
+    <PackageReference Update="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.0" Condition="'$(OS)' == 'Windows_NT'" />    
     <PackageReference Update="Colourful" Version="2.0.3" />
     <PackageReference Update="coverlet.collector" Version="1.2.0" PrivateAssets="All"/>
     <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.14.4" />

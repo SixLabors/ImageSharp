@@ -2,8 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -15,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class CropProcessor<TPixel> : TransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private Rectangle cropRectangle;
+        private readonly Rectangle cropRectangle;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CropProcessor{TPixel}"/> class.
@@ -47,21 +48,51 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle bounds = this.cropRectangle;
 
             // Copying is cheap, we should process more pixels per task:
-            ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(this.Configuration)
-                .MultiplyMinimumPixelsPerTask(4);
+            ParallelExecutionSettings parallelSettings =
+                ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
 
-            ParallelHelper.IterateRows(
+            var operation = new RowIntervalOperation(bounds, source, destination);
+
+            ParallelRowIterator.IterateRows(
                 bounds,
-                parallelSettings,
-                rows =>
-                    {
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(bounds.Left);
-                            Span<TPixel> targetRow = destination.GetPixelRowSpan(y - bounds.Top);
-                            sourceRow.Slice(0, bounds.Width).CopyTo(targetRow);
-                        }
-                    });
+                in parallelSettings,
+                in operation);
+        }
+
+        /// <summary>
+        /// A <see langword="struct"/> implementing the processor logic for <see cref="CropProcessor{T}"/>.
+        /// </summary>
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        {
+            private readonly Rectangle bounds;
+            private readonly ImageFrame<TPixel> source;
+            private readonly ImageFrame<TPixel> destination;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="RowIntervalOperation"/> struct.
+            /// </summary>
+            /// <param name="bounds">The target processing bounds for the current instance.</param>
+            /// <param name="source">The source <see cref="Image{TPixel}"/> for the current instance.</param>
+            /// <param name="destination">The destination <see cref="Image{TPixel}"/> for the current instance.</param>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalOperation(Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+            {
+                this.bounds = bounds;
+                this.source = source;
+                this.destination = destination;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y).Slice(this.bounds.Left);
+                    Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y - this.bounds.Top);
+                    sourceRow.Slice(0, this.bounds.Width).CopyTo(targetRow);
+                }
+            }
         }
     }
 }

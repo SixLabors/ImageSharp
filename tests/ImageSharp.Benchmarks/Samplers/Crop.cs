@@ -13,6 +13,7 @@ using SDSize = System.Drawing.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
+    [Config(typeof(Config.ShortClr))]
     public class Crop : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "System.Drawing Crop")]

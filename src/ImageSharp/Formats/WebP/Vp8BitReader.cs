@@ -115,6 +115,26 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return bit ? 1 : 0;
         }
 
+        // simplified version of VP8GetBit() for prob=0x80 (note shift is always 1 here)
+        public int GetSigned(int v)
+        {
+            if (this.bits < 0)
+            {
+                this.LoadNewBytes();
+            }
+
+            int pos = this.bits;
+            uint split = this.range >> 1;
+            ulong value = this.value >> pos;
+            ulong mask = (split - value) >> 31;  // -1 or 0
+            this.bits -= 1;
+            this.range += (uint)mask;
+            this.range |= 1;
+            this.value -= ((split + 1) & mask) << pos;
+
+            return (v ^ (int)mask) - (int)mask;
+        }
+
         public bool ReadBool()
         {
             return this.ReadValue(1) is 1;

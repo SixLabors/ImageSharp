@@ -177,6 +177,56 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put8x8uv((byte)(dc0 >> 3), dst);
         }
 
+        public static void DC4_C(Span<byte> dst)
+        {
+
+        }
+
+        public static void TM4_C(Span<byte> dst)
+        {
+
+        }
+
+        public static void VE4_C(Span<byte> dst)
+        {
+
+        }
+
+        public static void HE4_C(Span<byte> dst)
+        {
+
+        }
+
+        public static void RD4_C(Span<byte> dst)
+        {
+
+        }
+
+        public static void VR4_C(Span<byte> dst)
+        {
+
+        }
+
+        public static void LD4_C(Span<byte> dst)
+        {
+
+        }
+
+        public static void VL4_C(Span<byte> dst)
+        {
+
+        }
+
+        public static void HD4_C(Span<byte> dst)
+        {
+            
+        }
+
+        public static void HU4_C(Span<byte> dst)
+        {
+
+        }
+
         public static void Transform(Span<short> src, Span<byte> dst, bool doTwo)
         {
             TransformOne(src, dst);
@@ -311,7 +361,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private static byte Clip8B(int v)
         {
-            return (byte)((v & ~0xff) > 0 ? v : (v < 0) ? 0 : 255);
+            return (byte)((v & ~0xff) is 0 ? v : (v < 0) ? 0 : 255);
         }
 
         private static void Put8x8uv(byte value, Span<byte> dst)

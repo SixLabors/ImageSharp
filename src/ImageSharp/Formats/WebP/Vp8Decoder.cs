@@ -44,6 +44,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
+            uint width = pictureHeader.Width;
+            uint height = pictureHeader.Height;
+
+            // TODO: use memory allocator
+            this.Y = new byte[width * height];
+            this.U = new byte[width * height];
+            this.V = new byte[width * height];
+
             this.Vp8BitReaders = new Vp8BitReader[WebPConstants.MaxNumPartitions];
             this.Init(io);
         }
@@ -138,6 +146,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public byte[] YuvBuffer { get; }
 
         public Vp8TopSamples[] YuvTopSamples { get; }
+
+        public byte[] Y { get; }
+
+        public byte[] U { get; }
+
+        public byte[] V { get; }
+
+        public int YStride { get; }
+
+        public int UvStride { get; }
 
         /// <summary>
         /// Gets or sets filter strength info.

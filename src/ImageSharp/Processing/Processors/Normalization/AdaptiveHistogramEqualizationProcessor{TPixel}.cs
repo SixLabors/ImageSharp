@@ -529,7 +529,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public Span<int> GetCdfLutSpan(int tileX, int tileY) => this.cdfLutBuffer2D.GetRowSpanUnchecked(tileY).Slice(tileX * this.luminanceLevels, this.luminanceLevels);
+            public Span<int> GetCdfLutSpan(int tileX, int tileY) => this.cdfLutBuffer2D.GetRowSpan(tileY).Slice(tileX * this.luminanceLevels, this.luminanceLevels);
 
             /// <summary>
             /// Remaps the grey value with the cdf.
@@ -605,7 +605,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         int cdfY = this.tileYStartPositions[index].cdfY;
                         int y = this.tileYStartPositions[index].y;
                         int endY = Math.Min(y + this.tileHeight, this.sourceHeight);
-                        ref int cdfMinBase = ref MemoryMarshal.GetReference(this.cdfMinBuffer2D.GetRowSpanUnchecked(cdfY));
+                        ref int cdfMinBase = ref MemoryMarshal.GetReference(this.cdfMinBuffer2D.GetRowSpan(cdfY));
 
                         using IMemoryOwner<int> histogramBuffer = this.allocator.Allocate<int>(this.luminanceLevels);
                         Span<int> histogram = histogramBuffer.GetSpan();
@@ -614,7 +614,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                         for (int x = 0; x < this.sourceWidth; x += this.tileWidth)
                         {
                             histogram.Clear();
-                            Span<int> cdfLutSpan = this.cdfLutBuffer2D.GetRowSpanUnchecked(index).Slice(cdfX * this.luminanceLevels, this.luminanceLevels);
+                            Span<int> cdfLutSpan = this.cdfLutBuffer2D.GetRowSpan(index).Slice(cdfX * this.luminanceLevels, this.luminanceLevels);
                             ref int cdfBase = ref MemoryMarshal.GetReference(cdfLutSpan);
 
                             int xlimit = Math.Min(x + this.tileWidth, this.sourceWidth);

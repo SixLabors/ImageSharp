@@ -114,8 +114,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(this.passPixels.GetRowSpanUnchecked(y));
-                    ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(this.targetPixels.GetRowSpanUnchecked(y));
+                    ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(this.passPixels.GetRowSpan(y));
+                    ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(this.targetPixels.GetRowSpan(y));
 
                     for (int x = this.minX; x < this.maxX; x++)
                     {

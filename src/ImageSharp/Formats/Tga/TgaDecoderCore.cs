@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 {
                     this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelRow = pixels.GetRowSpanUnchecked(newY);
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
                     switch (colorMapPixelSizeInBytes)
                     {
                         case 2:
@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < height; y++)
                 {
                     int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelRow = pixels.GetRowSpanUnchecked(newY);
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
                     int rowStartIdx = y * width * bytesPerPixel;
                     for (int x = 0; x < width; x++)
                     {
@@ -344,7 +344,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 {
                     this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpanUnchecked(newY);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromL8Bytes(
                         this.configuration,
                         row.GetSpan(),
@@ -379,7 +379,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     }
 
                     int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpanUnchecked(newY);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromBgra5551Bytes(
                         this.configuration,
                         rowSpan,
@@ -406,7 +406,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 {
                     this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpanUnchecked(newY);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromBgr24Bytes(
                         this.configuration,
                         row.GetSpan(),
@@ -433,7 +433,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 {
                     this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpanUnchecked(newY);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromBgra32Bytes(
                         this.configuration,
                         row.GetSpan(),
@@ -463,7 +463,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < height; y++)
                 {
                     int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelRow = pixels.GetRowSpanUnchecked(newY);
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
                     int rowStartIdx = y * width * bytesPerPixel;
                     for (int x = 0; x < width; x++)
                     {

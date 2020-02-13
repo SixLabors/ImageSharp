@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>The reference to the first item of the window.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public ref float GetYStartReference(int y)
-            => ref MemoryMarshal.GetReference(this.yBuffer.GetRowSpanUnchecked(y));
+            => ref MemoryMarshal.GetReference(this.yBuffer.GetRowSpan(y));
 
         /// <summary>
         /// Gets a reference to the first item of the x window.
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>The reference to the first item of the window.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public ref float GetXStartReference(int y)
-            => ref MemoryMarshal.GetReference(this.xBuffer.GetRowSpanUnchecked(y));
+            => ref MemoryMarshal.GetReference(this.xBuffer.GetRowSpan(y));
 
         public void Convolve<TPixel>(
             Vector2 transformedPoint,

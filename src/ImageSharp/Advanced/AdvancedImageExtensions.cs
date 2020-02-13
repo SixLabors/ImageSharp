@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Advanced
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
             Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
 
-            return source.PixelBuffer.GetRowSpanUnchecked(rowIndex);
+            return source.PixelBuffer.GetRowSpan(rowIndex);
         }
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Advanced
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
             Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
 
-            return source.Frames.RootFrame.PixelBuffer.GetRowSpanUnchecked(rowIndex);
+            return source.Frames.RootFrame.PixelBuffer.GetRowSpan(rowIndex);
         }
 
         /// <summary>
@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Advanced
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
             Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
 
-            return source.PixelBuffer.GetRowMemorySafe(rowIndex);
+            return source.PixelBuffer.GetSafeRowMemory(rowIndex);
         }
 
         /// <summary>
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Advanced
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
             Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
 
-            return source.Frames.RootFrame.PixelBuffer.GetRowMemorySafe(rowIndex);
+            return source.Frames.RootFrame.PixelBuffer.GetSafeRowMemory(rowIndex);
         }
 
         /// <summary>

@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpanUnchecked(y).Slice(this.bounds.X);
+                    Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
                     PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
 
                     if (this.preserveAlpha)

@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -68,27 +69,13 @@ namespace SixLabors.ImageSharp.Memory
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
+                DebugGuard.MustBeGreaterThanOrEqualTo(x, 0, nameof(x));
+                DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
                 DebugGuard.MustBeLessThan(x, this.Width, nameof(x));
                 DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
 
-                return ref this.GetRowSpanUnchecked(y)[x];
+                return ref this.GetRowSpan(y)[x];
             }
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
-        /// </summary>
-        /// <param name="y">The y (row) coordinate.</param>
-        /// <returns>The <see cref="Span{T}"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<T> GetRowSpan(int y)
-        {
-            Guard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
-            Guard.MustBeLessThan(y, this.Height, nameof(y));
-
-            return this.cachedMemory.Length > 0
-                ? this.cachedMemory.Span.Slice(y * this.Width, this.Width)
-                : this.GetRowMemorySlow(y).Span;
         }
 
         /// <summary>
@@ -101,10 +88,16 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Same as <see cref="GetRowSpan"/>, but does not validate index in Release mode.
+        /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Span<T> GetRowSpanUnchecked(int y)
+        /// <remarks>
+        /// This method does not validate the y argument for performance reason,
+        /// <see cref="ArgumentOutOfRangeException"/> is being propagated from lower levels.
+        /// </remarks>
+        /// <param name="y">The row index.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when row index is out of range.</exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public Span<T> GetRowSpan(int y)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
@@ -114,6 +107,19 @@ namespace SixLabors.ImageSharp.Memory
                 : this.GetRowMemorySlow(y).Span;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal ref T GetElementUnsafe(int x, int y)
+        {
+            if (this.cachedMemory.Length > 0)
+            {
+                Span<T> span = this.cachedMemory.Span;
+                ref T start = ref MemoryMarshal.GetReference(span);
+                return ref Unsafe.Add(ref start, (y * this.Width) + x);
+            }
+
+            return ref GetElementSlow(x, y);
+        }
+
         /// <summary>
         /// Gets a <see cref="Memory{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
         /// This method is intended for internal use only, since it does not use the indirection provided by
@@ -121,8 +127,8 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <param name="y">The y (row) coordinate.</param>
         /// <returns>The <see cref="Span{T}"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Memory<T> GetRowMemoryFast(int y)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal Memory<T> GetFastRowMemory(int y)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
@@ -136,7 +142,8 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <param name="y">The y (row) coordinate.</param>
         /// <returns>The <see cref="Span{T}"/>.</returns>
-        internal Memory<T> GetRowMemorySafe(int y)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal Memory<T> GetSafeRowMemory(int y)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
@@ -155,6 +162,13 @@ namespace SixLabors.ImageSharp.Memory
 
         [MethodImpl(InliningOptions.ColdPath)]
         private Memory<T> GetRowMemorySlow(int y) => this.MemoryGroup.GetBoundedSlice(y * this.Width, this.Width);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private ref T GetElementSlow(int x, int y)
+        {
+            Span<T> span = this.GetRowMemorySlow(y).Span;
+            return ref span[x];
+        }
 
         private static void SwapOwnData(Buffer2D<T> a, Buffer2D<T> b, bool swapCachedMemory)
         {

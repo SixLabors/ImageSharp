@@ -44,8 +44,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
-        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
         /// <param name="dither">Whether to apply dithering to the output image.</param>
+        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
         public OctreeQuantizer(bool dither, int maxColors)
             : this(GetDiffuser(dither), maxColors)
         {

@@ -2,10 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
-
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
@@ -32,14 +30,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         public DitherTest()
         {
             this.orderedDither = KnownDitherers.BayerDither4x4;
-            this.errorDiffuser = KnownDiffusers.FloydSteinberg;
+            this.errorDiffuser = KnownDitherers.FloydSteinberg;
         }
 
         [Fact]
         public void Dither_CorrectProcessor()
         {
             this.operations.Dither(this.orderedDither);
-            OrderedDitherPaletteProcessor p = this.Verify<OrderedDitherPaletteProcessor>();
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>();
             Assert.Equal(this.orderedDither, p.Dither);
             Assert.Equal(Color.WebSafePalette, p.Palette);
         }
@@ -48,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         public void Dither_rect_CorrectProcessor()
         {
             this.operations.Dither(this.orderedDither, this.rect);
-            OrderedDitherPaletteProcessor p = this.Verify<OrderedDitherPaletteProcessor>(this.rect);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>(this.rect);
             Assert.Equal(this.orderedDither, p.Dither);
             Assert.Equal(Color.WebSafePalette, p.Palette);
         }
@@ -57,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         public void Dither_index_CorrectProcessor()
         {
             this.operations.Dither(this.orderedDither, this.testPalette);
-            OrderedDitherPaletteProcessor p = this.Verify<OrderedDitherPaletteProcessor>();
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>();
             Assert.Equal(this.orderedDither, p.Dither);
             Assert.Equal(this.testPalette, p.Palette);
         }
@@ -66,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         public void Dither_index_rect_CorrectProcessor()
         {
             this.operations.Dither(this.orderedDither, this.testPalette, this.rect);
-            OrderedDitherPaletteProcessor p = this.Verify<OrderedDitherPaletteProcessor>(this.rect);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>(this.rect);
             Assert.Equal(this.orderedDither, p.Dither);
             Assert.Equal(this.testPalette, p.Palette);
         }
@@ -74,40 +72,36 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void Dither_ErrorDiffuser_CorrectProcessor()
         {
-            this.operations.Diffuse(this.errorDiffuser, .4F);
-            ErrorDiffusionPaletteProcessor p = this.Verify<ErrorDiffusionPaletteProcessor>();
-            Assert.Equal(this.errorDiffuser, p.Diffuser);
-            Assert.Equal(.4F, p.Threshold);
+            this.operations.Dither(this.errorDiffuser);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>();
+            Assert.Equal(this.errorDiffuser, p.Dither);
             Assert.Equal(Color.WebSafePalette, p.Palette);
         }
 
         [Fact]
         public void Dither_ErrorDiffuser_rect_CorrectProcessor()
         {
-            this.operations.Diffuse(this.errorDiffuser, .3F, this.rect);
-            ErrorDiffusionPaletteProcessor p = this.Verify<ErrorDiffusionPaletteProcessor>(this.rect);
-            Assert.Equal(this.errorDiffuser, p.Diffuser);
-            Assert.Equal(.3F, p.Threshold);
+            this.operations.Dither(this.errorDiffuser, this.rect);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>(this.rect);
+            Assert.Equal(this.errorDiffuser, p.Dither);
             Assert.Equal(Color.WebSafePalette, p.Palette);
         }
 
         [Fact]
         public void Dither_ErrorDiffuser_CorrectProcessorWithColors()
         {
-            this.operations.Diffuse(this.errorDiffuser, .5F, this.testPalette);
-            ErrorDiffusionPaletteProcessor p = this.Verify<ErrorDiffusionPaletteProcessor>();
-            Assert.Equal(this.errorDiffuser, p.Diffuser);
-            Assert.Equal(.5F, p.Threshold);
+            this.operations.Dither(this.errorDiffuser, this.testPalette);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>();
+            Assert.Equal(this.errorDiffuser, p.Dither);
             Assert.Equal(this.testPalette, p.Palette);
         }
 
         [Fact]
         public void Dither_ErrorDiffuser_rect_CorrectProcessorWithColors()
         {
-            this.operations.Diffuse(this.errorDiffuser, .5F, this.testPalette, this.rect);
-            ErrorDiffusionPaletteProcessor p = this.Verify<ErrorDiffusionPaletteProcessor>(this.rect);
-            Assert.Equal(this.errorDiffuser, p.Diffuser);
-            Assert.Equal(.5F, p.Threshold);
+            this.operations.Dither(this.errorDiffuser, this.testPalette, this.rect);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>(this.rect);
+            Assert.Equal(this.errorDiffuser, p.Dither);
             Assert.Equal(this.testPalette, p.Palette);
         }
     }

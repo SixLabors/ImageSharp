@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
@@ -32,70 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             : base(configuration, diffuser, true) => this.palette = colors;
 
         /// <inheritdoc/>
-        protected override void SecondPass(
-            ImageFrame<TPixel> source,
-            Span<byte> output,
-            ReadOnlySpan<TPixel> palette,
-            int width,
-            int height)
-        {
-            Rectangle interest = source.Bounds();
-            int bitDepth = ImageMaths.GetBitsNeededForColorDepth(palette.Length);
-
-            if (!this.DoDither)
-            {
-                // TODO: This can be parallel.
-                for (int y = interest.Top; y < interest.Bottom; y++)
-                {
-                    Span<TPixel> row = source.GetPixelRowSpan(y);
-                    int offset = y * width;
-
-                    for (int x = interest.Left; x < interest.Right; x++)
-                    {
-                        output[offset + x] = this.GetQuantizedColor(row[x], out TPixel _);
-                    }
-                }
-
-                return;
-            }
-
-            // Error diffusion. The difference between the source and transformed color
-            // is spread to neighboring pixels.
-            if (this.Dither.TransformColorBehavior == DitherTransformColorBehavior.PreOperation)
-            {
-                for (int y = interest.Top; y < interest.Bottom; y++)
-                {
-                    Span<TPixel> row = source.GetPixelRowSpan(y);
-                    int offset = y * width;
-
-                    for (int x = interest.Left; x < interest.Right; x++)
-                    {
-                        TPixel sourcePixel = row[x];
-                        output[offset + x] = this.GetQuantizedColor(sourcePixel, out TPixel transformed);
-                        this.Dither.Dither(source, interest, sourcePixel, transformed, x, y, bitDepth);
-                    }
-                }
-
-                return;
-            }
-
-            // TODO: This can be parallel.
-            // Ordered dithering. We are only operating on a single pixel.
-            for (int y = interest.Top; y < interest.Bottom; y++)
-            {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                int offset = y * width;
-
-                for (int x = interest.Left; x < interest.Right; x++)
-                {
-                    TPixel dithered = this.Dither.Dither(source, interest, row[x], default, x, y, bitDepth);
-                    output[offset + x] = this.GetQuantizedColor(dithered, out TPixel _);
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override ReadOnlyMemory<TPixel> GetPalette() => this.palette;
+        [MethodImpl(InliningOptions.ShortMethod)]
+        protected override ReadOnlyMemory<TPixel> GenerateQuantizedPalette() => this.palette;
     }
 }

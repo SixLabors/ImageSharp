@@ -11,14 +11,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     public interface IDither
     {
         /// <summary>
-        /// Gets the <see cref="DitherTransformColorBehavior"/> which determines whether the
+        /// Gets the <see cref="Dithering.DitherType"/> which determines whether the
         /// transformed color should be calculated and supplied to the algorithm.
         /// </summary>
-        public DitherTransformColorBehavior TransformColorBehavior { get; }
+        public DitherType DitherType { get; }
 
         /// <summary>
         /// Transforms the image applying a dither matrix.
-        /// When <see cref="TransformColorBehavior"/> is <see cref="DitherTransformColorBehavior.PreOperation"/> this
+        /// When <see cref="DitherType"/> is <see cref="DitherType.ErrorDiffusion"/> this
         /// this method is destructive and will alter the input pixels.
         /// </summary>
         /// <param name="image">The image.</param>

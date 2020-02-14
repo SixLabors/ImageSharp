@@ -147,10 +147,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             base.Dispose(true);
         }
 
-        internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GetPalette();
+        internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GenerateQuantizedPalette();
 
         /// <inheritdoc/>
-        protected override ReadOnlyMemory<TPixel> GetPalette()
+        protected override ReadOnlyMemory<TPixel> GenerateQuantizedPalette()
         {
             if (this.palette is null)
             {
@@ -175,16 +175,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc/>
-        protected override void FirstPass(ImageFrame<TPixel> source, int width, int height)
+        protected override void FirstPass(ImageFrame<TPixel> source, Rectangle bounds)
         {
-            this.Build3DHistogram(source, width, height);
+            this.Build3DHistogram(source, bounds);
             this.Get3DMoments(this.memoryAllocator);
             this.BuildCube();
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        protected override byte GetQuantizedColor(TPixel color, out TPixel match)
+        protected override byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
             if (!this.DoDither)
             {
@@ -199,11 +199,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
                 ReadOnlySpan<byte> tagSpan = this.tag.GetSpan();
                 var index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
-                match = this.GetPalette().Span[index];
+                match = palette[index];
                 return index;
             }
 
-            return base.GetQuantizedColor(color, out match);
+            return base.GetQuantizedColor(color, palette, out match);
         }
 
         /// <summary>
@@ -378,9 +378,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
         /// </summary>
         /// <param name="source">The source data.</param>
-        /// <param name="width">The width in pixels of the image.</param>
-        /// <param name="height">The height in pixels of the image.</param>
-        private void Build3DHistogram(ImageFrame<TPixel> source, int width, int height)
+        /// <param name="bounds">The bounds within the source image to quantize.</param>
+        private void Build3DHistogram(ImageFrame<TPixel> source, Rectangle bounds)
         {
             Span<Moment> momentSpan = this.moments.GetSpan();
 
@@ -390,15 +389,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
             ref Rgba32 scanBaseRef = ref MemoryMarshal.GetReference(rgbaSpan);
 
-            for (int y = 0; y < height; y++)
+            int offset = bounds.Left;
+            for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
                 Span<TPixel> row = source.GetPixelRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToRgba32(source.GetConfiguration(), row, rgbaSpan);
 
                 // And loop through each column
-                for (int x = 0; x < width; x++)
+                for (int x = bounds.Left; x < bounds.Right; x++)
                 {
-                    ref Rgba32 rgba = ref Unsafe.Add(ref scanBaseRef, x);
+                    ref Rgba32 rgba = ref Unsafe.Add(ref scanBaseRef, x - offset);
 
                     int r = (rgba.R >> (8 - IndexBits)) + 1;
                     int g = (rgba.G >> (8 - IndexBits)) + 1;

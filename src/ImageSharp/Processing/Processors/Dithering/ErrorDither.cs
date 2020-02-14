@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         }
 
         /// <inheritdoc/>
-        public DitherTransformColorBehavior TransformColorBehavior { get; } = DitherTransformColorBehavior.PreOperation;
+        public DitherType DitherType { get; } = DitherType.ErrorDiffusion;
 
         /// <inheritdoc/>
         public TPixel Dither<TPixel>(

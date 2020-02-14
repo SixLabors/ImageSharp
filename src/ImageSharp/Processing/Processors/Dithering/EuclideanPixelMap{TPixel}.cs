@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public byte GetClosestColor(TPixel color, out TPixel match)
         {
             ReadOnlySpan<TPixel> paletteSpan = this.palette.Span;
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             return this.GetClosestColorSlow(color, paletteSpan, out match);
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private byte GetClosestColorSlow(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
             // Loop through the palette and find the nearest match.
@@ -59,19 +59,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 Vector4 candidate = this.vectorCache[i];
                 float distance = Vector4.DistanceSquared(vector, candidate);
 
-                // Greater... Move on.
-                if (leastDistance < distance)
+                // Less than... assign.
+                if (distance < leastDistance)
                 {
-                    continue;
-                }
+                    index = i;
+                    leastDistance = distance;
 
-                index = i;
-                leastDistance = distance;
-
-                // And if it's an exact match, exit the loop
-                if (distance == 0)
-                {
-                    break;
+                    // And if it's an exact match, exit the loop
+                    if (distance == 0)
+                    {
+                        break;
+                    }
                 }
             }
 

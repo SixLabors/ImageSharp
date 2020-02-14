@@ -2,11 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
@@ -21,20 +18,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// A lookup table for colors
-        /// </summary>
-        private readonly Dictionary<TPixel, byte> distanceCache = new Dictionary<TPixel, byte>();
-
-        /// <summary>
         /// Flag used to indicate whether a single pass or two passes are needed for quantization.
         /// </summary>
         private readonly bool singlePass;
 
-        /// <summary>
-        /// The vector representation of the image palette.
-        /// </summary>
-        private IMemoryOwner<Vector4> paletteVector;
-
+        private EuclideanPixelMap<TPixel> pixelMap;
         private bool isDisposed;
 
         /// <summary>
@@ -55,8 +43,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Guard.NotNull(quantizer, nameof(quantizer));
 
             this.Configuration = configuration;
-            this.Diffuser = quantizer.Diffuser;
-            this.Dither = this.Diffuser != null;
+            this.Dither = quantizer.Dither;
+            this.DoDither = this.Dither != null;
             this.singlePass = singlePass;
         }
 
@@ -73,19 +61,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// only call the <see cref="SecondPass(ImageFrame{TPixel}, Span{byte}, ReadOnlySpan{TPixel},  int, int)"/> method.
         /// If two passes are required, the code will also call <see cref="FirstPass(ImageFrame{TPixel}, int, int)"/>.
         /// </remarks>
-        protected FrameQuantizer(Configuration configuration, IErrorDiffuser diffuser, bool singlePass)
+        protected FrameQuantizer(Configuration configuration, IDither diffuser, bool singlePass)
         {
             this.Configuration = configuration;
-            this.Diffuser = diffuser;
-            this.Dither = this.Diffuser != null;
+            this.Dither = diffuser;
+            this.DoDither = this.Dither != null;
             this.singlePass = singlePass;
         }
 
         /// <inheritdoc />
-        public IErrorDiffuser Diffuser { get; }
+        public IDither Dither { get; }
 
         /// <inheritdoc />
-        public bool Dither { get; }
+        public bool DoDither { get; }
 
         /// <summary>
         /// Gets the configuration which allows altering default behaviour or extending the library.
@@ -119,18 +107,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             // Collect the palette. Required before the second pass runs.
             ReadOnlyMemory<TPixel> palette = this.GetPalette();
             MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
-
-            this.paletteVector = memoryAllocator.Allocate<Vector4>(palette.Length);
-            PixelOperations<TPixel>.Instance.ToVector4(
-                this.Configuration,
-                palette.Span,
-                this.paletteVector.Memory.Span,
-                PixelConversionModifiers.Scale);
+            this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
 
             var quantizedFrame = new QuantizedFrame<TPixel>(memoryAllocator, width, height, palette);
 
             Span<byte> pixelSpan = quantizedFrame.GetWritablePixelSpan();
-            if (this.Dither)
+            if (this.DoDither)
             {
                 // We clone the image as we don't want to alter the original via dithering.
                 using (ImageFrame<TPixel> clone = image.Clone())
@@ -157,13 +139,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 return;
             }
 
-            if (disposing)
-            {
-                this.paletteVector?.Dispose();
-            }
-
-            this.paletteVector = null;
-
             this.isDisposed = true;
         }
 
@@ -178,22 +153,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <summary>
-        /// Returns the closest color from the palette to the given color by calculating the
-        /// Euclidean distance in the Rgba colorspace.
+        /// Returns the index and color from the quantized palette corresponding to the give to the given color.
         /// </summary>
-        /// <param name="pixel">The color.</param>
+        /// <param name="color">The color to match.</param>
+        /// <param name="match">The matched color.</param>
         /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected byte GetClosestPixel(ref TPixel pixel)
-        {
-            // Check if the color is in the lookup table
-            if (this.distanceCache.TryGetValue(pixel, out byte value))
-            {
-                return value;
-            }
-
-            return this.GetClosestPixelSlow(ref pixel);
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        protected virtual byte GetQuantizedColor(TPixel color, out TPixel match)
+            => this.pixelMap.GetClosestColor(color, out match);
 
         /// <summary>
         /// Retrieve the palette for the quantized image.
@@ -204,32 +171,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         protected abstract ReadOnlyMemory<TPixel> GetPalette();
 
         /// <summary>
-        /// Returns the index of the first instance of the transparent color in the palette.
-        /// </summary>
-        /// <returns>The <see cref="int"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected byte GetTransparentIndex()
-        {
-            // Transparent pixels are much more likely to be found at the end of a palette.
-            Span<Vector4> paletteVectorSpan = this.paletteVector.Memory.Span;
-            ref Vector4 paletteVectorSpanBase = ref MemoryMarshal.GetReference(paletteVectorSpan);
-
-            int paletteVectorLengthMinus1 = paletteVectorSpan.Length - 1;
-
-            int index = paletteVectorLengthMinus1;
-            for (int i = paletteVectorLengthMinus1; i >= 0; i--)
-            {
-                ref Vector4 candidate = ref Unsafe.Add(ref paletteVectorSpanBase, i);
-                if (candidate.Equals(default))
-                {
-                    index = i;
-                }
-            }
-
-            return (byte)index;
-        }
-
-        /// <summary>
         /// Execute a second pass through the image to assign the pixels to a palette entry.
         /// </summary>
         /// <param name="source">The source image.</param>
@@ -237,49 +178,66 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="palette">The output color palette.</param>
         /// <param name="width">The width in pixels of the image.</param>
         /// <param name="height">The height in pixels of the image.</param>
-        protected abstract void SecondPass(
+        protected virtual void SecondPass(
             ImageFrame<TPixel> source,
             Span<byte> output,
             ReadOnlySpan<TPixel> palette,
             int width,
-            int height);
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private byte GetClosestPixelSlow(ref TPixel pixel)
+            int height)
         {
-            // Loop through the palette and find the nearest match.
-            int colorIndex = 0;
-            float leastDistance = float.MaxValue;
-            Vector4 vector = pixel.ToScaledVector4();
-            float epsilon = Constants.EpsilonSquared;
-            Span<Vector4> paletteVectorSpan = this.paletteVector.Memory.Span;
-            ref Vector4 paletteVectorSpanBase = ref MemoryMarshal.GetReference(paletteVectorSpan);
+            Rectangle interest = source.Bounds();
+            int bitDepth = ImageMaths.GetBitsNeededForColorDepth(palette.Length);
 
-            for (int index = 0; index < paletteVectorSpan.Length; index++)
+            if (!this.DoDither)
             {
-                ref Vector4 candidate = ref Unsafe.Add(ref paletteVectorSpanBase, index);
-                float distance = Vector4.DistanceSquared(vector, candidate);
-
-                // Greater... Move on.
-                if (!(distance < leastDistance))
+                // TODO: This can be parallel.
+                for (int y = interest.Top; y < interest.Bottom; y++)
                 {
-                    continue;
+                    Span<TPixel> row = source.GetPixelRowSpan(y);
+                    int offset = y * width;
+
+                    for (int x = interest.Left; x < interest.Right; x++)
+                    {
+                        output[offset + x] = this.GetQuantizedColor(row[x], out TPixel _);
+                    }
                 }
 
-                colorIndex = index;
-                leastDistance = distance;
-
-                // And if it's an exact match, exit the loop
-                if (distance < epsilon)
-                {
-                    break;
-                }
+                return;
             }
 
-            // Now I have the index, pop it into the cache for next time
-            byte result = (byte)colorIndex;
-            this.distanceCache.Add(pixel, result);
-            return result;
+            // Error diffusion. The difference between the source and transformed color
+            // is spread to neighboring pixels.
+            if (this.Dither.TransformColorBehavior == DitherTransformColorBehavior.PreOperation)
+            {
+                for (int y = interest.Top; y < interest.Bottom; y++)
+                {
+                    Span<TPixel> row = source.GetPixelRowSpan(y);
+                    int offset = y * width;
+
+                    for (int x = interest.Left; x < interest.Right; x++)
+                    {
+                        TPixel sourcePixel = row[x];
+                        output[offset + x] = this.GetQuantizedColor(sourcePixel, out TPixel transformed);
+                        this.Dither.Dither(source, interest, sourcePixel, transformed, x, y, bitDepth);
+                    }
+                }
+
+                return;
+            }
+
+            // TODO: This can be parallel.
+            // Ordered dithering. We are only operating on a single pixel.
+            for (int y = interest.Top; y < interest.Bottom; y++)
+            {
+                Span<TPixel> row = source.GetPixelRowSpan(y);
+                int offset = y * width;
+
+                for (int x = interest.Left; x < interest.Right; x++)
+                {
+                    TPixel dithered = this.Dither.Dither(source, interest, row[x], default, x, y, bitDepth);
+                    output[offset + x] = this.GetQuantizedColor(dithered, out TPixel _);
+                }
+            }
         }
     }
 }

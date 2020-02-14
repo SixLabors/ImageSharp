@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// Allows the quantization of images pixels using Octrees.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// <para>
-    /// By default the quantizer uses <see cref="KnownDiffusers.FloydSteinberg"/> dithering and a color palette of a maximum length of <value>255</value>
+    /// By default the quantizer uses <see cref="KnownDitherers.FloydSteinberg"/> dithering and a color palette of a maximum length of <value>255</value>
     /// </para>
     /// </summary>
     public class OctreeQuantizer : IQuantizer
@@ -54,8 +54,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
-        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image.</param>
-        public OctreeQuantizer(IErrorDiffuser diffuser)
+        /// <param name="diffuser">The dithering algorithm, if any, to apply to the output image.</param>
+        public OctreeQuantizer(IDither diffuser)
             : this(diffuser, QuantizerConstants.MaxColors)
         {
         }
@@ -63,16 +63,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
-        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image.</param>
+        /// <param name="dither">The dithering algorithm, if any, to apply to the output image.</param>
         /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
-        public OctreeQuantizer(IErrorDiffuser diffuser, int maxColors)
+        public OctreeQuantizer(IDither dither, int maxColors)
         {
-            this.Diffuser = diffuser;
+            this.Dither = dither;
             this.MaxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
         }
 
         /// <inheritdoc />
-        public IErrorDiffuser Diffuser { get; }
+        public IDither Dither { get; }
 
         /// <summary>
         /// Gets the maximum number of colors to hold in the color palette.
@@ -93,6 +93,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             return new OctreeFrameQuantizer<TPixel>(configuration, this, maxColors);
         }
 
-        private static IErrorDiffuser GetDiffuser(bool dither) => dither ? KnownDiffusers.FloydSteinberg : null;
+        private static IDither GetDiffuser(bool dither) => dither ? KnownDitherers.FloydSteinberg : null;
     }
 }

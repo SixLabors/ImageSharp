@@ -7,9 +7,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// Applies error diffusion based dithering using the Stucki image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class StuckiDiffuser : ErrorDiffuser
+    public sealed class StuckiDither : ErrorDither
     {
         private const float Divisor = 42F;
+        private const int Offset = 2;
 
         /// <summary>
         /// The diffusion matrix
@@ -23,10 +24,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="StuckiDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="StuckiDither"/> class.
         /// </summary>
-        public StuckiDiffuser()
-            : base(StuckiMatrix)
+        public StuckiDither()
+            : base(StuckiMatrix, Offset)
         {
         }
     }

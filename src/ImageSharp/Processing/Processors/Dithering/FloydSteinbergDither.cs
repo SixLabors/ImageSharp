@@ -7,9 +7,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// Applies error diffusion based dithering using the Floyd–Steinberg image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class FloydSteinbergDiffuser : ErrorDiffuser
+    public sealed class FloydSteinbergDither : ErrorDither
     {
         private const float Divisor = 16F;
+        private const int Offset = 1;
 
         /// <summary>
         /// The diffusion matrix
@@ -22,10 +23,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FloydSteinbergDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="FloydSteinbergDither"/> class.
         /// </summary>
-        public FloydSteinbergDiffuser()
-            : base(FloydSteinbergMatrix)
+        public FloydSteinbergDither()
+            : base(FloydSteinbergMatrix, Offset)
         {
         }
     }

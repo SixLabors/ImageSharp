@@ -11,8 +11,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 {
     public class BinaryDitherTest : BaseImageOperationsExtensionTest
     {
-        private readonly IOrderedDither orderedDither;
-        private readonly IErrorDiffuser errorDiffuser;
+        private readonly IDither orderedDither;
+        private readonly IDither errorDiffuser;
 
         public BinaryDitherTest()
         {

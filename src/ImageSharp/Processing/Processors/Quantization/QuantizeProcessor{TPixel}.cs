@@ -35,14 +35,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc />
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
+            var interest = Rectangle.Intersect(source.Bounds(), this.SourceRectangle);
+
             Configuration configuration = this.Configuration;
             using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(configuration);
-            using IQuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source);
+            using IQuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source, interest);
 
             var operation = new RowIntervalOperation(this.SourceRectangle, source, quantized);
             ParallelRowIterator.IterateRows(
                 configuration,
-                this.SourceRectangle,
+                interest,
                 in operation);
         }
 
@@ -71,14 +73,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 ReadOnlySpan<byte> quantizedPixelSpan = this.quantized.GetPixelSpan();
                 ReadOnlySpan<TPixel> paletteSpan = this.quantized.Palette.Span;
 
+                int offset = this.bounds.Left;
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<TPixel> row = this.source.GetPixelRowSpan(y);
                     int yy = y * this.bounds.Width;
 
-                    for (int x = this.bounds.X; x < this.bounds.Right; x++)
+                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        int i = x + yy;
+                        int i = yy + x - offset;
                         row[x] = paletteSpan[Math.Min(this.maxPaletteIndex, quantizedPixelSpan[i])];
                     }
                 }

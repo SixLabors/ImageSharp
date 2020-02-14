@@ -27,10 +27,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Quantize an image frame and return the resulting output pixels.
         /// </summary>
-        /// <param name="image">The image to quantize.</param>
+        /// <param name="source">The image to quantize.</param>
+        /// <param name="bounds">The bounds within the source image to quantize.</param>
         /// <returns>
-        /// A <see cref="QuantizedFrame{TPixel}"/> representing a quantized version of the image pixels.
+        /// A <see cref="QuantizedFrame{TPixel}"/> representing a quantized version of the source image pixels.
         /// </returns>
-        IQuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image);
+        IQuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds);
     }
 }

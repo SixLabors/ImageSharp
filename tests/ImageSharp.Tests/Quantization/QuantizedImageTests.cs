@@ -22,15 +22,30 @@ namespace SixLabors.ImageSharp.Tests
             var octree = new OctreeQuantizer();
             var wu = new WuQuantizer();
 
-            Assert.NotNull(werner.Diffuser);
-            Assert.NotNull(webSafe.Diffuser);
-            Assert.NotNull(octree.Diffuser);
-            Assert.NotNull(wu.Diffuser);
+            Assert.NotNull(werner.Dither);
+            Assert.NotNull(webSafe.Dither);
+            Assert.NotNull(octree.Dither);
+            Assert.NotNull(wu.Dither);
 
-            Assert.True(werner.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
-            Assert.True(webSafe.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
-            Assert.True(octree.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
-            Assert.True(wu.CreateFrameQuantizer<Rgba32>(this.Configuration).Dither);
+            using (IFrameQuantizer<Rgba32> quantizer = werner.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            {
+                Assert.True(quantizer.DoDither);
+            }
+
+            using (IFrameQuantizer<Rgba32> quantizer = webSafe.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            {
+                Assert.True(quantizer.DoDither);
+            }
+
+            using (IFrameQuantizer<Rgba32> quantizer = octree.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            {
+                Assert.True(quantizer.DoDither);
+            }
+
+            using (IFrameQuantizer<Rgba32> quantizer = wu.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            {
+                Assert.True(quantizer.DoDither);
+            }
         }
 
         [Theory]
@@ -49,11 +64,12 @@ namespace SixLabors.ImageSharp.Tests
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    IQuantizedFrame<TPixel> quantized =
-                        quantizer.CreateFrameQuantizer<TPixel>(this.Configuration).QuantizeFrame(frame);
-
-                    int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.GetPixelSpan()[0]);
+                    using (IFrameQuantizer<TPixel> frameQuantizer = quantizer.CreateFrameQuantizer<TPixel>(this.Configuration))
+                    using (IQuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
+                    {
+                        int index = this.GetTransparentIndex(quantized);
+                        Assert.Equal(index, quantized.GetPixelSpan()[0]);
+                    }
                 }
             }
         }
@@ -72,11 +88,12 @@ namespace SixLabors.ImageSharp.Tests
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    IQuantizedFrame<TPixel> quantized =
-                        quantizer.CreateFrameQuantizer<TPixel>(this.Configuration).QuantizeFrame(frame);
-
-                    int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.GetPixelSpan()[0]);
+                    using (IFrameQuantizer<TPixel> frameQuantizer = quantizer.CreateFrameQuantizer<TPixel>(this.Configuration))
+                    using (IQuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
+                    {
+                        int index = this.GetTransparentIndex(quantized);
+                        Assert.Equal(index, quantized.GetPixelSpan()[0]);
+                    }
                 }
             }
         }

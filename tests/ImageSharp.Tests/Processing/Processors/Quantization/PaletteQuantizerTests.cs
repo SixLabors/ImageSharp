@@ -18,15 +18,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
             var quantizer = new PaletteQuantizer(Rgb);
 
             Assert.Equal(Rgb, quantizer.Palette);
-            Assert.Equal(KnownDiffusers.FloydSteinberg, quantizer.Diffuser);
+            Assert.Equal(KnownDitherers.FloydSteinberg, quantizer.Dither);
 
             quantizer = new PaletteQuantizer(Rgb, false);
             Assert.Equal(Rgb, quantizer.Palette);
-            Assert.Null(quantizer.Diffuser);
+            Assert.Null(quantizer.Dither);
 
-            quantizer = new PaletteQuantizer(Rgb, KnownDiffusers.Atkinson);
+            quantizer = new PaletteQuantizer(Rgb, KnownDitherers.Atkinson);
             Assert.Equal(Rgb, quantizer.Palette);
-            Assert.Equal(KnownDiffusers.Atkinson, quantizer.Diffuser);
+            Assert.Equal(KnownDitherers.Atkinson, quantizer.Dither);
         }
 
         [Fact]
@@ -36,35 +36,35 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
             IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
 
             Assert.NotNull(frameQuantizer);
-            Assert.True(frameQuantizer.Dither);
-            Assert.Equal(KnownDiffusers.FloydSteinberg, frameQuantizer.Dither);
+            Assert.True(frameQuantizer.DoDither);
+            Assert.Equal(KnownDitherers.FloydSteinberg, frameQuantizer.Dither);
 
             quantizer = new PaletteQuantizer(Rgb, false);
             frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
 
             Assert.NotNull(frameQuantizer);
-            Assert.False(frameQuantizer.Dither);
+            Assert.False(frameQuantizer.DoDither);
             Assert.Null(frameQuantizer.Dither);
 
-            quantizer = new PaletteQuantizer(Rgb, KnownDiffusers.Atkinson);
+            quantizer = new PaletteQuantizer(Rgb, KnownDitherers.Atkinson);
             frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
             Assert.NotNull(frameQuantizer);
-            Assert.True(frameQuantizer.Dither);
-            Assert.Equal(KnownDiffusers.Atkinson, frameQuantizer.Dither);
+            Assert.True(frameQuantizer.DoDither);
+            Assert.Equal(KnownDitherers.Atkinson, frameQuantizer.Dither);
         }
 
         [Fact]
         public void KnownQuantizersWebSafeTests()
         {
             IQuantizer quantizer = KnownQuantizers.WebSafe;
-            Assert.Equal(KnownDiffusers.FloydSteinberg, quantizer.Diffuser);
+            Assert.Equal(KnownDitherers.FloydSteinberg, quantizer.Dither);
         }
 
         [Fact]
         public void KnownQuantizersWernerTests()
         {
             IQuantizer quantizer = KnownQuantizers.Werner;
-            Assert.Equal(KnownDiffusers.FloydSteinberg, quantizer.Diffuser);
+            Assert.Equal(KnownDitherers.FloydSteinberg, quantizer.Dither);
         }
     }
 }

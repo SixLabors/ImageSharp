@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
             // Error diffusion. The difference between the source and transformed color
             // is spread to neighboring pixels.
-            if (this.dither.TransformColorBehavior == DitherTransformColorBehavior.PreOperation)
+            if (this.dither.DitherType == DitherType.ErrorDiffusion)
             {
                 for (int y = interest.Top; y < interest.Bottom; y++)
                 {

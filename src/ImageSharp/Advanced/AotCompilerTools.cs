@@ -124,7 +124,8 @@ namespace SixLabors.ImageSharp.Advanced
         {
             using (var test = new WuFrameQuantizer<TPixel>(Configuration.Default, new WuQuantizer(false)))
             {
-                test.QuantizeFrame(new ImageFrame<TPixel>(Configuration.Default, 1, 1));
+                var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
+                test.QuantizeFrame(frame, frame.Bounds());
                 test.AotGetPalette();
             }
         }

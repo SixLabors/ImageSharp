@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -53,11 +52,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly Complex64[][] kernels;
 
         /// <summary>
-        /// The scaling factor for kernel values
-        /// </summary>
-        private readonly float kernelsScale;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="BokehBlurProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
@@ -76,7 +70,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             BokehBlurKernelData data = BokehBlurKernelDataProvider.GetBokehBlurKernelData(this.radius, this.kernelSize, this.componentsCount);
 
             this.kernelParameters = data.Parameters;
-            this.kernelsScale = data.Scale;
             this.kernels = data.Kernels;
         }
 

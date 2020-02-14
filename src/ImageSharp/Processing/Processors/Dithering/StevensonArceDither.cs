@@ -6,9 +6,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// <summary>
     /// Applies error diffusion based dithering using the Stevenson-Arce image dithering algorithm.
     /// </summary>
-    public sealed class StevensonArceDiffuser : ErrorDiffuser
+    public sealed class StevensonArceDither : ErrorDither
     {
         private const float Divisor = 200F;
+        private const int Offset = 3;
 
         /// <summary>
         /// The diffusion matrix
@@ -23,10 +24,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="StevensonArceDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="StevensonArceDither"/> class.
         /// </summary>
-        public StevensonArceDiffuser()
-            : base(StevensonArceMatrix)
+        public StevensonArceDither()
+            : base(StevensonArceMatrix, Offset)
         {
         }
     }

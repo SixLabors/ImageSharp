@@ -20,8 +20,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             }
         }
 
-        private readonly IOrderedDither orderedDither;
-        private readonly IErrorDiffuser errorDiffuser;
+        private readonly IDither orderedDither;
+        private readonly IDither errorDiffuser;
         private readonly Color[] testPalette =
         {
             Color.Red,

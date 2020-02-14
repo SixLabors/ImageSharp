@@ -7,9 +7,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// Applies error diffusion based dithering using the JarvisJudiceNinke image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class JarvisJudiceNinkeDiffuser : ErrorDiffuser
+    public sealed class JarvisJudiceNinkeDither : ErrorDither
     {
         private const float Divisor = 48F;
+        private const int Offset = 2;
 
         /// <summary>
         /// The diffusion matrix
@@ -23,10 +24,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="JarvisJudiceNinkeDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="JarvisJudiceNinkeDither"/> class.
         /// </summary>
-        public JarvisJudiceNinkeDiffuser()
-            : base(JarvisJudiceNinkeMatrix)
+        public JarvisJudiceNinkeDither()
+            : base(JarvisJudiceNinkeMatrix, Offset)
         {
         }
     }

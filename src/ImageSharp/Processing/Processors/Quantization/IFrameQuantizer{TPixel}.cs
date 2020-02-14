@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -17,12 +17,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Gets a value indicating whether to apply dithering to the output image.
         /// </summary>
-        bool Dither { get; }
+        bool DoDither { get; }
 
         /// <summary>
-        /// Gets the error diffusion algorithm to apply to the output image.
+        /// Gets the  algorithm to apply to the output image.
         /// </summary>
-        IErrorDiffuser Diffuser { get; }
+        IDither Dither { get; }
 
         /// <summary>
         /// Quantize an image frame and return the resulting output pixels.

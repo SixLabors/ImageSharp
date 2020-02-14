@@ -136,11 +136,11 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileDithering<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            var test = new FloydSteinbergDiffuser();
+            var test = new FloydSteinbergDither();
             TPixel pixel = default;
             using (var image = new ImageFrame<TPixel>(Configuration.Default, 1, 1))
             {
-                test.Dither(image, pixel, pixel, 0, 0, 0, 0, 0);
+                test.Dither(image, default, pixel, pixel, 0, 0, 0);
             }
         }
 

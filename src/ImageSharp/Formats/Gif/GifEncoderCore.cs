@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 else
                 {
                     using (IFrameQuantizer<TPixel> paletteFrameQuantizer =
-                        new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Diffuser, quantized.Palette))
+                        new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Dither, quantized.Palette))
                     {
                         using (IQuantizedFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame))
                         {

@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Initializes a new instance of the <see cref="WebSafePaletteQuantizer" /> class.
         /// </summary>
         /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
-        public WebSafePaletteQuantizer(IErrorDiffuser diffuser)
+        public WebSafePaletteQuantizer(IDither diffuser)
             : base(Color.WebSafePalette, diffuser)
         {
         }

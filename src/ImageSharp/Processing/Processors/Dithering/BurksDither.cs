@@ -7,9 +7,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// Applies error diffusion based dithering using the Burks image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class BurksDiffuser : ErrorDiffuser
+    public sealed class BurksDither : ErrorDither
     {
         private const float Divisor = 32F;
+        private const int Offset = 2;
 
         /// <summary>
         /// The diffusion matrix
@@ -22,10 +23,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BurksDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="BurksDither"/> class.
         /// </summary>
-        public BurksDiffuser()
-            : base(BurksMatrix)
+        public BurksDither()
+            : base(BurksMatrix, Offset)
         {
         }
     }

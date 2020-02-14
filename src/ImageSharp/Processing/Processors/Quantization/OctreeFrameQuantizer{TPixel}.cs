@@ -29,10 +29,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         private readonly Octree octree;
 
-        /// <summary>
-        /// The transparent index
-        /// </summary>
-        private byte transparentIndex;
+        private TPixel[] palette;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeFrameQuantizer{TPixel}"/> class.
@@ -86,92 +83,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc/>
-        protected override void SecondPass(
-            ImageFrame<TPixel> source,
-            Span<byte> output,
-            ReadOnlySpan<TPixel> palette,
-            int width,
-            int height)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        protected override byte GetQuantizedColor(TPixel color, out TPixel match)
         {
-            // Load up the values for the first pixel. We can use these to speed up the second
-            // pass of the algorithm by avoiding transforming rows of identical color.
-            TPixel sourcePixel = source[0, 0];
-            TPixel previousPixel = sourcePixel;
-            this.transparentIndex = this.GetTransparentIndex();
-            byte pixelValue = this.QuantizePixel(ref sourcePixel);
-            TPixel transformedPixel = palette[pixelValue];
-
-            for (int y = 0; y < height; y++)
+            if (!this.DoDither)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-
-                // And loop through each column
-                for (int x = 0; x < width; x++)
-                {
-                    // Get the pixel.
-                    sourcePixel = row[x];
-
-                    // Check if this is the same as the last pixel. If so use that value
-                    // rather than calculating it again. This is an inexpensive optimization.
-                    if (!previousPixel.Equals(sourcePixel))
-                    {
-                        // Quantize the pixel
-                        pixelValue = this.QuantizePixel(ref sourcePixel);
-
-                        // And setup the previous pointer
-                        previousPixel = sourcePixel;
-
-                        if (this.Dither)
-                        {
-                            transformedPixel = palette[pixelValue];
-                        }
-                    }
-
-                    if (this.Dither)
-                    {
-                        // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.Diffuser.Dither(source, sourcePixel, transformedPixel, x, y, 0, width, height);
-                    }
-
-                    output[(y * source.Width) + x] = pixelValue;
-                }
+                var index = (byte)this.octree.GetPaletteIndex(ref color);
+                match = this.GetPalette().Span[index];
+                return index;
             }
+
+            return base.GetQuantizedColor(color, out match);
         }
 
         internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GetPalette();
 
         /// <inheritdoc/>
-        protected override ReadOnlyMemory<TPixel> GetPalette() => this.octree.Palletize(this.colors);
-
-        /// <summary>
-        /// Process the pixel in the second pass of the algorithm.
-        /// </summary>
-        /// <param name="pixel">The pixel to quantize.</param>
-        /// <returns>The <see cref="byte"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(ref TPixel pixel)
-        {
-            if (this.Dither)
-            {
-                // The colors have changed so we need to use Euclidean distance calculation to
-                // find the closest value.
-                return this.GetClosestPixel(ref pixel);
-            }
-
-            Rgba32 rgba = default;
-            pixel.ToRgba32(ref rgba);
-            if (rgba.Equals(default))
-            {
-                return this.transparentIndex;
-            }
-
-            return (byte)this.octree.GetPaletteIndex(ref pixel);
-        }
+        [MethodImpl(InliningOptions.ShortMethod)]
+        protected override ReadOnlyMemory<TPixel> GetPalette()
+            => this.palette ?? (this.palette = this.octree.Palletize(this.colors));
 
         /// <summary>
         /// Class which does the actual quantization
         /// </summary>
-        private class Octree
+        private sealed class Octree
         {
             /// <summary>
             /// Mask used when getting the appropriate pixels for a given node
@@ -220,10 +155,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             /// </summary>
             public int Leaves
             {
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                [MethodImpl(InliningOptions.ShortMethod)]
                 get;
 
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                [MethodImpl(InliningOptions.ShortMethod)]
                 set;
             }
 
@@ -232,7 +167,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             /// </summary>
             private OctreeNode[] ReducibleNodes
             {
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                [MethodImpl(InliningOptions.ShortMethod)]
                 get;
             }
 
@@ -272,7 +207,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             /// <returns>
             /// An <see cref="List{TPixel}"/> with the palletized colors
             /// </returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(InliningOptions.ShortMethod)]
             public TPixel[] Palletize(int colorCount)
             {
                 while (this.Leaves > colorCount - 1)
@@ -297,7 +232,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             /// <returns>
             /// The <see cref="int"/>.
             /// </returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(InliningOptions.ShortMethod)]
             public int GetPaletteIndex(ref TPixel pixel) => this.root.GetPaletteIndex(ref pixel, 0);
 
             /// <summary>
@@ -306,8 +241,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             /// <param name="node">
             /// The node last quantized
             /// </param>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            protected void TrackPrevious(OctreeNode node) => this.previousNode = node;
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void TrackPrevious(OctreeNode node) => this.previousNode = node;
 
             /// <summary>
             /// Reduce the depth of the tree
@@ -336,7 +271,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             /// <summary>
             /// Class which encapsulates each node in the tree
             /// </summary>
-            protected class OctreeNode
+            public sealed class OctreeNode
             {
                 /// <summary>
                 /// Pointers to any child nodes
@@ -414,7 +349,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 /// </summary>
                 public OctreeNode NextReducible
                 {
-                    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                    [MethodImpl(InliningOptions.ShortMethod)]
                     get;
                 }
 
@@ -530,6 +465,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 [MethodImpl(MethodImplOptions.NoInlining)]
                 public int GetPaletteIndex(ref TPixel pixel, int level)
                 {
+                    // TODO: pass index around so we can do this in parallel.
                     int index = this.paletteIndex;
 
                     if (!this.leaf)
@@ -549,6 +485,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                         }
                         else
                         {
+                            // TODO: Throw helper.
                             throw new Exception($"Cannot retrieve a pixel at the given index {pixelIndex}.");
                         }
                     }
@@ -560,7 +497,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 /// Increment the pixel count and add to the color information
                 /// </summary>
                 /// <param name="pixel">The pixel to add.</param>
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                [MethodImpl(InliningOptions.ShortMethod)]
                 public void Increment(ref TPixel pixel)
                 {
                     Rgba32 rgba = default;

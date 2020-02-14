@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
         {
             using (var image = new Image<Rgba32>(Configuration.Default, 800, 800, Color.BlanchedAlmond))
             {
-                image.Mutate(x => x.Diffuse());
+                image.Mutate(x => x.Dither());
 
                 return image.Size();
             }

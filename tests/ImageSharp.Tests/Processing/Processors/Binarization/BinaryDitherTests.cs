@@ -28,22 +28,22 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         public static readonly TheoryData<string, IDither> ErrorDiffusers = new TheoryData<string, IDither>
         {
-            { "Atkinson", KnownDiffusers.Atkinson },
-            { "Burks", KnownDiffusers.Burks },
-            { "FloydSteinberg", KnownDiffusers.FloydSteinberg },
-            { "JarvisJudiceNinke", KnownDiffusers.JarvisJudiceNinke },
-            { "Sierra2", KnownDiffusers.Sierra2 },
-            { "Sierra3", KnownDiffusers.Sierra3 },
-            { "SierraLite", KnownDiffusers.SierraLite },
-            { "StevensonArce", KnownDiffusers.StevensonArce },
-            { "Stucki", KnownDiffusers.Stucki },
+            { "Atkinson", KnownDitherers.Atkinson },
+            { "Burks", KnownDitherers.Burks },
+            { "FloydSteinberg", KnownDitherers.FloydSteinberg },
+            { "JarvisJudiceNinke", KnownDitherers.JarvisJudiceNinke },
+            { "Sierra2", KnownDitherers.Sierra2 },
+            { "Sierra3", KnownDitherers.Sierra3 },
+            { "SierraLite", KnownDitherers.SierraLite },
+            { "StevensonArce", KnownDitherers.StevensonArce },
+            { "Stucki", KnownDitherers.Stucki },
         };
 
         public const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24;
 
         private static IDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 
-        private static IDither DefaultErrorDiffuser => KnownDiffusers.Atkinson;
+        private static IDither DefaultErrorDiffuser => KnownDitherers.Atkinson;
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), PixelTypes.Rgba32)]
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.BinaryDiffuse(diffuser, .5F));
+                image.Mutate(x => x.BinaryDither(diffuser));
                 image.DebugSave(provider, name);
             }
         }
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.BinaryDiffuse(DefaultErrorDiffuser, 0.5f));
+                image.Mutate(x => x.BinaryDither(DefaultErrorDiffuser));
                 image.DebugSave(provider);
             }
         }
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.BinaryDiffuse(DefaultErrorDiffuser, .5F, bounds));
+                image.Mutate(x => x.BinaryDither(DefaultErrorDiffuser, bounds));
                 image.DebugSave(provider);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);

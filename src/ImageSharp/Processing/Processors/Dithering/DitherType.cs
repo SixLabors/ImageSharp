@@ -6,16 +6,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// <summary>
     /// Enumerates the possible dithering algorithm transform behaviors.
     /// </summary>
-    public enum DitherTransformColorBehavior
+    public enum DitherType
     {
         /// <summary>
-        /// The transformed color should be precalulated and passed to the dithering algorithm.
+        /// Error diffusion. Spreads the difference between source and quanized color values as distributed error.
         /// </summary>
-        PreOperation,
+        ErrorDiffusion,
 
         /// <summary>
-        /// The transformed color should be calculated as a result of the dithering algorithm.
+        /// Ordered dithering. Applies thresholding matrices agains the source to determine the quantized color.
         /// </summary>
-        PostOperation
+        OrderedDither
     }
 }

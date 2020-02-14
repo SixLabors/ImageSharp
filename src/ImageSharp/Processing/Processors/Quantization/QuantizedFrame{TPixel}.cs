@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// Represents a quantized image frame where the pixels indexed by a color palette.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public class QuantizedFrame<TPixel> : IQuantizedFrame<TPixel>
+    public sealed class QuantizedFrame<TPixel> : IQuantizedFrame<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private IMemoryOwner<byte> pixels;
@@ -67,8 +67,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <summary>
-        /// Get the non-readonly span of pixel data so <see cref="FrameQuantizer{TPixel}"/> can fill it.
+        /// Get the non-readonly memory of pixel data so <see cref="FrameQuantizer{TPixel}"/> can fill it.
         /// </summary>
-        internal Span<byte> GetWritablePixelSpan() => this.pixels.GetSpan();
+        internal Memory<byte> GetWritablePixelMemory() => this.pixels.Memory;
     }
 }

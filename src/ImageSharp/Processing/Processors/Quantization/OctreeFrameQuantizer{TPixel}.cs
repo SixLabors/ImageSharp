@@ -29,6 +29,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         private readonly Octree octree;
 
+        /// <summary>
+        /// The reduced image palette
+        /// </summary>
         private TPixel[] palette;
 
         /// <summary>
@@ -63,18 +66,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc/>
-        protected override void FirstPass(ImageFrame<TPixel> source, int width, int height)
+        protected override void FirstPass(ImageFrame<TPixel> source, Rectangle bounds)
         {
             // Loop through each row
-            for (int y = 0; y < height; y++)
+            int offset = bounds.Left;
+            for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
                 Span<TPixel> row = source.GetPixelRowSpan(y);
                 ref TPixel scanBaseRef = ref MemoryMarshal.GetReference(row);
 
                 // And loop through each column
-                for (int x = 0; x < width; x++)
+                for (int x = bounds.Left; x < bounds.Right; x++)
                 {
-                    ref TPixel pixel = ref Unsafe.Add(ref scanBaseRef, x);
+                    ref TPixel pixel = ref Unsafe.Add(ref scanBaseRef, x - offset);
 
                     // Add the color to the Octree
                     this.octree.AddColor(ref pixel);
@@ -84,23 +88,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        protected override byte GetQuantizedColor(TPixel color, out TPixel match)
+        protected override byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
             if (!this.DoDither)
             {
                 var index = (byte)this.octree.GetPaletteIndex(ref color);
-                match = this.GetPalette().Span[index];
+                match = palette[index];
                 return index;
             }
 
-            return base.GetQuantizedColor(color, out match);
+            return base.GetQuantizedColor(color, palette, out match);
         }
 
-        internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GetPalette();
+        internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GenerateQuantizedPalette();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        protected override ReadOnlyMemory<TPixel> GetPalette()
+        protected override ReadOnlyMemory<TPixel> GenerateQuantizedPalette()
             => this.palette ?? (this.palette = this.octree.Palletize(this.colors));
 
         /// <summary>
@@ -430,7 +434,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 /// </summary>
                 /// <param name="palette">The palette</param>
                 /// <param name="index">The current palette index</param>
-                [MethodImpl(MethodImplOptions.NoInlining)]
+                [MethodImpl(InliningOptions.ColdPath)]
                 public void ConstructPalette(TPixel[] palette, ref int index)
                 {
                     if (this.leaf)
@@ -462,10 +466,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 /// <returns>
                 /// The <see cref="int"/> representing the index of the pixel in the palette.
                 /// </returns>
-                [MethodImpl(MethodImplOptions.NoInlining)]
+                [MethodImpl(InliningOptions.ColdPath)]
                 public int GetPaletteIndex(ref TPixel pixel, int level)
                 {
-                    // TODO: pass index around so we can do this in parallel.
                     int index = this.paletteIndex;
 
                     if (!this.leaf)

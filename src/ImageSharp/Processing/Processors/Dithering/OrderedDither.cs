@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             float m2 = length * length;
             for (int y = 0; y < length; y++)
             {
-                for (int x = 0; x < length; y++)
+                for (int x = 0; x < length; x++)
                 {
                     thresholdMatrix[y, x] = ((ditherMatrix[y, x] + 1) / m2) - .5F;
                 }
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         }
 
         /// <inheritdoc/>
-        public DitherTransformColorBehavior TransformColorBehavior { get; } = DitherTransformColorBehavior.PostOperation;
+        public DitherType DitherType { get; } = DitherType.OrderedDither;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

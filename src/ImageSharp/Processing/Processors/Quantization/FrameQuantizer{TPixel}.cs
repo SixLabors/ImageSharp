@@ -29,14 +29,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Initializes a new instance of the <see cref="FrameQuantizer{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="quantizer">The quantizer</param>
+        /// <param name="quantizer">The quantizer.</param>
         /// <param name="singlePass">
-        /// If true, the quantization process only needs to loop through the source pixels once
+        /// If true, the quantization process only needs to loop through the source pixels once.
         /// </param>
         /// <remarks>
         /// If you construct this class with a <value>true</value> for <paramref name="singlePass"/>, then the code will
-        /// only call the <see cref="SecondPass(ImageFrame{TPixel}, Span{byte}, ReadOnlySpan{TPixel},  int, int)"/> method.
-        /// If two passes are required, the code will also call <see cref="FirstPass(ImageFrame{TPixel}, int, int)"/>.
+        /// only call the <see cref="SecondPass(ImageFrame{TPixel}, Rectangle, Memory{byte}, ReadOnlyMemory{TPixel})"/> method.
+        /// If two passes are required, the code will also call <see cref="FirstPass(ImageFrame{TPixel}, Rectangle)"/>.
         /// </remarks>
         protected FrameQuantizer(Configuration configuration, IQuantizer quantizer, bool singlePass)
         {
@@ -58,8 +58,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </param>
         /// <remarks>
         /// If you construct this class with a <value>true</value> for <paramref name="singlePass"/>, then the code will
-        /// only call the <see cref="SecondPass(ImageFrame{TPixel}, Span{byte}, ReadOnlySpan{TPixel},  int, int)"/> method.
-        /// If two passes are required, the code will also call <see cref="FirstPass(ImageFrame{TPixel}, int, int)"/>.
+        /// only call the <see cref="SecondPass(ImageFrame{TPixel}, Rectangle, Memory{byte}, ReadOnlyMemory{TPixel})"/> method.
+        /// If two passes are required, the code will also call <see cref="FirstPass(ImageFrame{TPixel}, Rectangle)"/>.
         /// </remarks>
         protected FrameQuantizer(Configuration configuration, IDither diffuser, bool singlePass)
         {
@@ -88,41 +88,38 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc/>
-        public IQuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image)
+        public IQuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image, Rectangle bounds)
         {
             Guard.NotNull(image, nameof(image));
-
-            // Get the size of the source image
-            int height = image.Height;
-            int width = image.Width;
+            var interest = Rectangle.Intersect(image.Bounds(), bounds);
 
             // Call the FirstPass function if not a single pass algorithm.
             // For something like an Octree quantizer, this will run through
             // all image pixels, build a data structure, and create a palette.
             if (!this.singlePass)
             {
-                this.FirstPass(image, width, height);
+                this.FirstPass(image, interest);
             }
 
             // Collect the palette. Required before the second pass runs.
-            ReadOnlyMemory<TPixel> palette = this.GetPalette();
+            ReadOnlyMemory<TPixel> palette = this.GenerateQuantizedPalette();
             MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
             this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
 
-            var quantizedFrame = new QuantizedFrame<TPixel>(memoryAllocator, width, height, palette);
+            var quantizedFrame = new QuantizedFrame<TPixel>(memoryAllocator, interest.Width, interest.Height, palette);
 
-            Span<byte> pixelSpan = quantizedFrame.GetWritablePixelSpan();
+            Memory<byte> output = quantizedFrame.GetWritablePixelMemory();
             if (this.DoDither)
             {
-                // We clone the image as we don't want to alter the original via dithering.
+                // We clone the image as we don't want to alter the original via error diffusion based dithering.
                 using (ImageFrame<TPixel> clone = image.Clone())
                 {
-                    this.SecondPass(clone, pixelSpan, palette.Span, width, height);
+                    this.SecondPass(clone, interest, output, palette);
                 }
             }
             else
             {
-                this.SecondPass(image, pixelSpan, palette.Span, width, height);
+                this.SecondPass(image, interest, output, palette);
             }
 
             return quantizedFrame;
@@ -146,9 +143,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Execute the first pass through the pixels in the image to create the palette.
         /// </summary>
         /// <param name="source">The source data.</param>
-        /// <param name="width">The width in pixels of the image.</param>
-        /// <param name="height">The height in pixels of the image.</param>
-        protected virtual void FirstPass(ImageFrame<TPixel> source, int width, int height)
+        /// <param name="bounds">The bounds within the source image to quantize.</param>
+        protected virtual void FirstPass(ImageFrame<TPixel> source, Rectangle bounds)
         {
         }
 
@@ -156,86 +152,169 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Returns the index and color from the quantized palette corresponding to the give to the given color.
         /// </summary>
         /// <param name="color">The color to match.</param>
+        /// <param name="palette">The output color palette.</param>
         /// <param name="match">The matched color.</param>
-        /// <returns>The <see cref="int"/></returns>
+        /// <returns>The <see cref="byte"/> index.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        protected virtual byte GetQuantizedColor(TPixel color, out TPixel match)
+        protected virtual byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
             => this.pixelMap.GetClosestColor(color, out match);
 
         /// <summary>
-        /// Retrieve the palette for the quantized image.
+        /// Generates the palette for the quantized image.
         /// </summary>
         /// <returns>
         /// <see cref="ReadOnlyMemory{TPixel}"/>
         /// </returns>
-        protected abstract ReadOnlyMemory<TPixel> GetPalette();
+        protected abstract ReadOnlyMemory<TPixel> GenerateQuantizedPalette();
 
         /// <summary>
         /// Execute a second pass through the image to assign the pixels to a palette entry.
         /// </summary>
         /// <param name="source">The source image.</param>
+        /// <param name="bounds">The bounds within the source image to quantize.</param>
         /// <param name="output">The output pixel array.</param>
         /// <param name="palette">The output color palette.</param>
-        /// <param name="width">The width in pixels of the image.</param>
-        /// <param name="height">The height in pixels of the image.</param>
         protected virtual void SecondPass(
             ImageFrame<TPixel> source,
-            Span<byte> output,
-            ReadOnlySpan<TPixel> palette,
-            int width,
-            int height)
+            Rectangle bounds,
+            Memory<byte> output,
+            ReadOnlyMemory<TPixel> palette)
         {
-            Rectangle interest = source.Bounds();
-            int bitDepth = ImageMaths.GetBitsNeededForColorDepth(palette.Length);
-
+            ReadOnlySpan<TPixel> paletteSpan = palette.Span;
             if (!this.DoDither)
             {
-                // TODO: This can be parallel.
-                for (int y = interest.Top; y < interest.Bottom; y++)
-                {
-                    Span<TPixel> row = source.GetPixelRowSpan(y);
-                    int offset = y * width;
-
-                    for (int x = interest.Left; x < interest.Right; x++)
-                    {
-                        output[offset + x] = this.GetQuantizedColor(row[x], out TPixel _);
-                    }
-                }
+                var operation = new RowIntervalOperation(source, output, bounds, this, palette);
+                ParallelRowIterator.IterateRows(
+                    this.Configuration,
+                    bounds,
+                    in operation);
 
                 return;
             }
 
-            // Error diffusion. The difference between the source and transformed color
-            // is spread to neighboring pixels.
-            if (this.Dither.TransformColorBehavior == DitherTransformColorBehavior.PreOperation)
+            // Error diffusion.
+            // The difference between the source and transformed color is spread to neighboring pixels.
+            // TODO: Investigate parallel strategy.
+            Span<byte> outputSpan = output.Span;
+
+            int bitDepth = ImageMaths.GetBitsNeededForColorDepth(paletteSpan.Length);
+            if (this.Dither.DitherType == DitherType.ErrorDiffusion)
             {
-                for (int y = interest.Top; y < interest.Bottom; y++)
+                int width = bounds.Width;
+                int offsetX = bounds.Left;
+                for (int y = bounds.Top; y < bounds.Bottom; y++)
                 {
                     Span<TPixel> row = source.GetPixelRowSpan(y);
                     int offset = y * width;
 
-                    for (int x = interest.Left; x < interest.Right; x++)
+                    for (int x = bounds.Left; x < bounds.Right; x++)
                     {
                         TPixel sourcePixel = row[x];
-                        output[offset + x] = this.GetQuantizedColor(sourcePixel, out TPixel transformed);
-                        this.Dither.Dither(source, interest, sourcePixel, transformed, x, y, bitDepth);
+                        outputSpan[offset + x - offsetX] = this.GetQuantizedColor(sourcePixel, paletteSpan, out TPixel transformed);
+                        this.Dither.Dither(source, bounds, sourcePixel, transformed, x, y, bitDepth);
                     }
                 }
 
                 return;
             }
 
-            // TODO: This can be parallel.
-            // Ordered dithering. We are only operating on a single pixel.
-            for (int y = interest.Top; y < interest.Bottom; y++)
-            {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                int offset = y * width;
+            // Ordered dithering. We are only operating on a single pixel so we can work in parallel.
+            var ditherOperation = new DitherRowIntervalOperation(source, output, bounds, this, palette, bitDepth);
+            ParallelRowIterator.IterateRows(
+                this.Configuration,
+                bounds,
+                in ditherOperation);
+        }
 
-                for (int x = interest.Left; x < interest.Right; x++)
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        {
+            private readonly ImageFrame<TPixel> source;
+            private readonly Memory<byte> output;
+            private readonly Rectangle bounds;
+            private readonly FrameQuantizer<TPixel> quantizer;
+            private readonly ReadOnlyMemory<TPixel> palette;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalOperation(
+                ImageFrame<TPixel> source,
+                Memory<byte> output,
+                Rectangle bounds,
+                FrameQuantizer<TPixel> quantizer,
+                ReadOnlyMemory<TPixel> palette)
+            {
+                this.source = source;
+                this.output = output;
+                this.bounds = bounds;
+                this.quantizer = quantizer;
+                this.palette = palette;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                ReadOnlySpan<TPixel> paletteSpan = this.palette.Span;
+                Span<byte> outputSpan = this.output.Span;
+                int width = this.bounds.Width;
+                int offsetX = this.bounds.Left;
+
+                for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    TPixel dithered = this.Dither.Dither(source, interest, row[x], default, x, y, bitDepth);
-                    output[offset + x] = this.GetQuantizedColor(dithered, out TPixel _);
+                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
+                    int offset = y * width;
+
+                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
+                    {
+                        outputSpan[offset + x - offsetX] = this.quantizer.GetQuantizedColor(row[x], paletteSpan, out TPixel _);
+                    }
+                }
+            }
+        }
+
+        private readonly struct DitherRowIntervalOperation : IRowIntervalOperation
+        {
+            private readonly ImageFrame<TPixel> source;
+            private readonly Memory<byte> output;
+            private readonly Rectangle bounds;
+            private readonly FrameQuantizer<TPixel> quantizer;
+            private readonly ReadOnlyMemory<TPixel> palette;
+            private readonly int bitDepth;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public DitherRowIntervalOperation(
+                ImageFrame<TPixel> source,
+                Memory<byte> output,
+                Rectangle bounds,
+                FrameQuantizer<TPixel> quantizer,
+                ReadOnlyMemory<TPixel> palette,
+                int bitDepth)
+            {
+                this.source = source;
+                this.output = output;
+                this.bounds = bounds;
+                this.quantizer = quantizer;
+                this.palette = palette;
+                this.bitDepth = bitDepth;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                ReadOnlySpan<TPixel> paletteSpan = this.palette.Span;
+                Span<byte> outputSpan = this.output.Span;
+                int width = this.bounds.Width;
+                IDither dither = this.quantizer.Dither;
+                TPixel transformed = default;
+                int offsetX = this.bounds.Left;
+
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
+                    int offset = y * width;
+                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
+                    {
+                        TPixel dithered = dither.Dither(this.source, this.bounds, row[x], transformed, x, y, this.bitDepth);
+                        outputSpan[offset + x - offsetX] = this.quantizer.GetQuantizedColor(dithered, paletteSpan, out TPixel _);
+                    }
                 }
             }
         }

@@ -20,15 +20,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public static readonly TheoryData<IDither> ErrorDiffusers
             = new TheoryData<IDither>
             {
-                KnownDiffusers.Atkinson,
-                KnownDiffusers.Burks,
-                KnownDiffusers.FloydSteinberg,
-                KnownDiffusers.JarvisJudiceNinke,
-                KnownDiffusers.Sierra2,
-                KnownDiffusers.Sierra3,
-                KnownDiffusers.SierraLite,
-                KnownDiffusers.StevensonArce,
-                KnownDiffusers.Stucki,
+                KnownDitherers.Atkinson,
+                KnownDitherers.Burks,
+                KnownDitherers.FloydSteinberg,
+                KnownDitherers.JarvisJudiceNinke,
+                KnownDitherers.Sierra2,
+                KnownDitherers.Sierra3,
+                KnownDitherers.SierraLite,
+                KnownDitherers.StevensonArce,
+                KnownDitherers.Stucki,
             };
 
         public static readonly TheoryData<IDither> OrderedDitherers
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         private static IDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 
-        private static IDither DefaultErrorDiffuser => KnownDiffusers.Atkinson;
+        private static IDither DefaultErrorDiffuser => KnownDitherers.Atkinson;
 
         /// <summary>
         /// The output is visually correct old 32bit runtime,
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             }
 
             provider.RunRectangleConstrainedValidatingProcessorTest(
-                (x, rect) => x.Diffuse(DefaultErrorDiffuser, .5F, rect),
+                (x, rect) => x.Dither(DefaultErrorDiffuser, rect),
                 comparer: ValidatorComparer);
         }
 
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
             // Increased tolerance because of compatibility issues on .NET 4.6.2:
             var comparer = ImageComparer.TolerantPercentage(1f);
-            provider.RunValidatingProcessorTest(x => x.Diffuse(DefaultErrorDiffuser, 0.5f), comparer: comparer);
+            provider.RunValidatingProcessorTest(x => x.Dither(DefaultErrorDiffuser), comparer: comparer);
         }
 
         [Theory]
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             }
 
             provider.RunValidatingProcessorTest(
-                x => x.Diffuse(diffuser, 0.5f),
+                x => x.Dither(diffuser),
                 testOutputDetails: diffuser.GetType().Name,
                 comparer: ValidatorComparer,
                 appendPixelTypeToFileName: false);

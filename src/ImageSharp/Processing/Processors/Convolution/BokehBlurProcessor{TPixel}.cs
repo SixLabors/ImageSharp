@@ -22,24 +22,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// The kernel radius.
-        /// </summary>
-        private readonly int radius;
-
-        /// <summary>
         /// The gamma highlight factor to use when applying the effect
         /// </summary>
         private readonly float gamma;
-
-        /// <summary>
-        /// The maximum size of the kernel in either direction
-        /// </summary>
-        private readonly int kernelSize;
-
-        /// <summary>
-        /// The number of components to use when applying the bokeh blur
-        /// </summary>
-        private readonly int componentsCount;
 
         /// <summary>
         /// The kernel parameters to use for the current instance (a: X, b: Y, A: Z, B: W)
@@ -61,13 +46,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public BokehBlurProcessor(Configuration configuration, BokehBlurProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
-            this.radius = definition.Radius;
-            this.kernelSize = (this.radius * 2) + 1;
-            this.componentsCount = definition.Components;
             this.gamma = definition.Gamma;
 
             // Get the bokeh blur data
-            BokehBlurKernelData data = BokehBlurKernelDataProvider.GetBokehBlurKernelData(this.radius, this.kernelSize, this.componentsCount);
+            BokehBlurKernelData data = BokehBlurKernelDataProvider.GetBokehBlurKernelData(
+                definition.Radius,
+                (definition.Radius * 2) + 1,
+                definition.Components);
 
             this.kernelParameters = data.Parameters;
             this.kernels = data.Kernels;

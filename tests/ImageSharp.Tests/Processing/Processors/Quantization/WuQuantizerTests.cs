@@ -39,20 +39,20 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
 
             Assert.NotNull(frameQuantizer);
             Assert.True(frameQuantizer.Dither);
-            Assert.Equal(KnownDiffusers.FloydSteinberg, frameQuantizer.Diffuser);
+            Assert.Equal(KnownDiffusers.FloydSteinberg, frameQuantizer.Dither);
 
             quantizer = new WuQuantizer(false);
             frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
 
             Assert.NotNull(frameQuantizer);
             Assert.False(frameQuantizer.Dither);
-            Assert.Null(frameQuantizer.Diffuser);
+            Assert.Null(frameQuantizer.Dither);
 
             quantizer = new WuQuantizer(KnownDiffusers.Atkinson);
             frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
             Assert.NotNull(frameQuantizer);
             Assert.True(frameQuantizer.Dither);
-            Assert.Equal(KnownDiffusers.Atkinson, frameQuantizer.Diffuser);
+            Assert.Equal(KnownDiffusers.Atkinson, frameQuantizer.Dither);
         }
     }
 }

@@ -2,24 +2,39 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
     /// <summary>
-    /// The base class for dither and diffusion processors that consume a palette.
+    /// Allows the consumption a palette to dither an image.
     /// </summary>
-    public abstract class PaletteDitherProcessor : IImageProcessor
+    public sealed class PaletteDitherProcessor : IImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteDitherProcessor"/> class.
         /// </summary>
-        /// <param name="palette">The palette to select substitute colors from.</param>
-        protected PaletteDitherProcessor(ReadOnlyMemory<Color> palette)
+        /// <param name="dither">The ordered ditherer.</param>
+        public PaletteDitherProcessor(IDither dither)
+            : this(dither, Color.WebSafePalette)
         {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PaletteDitherProcessor"/> class.
+        /// </summary>
+        /// <param name="dither">The dithering algorithm.</param>
+        /// <param name="palette">The palette to select substitute colors from.</param>
+        public PaletteDitherProcessor(IDither dither, ReadOnlyMemory<Color> palette)
+        {
+            this.Dither = dither ?? throw new ArgumentNullException(nameof(dither));
             this.Palette = palette;
         }
+
+        /// <summary>
+        /// Gets the dithering algorithm.
+        /// </summary>
+        public IDither Dither { get; }
 
         /// <summary>
         /// Gets the palette to select substitute colors from.
@@ -27,7 +42,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public ReadOnlyMemory<Color> Palette { get; }
 
         /// <inheritdoc />
-        public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : struct, IPixel<TPixel>;
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            where TPixel : struct, IPixel<TPixel>
+            => new PaletteDitherProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

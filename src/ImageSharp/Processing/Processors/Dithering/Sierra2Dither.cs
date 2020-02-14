@@ -7,9 +7,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// Applies error diffusion based dithering using the Sierra2 image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class Sierra2Diffuser : ErrorDiffuser
+    public sealed class Sierra2Dither : ErrorDither
     {
         private const float Divisor = 16F;
+        private const int Offset = 2;
 
         /// <summary>
         /// The diffusion matrix
@@ -22,10 +23,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Sierra2Diffuser"/> class.
+        /// Initializes a new instance of the <see cref="Sierra2Dither"/> class.
         /// </summary>
-        public Sierra2Diffuser()
-            : base(Sierra2Matrix)
+        public Sierra2Dither()
+            : base(Sierra2Matrix, Offset)
         {
         }
     }

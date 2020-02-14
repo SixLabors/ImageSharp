@@ -3,78 +3,60 @@
 
 using System;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
     /// <summary>
-    /// The base class for performing error diffusion based dithering.
+    /// The base class of all error diffusion dithering implementations.
     /// </summary>
-    public abstract class ErrorDiffuser : IErrorDiffuser
+    public abstract class ErrorDither : IDither
     {
         private readonly int offset;
         private readonly DenseMatrix<float> matrix;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ErrorDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="ErrorDither"/> class.
         /// </summary>
-        /// <param name="matrix">The dithering matrix.</param>
-        internal ErrorDiffuser(in DenseMatrix<float> matrix)
+        /// <param name="matrix">The diffusion matrix.</param>
+        /// <param name="offset">The starting offset within the matrix.</param>
+        protected ErrorDither(in DenseMatrix<float> matrix, int offset)
         {
-            // Calculate the offset position of the pixel relative to
-            // the diffusion matrix.
-            this.offset = 0;
-
-            for (int col = 0; col < matrix.Columns; col++)
-            {
-                if (matrix[0, col] != 0)
-                {
-                    this.offset = col - 1;
-                    break;
-                }
-            }
-
             this.matrix = matrix;
+            this.offset = offset;
         }
 
-        /// <inheritdoc />
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void Dither<TPixel>(ImageFrame<TPixel> image, TPixel source, TPixel transformed, int x, int y, int minX, int maxX, int maxY)
+        /// <inheritdoc/>
+        public DitherTransformColorBehavior TransformColorBehavior { get; } = DitherTransformColorBehavior.PreOperation;
+
+        /// <inheritdoc/>
+        public TPixel Dither<TPixel>(
+            ImageFrame<TPixel> image,
+            Rectangle bounds,
+            TPixel source,
+            TPixel transformed,
+            int x,
+            int y,
+            int bitDepth)
             where TPixel : struct, IPixel<TPixel>
         {
-            image[x, y] = transformed;
-
             // Equal? Break out as there's no error to pass.
             if (source.Equals(transformed))
             {
-                return;
+                return transformed;
             }
 
             // Calculate the error
             Vector4 error = source.ToVector4() - transformed.ToVector4();
 
-            if (Vector4.Dot(error, error) > 16F / 255F)
-            {
-                error *= .75F;
-            }
-
-            this.DoDither(image, x, y, minX, maxX, maxY, error);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private void DoDither<TPixel>(ImageFrame<TPixel> image, int x, int y, int minX, int maxX, int maxY, Vector4 error)
-            where TPixel : struct, IPixel<TPixel>
-        {
             int offset = this.offset;
             DenseMatrix<float> matrix = this.matrix;
 
             // Loop through and distribute the error amongst neighboring pixels.
             for (int row = 0, targetY = y; row < matrix.Rows; row++, targetY++)
             {
-                // TODO: Quantize rectangle.
-                if (targetY >= maxY)
+                if (targetY >= bounds.Bottom)
                 {
                     continue;
                 }
@@ -84,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 for (int col = 0; col < matrix.Columns; col++)
                 {
                     int targetX = x + (col - offset);
-                    if (targetX < minX || targetX >= maxX)
+                    if (targetX < bounds.Left || targetX >= bounds.Right)
                     {
                         continue;
                     }
@@ -102,6 +84,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                     pixel.FromVector4(result);
                 }
             }
+
+            return transformed;
         }
     }
 }

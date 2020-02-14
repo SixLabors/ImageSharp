@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 TestImages.Png.CalliphoraPartial, TestImages.Png.Bike
             };
 
-        public static readonly TheoryData<string, IOrderedDither> OrderedDitherers = new TheoryData<string, IOrderedDither>
+        public static readonly TheoryData<string, IDither> OrderedDitherers = new TheoryData<string, IDither>
         {
             { "Bayer8x8", KnownDitherers.BayerDither8x8 },
             { "Bayer4x4", KnownDitherers.BayerDither4x4 },
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             { "Bayer2x2", KnownDitherers.BayerDither2x2 }
         };
 
-        public static readonly TheoryData<string, IErrorDiffuser> ErrorDiffusers = new TheoryData<string, IErrorDiffuser>
+        public static readonly TheoryData<string, IDither> ErrorDiffusers = new TheoryData<string, IDither>
         {
             { "Atkinson", KnownDiffusers.Atkinson },
             { "Burks", KnownDiffusers.Burks },
@@ -41,14 +41,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         public const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24;
 
-        private static IOrderedDither DefaultDitherer => KnownDitherers.BayerDither4x4;
+        private static IDither DefaultDitherer => KnownDitherers.BayerDither4x4;
 
-        private static IErrorDiffuser DefaultErrorDiffuser => KnownDiffusers.Atkinson;
+        private static IDither DefaultErrorDiffuser => KnownDiffusers.Atkinson;
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(OrderedDitherers), 100, 100, PixelTypes.Rgba32)]
-        public void BinaryDitherFilter_WorksWithAllDitherers<TPixel>(TestImageProvider<TPixel> provider, string name, IOrderedDither ditherer)
+        public void BinaryDitherFilter_WorksWithAllDitherers<TPixel>(TestImageProvider<TPixel> provider, string name, IDither ditherer)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(ErrorDiffusers), PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(ErrorDiffusers), 100, 100, PixelTypes.Rgba32)]
-        public void DiffusionFilter_WorksWithAllErrorDiffusers<TPixel>(TestImageProvider<TPixel> provider, string name, IErrorDiffuser diffuser)
+        public void DiffusionFilter_WorksWithAllErrorDiffusers<TPixel>(TestImageProvider<TPixel> provider, string name, IDither diffuser)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())

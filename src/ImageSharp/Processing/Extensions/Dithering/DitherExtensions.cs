@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Processing
@@ -27,8 +26,8 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <param name="dither">The ordered ditherer.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
-        public static IImageProcessingContext Dither(this IImageProcessingContext source, IOrderedDither dither) =>
-            source.ApplyProcessor(new OrderedDitherPaletteProcessor(dither));
+        public static IImageProcessingContext Dither(this IImageProcessingContext source, IDither dither) =>
+            source.ApplyProcessor(new PaletteDitherProcessor(dither));
 
         /// <summary>
         /// Dithers the image reducing it to the given palette using ordered dithering.
@@ -39,9 +38,9 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Dither(
             this IImageProcessingContext source,
-            IOrderedDither dither,
+            IDither dither,
             ReadOnlyMemory<Color> palette) =>
-            source.ApplyProcessor(new OrderedDitherPaletteProcessor(dither, palette));
+            source.ApplyProcessor(new PaletteDitherProcessor(dither, palette));
 
         /// <summary>
         /// Dithers the image reducing it to a web-safe palette using ordered dithering.
@@ -54,9 +53,9 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Dither(
             this IImageProcessingContext source,
-            IOrderedDither dither,
+            IDither dither,
             Rectangle rectangle) =>
-            source.ApplyProcessor(new OrderedDitherPaletteProcessor(dither), rectangle);
+            source.ApplyProcessor(new PaletteDitherProcessor(dither), rectangle);
 
         /// <summary>
         /// Dithers the image reducing it to the given palette using ordered dithering.
@@ -70,9 +69,9 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Dither(
             this IImageProcessingContext source,
-            IOrderedDither dither,
+            IDither dither,
             ReadOnlyMemory<Color> palette,
             Rectangle rectangle) =>
-            source.ApplyProcessor(new OrderedDitherPaletteProcessor(dither, palette), rectangle);
+            source.ApplyProcessor(new PaletteDitherProcessor(dither, palette), rectangle);
     }
 }

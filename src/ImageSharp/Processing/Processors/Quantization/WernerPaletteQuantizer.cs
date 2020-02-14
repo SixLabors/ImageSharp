@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Initializes a new instance of the <see cref="WernerPaletteQuantizer" /> class.
         /// </summary>
         /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
-        public WernerPaletteQuantizer(IErrorDiffuser diffuser)
+        public WernerPaletteQuantizer(IDither diffuser)
             : base(Color.WernerPalette, diffuser)
         {
         }

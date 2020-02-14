@@ -7,9 +7,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// Applies error diffusion based dithering using the Atkinson image dithering algorithm.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public sealed class AtkinsonDiffuser : ErrorDiffuser
+    public sealed class AtkinsonDither : ErrorDither
     {
         private const float Divisor = 8F;
+        private const int Offset = 1;
 
         /// <summary>
         /// The diffusion matrix
@@ -23,10 +24,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AtkinsonDiffuser"/> class.
+        /// Initializes a new instance of the <see cref="AtkinsonDither"/> class.
         /// </summary>
-        public AtkinsonDiffuser()
-            : base(AtkinsonMatrix)
+        public AtkinsonDither()
+            : base(AtkinsonMatrix, Offset)
         {
         }
     }

@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution.Parameters
                 NormalizeKernels(kernels, kernelParameters);
 
                 // Store them in the cache for future use
-                info = new BokehBlurKernelData(kernelParameters, kernelsScale, kernels);
+                info = new BokehBlurKernelData(kernelParameters, kernels);
                 Cache.TryAdd(parameters, info);
             }
 

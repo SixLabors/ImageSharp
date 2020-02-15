@@ -3,7 +3,9 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
@@ -64,19 +66,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 return;
             }
 
-            // TODO: This can be parallel.
-            // Ordered dithering. We are only operating on a single pixel.
-            for (int y = interest.Top; y < interest.Bottom; y++)
-            {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-
-                for (int x = interest.Left; x < interest.Right; x++)
-                {
-                    TPixel dithered = this.dither.Dither(source, interest, row[x], default, x, y, this.bitDepth);
-                    this.pixelMap.GetClosestColor(dithered, out TPixel transformed);
-                    row[x] = transformed;
-                }
-            }
+            // Ordered dithering. We are only operating on a single pixel so we can work in parallel.
+            var ditherOperation = new DitherRowIntervalOperation(source, interest, this.pixelMap, this.dither, this.bitDepth);
+            ParallelRowIterator.IterateRows(
+                this.Configuration,
+                interest,
+                in ditherOperation);
         }
 
         /// <inheritdoc/>
@@ -111,6 +106,49 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
             this.isDisposed = true;
             base.Dispose(disposing);
+        }
+
+        private readonly struct DitherRowIntervalOperation : IRowIntervalOperation
+        {
+            private readonly ImageFrame<TPixel> source;
+            private readonly Rectangle bounds;
+            private readonly EuclideanPixelMap<TPixel> pixelMap;
+            private readonly IDither dither;
+            private readonly int bitDepth;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public DitherRowIntervalOperation(
+                ImageFrame<TPixel> source,
+                Rectangle bounds,
+                EuclideanPixelMap<TPixel> pixelMap,
+                IDither dither,
+                int bitDepth)
+            {
+                this.source = source;
+                this.bounds = bounds;
+                this.pixelMap = pixelMap;
+                this.dither = dither;
+                this.bitDepth = bitDepth;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                IDither dither = this.dither;
+                TPixel transformed = default;
+
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
+
+                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
+                    {
+                        TPixel dithered = dither.Dither(this.source, this.bounds, row[x], transformed, x, y, this.bitDepth);
+                        this.pixelMap.GetClosestColor(dithered, out transformed);
+                        row[x] = transformed;
+                    }
+                }
+            }
         }
     }
 }

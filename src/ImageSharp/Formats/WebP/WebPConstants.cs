@@ -143,12 +143,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7, 0
         };
 
-        public static readonly short[] KScan =
+        public static readonly short[] Scan =
         {
-            0 +  0 * Bps,  4 +  0 * Bps, 8 +  0 * Bps, 12 +  0 * Bps,
-            0 +  4 * Bps,  4 +  4 * Bps, 8 +  4 * Bps, 12 +  4 * Bps,
-            0 +  8 * Bps,  4 +  8 * Bps, 8 +  8 * Bps, 12 +  8 * Bps,
-            0 + 12 * Bps,  4 + 12 * Bps, 8 + 12 * Bps, 12 + 12 * Bps
+            0 + (0 * Bps), 4 + (0 * Bps), 8 + (0 * Bps), 12 + (0 * Bps),
+            0 + (4 * Bps), 4 + (4 * Bps), 8 + (4 * Bps), 12 + (4 * Bps),
+            0 + (8 * Bps), 4 + (8 * Bps), 8 + (8 * Bps), 12 + (8 * Bps),
+            0 + (12 * Bps), 4 + (12 * Bps), 8 + (12 * Bps), 12 + (12 * Bps)
         };
 
         // 31 ^ clz(i)

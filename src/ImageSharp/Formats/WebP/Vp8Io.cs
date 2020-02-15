@@ -5,7 +5,6 @@ using System;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
-    // from
     public ref struct Vp8Io
     {
         /// <summary>
@@ -40,17 +39,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Rows to copy (in YUV format)
         /// </summary>
-        private Span<byte> Y { get; set; }
+        public Span<byte> Y { get; set; }
 
         /// <summary>
         /// Rows to copy (in YUV format)
         /// </summary>
-        private Span<byte> U { get; set; }
+        public Span<byte> U { get; set; }
 
         /// <summary>
         /// Rows to copy (in YUV format)
         /// </summary>
-        private Span<byte> V { get; set; }
+        public Span<byte> V { get; set; }
 
         /// <summary>
         /// Row stride for luma

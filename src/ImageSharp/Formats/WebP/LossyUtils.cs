@@ -319,6 +319,39 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        // We process u and v together stashed into 32bit(16bit each).
+        public static uint LoadUv(byte u, byte v)
+        {
+            return (uint)(u | (v << 16));
+        }
+
+        public static void YuvToBgr(int y, int u, int v, Span<byte> bgr)
+        {
+            bgr[0] = (byte)YuvToB(y, u);
+            bgr[1] = (byte)YuvToG(y, u, v);
+            bgr[2] = (byte)YuvToR(y, v);
+        }
+
+        public static int YuvToR(int y, int v)
+        {
+            return Clip8(MultHi(y, 19077) + MultHi(v, 26149) - 14234);
+        }
+
+        public static int YuvToG(int y, int u, int v)
+        {
+            return Clip8(MultHi(y, 19077) - MultHi(u, 6419) - MultHi(v, 13320) + 8708);
+        }
+
+        public static int YuvToB(int y, int u)
+        {
+            return Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);
+        }
+
+        private static int MultHi(int v, int coeff)
+        {
+            return (v * coeff) >> 8;
+        }
+
         private static void Store(Span<byte> dst, int x, int y, int v)
         {
             dst[x + (y * WebPConstants.Bps)] = Clip8B(dst[x + (y * WebPConstants.Bps)] + (v >> 3));
@@ -345,6 +378,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static byte Clip8B(int v)
         {
             return (byte)((v & ~0xff) is 0 ? v : (v < 0) ? 0 : 255);
+        }
+
+        private static byte Clip8(int v)
+        {
+            int yuvMask = (256 << 6) - 1;
+            return (byte)(((v & ~yuvMask) is 0) ? (v >> 6) : (v < 0) ? 0 : 255);
         }
 
         private static void Put8x8uv(byte value, Span<byte> dst)

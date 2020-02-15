@@ -8,17 +8,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class Vp8Decoder
     {
-        public Vp8Decoder(Vp8FrameHeader frameHeader, Vp8PictureHeader pictureHeader, Vp8FilterHeader filterHeader, Vp8SegmentHeader segmentHeader, Vp8Proba probabilities, Vp8Io io)
+        public Vp8Decoder(Vp8FrameHeader frameHeader, Vp8PictureHeader pictureHeader, Vp8SegmentHeader segmentHeader, Vp8Proba probabilities, Vp8Io io)
         {
+            this.FilterHeader = new Vp8FilterHeader();
             this.FrameHeader = frameHeader;
             this.PictureHeader = pictureHeader;
-            this.FilterHeader = filterHeader;
             this.SegmentHeader = segmentHeader;
             this.Probabilities = probabilities;
             this.IntraL = new byte[4];
             this.YuvBuffer = new byte[(WebPConstants.Bps * 17) + (WebPConstants.Bps * 9)];
             this.MbWidth = (int)((this.PictureHeader.Width + 15) >> 4);
             this.MbHeight = (int)((this.PictureHeader.Height + 15) >> 4);
+            this.CacheYStride = 16 * this.MbWidth;
+            this.CacheUvStride = 8 * this.MbWidth;
             this.MacroBlockInfo = new Vp8MacroBlock[this.MbWidth + 1];
             this.MacroBlockData = new Vp8MacroBlockData[this.MbWidth];
             this.YuvTopSamples = new Vp8TopSamples[this.MbWidth];
@@ -48,9 +50,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint height = pictureHeader.Height;
 
             // TODO: use memory allocator
-            this.Y = new byte[width * height];
-            this.U = new byte[width * height];
-            this.V = new byte[width * height];
+            this.CacheY = new byte[width * height]; // TODO: this is way too much mem, figure out what the min req is.
+            this.CacheU = new byte[width * height];
+            this.CacheV = new byte[width * height];
+            this.TmpYBuffer = new byte[width * height]; // TODO: figure out min buffer length
+            this.TmpUBuffer = new byte[width * height]; // TODO: figure out min buffer length
+            this.TmpVBuffer = new byte[width * height]; // TODO: figure out min buffer length
+            this.Bgr = new byte[width * height * 4];
 
             this.Vp8BitReaders = new Vp8BitReader[WebPConstants.MaxNumPartitions];
             this.Init(io);
@@ -147,38 +153,57 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public Vp8TopSamples[] YuvTopSamples { get; }
 
-        public byte[] Y { get; }
+        public byte[] CacheY { get; }
 
-        public byte[] U { get; }
+        public byte[] CacheU { get; }
 
-        public byte[] V { get; }
+        public byte[] CacheV { get; }
 
-        public int YStride { get; }
+        public int CacheYStride { get; }
 
-        public int UvStride { get; }
+        public int CacheUvStride { get; }
+
+        public byte[] TmpYBuffer { get; }
+
+        public byte[] TmpUBuffer { get; }
+
+        public byte[] TmpVBuffer { get; }
+
+        public byte[] Bgr { get; }
 
         /// <summary>
         /// Gets or sets filter strength info.
         /// </summary>
         public Vp8FilterInfo[] FilterInfo { get; set; }
 
+        public Vp8MacroBlock CurrentMacroBlock
+        {
+            get
+            {
+                return this.MacroBlockInfo[this.MbX + 1];
+            }
+        }
+
+        public Vp8MacroBlock LeftMacroBlock
+        {
+            get
+            {
+                return this.MacroBlockInfo[this.MbX];
+            }
+        }
+
+        public Vp8MacroBlockData CurrentBlockData
+        {
+            get
+            {
+                return this.MacroBlockData[this.MbX];
+            }
+        }
+
         public void Init(Vp8Io io)
         {
             int intraPredModeSize = 4 * this.MbWidth;
             this.IntraT = new byte[intraPredModeSize];
-
-            io.Width = (int)this.PictureHeader.Width;
-            io.Height = (int)this.PictureHeader.Height;
-            io.UseCropping = false;
-            io.CropTop = 0;
-            io.CropLeft = 0;
-            io.CropRight = io.Width;
-            io.CropBottom = io.Height;
-            io.UseScaling = false;
-            io.ScaledWidth = io.Width;
-            io.ScaledHeight = io.ScaledHeight;
-            io.MbW = io.Width;
-            io.MbH = io.Height;
 
             int extraPixels = WebPConstants.FilterExtraRows[(int)this.Filter];
             if (this.Filter is LoopFilter.Complex)

@@ -784,6 +784,94 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 => new Vector4(this.R, this.G, this.B, this.A) / this.Weight / 255F;
         }
 
+        private struct Moment
+        {
+            /// <summary>
+            /// Moment of <c>r*P(c)</c>.
+            /// </summary>
+            public long R;
+
+            /// <summary>
+            /// Moment of <c>g*P(c)</c>.
+            /// </summary>
+            public long G;
+
+            /// <summary>
+            /// Moment of <c>b*P(c)</c>.
+            /// </summary>
+            public long B;
+
+            /// <summary>
+            /// Moment of <c>a*P(c)</c>.
+            /// </summary>
+            public long A;
+
+            /// <summary>
+            /// Moment of <c>P(c)</c>.
+            /// </summary>
+            public long Weight;
+
+            /// <summary>
+            /// Moment of <c>c^2*P(c)</c>.
+            /// </summary>
+            public double Moment2;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static Moment operator +(Moment x, Moment y)
+            {
+                x.R += y.R;
+                x.G += y.G;
+                x.B += y.B;
+                x.A += y.A;
+                x.Weight += y.Weight;
+                x.Moment2 += y.Moment2;
+                return x;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static Moment operator -(Moment x, Moment y)
+            {
+                x.R -= y.R;
+                x.G -= y.G;
+                x.B -= y.B;
+                x.A -= y.A;
+                x.Weight -= y.Weight;
+                x.Moment2 -= y.Moment2;
+                return x;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static Moment operator -(Moment x)
+            {
+                x.R = -x.R;
+                x.G = -x.G;
+                x.B = -x.B;
+                x.A = -x.A;
+                x.Weight = -x.Weight;
+                x.Moment2 = -x.Moment2;
+                return x;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static Moment operator +(Moment x, Rgba32 y)
+            {
+                x.R += y.R;
+                x.G += y.G;
+                x.B += y.B;
+                x.A += y.A;
+                x.Weight++;
+
+                var vector = new Vector4(y.R, y.G, y.B, y.A);
+                x.Moment2 += Vector4.Dot(vector, vector);
+
+                return x;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public readonly Vector4 Normalize()
+                => new Vector4(this.R, this.G, this.B, this.A) / this.Weight / 255F;
+        }
+
         /// <summary>
         /// Represents a box color cube.
         /// </summary>

@@ -16,19 +16,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
             var quantizer = new OctreeQuantizer(128);
 
             Assert.Equal(128, quantizer.MaxColors);
-            Assert.Equal(KnownDitherers.FloydSteinberg, quantizer.Dither);
+            Assert.Equal(KnownDitherings.FloydSteinberg, quantizer.Dither);
 
             quantizer = new OctreeQuantizer(false);
             Assert.Equal(QuantizerConstants.MaxColors, quantizer.MaxColors);
             Assert.Null(quantizer.Dither);
 
-            quantizer = new OctreeQuantizer(KnownDitherers.Atkinson);
+            quantizer = new OctreeQuantizer(KnownDitherings.Atkinson);
             Assert.Equal(QuantizerConstants.MaxColors, quantizer.MaxColors);
-            Assert.Equal(KnownDitherers.Atkinson, quantizer.Dither);
+            Assert.Equal(KnownDitherings.Atkinson, quantizer.Dither);
 
-            quantizer = new OctreeQuantizer(KnownDitherers.Atkinson, 128);
+            quantizer = new OctreeQuantizer(KnownDitherings.Atkinson, 128);
             Assert.Equal(128, quantizer.MaxColors);
-            Assert.Equal(KnownDitherers.Atkinson, quantizer.Dither);
+            Assert.Equal(KnownDitherings.Atkinson, quantizer.Dither);
         }
 
         [Fact]
@@ -39,7 +39,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
 
             Assert.NotNull(frameQuantizer);
             Assert.True(frameQuantizer.DoDither);
-            Assert.Equal(KnownDitherers.FloydSteinberg, frameQuantizer.Dither);
+            Assert.Equal(KnownDitherings.FloydSteinberg, frameQuantizer.Dither);
+            frameQuantizer.Dispose();
 
             quantizer = new OctreeQuantizer(false);
             frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
@@ -47,12 +48,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
             Assert.NotNull(frameQuantizer);
             Assert.False(frameQuantizer.DoDither);
             Assert.Null(frameQuantizer.Dither);
+            frameQuantizer.Dispose();
 
-            quantizer = new OctreeQuantizer(KnownDitherers.Atkinson);
+            quantizer = new OctreeQuantizer(KnownDitherings.Atkinson);
             frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
             Assert.NotNull(frameQuantizer);
             Assert.True(frameQuantizer.DoDither);
-            Assert.Equal(KnownDitherers.Atkinson, frameQuantizer.Dither);
+            Assert.Equal(KnownDitherings.Atkinson, frameQuantizer.Dither);
+            frameQuantizer.Dispose();
         }
     }
 }

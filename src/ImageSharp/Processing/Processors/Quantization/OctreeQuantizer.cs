@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// Allows the quantization of images pixels using Octrees.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// <para>
-    /// By default the quantizer uses <see cref="KnownDitherers.FloydSteinberg"/> dithering and a color palette of a maximum length of <value>255</value>
+    /// By default the quantizer uses <see cref="KnownDitherings.FloydSteinberg"/> dithering and a color palette of a maximum length of <value>255</value>
     /// </para>
     /// </summary>
     public class OctreeQuantizer : IQuantizer
@@ -93,6 +93,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             return new OctreeFrameQuantizer<TPixel>(configuration, this, maxColors);
         }
 
-        private static IDither GetDiffuser(bool dither) => dither ? KnownDitherers.FloydSteinberg : null;
+        private static IDither GetDiffuser(bool dither) => dither ? KnownDitherings.FloydSteinberg : null;
     }
 }

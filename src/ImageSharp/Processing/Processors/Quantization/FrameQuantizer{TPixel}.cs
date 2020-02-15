@@ -182,16 +182,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             if (this.Dither.DitherType == DitherType.ErrorDiffusion)
             {
                 int width = bounds.Width;
+                int offsetY = bounds.Top;
                 int offsetX = bounds.Left;
                 for (int y = bounds.Top; y < bounds.Bottom; y++)
                 {
                     Span<TPixel> row = source.GetPixelRowSpan(y);
-                    int offset = y * width;
+                    int rowStart = (y - offsetY) * width;
 
                     for (int x = bounds.Left; x < bounds.Right; x++)
                     {
                         TPixel sourcePixel = row[x];
-                        outputSpan[offset + x - offsetX] = this.GetQuantizedColor(sourcePixel, paletteSpan, out TPixel transformed);
+                        outputSpan[rowStart + x - offsetX] = this.GetQuantizedColor(sourcePixel, paletteSpan, out TPixel transformed);
                         this.Dither.Dither(source, bounds, sourcePixel, transformed, x, y, bitDepth);
                     }
                 }
@@ -255,16 +256,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 ReadOnlySpan<TPixel> paletteSpan = this.palette.Span;
                 Span<byte> outputSpan = this.output.Span;
                 int width = this.bounds.Width;
+                int offsetY = this.bounds.Top;
                 int offsetX = this.bounds.Left;
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<TPixel> row = this.source.GetPixelRowSpan(y);
-                    int offset = y * width;
+                    int rowStart = (y - offsetY) * width;
 
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        outputSpan[offset + x - offsetX] = this.quantizer.GetQuantizedColor(row[x], paletteSpan, out TPixel _);
+                        outputSpan[rowStart + x - offsetX] = this.quantizer.GetQuantizedColor(row[x], paletteSpan, out TPixel _);
                     }
                 }
             }
@@ -302,18 +304,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 ReadOnlySpan<TPixel> paletteSpan = this.palette.Span;
                 Span<byte> outputSpan = this.output.Span;
                 int width = this.bounds.Width;
+                int offsetY = this.bounds.Top;
+                int offsetX = this.bounds.Left;
                 IDither dither = this.quantizer.Dither;
                 TPixel transformed = default;
-                int offsetX = this.bounds.Left;
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<TPixel> row = this.source.GetPixelRowSpan(y);
-                    int offset = y * width;
+                    int rowStart = (y - offsetY) * width;
+
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
                         TPixel dithered = dither.Dither(this.source, this.bounds, row[x], transformed, x, y, this.bitDepth);
-                        outputSpan[offset + x - offsetX] = this.quantizer.GetQuantizedColor(dithered, paletteSpan, out TPixel _);
+                        outputSpan[rowStart + x - offsetX] = this.quantizer.GetQuantizedColor(dithered, paletteSpan, out TPixel _);
                     }
                 }
             }

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Dither(this IImageProcessingContext source) =>
-            Dither(source, KnownDitherers.BayerDither4x4);
+            Dither(source, KnownDitherings.BayerDither4x4);
 
         /// <summary>
         /// Dithers the image reducing it to a web-safe palette using ordered dithering.

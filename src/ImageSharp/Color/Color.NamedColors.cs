@@ -8,6 +8,7 @@ namespace SixLabors.ImageSharp
 {
     /// <content>
     /// Contains static named color values.
+    /// <see href="https://www.w3.org/TR/css-color-3/"/>
     /// </content>
     public readonly partial struct Color
     {
@@ -719,9 +720,9 @@ namespace SixLabors.ImageSharp
         public static readonly Color Tomato = FromRgba(255, 99, 71, 255);
 
         /// <summary>
-        /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #FFFFFF.
+        /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #00000000.
         /// </summary>
-        public static readonly Color Transparent = FromRgba(255, 255, 255, 0);
+        public static readonly Color Transparent = FromRgba(0, 0, 0, 0);
 
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #40E0D0.

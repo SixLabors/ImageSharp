@@ -92,7 +92,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         [MethodImpl(InliningOptions.ShortMethod)]
         protected override byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
-            if (!this.DoDither)
+            // Octree only maps the RGB component of a color
+            // so cannot tell the difference between a fully transparent
+            // pixel and a black one.
+            if (!this.DoDither && !color.Equals(default))
             {
                 var index = (byte)this.octree.GetPaletteIndex(color);
                 match = palette[index];
@@ -110,7 +113,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             => this.palette ?? (this.palette = this.octree.Palletize(this.colors));
 
         /// <summary>
-        /// Class which does the actual quantization
+        /// Class which does the actual quantization.
         /// </summary>
         private sealed class Octree
         {
@@ -332,15 +335,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 /// <summary>
                 /// Initializes a new instance of the <see cref="OctreeNode"/> class.
                 /// </summary>
-                /// <param name="level">
-                /// The level in the tree = 0 - 7
-                /// </param>
-                /// <param name="colorBits">
-                /// The number of significant color bits in the image
-                /// </param>
-                /// <param name="octree">
-                /// The tree to which this node belongs
-                /// </param>
+                /// <param name="level">The level in the tree = 0 - 7.</param>
+                /// <param name="colorBits">The number of significant color bits in the image.</param>
+                /// <param name="octree">The tree to which this node belongs.</param>
                 public OctreeNode(int level, int colorBits, Octree octree)
                 {
                     // Construct the new node
@@ -524,9 +521,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 {
                     int shift = 7 - level;
                     byte mask = Mask[level];
-                    return ((color.B & mask) >> (shift - 2))
+                    return ((color.R & mask) >> shift)
                          | ((color.G & mask) >> (shift - 1))
-                         | ((color.R & mask) >> shift);
+                         | ((color.B & mask) >> (shift - 2));
                 }
 
                 /// <summary>

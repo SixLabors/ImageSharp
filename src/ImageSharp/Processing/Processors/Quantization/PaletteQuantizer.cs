@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// Allows the quantization of images pixels using color palettes.
     /// Override this class to provide your own palette.
     /// <para>
-    /// By default the quantizer uses <see cref="KnownDitherers.FloydSteinberg"/> dithering.
+    /// By default the quantizer uses <see cref="KnownDitherings.FloydSteinberg"/> dithering.
     /// </para>
     /// </summary>
     public class PaletteQuantizer : IQuantizer
@@ -76,6 +76,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             return new PaletteFrameQuantizer<TPixel>(configuration, this.Dither, palette);
         }
 
-        private static IDither GetDiffuser(bool dither) => dither ? KnownDitherers.FloydSteinberg : null;
+        private static IDither GetDiffuser(bool dither) => dither ? KnownDitherings.FloydSteinberg : null;
     }
 }

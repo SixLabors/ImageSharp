@@ -294,7 +294,8 @@ namespace SixLabors.ImageSharp.Tests
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext, Rectangle> process,
             object testOutputDetails = null,
-            ImageComparer comparer = null)
+            ImageComparer comparer = null,
+            bool appendPixelTypeToFileName = true)
             where TPixel : struct, IPixel<TPixel>
         {
             if (comparer == null)
@@ -307,7 +308,7 @@ namespace SixLabors.ImageSharp.Tests
                 var bounds = new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2);
                 image.Mutate(x => process(x, bounds));
                 image.DebugSave(provider, testOutputDetails);
-                image.CompareToReferenceOutput(comparer, provider, testOutputDetails);
+                image.CompareToReferenceOutput(comparer, provider, testOutputDetails, appendPixelTypeToFileName: appendPixelTypeToFileName);
             }
         }
 

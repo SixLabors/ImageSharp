@@ -20,31 +20,31 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public static readonly TheoryData<IDither> ErrorDiffusers
             = new TheoryData<IDither>
             {
-                KnownDitherers.Atkinson,
-                KnownDitherers.Burks,
-                KnownDitherers.FloydSteinberg,
-                KnownDitherers.JarvisJudiceNinke,
-                KnownDitherers.Sierra2,
-                KnownDitherers.Sierra3,
-                KnownDitherers.SierraLite,
-                KnownDitherers.StevensonArce,
-                KnownDitherers.Stucki,
+                KnownDitherings.Atkinson,
+                KnownDitherings.Burks,
+                KnownDitherings.FloydSteinberg,
+                KnownDitherings.JarvisJudiceNinke,
+                KnownDitherings.Sierra2,
+                KnownDitherings.Sierra3,
+                KnownDitherings.SierraLite,
+                KnownDitherings.StevensonArce,
+                KnownDitherings.Stucki,
             };
 
         public static readonly TheoryData<IDither> OrderedDitherers
             = new TheoryData<IDither>
             {
-                KnownDitherers.BayerDither8x8,
-                KnownDitherers.BayerDither4x4,
-                KnownDitherers.OrderedDither3x3,
-                KnownDitherers.BayerDither2x2
+                KnownDitherings.BayerDither8x8,
+                KnownDitherings.BayerDither4x4,
+                KnownDitherings.OrderedDither3x3,
+                KnownDitherings.BayerDither2x2
             };
 
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f);
 
-        private static IDither DefaultDitherer => KnownDitherers.BayerDither4x4;
+        private static IDither DefaultDitherer => KnownDitherings.BayerDither4x4;
 
-        private static IDither DefaultErrorDiffuser => KnownDitherers.Atkinson;
+        private static IDither DefaultErrorDiffuser => KnownDitherings.Atkinson;
 
         /// <summary>
         /// The output is visually correct old 32bit runtime,

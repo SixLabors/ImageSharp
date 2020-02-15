@@ -384,29 +384,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Span<Moment> momentSpan = this.moments.GetSpan();
 
             // Build up the 3-D color histogram
-            // Loop through each row
-            using IMemoryOwner<Rgba32> rgbaBuffer = this.memoryAllocator.Allocate<Rgba32>(source.Width);
-            Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
-            ref Rgba32 scanBaseRef = ref MemoryMarshal.GetReference(rgbaSpan);
+            using IMemoryOwner<Rgba32> buffer = this.memoryAllocator.Allocate<Rgba32>(bounds.Width);
+            Span<Rgba32> bufferSpan = buffer.GetSpan();
 
-            int offset = bounds.Left;
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToRgba32(source.GetConfiguration(), row, rgbaSpan);
+                Span<TPixel> row = source.GetPixelRowSpan(y).Slice(bounds.Left, bounds.Width);
+                PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
-                // And loop through each column
-                for (int x = bounds.Left; x < bounds.Right; x++)
+                for (int x = 0; x < bufferSpan.Length; x++)
                 {
-                    ref Rgba32 rgba = ref Unsafe.Add(ref scanBaseRef, x - offset);
+                    Rgba32 rgba = bufferSpan[x];
 
                     int r = (rgba.R >> (8 - IndexBits)) + 1;
                     int g = (rgba.G >> (8 - IndexBits)) + 1;
                     int b = (rgba.B >> (8 - IndexBits)) + 1;
                     int a = (rgba.A >> (8 - IndexAlphaBits)) + 1;
 
-                    int index = GetPaletteIndex(r, g, b, a);
-                    momentSpan[index] += rgba;
+                    momentSpan[GetPaletteIndex(r, g, b, a)] += rgba;
                 }
             }
         }

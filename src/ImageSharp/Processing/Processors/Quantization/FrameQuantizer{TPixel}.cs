@@ -149,25 +149,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <summary>
-        /// Returns the index and color from the quantized palette corresponding to the give to the given color.
-        /// </summary>
-        /// <param name="color">The color to match.</param>
-        /// <param name="palette">The output color palette.</param>
-        /// <param name="match">The matched color.</param>
-        /// <returns>The <see cref="byte"/> index.</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        protected virtual byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
-            => this.pixelMap.GetClosestColor(color, out match);
-
-        /// <summary>
-        /// Generates the palette for the quantized image.
-        /// </summary>
-        /// <returns>
-        /// <see cref="ReadOnlyMemory{TPixel}"/>
-        /// </returns>
-        protected abstract ReadOnlyMemory<TPixel> GenerateQuantizedPalette();
-
-        /// <summary>
         /// Execute a second pass through the image to assign the pixels to a palette entry.
         /// </summary>
         /// <param name="source">The source image.</param>
@@ -225,6 +206,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 bounds,
                 in ditherOperation);
         }
+
+        /// <summary>
+        /// Returns the index and color from the quantized palette corresponding to the give to the given color.
+        /// </summary>
+        /// <param name="color">The color to match.</param>
+        /// <param name="palette">The output color palette.</param>
+        /// <param name="match">The matched color.</param>
+        /// <returns>The <see cref="byte"/> index.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        protected virtual byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+            => this.pixelMap.GetClosestColor(color, out match);
+
+        /// <summary>
+        /// Generates the palette for the quantized image.
+        /// </summary>
+        /// <returns>
+        /// <see cref="ReadOnlyMemory{TPixel}"/>
+        /// </returns>
+        protected abstract ReadOnlyMemory<TPixel> GenerateQuantizedPalette();
 
         private readonly struct RowIntervalOperation : IRowIntervalOperation
         {

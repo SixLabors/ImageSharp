@@ -29,8 +29,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 
         public DitherTest()
         {
-            this.orderedDither = KnownDitherers.BayerDither4x4;
-            this.errorDiffuser = KnownDitherers.FloydSteinberg;
+            this.orderedDither = KnownDitherings.BayerDither4x4;
+            this.errorDiffuser = KnownDitherings.FloydSteinberg;
         }
 
         [Fact]

@@ -6,9 +6,9 @@ using SixLabors.ImageSharp.Processing.Processors.Dithering;
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Contains reusable static instances of known ordered dither matrices
+    /// Contains reusable static instances of known dithering algorithms.
     /// </summary>
-    public static class KnownDitherers
+    public static class KnownDitherings
     {
         /// <summary>
         /// Gets the order ditherer using the 2x2 Bayer dithering matrix

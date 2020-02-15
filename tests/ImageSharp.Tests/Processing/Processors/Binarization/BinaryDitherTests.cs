@@ -20,30 +20,30 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         public static readonly TheoryData<string, IDither> OrderedDitherers = new TheoryData<string, IDither>
         {
-            { "Bayer8x8", KnownDitherers.BayerDither8x8 },
-            { "Bayer4x4", KnownDitherers.BayerDither4x4 },
-            { "Ordered3x3", KnownDitherers.OrderedDither3x3 },
-            { "Bayer2x2", KnownDitherers.BayerDither2x2 }
+            { "Bayer8x8", KnownDitherings.BayerDither8x8 },
+            { "Bayer4x4", KnownDitherings.BayerDither4x4 },
+            { "Ordered3x3", KnownDitherings.OrderedDither3x3 },
+            { "Bayer2x2", KnownDitherings.BayerDither2x2 }
         };
 
         public static readonly TheoryData<string, IDither> ErrorDiffusers = new TheoryData<string, IDither>
         {
-            { "Atkinson", KnownDitherers.Atkinson },
-            { "Burks", KnownDitherers.Burks },
-            { "FloydSteinberg", KnownDitherers.FloydSteinberg },
-            { "JarvisJudiceNinke", KnownDitherers.JarvisJudiceNinke },
-            { "Sierra2", KnownDitherers.Sierra2 },
-            { "Sierra3", KnownDitherers.Sierra3 },
-            { "SierraLite", KnownDitherers.SierraLite },
-            { "StevensonArce", KnownDitherers.StevensonArce },
-            { "Stucki", KnownDitherers.Stucki },
+            { "Atkinson", KnownDitherings.Atkinson },
+            { "Burks", KnownDitherings.Burks },
+            { "FloydSteinberg", KnownDitherings.FloydSteinberg },
+            { "JarvisJudiceNinke", KnownDitherings.JarvisJudiceNinke },
+            { "Sierra2", KnownDitherings.Sierra2 },
+            { "Sierra3", KnownDitherings.Sierra3 },
+            { "SierraLite", KnownDitherings.SierraLite },
+            { "StevensonArce", KnownDitherings.StevensonArce },
+            { "Stucki", KnownDitherings.Stucki },
         };
 
         public const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24;
 
-        private static IDither DefaultDitherer => KnownDitherers.BayerDither4x4;
+        private static IDither DefaultDitherer => KnownDitherings.BayerDither4x4;
 
-        private static IDither DefaultErrorDiffuser => KnownDitherers.Atkinson;
+        private static IDither DefaultErrorDiffuser => KnownDitherings.Atkinson;
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), PixelTypes.Rgba32)]

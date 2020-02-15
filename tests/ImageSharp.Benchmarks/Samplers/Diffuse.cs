@@ -15,6 +15,17 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
         {
             using (var image = new Image<Rgba32>(Configuration.Default, 800, 800, Color.BlanchedAlmond))
             {
+                image.Mutate(x => x.Dither(KnownDitherers.FloydSteinberg));
+
+                return image.Size();
+            }
+        }
+
+        [Benchmark]
+        public Size DoDither()
+        {
+            using (var image = new Image<Rgba32>(Configuration.Default, 800, 800, Color.BlanchedAlmond))
+            {
                 image.Mutate(x => x.Dither());
 
                 return image.Size();
@@ -48,3 +59,25 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
 // |---------- |----- |-------- |----------:|----------:|----------:|------:|------:|------:|----------:|
 // | DoDiffuse |  Clr |     Clr | 124.93 ms | 33.297 ms | 1.8251 ms |     - |     - |     - |      2 KB |
 // | DoDiffuse | Core |    Core |  89.63 ms |  9.895 ms | 0.5424 ms |     - |     - |     - |   1.91 KB |
+
+// #### 15th February 2020 ####
+//
+// BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18363
+// Intel Core i7-8650U CPU 1.90GHz(Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+// .NET Core SDK = 3.1.101
+//
+// [Host]     : .NET Core 3.1.1 (CoreCLR 4.700.19.60701, CoreFX 4.700.19.60801), X64 RyuJIT
+//  Job-OJKYBT : .NET Framework 4.8 (4.8.4121.0), X64 RyuJIT
+//  Job-RZWLFP : .NET Core 2.1.15 (CoreCLR 4.6.28325.01, CoreFX 4.6.28327.02), X64 RyuJIT
+//  Job-NUYUQV : .NET Core 3.1.1 (CoreCLR 4.700.19.60701, CoreFX 4.700.19.60801), X64 RyuJIT
+//
+// IterationCount=3  LaunchCount=1  WarmupCount=3
+//
+// |    Method |       Runtime |     Mean |     Error |   StdDev | Gen 0 | Gen 1 | Gen 2 | Allocated |
+// |---------- |-------------- |---------:|----------:|---------:|------:|------:|------:|----------:|
+// | DoDiffuse |    .NET 4.7.2 | 46.50 ms | 13.734 ms | 0.753 ms |     - |     - |     - |  26.72 KB |
+// |  DoDither |    .NET 4.7.2 | 17.79 ms |  7.705 ms | 0.422 ms |     - |     - |     - |     31 KB |
+// | DoDiffuse | .NET Core 2.1 | 26.45 ms |  1.463 ms | 0.080 ms |     - |     - |     - |  26.03 KB |
+// |  DoDither | .NET Core 2.1 | 10.86 ms |  2.074 ms | 0.114 ms |     - |     - |     - |  29.29 KB |
+// | DoDiffuse | .NET Core 3.1 | 28.44 ms | 84.907 ms | 4.654 ms |     - |     - |     - |  26.01 KB |
+// |  DoDither | .NET Core 3.1 | 10.50 ms |  5.698 ms | 0.312 ms |     - |     - |     - |  30.94 KB |

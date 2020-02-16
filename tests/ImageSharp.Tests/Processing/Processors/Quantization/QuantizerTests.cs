@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -209,7 +211,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
             string ditherName = quantizer.Options.Dither.GetType().Name;
             string ditherType = quantizer.Options.Dither.DitherType.ToString();
             float ditherScale = quantizer.Options.DitherScale;
-            string testOutputDetails = $"{quantizerName}_{ditherName}_{ditherType}_{ditherScale}";
+            string testOutputDetails = FormattableString.Invariant($"{quantizerName}_{ditherName}_{ditherType}_{ditherScale}");
 
             provider.RunValidatingProcessorTest(
                 x => x.Quantize(quantizer),

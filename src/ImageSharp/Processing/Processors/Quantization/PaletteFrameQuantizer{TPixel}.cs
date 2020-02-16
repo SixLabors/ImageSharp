@@ -4,7 +4,6 @@
 using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
@@ -25,13 +24,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="diffuser">The palette quantizer.</param>
-        /// <param name="colors">An array of all colors in the palette.</param>
-        public PaletteFrameQuantizer(Configuration configuration, IDither diffuser, ReadOnlyMemory<TPixel> colors)
-            : base(configuration, diffuser, true) => this.palette = colors;
+        /// <param name="options">The quantizer options defining quantization rules.</param>
+        /// <param name="colors">A <see cref="ReadOnlyMemory{TPixel}"/> containing all colors in the palette.</param>
+        public PaletteFrameQuantizer(Configuration configuration, QuantizerOptions options, ReadOnlyMemory<TPixel> colors)
+            : base(configuration, options, true) => this.palette = colors;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         protected override ReadOnlyMemory<TPixel> GenerateQuantizedPalette() => this.palette;
+
+        internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GenerateQuantizedPalette();
     }
 }

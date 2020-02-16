@@ -15,14 +15,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets a value indicating whether to apply dithering to the output image.
+        /// Gets the quantizer options defining quantization rules.
         /// </summary>
-        bool DoDither { get; }
-
-        /// <summary>
-        /// Gets the  algorithm to apply to the output image.
-        /// </summary>
-        IDither Dither { get; }
+        QuantizerOptions Options { get; }
 
         /// <summary>
         /// Quantize an image frame and return the resulting output pixels.

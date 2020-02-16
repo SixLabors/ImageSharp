@@ -72,7 +72,8 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Use the metadata to determine what quantization depth to use if no quantizer has been set.
             if (options.Quantizer is null)
             {
-                options.Quantizer = new WuQuantizer(ImageMaths.GetColorCountForBitDepth(bits));
+                var maxColors = ImageMaths.GetColorCountForBitDepth(bits);
+                options.Quantizer = new WuQuantizer(new QuantizerOptions { MaxColors = maxColors });
             }
 
             // Create quantized frame returning the palette and set the bit depth.

@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -87,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
             this.writeV4Header = options.SupportTransparency;
-            this.quantizer = options.Quantizer ?? new OctreeQuantizer(dither: true, maxColors: 256);
+            this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
         }
 
         /// <summary>
@@ -335,7 +336,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write8BitColor<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
             where TPixel : struct, IPixel<TPixel>
         {
-            using IFrameQuantizer<TPixel> quantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, 256);
+            using IFrameQuantizer<TPixel> quantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration);
             using IQuantizedFrame<TPixel> quantized = quantizer.QuantizeFrame(image, image.Bounds());
 
             ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;

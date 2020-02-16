@@ -22,9 +22,6 @@ namespace SixLabors.ImageSharp.Tests
         public TestEnvironmentTests(ITestOutputHelper output)
         {
             this.Output = output;
-
-            this.Output.WriteLine($"Test Environment is CI {TestEnvironment.RunsOnCI}");
-            this.Output.WriteLine($"Test Environment is NET Core. {!string.IsNullOrWhiteSpace(TestEnvironment.NetCoreVersion)}");
         }
 
         private ITestOutputHelper Output { get; }

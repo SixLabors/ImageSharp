@@ -428,7 +428,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     FilterMethod = pngFilterMethod,
                     CompressionLevel = compressionLevel,
                     BitDepth = bitDepth,
-                    Quantizer = new WuQuantizer(paletteSize),
+                    Quantizer = new WuQuantizer(new QuantizerOptions { MaxColors = paletteSize }),
                     InterlaceMethod = interlaceMode
                 };
 

@@ -17,11 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public abstract class FrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// Flag used to indicate whether a single pass or two passes are needed for quantization.
-        /// </summary>
         private readonly bool singlePass;
-
         private EuclideanPixelMap<TPixel> pixelMap;
         private bool isDisposed;
 
@@ -29,56 +25,38 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Initializes a new instance of the <see cref="FrameQuantizer{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="quantizer">The quantizer.</param>
+        /// <param name="options">The quantizer options defining quantization rules.</param>
         /// <param name="singlePass">
-        /// If true, the quantization process only needs to loop through the source pixels once.
+        /// If <see langword="true"/>, the quantization process only needs to loop through the source pixels once.
         /// </param>
         /// <remarks>
         /// If you construct this class with a <value>true</value> for <paramref name="singlePass"/>, then the code will
         /// only call the <see cref="SecondPass(ImageFrame{TPixel}, Rectangle, Memory{byte}, ReadOnlyMemory{TPixel})"/> method.
         /// If two passes are required, the code will also call <see cref="FirstPass(ImageFrame{TPixel}, Rectangle)"/>.
         /// </remarks>
-        protected FrameQuantizer(Configuration configuration, IQuantizer quantizer, bool singlePass)
+        protected FrameQuantizer(Configuration configuration, QuantizerOptions options, bool singlePass)
         {
-            Guard.NotNull(quantizer, nameof(quantizer));
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(options, nameof(options));
 
             this.Configuration = configuration;
-            this.Dither = quantizer.Dither;
-            this.DoDither = this.Dither != null;
+            this.Options = options;
+            this.IsDitheringQuantizer = options.Dither != null;
             this.singlePass = singlePass;
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="FrameQuantizer{TPixel}"/> class.
-        /// </summary>
-        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="diffuser">The diffuser</param>
-        /// <param name="singlePass">
-        /// If true, the quantization process only needs to loop through the source pixels once
-        /// </param>
-        /// <remarks>
-        /// If you construct this class with a <value>true</value> for <paramref name="singlePass"/>, then the code will
-        /// only call the <see cref="SecondPass(ImageFrame{TPixel}, Rectangle, Memory{byte}, ReadOnlyMemory{TPixel})"/> method.
-        /// If two passes are required, the code will also call <see cref="FirstPass(ImageFrame{TPixel}, Rectangle)"/>.
-        /// </remarks>
-        protected FrameQuantizer(Configuration configuration, IDither diffuser, bool singlePass)
-        {
-            this.Configuration = configuration;
-            this.Dither = diffuser;
-            this.DoDither = this.Dither != null;
-            this.singlePass = singlePass;
-        }
-
-        /// <inheritdoc />
-        public IDither Dither { get; }
-
-        /// <inheritdoc />
-        public bool DoDither { get; }
+        /// <inheritdoc/>
+        public QuantizerOptions Options { get; }
 
         /// <summary>
         /// Gets the configuration which allows altering default behaviour or extending the library.
         /// </summary>
         protected Configuration Configuration { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the frame quantizer utilizes a dithering method.
+        /// </summary>
+        protected bool IsDitheringQuantizer { get; }
 
         /// <inheritdoc/>
         public void Dispose()
@@ -109,17 +87,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             var quantizedFrame = new QuantizedFrame<TPixel>(memoryAllocator, interest.Width, interest.Height, palette);
 
             Memory<byte> output = quantizedFrame.GetWritablePixelMemory();
-            if (this.DoDither)
+            if (this.Options.Dither is null)
+            {
+                this.SecondPass(image, interest, output, palette);
+            }
+            else
             {
                 // We clone the image as we don't want to alter the original via error diffusion based dithering.
                 using (ImageFrame<TPixel> clone = image.Clone())
                 {
                     this.SecondPass(clone, interest, output, palette);
                 }
-            }
-            else
-            {
-                this.SecondPass(image, interest, output, palette);
             }
 
             return quantizedFrame;
@@ -162,7 +140,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             ReadOnlyMemory<TPixel> palette)
         {
             ReadOnlySpan<TPixel> paletteSpan = palette.Span;
-            if (!this.DoDither)
+            IDither dither = this.Options.Dither;
+
+            if (dither is null)
             {
                 var operation = new RowIntervalOperation(source, output, bounds, this, palette);
                 ParallelRowIterator.IterateRows(
@@ -179,8 +159,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Span<byte> outputSpan = output.Span;
 
             int bitDepth = ImageMaths.GetBitsNeededForColorDepth(paletteSpan.Length);
-            if (this.Dither.DitherType == DitherType.ErrorDiffusion)
+            if (dither.DitherType == DitherType.ErrorDiffusion)
             {
+                float ditherScale = this.Options.DitherScale;
                 int width = bounds.Width;
                 int offsetY = bounds.Top;
                 int offsetX = bounds.Left;
@@ -193,7 +174,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     {
                         TPixel sourcePixel = row[x];
                         outputSpan[rowStart + x - offsetX] = this.GetQuantizedColor(sourcePixel, paletteSpan, out TPixel transformed);
-                        this.Dither.Dither(source, bounds, sourcePixel, transformed, x, y, bitDepth);
+                        dither.Dither(source, bounds, sourcePixel, transformed, x, y, bitDepth, ditherScale);
                     }
                 }
 
@@ -306,7 +287,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 int width = this.bounds.Width;
                 int offsetY = this.bounds.Top;
                 int offsetX = this.bounds.Left;
-                IDither dither = this.quantizer.Dither;
+                IDither dither = this.quantizer.Options.Dither;
+                float scale = this.quantizer.Options.DitherScale;
                 TPixel transformed = default;
 
                 for (int y = rows.Min; y < rows.Max; y++)
@@ -316,7 +298,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        TPixel dithered = dither.Dither(this.source, this.bounds, row[x], transformed, x, y, this.bitDepth);
+                        TPixel dithered = dither.Dither(this.source, this.bounds, row[x], transformed, x, y, this.bitDepth, scale);
                         outputSpan[rowStart + x - offsetX] = this.quantizer.GetQuantizedColor(dithered, paletteSpan, out TPixel _);
                     }
                 }

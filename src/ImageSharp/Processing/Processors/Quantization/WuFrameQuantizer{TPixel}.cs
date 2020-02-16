@@ -96,33 +96,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="quantizer">The Wu quantizer</param>
+        /// <param name="options">The quantizer options defining quantization rules.</param>
         /// <remarks>
         /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
         /// the second pass quantizes a color based on the position in the histogram.
         /// </remarks>
-        public WuFrameQuantizer(Configuration configuration, WuQuantizer quantizer)
-            : this(configuration, quantizer, quantizer.MaxColors)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
-        /// </summary>
-        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="quantizer">The Wu quantizer.</param>
-        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
-        /// <remarks>
-        /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
-        /// the second pass quantizes a color based on the position in the histogram.
-        /// </remarks>
-        public WuFrameQuantizer(Configuration configuration, WuQuantizer quantizer, int maxColors)
-            : base(configuration, quantizer, false)
+        public WuFrameQuantizer(Configuration configuration, QuantizerOptions options)
+            : base(configuration, options, false)
         {
             this.memoryAllocator = this.Configuration.MemoryAllocator;
             this.moments = this.memoryAllocator.Allocate<Moment>(TableLength, AllocationOptions.Clean);
             this.tag = this.memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
-            this.colors = maxColors;
+            this.colors = this.Options.MaxColors;
         }
 
         /// <inheritdoc/>
@@ -185,9 +170,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         [MethodImpl(InliningOptions.ShortMethod)]
         protected override byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
-            if (!this.DoDither)
+            if (!this.IsDitheringQuantizer)
             {
-                // Expected order r->g->b->a
                 Rgba32 rgba = default;
                 color.ToRgba32(ref rgba);
 

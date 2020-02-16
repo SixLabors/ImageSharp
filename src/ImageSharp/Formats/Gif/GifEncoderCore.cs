@@ -144,13 +144,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    using (IFrameQuantizer<TPixel> paletteFrameQuantizer =
-                        new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Dither, quantized.Palette))
+                    using (IFrameQuantizer<TPixel> paletteFrameQuantizer = new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Options, quantized.Palette))
+                    using (IQuantizedFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds()))
                     {
-                        using (IQuantizedFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds()))
-                        {
-                            this.WriteImageData(paletteQuantized, stream);
-                        }
+                        this.WriteImageData(paletteQuantized, stream);
                     }
                 }
             }
@@ -171,7 +168,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     if (previousFrame != null && previousMeta.ColorTableLength != frameMetadata.ColorTableLength
                                               && frameMetadata.ColorTableLength > 0)
                     {
-                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, frameMetadata.ColorTableLength))
+                        var options = new QuantizerOptions
+                        {
+                            Dither = this.quantizer.Options.Dither,
+                            DitherScale = this.quantizer.Options.DitherScale,
+                            MaxColors = frameMetadata.ColorTableLength
+                        };
+
+                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, options))
                         {
                             quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
                         }

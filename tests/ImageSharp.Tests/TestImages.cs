@@ -56,6 +56,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string LowColorVariance = "Png/low-variance.png";
             public const string PngWithMetadata = "Png/PngWithMetaData.png";
             public const string InvalidTextData = "Png/InvalidTextData.png";
+            public const string David = "Png/david.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";

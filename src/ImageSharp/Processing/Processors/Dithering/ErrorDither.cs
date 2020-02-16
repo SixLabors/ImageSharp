@@ -38,7 +38,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             TPixel transformed,
             int x,
             int y,
-            int bitDepth)
+            int bitDepth,
+            float scale)
             where TPixel : struct, IPixel<TPixel>
         {
             // Equal? Break out as there's no error to pass.
@@ -48,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             }
 
             // Calculate the error
-            Vector4 error = source.ToVector4() - transformed.ToVector4();
+            Vector4 error = (source.ToVector4() - transformed.ToVector4()) * scale;
 
             int offset = this.offset;
             DenseMatrix<float> matrix = this.matrix;

@@ -307,8 +307,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 var bounds = new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2);
                 image.Mutate(x => process(x, bounds));
-                image.DebugSave(provider, testOutputDetails);
-                image.CompareToReferenceOutput(comparer, provider, testOutputDetails, appendPixelTypeToFileName: appendPixelTypeToFileName);
+                image.DebugSave(provider, testOutputDetails, appendPixelTypeToFileName: appendPixelTypeToFileName);
+                image.CompareToReferenceOutput(comparer, provider, testOutputDetails: testOutputDetails, appendPixelTypeToFileName: appendPixelTypeToFileName);
             }
         }
 

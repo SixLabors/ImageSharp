@@ -22,29 +22,29 @@ namespace SixLabors.ImageSharp.Tests
             var octree = new OctreeQuantizer();
             var wu = new WuQuantizer();
 
-            Assert.NotNull(werner.Dither);
-            Assert.NotNull(webSafe.Dither);
-            Assert.NotNull(octree.Dither);
-            Assert.NotNull(wu.Dither);
+            Assert.NotNull(werner.Options.Dither);
+            Assert.NotNull(webSafe.Options.Dither);
+            Assert.NotNull(octree.Options.Dither);
+            Assert.NotNull(wu.Options.Dither);
 
             using (IFrameQuantizer<Rgba32> quantizer = werner.CreateFrameQuantizer<Rgba32>(this.Configuration))
             {
-                Assert.True(quantizer.DoDither);
+                Assert.NotNull(quantizer.Options.Dither);
             }
 
             using (IFrameQuantizer<Rgba32> quantizer = webSafe.CreateFrameQuantizer<Rgba32>(this.Configuration))
             {
-                Assert.True(quantizer.DoDither);
+                Assert.NotNull(quantizer.Options.Dither);
             }
 
             using (IFrameQuantizer<Rgba32> quantizer = octree.CreateFrameQuantizer<Rgba32>(this.Configuration))
             {
-                Assert.True(quantizer.DoDither);
+                Assert.NotNull(quantizer.Options.Dither);
             }
 
             using (IFrameQuantizer<Rgba32> quantizer = wu.CreateFrameQuantizer<Rgba32>(this.Configuration))
             {
-                Assert.True(quantizer.DoDither);
+                Assert.NotNull(quantizer.Options.Dither);
             }
         }
 
@@ -58,9 +58,15 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Assert.True(image[0, 0].Equals(default(TPixel)));
+                Assert.True(image[0, 0].Equals(default));
 
-                var quantizer = new OctreeQuantizer(dither);
+                var options = new QuantizerOptions();
+                if (!dither)
+                {
+                    options.Dither = null;
+                }
+
+                var quantizer = new OctreeQuantizer(options);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
@@ -82,9 +88,15 @@ namespace SixLabors.ImageSharp.Tests
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                Assert.True(image[0, 0].Equals(default(TPixel)));
+                Assert.True(image[0, 0].Equals(default));
 
-                var quantizer = new WuQuantizer(dither);
+                var options = new QuantizerOptions();
+                if (!dither)
+                {
+                    options.Dither = null;
+                }
+
+                var quantizer = new WuQuantizer(options);
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {

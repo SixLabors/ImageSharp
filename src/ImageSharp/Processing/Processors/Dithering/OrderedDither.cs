@@ -54,20 +54,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             TPixel transformed,
             int x,
             int y,
-            int bitDepth)
+            int bitDepth,
+            float scale)
             where TPixel : struct, IPixel<TPixel>
         {
-            // TODO: Should we consider a pixel format with a larger coror range?
             Rgba32 rgba = default;
             source.ToRgba32(ref rgba);
             Rgba32 attempt;
 
-            // Srpead assumes an even colorspace distribution and precision.
+            // Spread assumes an even colorspace distribution and precision.
             // Calculated as 0-255/component count. 256 / bitDepth
             // https://bisqwit.iki.fi/story/howto/dither/jy/
             // https://en.wikipedia.org/wiki/Ordered_dithering#Algorithm
             int spread = 256 / bitDepth;
-            float factor = spread * this.thresholdMatrix[y % this.modulusY, x % this.modulusX];
+            float factor = spread * this.thresholdMatrix[y % this.modulusY, x % this.modulusX] * scale;
 
             attempt.R = (byte)(rgba.R + factor).Clamp(byte.MinValue, byte.MaxValue);
             attempt.G = (byte)(rgba.G + factor).Clamp(byte.MinValue, byte.MaxValue);

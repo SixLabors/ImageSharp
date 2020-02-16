@@ -20,6 +20,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         private readonly int paletteLength;
         private readonly int bitDepth;
         private readonly IDither dither;
+        private readonly float ditherScale;
         private readonly ReadOnlyMemory<Color> sourcePalette;
         private IMemoryOwner<TPixel> palette;
         private EuclideanPixelMap<TPixel> pixelMap;
@@ -38,6 +39,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             this.paletteLength = definition.Palette.Span.Length;
             this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(this.paletteLength);
             this.dither = definition.Dither;
+            this.ditherScale = definition.DitherScale;
             this.sourcePalette = definition.Palette;
         }
 
@@ -58,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                     {
                         TPixel sourcePixel = row[x];
                         this.pixelMap.GetClosestColor(sourcePixel, out TPixel transformed);
-                        this.dither.Dither(source, interest, sourcePixel, transformed, x, y, this.bitDepth);
+                        this.dither.Dither(source, interest, sourcePixel, transformed, x, y, this.bitDepth, this.ditherScale);
                         row[x] = transformed;
                     }
                 }
@@ -67,7 +69,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             }
 
             // Ordered dithering. We are only operating on a single pixel so we can work in parallel.
-            var ditherOperation = new DitherRowIntervalOperation(source, interest, this.pixelMap, this.dither, this.bitDepth);
+            var ditherOperation = new DitherRowIntervalOperation(
+                source,
+                interest,
+                this.pixelMap,
+                this.dither,
+                this.ditherScale,
+                this.bitDepth);
+
             ParallelRowIterator.IterateRows(
                 this.Configuration,
                 interest,
@@ -114,6 +123,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             private readonly Rectangle bounds;
             private readonly EuclideanPixelMap<TPixel> pixelMap;
             private readonly IDither dither;
+            private readonly float scale;
             private readonly int bitDepth;
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -122,12 +132,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 Rectangle bounds,
                 EuclideanPixelMap<TPixel> pixelMap,
                 IDither dither,
+                float scale,
                 int bitDepth)
             {
                 this.source = source;
                 this.bounds = bounds;
                 this.pixelMap = pixelMap;
                 this.dither = dither;
+                this.scale = scale;
                 this.bitDepth = bitDepth;
             }
 
@@ -143,7 +155,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        TPixel dithered = dither.Dither(this.source, this.bounds, row[x], transformed, x, y, this.bitDepth);
+                        TPixel dithered = dither.Dither(this.source, this.bounds, row[x], transformed, x, y, this.bitDepth, this.scale);
                         this.pixelMap.GetClosestColor(dithered, out transformed);
                         row[x] = transformed;
                     }

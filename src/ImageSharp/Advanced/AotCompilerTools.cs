@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -82,6 +83,7 @@ namespace SixLabors.ImageSharp.Advanced
             // This is we actually call all the individual methods you need to seed.
             AotCompileOctreeQuantizer<TPixel>();
             AotCompileWuQuantizer<TPixel>();
+            AotCompilePaletteQuantizer<TPixel>();
             AotCompileDithering<TPixel>();
             AotCompilePixelOperations<TPixel>();
 
@@ -109,7 +111,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileOctreeQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var test = new OctreeFrameQuantizer<TPixel>(Configuration.Default, new OctreeQuantizer(false)))
+            using (var test = new OctreeFrameQuantizer<TPixel>(Configuration.Default, new OctreeQuantizer().Options))
             {
                 test.AotGetPalette();
             }
@@ -122,7 +124,22 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileWuQuantizer<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            using (var test = new WuFrameQuantizer<TPixel>(Configuration.Default, new WuQuantizer(false)))
+            using (var test = new WuFrameQuantizer<TPixel>(Configuration.Default, new WuQuantizer().Options))
+            {
+                var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
+                test.QuantizeFrame(frame, frame.Bounds());
+                test.AotGetPalette();
+            }
+        }
+
+        /// <summary>
+        /// This method pre-seeds the PaletteQuantizer in the AoT compiler for iOS.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompilePaletteQuantizer<TPixel>()
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (var test = (PaletteFrameQuantizer<TPixel>)new PaletteQuantizer(Array.Empty<Color>()).CreateFrameQuantizer<TPixel>(Configuration.Default))
             {
                 var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
                 test.QuantizeFrame(frame, frame.Bounds());
@@ -141,7 +158,7 @@ namespace SixLabors.ImageSharp.Advanced
             TPixel pixel = default;
             using (var image = new ImageFrame<TPixel>(Configuration.Default, 1, 1))
             {
-                test.Dither(image, default, pixel, pixel, 0, 0, 0);
+                test.Dither(image, default, pixel, pixel, 0, 0, 0, 0);
             }
         }
 

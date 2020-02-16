@@ -32,9 +32,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         }
 
         /// <summary>
-        /// Gets the dithering algorithm.
+        /// Gets the dithering algorithm to apply to the output image.
         /// </summary>
         public IDither Dither { get; }
+
+        /// <summary>
+        /// Gets the dithering scale used to adjust the amount of dither. Range 0..1.
+        /// </summary>
+        public float DitherScale { get; }
 
         /// <summary>
         /// Gets the palette to select substitute colors from.

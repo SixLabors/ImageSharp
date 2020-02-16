@@ -28,6 +28,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <param name="x">The column index.</param>
         /// <param name="y">The row index.</param>
         /// <param name="bitDepth">The bit depth of the target palette.</param>
+        /// <param name="scale">The dithering scale used to adjust the amount of dither. Range 0..1.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The dithered result for the source pixel.</returns>
         TPixel Dither<TPixel>(
@@ -37,7 +38,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             TPixel transformed,
             int x,
             int y,
-            int bitDepth)
+            int bitDepth,
+            float scale)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

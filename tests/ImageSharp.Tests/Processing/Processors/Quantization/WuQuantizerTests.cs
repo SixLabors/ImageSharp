@@ -13,22 +13,26 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
         [Fact]
         public void WuQuantizerConstructor()
         {
-            var quantizer = new WuQuantizer(128);
+            var expected = new QuantizerOptions { MaxColors = 128 };
+            var quantizer = new WuQuantizer(expected);
 
-            Assert.Equal(128, quantizer.MaxColors);
-            Assert.Equal(KnownDitherings.FloydSteinberg, quantizer.Dither);
+            Assert.Equal(expected.MaxColors, quantizer.Options.MaxColors);
+            Assert.Equal(QuantizerConstants.DefaultDither, quantizer.Options.Dither);
 
-            quantizer = new WuQuantizer(false);
-            Assert.Equal(QuantizerConstants.MaxColors, quantizer.MaxColors);
-            Assert.Null(quantizer.Dither);
+            expected = new QuantizerOptions { Dither = null };
+            quantizer = new WuQuantizer(expected);
+            Assert.Equal(QuantizerConstants.MaxColors, quantizer.Options.MaxColors);
+            Assert.Null(quantizer.Options.Dither);
 
-            quantizer = new WuQuantizer(KnownDitherings.Atkinson);
-            Assert.Equal(QuantizerConstants.MaxColors, quantizer.MaxColors);
-            Assert.Equal(KnownDitherings.Atkinson, quantizer.Dither);
+            expected = new QuantizerOptions { Dither = KnownDitherings.Atkinson };
+            quantizer = new WuQuantizer(expected);
+            Assert.Equal(QuantizerConstants.MaxColors, quantizer.Options.MaxColors);
+            Assert.Equal(KnownDitherings.Atkinson, quantizer.Options.Dither);
 
-            quantizer = new WuQuantizer(KnownDitherings.Atkinson, 128);
-            Assert.Equal(128, quantizer.MaxColors);
-            Assert.Equal(KnownDitherings.Atkinson, quantizer.Dither);
+            expected = new QuantizerOptions { Dither = KnownDitherings.Atkinson, MaxColors = 0 };
+            quantizer = new WuQuantizer(expected);
+            Assert.Equal(QuantizerConstants.MinColors, quantizer.Options.MaxColors);
+            Assert.Equal(KnownDitherings.Atkinson, quantizer.Options.Dither);
         }
 
         [Fact]
@@ -38,23 +42,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
             IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
 
             Assert.NotNull(frameQuantizer);
-            Assert.True(frameQuantizer.DoDither);
-            Assert.Equal(KnownDitherings.FloydSteinberg, frameQuantizer.Dither);
+            Assert.NotNull(frameQuantizer.Options);
+            Assert.Equal(QuantizerConstants.DefaultDither, frameQuantizer.Options.Dither);
             frameQuantizer.Dispose();
 
-            quantizer = new WuQuantizer(false);
+            quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
             frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
 
             Assert.NotNull(frameQuantizer);
-            Assert.False(frameQuantizer.DoDither);
-            Assert.Null(frameQuantizer.Dither);
+            Assert.Null(frameQuantizer.Options.Dither);
             frameQuantizer.Dispose();
 
-            quantizer = new WuQuantizer(KnownDitherings.Atkinson);
+            quantizer = new WuQuantizer(new QuantizerOptions { Dither = KnownDitherings.Atkinson });
             frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
             Assert.NotNull(frameQuantizer);
-            Assert.True(frameQuantizer.DoDither);
-            Assert.Equal(KnownDitherings.Atkinson, frameQuantizer.Dither);
+            Assert.Equal(KnownDitherings.Atkinson, frameQuantizer.Options.Dither);
             frameQuantizer.Dispose();
         }
     }

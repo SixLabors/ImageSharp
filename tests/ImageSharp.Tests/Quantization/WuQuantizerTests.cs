@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
         public void SinglePixelOpaque()
         {
             Configuration config = Configuration.Default;
-            var quantizer = new WuQuantizer(false);
+            var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
 
             using var image = new Image<Rgba32>(config, 1, 1, Color.Black);
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
         public void SinglePixelTransparent()
         {
             Configuration config = Configuration.Default;
-            var quantizer = new WuQuantizer(false);
+            var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
 
             using var image = new Image<Rgba32>(config, 1, 1, default(Rgba32));
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             }
 
             Configuration config = Configuration.Default;
-            var quantizer = new WuQuantizer(false);
+            var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
 
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             using (Image<TPixel> image = provider.GetImage())
             {
                 Configuration config = Configuration.Default;
-                var quantizer = new WuQuantizer(false);
+                var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
                 ImageFrame<TPixel> frame = image.Frames.RootFrame;
 
                 using IFrameQuantizer<TPixel> frameQuantizer = quantizer.CreateFrameQuantizer<TPixel>(config);
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
                 }
 
                 Configuration config = Configuration.Default;
-                var quantizer = new WuQuantizer(false);
+                var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
 
                 ImageFrame<Rgba32> frame = image.Frames.RootFrame;
                 using (IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(config))

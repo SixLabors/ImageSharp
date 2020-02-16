@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
             new WuQuantizer(OrderedDitherOptions),
         };
 
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f);
+        private static readonly ImageComparer ValidatorComparer = GetComparer();
 
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(Quantizers), PixelTypes.Rgba32)]
@@ -193,6 +193,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
                 comparer: ValidatorComparer,
                 testOutputDetails: testOutputDetails,
                 appendPixelTypeToFileName: false);
+        }
+
+        private static ImageComparer GetComparer()
+        {
+            // Net Framework on the CI produces different results than the Core output.
+            if (TestEnvironment.RunsOnCI && string.IsNullOrEmpty(TestEnvironment.NetCoreVersion))
+            {
+                ImageComparer.TolerantPercentage(1.5F);
+            }
+
+            return ImageComparer.TolerantPercentage(0.05F);
         }
     }
 }

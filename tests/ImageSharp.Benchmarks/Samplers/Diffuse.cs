@@ -75,9 +75,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
 //
 // |    Method |       Runtime |     Mean |     Error |   StdDev | Gen 0 | Gen 1 | Gen 2 | Allocated |
 // |---------- |-------------- |---------:|----------:|---------:|------:|------:|------:|----------:|
-// | DoDiffuse |    .NET 4.7.2 | 46.50 ms | 13.734 ms | 0.753 ms |     - |     - |     - |  26.72 KB |
-// |  DoDither |    .NET 4.7.2 | 17.79 ms |  7.705 ms | 0.422 ms |     - |     - |     - |     31 KB |
-// | DoDiffuse | .NET Core 2.1 | 26.45 ms |  1.463 ms | 0.080 ms |     - |     - |     - |  26.03 KB |
-// |  DoDither | .NET Core 2.1 | 10.86 ms |  2.074 ms | 0.114 ms |     - |     - |     - |  29.29 KB |
-// | DoDiffuse | .NET Core 3.1 | 28.44 ms | 84.907 ms | 4.654 ms |     - |     - |     - |  26.01 KB |
-// |  DoDither | .NET Core 3.1 | 10.50 ms |  5.698 ms | 0.312 ms |     - |     - |     - |  30.94 KB |
+// | DoDiffuse |    .NET 4.7.2 | 40.32 ms | 16.788 ms | 0.920 ms |     - |     - |     - |  26.46 KB |
+// |  DoDither |    .NET 4.7.2 | 12.86 ms |  3.066 ms | 0.168 ms |     - |     - |     - |  30.75 KB |
+// | DoDiffuse | .NET Core 2.1 | 27.09 ms |  3.180 ms | 0.174 ms |     - |     - |     - |  26.04 KB |
+// |  DoDither | .NET Core 2.1 | 12.89 ms | 34.535 ms | 1.893 ms |     - |     - |     - |  29.26 KB |
+// | DoDiffuse | .NET Core 3.1 | 27.39 ms |  2.699 ms | 0.148 ms |     - |     - |     - |  26.02 KB |
+// |  DoDither | .NET Core 3.1 | 12.50 ms |  5.083 ms | 0.279 ms |     - |     - |     - |  30.96 KB |

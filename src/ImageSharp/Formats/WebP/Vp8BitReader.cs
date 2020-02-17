@@ -84,8 +84,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public int GetBit(int prob)
         {
-            Guard.MustBeGreaterThan(prob, 0, nameof(prob));
-
             uint range = this.range;
             if (this.bits < 0)
             {

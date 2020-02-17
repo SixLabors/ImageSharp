@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.SegmentHeader = segmentHeader;
             this.Probabilities = probabilities;
             this.IntraL = new byte[4];
-            this.YuvBuffer = new byte[(WebPConstants.Bps * 17) + (WebPConstants.Bps * 9)];
+            this.YuvBuffer = new byte[2000]; // new byte[(WebPConstants.Bps * 17) + (WebPConstants.Bps * 9)];
             this.MbWidth = (int)((this.PictureHeader.Width + 15) >> 4);
             this.MbHeight = (int)((this.PictureHeader.Height + 15) >> 4);
             this.CacheYStride = 16 * this.MbWidth;
@@ -57,6 +57,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.TmpUBuffer = new byte[width * height]; // TODO: figure out min buffer length
             this.TmpVBuffer = new byte[width * height]; // TODO: figure out min buffer length
             this.Bgr = new byte[width * height * 4];
+
+            for (int i = 0; i < this.YuvBuffer.Length; i++)
+            {
+                this.YuvBuffer[i] = 205;
+            }
+
+            for (int i = 0; i < this.CacheY.Length; i++)
+            {
+                this.CacheY[i] = 205;
+                this.CacheU[i] = 205;
+                this.CacheV[i] = 205;
+            }
 
             this.Vp8BitReaders = new Vp8BitReader[WebPConstants.MaxNumPartitions];
             this.Init(io);
@@ -176,11 +188,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         public Vp8FilterInfo[] FilterInfo { get; set; }
 
+        private Vp8MacroBlock leftMacroBlock;
+
         public Vp8MacroBlock CurrentMacroBlock
         {
             get
             {
-                return this.MacroBlockInfo[this.MbX + 1];
+                return this.MacroBlockInfo[this.MbX];
             }
         }
 
@@ -188,7 +202,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             get
             {
-                return this.MacroBlockInfo[this.MbX];
+                if (this.leftMacroBlock is null)
+                {
+                    this.leftMacroBlock = new Vp8MacroBlock();
+                }
+
+                return this.leftMacroBlock;
             }
         }
 

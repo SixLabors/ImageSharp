@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -129,15 +130,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void ParseIntraMode(Vp8Decoder dec, int mbX)
         {
             Vp8MacroBlockData block = dec.MacroBlockData[mbX];
+            Span<byte> top = dec.IntraT.AsSpan(4 * mbX, 4);
             byte[] left = dec.IntraL;
-            byte[] top = dec.IntraT;
 
             if (dec.SegmentHeader.UpdateMap)
             {
                 // Hardcoded tree parsing.
-                block.Segment = this.bitReader.GetBit((int)dec.Probabilities.Segments[0]) != 0
+                block.Segment = this.bitReader.GetBit((int)dec.Probabilities.Segments[0]) is 0
                                     ? (byte)this.bitReader.GetBit((int)dec.Probabilities.Segments[1])
-                                    : (byte)this.bitReader.GetBit((int)dec.Probabilities.Segments[2]);
+                                    : (byte)(this.bitReader.GetBit((int)dec.Probabilities.Segments[2]) + 2);
             }
             else
             {
@@ -154,9 +155,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (!block.IsI4x4)
             {
                 // Hardcoded 16x16 intra-mode decision tree.
-                int yMode = this.bitReader.GetBit(156) > 0 ?
-                                this.bitReader.GetBit(128) > 0 ? WebPConstants.TmPred : WebPConstants.HPred :
-                                this.bitReader.GetBit(163) > 0 ? WebPConstants.VPred : WebPConstants.DcPred;
+                int yMode = this.bitReader.GetBit(156) != 0 ?
+                                this.bitReader.GetBit(128) != 0 ? WebPConstants.TmPred : WebPConstants.HPred :
+                                this.bitReader.GetBit(163) != 0 ? WebPConstants.VPred : WebPConstants.DcPred;
                 block.Modes[0] = (byte)yMode;
                 for (int i = 0; i < left.Length; i++)
                 {
@@ -192,12 +193,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Hardcoded UVMode decision tree.
             block.UvMode = (byte)(this.bitReader.GetBit(142) is 0 ? 0 :
                            this.bitReader.GetBit(114) is 0 ? 2 :
-                           this.bitReader.GetBit(183) > 0 ? 1 : 3);
+                           this.bitReader.GetBit(183) != 0 ? 1 : 3);
         }
 
         private void InitScanline(Vp8Decoder dec)
         {
-            Vp8MacroBlock left = dec.MacroBlockInfo[0];
+            Vp8MacroBlock left = dec.LeftMacroBlock;
             left.NoneZeroAcDcCoeffs = 0;
             left.NoneZeroDcCoeffs = 0;
             for (int i = 0; i < dec.IntraL.Length; i++)
@@ -312,6 +313,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 if (block.IsI4x4)
                 {
                     // uint32_t* const top_right = (uint32_t*)(y_dst - BPS + 16);
+                    Span<uint> topRight = MemoryMarshal.Cast<byte, uint>(yuv.AsSpan(yOff - WebPConstants.Bps + 16));
                     if (mby > 0)
                     {
                         if (mbx >= dec.MbWidth - 1)
@@ -326,45 +328,45 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     }
 
                     // Replicate the top-right pixels below.
-                    // top_right[BPS] = top_right[2 * BPS] = top_right[3 * BPS] = top_right[0];
+                    //topRight[WebPConstants.Bps] = topRight[2 * WebPConstants.Bps] = topRight[3 * WebPConstants.Bps] = topRight[0];
 
                     // Predict and add residuals for all 4x4 blocks in turn.
                     for (int n = 0; n < 16; ++n, bits <<= 2)
                     {
-                        // uint8_t * const dst = y_dst + kScan[n];
-                        Span<byte> dst = yDst.Slice(WebPConstants.Scan[n]);
+                        int offset = yOff + WebPConstants.Scan[n];
+                        Span<byte> dst = yuv.AsSpan(offset);
                         byte lumaMode = block.Modes[n];
                         switch (lumaMode)
                         {
                             case 0:
-                                LossyUtils.DC4_C(dst);
+                                LossyUtils.DC4_C(dst, yuv, offset);
                                 break;
                             case 1:
                                 LossyUtils.TM4_C(dst);
                                 break;
                             case 2:
-                                LossyUtils.VE4_C(dst);
+                                LossyUtils.VE4_C(dst, yuv, offset);
                                 break;
                             case 3:
-                                LossyUtils.HE4_C(dst);
+                                LossyUtils.HE4_C(dst, yuv, offset);
                                 break;
                             case 4:
-                                LossyUtils.RD4_C(dst);
+                                LossyUtils.RD4_C(dst, yuv, offset);
                                 break;
                             case 5:
-                                LossyUtils.VR4_C(dst);
+                                LossyUtils.VR4_C(dst, yuv, offset);
                                 break;
                             case 6:
-                                LossyUtils.LD4_C(dst);
+                                LossyUtils.LD4_C(dst, yuv, offset);
                                 break;
                             case 7:
-                                LossyUtils.VL4_C(dst);
+                                LossyUtils.VL4_C(dst, yuv, offset);
                                 break;
                             case 8:
-                                LossyUtils.HD4_C(dst);
+                                LossyUtils.HD4_C(dst, yuv, offset);
                                 break;
                             case 9:
-                                LossyUtils.HU4_C(dst);
+                                LossyUtils.HU4_C(dst, yuv, offset);
                                 break;
                         }
 
@@ -423,8 +425,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         LossyUtils.TM8uv_C(vDst);
                         break;
                     case 2:
-                        LossyUtils.VE8uv_C(uDst, yuv.AsSpan(uOff - WebPConstants.Bps, 8));
-                        LossyUtils.VE8uv_C(vDst, yuv.AsSpan(vOff - WebPConstants.Bps, 8));
+                        LossyUtils.VE8uv_C(uDst, yuv, uOff);
+                        LossyUtils.VE8uv_C(vDst, yuv, vOff);
                         break;
                     case 3:
                         LossyUtils.HE8uv_C(uDst, yuv, uOff);
@@ -647,7 +649,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 luv = uv;
             }
 
-            /*if ((len & 1) is 0)
+            if ((len & 1) is 0)
             {
                 uv0 = ((3 * tluv) + luv + 0x00020002u) >> 2;
                 LossyUtils.YuvToBgr(topY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((len - 1) * xStep));
@@ -656,7 +658,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     uv0 = ((3 * luv) + tluv + 0x00020002u) >> 2;
                     LossyUtils.YuvToBgr(bottomY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((len - 1) * xStep));
                 }
-            }*/
+            }
         }
 
         private void DoTransform(uint bits, Span<short> src, Span<byte> dst)
@@ -773,6 +775,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
                 else
                 {
+                    // Only DC is non-zero -> inlined simplified transform.
                     int dc0 = (dc[0] + 3) >> 3;
                     for (int i = 0; i < 16 * 16; i += 16)
                     {
@@ -930,7 +933,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 else
                 {
                     int bit1 = br.GetBit(p[8]);
-                    int bit0 = br.GetBit(p[9] + bit1);
+                    int bit0 = br.GetBit(p[9 + bit1]);
                     int cat = (2 * bit1) + bit0;
                     v = 0;
                     byte[] tab = null;
@@ -1016,14 +1019,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     for (int i = 0; i < vp8SegmentHeader.Quantizer.Length; i++)
                     {
                         hasValue = this.bitReader.ReadBool();
-                        uint quantizeValue = hasValue ? this.bitReader.ReadValue(7) : 0;
+                        int quantizeValue = hasValue ? this.bitReader.ReadSignedValue(7) : 0;
                         vp8SegmentHeader.Quantizer[i] = (byte)quantizeValue;
                     }
 
                     for (int i = 0; i < vp8SegmentHeader.FilterStrength.Length; i++)
                     {
                         hasValue = this.bitReader.ReadBool();
-                        uint filterStrengthValue = hasValue ? this.bitReader.ReadValue(6) : 0;
+                        int filterStrengthValue = hasValue ? this.bitReader.ReadSignedValue(6) : 0;
                         vp8SegmentHeader.FilterStrength[i] = (byte)filterStrengthValue;
                     }
 

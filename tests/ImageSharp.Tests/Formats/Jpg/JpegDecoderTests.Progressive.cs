@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 if (!string.IsNullOrEmpty(nonContiguousBuffersStr))
                 {
-                    provider.LimitAllocatorBufferCapacity().InBytes(200);
+                    provider.LimitAllocatorBufferCapacity().InBytesSqrt(200);
                 }
 
                 using Image<TPixel> image = provider.GetImage(JpegDecoder);

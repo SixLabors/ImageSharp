@@ -763,19 +763,19 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
-        /// Set the maximum buffer capacity to (areaDimensionBytes x areaDimensionBytes) bytes.
+        /// Set the maximum buffer capacity to bytesSqrt^2 bytes.
         /// </summary>
-        public void InBytes(int areaDimensionBytes)
+        public void InBytesSqrt(int bytesSqrt)
         {
-            this.allocator.BufferCapacityInBytes = areaDimensionBytes * areaDimensionBytes;
+            this.allocator.BufferCapacityInBytes = bytesSqrt * bytesSqrt;
         }
 
         /// <summary>
-        /// Set the maximum buffer capacity to (areaDimensionPixels x areaDimensionPixels x size of the pixel) bytes.
+        /// Set the maximum buffer capacity to pixelsSqrt^2 x sizeof(TPixel) bytes.
         /// </summary>
-        public void InPixels(int areaDimensionPixels)
+        public void InPixelsSqrt(int pixelsSqrt)
         {
-            this.allocator.BufferCapacityInBytes = areaDimensionPixels * areaDimensionPixels * this.pixelSizeInBytes;
+            this.allocator.BufferCapacityInBytes = pixelsSqrt * pixelsSqrt * this.pixelSizeInBytes;
         }
     }
 }

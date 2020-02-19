@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
             public void OwnedMemory_PixelDataIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
                 where TPixel : struct, IPixel<TPixel>
             {
-                provider.LimitAllocatorBufferCapacity().InPixels(200);
+                provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
 
                 using Image<TPixel> image = provider.GetImage();
 
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         public void GetPixelRowMemory_PixelDataIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.LimitAllocatorBufferCapacity().InPixels(200);
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
 
             using Image<TPixel> image = provider.GetImage();
 
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         public void GetPixelRowSpan_ShouldReferenceSpanOfMemory<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.LimitAllocatorBufferCapacity().InPixels(200);
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
 
             using Image<TPixel> image = provider.GetImage();
 

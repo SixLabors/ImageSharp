@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing
             source.ApplyProcessor(new PaletteDitherProcessor(dither, ditherScale, palette));
 
         /// <summary>
-        /// Dithers the image reducing it to a web-safe palette using <see cref="KnownDitherings.Bayer4x4"/>.
+        /// Dithers the image reducing it to a web-safe palette using <see cref="KnownDitherings.Bayer8x8"/>.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="rectangle">
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Dither(this IImageProcessingContext source, Rectangle rectangle) =>
-            Dither(source, KnownDitherings.Bayer4x4, rectangle);
+            Dither(source, KnownDitherings.Bayer8x8, rectangle);
 
         /// <summary>
         /// Dithers the image reducing it to a web-safe palette using ordered dithering.

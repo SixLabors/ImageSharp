@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
                 if (!string.IsNullOrEmpty(nonContiguousBuffersStr))
                 {
-                    provider.LimitAllocatorBufferCapacity().InPixels(100);
+                    provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
                 }
 
                 using Image<TPixel> image = provider.GetImage(BmpDecoder);
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.LimitAllocatorBufferCapacity().InPixels(10);
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
             ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(BmpDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
@@ -261,7 +261,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         {
             if (enforceDiscontiguousBuffers)
             {
-                provider.LimitAllocatorBufferCapacity().InBytes(400);
+                provider.LimitAllocatorBufferCapacity().InBytesSqrt(400);
             }
 
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette }))
@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         {
             if (enforceNonContiguous)
             {
-                provider.LimitAllocatorBufferCapacity().InBytes(400);
+                provider.LimitAllocatorBufferCapacity().InBytesSqrt(400);
             }
 
             using (Image<TPixel> image = provider.GetImage(new BmpDecoder { RleSkippedPixelHandling = RleSkippedPixelHandling.Black }))

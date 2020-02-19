@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
                     using (IFrameQuantizer<TPixel> frameQuantizer = quantizer.CreateFrameQuantizer<TPixel>(this.Configuration))
-                    using (IQuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
+                    using (QuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
                     {
                         int index = this.GetTransparentIndex(quantized);
                         Assert.Equal(index, quantized.GetPixelSpan()[0]);
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
                     using (IFrameQuantizer<TPixel> frameQuantizer = quantizer.CreateFrameQuantizer<TPixel>(this.Configuration))
-                    using (IQuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
+                    using (QuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
                     {
                         int index = this.GetTransparentIndex(quantized);
                         Assert.Equal(index, quantized.GetPixelSpan()[0]);
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        private int GetTransparentIndex<TPixel>(IQuantizedFrame<TPixel> quantized)
+        private int GetTransparentIndex<TPixel>(QuantizedFrame<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette

@@ -17,32 +17,32 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
         public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial, TestImages.Png.Bike };
 
-        public static readonly TheoryData<IDither> ErrorDiffusers
-            = new TheoryData<IDither>
+        public static readonly TheoryData<IDither, string> ErrorDiffusers
+            = new TheoryData<IDither, string>
             {
-                KnownDitherings.Atkinson,
-                KnownDitherings.Burks,
-                KnownDitherings.FloydSteinberg,
-                KnownDitherings.JarvisJudiceNinke,
-                KnownDitherings.Sierra2,
-                KnownDitherings.Sierra3,
-                KnownDitherings.SierraLite,
-                KnownDitherings.StevensonArce,
-                KnownDitherings.Stucki,
+                { KnownDitherings.Atkinson, nameof(KnownDitherings.Atkinson) },
+                { KnownDitherings.Burks, nameof(KnownDitherings.Burks) },
+                { KnownDitherings.FloydSteinberg, nameof(KnownDitherings.FloydSteinberg) },
+                { KnownDitherings.JarvisJudiceNinke, nameof(KnownDitherings.JarvisJudiceNinke) },
+                { KnownDitherings.Sierra2, nameof(KnownDitherings.Sierra2) },
+                { KnownDitherings.Sierra3, nameof(KnownDitherings.Sierra3) },
+                { KnownDitherings.SierraLite, nameof(KnownDitherings.SierraLite) },
+                { KnownDitherings.StevensonArce, nameof(KnownDitherings.StevensonArce) },
+                { KnownDitherings.Stucki, nameof(KnownDitherings.Stucki) },
             };
 
-        public static readonly TheoryData<IDither> OrderedDitherers
-            = new TheoryData<IDither>
+        public static readonly TheoryData<IDither, string> OrderedDitherers
+            = new TheoryData<IDither,string>
             {
-                KnownDitherings.BayerDither8x8,
-                KnownDitherings.BayerDither4x4,
-                KnownDitherings.OrderedDither3x3,
-                KnownDitherings.BayerDither2x2
+                { KnownDitherings.Bayer2x2, nameof(KnownDitherings.Bayer2x2) },
+                { KnownDitherings.Bayer4x4, nameof(KnownDitherings.Bayer4x4) },
+                { KnownDitherings.Bayer8x8, nameof(KnownDitherings.Bayer8x8) },
+                { KnownDitherings.Ordered3x3, nameof(KnownDitherings.Ordered3x3) }
             };
 
         private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f);
 
-        private static IDither DefaultDitherer => KnownDitherings.BayerDither4x4;
+        private static IDither DefaultDitherer => KnownDitherings.Bayer4x4;
 
         private static IDither DefaultErrorDiffuser => KnownDitherings.Atkinson;
 
@@ -102,7 +102,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [WithFileCollection(nameof(CommonTestImages), nameof(ErrorDiffusers), PixelTypes.Rgba32)]
         public void DiffusionFilter_WorksWithAllErrorDiffusers<TPixel>(
             TestImageProvider<TPixel> provider,
-            IDither diffuser)
+            IDither diffuser,
+            string name)
             where TPixel : struct, IPixel<TPixel>
         {
             if (SkipAllDitherTests)
@@ -112,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
             provider.RunValidatingProcessorTest(
                 x => x.Dither(diffuser),
-                testOutputDetails: diffuser.GetType().Name,
+                testOutputDetails: name,
                 comparer: ValidatorComparer,
                 appendPixelTypeToFileName: false);
         }
@@ -136,7 +137,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), PixelTypes.Rgba32)]
         public void DitherFilter_WorksWithAllDitherers<TPixel>(
             TestImageProvider<TPixel> provider,
-            IDither ditherer)
+            IDither ditherer,
+            string name)
             where TPixel : struct, IPixel<TPixel>
         {
             if (SkipAllDitherTests)
@@ -146,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
             provider.RunValidatingProcessorTest(
                 x => x.Dither(ditherer),
-                testOutputDetails: ditherer.GetType().Name,
+                testOutputDetails: name,
                 comparer: ValidatorComparer,
                 appendPixelTypeToFileName: false);
         }

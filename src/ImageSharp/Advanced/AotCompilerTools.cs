@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -113,7 +114,8 @@ namespace SixLabors.ImageSharp.Advanced
         {
             using (var test = new OctreeFrameQuantizer<TPixel>(Configuration.Default, new OctreeQuantizer().Options))
             {
-                test.AotGetPalette();
+                var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
+                test.QuantizeFrame(frame, frame.Bounds());
             }
         }
 
@@ -128,7 +130,6 @@ namespace SixLabors.ImageSharp.Advanced
             {
                 var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
                 test.QuantizeFrame(frame, frame.Bounds());
-                test.AotGetPalette();
             }
         }
 
@@ -143,7 +144,6 @@ namespace SixLabors.ImageSharp.Advanced
             {
                 var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
                 test.QuantizeFrame(frame, frame.Bounds());
-                test.AotGetPalette();
             }
         }
 
@@ -154,11 +154,13 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileDithering<TPixel>()
             where TPixel : struct, IPixel<TPixel>
         {
-            var test = new FloydSteinbergDither();
+            ErrorDither errorDither = ErrorDither.FloydSteinberg;
+            OrderedDither orderedDither = OrderedDither.Bayer2x2;
             TPixel pixel = default;
             using (var image = new ImageFrame<TPixel>(Configuration.Default, 1, 1))
             {
-                test.Dither(image, default, pixel, pixel, 0, 0, 0, 0);
+                errorDither.Dither(image, image.Bounds(), pixel, pixel, 0, 0, 0);
+                orderedDither.Dither(pixel, 0, 0, 0, 0);
             }
         }
 

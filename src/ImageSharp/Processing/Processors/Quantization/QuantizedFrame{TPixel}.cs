@@ -13,10 +13,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// Represents a quantized image frame where the pixels indexed by a color palette.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class QuantizedFrame<TPixel> : IQuantizedFrame<TPixel>
+    public sealed class QuantizedFrame<TPixel> : IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
         private IMemoryOwner<byte> pixels;
+        private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="QuantizedFrame{TPixel}"/> class.
@@ -58,16 +59,32 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         [MethodImpl(InliningOptions.ShortMethod)]
         public ReadOnlySpan<byte> GetPixelSpan() => this.pixels.GetSpan();
 
+        /// <summary>
+        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
+        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
+        /// </summary>
+        /// <param name="rowIndex">The row.</param>
+        /// <returns>The pixel row as a <see cref="ReadOnlySpan{T}"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public ReadOnlySpan<byte> GetRowSpan(int rowIndex)
+            => this.GetPixelSpan().Slice(rowIndex * this.Width, this.Width);
+
         /// <inheritdoc/>
         public void Dispose()
         {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.isDisposed = true;
             this.pixels?.Dispose();
             this.pixels = null;
             this.Palette = null;
         }
 
         /// <summary>
-        /// Get the non-readonly memory of pixel data so <see cref="FrameQuantizer{TPixel}"/> can fill it.
+        /// Get the non-readonly memory of pixel data so <see cref="IFrameQuantizer{TPixel}"/> can fill it.
         /// </summary>
         internal Memory<byte> GetWritablePixelMemory() => this.pixels.Memory;
     }

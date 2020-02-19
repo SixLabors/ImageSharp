@@ -15,9 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="quantizer">The quantizer used to reduce the color palette.</param>
         public QuantizeProcessor(IQuantizer quantizer)
-        {
-            this.Quantizer = quantizer;
-        }
+            => this.Quantizer = quantizer;
 
         /// <summary>
         /// Gets the quantizer.

@@ -410,7 +410,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void Encode_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.LimitAllocatorBufferCapacity().InPixels(200);
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
                 TestPngEncoderCore(

@@ -249,7 +249,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void PngDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
-            provider.LimitAllocatorBufferCapacity().InPixels(10);
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
             ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(PngDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
@@ -264,7 +264,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             {
                 TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
 
-                provider.LimitAllocatorBufferCapacity().InPixels(100);
+                provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
                 using Image<TPixel> image = provider.GetImage(PngDecoder);
                 image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);

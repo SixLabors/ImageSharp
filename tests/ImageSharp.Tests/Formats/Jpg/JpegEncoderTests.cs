@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 ? ImageComparer.TolerantPercentage(0.1f)
                 : ImageComparer.TolerantPercentage(5f);
 
-            provider.LimitAllocatorBufferCapacity().InBytes(200);
+            provider.LimitAllocatorBufferCapacity().InBytesSqrt(200);
             TestJpegEncoderCore(provider, subsample, 100, comparer);
         }
 

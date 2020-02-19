@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         {
             if (limitAllocationBuffer)
             {
-                provider.LimitAllocatorBufferCapacity().InPixels(100);
+                provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
             }
 
             using (Image<TPixel> image = provider.GetImage())

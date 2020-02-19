@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             Configuration configuration = this.Configuration;
             using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(configuration);
-            using IQuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source, interest);
+            using QuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source, interest);
 
             var operation = new RowIntervalOperation(this.SourceRectangle, source, quantized);
             ParallelRowIterator.IterateRows(
@@ -52,13 +52,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             private readonly Rectangle bounds;
             private readonly ImageFrame<TPixel> source;
-            private readonly IQuantizedFrame<TPixel> quantized;
+            private readonly QuantizedFrame<TPixel> quantized;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalOperation(
                 Rectangle bounds,
                 ImageFrame<TPixel> source,
-                IQuantizedFrame<TPixel> quantized)
+                QuantizedFrame<TPixel> quantized)
             {
                 this.bounds = bounds;
                 this.source = source;

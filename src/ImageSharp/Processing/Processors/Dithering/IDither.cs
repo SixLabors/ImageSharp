@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
@@ -11,34 +13,40 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     public interface IDither
     {
         /// <summary>
-        /// Gets the <see cref="Dithering.DitherType"/> which determines whether the
-        /// transformed color should be calculated and supplied to the algorithm.
+        /// Transforms the quantized image frame applying a dither matrix.
+        /// This method should be treated as destructive, altering the input pixels.
         /// </summary>
-        public DitherType DitherType { get; }
+        /// <typeparam name="TFrameQuantizer">The type of frame quantizer.</typeparam>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="quantizer">The frame quantizer.</param>
+        /// <param name="palette">The quantized palette.</param>
+        /// <param name="source">The source image.</param>
+        /// <param name="output">The output target</param>
+        /// <param name="bounds">The region of interest bounds.</param>
+        void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
+            ref TFrameQuantizer quantizer,
+            ReadOnlyMemory<TPixel> palette,
+            ImageFrame<TPixel> source,
+            Memory<byte> output,
+            Rectangle bounds)
+            where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
+            where TPixel : struct, IPixel<TPixel>;
 
         /// <summary>
-        /// Transforms the image applying a dither matrix.
-        /// When <see cref="DitherType"/> is <see cref="DitherType.ErrorDiffusion"/> this
-        /// this method is destructive and will alter the input pixels.
+        /// Transforms the image frame applying a dither matrix.
+        /// This method should be treated as destructive, altering the input pixels.
         /// </summary>
-        /// <param name="image">The image.</param>
-        /// <param name="bounds">The region of interest bounds.</param>
-        /// <param name="source">The source pixel</param>
-        /// <param name="transformed">The transformed pixel</param>
-        /// <param name="x">The column index.</param>
-        /// <param name="y">The row index.</param>
-        /// <param name="bitDepth">The bit depth of the target palette.</param>
-        /// <param name="scale">The dithering scale used to adjust the amount of dither. Range 0..1.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>The dithered result for the source pixel.</returns>
-        TPixel Dither<TPixel>(
-            ImageFrame<TPixel> image,
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="palette">The quantized palette.</param>
+        /// <param name="source">The source image.</param>
+        /// <param name="bounds">The region of interest bounds.</param>
+        /// <param name="scale">The dithering scale used to adjust the amount of dither. Range 0..1.</param>
+        void ApplyPaletteDither<TPixel>(
+            Configuration configuration,
+            ReadOnlyMemory<TPixel> palette,
+            ImageFrame<TPixel> source,
             Rectangle bounds,
-            TPixel source,
-            TPixel transformed,
-            int x,
-            int y,
-            int bitDepth,
             float scale)
             where TPixel : struct, IPixel<TPixel>;
     }

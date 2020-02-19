@@ -17,42 +17,48 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class OctreeFrameQuantizer<TPixel> : FrameQuantizer<TPixel>
+    public struct OctreeFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        /// <summary>
-        /// Maximum allowed color depth
-        /// </summary>
         private readonly int colors;
-
-        /// <summary>
-        /// Stores the tree
-        /// </summary>
         private readonly Octree octree;
+        private EuclideanPixelMap<TPixel> pixelMap;
+        private readonly bool isDithering;
 
         /// <summary>
-        /// The reduced image palette
-        /// </summary>
-        private TPixel[] palette;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="OctreeFrameQuantizer{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="OctreeFrameQuantizer{TPixel}"/> struct.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="options">The quantizer options defining quantization rules.</param>
-        /// <remarks>
-        /// The Octree quantizer is a two pass algorithm. The initial pass sets up the Octree,
-        /// the second pass quantizes a color based on the nodes in the tree
-        /// </remarks>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public OctreeFrameQuantizer(Configuration configuration, QuantizerOptions options)
-            : base(configuration, options, false)
         {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(options, nameof(options));
+
+            this.Configuration = configuration;
+            this.Options = options;
+
             this.colors = this.Options.MaxColors;
             this.octree = new Octree(ImageMaths.GetBitsNeededForColorDepth(this.colors).Clamp(1, 8));
+            this.pixelMap = default;
+            this.isDithering = !(this.Options.Dither is null);
         }
 
         /// <inheritdoc/>
-        protected override void FirstPass(ImageFrame<TPixel> source, Rectangle bounds)
+        public Configuration Configuration { get; }
+
+        /// <inheritdoc/>
+        public QuantizerOptions Options { get; }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => FrameQuantizerExtensions.QuantizeFrame(ref this, source, bounds);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
         {
             using IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(bounds.Width);
             Span<Rgba32> bufferSpan = buffer.GetSpan();
@@ -71,31 +77,34 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     this.octree.AddColor(rgba);
                 }
             }
+
+            TPixel[] palette = this.octree.Palletize(this.colors);
+            this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
+
+            return palette;
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        protected override byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+        public byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
             // Octree only maps the RGB component of a color
             // so cannot tell the difference between a fully transparent
             // pixel and a black one.
-            if (!this.IsDitheringQuantizer && !color.Equals(default))
+            if (!this.isDithering && !color.Equals(default))
             {
                 var index = (byte)this.octree.GetPaletteIndex(color);
                 match = palette[index];
                 return index;
             }
 
-            return base.GetQuantizedColor(color, palette, out match);
+            return (byte)this.pixelMap.GetClosestColor(color, out match);
         }
 
-        internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GenerateQuantizedPalette();
-
         /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        protected override ReadOnlyMemory<TPixel> GenerateQuantizedPalette()
-            => this.palette ?? (this.palette = this.octree.Palletize(this.colors));
+        public void Dispose()
+        {
+        }
 
         /// <summary>
         /// Class which does the actual quantization.

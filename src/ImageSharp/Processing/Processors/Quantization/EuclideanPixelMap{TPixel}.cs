@@ -7,23 +7,31 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Processing.Processors.Dithering
+namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
     /// <summary>
     /// Gets the closest color to the supplied color based upon the Eucladean distance.
+    /// TODO: Expose this somehow.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class EuclideanPixelMap<TPixel>
+    internal readonly struct EuclideanPixelMap<TPixel> : IPixelMap<TPixel>, IEquatable<EuclideanPixelMap<TPixel>>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly ReadOnlyMemory<TPixel> palette;
-        private readonly ConcurrentDictionary<int, Vector4> vectorCache = new ConcurrentDictionary<int, Vector4>();
-        private readonly ConcurrentDictionary<TPixel, byte> distanceCache = new ConcurrentDictionary<TPixel, byte>();
+        private readonly ConcurrentDictionary<int, Vector4> vectorCache;
+        private readonly ConcurrentDictionary<TPixel, int> distanceCache;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EuclideanPixelMap{TPixel}"/> struct.
+        /// </summary>
+        /// <param name="palette">The color palette to map from.</param>
         public EuclideanPixelMap(ReadOnlyMemory<TPixel> palette)
         {
-            this.palette = palette;
-            ReadOnlySpan<TPixel> paletteSpan = this.palette.Span;
+            Guard.MustBeGreaterThan(palette.Length, 0, nameof(palette));
+
+            this.Palette = palette;
+            ReadOnlySpan<TPixel> paletteSpan = this.Palette.Span;
+            this.vectorCache = new ConcurrentDictionary<int, Vector4>();
+            this.distanceCache = new ConcurrentDictionary<TPixel, int>();
 
             for (int i = 0; i < paletteSpan.Length; i++)
             {
@@ -31,13 +39,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             }
         }
 
+        /// <inheritdoc/>
+        public ReadOnlyMemory<TPixel> Palette { get; }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+            => obj is EuclideanPixelMap<TPixel> map && this.Equals(map);
+
+        /// <inheritdoc/>
+        public bool Equals(EuclideanPixelMap<TPixel> other)
+            => this.Palette.Equals(other.Palette);
+
+        /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public byte GetClosestColor(TPixel color, out TPixel match)
+        public int GetClosestColor(TPixel color, out TPixel match)
         {
-            ReadOnlySpan<TPixel> paletteSpan = this.palette.Span;
+            ReadOnlySpan<TPixel> paletteSpan = this.Palette.Span;
 
             // Check if the color is in the lookup table
-            if (this.distanceCache.TryGetValue(color, out byte index))
+            if (this.distanceCache.TryGetValue(color, out int index))
             {
                 match = paletteSpan[index];
                 return index;
@@ -46,8 +66,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             return this.GetClosestColorSlow(color, paletteSpan, out match);
         }
 
+        /// <inheritdoc/>
+        public override int GetHashCode()
+            => this.vectorCache.GetHashCode();
+
         [MethodImpl(InliningOptions.ShortMethod)]
-        private byte GetClosestColorSlow(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+        private int GetClosestColorSlow(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
             // Loop through the palette and find the nearest match.
             int index = 0;
@@ -74,10 +98,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             }
 
             // Now I have the index, pop it into the cache for next time
-            var result = (byte)index;
-            this.distanceCache[color] = result;
+            this.distanceCache[color] = index;
             match = palette[index];
-            return result;
+            return index;
         }
     }
 }

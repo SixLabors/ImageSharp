@@ -6,8 +6,6 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -81,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
 
             // Quantize the image returning a palette.
-            IQuantizedFrame<TPixel> quantized;
+            QuantizedFrame<TPixel> quantized;
             using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration))
             {
                 quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
@@ -127,7 +125,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             stream.WriteByte(GifConstants.EndIntroducer);
         }
 
-        private void EncodeGlobal<TPixel>(Image<TPixel> image, IQuantizedFrame<TPixel> quantized, int transparencyIndex, Stream stream)
+        private void EncodeGlobal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, int transparencyIndex, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             for (int i = 0; i < image.Frames.Count; i++)
@@ -144,8 +142,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    using (IFrameQuantizer<TPixel> paletteFrameQuantizer = new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Options, quantized.Palette))
-                    using (IQuantizedFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds()))
+                    using (var paletteFrameQuantizer = new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Options, quantized.Palette))
+                    using (QuantizedFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds()))
                     {
                         this.WriteImageData(paletteQuantized, stream);
                     }
@@ -153,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
         }
 
-        private void EncodeLocal<TPixel>(Image<TPixel> image, IQuantizedFrame<TPixel> quantized, Stream stream)
+        private void EncodeLocal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             ImageFrame<TPixel> previousFrame = null;
@@ -210,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <returns>
         /// The <see cref="int"/>.
         /// </returns>
-        private int GetTransparentIndex<TPixel>(IQuantizedFrame<TPixel> quantized)
+        private int GetTransparentIndex<TPixel>(QuantizedFrame<TPixel> quantized)
             where TPixel : struct, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette
@@ -439,7 +437,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void WriteColorTable<TPixel>(IQuantizedFrame<TPixel> image, Stream stream)
+        private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             // The maximum number of colors for the bit depth
@@ -461,9 +459,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Writes the image pixel data to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="IQuantizedFrame{TPixel}"/> containing indexed pixels.</param>
+        /// <param name="image">The <see cref="QuantizedFrame{TPixel}"/> containing indexed pixels.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void WriteImageData<TPixel>(IQuantizedFrame<TPixel> image, Stream stream)
+        private void WriteImageData<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {
             using (var encoder = new LzwEncoder(this.memoryAllocator, (byte)this.bitDepth))

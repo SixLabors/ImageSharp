@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </para>
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class WuFrameQuantizer<TPixel> : FrameQuantizer<TPixel>
+    internal struct WuFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly MemoryAllocator memoryAllocator;
@@ -81,96 +81,81 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private int colors;
 
         /// <summary>
-        /// The reduced image palette
-        /// </summary>
-        private TPixel[] palette;
-
-        /// <summary>
         /// The color cube representing the image palette
         /// </summary>
-        private Box[] colorCube;
+        private readonly Box[] colorCube;
+
+        private EuclideanPixelMap<TPixel> pixelMap;
+
+        private readonly bool isDithering;
 
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> struct.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="options">The quantizer options defining quantization rules.</param>
-        /// <remarks>
-        /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
-        /// the second pass quantizes a color based on the position in the histogram.
-        /// </remarks>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public WuFrameQuantizer(Configuration configuration, QuantizerOptions options)
-            : base(configuration, options, false)
         {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(options, nameof(options));
+
+            this.Configuration = configuration;
+            this.Options = options;
             this.memoryAllocator = this.Configuration.MemoryAllocator;
             this.moments = this.memoryAllocator.Allocate<Moment>(TableLength, AllocationOptions.Clean);
             this.tag = this.memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
             this.colors = this.Options.MaxColors;
+            this.colorCube = new Box[this.colors];
+            this.isDisposed = false;
+            this.pixelMap = default;
+            this.isDithering = this.isDithering = !(this.Options.Dither is null);
         }
 
         /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                this.moments?.Dispose();
-                this.tag?.Dispose();
-            }
-
-            this.moments = null;
-            this.tag = null;
-
-            this.isDisposed = true;
-            base.Dispose(true);
-        }
-
-        internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GenerateQuantizedPalette();
+        public Configuration Configuration { get; }
 
         /// <inheritdoc/>
-        protected override ReadOnlyMemory<TPixel> GenerateQuantizedPalette()
-        {
-            if (this.palette is null)
-            {
-                this.palette = new TPixel[this.colors];
-                ReadOnlySpan<Moment> momentsSpan = this.moments.GetSpan();
-
-                for (int k = 0; k < this.colors; k++)
-                {
-                    this.Mark(ref this.colorCube[k], (byte)k);
-
-                    Moment moment = Volume(ref this.colorCube[k], momentsSpan);
-
-                    if (moment.Weight > 0)
-                    {
-                        ref TPixel color = ref this.palette[k];
-                        color.FromScaledVector4(moment.Normalize());
-                    }
-                }
-            }
-
-            return this.palette;
-        }
+        public QuantizerOptions Options { get; }
 
         /// <inheritdoc/>
-        protected override void FirstPass(ImageFrame<TPixel> source, Rectangle bounds)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => FrameQuantizerExtensions.QuantizeFrame(ref this, source, bounds);
+
+        /// <inheritdoc/>
+        public ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
         {
             this.Build3DHistogram(source, bounds);
             this.Get3DMoments(this.memoryAllocator);
             this.BuildCube();
+
+            var palette = new TPixel[this.colors];
+            ReadOnlySpan<Moment> momentsSpan = this.moments.GetSpan();
+
+            for (int k = 0; k < this.colors; k++)
+            {
+                this.Mark(ref this.colorCube[k], (byte)k);
+
+                Moment moment = Volume(ref this.colorCube[k], momentsSpan);
+
+                if (moment.Weight > 0)
+                {
+                    ref TPixel color = ref palette[k];
+                    color.FromScaledVector4(moment.Normalize());
+                }
+            }
+
+            this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
+            return palette;
         }
 
         /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        protected override byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+        public byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
-            if (!this.IsDitheringQuantizer)
+            if (!this.isDithering)
             {
                 Rgba32 rgba = default;
                 color.ToRgba32(ref rgba);
@@ -181,12 +166,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 int a = rgba.A >> (8 - IndexAlphaBits);
 
                 ReadOnlySpan<byte> tagSpan = this.tag.GetSpan();
-                var index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
+                byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
                 match = palette[index];
                 return index;
             }
 
-            return base.GetQuantizedColor(color, palette, out match);
+            return (byte)this.pixelMap.GetClosestColor(color, out match);
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.isDisposed = true;
+            this.moments?.Dispose();
+            this.tag?.Dispose();
+            this.moments = null;
+            this.tag = null;
         }
 
         /// <summary>
@@ -634,7 +634,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         private void BuildCube()
         {
-            this.colorCube = new Box[this.colors];
             Span<double> vv = stackalloc double[this.colors];
 
             ref Box cube = ref this.colorCube[0];

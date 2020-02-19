@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
 
         private static readonly QuantizerOptions NoDitherOptions = new QuantizerOptions { Dither = null };
         private static readonly QuantizerOptions DiffuserDitherOptions = new QuantizerOptions { Dither = KnownDitherings.FloydSteinberg };
-        private static readonly QuantizerOptions OrderedDitherOptions = new QuantizerOptions { Dither = KnownDitherings.BayerDither8x8 };
+        private static readonly QuantizerOptions OrderedDitherOptions = new QuantizerOptions { Dither = KnownDitherings.Bayer8x8 };
 
         private static readonly QuantizerOptions Diffuser0_ScaleDitherOptions = new QuantizerOptions
         {
@@ -57,25 +57,25 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
 
         private static readonly QuantizerOptions Ordered0_ScaleDitherOptions = new QuantizerOptions
         {
-            Dither = KnownDitherings.BayerDither8x8,
+            Dither = KnownDitherings.Bayer8x8,
             DitherScale = 0F
         };
 
         private static readonly QuantizerOptions Ordered0_25_ScaleDitherOptions = new QuantizerOptions
         {
-            Dither = KnownDitherings.BayerDither8x8,
+            Dither = KnownDitherings.Bayer8x8,
             DitherScale = .25F
         };
 
         private static readonly QuantizerOptions Ordered0_5_ScaleDitherOptions = new QuantizerOptions
         {
-            Dither = KnownDitherings.BayerDither8x8,
+            Dither = KnownDitherings.Bayer8x8,
             DitherScale = .5F
         };
 
         private static readonly QuantizerOptions Ordered0_75_ScaleDitherOptions = new QuantizerOptions
         {
-            Dither = KnownDitherings.BayerDither8x8,
+            Dither = KnownDitherings.Bayer8x8,
             DitherScale = .75F
         };
 
@@ -164,9 +164,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
             }
 
             string quantizerName = quantizer.GetType().Name;
-            string ditherName = quantizer.Options.Dither?.GetType()?.Name ?? "noDither";
-            string ditherType = quantizer.Options.Dither?.DitherType.ToString() ?? string.Empty;
-            string testOutputDetails = $"{quantizerName}_{ditherName}_{ditherType}";
+            string ditherName = quantizer.Options.Dither?.GetType()?.Name ?? "NoDither";
+            string testOutputDetails = $"{quantizerName}_{ditherName}";
 
             provider.RunRectangleConstrainedValidatingProcessorTest(
                 (x, rect) => x.Quantize(quantizer, rect),
@@ -186,9 +185,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
             }
 
             string quantizerName = quantizer.GetType().Name;
-            string ditherName = quantizer.Options.Dither?.GetType()?.Name ?? "noDither";
-            string ditherType = quantizer.Options.Dither?.DitherType.ToString() ?? string.Empty;
-            string testOutputDetails = $"{quantizerName}_{ditherName}_{ditherType}";
+            string ditherName = quantizer.Options.Dither?.GetType()?.Name ?? "NoDither";
+            string testOutputDetails = $"{quantizerName}_{ditherName}";
 
             provider.RunValidatingProcessorTest(
                 x => x.Quantize(quantizer),
@@ -209,9 +207,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
 
             string quantizerName = quantizer.GetType().Name;
             string ditherName = quantizer.Options.Dither.GetType().Name;
-            string ditherType = quantizer.Options.Dither.DitherType.ToString();
             float ditherScale = quantizer.Options.DitherScale;
-            string testOutputDetails = FormattableString.Invariant($"{quantizerName}_{ditherName}_{ditherType}_{ditherScale}");
+            string testOutputDetails = FormattableString.Invariant($"{quantizerName}_{ditherName}_{ditherScale}");
 
             provider.RunValidatingProcessorTest(
                 x => x.Quantize(quantizer),

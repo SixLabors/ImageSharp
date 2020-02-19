@@ -1,24 +1,29 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
     /// <summary>
     /// An ordered dithering matrix with equal sides of arbitrary length
     /// </summary>
-    public class OrderedDither : IDither
+    public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither>
     {
         private readonly DenseMatrix<float> thresholdMatrix;
         private readonly int modulusX;
         private readonly int modulusY;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OrderedDither"/> class.
+        /// Initializes a new instance of the <see cref="OrderedDither"/> struct.
         /// </summary>
         /// <param name="length">The length of the matrix sides</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public OrderedDither(uint length)
         {
             DenseMatrix<uint> ditherMatrix = OrderedDitherFactory.CreateDitherMatrix(length);
@@ -43,15 +48,58 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         }
 
         /// <inheritdoc/>
-        public DitherType DitherType { get; } = DitherType.OrderedDither;
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
+            ref TFrameQuantizer quantizer,
+            ReadOnlyMemory<TPixel> palette,
+            ImageFrame<TPixel> source,
+            Memory<byte> output,
+            Rectangle bounds)
+            where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var ditherOperation = new QuantizeDitherRowIntervalOperation<TFrameQuantizer, TPixel>(
+                ref quantizer,
+                in Unsafe.AsRef(this),
+                source,
+                output,
+                bounds,
+                palette,
+                ImageMaths.GetBitsNeededForColorDepth(palette.Span.Length));
+
+            ParallelRowIterator.IterateRows(
+                quantizer.Configuration,
+                bounds,
+                in ditherOperation);
+        }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public TPixel Dither<TPixel>(
-            ImageFrame<TPixel> image,
+        public void ApplyPaletteDither<TPixel>(
+            Configuration configuration,
+            ReadOnlyMemory<TPixel> palette,
+            ImageFrame<TPixel> source,
             Rectangle bounds,
+            float scale)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var ditherOperation = new PaletteDitherRowIntervalOperation<TPixel>(
+                in Unsafe.AsRef(this),
+                source,
+                bounds,
+                palette,
+                scale,
+                ImageMaths.GetBitsNeededForColorDepth(palette.Span.Length));
+
+            ParallelRowIterator.IterateRows(
+                configuration,
+                bounds,
+                in ditherOperation);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal TPixel Dither<TPixel>(
             TPixel source,
-            TPixel transformed,
             int x,
             int y,
             int bitDepth,
@@ -78,6 +126,118 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             result.FromRgba32(attempt);
 
             return result;
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+            => obj is OrderedDither dither && this.Equals(dither);
+
+        /// <inheritdoc/>
+        public bool Equals(OrderedDither other)
+            => this.thresholdMatrix.Equals(other.thresholdMatrix) && this.modulusX == other.modulusX && this.modulusY == other.modulusY;
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+            => HashCode.Combine(this.thresholdMatrix, this.modulusX, this.modulusY);
+
+        private readonly struct QuantizeDitherRowIntervalOperation<TFrameQuantizer, TPixel> : IRowIntervalOperation
+            where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
+            where TPixel : struct, IPixel<TPixel>
+        {
+            private readonly TFrameQuantizer quantizer;
+            private readonly OrderedDither dither;
+            private readonly ImageFrame<TPixel> source;
+            private readonly Memory<byte> output;
+            private readonly Rectangle bounds;
+            private readonly ReadOnlyMemory<TPixel> palette;
+            private readonly int bitDepth;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public QuantizeDitherRowIntervalOperation(
+                ref TFrameQuantizer quantizer,
+                in OrderedDither dither,
+                ImageFrame<TPixel> source,
+                Memory<byte> output,
+                Rectangle bounds,
+                ReadOnlyMemory<TPixel> palette,
+                int bitDepth)
+            {
+                this.quantizer = quantizer;
+                this.dither = dither;
+                this.source = source;
+                this.output = output;
+                this.bounds = bounds;
+                this.palette = palette;
+                this.bitDepth = bitDepth;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                ReadOnlySpan<TPixel> paletteSpan = this.palette.Span;
+                Span<byte> outputSpan = this.output.Span;
+                int width = this.bounds.Width;
+                int offsetY = this.bounds.Top;
+                int offsetX = this.bounds.Left;
+                float scale = this.quantizer.Options.DitherScale;
+
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
+                    int rowStart = (y - offsetY) * width;
+
+                    // TODO: This can be a bulk operation.
+                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
+                    {
+                        TPixel dithered = this.dither.Dither(row[x], x, y, this.bitDepth, scale);
+                        outputSpan[rowStart + x - offsetX] = this.quantizer.GetQuantizedColor(dithered, paletteSpan, out TPixel _);
+                    }
+                }
+            }
+        }
+
+        private readonly struct PaletteDitherRowIntervalOperation<TPixel> : IRowIntervalOperation
+            where TPixel : struct, IPixel<TPixel>
+        {
+            private readonly OrderedDither dither;
+            private readonly ImageFrame<TPixel> source;
+            private readonly Rectangle bounds;
+            private readonly EuclideanPixelMap<TPixel> pixelMap;
+            private readonly float scale;
+            private readonly int bitDepth;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public PaletteDitherRowIntervalOperation(
+                in OrderedDither dither,
+                ImageFrame<TPixel> source,
+                Rectangle bounds,
+                ReadOnlyMemory<TPixel> palette,
+                float scale,
+                int bitDepth)
+            {
+                this.dither = dither;
+                this.source = source;
+                this.bounds = bounds;
+                this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
+                this.scale = scale;
+                this.bitDepth = bitDepth;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
+
+                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
+                    {
+                        TPixel dithered = this.dither.Dither(row[x], x, y, this.bitDepth, this.scale);
+                        this.pixelMap.GetClosestColor(dithered, out TPixel transformed);
+                        row[x] = transformed;
+                    }
+                }
+            }
         }
     }
 }

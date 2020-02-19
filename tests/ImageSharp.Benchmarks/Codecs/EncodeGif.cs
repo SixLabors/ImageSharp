@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             // Try to get as close to System.Drawing's output as possible
             var options = new GifEncoder
             {
-                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.BayerDither4x4 })
+                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
             };
 
             using (var memoryStream = new MemoryStream())

@@ -69,6 +69,19 @@ namespace SixLabors.ImageSharp.Tests.Memory
             }
         }
 
+        [Theory]
+        [InlineData(50, 10, 20, 4)]
+        public void Allocate2DOveraligned(int bufferCapacity, int width, int height, int alignmentMultiplier)
+        {
+            this.MemoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
+
+            using Buffer2D<int> buffer = this.MemoryAllocator.Allocate2DOveraligned<int>(width, height, alignmentMultiplier);
+            MemoryGroup<int> memoryGroup = buffer.MemoryGroup;
+            int expectedAlignment = width * alignmentMultiplier;
+
+            Assert.Equal(expectedAlignment, memoryGroup.BufferLength);
+        }
+
         [Fact]
         public void CreateClean()
         {

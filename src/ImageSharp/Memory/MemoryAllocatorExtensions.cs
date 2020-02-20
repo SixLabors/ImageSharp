@@ -28,8 +28,8 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct
         {
             long groupLength = (long)width * height;
-            MemoryGroup<T> memorySource = memoryAllocator.AllocateGroup<T>(groupLength, width, options);
-            return new Buffer2D<T>(memorySource, width, height);
+            MemoryGroup<T> memoryGroup = memoryAllocator.AllocateGroup<T>(groupLength, width, options);
+            return new Buffer2D<T>(memoryGroup, width, height);
         }
 
         /// <summary>
@@ -47,6 +47,22 @@ namespace SixLabors.ImageSharp.Memory
             AllocationOptions options = AllocationOptions.None)
             where T : struct =>
             Allocate2D<T>(memoryAllocator, size.Width, size.Height, options);
+
+        internal static Buffer2D<T> Allocate2DOveraligned<T>(
+            this MemoryAllocator memoryAllocator,
+            int width,
+            int height,
+            int alignmentMultiplier,
+            AllocationOptions options = AllocationOptions.None)
+            where T : struct
+        {
+            long groupLength = (long)width * height;
+            MemoryGroup<T> memoryGroup = memoryAllocator.AllocateGroup<T>(
+                groupLength,
+                width * alignmentMultiplier,
+                options);
+            return new Buffer2D<T>(memoryGroup, width, height);
+        }
 
         /// <summary>
         /// Allocates padded buffers for BMP encoder/decoder. (Replacing old PixelRow/PixelArea).

@@ -342,10 +342,10 @@ namespace SixLabors.ImageSharp.Tests
 
             if (!File.Exists(referenceOutputFile))
             {
-                throw new System.IO.FileNotFoundException("Reference output file missing: " + referenceOutputFile, referenceOutputFile);
+                throw new FileNotFoundException("Reference output file missing: " + referenceOutputFile, referenceOutputFile);
             }
 
-            decoder = decoder ?? TestEnvironment.GetReferenceDecoder(referenceOutputFile);
+            decoder ??= TestEnvironment.GetReferenceDecoder(referenceOutputFile);
 
             return Image.Load<TPixel>(referenceOutputFile, decoder);
         }

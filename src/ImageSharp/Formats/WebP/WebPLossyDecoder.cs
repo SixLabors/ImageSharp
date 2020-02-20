@@ -579,7 +579,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 topV = curV;
                 curU = curU.Slice(io.UvStride);
                 curV = curV.Slice(io.UvStride);
-                this.UpSample(curY.Slice(io.YStride), curY, topU, topV, curU, curV, dst.Slice(bufferStride), dst.Slice(2 * bufferStride), mbw);
+                this.UpSample(curY.Slice(io.YStride), curY.Slice(2 * io.YStride), topU, topV, curU, curV, dst.Slice(bufferStride), dst.Slice(2 * bufferStride), mbw);
                 curY = curY.Slice(2 * io.YStride);
                 dst = dst.Slice(2 * bufferStride);
             }
@@ -1223,6 +1223,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             io.ScaledHeight = io.ScaledHeight;
             io.MbW = io.Width;
             io.MbH = io.Height;
+            io.YStride = (int)(16 * ((pictureHeader.Width + 15) >> 4));
+            io.UvStride = (int)(8 * ((pictureHeader.Width + 15) >> 4));
             return io;
         }
 

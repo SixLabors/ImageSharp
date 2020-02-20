@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// <summary>
     /// An ordered dithering matrix with equal sides of arbitrary length
     /// </summary>
-    public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither>
+    public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither>, IEquatable<IDither>
     {
         private readonly DenseMatrix<float> thresholdMatrix;
         private readonly int modulusX;
@@ -46,6 +46,60 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             this.modulusY = ditherMatrix.Rows;
             this.thresholdMatrix = thresholdMatrix;
         }
+
+        /// <summary>
+        /// Compares the two <see cref="OrderedDither"/> instances to determine whether they are equal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator ==(IDither left, OrderedDither right)
+            => right == left;
+
+        /// <summary>
+        /// Compares the two <see cref="OrderedDither"/> instances to determine whether they are unequal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator !=(IDither left, OrderedDither right)
+            => !(right == left);
+
+        /// <summary>
+        /// Compares the two <see cref="OrderedDither"/> instances to determine whether they are equal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator ==(OrderedDither left, IDither right)
+            => left.Equals(right);
+
+        /// <summary>
+        /// Compares the two <see cref="OrderedDither"/> instances to determine whether they are unequal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator !=(OrderedDither left, IDither right)
+            => !(left == right);
+
+        /// <summary>
+        /// Compares the two <see cref="OrderedDither"/> instances to determine whether they are equal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator ==(OrderedDither left, OrderedDither right)
+            => left.Equals(right);
+
+        /// <summary>
+        /// Compares the two <see cref="OrderedDither"/> instances to determine whether they are unequal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator !=(OrderedDither left, OrderedDither right)
+            => !(left == right);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -133,10 +187,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             => obj is OrderedDither dither && this.Equals(dither);
 
         /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(OrderedDither other)
             => this.thresholdMatrix.Equals(other.thresholdMatrix) && this.modulusX == other.modulusX && this.modulusY == other.modulusY;
 
         /// <inheritdoc/>
+        public bool Equals(IDither other)
+            => this.Equals((object)other);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
             => HashCode.Combine(this.thresholdMatrix, this.modulusX, this.modulusY);
 

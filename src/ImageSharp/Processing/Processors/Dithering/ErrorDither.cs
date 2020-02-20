@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// An error diffusion dithering implementation.
     /// <see href="http://www.efg2.com/Lab/Library/ImageProcessing/DHALF.TXT"/>
     /// </summary>
-    public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>
+    public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, IEquatable<IDither>
     {
         private readonly int offset;
         private readonly DenseMatrix<float> matrix;
@@ -30,6 +30,60 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             this.matrix = matrix;
             this.offset = offset;
         }
+
+        /// <summary>
+        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are equal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator ==(IDither left, ErrorDither right)
+            => right == left;
+
+        /// <summary>
+        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are unequal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator !=(IDither left, ErrorDither right)
+            => !(right == left);
+
+        /// <summary>
+        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are equal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator ==(ErrorDither left, IDither right)
+            => left.Equals(right);
+
+        /// <summary>
+        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are unequal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator !=(ErrorDither left, IDither right)
+            => !(left == right);
+
+        /// <summary>
+        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are equal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator ==(ErrorDither left, ErrorDither right)
+            => left.Equals(right);
+
+        /// <summary>
+        /// Compares the two <see cref="ErrorDither"/> instances to determine whether they are unequal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator !=(ErrorDither left, ErrorDither right)
+            => !(left == right);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -154,6 +208,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <inheritdoc/>
         public bool Equals(ErrorDither other)
             => this.offset == other.offset && this.matrix.Equals(other.matrix);
+
+        /// <inheritdoc/>
+        public bool Equals(IDither other)
+            => this.Equals((object)other);
 
         /// <inheritdoc/>
         public override int GetHashCode()

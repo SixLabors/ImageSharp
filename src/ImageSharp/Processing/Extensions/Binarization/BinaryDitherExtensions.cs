@@ -1,7 +1,6 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Processing.Processors.Binarization;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Processing
@@ -19,8 +18,8 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="dither">The ordered ditherer.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext
-            BinaryDither(this IImageProcessingContext source, IOrderedDither dither) =>
-            source.ApplyProcessor(new BinaryOrderedDitherProcessor(dither));
+            BinaryDither(this IImageProcessingContext source, IDither dither) =>
+            BinaryDither(source, dither, Color.White, Color.Black);
 
         /// <summary>
         /// Dithers the image reducing it to two colors using ordered dithering.
@@ -32,10 +31,10 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BinaryDither(
             this IImageProcessingContext source,
-            IOrderedDither dither,
+            IDither dither,
             Color upperColor,
             Color lowerColor) =>
-            source.ApplyProcessor(new BinaryOrderedDitherProcessor(dither, upperColor, lowerColor));
+            source.ApplyProcessor(new PaletteDitherProcessor(dither, new[] { upperColor, lowerColor }));
 
         /// <summary>
         /// Dithers the image reducing it to two colors using ordered dithering.
@@ -48,9 +47,9 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BinaryDither(
             this IImageProcessingContext source,
-            IOrderedDither dither,
+            IDither dither,
             Rectangle rectangle) =>
-            source.ApplyProcessor(new BinaryOrderedDitherProcessor(dither), rectangle);
+            BinaryDither(source, dither, Color.White, Color.Black, rectangle);
 
         /// <summary>
         /// Dithers the image reducing it to two colors using ordered dithering.
@@ -65,10 +64,10 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BinaryDither(
             this IImageProcessingContext source,
-            IOrderedDither dither,
+            IDither dither,
             Color upperColor,
             Color lowerColor,
             Rectangle rectangle) =>
-            source.ApplyProcessor(new BinaryOrderedDitherProcessor(dither, upperColor, lowerColor), rectangle);
+            source.ApplyProcessor(new PaletteDitherProcessor(dither, new[] { upperColor, lowerColor }), rectangle);
     }
 }

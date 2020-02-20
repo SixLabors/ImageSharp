@@ -24,6 +24,16 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             sb.Append(Environment.NewLine);
 
+            // TODO: We should add OSX.
+            sb.AppendFormat("Test Environment OS : {0}", TestEnvironment.IsWindows ? "Windows" : "Linux");
+            sb.Append(Environment.NewLine);
+
+            sb.AppendFormat("Test Environment is CI : {0}", TestEnvironment.RunsOnCI);
+            sb.Append(Environment.NewLine);
+
+            sb.AppendFormat("Test Environment is .NET Core : {0}", !TestEnvironment.IsFramework);
+            sb.Append(Environment.NewLine);
+
             int i = 0;
             foreach (ImageSimilarityReport r in reports)
             {

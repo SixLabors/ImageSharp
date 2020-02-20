@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 var encoder = new BmpEncoder
                 {
                     BitsPerPixel = BmpBitsPerPixel.Pixel8,
-                    Quantizer = new WuQuantizer(256)
+                    Quantizer = new WuQuantizer()
                 };
                 string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
@@ -223,7 +223,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 var encoder = new BmpEncoder
                 {
                     BitsPerPixel = BmpBitsPerPixel.Pixel8,
-                    Quantizer = new OctreeQuantizer(256)
+                    Quantizer = new OctreeQuantizer()
                 };
                 string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);

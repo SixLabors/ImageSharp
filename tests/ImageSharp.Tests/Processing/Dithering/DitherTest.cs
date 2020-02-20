@@ -104,5 +104,71 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             Assert.Equal(this.errorDiffuser, p.Dither);
             Assert.Equal(this.testPalette, p.Palette);
         }
+
+        [Fact]
+        public void ErrorDitherEquality()
+        {
+            IDither dither = KnownDitherings.FloydSteinberg;
+            ErrorDither dither2 = ErrorDither.FloydSteinberg;
+            ErrorDither dither3 = ErrorDither.FloydSteinberg;
+
+            Assert.True(dither == dither2);
+            Assert.True(dither2 == dither);
+            Assert.False(dither != dither2);
+            Assert.False(dither2 != dither);
+            Assert.Equal(dither, dither2);
+            Assert.Equal(dither, (object)dither2);
+            Assert.Equal(dither.GetHashCode(), dither2.GetHashCode());
+
+            dither = null;
+            Assert.False(dither == dither2);
+            Assert.False(dither2 == dither);
+            Assert.True(dither != dither2);
+            Assert.True(dither2 != dither);
+            Assert.NotEqual(dither, dither2);
+            Assert.NotEqual(dither, (object)dither2);
+            Assert.NotEqual(dither?.GetHashCode(), dither2.GetHashCode());
+
+            Assert.True(dither2 == dither3);
+            Assert.True(dither3 == dither2);
+            Assert.False(dither2 != dither3);
+            Assert.False(dither3 != dither2);
+            Assert.Equal(dither2, dither3);
+            Assert.Equal(dither2, (object)dither3);
+            Assert.Equal(dither2.GetHashCode(), dither3.GetHashCode());
+        }
+
+        [Fact]
+        public void OrderedDitherEquality()
+        {
+            IDither dither = KnownDitherings.Bayer2x2;
+            OrderedDither dither2 = OrderedDither.Bayer2x2;
+            OrderedDither dither3 = OrderedDither.Bayer2x2;
+
+            Assert.True(dither == dither2);
+            Assert.True(dither2 == dither);
+            Assert.False(dither != dither2);
+            Assert.False(dither2 != dither);
+            Assert.Equal(dither, dither2);
+            Assert.Equal(dither, (object)dither2);
+            Assert.Equal(dither.GetHashCode(), dither2.GetHashCode());
+
+            dither = null;
+            Assert.False(dither == dither2);
+            Assert.False(dither2 == dither);
+            Assert.True(dither != dither2);
+            Assert.True(dither2 != dither);
+            Assert.NotEqual(dither, dither2);
+            Assert.NotEqual(dither, (object)dither2);
+            Assert.NotEqual(dither?.GetHashCode(), dither2.GetHashCode());
+
+            Assert.True(dither2 == dither3);
+            Assert.True(dither3 == dither2);
+            Assert.False(dither2 != dither3);
+            Assert.False(dither3 != dither2);
+            Assert.Equal(dither2, dither3);
+            Assert.Equal(dither2, (object)dither3);
+            Assert.Equal(dither2.GetHashCode(), dither3.GetHashCode());
+        }
     }
 }

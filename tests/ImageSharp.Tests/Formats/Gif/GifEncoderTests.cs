@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 {
                     // Use the palette quantizer without dithering to ensure results
                     // are consistent
-                    Quantizer = new WebSafePaletteQuantizer(false)
+                    Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null })
                 };
 
                 // Always save as we need to compare the encoded output.
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 var encoder = new GifEncoder
                 {
                     ColorTableMode = GifColorTableMode.Global,
-                    Quantizer = new OctreeQuantizer(false)
+                    Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null })
                 };
 
                 // Always save as we need to compare the encoded output.
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 var encoder = new GifEncoder
                 {
                     ColorTableMode = colorMode,
-                    Quantizer = new OctreeQuantizer(frameMetadata.ColorTableLength)
+                    Quantizer = new OctreeQuantizer(new QuantizerOptions { MaxColors = frameMetadata.ColorTableLength })
                 };
 
                 image.Save(outStream, encoder);

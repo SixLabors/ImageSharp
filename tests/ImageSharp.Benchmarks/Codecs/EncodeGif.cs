@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing.Imaging;
@@ -6,6 +6,7 @@ using System.IO;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests;
 using SDImage = System.Drawing.Image;
@@ -53,7 +54,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void GifCore()
         {
             // Try to get as close to System.Drawing's output as possible
-            var options = new GifEncoder { Quantizer = new WebSafePaletteQuantizer(false) };
+            var options = new GifEncoder
+            {
+                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
+            };
+
             using (var memoryStream = new MemoryStream())
             {
                 this.bmpCore.SaveAsGif(memoryStream, options);

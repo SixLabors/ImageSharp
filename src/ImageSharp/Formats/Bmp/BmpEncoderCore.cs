@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -87,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
             this.writeV4Header = options.SupportTransparency;
-            this.quantizer = options.Quantizer ?? new OctreeQuantizer(dither: true, maxColors: 256);
+            this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
         }
 
         /// <summary>
@@ -335,36 +336,36 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write8BitColor<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
             where TPixel : struct, IPixel<TPixel>
         {
-            using (IQuantizedFrame<TPixel> quantized = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, 256).QuantizeFrame(image))
+            using IFrameQuantizer<TPixel> quantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration);
+            using QuantizedFrame<TPixel> quantized = quantizer.QuantizeFrame(image, image.Bounds());
+
+            ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
+            var color = default(Rgba32);
+
+            // TODO: Use bulk conversion here for better perf
+            int idx = 0;
+            foreach (TPixel quantizedColor in quantizedColors)
             {
-                ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
-                var color = default(Rgba32);
+                quantizedColor.ToRgba32(ref color);
+                colorPalette[idx] = color.B;
+                colorPalette[idx + 1] = color.G;
+                colorPalette[idx + 2] = color.R;
 
-                // TODO: Use bulk conversion here for better perf
-                int idx = 0;
-                foreach (TPixel quantizedColor in quantizedColors)
+                // Padding byte, always 0.
+                colorPalette[idx + 3] = 0;
+                idx += 4;
+            }
+
+            stream.Write(colorPalette);
+
+            for (int y = image.Height - 1; y >= 0; y--)
+            {
+                ReadOnlySpan<byte> pixelSpan = quantized.GetRowSpan(y);
+                stream.Write(pixelSpan);
+
+                for (int i = 0; i < this.padding; i++)
                 {
-                    quantizedColor.ToRgba32(ref color);
-                    colorPalette[idx] = color.B;
-                    colorPalette[idx + 1] = color.G;
-                    colorPalette[idx + 2] = color.R;
-
-                    // Padding byte, always 0.
-                    colorPalette[idx + 3] = 0;
-                    idx += 4;
-                }
-
-                stream.Write(colorPalette);
-
-                for (int y = image.Height - 1; y >= 0; y--)
-                {
-                    ReadOnlySpan<byte> pixelSpan = quantized.GetRowSpan(y);
-                    stream.Write(pixelSpan);
-
-                    for (int i = 0; i < this.padding; i++)
-                    {
-                        stream.WriteByte(0);
-                    }
+                    stream.WriteByte(0);
                 }
             }
         }

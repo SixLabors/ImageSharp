@@ -40,10 +40,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             string providerDump = BasicSerializer.Serialize(provider);
+
+            // RunTest(providerDump, enforceDiscontiguousBuffers ? "Disco" : string.Empty);
             RemoteExecutor.Invoke(
                 RunTest,
                 providerDump,
-                enforceDiscontiguousBuffers ? "Disco" : string.Empty);
+                enforceDiscontiguousBuffers ? "Disco" : string.Empty)
+                .Dispose();
         }
     }
 }

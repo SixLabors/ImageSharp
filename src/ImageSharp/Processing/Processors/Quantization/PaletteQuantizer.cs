@@ -2,80 +2,62 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
     /// <summary>
     /// Allows the quantization of images pixels using color palettes.
-    /// Override this class to provide your own palette.
-    /// <para>
-    /// By default the quantizer uses <see cref="KnownDiffusers.FloydSteinberg"/> dithering.
-    /// </para>
     /// </summary>
     public class PaletteQuantizer : IQuantizer
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
         /// </summary>
-        /// <param name="palette">The palette.</param>
+        /// <param name="palette">The color palette.</param>
         public PaletteQuantizer(ReadOnlyMemory<Color> palette)
-            : this(palette, true)
+            : this(palette, new QuantizerOptions())
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
         /// </summary>
-        /// <param name="palette">The palette.</param>
-        /// <param name="dither">Whether to apply dithering to the output image</param>
-        public PaletteQuantizer(ReadOnlyMemory<Color> palette, bool dither)
-            : this(palette, GetDiffuser(dither))
+        /// <param name="palette">The color palette.</param>
+        /// <param name="options">The quantizer options defining quantization rules.</param>
+        public PaletteQuantizer(ReadOnlyMemory<Color> palette, QuantizerOptions options)
         {
-        }
+            Guard.MustBeGreaterThan(palette.Length, 0, nameof(palette));
+            Guard.NotNull(options, nameof(options));
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
-        /// </summary>
-        /// <param name="palette">The palette.</param>
-        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
-        public PaletteQuantizer(ReadOnlyMemory<Color> palette, IErrorDiffuser diffuser)
-        {
             this.Palette = palette;
-            this.Diffuser = diffuser;
+            this.Options = options;
         }
 
-        /// <inheritdoc />
-        public IErrorDiffuser Diffuser { get; }
-
         /// <summary>
-        /// Gets the palette.
+        /// Gets the color palette.
         /// </summary>
         public ReadOnlyMemory<Color> Palette { get; }
 
         /// <inheritdoc />
+        public QuantizerOptions Options { get; }
+
+        /// <inheritdoc />
         public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
             where TPixel : struct, IPixel<TPixel>
-        {
-            var palette = new TPixel[this.Palette.Length];
-            Color.ToPixel(configuration, this.Palette.Span, palette.AsSpan());
-            return new PaletteFrameQuantizer<TPixel>(configuration, this.Diffuser, palette);
-        }
+            => this.CreateFrameQuantizer<TPixel>(configuration, this.Options);
 
-        /// <inheritdoc/>
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
+        /// <inheritdoc />
+        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
             where TPixel : struct, IPixel<TPixel>
         {
-            maxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
-            int max = Math.Min(maxColors, this.Palette.Length);
+            Guard.NotNull(options, nameof(options));
 
-            var palette = new TPixel[max];
-            Color.ToPixel(configuration, this.Palette.Span.Slice(0, max), palette.AsSpan());
-            return new PaletteFrameQuantizer<TPixel>(configuration, this.Diffuser, palette);
+            int length = Math.Min(this.Palette.Span.Length, options.MaxColors);
+            var palette = new TPixel[length];
+
+            Color.ToPixel(configuration, this.Palette.Span, palette.AsSpan());
+            return new PaletteFrameQuantizer<TPixel>(configuration, options, palette);
         }
-
-        private static IErrorDiffuser GetDiffuser(bool dither) => dither ? KnownDiffusers.FloydSteinberg : null;
     }
 }

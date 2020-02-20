@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -32,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </para>
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class WuFrameQuantizer<TPixel> : FrameQuantizer<TPixel>
+    internal struct WuFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly MemoryAllocator memoryAllocator;
@@ -82,151 +81,112 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private int colors;
 
         /// <summary>
-        /// The reduced image palette
-        /// </summary>
-        private TPixel[] palette;
-
-        /// <summary>
         /// The color cube representing the image palette
         /// </summary>
-        private Box[] colorCube;
+        private readonly Box[] colorCube;
+
+        private EuclideanPixelMap<TPixel> pixelMap;
+
+        private readonly bool isDithering;
 
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> struct.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="quantizer">The Wu quantizer</param>
-        /// <remarks>
-        /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
-        /// the second pass quantizes a color based on the position in the histogram.
-        /// </remarks>
-        public WuFrameQuantizer(Configuration configuration, WuQuantizer quantizer)
-            : this(configuration, quantizer, quantizer.MaxColors)
+        /// <param name="options">The quantizer options defining quantization rules.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public WuFrameQuantizer(Configuration configuration, QuantizerOptions options)
         {
-        }
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(options, nameof(options));
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> class.
-        /// </summary>
-        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="quantizer">The Wu quantizer.</param>
-        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
-        /// <remarks>
-        /// The Wu quantizer is a two pass algorithm. The initial pass sets up the 3-D color histogram,
-        /// the second pass quantizes a color based on the position in the histogram.
-        /// </remarks>
-        public WuFrameQuantizer(Configuration configuration, WuQuantizer quantizer, int maxColors)
-            : base(configuration, quantizer, false)
-        {
+            this.Configuration = configuration;
+            this.Options = options;
             this.memoryAllocator = this.Configuration.MemoryAllocator;
             this.moments = this.memoryAllocator.Allocate<Moment>(TableLength, AllocationOptions.Clean);
             this.tag = this.memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
-            this.colors = maxColors;
+            this.colors = this.Options.MaxColors;
+            this.colorCube = new Box[this.colors];
+            this.isDisposed = false;
+            this.pixelMap = default;
+            this.isDithering = this.isDithering = !(this.Options.Dither is null);
         }
 
         /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
+        public Configuration Configuration { get; }
+
+        /// <inheritdoc/>
+        public QuantizerOptions Options { get; }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => FrameQuantizerExtensions.QuantizeFrame(ref this, source, bounds);
+
+        /// <inheritdoc/>
+        public ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
+        {
+            this.Build3DHistogram(source, bounds);
+            this.Get3DMoments(this.memoryAllocator);
+            this.BuildCube();
+
+            var palette = new TPixel[this.colors];
+            ReadOnlySpan<Moment> momentsSpan = this.moments.GetSpan();
+
+            for (int k = 0; k < this.colors; k++)
+            {
+                this.Mark(ref this.colorCube[k], (byte)k);
+
+                Moment moment = Volume(ref this.colorCube[k], momentsSpan);
+
+                if (moment.Weight > 0)
+                {
+                    ref TPixel color = ref palette[k];
+                    color.FromScaledVector4(moment.Normalize());
+                }
+            }
+
+            this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
+            return palette;
+        }
+
+        /// <inheritdoc/>
+        public byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+        {
+            if (!this.isDithering)
+            {
+                Rgba32 rgba = default;
+                color.ToRgba32(ref rgba);
+
+                int r = rgba.R >> (8 - IndexBits);
+                int g = rgba.G >> (8 - IndexBits);
+                int b = rgba.B >> (8 - IndexBits);
+                int a = rgba.A >> (8 - IndexAlphaBits);
+
+                ReadOnlySpan<byte> tagSpan = this.tag.GetSpan();
+                byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
+                match = palette[index];
+                return index;
+            }
+
+            return (byte)this.pixelMap.GetClosestColor(color, out match);
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
         {
             if (this.isDisposed)
             {
                 return;
             }
 
-            if (disposing)
-            {
-                this.moments?.Dispose();
-                this.tag?.Dispose();
-            }
-
+            this.isDisposed = true;
+            this.moments?.Dispose();
+            this.tag?.Dispose();
             this.moments = null;
             this.tag = null;
-
-            this.isDisposed = true;
-            base.Dispose(true);
-        }
-
-        internal ReadOnlyMemory<TPixel> AotGetPalette() => this.GetPalette();
-
-        /// <inheritdoc/>
-        protected override ReadOnlyMemory<TPixel> GetPalette()
-        {
-            if (this.palette is null)
-            {
-                this.palette = new TPixel[this.colors];
-                ReadOnlySpan<Moment> momentsSpan = this.moments.GetSpan();
-
-                for (int k = 0; k < this.colors; k++)
-                {
-                    this.Mark(ref this.colorCube[k], (byte)k);
-
-                    Moment moment = Volume(ref this.colorCube[k], momentsSpan);
-
-                    if (moment.Weight > 0)
-                    {
-                        ref TPixel color = ref this.palette[k];
-                        color.FromScaledVector4(moment.Normalize());
-                    }
-                }
-            }
-
-            return this.palette;
-        }
-
-        /// <inheritdoc/>
-        protected override void FirstPass(ImageFrame<TPixel> source, int width, int height)
-        {
-            this.Build3DHistogram(source, width, height);
-            this.Get3DMoments(this.memoryAllocator);
-            this.BuildCube();
-        }
-
-        /// <inheritdoc/>
-        protected override void SecondPass(ImageFrame<TPixel> source, Span<byte> output, ReadOnlySpan<TPixel> palette, int width, int height)
-        {
-            // Load up the values for the first pixel. We can use these to speed up the second
-            // pass of the algorithm by avoiding transforming rows of identical color.
-            TPixel sourcePixel = source[0, 0];
-            TPixel previousPixel = sourcePixel;
-            byte pixelValue = this.QuantizePixel(ref sourcePixel);
-            TPixel transformedPixel = palette[pixelValue];
-
-            for (int y = 0; y < height; y++)
-            {
-                ReadOnlySpan<TPixel> row = source.GetPixelRowSpan(y);
-
-                // And loop through each column
-                for (int x = 0; x < width; x++)
-                {
-                    // Get the pixel.
-                    sourcePixel = row[x];
-
-                    // Check if this is the same as the last pixel. If so use that value
-                    // rather than calculating it again. This is an inexpensive optimization.
-                    if (!previousPixel.Equals(sourcePixel))
-                    {
-                        // Quantize the pixel
-                        pixelValue = this.QuantizePixel(ref sourcePixel);
-
-                        // And setup the previous pointer
-                        previousPixel = sourcePixel;
-
-                        if (this.Dither)
-                        {
-                            transformedPixel = palette[pixelValue];
-                        }
-                    }
-
-                    if (this.Dither)
-                    {
-                        // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.Diffuser.Dither(source, sourcePixel, transformedPixel, x, y, 0, width, height);
-                    }
-
-                    output[(y * source.Width) + x] = pixelValue;
-                }
-            }
         }
 
         /// <summary>
@@ -401,35 +361,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
         /// </summary>
         /// <param name="source">The source data.</param>
-        /// <param name="width">The width in pixels of the image.</param>
-        /// <param name="height">The height in pixels of the image.</param>
-        private void Build3DHistogram(ImageFrame<TPixel> source, int width, int height)
+        /// <param name="bounds">The bounds within the source image to quantize.</param>
+        private void Build3DHistogram(ImageFrame<TPixel> source, Rectangle bounds)
         {
             Span<Moment> momentSpan = this.moments.GetSpan();
 
             // Build up the 3-D color histogram
-            // Loop through each row
-            using IMemoryOwner<Rgba32> rgbaBuffer = this.memoryAllocator.Allocate<Rgba32>(source.Width);
-            Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
-            ref Rgba32 scanBaseRef = ref MemoryMarshal.GetReference(rgbaSpan);
+            using IMemoryOwner<Rgba32> buffer = this.memoryAllocator.Allocate<Rgba32>(bounds.Width);
+            Span<Rgba32> bufferSpan = buffer.GetSpan();
 
-            for (int y = 0; y < height; y++)
+            for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToRgba32(source.GetConfiguration(), row, rgbaSpan);
+                Span<TPixel> row = source.GetPixelRowSpan(y).Slice(bounds.Left, bounds.Width);
+                PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
-                // And loop through each column
-                for (int x = 0; x < width; x++)
+                for (int x = 0; x < bufferSpan.Length; x++)
                 {
-                    ref Rgba32 rgba = ref Unsafe.Add(ref scanBaseRef, x);
+                    Rgba32 rgba = bufferSpan[x];
 
                     int r = (rgba.R >> (8 - IndexBits)) + 1;
                     int g = (rgba.G >> (8 - IndexBits)) + 1;
                     int b = (rgba.B >> (8 - IndexBits)) + 1;
                     int a = (rgba.A >> (8 - IndexAlphaBits)) + 1;
 
-                    int index = GetPaletteIndex(r, g, b, a);
-                    momentSpan[index] += rgba;
+                    momentSpan[GetPaletteIndex(r, g, b, a)] += rgba;
                 }
             }
         }
@@ -679,7 +634,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         private void BuildCube()
         {
-            this.colorCube = new Box[this.colors];
             Span<double> vv = stackalloc double[this.colors];
 
             ref Box cube = ref this.colorCube[0];
@@ -722,36 +676,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     break;
                 }
             }
-        }
-
-        /// <summary>
-        /// Process the pixel in the second pass of the algorithm
-        /// </summary>
-        /// <param name="pixel">The pixel to quantize</param>
-        /// <returns>
-        /// The quantized value
-        /// </returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private byte QuantizePixel(ref TPixel pixel)
-        {
-            if (this.Dither)
-            {
-                // The colors have changed so we need to use Euclidean distance calculation to
-                // find the closest value.
-                return this.GetClosestPixel(ref pixel);
-            }
-
-            // Expected order r->g->b->a
-            Rgba32 rgba = default;
-            pixel.ToRgba32(ref rgba);
-
-            int r = rgba.R >> (8 - IndexBits);
-            int g = rgba.G >> (8 - IndexBits);
-            int b = rgba.B >> (8 - IndexBits);
-            int a = rgba.A >> (8 - IndexAlphaBits);
-
-            ReadOnlySpan<byte> tagSpan = this.tag.GetSpan();
-            return tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
         }
 
         private struct Moment

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -90,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests
         private static IQuantizer GetQuantizer(string name)
         {
             PropertyInfo property = typeof(KnownQuantizers).GetTypeInfo().GetProperty(name);
-            return (IQuantizer)property.GetMethod.Invoke(null, new object[0]);
+            return (IQuantizer)property.GetMethod.Invoke(null, Array.Empty<object>());
         }
 
         [Fact]

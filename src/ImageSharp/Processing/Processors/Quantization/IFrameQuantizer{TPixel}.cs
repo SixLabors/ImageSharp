@@ -1,9 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
@@ -15,22 +14,45 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets a value indicating whether to apply dithering to the output image.
+        /// Gets the configuration.
         /// </summary>
-        bool Dither { get; }
+        Configuration Configuration { get; }
 
         /// <summary>
-        /// Gets the error diffusion algorithm to apply to the output image.
+        /// Gets the quantizer options defining quantization rules.
         /// </summary>
-        IErrorDiffuser Diffuser { get; }
+        QuantizerOptions Options { get; }
 
         /// <summary>
-        /// Quantize an image frame and return the resulting output pixels.
+        /// Quantizes an image frame and return the resulting output pixels.
         /// </summary>
-        /// <param name="image">The image to quantize.</param>
+        /// <param name="source">The source image frame to quantize.</param>
+        /// <param name="bounds">The bounds within the frame to quantize.</param>
         /// <returns>
-        /// A <see cref="QuantizedFrame{TPixel}"/> representing a quantized version of the image pixels.
+        /// A <see cref="QuantizedFrame{TPixel}"/> representing a quantized version of the source frame pixels.
         /// </returns>
-        IQuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> image);
+        QuantizedFrame<TPixel> QuantizeFrame(
+            ImageFrame<TPixel> source,
+            Rectangle bounds);
+
+        /// <summary>
+        /// Builds the quantized palette from the given image frame and bounds.
+        /// </summary>
+        /// <param name="source">The source image frame.</param>
+        /// <param name="bounds">The region of interest bounds.</param>
+        /// <returns>The <see cref="ReadOnlyMemory{TPixel}"/> palette.</returns>
+        ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds);
+
+        /// <summary>
+        /// Returns the index and color from the quantized palette corresponding to the give to the given color.
+        /// </summary>
+        /// <param name="color">The color to match.</param>
+        /// <param name="palette">The output color palette.</param>
+        /// <param name="match">The matched color.</param>
+        /// <returns>The <see cref="byte"/> index.</returns>
+        public byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match);
+
+        // TODO: Enable bulk operations.
+        // void GetQuantizedColors(ReadOnlySpan<TPixel> colors, ReadOnlySpan<TPixel> palette, Span<byte> indices, Span<TPixel> matches);
     }
 }

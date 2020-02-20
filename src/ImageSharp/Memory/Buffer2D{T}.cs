@@ -95,6 +95,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <see cref="ArgumentOutOfRangeException"/> is being propagated from lower levels.
         /// </remarks>
         /// <param name="y">The row index.</param>
+        /// <returns>The <see cref="Span{T}"/> of the pixels in the row.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when row index is out of range.</exception>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Span<T> GetRowSpan(int y)
@@ -117,7 +118,7 @@ namespace SixLabors.ImageSharp.Memory
                 return ref Unsafe.Add(ref start, (y * this.Width) + x);
             }
 
-            return ref GetElementSlow(x, y);
+            return ref this.GetElementSlow(x, y);
         }
 
         /// <summary>

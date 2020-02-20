@@ -2,10 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
-
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Binarization
@@ -20,8 +18,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             }
         }
 
-        private readonly IOrderedDither orderedDither;
-        private readonly IErrorDiffuser errorDiffuser;
+        private readonly IDither orderedDither;
+        private readonly IDither errorDiffuser;
         private readonly Color[] testPalette =
         {
             Color.Red,
@@ -31,15 +29,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
 
         public DitherTest()
         {
-            this.orderedDither = KnownDitherers.BayerDither4x4;
-            this.errorDiffuser = KnownDiffusers.FloydSteinberg;
+            this.orderedDither = KnownDitherings.Bayer4x4;
+            this.errorDiffuser = KnownDitherings.FloydSteinberg;
         }
 
         [Fact]
         public void Dither_CorrectProcessor()
         {
             this.operations.Dither(this.orderedDither);
-            OrderedDitherPaletteProcessor p = this.Verify<OrderedDitherPaletteProcessor>();
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>();
             Assert.Equal(this.orderedDither, p.Dither);
             Assert.Equal(Color.WebSafePalette, p.Palette);
         }
@@ -48,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         public void Dither_rect_CorrectProcessor()
         {
             this.operations.Dither(this.orderedDither, this.rect);
-            OrderedDitherPaletteProcessor p = this.Verify<OrderedDitherPaletteProcessor>(this.rect);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>(this.rect);
             Assert.Equal(this.orderedDither, p.Dither);
             Assert.Equal(Color.WebSafePalette, p.Palette);
         }
@@ -57,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         public void Dither_index_CorrectProcessor()
         {
             this.operations.Dither(this.orderedDither, this.testPalette);
-            OrderedDitherPaletteProcessor p = this.Verify<OrderedDitherPaletteProcessor>();
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>();
             Assert.Equal(this.orderedDither, p.Dither);
             Assert.Equal(this.testPalette, p.Palette);
         }
@@ -66,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         public void Dither_index_rect_CorrectProcessor()
         {
             this.operations.Dither(this.orderedDither, this.testPalette, this.rect);
-            OrderedDitherPaletteProcessor p = this.Verify<OrderedDitherPaletteProcessor>(this.rect);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>(this.rect);
             Assert.Equal(this.orderedDither, p.Dither);
             Assert.Equal(this.testPalette, p.Palette);
         }
@@ -74,41 +72,103 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void Dither_ErrorDiffuser_CorrectProcessor()
         {
-            this.operations.Diffuse(this.errorDiffuser, .4F);
-            ErrorDiffusionPaletteProcessor p = this.Verify<ErrorDiffusionPaletteProcessor>();
-            Assert.Equal(this.errorDiffuser, p.Diffuser);
-            Assert.Equal(.4F, p.Threshold);
+            this.operations.Dither(this.errorDiffuser);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>();
+            Assert.Equal(this.errorDiffuser, p.Dither);
             Assert.Equal(Color.WebSafePalette, p.Palette);
         }
 
         [Fact]
         public void Dither_ErrorDiffuser_rect_CorrectProcessor()
         {
-            this.operations.Diffuse(this.errorDiffuser, .3F, this.rect);
-            ErrorDiffusionPaletteProcessor p = this.Verify<ErrorDiffusionPaletteProcessor>(this.rect);
-            Assert.Equal(this.errorDiffuser, p.Diffuser);
-            Assert.Equal(.3F, p.Threshold);
+            this.operations.Dither(this.errorDiffuser, this.rect);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>(this.rect);
+            Assert.Equal(this.errorDiffuser, p.Dither);
             Assert.Equal(Color.WebSafePalette, p.Palette);
         }
 
         [Fact]
         public void Dither_ErrorDiffuser_CorrectProcessorWithColors()
         {
-            this.operations.Diffuse(this.errorDiffuser, .5F, this.testPalette);
-            ErrorDiffusionPaletteProcessor p = this.Verify<ErrorDiffusionPaletteProcessor>();
-            Assert.Equal(this.errorDiffuser, p.Diffuser);
-            Assert.Equal(.5F, p.Threshold);
+            this.operations.Dither(this.errorDiffuser, this.testPalette);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>();
+            Assert.Equal(this.errorDiffuser, p.Dither);
             Assert.Equal(this.testPalette, p.Palette);
         }
 
         [Fact]
         public void Dither_ErrorDiffuser_rect_CorrectProcessorWithColors()
         {
-            this.operations.Diffuse(this.errorDiffuser, .5F, this.testPalette, this.rect);
-            ErrorDiffusionPaletteProcessor p = this.Verify<ErrorDiffusionPaletteProcessor>(this.rect);
-            Assert.Equal(this.errorDiffuser, p.Diffuser);
-            Assert.Equal(.5F, p.Threshold);
+            this.operations.Dither(this.errorDiffuser, this.testPalette, this.rect);
+            PaletteDitherProcessor p = this.Verify<PaletteDitherProcessor>(this.rect);
+            Assert.Equal(this.errorDiffuser, p.Dither);
             Assert.Equal(this.testPalette, p.Palette);
+        }
+
+        [Fact]
+        public void ErrorDitherEquality()
+        {
+            IDither dither = KnownDitherings.FloydSteinberg;
+            ErrorDither dither2 = ErrorDither.FloydSteinberg;
+            ErrorDither dither3 = ErrorDither.FloydSteinberg;
+
+            Assert.True(dither == dither2);
+            Assert.True(dither2 == dither);
+            Assert.False(dither != dither2);
+            Assert.False(dither2 != dither);
+            Assert.Equal(dither, dither2);
+            Assert.Equal(dither, (object)dither2);
+            Assert.Equal(dither.GetHashCode(), dither2.GetHashCode());
+
+            dither = null;
+            Assert.False(dither == dither2);
+            Assert.False(dither2 == dither);
+            Assert.True(dither != dither2);
+            Assert.True(dither2 != dither);
+            Assert.NotEqual(dither, dither2);
+            Assert.NotEqual(dither, (object)dither2);
+            Assert.NotEqual(dither?.GetHashCode(), dither2.GetHashCode());
+
+            Assert.True(dither2 == dither3);
+            Assert.True(dither3 == dither2);
+            Assert.False(dither2 != dither3);
+            Assert.False(dither3 != dither2);
+            Assert.Equal(dither2, dither3);
+            Assert.Equal(dither2, (object)dither3);
+            Assert.Equal(dither2.GetHashCode(), dither3.GetHashCode());
+        }
+
+        [Fact]
+        public void OrderedDitherEquality()
+        {
+            IDither dither = KnownDitherings.Bayer2x2;
+            OrderedDither dither2 = OrderedDither.Bayer2x2;
+            OrderedDither dither3 = OrderedDither.Bayer2x2;
+
+            Assert.True(dither == dither2);
+            Assert.True(dither2 == dither);
+            Assert.False(dither != dither2);
+            Assert.False(dither2 != dither);
+            Assert.Equal(dither, dither2);
+            Assert.Equal(dither, (object)dither2);
+            Assert.Equal(dither.GetHashCode(), dither2.GetHashCode());
+
+            dither = null;
+            Assert.False(dither == dither2);
+            Assert.False(dither2 == dither);
+            Assert.True(dither != dither2);
+            Assert.True(dither2 != dither);
+            Assert.NotEqual(dither, dither2);
+            Assert.NotEqual(dither, (object)dither2);
+            Assert.NotEqual(dither?.GetHashCode(), dither2.GetHashCode());
+
+            Assert.True(dither2 == dither3);
+            Assert.True(dither3 == dither2);
+            Assert.False(dither2 != dither3);
+            Assert.False(dither3 != dither2);
+            Assert.Equal(dither2, dither3);
+            Assert.Equal(dither2, (object)dither3);
+            Assert.Equal(dither2.GetHashCode(), dither3.GetHashCode());
         }
     }
 }

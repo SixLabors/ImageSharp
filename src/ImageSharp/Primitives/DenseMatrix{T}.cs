@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
 #pragma warning disable SA1008 // Opening parenthesis should be spaced correctly
-        public static implicit operator T[,] (in DenseMatrix<T> data)
+        public static implicit operator T[,](in DenseMatrix<T> data)
 #pragma warning restore SA1008 // Opening parenthesis should be spaced correctly
         {
             var result = new T[data.Rows, data.Columns];
@@ -152,6 +152,24 @@ namespace SixLabors.ImageSharp
 
             return result;
         }
+
+        /// <summary>
+        /// Compares the two <see cref="DenseMatrix{T}"/> instances to determine whether they are unequal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator ==(DenseMatrix<T> left, DenseMatrix<T> right)
+            => left.Equals(right);
+
+        /// <summary>
+        /// Compares the two <see cref="DenseMatrix{T}"/> instances to determine whether they are equal.
+        /// </summary>
+        /// <param name="left">The first source instance.</param>
+        /// <param name="right">The second source instance.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool operator !=(DenseMatrix<T> left, DenseMatrix<T> right)
+            => !(left == right);
 
         /// <summary>
         /// Transposes the rows and columns of the dense matrix.
@@ -210,15 +228,32 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is DenseMatrix<T> other && this.Equals(other);
+        public override bool Equals(object obj)
+            => obj is DenseMatrix<T> other && this.Equals(other);
 
         /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(DenseMatrix<T> other) =>
             this.Columns == other.Columns
             && this.Rows == other.Rows
             && this.Span.SequenceEqual(other.Span);
 
         /// <inheritdoc/>
-        public override int GetHashCode() => this.Data.GetHashCode();
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public override int GetHashCode()
+        {
+            HashCode code = default;
+
+            code.Add(this.Columns);
+            code.Add(this.Rows);
+
+            Span<T> span = this.Span;
+            for (int i = 0; i < span.Length; i++)
+            {
+                code.Add(span[i]);
+            }
+
+            return code.ToHashCode();
+        }
     }
 }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
@@ -39,6 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         public Span<T> this[int y]
         {
+            [MethodImpl(InliningOptions.ShortMethod)]
             get
             {
                 // No unsafe tricks, since Span<T> can't be used as a generic argument
@@ -52,9 +54,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     5 => this.row5,
                     6 => this.row6,
                     7 => this.row7,
-                    _ => throw new IndexOutOfRangeException()
+                    _ => ThrowIndexOutOfRangeException()
                 };
             }
+        }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static Span<T> ThrowIndexOutOfRangeException()
+        {
+            throw new IndexOutOfRangeException();
         }
     }
 }

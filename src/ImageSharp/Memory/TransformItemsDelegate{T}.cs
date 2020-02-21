@@ -5,5 +5,5 @@ using System;
 
 namespace SixLabors.ImageSharp.Memory
 {
-    internal delegate void TransformItemsDelegate<T>(ReadOnlySpan<T> source, Span<T> target);
+    internal delegate void TransformItemsDelegate<TSource, TTarget>(ReadOnlySpan<TSource> source, Span<TTarget> target);
 }

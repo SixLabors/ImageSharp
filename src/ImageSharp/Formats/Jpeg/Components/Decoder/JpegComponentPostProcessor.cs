@@ -38,7 +38,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 this.blockAreaSize.Height);
 
             this.BlockRowsPerStep = JpegImagePostProcessor.BlockRowsPerStep / this.Component.SubSamplingDivisors.Height;
-
         }
 
         /// <summary>

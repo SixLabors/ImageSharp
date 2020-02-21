@@ -86,9 +86,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public bool IgnoreMetadata { get; internal set; }
 
         /// <summary>
-        /// Gets the decoding mode for multi-frame images
+        /// Gets the decoding mode for multi-frame images.
         /// </summary>
         public FrameDecodingMode DecodingMode { get; }
+
+        /// <summary>
+        /// Gets the dimensions of the image.
+        /// </summary>
+        public Size Dimensions => new Size(this.imageDescriptor.Width, this.imageDescriptor.Height);
 
         private MemoryAllocator MemoryAllocator => this.configuration.MemoryAllocator;
 

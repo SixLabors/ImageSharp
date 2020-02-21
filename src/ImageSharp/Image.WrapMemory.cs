@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp
             ImageMetadata metadata)
             where TPixel : struct, IPixel<TPixel>
         {
-            var memorySource = new MemorySource<TPixel>(pixelMemory);
+            var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemory);
             return new Image<TPixel>(config, memorySource, width, height, metadata);
         }
 
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp
             ImageMetadata metadata)
             where TPixel : struct, IPixel<TPixel>
         {
-            var memorySource = new MemorySource<TPixel>(pixelMemoryOwner, false);
+            var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
             return new Image<TPixel>(config, memorySource, width, height, metadata);
         }
 

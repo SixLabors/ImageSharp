@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
@@ -656,13 +656,21 @@ namespace SixLabors.ImageSharp.Tests
                 testOutputDetails,
                 appendPixelTypeToFileName);
 
-            referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(actualOutputFile);
+            referenceDecoder ??= TestEnvironment.GetReferenceDecoder(actualOutputFile);
 
-            using (var actualImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
+            using (var encodedImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
             {
                 ImageComparer comparer = customComparer ?? ImageComparer.Exact;
-                comparer.VerifySimilarity(actualImage, image);
+                comparer.VerifySimilarity(encodedImage, image);
             }
+        }
+
+        internal static AllocatorBufferCapacityConfigurator LimitAllocatorBufferCapacity<TPixel>(
+            this TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            var allocator = (ArrayPoolMemoryAllocator)provider.Configuration.MemoryAllocator;
+            return new AllocatorBufferCapacityConfigurator(allocator, Unsafe.SizeOf<TPixel>());
         }
 
         internal static Image<Rgba32> ToGrayscaleImage(this Buffer2D<float> buffer, float scale)
@@ -671,7 +679,7 @@ namespace SixLabors.ImageSharp.Tests
 
             Span<Rgba32> pixels = image.Frames.RootFrame.GetPixelSpan();
 
-            Span<float> bufferSpan = buffer.GetSpan();
+            Span<float> bufferSpan = buffer.GetSingleSpan();
 
             for (int i = 0; i < bufferSpan.Length; i++)
             {
@@ -741,5 +749,31 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
         }
+    }
+
+    internal class AllocatorBufferCapacityConfigurator
+    {
+        private readonly ArrayPoolMemoryAllocator allocator;
+        private readonly int pixelSizeInBytes;
+
+        public AllocatorBufferCapacityConfigurator(ArrayPoolMemoryAllocator allocator, int pixelSizeInBytes)
+        {
+            this.allocator = allocator;
+            this.pixelSizeInBytes = pixelSizeInBytes;
+        }
+
+        public void InBytes(int totalBytes) => this.allocator.BufferCapacityInBytes = totalBytes;
+
+        public void InPixels(int totalPixels) => this.InBytes(totalPixels * this.pixelSizeInBytes);
+
+        /// <summary>
+        /// Set the maximum buffer capacity to bytesSqrt^2 bytes.
+        /// </summary>
+        public void InBytesSqrt(int bytesSqrt) => this.InBytes(bytesSqrt * bytesSqrt);
+
+        /// <summary>
+        /// Set the maximum buffer capacity to pixelsSqrt^2 x sizeof(TPixel) bytes.
+        /// </summary>
+        public void InPixelsSqrt(int pixelsSqrt) => this.InPixels(pixelsSqrt * pixelsSqrt);
     }
 }

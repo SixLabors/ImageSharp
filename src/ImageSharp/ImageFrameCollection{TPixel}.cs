@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp
             this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, backgroundColor));
         }
 
-        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, MemorySource<TPixel> memorySource)
+        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, MemoryGroup<TPixel> memorySource)
         {
             this.parent = parent ?? throw new ArgumentNullException(nameof(parent));
 
@@ -351,7 +351,7 @@ namespace SixLabors.ImageSharp
                 this.parent.GetConfiguration(),
                 source.Size(),
                 source.Metadata.DeepClone());
-            source.CopyPixelsTo(result.PixelBuffer.GetSpan());
+            source.CopyPixelsTo(result.PixelBuffer.FastMemoryGroup);
             return result;
         }
     }

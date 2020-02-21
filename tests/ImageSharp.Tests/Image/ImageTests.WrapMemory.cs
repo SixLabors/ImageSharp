@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -116,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests
 
                         using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                         {
-                            Assert.Equal(memory, image.GetPixelMemory());
+                            Assert.Equal(memory, image.GetRootFramePixelBuffer().GetSingleMemory());
                             image.GetPixelSpan().Fill(bg);
                             for (var i = 10; i < 20; i++)
                             {
@@ -151,7 +152,7 @@ namespace SixLabors.ImageSharp.Tests
 
                     using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                     {
-                        Assert.Equal(memoryManager.Memory, image.GetPixelMemory());
+                        Assert.Equal(memoryManager.Memory, image.GetRootFramePixelBuffer().GetSingleMemory());
 
                         image.GetPixelSpan().Fill(bg);
                         for (var i = 10; i < 20; i++)

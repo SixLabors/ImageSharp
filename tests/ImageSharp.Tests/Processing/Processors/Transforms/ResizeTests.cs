@@ -154,6 +154,39 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 100, 100)]
+        [WithTestPatternImages(200, 200, PixelTypes.Rgba32, 31, 73)]
+        [WithTestPatternImages(200, 200, PixelTypes.Rgba32, 73, 31)]
+        [WithTestPatternImages(200, 193, PixelTypes.Rgba32, 13, 17)]
+        [WithTestPatternImages(200, 193, PixelTypes.Rgba32, 79, 23)]
+        [WithTestPatternImages(200, 503, PixelTypes.Rgba32, 61, 33)]
+        public void WorksWithDiscoBuffers<TPixel>(
+            TestImageProvider<TPixel> provider,
+            int workingBufferLimitInRows,
+            int bufferCapacityInRows)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using Image<TPixel> expected = provider.GetImage();
+            int width = expected.Width;
+            Size destSize = expected.Size() / 4;
+            expected.Mutate(c => c.Resize(destSize, KnownResamplers.Bicubic, false));
+
+            // Replace configuration:
+            provider.Configuration = Configuration.CreateDefaultInstance();
+
+            // Note: when AllocatorCapacityInBytes < WorkingBufferSizeHintInBytes,
+            // ResizeProcessor is expected to use the minimum of the two values, when establishing the working buffer.
+            provider.LimitAllocatorBufferCapacity().InBytes(width * bufferCapacityInRows * SizeOfVector4);
+            provider.Configuration.WorkingBufferSizeHintInBytes = width * workingBufferLimitInRows * SizeOfVector4;
+
+            using Image<TPixel> actual = provider.GetImage();
+            actual.Mutate(c => c.Resize(destSize, KnownResamplers.Bicubic, false));
+            actual.DebugSave(provider, $"{workingBufferLimitInRows}-{bufferCapacityInRows}");
+
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
+        }
+
+        [Theory]
         [WithTestPatternImages(100, 100, DefaultPixelType)]
         public void Resize_Compand<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>

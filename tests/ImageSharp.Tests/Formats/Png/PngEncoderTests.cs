@@ -404,6 +404,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             }
         }
 
+        [Theory]
+        [WithTestPatternImages(587, 821, PixelTypes.Rgba32)]
+        [WithTestPatternImages(677, 683, PixelTypes.Rgba32)]
+        public void Encode_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
+            foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+            {
+                TestPngEncoderCore(
+                    provider,
+                    PngColorType.Rgb,
+                    PngFilterMethod.Adaptive,
+                    PngBitDepth.Bit8,
+                    interlaceMode,
+                    appendPixelType: true,
+                    appendPngColorType: true);
+            }
+        }
+
         private static void TestPngEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             PngColorType pngColorType,

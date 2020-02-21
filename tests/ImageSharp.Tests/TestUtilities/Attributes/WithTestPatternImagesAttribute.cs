@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests
     public class WithTestPatternImagesAttribute : ImageDataAttributeBase
     {
         /// <summary>
-        /// Triggers passing an <see cref="TestImageProvider{TPixel}"/> that produces a test pattern image of size width * height
+        /// Initializes a new instance of the <see cref="WithTestPatternImagesAttribute"/> class.
         /// </summary>
         /// <param name="width">The required width</param>
         /// <param name="height">The required height</param>
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
-        /// Triggers passing an <see cref="TestImageProvider{TPixel}"/> that produces a test pattern image of size width * height
+        /// Initializes a new instance of the <see cref="WithTestPatternImagesAttribute"/> class.
         /// </summary>
         /// <param name="memberData">The member data to apply to theories</param>
         /// <param name="width">The required width</param>

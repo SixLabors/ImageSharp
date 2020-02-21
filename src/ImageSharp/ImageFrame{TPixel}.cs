@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(source, nameof(source));
 
             this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(source.PixelBuffer.Width, source.PixelBuffer.Height);
-            source.PixelBuffer.MemoryGroup.CopyTo(this.PixelBuffer.MemoryGroup);
+            source.PixelBuffer.FastMemoryGroup.CopyTo(this.PixelBuffer.FastMemoryGroup);
         }
 
         /// <summary>
@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp
                 throw new ArgumentException("ImageFrame<TPixel>.CopyTo(): target must be of the same size!", nameof(target));
             }
 
-            this.PixelBuffer.MemoryGroup.CopyTo(target.MemoryGroup);
+            this.PixelBuffer.FastMemoryGroup.CopyTo(target.FastMemoryGroup);
         }
 
         /// <summary>
@@ -222,7 +222,7 @@ namespace SixLabors.ImageSharp
         {
             if (typeof(TPixel) == typeof(TDestinationPixel))
             {
-                this.PixelBuffer.MemoryGroup.TransformTo(destination, (s, d) =>
+                this.PixelBuffer.FastMemoryGroup.TransformTo(destination, (s, d) =>
                 {
                     Span<TPixel> d1 = MemoryMarshal.Cast<TDestinationPixel, TPixel>(d);
                     s.CopyTo(d1);
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp
                 return;
             }
 
-            this.PixelBuffer.MemoryGroup.TransformTo(destination, (s, d) =>
+            this.PixelBuffer.FastMemoryGroup.TransformTo(destination, (s, d) =>
             {
                 PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), s, d);
             });
@@ -291,7 +291,7 @@ namespace SixLabors.ImageSharp
         /// <param name="value">The value to initialize the bitmap with.</param>
         internal void Clear(TPixel value)
         {
-            MemoryGroup<TPixel> group = this.PixelBuffer.MemoryGroup;
+            MemoryGroup<TPixel> group = this.PixelBuffer.FastMemoryGroup;
 
             if (value.Equals(default))
             {

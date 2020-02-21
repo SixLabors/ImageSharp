@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp
 
             var image = new Image<TPixel>(config, width, height);
             data = data.Slice(0, count);
-            data.CopyTo(image.Frames.RootFrame.PixelBuffer.MemoryGroup);
+            data.CopyTo(image.Frames.RootFrame.PixelBuffer.FastMemoryGroup);
 
             return image;
         }

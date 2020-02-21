@@ -23,8 +23,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-<!-- TODO: re-enable when all Obsolete warnings are fixed -->
-<!--    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>-->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

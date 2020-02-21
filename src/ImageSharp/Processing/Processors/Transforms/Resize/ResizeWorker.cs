@@ -74,10 +74,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             this.windowBandHeight = verticalKernelMap.MaxDiameter;
 
+            int workingBufferLimitHintInBytes = Math.Min(
+                configuration.WorkingBufferSizeHintInBytes,
+                configuration.MemoryAllocator.GetBufferCapacityInBytes());
+
             int numberOfWindowBands = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(
                 this.windowBandHeight,
                 destWidth,
-                configuration.WorkingBufferSizeHintInBytes);
+                workingBufferLimitHintInBytes);
 
             this.workerHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandHeight);
 

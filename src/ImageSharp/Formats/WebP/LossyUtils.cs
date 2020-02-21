@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Dst(dst, 2, 0, bc);
             Dst(dst, 3, 2, bc);
             Dst(dst, 3, 0, Avg2(C, D));
-            Dst(dst, 0, 3, Avg3(K, I, J));
+            Dst(dst, 0, 3, Avg3(K, J, I));
             Dst(dst, 0, 2, Avg3(J, I, X));
             byte ixa = Avg3(I, X, A);
             Dst(dst, 0, 1, ixa);
@@ -447,14 +447,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             for (int i = 0; i < 4; ++i)
             {
                 // vertical pass
-                int a = src[srcOffset] + src[srcOffset + 8]; // [-4096, 4094]
-                int b = src[srcOffset] - src[srcOffset + 8]; // [-4095, 4095]
-                int c = Mul2(src[srcOffset + 4]) - Mul1(src[srcOffset + 12]); // [-3783, 3783]
-                int d = Mul1(src[srcOffset + 4]) + Mul2(src[srcOffset + 12]); // [-3785, 3781]
-                tmp[tmpOffset] = a + d; // [-7881, 7875]
-                tmp[tmpOffset + 1] = b + c; // [-7878, 7878]
-                tmp[tmpOffset + 2] = b - c; // [-7878, 7878]
-                tmp[tmpOffset + 3] = a - d; // [-7877, 7879]
+                int a = src[srcOffset] + src[srcOffset + 8];
+                int b = src[srcOffset] - src[srcOffset + 8];
+                int c = Mul2(src[srcOffset + 4]) - Mul1(src[srcOffset + 12]);
+                int d = Mul1(src[srcOffset + 4]) + Mul2(src[srcOffset + 12]);
+                tmp[tmpOffset] = a + d;
+                tmp[tmpOffset + 1] = b + c;
+                tmp[tmpOffset + 2] = b - c;
+                tmp[tmpOffset + 3] = a - d;
                 tmpOffset += 4;
                 srcOffset++;
             }
@@ -462,10 +462,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Each pass is expanding the dynamic range by ~3.85 (upper bound).
             // The exact value is (2. + (20091 + 35468) / 65536).
             // After the second pass, maximum interval is [-3794, 3794], assuming
-            // an input in [-2048, 2047] interval. We then need to add a dst value
-            // in the [0, 255] range.
-            // In the worst case scenario, the input to clip_8b() can be as large as
-            // [-60713, 60968].
+            // an input in [-2048, 2047] interval. We then need to add a dst value in the [0, 255] range.
+            // In the worst case scenario, the input to clip_8b() can be as large as [-60713, 60968].
             tmpOffset = 0;
             for (int i = 0; i < 4; ++i)
             {
@@ -560,9 +558,105 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        // We process u and v together stashed into 32bit(16bit each).
+        // Simple In-loop filtering (Paragraph 15.2)
+        public static void SimpleVFilter16(byte[] p, int offset, int stride, int thresh)
+        {
+            int thresh2 = (2 * thresh) + 1;
+            for (int i = 0; i < 16; ++i)
+            {
+                if (NeedsFilter(p, offset + i, stride, thresh2))
+                {
+                    DoFilter2(p, offset + i, stride);
+                }
+            }
+        }
+
+        public static void SimpleHFilter16(byte[] p, int offset, int stride, int thresh)
+        {
+            int thresh2 = (2 * thresh) + 1;
+            for (int i = 0; i < 16; ++i)
+            {
+                if (NeedsFilter(p, offset + (i * stride), 1, thresh2))
+                {
+                    DoFilter2(p, offset + (i * stride), 1);
+                }
+            }
+        }
+
+        public static void SimpleVFilter16i(byte[] p, int offset, int stride, int thresh)
+        {
+            for (int k = 3; k > 0; --k)
+            {
+                offset += 4 * stride;
+                SimpleVFilter16(p, offset,  stride, thresh);
+            }
+        }
+
+        public static void SimpleHFilter16i(byte[] p, int offset, int stride, int thresh)
+        {
+            for (int k = 3; k > 0; --k)
+            {
+                offset += stride;
+                SimpleHFilter16(p, offset, stride, thresh);
+            }
+        }
+
+        public static void VFilter16(byte[] p, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        {
+            FilterLoop26(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
+        }
+
+        public static void HFilter16(byte[] p, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        {
+            FilterLoop26(p, offset, 1, stride, 16, thresh, ithresh, hevThresh);
+        }
+
+        public static void VFilter16i(byte[] p, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        {
+            for (int k = 3; k > 0; --k)
+            {
+                offset += 4 * stride;
+                FilterLoop24(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
+            }
+        }
+
+        public static void HFilter16i(byte[] p, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        {
+            for (int k = 3; k > 0; --k)
+            {
+                offset += 4;
+                FilterLoop24(p, offset, 1, stride, 16, thresh, ithresh, hevThresh);
+            }
+        }
+
+        // 8-pixels wide variant, for chroma filtering.
+        public static void VFilter8(byte[] u, byte[] v, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        {
+            FilterLoop26(u, offset, stride, 1, 8, thresh, ithresh, hevThresh);
+            FilterLoop26(v, offset, stride, 1, 8, thresh, ithresh, hevThresh);
+        }
+
+        public static void HFilter8(byte[] u, byte[] v, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        {
+            FilterLoop26(u, offset, 1, stride, 8, thresh, ithresh, hevThresh);
+            FilterLoop26(v, offset, 1, stride, 8, thresh, ithresh, hevThresh);
+        }
+
+        public static void VFilter8i(byte[] u, byte[] v, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        {
+            FilterLoop24(u, offset + (4 * stride), stride, 1, 8, thresh, ithresh, hevThresh);
+            FilterLoop24(v, offset + (4 * stride), stride, 1, 8, thresh, ithresh, hevThresh);
+        }
+
+        public static void HFilter8i(byte[] u, byte[] v, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        {
+            FilterLoop24(u, offset + 4, 1, stride, 8, thresh, ithresh, hevThresh);
+            FilterLoop24(v, offset + 4, 1, stride, 8, thresh, ithresh, hevThresh);
+        }
+
         public static uint LoadUv(byte u, byte v)
         {
+            // We process u and v together stashed into 32bit(16bit each).
             return (uint)(u | (v << 16));
         }
 
@@ -571,7 +665,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             bgr[0] = (byte)YuvToB(y, u);
             bgr[1] = (byte)YuvToG(y, u, v);
             bgr[2] = (byte)YuvToR(y, v);
-            int tmp = 0;
         }
 
         public static int YuvToR(int y, int v)
@@ -587,6 +680,157 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public static int YuvToB(int y, int u)
         {
             return Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);
+        }
+
+        // Complex In-loop filtering (Paragraph 15.3)
+        private static void FilterLoop24(
+            byte[] p,
+            int offset,
+            int hStride,
+            int vStride,
+            int size,
+            int thresh,
+            int ithresh,
+            int hevThresh)
+        {
+            int thresh2 = (2 * thresh) + 1;
+            while (size-- > 0)
+            {
+                if (NeedsFilter2(p, offset,  hStride, thresh2, ithresh))
+                {
+                    if (Hev(p, offset, hStride, hevThresh))
+                    {
+                        DoFilter2(p, offset, hStride);
+                    }
+                    else
+                    {
+                        DoFilter4(p, offset, hStride);
+                    }
+                }
+
+                offset += vStride;
+            }
+        }
+
+        private static void FilterLoop26(
+            byte[] p,
+            int offset,
+            int hStride,
+            int vStride,
+            int size,
+            int thresh,
+            int ithresh,
+            int hevThresh)
+        {
+            int thresh2 = (2 * thresh) + 1;
+            while (size-- > 0)
+            {
+                if (NeedsFilter2(p, offset, hStride, thresh2, ithresh))
+                {
+                    if (Hev(p, offset, hStride, hevThresh))
+                    {
+                        DoFilter2(p, offset, hStride);
+                    }
+                    else
+                    {
+                        DoFilter6(p, offset, hStride);
+                    }
+                }
+
+                offset += vStride;
+            }
+        }
+
+        private static void DoFilter2(byte[] p, int offset, int step)
+        {
+            // 4 pixels in, 2 pixels out
+            int p1 = p[offset - (2 * step)];
+            int p0 = p[offset - step];
+            int q0 = p[offset];
+            int q1 = p[offset + step];
+            int a = (3 * (q0 - p0)) + Vp8LookupTables.Sclip1(p1 - q1);
+            int a1 = Vp8LookupTables.Sclip2((a + 4) >> 3);
+            int a2 = Vp8LookupTables.Sclip2((a + 3) >> 3);
+            p[offset - step] = Vp8LookupTables.Clip1(p0 + a2);
+            p[offset] = Vp8LookupTables.Clip1(q0 - a1);
+        }
+
+        private static void DoFilter4(byte[] p, int offset, int step)
+        {
+            // 4 pixels in, 4 pixels out
+            int p1 = p[offset - (2 * step)];
+            int p0 = p[offset - step];
+            int q0 = p[offset];
+            int q1 = p[offset + step];
+            int a = 3 * (q0 - p0);
+            int a1 = Vp8LookupTables.Sclip2((a + 4) >> 3);
+            int a2 = Vp8LookupTables.Sclip2((a + 3) >> 3);
+            int a3 = (a1 + 1) >> 1;
+            p[offset - (2 * step)] = Vp8LookupTables.Clip1(p1 + a3);
+            p[offset - step] = Vp8LookupTables.Clip1(p0 + a2);
+            p[offset] = Vp8LookupTables.Clip1(q0 - a1);
+            p[offset + step] = Vp8LookupTables.Clip1(q1 - a3);
+        }
+
+        private static void DoFilter6(byte[] p, int offset, int step)
+        {
+            // 6 pixels in, 6 pixels out
+            int p2 = p[offset - (3 * step)];
+            int p1 = p[offset - (2 * step)];
+            int p0 = p[offset - step];
+            int q0 = p[offset];
+            int q1 = p[offset + step];
+            int q2 = p[offset + (2 * step)];
+            int a = Vp8LookupTables.Clip1((3 * (q0 - p0)) + Vp8LookupTables.Clip1(p1 - q1));
+
+            // a is in [-128,127], a1 in [-27,27], a2 in [-18,18] and a3 in [-9,9]
+            int a1 = ((27 * a) + 63) >> 7;  // eq. to ((3 * a + 7) * 9) >> 7
+            int a2 = ((18 * a) + 63) >> 7;  // eq. to ((2 * a + 7) * 9) >> 7
+            int a3 = ((9 * a) + 63) >> 7;  // eq. to ((1 * a + 7) * 9) >> 7
+            p[offset - (3 * step)] = Vp8LookupTables.Clip1(p2 + a3);
+            p[offset - (2 * step)] = Vp8LookupTables.Clip1(p1 + a2);
+            p[offset - step] = Vp8LookupTables.Clip1(p0 + a1);
+            p[offset] = Vp8LookupTables.Clip1(q0 - a1);
+            p[offset + step] = Vp8LookupTables.Clip1(q1 - a2);
+            p[offset + (2 * step)] = Vp8LookupTables.Clip1(q2 - a3);
+        }
+
+        private static bool NeedsFilter(byte[] p, int offset, int step, int thresh)
+        {
+            int p1 = p[offset + (-2 * step)];
+            int p0 = p[offset - step];
+            int q0 = p[offset];
+            int q1 = p[offset + step];
+            return (Vp8LookupTables.Abs0(p1 - p0) > thresh) || (Vp8LookupTables.Abs0(q1 - q0) > thresh);
+        }
+
+        private static bool NeedsFilter2(byte[] p, int offset, int step, int t, int it)
+        {
+            int p3 = p[offset - (4 * step)];
+            int p2 = p[offset - (3 * step)];
+            int p1 = p[offset - (2 * step)];
+            int p0 = p[offset - step];
+            int q0 = p[offset];
+            int q1 = p[offset + step];
+            int q2 = p[offset + (2 * step)];
+            int q3 = p[offset + (3 * step)];
+            if (((4 * Vp8LookupTables.Abs0(p0 - q0)) + Vp8LookupTables.Abs0(p1 - q1)) > t)
+            {
+                return false;
+            }
+
+            return Vp8LookupTables.Abs0(p3 - p2) <= it && Vp8LookupTables.Abs0(p2 - p1) <= it &&
+                   Vp8LookupTables.Abs0(p1 - p0) <= it && Vp8LookupTables.Abs0(q3 - q2) <= it &&
+                   Vp8LookupTables.Abs0(q2 - q1) <= it && Vp8LookupTables.Abs0(q1 - q0) <= it;
+        }
+
+        private static bool Hev(byte[] p, int offset, int step, int thresh)
+        {
+            int p1 = p[offset -(2 * step)];
+            int p0 = p[offset - step];
+            int q0 = p[offset];
+            int q1 = p[offset + step];
+            return (Vp8LookupTables.Abs0(p1 - p0) > thresh) || (Vp8LookupTables.Abs0(q1 - q0) > thresh);
         }
 
         private static int MultHi(int v, int coeff)

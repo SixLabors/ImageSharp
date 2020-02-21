@@ -115,6 +115,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
+        /// Gets the dimensions of the image.
+        /// </summary>
+        public Size Dimensions => new Size(this.infoHeader.Width, this.infoHeader.Height);
+
+        /// <summary>
         /// Decodes the image from the specified this._stream and sets
         /// the data to image.
         /// </summary>
@@ -294,24 +299,27 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel color = default;
-            using (Buffer2D<byte> buffer = this.memoryAllocator.Allocate2D<byte>(width, height, AllocationOptions.Clean))
-            using (Buffer2D<bool> undefinedPixels = this.memoryAllocator.Allocate2D<bool>(width, height, AllocationOptions.Clean))
+            using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height, AllocationOptions.Clean))
+            using (IMemoryOwner<bool> undefinedPixels = this.memoryAllocator.Allocate<bool>(width * height, AllocationOptions.Clean))
             using (IMemoryOwner<bool> rowsWithUndefinedPixels = this.memoryAllocator.Allocate<bool>(height, AllocationOptions.Clean))
             {
                 Span<bool> rowsWithUndefinedPixelsSpan = rowsWithUndefinedPixels.Memory.Span;
-                if (compression == BmpCompression.RLE8)
+                Span<bool> undefinedPixelsSpan = undefinedPixels.Memory.Span;
+                Span<byte> bufferSpan = buffer.Memory.Span;
+                if (compression is BmpCompression.RLE8)
                 {
-                    this.UncompressRle8(width, buffer.GetSpan(), undefinedPixels.GetSpan(), rowsWithUndefinedPixelsSpan);
+                    this.UncompressRle8(width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
                 }
                 else
                 {
-                    this.UncompressRle4(width, buffer.GetSpan(), undefinedPixels.GetSpan(), rowsWithUndefinedPixelsSpan);
+                    this.UncompressRle4(width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
                 }
 
                 for (int y = 0; y < height; y++)
                 {
                     int newY = Invert(y, height, inverted);
-                    Span<byte> bufferRow = buffer.GetRowSpan(y);
+                    int rowStartIdx = y * width;
+                    Span<byte> bufferRow = bufferSpan.Slice(rowStartIdx, width);
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
                     bool rowHasUndefinedPixels = rowsWithUndefinedPixelsSpan[y];
@@ -321,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         for (int x = 0; x < width; x++)
                         {
                             byte colorIdx = bufferRow[x];
-                            if (undefinedPixels[x, y])
+                            if (undefinedPixelsSpan[rowStartIdx + x])
                             {
                                 switch (this.options.RleSkippedPixelHandling)
                                 {
@@ -372,12 +380,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             TPixel color = default;
             using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * 3, AllocationOptions.Clean))
-            using (Buffer2D<bool> undefinedPixels = this.memoryAllocator.Allocate2D<bool>(width, height, AllocationOptions.Clean))
+            using (IMemoryOwner<bool> undefinedPixels = this.memoryAllocator.Allocate<bool>(width * height, AllocationOptions.Clean))
             using (IMemoryOwner<bool> rowsWithUndefinedPixels = this.memoryAllocator.Allocate<bool>(height, AllocationOptions.Clean))
             {
                 Span<bool> rowsWithUndefinedPixelsSpan = rowsWithUndefinedPixels.Memory.Span;
+                Span<bool> undefinedPixelsSpan = undefinedPixels.Memory.Span;
                 Span<byte> bufferSpan = buffer.GetSpan();
-                this.UncompressRle24(width, bufferSpan, undefinedPixels.GetSpan(), rowsWithUndefinedPixelsSpan);
+
+                this.UncompressRle24(width, bufferSpan, undefinedPixelsSpan, rowsWithUndefinedPixelsSpan);
                 for (int y = 0; y < height; y++)
                 {
                     int newY = Invert(y, height, inverted);
@@ -386,11 +396,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     if (rowHasUndefinedPixels)
                     {
                         // Slow path with undefined pixels.
-                        int rowStartIdx = y * width * 3;
+                        var yMulWidth = y * width;
+                        int rowStartIdx = yMulWidth * 3;
                         for (int x = 0; x < width; x++)
                         {
                             int idx = rowStartIdx + (x * 3);
-                            if (undefinedPixels[x, y])
+                            if (undefinedPixelsSpan[yMulWidth + x])
                             {
                                 switch (this.options.RleSkippedPixelHandling)
                                 {

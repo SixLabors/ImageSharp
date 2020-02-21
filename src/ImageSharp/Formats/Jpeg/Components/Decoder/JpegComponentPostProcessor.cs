@@ -31,12 +31,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             this.Component = component;
             this.ImagePostProcessor = imagePostProcessor;
-            this.ColorBuffer = memoryAllocator.Allocate2D<float>(
+            this.blockAreaSize = this.Component.SubSamplingDivisors * 8;
+            this.ColorBuffer = memoryAllocator.Allocate2DOveraligned<float>(
                 imagePostProcessor.PostProcessorBufferSize.Width,
-                imagePostProcessor.PostProcessorBufferSize.Height);
+                imagePostProcessor.PostProcessorBufferSize.Height,
+                this.blockAreaSize.Height);
 
             this.BlockRowsPerStep = JpegImagePostProcessor.BlockRowsPerStep / this.Component.SubSamplingDivisors.Height;
-            this.blockAreaSize = this.Component.SubSamplingDivisors * 8;
         }
 
         /// <summary>

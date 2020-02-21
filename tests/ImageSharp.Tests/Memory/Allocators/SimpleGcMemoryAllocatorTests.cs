@@ -3,9 +3,10 @@
 
 using System;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Memory;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Memory.Tests
+namespace SixLabors.ImageSharp.Tests.Memory.Allocators
 {
     public class SimpleGcMemoryAllocatorTests
     {

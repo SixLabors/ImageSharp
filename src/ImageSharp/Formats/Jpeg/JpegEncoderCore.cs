@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -409,12 +410,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
             var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
+            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
+            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
 
             for (int y = 0; y < pixels.Height; y += 8)
             {
+                var currentRows = new RowOctet<TPixel>(pixelBuffer, y);
+
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    pixelConverter.Convert(pixels.Frames.RootFrame, x, y);
+                    pixelConverter.Convert(frame, x, y, currentRows);
 
                     prevDCY = this.WriteBlock(
                         QuantIndex.Luminance,
@@ -935,6 +940,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
+            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
 
             for (int y = 0; y < pixels.Height; y += 16)
             {
@@ -945,7 +952,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
 
-                        pixelConverter.Convert(pixels.Frames.RootFrame, x + xOff, y + yOff);
+                        // TODO: Try pushing this to the outer loop!
+                        var currentRows = new RowOctet<TPixel>(pixelBuffer, y + yOff);
+
+                        pixelConverter.Convert(frame, x + xOff, y + yOff, currentRows);
 
                         cbPtr[i] = pixelConverter.Cb;
                         crPtr[i] = pixelConverter.Cr;

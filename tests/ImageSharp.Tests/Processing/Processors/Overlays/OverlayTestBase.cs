@@ -54,6 +54,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
             provider.RunRectangleConstrainedValidatingProcessorTest(this.Apply);
         }
 
+        [Theory]
+        [WithTestPatternImages(70, 120, PixelTypes.Rgba32)]
+        public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.RunBufferCapacityLimitProcessorTest(37, c => this.Apply(c, Color.DarkRed));
+        }
+
         protected abstract void Apply(IImageProcessingContext ctx, Color color);
 
         protected abstract void Apply(IImageProcessingContext ctx, float radiusX, float radiusY);

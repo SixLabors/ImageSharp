@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Buffers;
 
 namespace SixLabors.ImageSharp.Memory
@@ -11,12 +12,20 @@ namespace SixLabors.ImageSharp.Memory
     public abstract class MemoryAllocator
     {
         /// <summary>
+        /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
+        /// </summary>
+        /// <returns>The length of the largest contiguous buffer that can be handled by this allocator instance.</returns>
+        protected internal abstract int GetBufferCapacityInBytes();
+
+        /// <summary>
         /// Allocates an <see cref="IMemoryOwner{T}" />, holding a <see cref="System.Memory{T}"/> of length <paramref name="length"/>.
         /// </summary>
         /// <typeparam name="T">Type of the data stored in the buffer.</typeparam>
         /// <param name="length">Size of the buffer to allocate.</param>
         /// <param name="options">The allocation options.</param>
         /// <returns>A buffer of values of type <typeparamref name="T"/>.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">When length is zero or negative.</exception>
+        /// <exception cref="InvalidMemoryOperationException">When length is over the capacity of the allocator.</exception>
         public abstract IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
             where T : struct;
 
@@ -26,6 +35,8 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="length">The requested buffer length.</param>
         /// <param name="options">The allocation options.</param>
         /// <returns>The <see cref="IManagedByteBuffer"/>.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">When length is zero or negative.</exception>
+        /// <exception cref="InvalidMemoryOperationException">When length is over the capacity of the allocator.</exception>
         public abstract IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None);
 
         /// <summary>

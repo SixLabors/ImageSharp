@@ -26,6 +26,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         float GetValue(float x);
 
         /// <summary>
+        /// Applies an resizing transformation upon an image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="source">The source image.</param>
+        /// <param name="destination">The destination image.</param>
+        /// <param name="sourceRectangle">The source bounds.</param>
+        /// <param name="targetRectangle">The target location.</param>
+        /// <param name="compand">Whether to compress or expand individual pixel color values on processing.</param>
+        void ApplyResizeTransform<TPixel>(
+            Configuration configuration,
+            Image<TPixel> source,
+            Image<TPixel> destination,
+            Rectangle sourceRectangle,
+            Rectangle targetRectangle,
+            bool compand)
+            where TPixel : struct, IPixel<TPixel>;
+
+        /// <summary>
         /// Applies an affine transformation upon an image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>

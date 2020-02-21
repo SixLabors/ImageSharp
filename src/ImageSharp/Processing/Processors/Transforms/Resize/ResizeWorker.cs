@@ -19,7 +19,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// When sliding the window, the contents of the bottom window band are copied to the new top band.
     /// For more details, and visual explanation, see "ResizeWorker.pptx".
     /// </summary>
-    internal sealed class ResizeWorker<TPixel> : IDisposable
+    internal sealed class ResizeWorker<TResampler, TPixel> : IDisposable
+        where TResampler : unmanaged, IResampler
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Buffer2D<Vector4> transposedFirstPassBuffer;
@@ -28,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly PixelConversionModifiers conversionModifiers;
 
-        private readonly ResizeKernelMap horizontalKernelMap;
+        private readonly ResizeKernelMap<TResampler> horizontalKernelMap;
 
         private readonly BufferArea<TPixel> source;
 
@@ -38,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly IMemoryOwner<Vector4> tempColumnBuffer;
 
-        private readonly ResizeKernelMap verticalKernelMap;
+        private readonly ResizeKernelMap<TResampler> verticalKernelMap;
 
         private readonly int destWidth;
 
@@ -56,8 +57,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Configuration configuration,
             BufferArea<TPixel> source,
             PixelConversionModifiers conversionModifiers,
-            ResizeKernelMap horizontalKernelMap,
-            ResizeKernelMap verticalKernelMap,
+            ResizeKernelMap<TResampler> horizontalKernelMap,
+            ResizeKernelMap<TResampler> verticalKernelMap,
             int destWidth,
             Rectangle targetWorkingRect,
             Point targetOrigin)
@@ -104,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.tempColumnBuffer.Dispose();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Span<Vector4> GetColumnSpan(int x, int startY)
         {
             return this.transposedFirstPassBuffer.GetRowSpan(x).Slice(startY - this.currentWindow.Min);

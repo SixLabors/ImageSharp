@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.resampler = definition.Sampler;
         }
 
-        protected override Size GetTargetSize() => this.targetSize;
+        protected override Size GetDestinationSize() => this.targetSize;
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)

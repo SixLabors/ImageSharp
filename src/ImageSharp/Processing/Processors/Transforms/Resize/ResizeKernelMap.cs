@@ -5,20 +5,20 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Provides <see cref="ResizeKernel"/> values from an optimized,
-    /// contiguous memory region.
+    /// Provides resize kernel values from an optimized contiguous memory region.
     /// </summary>
-    internal partial class ResizeKernelMap : IDisposable
+    /// <typeparam name="TResampler">The type of sampler.</typeparam>
+    internal partial class ResizeKernelMap<TResampler> : IDisposable
+        where TResampler : unmanaged, IResampler
     {
         private static readonly TolerantMath TolerantMath = TolerantMath.Default;
 
-        private readonly IResampler sampler;
+        private readonly TResampler sampler;
 
         private readonly int sourceLength;
 
@@ -34,12 +34,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly ResizeKernel[] kernels;
 
+        private bool isDisposed;
+
         // To avoid both GC allocations, and MemoryAllocator ceremony:
         private readonly double[] tempValues;
 
         private ResizeKernelMap(
             MemoryAllocator memoryAllocator,
-            IResampler sampler,
+            TResampler sampler,
             int sourceLength,
             int destinationLength,
             int bufferHeight,
@@ -77,19 +79,34 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             $"radius:{this.radius}|sourceSize:{this.sourceLength}|destinationSize:{this.DestinationLength}|ratio:{this.ratio}|scale:{this.scale}";
 
         /// <summary>
-        /// Disposes <see cref="ResizeKernelMap"/> instance releasing it's backing buffer.
+        /// Disposes <see cref="ResizeKernelMap{TResampler}"/> instance releasing it's backing buffer.
         /// </summary>
         public void Dispose()
+            => this.Dispose(true);
+
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
+        protected virtual void Dispose(bool disposing)
         {
-            this.pinHandle.Dispose();
-            this.data.Dispose();
+            if (!this.isDisposed)
+            {
+                this.isDisposed = true;
+
+                if (disposing)
+                {
+                    this.pinHandle.Dispose();
+                    this.data.Dispose();
+                }
+            }
         }
 
         /// <summary>
         /// Returns a <see cref="ResizeKernel"/> for an index value between 0 and DestinationSize - 1.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public ref ResizeKernel GetKernel(int destIdx) => ref this.kernels[destIdx];
+        internal ref ResizeKernel GetKernel(int destIdx) => ref this.kernels[destIdx];
 
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.
@@ -98,9 +115,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="destinationSize">The destination size</param>
         /// <param name="sourceSize">The source size</param>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations</param>
-        /// <returns>The <see cref="ResizeKernelMap"/></returns>
-        public static ResizeKernelMap Calculate(
-            IResampler sampler,
+        /// <returns>The <see cref="ResizeKernelMap{IResampler}"/></returns>
+        public static ResizeKernelMap<TResampler> Calculate(
+            in TResampler sampler,
             int destinationSize,
             int sourceSize,
             MemoryAllocator memoryAllocator)
@@ -141,7 +158,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // If we don't have at least 2 periods, we go with the basic implementation:
             bool hasAtLeast2Periods = 2 * (cornerInterval + period) < destinationSize;
 
-            ResizeKernelMap result = hasAtLeast2Periods
+            ResizeKernelMap<TResampler> result = hasAtLeast2Periods
                                          ? new PeriodicKernelMap(
                                              memoryAllocator,
                                              sampler,
@@ -152,7 +169,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                              radius,
                                              period,
                                              cornerInterval)
-                                         : new ResizeKernelMap(
+                                         : new ResizeKernelMap<TResampler>(
                                              memoryAllocator,
                                              sampler,
                                              sourceSize,
@@ -167,12 +184,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             return result;
         }
 
-        protected virtual void Initialize()
+        /// <summary>
+        /// Initializes the kernel map.
+        /// </summary>
+        protected internal virtual void Initialize()
         {
             for (int i = 0; i < this.DestinationLength; i++)
             {
-                ResizeKernel kernel = this.BuildKernel(i, i);
-                this.kernels[i] = kernel;
+                this.kernels[i] = this.BuildKernel(i, i);
             }
         }
 

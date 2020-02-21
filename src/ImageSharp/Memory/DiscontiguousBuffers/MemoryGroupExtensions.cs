@@ -126,11 +126,12 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        internal static void TransformTo<T>(
-            this IMemoryGroup<T> source,
-            IMemoryGroup<T> target,
-            TransformItemsDelegate<T> transform)
-            where T : struct
+        internal static void TransformTo<TSource, TTarget>(
+            this IMemoryGroup<TSource> source,
+            IMemoryGroup<TTarget> target,
+            TransformItemsDelegate<TSource, TTarget> transform)
+            where TSource : struct
+            where TTarget : struct
         {
             Guard.NotNull(source, nameof(source));
             Guard.NotNull(target, nameof(target));
@@ -145,14 +146,14 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             long position = 0;
-            var srcCur = new MemoryGroupCursor<T>(source);
-            var trgCur = new MemoryGroupCursor<T>(target);
+            var srcCur = new MemoryGroupCursor<TSource>(source);
+            var trgCur = new MemoryGroupCursor<TTarget>(target);
 
             while (position < source.TotalLength)
             {
                 int fwd = Math.Min(srcCur.LookAhead(), trgCur.LookAhead());
-                Span<T> srcSpan = srcCur.GetSpan(fwd);
-                Span<T> trgSpan = trgCur.GetSpan(fwd);
+                Span<TSource> srcSpan = srcCur.GetSpan(fwd);
+                Span<TTarget> trgSpan = trgCur.GetSpan(fwd);
                 transform(srcSpan, trgSpan);
 
                 srcCur.Forward(fwd);

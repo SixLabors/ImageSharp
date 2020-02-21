@@ -218,15 +218,22 @@ namespace SixLabors.ImageSharp
             this.isDisposed = true;
         }
 
-        internal override void CopyPixelsTo<TDestinationPixel>(Span<TDestinationPixel> destination)
+        internal override void CopyPixelsTo<TDestinationPixel>(MemoryGroup<TDestinationPixel> destination)
         {
             if (typeof(TPixel) == typeof(TDestinationPixel))
             {
-                Span<TPixel> dest1 = MemoryMarshal.Cast<TDestinationPixel, TPixel>(destination);
-                this.PixelBuffer.GetSingleSpan().CopyTo(dest1);
+                this.PixelBuffer.MemoryGroup.TransformTo(destination, (s, d) =>
+                {
+                    Span<TPixel> d1 = MemoryMarshal.Cast<TDestinationPixel, TPixel>(d);
+                    s.CopyTo(d1);
+                });
+                return;
             }
 
-            PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), this.PixelBuffer.GetSingleSpan(), destination);
+            this.PixelBuffer.MemoryGroup.TransformTo(destination, (s, d) =>
+            {
+                PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), s, d);
+            });
         }
 
         /// <inheritdoc/>

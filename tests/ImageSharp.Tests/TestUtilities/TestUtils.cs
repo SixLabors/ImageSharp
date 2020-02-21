@@ -6,10 +6,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -149,6 +151,28 @@ namespace SixLabors.ImageSharp.Tests
         internal static TPixel GetPixelOfNamedColor<TPixel>(string colorName)
             where TPixel : struct, IPixel<TPixel> =>
             GetColorByName(colorName).ToPixel<TPixel>();
+
+        internal static void RunBufferCapacityLimitProcessorTest<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            int bufferCapacityInPixelRows,
+            Action<IImageProcessingContext> process,
+            object testOutputDetails = null,
+            ImageComparer comparer = null)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            comparer??= ImageComparer.Exact;
+            using Image<TPixel> expected = provider.GetImage();
+            int width = expected.Width;
+            expected.Mutate(process);
+
+            var allocator = ArrayPoolMemoryAllocator.CreateDefault();
+            provider.Configuration.MemoryAllocator = allocator;
+            allocator.BufferCapacityInBytes = bufferCapacityInPixelRows * width * Unsafe.SizeOf<TPixel>();
+
+            using Image<TPixel> actual = provider.GetImage();
+            actual.Mutate(process);
+            comparer.VerifySimilarity(expected, actual);
+        }
 
         /// <summary>
         /// Utility for testing image processor extension methods:
@@ -340,6 +364,18 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             return (IResampler)property.GetValue(null);
+        }
+
+        public static IDither GetDither(string name)
+        {
+            PropertyInfo property = typeof(KnownDitherings).GetTypeInfo().GetProperty(name);
+
+            if (property is null)
+            {
+                throw new Exception($"No dither named '{name}");
+            }
+
+            return (IDither)property.GetValue(null);
         }
 
         public static string[] GetAllResamplerNames(bool includeNearestNeighbour = true)

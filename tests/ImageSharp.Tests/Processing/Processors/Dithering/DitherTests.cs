@@ -152,5 +152,26 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 comparer: ValidatorComparer,
                 appendPixelTypeToFileName: false);
         }
+
+        [Theory]
+        [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, nameof(OrderedDither.Ordered3x3))]
+        [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, nameof(ErrorDither.FloydSteinberg))]
+        public void CommonDitherers_WorkWithDiscoBuffers<TPixel>(
+            TestImageProvider<TPixel> provider,
+            string name)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            IDither dither = TestUtils.GetDither(name);
+            if (SkipAllDitherTests)
+            {
+                return;
+            }
+
+            provider.RunBufferCapacityLimitProcessorTest(
+                41,
+                c => c.Dither(dither),
+                name,
+                ImageComparer.TolerantPercentage(0.001f));
+        }
     }
 }

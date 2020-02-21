@@ -74,6 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             this.windowBandHeight = verticalKernelMap.MaxDiameter;
 
+            // We need to make sure the working buffer is contiguous:
             int workingBufferLimitHintInBytes = Math.Min(
                 configuration.WorkingBufferSizeHintInBytes,
                 configuration.MemoryAllocator.GetBufferCapacityInBytes());
@@ -117,6 +118,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public void FillDestinationPixels(RowInterval rowInterval, Buffer2D<TPixel> destination)
         {
             Span<Vector4> tempColSpan = this.tempColumnBuffer.GetSpan();
+
+            // When creating transposedFirstPassBuffer, we made sure it's contiguous:
             Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSingleSpan();
 
             for (int y = rowInterval.Min; y < rowInterval.Max; y++)

@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -43,7 +44,8 @@ namespace SixLabors.ImageSharp
 
             var image = new ImageFrame<TPixel>(configuration, width, height);
 
-            data.Slice(0, count).CopyTo(image.GetPixelSpan());
+            data = data.Slice(0, count);
+            data.CopyTo(image.PixelBuffer.FastMemoryGroup);
 
             return image;
         }

@@ -108,7 +108,8 @@ namespace SixLabors.ImageSharp
         /// The default value is 1MB.
         /// </summary>
         /// <remarks>
-        /// Currently only used by Resize.
+        /// Currently only used by Resize. If the working buffer is expected to be discontiguous,
+        /// min(WorkingBufferSizeHintInBytes, BufferCapacityInBytes) should be used.
         /// </remarks>
         internal int WorkingBufferSizeHintInBytes { get; set; } = 1 * 1024 * 1024;
 

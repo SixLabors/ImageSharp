@@ -29,6 +29,9 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         private const int DefaultNormalPoolBucketCount = 16;
 
+        // TODO: This value should be determined by benchmarking
+        private const int DefaultBufferCapacityInBytes = int.MaxValue / 4;
+
         /// <summary>
         /// This is the default. Should be good for most use cases.
         /// </summary>
@@ -39,7 +42,8 @@ namespace SixLabors.ImageSharp.Memory
                 DefaultMaxPooledBufferSizeInBytes,
                 DefaultBufferSelectorThresholdInBytes,
                 DefaultLargePoolBucketCount,
-                DefaultNormalPoolBucketCount);
+                DefaultNormalPoolBucketCount,
+                DefaultBufferCapacityInBytes);
         }
 
         /// <summary>

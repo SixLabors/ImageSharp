@@ -46,7 +46,15 @@ namespace SixLabors.ImageSharp.Memory
             protected byte[] Data { get; private set; }
 
             /// <inheritdoc />
-            public override Span<T> GetSpan() => MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
+            public override Span<T> GetSpan()
+            {
+                if (this.Data == null)
+                {
+                    throw new ObjectDisposedException("ArrayPoolMemoryAllocator.Buffer<T>");
+                }
+
+                return MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
+            }
 
             /// <inheritdoc />
             protected override void Dispose(bool disposing)

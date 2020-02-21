@@ -18,6 +18,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="configuration">The configuration for the image.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
+        // TODO: Document ImageFormatExceptions (https://github.com/SixLabors/ImageSharp/issues/1110)
         Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : struct, IPixel<TPixel>;
 
@@ -27,6 +28,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="configuration">The configuration for the image.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <returns>The <see cref="Image"/>.</returns>
+        // TODO: Document ImageFormatExceptions (https://github.com/SixLabors/ImageSharp/issues/1110)
         Image Decode(Configuration configuration, Stream stream);
     }
 }

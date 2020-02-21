@@ -7,10 +7,13 @@ using SixLabors.ImageSharp.Memory.Internals;
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
-    /// Implements <see cref="MemoryAllocator"/> by newing up arrays by the GC on every allocation requests.
+    /// Implements <see cref="MemoryAllocator"/> by newing up managed arrays on every allocation request.
     /// </summary>
     public sealed class SimpleGcMemoryAllocator : MemoryAllocator
     {
+        /// <inheritdoc />
+        protected internal override int GetBufferCapacityInBytes() => int.MaxValue;
+
         /// <inheritdoc />
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {

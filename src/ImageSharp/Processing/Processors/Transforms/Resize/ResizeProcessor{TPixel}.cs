@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 && sourceRectangle == this.targetRectangle)
             {
                 // The cloned will be blank here copy all the pixel data over
-                source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
+                source.GetPixelMemoryGroup().CopyTo(destination.GetPixelMemoryGroup());
                 return;
             }
 

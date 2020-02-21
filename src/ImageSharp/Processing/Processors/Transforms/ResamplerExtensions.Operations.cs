@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 this.source = source;
                 this.destination = destination;
-                this.bounds = destination.Bounds();
+                this.bounds = source.Bounds();
                 this.matrix = matrix;
                 this.maxX = destination.Width;
             }
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 this.source = source;
                 this.destination = destination;
-                this.bounds = destination.Bounds();
+                this.bounds = source.Bounds();
                 this.matrix = matrix;
                 this.maxX = destination.Width;
             }

@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class Vp8Decoder
     {
-        public Vp8Decoder(Vp8FrameHeader frameHeader, Vp8PictureHeader pictureHeader, Vp8SegmentHeader segmentHeader, Vp8Proba probabilities, Vp8Io io)
+        public Vp8Decoder(Vp8FrameHeader frameHeader, Vp8PictureHeader pictureHeader, Vp8SegmentHeader segmentHeader, Vp8Proba probabilities)
         {
             this.FilterHeader = new Vp8FilterHeader();
             this.FrameHeader = frameHeader;
@@ -71,7 +71,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             this.Vp8BitReaders = new Vp8BitReader[WebPConstants.MaxNumPartitions];
-            this.Init(io);
         }
 
         public Vp8FrameHeader FrameHeader { get; }
@@ -219,53 +218,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public void Init(Vp8Io io)
-        {
-            int intraPredModeSize = 4 * this.MbWidth;
-            this.IntraT = new byte[intraPredModeSize];
-
-            int extraPixels = WebPConstants.FilterExtraRows[(int)this.Filter];
-            if (this.Filter is LoopFilter.Complex)
-            {
-                // For complex filter, we need to preserve the dependency chain.
-                this.TopLeftMbX = 0;
-                this.TopLeftMbY = 0;
-            }
-            else
-            {
-                // For simple filter, we can filter only the cropped region. We include 'extraPixels' on
-                // the other side of the boundary, since vertical or horizontal filtering of the previous
-                // macroblock can modify some abutting pixels.
-                this.TopLeftMbX = (io.CropLeft - extraPixels) >> 4;
-                this.TopLeftMbY = (io.CropTop - extraPixels) >> 4;
-                if (this.TopLeftMbX < 0)
-                {
-                    this.TopLeftMbX = 0;
-                }
-
-                if (this.TopLeftMbY < 0)
-                {
-                    this.TopLeftMbY = 0;
-                }
-            }
-
-            // We need some 'extra' pixels on the right/bottom.
-            this.BottomRightMbY = (io.CropBottom + 15 + extraPixels) >> 4;
-            this.BottomRightMbX = (io.CropRight + 15 + extraPixels) >> 4;
-            if (this.BottomRightMbX > this.MbWidth)
-            {
-                this.BottomRightMbX = this.MbWidth;
-            }
-
-            if (this.BottomRightMbY > this.MbHeight)
-            {
-                this.BottomRightMbY = this.MbHeight;
-            }
-
-            this.PrecomputeFilterStrengths();
-        }
-
-        private void PrecomputeFilterStrengths()
+        public void PrecomputeFilterStrengths()
         {
             if (this.Filter is LoopFilter.None)
             {

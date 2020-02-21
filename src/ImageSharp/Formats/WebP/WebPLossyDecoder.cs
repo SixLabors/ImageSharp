@@ -57,11 +57,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             var proba = new Vp8Proba();
             Vp8SegmentHeader vp8SegmentHeader = this.ParseSegmentHeader(proba);
 
-            Vp8Io io = InitializeVp8Io(pictureHeader);
-            var decoder = new Vp8Decoder(info.Vp8FrameHeader, pictureHeader, vp8SegmentHeader, proba, io);
+            var decoder = new Vp8Decoder(info.Vp8FrameHeader, pictureHeader, vp8SegmentHeader, proba);
+            Vp8Io io = InitializeVp8Io(decoder, pictureHeader);
 
             // Paragraph 9.4: Parse the filter specs.
             this.ParseFilterHeader(decoder);
+            decoder.PrecomputeFilterStrengths();
 
             // Paragraph 9.5: Parse partitions.
             this.ParsePartitions(decoder);
@@ -94,7 +95,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     byte b = pixelData[idx];
                     byte g = pixelData[idx + 1];
                     byte r = pixelData[idx + 2];
-                    color.FromRgba32(new Rgba32(r, g, b, 255));
+
+                    // TODO: use bulk conversion here.
+                    color.FromBgr24(new Bgr24(r, g, b));
                     pixelRow[x] = color;
                 }
             }
@@ -214,11 +217,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
             bool filterRow = (dec.Filter != LoopFilter.None) &&
                              (dec.MbY >= dec.TopLeftMbY) && (dec.MbY <= dec.BottomRightMbY);
 
-            this.ReconstructRow(dec, filterRow);
+            this.ReconstructRow(dec);
+            if (filterRow)
+            {
+                this.FilterRow(dec);
+            }
+
             this.FinishRow(dec, io);
         }
 
-        private void ReconstructRow(Vp8Decoder dec, bool filterRow)
+        private void ReconstructRow(Vp8Decoder dec)
         {
             int mby = dec.MbY;
 
@@ -313,7 +321,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 if (block.IsI4x4)
                 {
                     // uint32_t* const top_right = (uint32_t*)(y_dst - BPS + 16);
-                    Span<uint> topRight = MemoryMarshal.Cast<byte, uint>(yuv.AsSpan(yOff - WebPConstants.Bps + 16));
+                    //Span<uint> topRight = MemoryMarshal.Cast<byte, uint>(yuv.AsSpan(yOff - WebPConstants.Bps + 16));
                     if (mby > 0)
                     {
                         if (mbx >= dec.MbWidth - 1)
@@ -457,7 +465,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     vDst.Slice(7 * WebPConstants.Bps, 8).CopyTo(topYuv.V);
                 }
 
-                // Transfer reconstructed samples from yuv_b_ cache to final destination.
+                // Transfer reconstructed samples from yuv_buffer cache to final destination.
                 int cacheId = 0; // TODO: what should be cacheId, always 0?
                 int yOffset = cacheId * 16 * dec.CacheYStride;
                 int uvOffset = cacheId * 8 * dec.CacheUvStride;
@@ -473,6 +481,82 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 {
                     uDst.Slice(j * WebPConstants.Bps, 8).CopyTo(uOut.Slice(j * dec.CacheUvStride));
                     vDst.Slice(j * WebPConstants.Bps, 8).CopyTo(vOut.Slice(j * dec.CacheUvStride));
+                }
+            }
+        }
+
+        private void FilterRow(Vp8Decoder dec)
+        {
+            int mby = dec.MbY;
+            for (int mbx = dec.TopLeftMbX; mbx < dec.BottomRightMbX; ++mbx)
+            {
+                //this.DoFilter(dec, mbx, mby);
+            }
+        }
+
+        private void DoFilter(Vp8Decoder dec, int mbx, int mby)
+        {
+            int yBps = dec.CacheYStride;
+            Vp8FilterInfo filterInfo = dec.FilterInfo[dec.MbX];
+            int iLevel = filterInfo.InnerLevel;
+            int limit = filterInfo.Limit;
+
+            if (limit is 0)
+            {
+                return;
+            }
+
+            if (dec.Filter is LoopFilter.Simple)
+            {
+                int offset = mbx * 16;
+                if (mbx > 0)
+                {
+                    LossyUtils.SimpleHFilter16(dec.CacheY, offset, yBps, limit + 4);
+                }
+
+                if (filterInfo.UseInnerFiltering > 0)
+                {
+                    LossyUtils.SimpleHFilter16i(dec.CacheY, offset, yBps, limit);
+                }
+
+                if (mby > 0)
+                {
+                    LossyUtils.SimpleVFilter16(dec.CacheY, offset, yBps, limit + 4);
+                }
+
+                if (filterInfo.UseInnerFiltering > 0)
+                {
+                    LossyUtils.SimpleVFilter16i(dec.CacheY, offset, yBps, limit);
+                }
+            }
+            else if (dec.Filter is LoopFilter.Complex)
+            {
+                int uvBps = dec.CacheUvStride;
+                int yOffset = mbx * 16;
+                int uvOffset = mbx * 8;
+                int hevThresh = filterInfo.HighEdgeVarianceThreshold;
+                if (mbx > 0)
+                {
+                    LossyUtils.HFilter16(dec.CacheY, yOffset, yBps, limit + 4, iLevel, hevThresh);
+                    LossyUtils.HFilter8(dec.CacheU, dec.CacheV, uvOffset, uvBps, limit + 4, iLevel, hevThresh);
+                }
+
+                if (filterInfo.UseInnerFiltering > 0)
+                {
+                    LossyUtils.HFilter16i(dec.CacheY, yOffset, yBps, limit, iLevel, hevThresh);
+                    LossyUtils.HFilter8i(dec.CacheU, dec.CacheV, uvOffset, uvBps, limit, iLevel, hevThresh);
+                }
+
+                if (mby > 0)
+                {
+                    LossyUtils.VFilter16(dec.CacheY, yOffset, yBps, limit + 4, iLevel, hevThresh);
+                    LossyUtils.VFilter8(dec.CacheU, dec.CacheV, uvOffset, uvBps, limit + 4, iLevel, hevThresh);
+                }
+
+                if (filterInfo.UseInnerFiltering > 0)
+                {
+                    LossyUtils.VFilter16i(dec.CacheY, yOffset, yBps, limit, iLevel, hevThresh);
+                    LossyUtils.VFilter8i(dec.CacheU, dec.CacheV, uvOffset, uvBps, limit, iLevel, hevThresh);
                 }
             }
         }
@@ -532,10 +616,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Rotate top samples if needed.
             if (!isLastRow)
             {
-                // TODO: double check this.
-                yDst.Slice(16 * dec.CacheYStride, ySize).CopyTo(dec.CacheY);
-                uDst.Slice(8 * dec.CacheUvStride, uvSize).CopyTo(dec.CacheU);
-                vDst.Slice(8 * dec.CacheUvStride, uvSize).CopyTo(dec.CacheV);
+                // TODO: double check this. Cache needs extra rows for filtering!
+                //yDst.Slice(16 * dec.CacheYStride, ySize).CopyTo(dec.CacheY);
+                //uDst.Slice(8 * dec.CacheUvStride, uvSize).CopyTo(dec.CacheU);
+                //vDst.Slice(8 * dec.CacheUvStride, uvSize).CopyTo(dec.CacheV);
             }
         }
 
@@ -744,7 +828,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (dec.Filter != LoopFilter.None)
             {
                 dec.FilterInfo[dec.MbX] = dec.FilterStrength[blockData.Segment, blockData.IsI4x4 ? 1 : 0];
-                dec.FilterInfo[dec.MbX].InnerFiltering |= (byte)(skip is 0 ? 1 : 0);
+                dec.FilterInfo[dec.MbX].UseInnerFiltering |= (byte)(skip is 0 ? 1 : 0);
             }
         }
 
@@ -760,6 +844,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Vp8BandProbas[] acProba;
             Vp8MacroBlock leftMb = dec.LeftMacroBlock;
             short[] dst = block.Coeffs;
+            for (int i = 0; i < dst.Length; i++)
+            {
+                dst[i] = 0;
+            }
 
             if (!block.IsI4x4)
             {
@@ -1208,7 +1296,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static Vp8Io InitializeVp8Io(Vp8PictureHeader pictureHeader)
+        private static Vp8Io InitializeVp8Io(Vp8Decoder dec, Vp8PictureHeader pictureHeader)
         {
             var io = default(Vp8Io);
             io.Width = (int)pictureHeader.Width;
@@ -1225,6 +1313,48 @@ namespace SixLabors.ImageSharp.Formats.WebP
             io.MbH = io.Height;
             io.YStride = (int)(16 * ((pictureHeader.Width + 15) >> 4));
             io.UvStride = (int)(8 * ((pictureHeader.Width + 15) >> 4));
+
+            int intraPredModeSize = 4 * dec.MbWidth;
+            dec.IntraT = new byte[intraPredModeSize];
+
+            int extraPixels = WebPConstants.FilterExtraRows[(int)dec.Filter];
+            if (dec.Filter is LoopFilter.Complex)
+            {
+                // For complex filter, we need to preserve the dependency chain.
+                dec.TopLeftMbX = 0;
+                dec.TopLeftMbY = 0;
+            }
+            else
+            {
+                // For simple filter, we can filter only the cropped region. We include 'extraPixels' on
+                // the other side of the boundary, since vertical or horizontal filtering of the previous
+                // macroblock can modify some abutting pixels.
+                dec.TopLeftMbX = (io.CropLeft - extraPixels) >> 4;
+                dec.TopLeftMbY = (io.CropTop - extraPixels) >> 4;
+                if (dec.TopLeftMbX < 0)
+                {
+                    dec.TopLeftMbX = 0;
+                }
+
+                if (dec.TopLeftMbY < 0)
+                {
+                    dec.TopLeftMbY = 0;
+                }
+            }
+
+            // We need some 'extra' pixels on the right/bottom.
+            dec.BottomRightMbY = (io.CropBottom + 15 + extraPixels) >> 4;
+            dec.BottomRightMbX = (io.CropRight + 15 + extraPixels) >> 4;
+            if (dec.BottomRightMbX > dec.MbWidth)
+            {
+                dec.BottomRightMbX = dec.MbWidth;
+            }
+
+            if (dec.BottomRightMbY > dec.MbHeight)
+            {
+                dec.BottomRightMbY = dec.MbHeight;
+            }
+
             return io;
         }
 
@@ -1298,6 +1428,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return value < 0 ? 0 : value > max ? max : value;
         }
 
+        // TODO: move to LookupTables
         private void InitializeModesProbabilities()
         {
             // Paragraph 11.5

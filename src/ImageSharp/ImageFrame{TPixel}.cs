@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp
                 throw new ArgumentException("ImageFrame<TPixel>.CopyTo(): target must be of the same size!", nameof(target));
             }
 
-            this.GetPixelSpan().CopyTo(target.GetSingleSpan());
+            this.PixelBuffer.MemoryGroup.CopyTo(target.MemoryGroup);
         }
 
         /// <summary>

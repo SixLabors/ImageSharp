@@ -22,15 +22,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
             for (int j = 0; j < 16; ++j)
             {
                 // DC += dst[-1 + j * BPS] + dst[j - BPS];
-                dc += yuv[offset  - 1 + (j * WebPConstants.Bps)] + yuv[offset + j - WebPConstants.Bps];
+                dc += yuv[offset - 1 + (j * WebPConstants.Bps)] + yuv[offset + j - WebPConstants.Bps];
             }
 
             Put16(dc >> 5, dst);
         }
 
-        public static void TM16_C(Span<byte> dst)
+        public static void TM16_C(Span<byte> dst, byte[] yuv, int offset)
         {
-
+            TrueMotion(dst, yuv, offset, 16);
         }
 
         public static void VE16_C(Span<byte> dst, byte[] yuv, int offset)
@@ -101,9 +101,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put8x8uv((byte)(dc0 >> 4), dst);
         }
 
-        public static void TM8uv_C(Span<byte> dst)
+        public static void TM8uv_C(Span<byte> dst, byte[] yuv, int offset)
         {
             // TrueMotion
+            TrueMotion(dst, yuv, offset, 8);
         }
 
         public static void VE8uv_C(Span<byte> dst, byte[] yuv, int offset)
@@ -179,9 +180,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void TM4_C(Span<byte> dst)
+        public static void TM4_C(Span<byte> dst, byte[] yuv, int offset)
         {
-
+            TrueMotion(dst, yuv, offset, 4);
         }
 
         public static void VE4_C(Span<byte> dst, byte[] yuv, int offset)
@@ -538,6 +539,27 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        private static void TrueMotion(Span<byte> dst, byte[] yuv, int offset, int size)
+        {
+            // For information about how true motion works, see rfc6386, page 52. ff and section 20.14.
+            int topOffset = offset - WebPConstants.Bps;
+            Span<byte> top = yuv.AsSpan(topOffset);
+            byte p = yuv[topOffset - 1];
+            int leftOffset = offset - 1;
+            byte left = yuv[leftOffset];
+            for (int y = 0; y < size; ++y)
+            {
+                for (int x = 0; x < size; ++x)
+                {
+                    dst[x] = (byte)Clamp255(left + top[x] - p);
+                }
+
+                leftOffset += WebPConstants.Bps;
+                left = yuv[leftOffset];
+                dst = dst.Slice(WebPConstants.Bps);
+            }
+        }
+
         // We process u and v together stashed into 32bit(16bit each).
         public static uint LoadUv(byte u, byte v)
         {
@@ -636,6 +658,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void Dst(Span<byte> dst, int x, int y, byte v)
         {
             dst[x + (y * WebPConstants.Bps)] = v;
+        }
+
+        private static int Clamp255(int x)
+        {
+            return x < 0 ? 0 : (x > 255 ? 255 : x);
         }
     }
 }

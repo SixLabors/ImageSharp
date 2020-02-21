@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -44,7 +45,19 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : struct, IPixel<TPixel>
         {
             var decoder = new PngDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(stream);
+
+            try
+            {
+                return decoder.Decode<TPixel>(stream);
+            }
+            catch (InvalidMemoryOperationException ex)
+            {
+                Size dims = decoder.Dimensions;
+
+                // TODO: use InvalidImageContentException here, if we decide to define it
+                // https://github.com/SixLabors/ImageSharp/issues/1110
+                throw new ImageFormatException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
+            }
         }
 
         /// <inheritdoc/>

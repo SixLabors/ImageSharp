@@ -62,6 +62,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         /// <summary>
+        /// Gets the dimensions of the image.
+        /// </summary>
+        public Size Dimensions => new Size(this.fileHeader.Width, this.fileHeader.Height);
+
+        /// <summary>
         /// Decodes the image from the specified stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>

@@ -103,5 +103,16 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                 image.CompareToReferenceOutput(ValidatorComparer, provider);
             }
         }
+
+        [Theory]
+        [WithFile(Tests.TestImages.Png.Bike, nameof(DetectEdgesFilters), PixelTypes.Rgba32)]
+        public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.RunBufferCapacityLimitProcessorTest(
+                41,
+                c => c.DetectEdges(detector),
+                detector);
+        }
     }
 }

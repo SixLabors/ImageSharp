@@ -74,10 +74,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             this.windowBandHeight = verticalKernelMap.MaxDiameter;
 
+            // We need to make sure the working buffer is contiguous:
+            int workingBufferLimitHintInBytes = Math.Min(
+                configuration.WorkingBufferSizeHintInBytes,
+                configuration.MemoryAllocator.GetBufferCapacityInBytes());
+
             int numberOfWindowBands = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(
                 this.windowBandHeight,
                 destWidth,
-                configuration.WorkingBufferSizeHintInBytes);
+                workingBufferLimitHintInBytes);
 
             this.workerHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandHeight);
 
@@ -113,7 +118,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public void FillDestinationPixels(RowInterval rowInterval, Buffer2D<TPixel> destination)
         {
             Span<Vector4> tempColSpan = this.tempColumnBuffer.GetSpan();
-            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSpan();
+
+            // When creating transposedFirstPassBuffer, we made sure it's contiguous:
+            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSingleSpan();
 
             for (int y = rowInterval.Min; y < rowInterval.Max; y++)
             {
@@ -165,7 +172,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private void CalculateFirstPassValues(RowInterval calculationInterval)
         {
             Span<Vector4> tempRowSpan = this.tempRowBuffer.GetSpan();
-            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSpan();
+            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSingleSpan();
 
             for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
             {

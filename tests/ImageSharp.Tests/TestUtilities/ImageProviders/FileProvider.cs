@@ -22,14 +22,18 @@ namespace SixLabors.ImageSharp.Tests
             // are shared between PixelTypes.Color & PixelTypes.Rgba32
             private class Key : IEquatable<Key>
             {
-                private Tuple<PixelTypes, string, Type> commonValues;
+                private readonly Tuple<PixelTypes, string, Type, int> commonValues;
 
-                private Dictionary<string, object> decoderParameters;
+                private readonly Dictionary<string, object> decoderParameters;
 
-                public Key(PixelTypes pixelType, string filePath, IImageDecoder customDecoder)
+                public Key(PixelTypes pixelType, string filePath, int allocatorBufferCapacity, IImageDecoder customDecoder)
                 {
                     Type customType = customDecoder?.GetType();
-                    this.commonValues = new Tuple<PixelTypes, string, Type>(pixelType, filePath, customType);
+                    this.commonValues = new Tuple<PixelTypes, string, Type, int>(
+                        pixelType,
+                        filePath,
+                        customType,
+                        allocatorBufferCapacity);
                     this.decoderParameters = GetDecoderParameters(customDecoder);
                 }
 
@@ -152,7 +156,8 @@ namespace SixLabors.ImageSharp.Tests
                     return this.LoadImage(decoder);
                 }
 
-                var key = new Key(this.PixelType, this.FilePath, decoder);
+                int bufferCapacity = this.Configuration.MemoryAllocator.GetBufferCapacityInBytes();
+                var key = new Key(this.PixelType, this.FilePath, bufferCapacity, decoder);
 
                 Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.LoadImage(decoder));
 

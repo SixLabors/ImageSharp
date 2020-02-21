@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             };
 
         public static readonly TheoryData<IDither, string> OrderedDitherers
-            = new TheoryData<IDither,string>
+            = new TheoryData<IDither, string>
             {
                 { KnownDitherings.Bayer2x2, nameof(KnownDitherings.Bayer2x2) },
                 { KnownDitherings.Bayer4x4, nameof(KnownDitherings.Bayer4x4) },
@@ -151,6 +151,27 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 testOutputDetails: name,
                 comparer: ValidatorComparer,
                 appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, nameof(OrderedDither.Ordered3x3))]
+        [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32, nameof(ErrorDither.FloydSteinberg))]
+        public void CommonDitherers_WorkWithDiscoBuffers<TPixel>(
+            TestImageProvider<TPixel> provider,
+            string name)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            IDither dither = TestUtils.GetDither(name);
+            if (SkipAllDitherTests)
+            {
+                return;
+            }
+
+            provider.RunBufferCapacityLimitProcessorTest(
+                41,
+                c => c.Dither(dither),
+                name,
+                ImageComparer.TolerantPercentage(0.001f));
         }
     }
 }

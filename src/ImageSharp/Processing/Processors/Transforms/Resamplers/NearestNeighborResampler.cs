@@ -22,6 +22,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void ApplyResizeTransform<TPixel>(
+            Configuration configuration,
+            Image<TPixel> source,
+            Image<TPixel> destination,
+            Rectangle sourceRectangle,
+            Rectangle destinationRectangle,
+            bool compand)
+            where TPixel : struct, IPixel<TPixel> => ResamplerExtensions.ApplyResizeTransform(
+                configuration,
+                in this,
+                source,
+                destination,
+                sourceRectangle,
+                destinationRectangle,
+                compand);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyAffineTransform<TPixel>(
             Configuration configuration,
             ImageFrame<TPixel> source,

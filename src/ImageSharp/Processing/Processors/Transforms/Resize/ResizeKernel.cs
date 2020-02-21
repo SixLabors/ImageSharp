@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Points to a collection of of weights allocated in <see cref="ResizeKernelMap"/>.
+    /// Points to a collection of of weights allocated in <see cref="ResizeKernelMap{T}"/>.
     /// </summary>
     internal readonly unsafe struct ResizeKernel
     {
@@ -28,15 +28,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Gets the start index for the destination row.
         /// </summary>
-        public int StartIndex { get; }
+        public int StartIndex
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get;
+        }
 
         /// <summary>
         /// Gets the the length of the kernel.
         /// </summary>
-        public int Length { get; }
+        public int Length
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get;
+        }
 
         /// <summary>
-        /// Gets the span representing the portion of the <see cref="ResizeKernelMap"/> that this window covers.
+        /// Gets the span representing the portion of the <see cref="ResizeKernelMap{T}"/> that this window covers.
         /// </summary>
         /// <value>The <see cref="Span{T}"/>.
         /// </value>
@@ -81,6 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Copy the contents of <see cref="ResizeKernel"/> altering <see cref="StartIndex"/>
         /// to the value <paramref name="left"/>.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         internal ResizeKernel AlterLeftValue(int left)
         {
             return new ResizeKernel(left, this.bufferPtr, this.Length);

@@ -21,9 +21,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options);
 
             this.Sampler = options.Sampler;
-            this.TargetWidth = size.Width;
-            this.TargetHeight = size.Height;
-            this.TargetRectangle = rectangle;
+            this.DestinationWidth = size.Width;
+            this.DestinationHeight = size.Height;
+            this.DestinationRectangle = rectangle;
             this.Compand = options.Compand;
         }
 
@@ -33,19 +33,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public IResampler Sampler { get; }
 
         /// <summary>
-        /// Gets the target width.
+        /// Gets the destination width.
         /// </summary>
-        public int TargetWidth { get; }
+        public int DestinationWidth { get; }
 
         /// <summary>
-        /// Gets the target height.
+        /// Gets the destination height.
         /// </summary>
-        public int TargetHeight { get; }
+        public int DestinationHeight { get; }
 
         /// <summary>
         /// Gets the resize rectangle.
         /// </summary>
-        public Rectangle TargetRectangle { get; }
+        public Rectangle DestinationRectangle { get; }
 
         /// <summary>
         /// Gets a value indicating whether to compress or expand individual pixel color values on processing.

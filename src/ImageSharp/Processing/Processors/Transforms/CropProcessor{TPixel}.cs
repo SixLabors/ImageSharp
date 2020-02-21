@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             => this.cropRectangle = definition.CropRectangle;
 
         /// <inheritdoc/>
-        protected override Size GetTargetSize() => new Size(this.cropRectangle.Width, this.cropRectangle.Height);
+        protected override Size GetDestinationSize() => new Size(this.cropRectangle.Width, this.cropRectangle.Height);
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)

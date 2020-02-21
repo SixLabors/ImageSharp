@@ -25,59 +25,60 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         /// <summary>
         /// resamplerName, srcSize, destSize
         /// </summary>
-        public static readonly TheoryData<string, int, int> KernelMapData = new TheoryData<string, int, int>
+        public static readonly TheoryData<IResampler, int, int> KernelMapData
+            = new TheoryData<IResampler, int, int>
         {
-            { nameof(KnownResamplers.Bicubic), 15, 10 },
-            { nameof(KnownResamplers.Bicubic), 10, 15 },
-            { nameof(KnownResamplers.Bicubic), 20, 20 },
-            { nameof(KnownResamplers.Bicubic), 50, 40 },
-            { nameof(KnownResamplers.Bicubic), 40, 50 },
-            { nameof(KnownResamplers.Bicubic), 500, 200 },
-            { nameof(KnownResamplers.Bicubic), 200, 500 },
-            { nameof(KnownResamplers.Bicubic), 3032, 400 },
-            { nameof(KnownResamplers.Bicubic), 10, 25 },
-            { nameof(KnownResamplers.Lanczos3), 16, 12 },
-            { nameof(KnownResamplers.Lanczos3), 12, 16 },
-            { nameof(KnownResamplers.Lanczos3), 12, 9 },
-            { nameof(KnownResamplers.Lanczos3), 9, 12 },
-            { nameof(KnownResamplers.Lanczos3), 6, 8 },
-            { nameof(KnownResamplers.Lanczos3), 8, 6 },
-            { nameof(KnownResamplers.Lanczos3), 20, 12 },
-            { nameof(KnownResamplers.Lanczos3), 5, 25 },
-            { nameof(KnownResamplers.Lanczos3), 5, 50 },
-            { nameof(KnownResamplers.Lanczos3), 25, 5 },
-            { nameof(KnownResamplers.Lanczos3), 50, 5 },
-            { nameof(KnownResamplers.Lanczos3), 49, 5 },
-            { nameof(KnownResamplers.Lanczos3), 31, 5 },
-            { nameof(KnownResamplers.Lanczos8), 500, 200 },
-            { nameof(KnownResamplers.Lanczos8), 100, 10 },
-            { nameof(KnownResamplers.Lanczos8), 100, 80 },
-            { nameof(KnownResamplers.Lanczos8), 10, 100 },
+            { KnownResamplers.Bicubic, 15, 10 },
+            { KnownResamplers.Bicubic, 10, 15 },
+            { KnownResamplers.Bicubic, 20, 20 },
+            { KnownResamplers.Bicubic, 50, 40 },
+            { KnownResamplers.Bicubic, 40, 50 },
+            { KnownResamplers.Bicubic, 500, 200 },
+            { KnownResamplers.Bicubic, 200, 500 },
+            { KnownResamplers.Bicubic, 3032, 400 },
+            { KnownResamplers.Bicubic, 10, 25 },
+            { KnownResamplers.Lanczos3, 16, 12 },
+            { KnownResamplers.Lanczos3, 12, 16 },
+            { KnownResamplers.Lanczos3, 12, 9 },
+            { KnownResamplers.Lanczos3, 9, 12 },
+            { KnownResamplers.Lanczos3, 6, 8 },
+            { KnownResamplers.Lanczos3, 8, 6 },
+            { KnownResamplers.Lanczos3, 20, 12 },
+            { KnownResamplers.Lanczos3, 5, 25 },
+            { KnownResamplers.Lanczos3, 5, 50 },
+            { KnownResamplers.Lanczos3, 25, 5 },
+            { KnownResamplers.Lanczos3, 50, 5 },
+            { KnownResamplers.Lanczos3, 49, 5 },
+            { KnownResamplers.Lanczos3, 31, 5 },
+            { KnownResamplers.Lanczos8, 500, 200 },
+            { KnownResamplers.Lanczos8, 100, 10 },
+            { KnownResamplers.Lanczos8, 100, 80 },
+            { KnownResamplers.Lanczos8, 10, 100 },
 
             // Resize_WorksWithAllResamplers_Rgba32_CalliphoraPartial_Box-0.5:
-            { nameof(KnownResamplers.Box), 378, 149 },
-            { nameof(KnownResamplers.Box), 349, 174 },
+            { KnownResamplers.Box, 378, 149 },
+            { KnownResamplers.Box, 349, 174 },
 
             // Accuracy-related regression-test cases cherry-picked from GeneratedImageResizeData
-            { nameof(KnownResamplers.Box), 201, 100 },
-            { nameof(KnownResamplers.Box), 199, 99 },
-            { nameof(KnownResamplers.Box), 10, 299 },
-            { nameof(KnownResamplers.Box), 299, 10 },
-            { nameof(KnownResamplers.Box), 301, 300 },
-            { nameof(KnownResamplers.Box), 1180, 480 },
-            { nameof(KnownResamplers.Lanczos2), 3264, 3032 },
-            { nameof(KnownResamplers.Bicubic), 1280, 2240 },
-            { nameof(KnownResamplers.Bicubic), 1920, 1680 },
-            { nameof(KnownResamplers.Bicubic), 3072, 2240 },
-            { nameof(KnownResamplers.Welch), 300, 2008 },
+            { KnownResamplers.Box, 201, 100 },
+            { KnownResamplers.Box, 199, 99 },
+            { KnownResamplers.Box, 10, 299 },
+            { KnownResamplers.Box, 299, 10 },
+            { KnownResamplers.Box, 301, 300 },
+            { KnownResamplers.Box, 1180, 480 },
+            { KnownResamplers.Lanczos2, 3264, 3032 },
+            { KnownResamplers.Bicubic, 1280, 2240 },
+            { KnownResamplers.Bicubic, 1920, 1680 },
+            { KnownResamplers.Bicubic, 3072, 2240 },
+            { KnownResamplers.Welch, 300, 2008 },
 
             // ResizeKernel.Length -related regression tests cherry-picked from GeneratedImageResizeData
-            { nameof(KnownResamplers.Bicubic), 10, 50 },
-            { nameof(KnownResamplers.Bicubic), 49, 301 },
-            { nameof(KnownResamplers.Bicubic), 301, 49 },
-            { nameof(KnownResamplers.Bicubic), 1680, 1200 },
-            { nameof(KnownResamplers.Box), 13, 299 },
-            { nameof(KnownResamplers.Lanczos5), 3032, 600 },
+            { KnownResamplers.Bicubic, 10, 50 },
+            { KnownResamplers.Bicubic, 49, 301 },
+            { KnownResamplers.Bicubic, 301, 49 },
+            { KnownResamplers.Bicubic, 1680, 1200 },
+            { KnownResamplers.Box, 13, 299 },
+            { KnownResamplers.Lanczos5, 3032, 600 },
         };
 
         public static TheoryData<string, int, int> GeneratedImageResizeData =
@@ -85,20 +86,20 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
         [Theory(Skip = "Only for debugging and development")]
         [MemberData(nameof(KernelMapData))]
-        public void PrintNonNormalizedKernelMap(string resamplerName, int srcSize, int destSize)
+        public void PrintNonNormalizedKernelMap<TResampler>(TResampler resampler, int srcSize, int destSize)
+            where TResampler : unmanaged, IResampler
         {
-            IResampler resampler = TestUtils.GetResampler(resamplerName);
-
-            var kernelMap = ReferenceKernelMap.Calculate(resampler, destSize, srcSize, false);
+            var kernelMap = ReferenceKernelMap<TResampler>.Calculate(resampler, destSize, srcSize, false);
 
             this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
         }
 
         [Theory]
         [MemberData(nameof(KernelMapData))]
-        public void KernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
+        public void KernelMapContentIsCorrect<TResampler>(TResampler resampler, int srcSize, int destSize)
+            where TResampler : unmanaged, IResampler
         {
-            this.VerifyKernelMapContentIsCorrect(resamplerName, srcSize, destSize);
+            this.VerifyKernelMapContentIsCorrect(resampler, srcSize, destSize);
         }
 
         // Comprehensive but expensive tests, for ResizeKernelMap.
@@ -113,12 +114,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 #endif
 
-        private void VerifyKernelMapContentIsCorrect(string resamplerName, int srcSize, int destSize)
+        private void VerifyKernelMapContentIsCorrect<TResampler>(TResampler resampler, int srcSize, int destSize)
+            where TResampler : unmanaged, IResampler
         {
-            IResampler resampler = TestUtils.GetResampler(resamplerName);
-
-            var referenceMap = ReferenceKernelMap.Calculate(resampler, destSize, srcSize);
-            var kernelMap = ResizeKernelMap.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
+            var referenceMap = ReferenceKernelMap<TResampler>.Calculate(resampler, destSize, srcSize);
+            var kernelMap = ResizeKernelMap<TResampler>.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
 #if DEBUG
             this.Output.WriteLine(kernelMap.Info);
@@ -153,20 +153,23 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             }
         }
 
-        private static string PrintKernelMap(ResizeKernelMap kernelMap) =>
-            PrintKernelMap(kernelMap, km => km.DestinationLength, (km, i) => km.GetKernel(i));
+        private static string PrintKernelMap<TResampler>(ResizeKernelMap<TResampler> kernelMap)
+            where TResampler : unmanaged, IResampler
+            => PrintKernelMap<TResampler, ResizeKernelMap<TResampler>>(kernelMap, km => km.DestinationLength, (km, i) => km.GetKernel(i));
 
-        private static string PrintKernelMap(ReferenceKernelMap kernelMap) =>
-            PrintKernelMap(kernelMap, km => km.DestinationSize, (km, i) => km.GetKernel(i));
+        private static string PrintKernelMap<TResampler>(ReferenceKernelMap<TResampler> kernelMap)
+            where TResampler : unmanaged, IResampler
+            => PrintKernelMap<TResampler, ReferenceKernelMap<TResampler>>(kernelMap, km => km.DestinationSize, (km, i) => km.GetKernel(i));
 
-        private static string PrintKernelMap<TKernelMap>(
+        private static string PrintKernelMap<TResampler, TKernelMap>(
             TKernelMap kernelMap,
             Func<TKernelMap, int> getDestinationSize,
             Func<TKernelMap, int, ReferenceKernel> getKernel)
+            where TResampler : unmanaged, IResampler
         {
             var bld = new StringBuilder();
 
-            if (kernelMap is ResizeKernelMap actualMap)
+            if (kernelMap is ResizeKernelMap<TResampler> actualMap)
             {
                 bld.AppendLine(actualMap.Info);
             }

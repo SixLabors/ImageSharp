@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         {
             using var magickImage = new MagickImage(stream);
             var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
-            MemoryGroup<TPixel> resultPixels = result.GetRootFramePixelBuffer().MemoryGroup;
+            MemoryGroup<TPixel> resultPixels = result.GetRootFramePixelBuffer().FastMemoryGroup;
 
             using (IPixelCollection pixels = magickImage.GetPixelsUnsafe())
             {

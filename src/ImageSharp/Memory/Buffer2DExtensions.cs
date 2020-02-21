@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));
-            return buffer.MemoryGroup.View;
+            return buffer.FastMemoryGroup.View;
         }
 
         /// <summary>
@@ -42,12 +42,12 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));
-            if (buffer.MemoryGroup.Count > 1)
+            if (buffer.FastMemoryGroup.Count > 1)
             {
                 throw new InvalidOperationException("GetSingleSpan is only valid for a single-buffer group!");
             }
 
-            return buffer.MemoryGroup.Single().Span;
+            return buffer.FastMemoryGroup.Single().Span;
         }
 
         /// <summary>
@@ -65,12 +65,12 @@ namespace SixLabors.ImageSharp.Memory
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));
-            if (buffer.MemoryGroup.Count > 1)
+            if (buffer.FastMemoryGroup.Count > 1)
             {
                 throw new InvalidOperationException("GetSingleMemory is only valid for a single-buffer group!");
             }
 
-            return buffer.MemoryGroup.Single();
+            return buffer.FastMemoryGroup.Single();
         }
 
         /// <summary>

@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="height">The number of rows.</param>
         internal Buffer2D(MemoryGroup<T> memoryGroup, int width, int height)
         {
-            this.MemoryGroup = memoryGroup;
+            this.FastMemoryGroup = memoryGroup;
             this.Width = width;
             this.Height = height;
 
@@ -49,14 +49,20 @@ namespace SixLabors.ImageSharp.Memory
         public int Height { get; private set; }
 
         /// <summary>
-        /// Gets the backing <see cref="MemoryGroup{T}"/>.
+        /// Gets the backing <see cref="IMemoryGroup{T}"/>.
+        /// </summary>
+        /// <returns>The MemoryGroup.</returns>
+        public IMemoryGroup<T> MemoryGroup => this.FastMemoryGroup.View;
+
+        /// <summary>
+        /// Gets the backing <see cref="MemoryGroup{T}"/> without the view abstraction.
         /// </summary>
         /// <remarks>
         /// This property has been kept internal intentionally.
-        /// It's public counterpart is <see cref="Buffer2DExtensions.GetMemoryGroup{T}"/>,
+        /// It's public counterpart is <see cref="MemoryGroup"/>,
         /// which only exposes the view of the MemoryGroup.
         /// </remarks>
-        internal MemoryGroup<T> MemoryGroup { get; }
+        internal MemoryGroup<T> FastMemoryGroup { get; }
 
         /// <summary>
         /// Gets a reference to the element at the specified position.
@@ -64,9 +70,10 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="x">The x coordinate (row)</param>
         /// <param name="y">The y coordinate (position at row)</param>
         /// <returns>A reference to the element.</returns>
-        internal ref T this[int x, int y]
+        /// <exception cref="IndexOutOfRangeException">When index is out of range of the buffer.</exception>
+        public ref T this[int x, int y]
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(InliningOptions.ShortMethod)]
             get
             {
                 DebugGuard.MustBeGreaterThanOrEqualTo(x, 0, nameof(x));
@@ -83,7 +90,7 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         public void Dispose()
         {
-            this.MemoryGroup.Dispose();
+            this.FastMemoryGroup.Dispose();
             this.cachedMemory = default;
         }
 
@@ -148,7 +155,7 @@ namespace SixLabors.ImageSharp.Memory
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-            return this.MemoryGroup.View.GetBoundedSlice(y * this.Width, this.Width);
+            return this.FastMemoryGroup.View.GetBoundedSlice(y * this.Width, this.Width);
         }
 
         /// <summary>
@@ -157,12 +164,12 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         internal static void SwapOrCopyContent(Buffer2D<T> destination, Buffer2D<T> source)
         {
-            bool swap = MemoryGroup<T>.SwapOrCopyContent(destination.MemoryGroup, source.MemoryGroup);
+            bool swap = MemoryGroup<T>.SwapOrCopyContent(destination.FastMemoryGroup, source.FastMemoryGroup);
             SwapOwnData(destination, source, swap);
         }
 
         [MethodImpl(InliningOptions.ColdPath)]
-        private Memory<T> GetRowMemorySlow(int y) => this.MemoryGroup.GetBoundedSlice(y * this.Width, this.Width);
+        private Memory<T> GetRowMemorySlow(int y) => this.FastMemoryGroup.GetBoundedSlice(y * this.Width, this.Width);
 
         [MethodImpl(InliningOptions.ColdPath)]
         private ref T GetElementSlow(int x, int y)

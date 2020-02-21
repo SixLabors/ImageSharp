@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Memory
     internal abstract partial class MemoryGroup<T>
     {
         // Analogous to the "consumed" variant of MemorySource
-        private class Consumed : MemoryGroup<T>
+        private sealed class Consumed : MemoryGroup<T>
         {
             private readonly Memory<T>[] source;
 

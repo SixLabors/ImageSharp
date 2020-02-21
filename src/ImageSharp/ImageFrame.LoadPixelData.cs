@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp
             var image = new ImageFrame<TPixel>(configuration, width, height);
 
             data = data.Slice(0, count);
-            data.CopyTo(image.PixelBuffer.MemoryGroup);
+            data.CopyTo(image.PixelBuffer.FastMemoryGroup);
 
             return image;
         }

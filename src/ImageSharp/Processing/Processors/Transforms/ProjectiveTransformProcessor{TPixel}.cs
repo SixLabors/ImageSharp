@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly Size targetSize;
+        private readonly Size destinationSize;
         private readonly IResampler resampler;
         private readonly Matrix4x4 transformMatrix;
 
@@ -27,12 +27,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public ProjectiveTransformProcessor(Configuration configuration, ProjectiveTransformProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
-            this.targetSize = definition.TargetDimensions;
+            this.destinationSize = definition.DestinationSize;
             this.transformMatrix = definition.TransformMatrix;
             this.resampler = definition.Sampler;
         }
 
-        protected override Size GetDestinationSize() => this.targetSize;
+        protected override Size GetDestinationSize() => this.destinationSize;
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Guard.NotNull(sampler, nameof(sampler));
             this.Sampler = sampler;
             this.TransformMatrix = matrix;
-            this.TargetDimensions = targetDimensions;
+            this.DestinationSize = targetDimensions;
         }
 
         /// <summary>
@@ -35,9 +35,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Matrix3x2 TransformMatrix { get; }
 
         /// <summary>
-        /// Gets the target dimensions to constrain the transformed image to.
+        /// Gets the destination size to constrain the transformed image to.
         /// </summary>
-        public Size TargetDimensions { get; }
+        public Size DestinationSize { get; }
 
         /// <inheritdoc/>
         public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)

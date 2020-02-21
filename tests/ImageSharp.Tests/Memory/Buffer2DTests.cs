@@ -46,8 +46,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
-                Assert.Equal(width * height, buffer.MemoryGroup.TotalLength);
-                Assert.True(buffer.MemoryGroup.BufferLength % width == 0);
+                Assert.Equal(width * height, buffer.FastMemoryGroup.TotalLength);
+                Assert.True(buffer.FastMemoryGroup.BufferLength % width == 0);
             }
         }
 
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             {
                 Assert.Equal(width, buffer.Width);
                 Assert.Equal(height, buffer.Height);
-                Assert.Equal(0, buffer.MemoryGroup.TotalLength);
+                Assert.Equal(0, buffer.FastMemoryGroup.TotalLength);
                 Assert.Equal(0, buffer.GetSingleSpan().Length);
             }
         }
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             this.MemoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
 
             using Buffer2D<int> buffer = this.MemoryAllocator.Allocate2DOveraligned<int>(width, height, alignmentMultiplier);
-            MemoryGroup<int> memoryGroup = buffer.MemoryGroup;
+            MemoryGroup<int> memoryGroup = buffer.FastMemoryGroup;
             int expectedAlignment = width * alignmentMultiplier;
 
             Assert.Equal(expectedAlignment, memoryGroup.BufferLength);
@@ -113,8 +113,8 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
                 Assert.Equal(width, span.Length);
 
-                int expectedSubBufferOffset = (width * y) - (expectedBufferIndex * buffer.MemoryGroup.BufferLength);
-                Assert.SpanPointsTo(span, buffer.MemoryGroup[expectedBufferIndex], expectedSubBufferOffset);
+                int expectedSubBufferOffset = (width * y) - (expectedBufferIndex * buffer.FastMemoryGroup.BufferLength);
+                Assert.SpanPointsTo(span, buffer.FastMemoryGroup[expectedBufferIndex], expectedSubBufferOffset);
             }
         }
 
@@ -172,10 +172,10 @@ namespace SixLabors.ImageSharp.Tests.Memory
 
             using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
             {
-                int bufferIndex = (width * y) / buffer.MemoryGroup.BufferLength;
-                int subBufferStart = (width * y) - (bufferIndex * buffer.MemoryGroup.BufferLength);
+                int bufferIndex = (width * y) / buffer.FastMemoryGroup.BufferLength;
+                int subBufferStart = (width * y) - (bufferIndex * buffer.FastMemoryGroup.BufferLength);
 
-                Span<TestStructs.Foo> span = buffer.MemoryGroup[bufferIndex].Span.Slice(subBufferStart);
+                Span<TestStructs.Foo> span = buffer.FastMemoryGroup[bufferIndex].Span.Slice(subBufferStart);
 
                 ref TestStructs.Foo actual = ref buffer[x, y];
 
@@ -194,13 +194,13 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 a[1, 3] = 666;
                 b[1, 3] = 444;
 
-                Memory<int> aa = a.MemoryGroup.Single();
-                Memory<int> bb = b.MemoryGroup.Single();
+                Memory<int> aa = a.FastMemoryGroup.Single();
+                Memory<int> bb = b.FastMemoryGroup.Single();
 
                 Buffer2D<int>.SwapOrCopyContent(a, b);
 
-                Assert.Equal(bb, a.MemoryGroup.Single());
-                Assert.Equal(aa, b.MemoryGroup.Single());
+                Assert.Equal(bb, a.FastMemoryGroup.Single());
+                Assert.Equal(aa, b.FastMemoryGroup.Single());
 
                 Assert.Equal(new Size(3, 7), a.Size());
                 Assert.Equal(new Size(10, 5), b.Size());
@@ -286,6 +286,19 @@ namespace SixLabors.ImageSharp.Tests.Memory
                     Xunit.Assert.True(s.SequenceEqual(d));
                 }
             }
+        }
+
+        [Fact]
+        public void PublicMemoryGroup_IsMemoryGroupView()
+        {
+            using Buffer2D<int> buffer1 = this.MemoryAllocator.Allocate2D<int>(10, 10);
+            using Buffer2D<int> buffer2 = this.MemoryAllocator.Allocate2D<int>(10, 10);
+            IMemoryGroup<int> mgBefore = buffer1.MemoryGroup;
+
+            Buffer2D<int>.SwapOrCopyContent(buffer1, buffer2);
+
+            Assert.False(mgBefore.IsValid);
+            Assert.NotSame(mgBefore, buffer1.MemoryGroup);
         }
     }
 }

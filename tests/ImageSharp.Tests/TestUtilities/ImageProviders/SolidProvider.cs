@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests
                 Image<TPixel> image = base.GetImage();
                 Color color = new Rgba32(this.r, this.g, this.b, this.a);
 
-                image.GetRootFramePixelBuffer().MemoryGroup.Fill(color.ToPixel<TPixel>());
+                image.GetRootFramePixelBuffer().FastMemoryGroup.Fill(color.ToPixel<TPixel>());
                 return image;
             }
 

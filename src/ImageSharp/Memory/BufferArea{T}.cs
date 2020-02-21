@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Memory
             int xx = this.Rectangle.X;
             int width = this.Rectangle.Width;
 
-            return this.DestinationBuffer.MemoryGroup.GetBoundedSlice(yy + xx, width).Span;
+            return this.DestinationBuffer.FastMemoryGroup.GetBoundedSlice(yy + xx, width).Span;
         }
 
         /// <summary>
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.Memory
             // Optimization for when the size of the area is the same as the buffer size.
             if (this.IsFullBufferArea)
             {
-                this.DestinationBuffer.MemoryGroup.Clear();
+                this.DestinationBuffer.FastMemoryGroup.Clear();
                 return;
             }
 

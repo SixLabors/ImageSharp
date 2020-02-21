@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Memory
     // Analogous to the "owned" variant of MemorySource
     internal abstract partial class MemoryGroup<T>
     {
-        private class Owned : MemoryGroup<T>
+        private sealed class Owned : MemoryGroup<T>
         {
             private IMemoryOwner<T>[] memoryOwners;
 
@@ -24,6 +24,8 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             public bool Swappable { get; }
+
+            private bool IsDisposed => this.memoryOwners == null;
 
             public override int Count
             {
@@ -51,7 +53,7 @@ namespace SixLabors.ImageSharp.Memory
 
             public override void Dispose()
             {
-                if (this.memoryOwners == null)
+                if (this.IsDisposed)
                 {
                     return;
                 }

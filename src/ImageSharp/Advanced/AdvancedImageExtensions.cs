@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </remarks>
         public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this ImageFrame<TPixel> source)
             where TPixel : struct, IPixel<TPixel>
-            => source?.PixelBuffer.MemoryGroup.View ?? throw new ArgumentNullException(nameof(source));
+            => source?.PixelBuffer.FastMemoryGroup.View ?? throw new ArgumentNullException(nameof(source));
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="IMemoryGroup{T}"/> containing the backing pixel data of the image

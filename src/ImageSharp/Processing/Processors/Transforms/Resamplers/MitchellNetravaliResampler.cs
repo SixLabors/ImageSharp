@@ -1,5 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -7,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// The function implements the mitchell algorithm as described on
     /// <see href="https://de.wikipedia.org/wiki/Mitchell-Netravali-Filter">Wikipedia</see>
     /// </summary>
-    public class MitchellNetravaliResampler : IResampler
+    public readonly struct MitchellNetravaliResampler : IResampler
     {
         /// <inheritdoc/>
         public float Radius => 2;
@@ -20,5 +24,33 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             return ImageMaths.GetBcValue(x, B, C);
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void ApplyAffineTransform<TPixel>(
+            Configuration configuration,
+            ImageFrame<TPixel> source,
+            ImageFrame<TPixel> destination,
+            Matrix3x2 matrix)
+            where TPixel : struct, IPixel<TPixel> => ResamplerExtensions.ApplyAffineTransform(
+                configuration,
+                in this,
+                source,
+                destination,
+                matrix);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void ApplyProjectiveTransform<TPixel>(
+            Configuration configuration,
+            ImageFrame<TPixel> source,
+            ImageFrame<TPixel> destination,
+            Matrix4x4 matrix)
+            where TPixel : struct, IPixel<TPixel> => ResamplerExtensions.ApplyProjectiveTransform(
+                configuration,
+                in this,
+                source,
+                destination,
+                matrix);
     }
 }

@@ -13,7 +13,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         /// <summary>
         /// Simplified reference implementation for <see cref="ResizeKernelMap"/> functionality.
         /// </summary>
-        internal class ReferenceKernelMap
+        internal class ReferenceKernelMap<TResampler>
+            where TResampler : unmanaged, IResampler
         {
             private readonly ReferenceKernel[] kernels;
 
@@ -26,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             public ReferenceKernel GetKernel(int destinationIndex) => this.kernels[destinationIndex];
 
-            public static ReferenceKernelMap Calculate(IResampler sampler, int destinationSize, int sourceSize, bool normalize = true)
+            public static ReferenceKernelMap<TResampler> Calculate(TResampler sampler, int destinationSize, int sourceSize, bool normalize = true)
             {
                 double ratio = (double)sourceSize / destinationSize;
                 double scale = ratio;
@@ -84,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     result.Add(new ReferenceKernel(left, floatVals));
                 }
 
-                return new ReferenceKernelMap(result.ToArray());
+                return new ReferenceKernelMap<TResampler>(result.ToArray());
             }
         }
 

@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (this.transformMatrix.Equals(default) || this.transformMatrix.Equals(Matrix4x4.Identity))
             {
                 // The clone will be blank here copy all the pixel data over
-                source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
+                source.GetPixelMemoryGroup().CopyTo(destination.GetPixelMemoryGroup());
                 return;
             }
 

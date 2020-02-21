@@ -196,5 +196,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                 .Invoke(RunTest, BasicSerializer.Serialize(provider), BasicSerializer.Serialize(value))
                 .Dispose();
         }
+
+        [Theory]
+        [WithTestPatternImages(100, 300, PixelTypes.Bgr24)]
+        public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.RunBufferCapacityLimitProcessorTest(41, c => c.BokehBlur());
+        }
     }
 }

@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// The exception that is thrown when the library tries to load
-    /// an image, which has an invalid format.
+    /// an image, which has format or content that is invalid or unsupported by ImageSharp.
     /// </summary>
     public class ImageFormatException : Exception
     {

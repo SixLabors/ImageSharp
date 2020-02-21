@@ -4,11 +4,16 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.DotNet.RemoteExecutor;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -17,6 +22,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
     public class GifDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
+
+        private static GifDecoder GifDecoder => new GifDecoder();
 
         public static readonly string[] MultiFrameTestFiles =
         {
@@ -72,9 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             {
                 using (var stream = new UnmanagedMemoryStream(data, length))
                 {
-                    var decoder = new GifDecoder();
-
-                    using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                    using (Image<Rgba32> image = GifDecoder.Decode<Rgba32>(Configuration.Default, stream))
                     {
                         Assert.Equal((200, 200), (image.Width, image.Height));
                     }
@@ -162,6 +167,42 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     first.ComparePixelBufferTo(second.GetPixelSpan());
                 }
             }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Gif.Kumin, PixelTypes.Rgba32)]
+        public void GifDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
+            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(GifDecoder));
+            Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Gif.Kumin, PixelTypes.Rgba32)]
+        public void GifDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            static void RunTest(string providerDump, string nonContiguousBuffersStr)
+            {
+                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+
+                provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
+
+                using Image<TPixel> image = provider.GetImage(GifDecoder);
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+
+            string providerDump = BasicSerializer.Serialize(provider);
+            RemoteExecutor.Invoke(
+                    RunTest,
+                    providerDump,
+                    "Disco")
+                .Dispose();
         }
     }
 }

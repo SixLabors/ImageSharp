@@ -292,7 +292,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 // no need to dispose when buffer is not array owner
                 var memory = new Memory<float>(values);
-                var source = new MemorySource<float>(memory);
+                var source = MemoryGroup<float>.Wrap(memory);
                 buffers[i] = new Buffer2D<float>(source, values.Length, 1);
             }
 

@@ -37,6 +37,16 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
             provider.RunRectangleConstrainedValidatingProcessorTest((x, b) => x.Filter(m, b), comparer: ValidatorComparer);
         }
 
+        [Theory]
+        [WithTestPatternImages(70, 120, PixelTypes.Rgba32)]
+        public void FilterProcessor_WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            ColorMatrix m = CreateCombinedTestFilterMatrix();
+
+            provider.RunBufferCapacityLimitProcessorTest(37, c => c.Filter(m));
+        }
+
         private static ColorMatrix CreateCombinedTestFilterMatrix()
         {
             ColorMatrix brightness = KnownFilterMatrices.CreateBrightnessFilter(0.9F);

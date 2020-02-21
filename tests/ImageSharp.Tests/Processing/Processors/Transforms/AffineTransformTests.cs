@@ -213,6 +213,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             }
         }
 
+        [Theory]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 21)]
+        public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider, int bufferCapacityInPixelRows)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            AffineTransformBuilder builder = new AffineTransformBuilder()
+                .AppendRotationDegrees(50)
+                .AppendScale(new SizeF(.6F, .6F));
+            provider.RunBufferCapacityLimitProcessorTest(
+                bufferCapacityInPixelRows,
+                c => c.Transform(builder));
+        }
+
         private static IResampler GetResampler(string name)
         {
             PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);

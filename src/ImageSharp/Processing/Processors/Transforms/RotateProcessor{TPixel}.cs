@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (MathF.Abs(degrees) < Constants.Epsilon)
             {
                 // The destination will be blank here so copy all the pixel data over
-                source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
+                source.GetPixelMemoryGroup().CopyTo(destination.GetPixelMemoryGroup());
                 return true;
             }
 

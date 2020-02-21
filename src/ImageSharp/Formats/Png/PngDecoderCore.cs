@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private int currentRow = Adam7.FirstRow[0];
 
         /// <summary>
-        /// The current number of bytes read in the current scanline
+        /// The current number of bytes read in the current scanline.
         /// </summary>
         private int currentRowBytesRead;
 
@@ -133,17 +133,22 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
+        /// Gets the dimensions of the image.
+        /// </summary>
+        public Size Dimensions => new Size(this.header.Width, this.header.Height);
+
+        /// <summary>
         /// Decodes the stream to the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">The stream containing image data. </param>
+        /// <param name="stream">The stream containing image data.</param>
         /// <exception cref="ImageFormatException">
         /// Thrown if the stream does not contain and end chunk.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the image is larger than the maximum allowable size.
         /// </exception>
-        /// <returns>The decoded image</returns>
+        /// <returns>The decoded image.</returns>
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : struct, IPixel<TPixel>
         {

@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (matrix.Equals(default) || matrix.Equals(Matrix3x2.Identity))
             {
                 // The clone will be blank here copy all the pixel data over
-                source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
+                source.GetPixelMemoryGroup().CopyTo(destination.GetPixelMemoryGroup());
                 return;
             }
 
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (matrix.Equals(default) || matrix.Equals(Matrix4x4.Identity))
             {
                 // The clone will be blank here copy all the pixel data over
-                source.GetPixelSpan().CopyTo(destination.GetPixelSpan());
+                source.GetPixelMemoryGroup().CopyTo(destination.GetPixelMemoryGroup());
                 return;
             }
 

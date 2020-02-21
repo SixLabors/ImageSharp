@@ -342,7 +342,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                                 LossyUtils.DC4_C(dst, yuv, offset);
                                 break;
                             case 1:
-                                LossyUtils.TM4_C(dst);
+                                LossyUtils.TM4_C(dst, yuv, offset);
                                 break;
                             case 2:
                                 LossyUtils.VE4_C(dst, yuv, offset);
@@ -383,7 +383,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                             LossyUtils.DC16_C(yDst, yuv, yOff);
                             break;
                         case 1:
-                            LossyUtils.TM16_C(yDst);
+                            LossyUtils.TM16_C(yDst, yuv, yOff);
                             break;
                         case 2:
                             LossyUtils.VE16_C(yDst, yuv, yOff);
@@ -421,8 +421,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         LossyUtils.DC8uv_C(vDst, yuv, vOff);
                         break;
                     case 1:
-                        LossyUtils.TM8uv_C(uDst);
-                        LossyUtils.TM8uv_C(vDst);
+                        LossyUtils.TM8uv_C(uDst, yuv, uOff);
+                        LossyUtils.TM8uv_C(vDst, yuv, vOff);
                         break;
                     case 2:
                         LossyUtils.VE8uv_C(uDst, yuv, uOff);

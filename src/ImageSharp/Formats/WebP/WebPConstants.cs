@@ -125,10 +125,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public const int Bps = 32;
 
         // intra prediction modes (TODO: maybe use an enum for this)
-        public const int DcPred = 0;
-        public const int TmPred = 1;
-        public const int VPred = 2;
-        public const int HPred = 3;
+        public const int DcPred = 0; // predict DC using row above and column to the left
+        public const int TmPred = 1; // propagate second differences a la "True Motion"
+        public const int VPred = 2; // predict rows using row above
+        public const int HPred = 3; // predict columns using column to the left
 
         /// <summary>
         /// How many extra lines are needed on the MB boundary for caching, given a filtering level.

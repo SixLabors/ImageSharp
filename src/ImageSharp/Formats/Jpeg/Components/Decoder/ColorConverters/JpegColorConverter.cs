@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// <summary>
         /// Returns the <see cref="JpegColorConverter"/> corresponding to the given <see cref="JpegColorSpace"/>
         /// </summary>
-        public static JpegColorConverter GetConverter(JpegColorSpace colorSpace, float precision)
+        public static JpegColorConverter GetConverter(JpegColorSpace colorSpace, int precision)
         {
             JpegColorConverter converter = Array.Find(Converters, c => c.ColorSpace == colorSpace
                                                                     && c.Precision == precision);

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly BinaryThresholdProcessor definition;
 

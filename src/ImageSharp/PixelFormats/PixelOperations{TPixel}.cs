@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public partial class PixelOperations<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Gets the global <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             Configuration configuration,
             ReadOnlySpan<TSourcePixel> sourcePixels,
             Span<TPixel> destinationPixels)
-            where TSourcePixel : struct, IPixel<TSourcePixel>
+            where TSourcePixel : unmanaged, IPixel<TSourcePixel>
         {
             const int SliceLength = 1024;
             int numberOfSlices = sourcePixels.Length / SliceLength;
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             Configuration configuration,
             ReadOnlySpan<TPixel> sourcePixels,
             Span<TDestinationPixel> destinationPixels)
-            where TDestinationPixel : struct, IPixel<TDestinationPixel>
+            where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));

@@ -45,7 +45,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public ushort PackedValue
         {
-            readonly get => Unsafe.As<La16, ushort>(ref Unsafe.AsRef(this));
+            get => Unsafe.As<La16, ushort>(ref this);
+
             set => Unsafe.As<La16, ushort>(ref this) = value;
         }
 
@@ -72,21 +73,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(La16 left, La16 right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public readonly PixelOperations<La16> CreatePixelOperations() => new PixelOperations();
+        public PixelOperations<La16> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(La16 other) => this.PackedValue.Equals(other.PackedValue);
+        public bool Equals(La16 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override readonly bool Equals(object obj) => obj is La16 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is La16 other && this.Equals(other);
 
         /// <inheritdoc />
-        public override readonly string ToString() => $"La16({this.L}, {this.A})";
+        public override string ToString() => $"La16({this.L}, {this.A})";
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -203,11 +204,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToScaledVector4() => this.ToVector4();
+        public Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4()
+        public Vector4 ToVector4()
         {
             const float Max = 255F;
             float rgb = this.L / Max;

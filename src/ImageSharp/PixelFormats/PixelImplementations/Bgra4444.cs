@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Bgra4444 left, Bgra4444 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<Bgra4444> CreatePixelOperations() => new PixelOperations<Bgra4444>();
+        public PixelOperations<Bgra4444> CreatePixelOperations() => new PixelOperations<Bgra4444>();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToScaledVector4() => this.ToVector4();
+        public Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4()
+        public Vector4 ToVector4()
         {
             const float Max = 1 / 15F;
 
@@ -142,14 +142,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
-        public override readonly bool Equals(object obj) => obj is Bgra4444 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is Bgra4444 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(Bgra4444 other) => this.PackedValue.Equals(other.PackedValue);
+        public bool Equals(Bgra4444 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override readonly string ToString()
+        public override string ToString()
         {
             var vector = this.ToVector4();
             return FormattableString.Invariant($"Bgra4444({vector.Z:#0.##}, {vector.Y:#0.##}, {vector.X:#0.##}, {vector.W:#0.##})");
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static ushort Pack(ref Vector4 vector)

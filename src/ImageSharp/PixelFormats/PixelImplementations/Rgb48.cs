@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgb48 left, Rgb48 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<Rgb48> CreatePixelOperations() => new PixelOperations();
+        public PixelOperations<Rgb48> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToScaledVector4() => this.ToVector4();
+        public Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(this.R / Max, this.G / Max, this.B / Max, 1F);
+        public Vector4 ToVector4() => new Vector4(this.R / Max, this.G / Max, this.B / Max, 1F);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -201,17 +201,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void FromRgb48(Rgb48 source) => this = source;
 
         /// <inheritdoc />
-        public override readonly bool Equals(object obj) => obj is Rgb48 rgb48 && this.Equals(rgb48);
+        public override bool Equals(object obj) => obj is Rgb48 rgb48 && this.Equals(rgb48);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(Rgb48 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
+        public bool Equals(Rgb48 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
 
         /// <inheritdoc />
-        public override readonly string ToString() => $"Rgb48({this.R}, {this.G}, {this.B})";
+        public override string ToString() => $"Rgb48({this.R}, {this.G}, {this.B})";
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override readonly int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
+        public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
     }
 }

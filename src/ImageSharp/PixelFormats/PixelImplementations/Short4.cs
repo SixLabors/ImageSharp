@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Short4 left, Short4 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<Short4> CreatePixelOperations() => new PixelOperations<Short4>();
+        public PixelOperations<Short4> CreatePixelOperations() => new PixelOperations<Short4>();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToScaledVector4()
+        public Vector4 ToScaledVector4()
         {
             var scaled = this.ToVector4();
             scaled += new Vector4(32767F);
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4()
+        public Vector4 ToVector4()
         {
             return new Vector4(
                 (short)(this.PackedValue & 0xFFFF),
@@ -160,21 +160,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
-        public override readonly bool Equals(object obj) => obj is Short4 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is Short4 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(Short4 other) => this.PackedValue.Equals(other);
+        public bool Equals(Short4 other) => this.PackedValue.Equals(other);
 
         /// <summary>
         /// Gets the hash code for the current instance.
         /// </summary>
         /// <returns>Hash code for the instance.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <inheritdoc />
-        public override readonly string ToString()
+        public override string ToString()
         {
             var vector = this.ToVector4();
             return FormattableString.Invariant($"Short4({vector.X:#0.##}, {vector.Y:#0.##}, {vector.Z:#0.##}, {vector.W:#0.##})");

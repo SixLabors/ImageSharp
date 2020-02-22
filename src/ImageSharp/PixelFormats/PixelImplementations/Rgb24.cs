@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgb24 left, Rgb24 right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public readonly PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();
+        public PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToScaledVector4() => this.ToVector4();
+        public Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Rgba32(this.R, this.G, this.B, byte.MaxValue).ToVector4();
+        public Vector4 ToVector4() => new Rgba32(this.R, this.G, this.B, byte.MaxValue).ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -232,18 +232,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public override readonly bool Equals(object obj) => obj is Rgb24 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is Rgb24 other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(Rgb24 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
+        public bool Equals(Rgb24 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override readonly int GetHashCode() => HashCode.Combine(this.R, this.B, this.G);
+        public override int GetHashCode() => HashCode.Combine(this.R, this.B, this.G);
 
         /// <inheritdoc/>
-        public override readonly string ToString() => $"Rgb24({this.R}, {this.G}, {this.B})";
+        public override string ToString() => $"Rgb24({this.R}, {this.G}, {this.B})";
 
         /// <summary>
         /// Packs a <see cref="Vector4"/> into a color.

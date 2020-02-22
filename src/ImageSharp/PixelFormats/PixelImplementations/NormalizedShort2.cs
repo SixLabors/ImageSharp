@@ -60,20 +60,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(NormalizedShort2 left, NormalizedShort2 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<NormalizedShort2> CreatePixelOperations() => new PixelOperations<NormalizedShort2>();
+        public PixelOperations<NormalizedShort2> CreatePixelOperations() => new PixelOperations<NormalizedShort2>();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromScaledVector4(Vector4 vector)
         {
-            Vector2 scaled = new Vector2(vector.X, vector.Y) * 2F;
+            var scaled = new Vector2(vector.X, vector.Y) * 2F;
             scaled -= Vector2.One;
             this.PackedValue = Pack(scaled);
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToScaledVector4()
+        public Vector4 ToScaledVector4()
         {
             var scaled = this.ToVector2();
             scaled += Vector2.One;
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(this.ToVector2(), 0, 1);
+        public Vector4 ToVector4() => new Vector4(this.ToVector2(), 0, 1);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Vector2"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector2 ToVector2()
+        public Vector2 ToVector2()
         {
             const float MaxVal = 0x7FFF;
 
@@ -164,18 +164,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public override readonly bool Equals(object obj) => obj is NormalizedShort2 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is NormalizedShort2 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(NormalizedShort2 other) => this.PackedValue.Equals(other.PackedValue);
+        public bool Equals(NormalizedShort2 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <inheritdoc />
-        public override readonly string ToString()
+        public override string ToString()
         {
             var vector = this.ToVector2();
             return FormattableString.Invariant($"NormalizedShort2({vector.X:#0.##}, {vector.Y:#0.##})");

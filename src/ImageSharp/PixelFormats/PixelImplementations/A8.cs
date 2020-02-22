@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(A8 left, A8 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<A8> CreatePixelOperations() => new PixelOperations<A8>();
+        public PixelOperations<A8> CreatePixelOperations() => new PixelOperations<A8>();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToScaledVector4() => this.ToVector4();
+        public Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(0, 0, 0, this.PackedValue / 255F);
+        public Vector4 ToVector4() => new Vector4(0, 0, 0, this.PackedValue / 255F);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="obj">The object to compare.</param>
         /// <returns>True if the object is equal to the packed vector.</returns>
-        public override readonly bool Equals(object obj) => obj is A8 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is A8 other && this.Equals(other);
 
         /// <summary>
         /// Compares another A8 packed vector with the packed vector.
@@ -144,17 +144,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="other">The A8 packed vector to compare.</param>
         /// <returns>True if the packed vectors are equal.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(A8 other) => this.PackedValue.Equals(other.PackedValue);
+        public bool Equals(A8 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <summary>
         /// Gets a string representation of the packed vector.
         /// </summary>
         /// <returns>A string representation of the packed vector.</returns>
-        public override readonly string ToString() => $"A8({this.PackedValue})";
+        public override string ToString() => $"A8({this.PackedValue})";
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <summary>
         /// Packs a <see cref="float"/> into a byte.

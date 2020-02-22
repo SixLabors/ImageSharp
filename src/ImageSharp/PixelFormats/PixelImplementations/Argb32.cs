@@ -138,7 +138,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public uint PackedValue
         {
+            [MethodImpl(InliningOptions.ShortMethod)]
             readonly get => this.Argb;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
             set => this.Argb = value;
         }
 

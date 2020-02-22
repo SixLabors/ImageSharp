@@ -45,7 +45,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public uint PackedValue
         {
+            [MethodImpl(InliningOptions.ShortMethod)]
             readonly get => Unsafe.As<La32, uint>(ref Unsafe.AsRef(this));
+
+            [MethodImpl(InliningOptions.ShortMethod)]
             set => Unsafe.As<La32, uint>(ref this) = value;
         }
 

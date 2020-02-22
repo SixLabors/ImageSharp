@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Bgr565 left, Bgr565 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<Bgr565> CreatePixelOperations() => new PixelOperations<Bgr565>();
+        public PixelOperations<Bgr565> CreatePixelOperations() => new PixelOperations<Bgr565>();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToScaledVector4() => this.ToVector4();
+        public Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(this.ToVector3(), 1F);
+        public Vector4 ToVector4() => new Vector4(this.ToVector3(), 1F);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Vector3"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector3 ToVector3()
+        public Vector3 ToVector3()
         {
             return new Vector3(
                        ((this.PackedValue >> 11) & 0x1F) * (1F / 31F),
@@ -153,14 +153,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public override readonly bool Equals(object obj) => obj is Bgr565 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is Bgr565 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(Bgr565 other) => this.PackedValue.Equals(other.PackedValue);
+        public bool Equals(Bgr565 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override readonly string ToString()
+        public override string ToString()
         {
             var vector = this.ToVector3();
             return FormattableString.Invariant($"Bgr565({vector.Z:#0.##}, {vector.Y:#0.##}, {vector.X:#0.##})");
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static ushort Pack(ref Vector3 vector)

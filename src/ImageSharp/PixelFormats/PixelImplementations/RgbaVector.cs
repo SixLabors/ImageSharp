@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static RgbaVector FromHex(string hex) => Color.ParseHex(hex).ToPixel<RgbaVector>();
 
         /// <inheritdoc />
-        public readonly PixelOperations<RgbaVector> CreatePixelOperations() => new PixelOperations();
+        public PixelOperations<RgbaVector> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToScaledVector4() => this.ToVector4();
+        public Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A);
+        public Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Converts the value of this instance to a hexadecimal string.
         /// </summary>
         /// <returns>A hexadecimal string representation of the value.</returns>
-        public readonly string ToHex()
+        public string ToHex()
         {
             // Hex is RRGGBBAA
             Vector4 vector = this.ToVector4() * Max;
@@ -188,23 +188,23 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public override readonly bool Equals(object obj) => obj is RgbaVector other && this.Equals(other);
+        public override bool Equals(object obj) => obj is RgbaVector other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(RgbaVector other) =>
+        public bool Equals(RgbaVector other) =>
             this.R.Equals(other.R)
             && this.G.Equals(other.G)
             && this.B.Equals(other.B)
             && this.A.Equals(other.A);
 
         /// <inheritdoc/>
-        public override readonly string ToString()
+        public override string ToString()
         {
             return FormattableString.Invariant($"RgbaVector({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##}, {this.A:#0.##})");
         }
 
         /// <inheritdoc/>
-        public override readonly int GetHashCode() => HashCode.Combine(this.R, this.G, this.B, this.A);
+        public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B, this.A);
     }
 }

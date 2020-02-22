@@ -45,10 +45,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public uint PackedValue
         {
-            [MethodImpl(InliningOptions.ShortMethod)]
-            readonly get => Unsafe.As<La32, uint>(ref Unsafe.AsRef(this));
+            get => Unsafe.As<La32, uint>(ref this);
 
-            [MethodImpl(InliningOptions.ShortMethod)]
             set => Unsafe.As<La32, uint>(ref this) = value;
         }
 
@@ -75,21 +73,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(La32 left, La32 right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public readonly PixelOperations<La32> CreatePixelOperations() => new PixelOperations();
+        public PixelOperations<La32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(La32 other) => this.PackedValue.Equals(other.PackedValue);
+        public bool Equals(La32 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override readonly bool Equals(object obj) => obj is La32 other && this.Equals(other);
+        public override bool Equals(object obj) => obj is La32 other && this.Equals(other);
 
         /// <inheritdoc />
-        public override readonly string ToString() => $"La32({this.L}, {this.A})";
+        public override string ToString() => $"La32({this.L}, {this.A})";
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
+        public override int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -220,11 +218,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToScaledVector4() => this.ToVector4();
+        public Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly Vector4 ToVector4()
+        public Vector4 ToVector4()
         {
             float scaled = this.L / Max;
             return new Vector4(scaled, scaled, scaled, this.A / Max);

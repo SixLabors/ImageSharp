@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Implements resizing of images using various resamplers.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>
+    internal partial class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResamplingImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly int destinationWidth;
@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private readonly IResampler resampler;
         private readonly Rectangle destinationRectangle;
         private readonly bool compand;
+        private Image<TPixel> destination;
 
         public ResizeProcessor(Configuration configuration, ResizeProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
@@ -34,13 +35,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <inheritdoc/>
         protected override void BeforeImageApply(Image<TPixel> destination)
         {
-            this.resampler.ApplyResizeTransform(
-                this.Configuration,
-                this.Source,
-                destination,
-                this.SourceRectangle,
-                this.destinationRectangle,
-                this.compand);
+            this.destination = destination;
+            this.resampler.ApplyTransform(this);
 
             base.BeforeImageApply(destination);
         }
@@ -50,5 +46,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             // Everything happens in BeforeImageApply.
         }
+
+        public void ApplyTransform<TResampler>(in TResampler sampler)
+            where TResampler : struct, IResampler =>
+            ApplyResizeTransform(
+                this.Configuration,
+                in sampler,
+                this.Source,
+                this.destination,
+                this.SourceRectangle,
+                this.destinationRectangle,
+                this.compand);
     }
 }

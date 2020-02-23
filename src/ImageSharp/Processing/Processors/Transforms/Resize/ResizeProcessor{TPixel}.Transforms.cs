@@ -10,15 +10,15 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <content>
-    /// Extensions for <see cref="IResampler"/>.
+    /// Contains the application code for resizing.
     /// </content>
-    public static partial class ResamplerExtensions
+    internal partial class ResizeProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>
         /// Applies an resizing transformation upon an image.
         /// </summary>
         /// <typeparam name="TResampler">The type of sampler.</typeparam>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="configuration">The configuration.</param>
         /// <param name="sampler">The pixel sampler.</param>
         /// <param name="source">The source image.</param>
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sourceRectangle">The source bounds.</param>
         /// <param name="destinationRectangle">The destination location.</param>
         /// <param name="compand">Whether to compress or expand individual pixel color values on processing.</param>
-        public static void ApplyResizeTransform<TResampler, TPixel>(
+        public static void ApplyResizeTransform<TResampler>(
             Configuration configuration,
             in TResampler sampler,
             Image<TPixel> source,
@@ -34,8 +34,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle sourceRectangle,
             Rectangle destinationRectangle,
             bool compand)
-            where TResampler : unmanaged, IResampler
-            where TPixel : struct, IPixel<TPixel>
+            where TResampler : struct, IResampler
         {
             // Handle resize dimensions identical to the original
             if (source.Width == destination.Width
@@ -108,20 +107,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        private static void ApplyNNResizeFrameTransform<TPixel>(
+        private static void ApplyNNResizeFrameTransform(
             Configuration configuration,
             ImageFrame<TPixel> source,
             ImageFrame<TPixel> destination,
             Rectangle sourceRectangle,
             Rectangle destinationRectangle,
             Rectangle interest)
-            where TPixel : struct, IPixel<TPixel>
         {
             // Scaling factors
             float widthFactor = sourceRectangle.Width / (float)destinationRectangle.Width;
             float heightFactor = sourceRectangle.Height / (float)destinationRectangle.Height;
 
-            var operation = new NNRowIntervalOperation<TPixel>(
+            var operation = new NNRowIntervalOperation(
                 sourceRectangle,
                 destinationRectangle,
                 widthFactor,
@@ -135,7 +133,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 in operation);
         }
 
-        private static void ApplyResizeFrameTransform<TPixel>(
+        private static void ApplyResizeFrameTransform(
             Configuration configuration,
             ImageFrame<TPixel> source,
             ImageFrame<TPixel> destination,
@@ -145,7 +143,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Rectangle destinationRectangle,
             Rectangle interest,
             bool compand)
-            where TPixel : struct, IPixel<TPixel>
         {
             PixelConversionModifiers conversionModifiers =
                 PixelConversionModifiers.Premultiply.ApplyCompanding(compand);
@@ -171,8 +168,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        private readonly struct NNRowIntervalOperation<TPixel> : IRowIntervalOperation
-            where TPixel : struct, IPixel<TPixel>
+        private readonly struct NNRowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle sourceBounds;
             private readonly Rectangle destinationBounds;

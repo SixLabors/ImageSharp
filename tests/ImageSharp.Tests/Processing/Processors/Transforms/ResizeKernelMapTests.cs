@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [Theory(Skip = "Only for debugging and development")]
         [MemberData(nameof(KernelMapData))]
         public void PrintNonNormalizedKernelMap<TResampler>(TResampler resampler, int srcSize, int destSize)
-            where TResampler : unmanaged, IResampler
+            where TResampler : struct, IResampler
         {
             var kernelMap = ReferenceKernelMap.Calculate<TResampler>(in resampler, destSize, srcSize, false);
 
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [Theory]
         [MemberData(nameof(KernelMapData))]
         public void KernelMapContentIsCorrect<TResampler>(TResampler resampler, int srcSize, int destSize)
-            where TResampler : unmanaged, IResampler
+            where TResampler : struct, IResampler
         {
             this.VerifyKernelMapContentIsCorrect(resampler, srcSize, destSize);
         }
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 #endif
 
         private void VerifyKernelMapContentIsCorrect<TResampler>(TResampler resampler, int srcSize, int destSize)
-            where TResampler : unmanaged, IResampler
+            where TResampler : struct, IResampler
         {
             var referenceMap = ReferenceKernelMap.Calculate(in resampler, destSize, srcSize);
             var kernelMap = ResizeKernelMap.Calculate(in resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);

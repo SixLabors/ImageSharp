@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private bool isDisposed;
         private readonly int targetWidth;

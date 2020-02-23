@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class GaussianBlurProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GaussianBlurProcessor{TPixel}"/> class.

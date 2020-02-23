@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [Theory]
         [WithSolidFilledImages(nameof(Transform_DoesNotCreateEdgeArtifacts_ResamplerNames), 5, 5, 255, 255, 255, 255, PixelTypes.Rgba32)]
         public void Transform_DoesNotCreateEdgeArtifacts<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             IResampler resampler = GetResampler(resamplerName);
             using (Image<TPixel> image = provider.GetImage())
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             float sy,
             float tx,
             float ty)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [Theory]
         [WithTestPatternImages(96, 96, PixelTypes.Rgba32, 50, 0.8f)]
         public void Transform_RotateScale_ManuallyCentered<TPixel>(TestImageProvider<TPixel> provider, float angleDeg, float s)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [Theory]
         [WithTestPatternImages(96, 48, PixelTypes.Rgba32)]
         public void Transform_FromSourceRectangle1<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var rectangle = new Rectangle(48, 0, 48, 24);
 
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [Theory]
         [WithTestPatternImages(96, 48, PixelTypes.Rgba32)]
         public void Transform_FromSourceRectangle2<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var rectangle = new Rectangle(0, 24, 48, 24);
 
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [Theory]
         [WithTestPatternImages(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
         public void Transform_WithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             IResampler sampler = GetResampler(resamplerName);
             using (Image<TPixel> image = provider.GetImage())
@@ -216,7 +216,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 21)]
         public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider, int bufferCapacityInPixelRows)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             AffineTransformBuilder builder = new AffineTransformBuilder()
                 .AppendRotationDegrees(50)
@@ -239,7 +239,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         }
 
         private static void VerifyAllPixelsAreWhiteOrTransparent<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Span<TPixel> data = image.Frames.RootFrame.GetPixelSpan();
             var white = new Rgb24(255, 255, 255);

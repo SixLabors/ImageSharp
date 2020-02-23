@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             Guard.NotNull(options, nameof(options));
             Guard.NotNull(options.Sampler, nameof(options.Sampler));
+            Guard.MustBeValueType(options.Sampler, nameof(options.Sampler));
 
             (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(sourceSize, options);
 

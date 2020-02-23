@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public ProjectiveTransformProcessor(Matrix4x4 matrix, IResampler sampler, Size targetDimensions)
         {
             Guard.NotNull(sampler, nameof(sampler));
+            Guard.MustBeValueType(sampler, nameof(sampler));
+
             this.Sampler = sampler;
             this.TransformMatrix = matrix;
             this.DestinationSize = targetDimensions;

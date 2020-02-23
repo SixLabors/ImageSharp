@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -26,52 +25,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         float GetValue(float x);
 
         /// <summary>
-        /// Applies an resizing transformation upon an image.
+        /// Applies a transformation upon an image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="source">The source image.</param>
-        /// <param name="destination">The destination image.</param>
-        /// <param name="sourceRectangle">The source bounds.</param>
-        /// <param name="targetRectangle">The target location.</param>
-        /// <param name="compand">Whether to compress or expand individual pixel color values on processing.</param>
-        void ApplyResizeTransform<TPixel>(
-            Configuration configuration,
-            Image<TPixel> source,
-            Image<TPixel> destination,
-            Rectangle sourceRectangle,
-            Rectangle targetRectangle,
-            bool compand)
-            where TPixel : struct, IPixel<TPixel>;
-
-        /// <summary>
-        /// Applies an affine transformation upon an image.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="source">The source image frame.</param>
-        /// <param name="destination">The destination image frame.</param>
-        /// <param name="matrix">The transform matrix.</param>
-        void ApplyAffineTransform<TPixel>(
-            Configuration configuration,
-            ImageFrame<TPixel> source,
-            ImageFrame<TPixel> destination,
-            Matrix3x2 matrix)
-            where TPixel : struct, IPixel<TPixel>;
-
-        /// <summary>
-        /// Applies a projective transformation upon an image.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="source">The source image frame.</param>
-        /// <param name="destination">The destination image frame.</param>
-        /// <param name="matrix">The transform matrix.</param>
-        void ApplyProjectiveTransform<TPixel>(
-            Configuration configuration,
-            ImageFrame<TPixel> source,
-            ImageFrame<TPixel> destination,
-            Matrix4x4 matrix)
+        /// <param name="processor">The transforming image processor.</param>
+        void ApplyTransform<TPixel>(IResamplingImageProcessor<TPixel> processor)
             where TPixel : struct, IPixel<TPixel>;
     }
 }

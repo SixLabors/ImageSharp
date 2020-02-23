@@ -7,24 +7,26 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Provides the base methods to perform affine transforms on an image.
+    /// Provides the base methods to perform non-affine transforms on an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>
+    internal partial class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>, IResamplingImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Size destinationSize;
-        private readonly Matrix3x2 transformMatrix;
         private readonly IResampler resampler;
+        private readonly Matrix4x4 transformMatrix;
+        private ImageFrame<TPixel> source;
+        private ImageFrame<TPixel> destination;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="ProjectiveTransformProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="definition">The <see cref="AffineTransformProcessor"/> defining the processor parameters.</param>
+        /// <param name="definition">The <see cref="ProjectiveTransformProcessor"/> defining the processor parameters.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public AffineTransformProcessor(Configuration configuration, AffineTransformProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+        public ProjectiveTransformProcessor(Configuration configuration, ProjectiveTransformProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
             this.destinationSize = definition.DestinationSize;
@@ -36,6 +38,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
-            => this.resampler.ApplyAffineTransform(this.Configuration, source, destination, this.transformMatrix);
+        {
+            this.source = source;
+            this.destination = destination;
+            this.resampler.ApplyTransform(this);
+        }
+
+        /// <inheritdoc/>
+        public void ApplyTransform<TResampler>(in TResampler sampler)
+            where TResampler : struct, IResampler
+            => ApplyProjectiveTransform(
+                this.Configuration,
+                in sampler,
+                this.source,
+                this.destination,
+                this.transformMatrix);
     }
 }

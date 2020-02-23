@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int destinationSize,
             int sourceSize,
             MemoryAllocator memoryAllocator)
-            where TResampler : unmanaged, IResampler
+            where TResampler : struct, IResampler
         {
             double ratio = (double)sourceSize / destinationSize;
             double scale = ratio;
@@ -182,7 +182,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Initializes the kernel map.
         /// </summary>
         protected internal virtual void Initialize<TResampler>(in TResampler sampler)
-            where TResampler : unmanaged, IResampler
+            where TResampler : struct, IResampler
         {
             for (int i = 0; i < this.DestinationLength; i++)
             {
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// so the data reusable by other data rows.
         /// </summary>
         private ResizeKernel BuildKernel<TResampler>(in TResampler sampler, int destRowIndex, int dataRowIndex)
-            where TResampler : unmanaged, IResampler
+            where TResampler : struct, IResampler
         {
             double center = ((destRowIndex + .5) * this.ratio) - .5;
 

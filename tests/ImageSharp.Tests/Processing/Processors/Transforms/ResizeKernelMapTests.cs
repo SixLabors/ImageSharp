@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void PrintNonNormalizedKernelMap<TResampler>(TResampler resampler, int srcSize, int destSize)
             where TResampler : unmanaged, IResampler
         {
-            var kernelMap = ReferenceKernelMap<TResampler>.Calculate(resampler, destSize, srcSize, false);
+            var kernelMap = ReferenceKernelMap.Calculate<TResampler>(in resampler, destSize, srcSize, false);
 
             this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
         }
@@ -117,8 +117,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         private void VerifyKernelMapContentIsCorrect<TResampler>(TResampler resampler, int srcSize, int destSize)
             where TResampler : unmanaged, IResampler
         {
-            var referenceMap = ReferenceKernelMap<TResampler>.Calculate(resampler, destSize, srcSize);
-            var kernelMap = ResizeKernelMap<TResampler>.Calculate(resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
+            var referenceMap = ReferenceKernelMap.Calculate(in resampler, destSize, srcSize);
+            var kernelMap = ResizeKernelMap.Calculate(in resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
 #if DEBUG
             this.Output.WriteLine(kernelMap.Info);
@@ -153,23 +153,20 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             }
         }
 
-        private static string PrintKernelMap<TResampler>(ResizeKernelMap<TResampler> kernelMap)
-            where TResampler : unmanaged, IResampler
-            => PrintKernelMap<TResampler, ResizeKernelMap<TResampler>>(kernelMap, km => km.DestinationLength, (km, i) => km.GetKernel(i));
+        private static string PrintKernelMap(ResizeKernelMap kernelMap)
+            => PrintKernelMap(kernelMap, km => km.DestinationLength, (km, i) => km.GetKernel(i));
 
-        private static string PrintKernelMap<TResampler>(ReferenceKernelMap<TResampler> kernelMap)
-            where TResampler : unmanaged, IResampler
-            => PrintKernelMap<TResampler, ReferenceKernelMap<TResampler>>(kernelMap, km => km.DestinationSize, (km, i) => km.GetKernel(i));
+        private static string PrintKernelMap(ReferenceKernelMap kernelMap)
+            => PrintKernelMap(kernelMap, km => km.DestinationSize, (km, i) => km.GetKernel(i));
 
-        private static string PrintKernelMap<TResampler, TKernelMap>(
+        private static string PrintKernelMap<TKernelMap>(
             TKernelMap kernelMap,
             Func<TKernelMap, int> getDestinationSize,
             Func<TKernelMap, int, ReferenceKernel> getKernel)
-            where TResampler : unmanaged, IResampler
         {
             var bld = new StringBuilder();
 
-            if (kernelMap is ResizeKernelMap<TResampler> actualMap)
+            if (kernelMap is ResizeKernelMap actualMap)
             {
                 bld.AppendLine(actualMap.Info);
             }

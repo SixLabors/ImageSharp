@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Points to a collection of of weights allocated in <see cref="ResizeKernelMap{T}"/>.
+    /// Points to a collection of of weights allocated in <see cref="ResizeKernelMap"/>.
     /// </summary>
     internal readonly unsafe struct ResizeKernel
     {
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <summary>
-        /// Gets the span representing the portion of the <see cref="ResizeKernelMap{T}"/> that this window covers.
+        /// Gets the span representing the portion of the <see cref="ResizeKernelMap"/> that this window covers.
         /// </summary>
         /// <value>The <see cref="Span{T}"/>.
         /// </value>

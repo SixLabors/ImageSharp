@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -19,8 +18,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// When sliding the window, the contents of the bottom window band are copied to the new top band.
     /// For more details, and visual explanation, see "ResizeWorker.pptx".
     /// </summary>
-    internal sealed class ResizeWorker<TResampler, TPixel> : IDisposable
-        where TResampler : unmanaged, IResampler
+    internal sealed class ResizeWorker<TPixel> : IDisposable
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly Buffer2D<Vector4> transposedFirstPassBuffer;
@@ -29,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly PixelConversionModifiers conversionModifiers;
 
-        private readonly ResizeKernelMap<TResampler> horizontalKernelMap;
+        private readonly ResizeKernelMap horizontalKernelMap;
 
         private readonly BufferArea<TPixel> source;
 
@@ -39,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly IMemoryOwner<Vector4> tempColumnBuffer;
 
-        private readonly ResizeKernelMap<TResampler> verticalKernelMap;
+        private readonly ResizeKernelMap verticalKernelMap;
 
         private readonly int destWidth;
 
@@ -57,8 +55,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Configuration configuration,
             BufferArea<TPixel> source,
             PixelConversionModifiers conversionModifiers,
-            ResizeKernelMap<TResampler> horizontalKernelMap,
-            ResizeKernelMap<TResampler> verticalKernelMap,
+            ResizeKernelMap horizontalKernelMap,
+            ResizeKernelMap verticalKernelMap,
             int destWidth,
             Rectangle targetWorkingRect,
             Point targetOrigin)

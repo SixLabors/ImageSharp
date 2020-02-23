@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         public static MagickReferenceDecoder Instance { get; } = new MagickReferenceDecoder();
 
         private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (Memory<TPixel> m in destinationGroup)
             {
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         }
 
         private static void FromRgba64Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (Memory<TPixel> m in destinationGroup)
             {
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         }
 
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using var magickImage = new MagickImage(stream);
             var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);

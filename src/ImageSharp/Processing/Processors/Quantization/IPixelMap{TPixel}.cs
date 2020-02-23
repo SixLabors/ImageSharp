@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal interface IPixelMap<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Gets the color palette containing colors to match.

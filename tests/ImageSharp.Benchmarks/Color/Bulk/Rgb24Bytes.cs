@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     public abstract class Rgb24Bytes<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private IMemoryOwner<TPixel> source;
 

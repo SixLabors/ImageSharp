@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         [Theory]
         [WithTestPatternImages(48, 48, PixelTypes.Rgba32)]
         public void ApplyInvertFilter<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(x => x.Invert());
         }

@@ -74,12 +74,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 7, 5, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 600, 400, PixelTypes.Rgba32)]
         public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
-            where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
+            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 
         [Theory]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
-            where TPixel : struct, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
+            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32, JpegSubsample.Ratio444)]
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithTestPatternImages(677, 683, PixelTypes.Bgra32, JpegSubsample.Ratio420)]
         [WithSolidFilledImages(400, 400, "Red", PixelTypes.Bgr24, JpegSubsample.Ratio420)]
         public void EncodeBaseline_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ImageComparer comparer = subsample == JpegSubsample.Ratio444
                 ? ImageComparer.TolerantPercentage(0.1f)
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             JpegSubsample subsample,
             int quality = 100,
             ImageComparer comparer = null)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image<TPixel> image = provider.GetImage();
 

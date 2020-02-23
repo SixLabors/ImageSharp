@@ -14,27 +14,27 @@ namespace SixLabors.ImageSharp.Tests.Processing
         private readonly List<object> imageOperators = new List<object>();
 
         public bool HasCreated<TPixel>(Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return this.Created(source).Any();
         }
 
         public IEnumerable<FakeImageOperations<TPixel>> Created<TPixel>(Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return this.imageOperators.OfType<FakeImageOperations<TPixel>>()
                 .Where(x => x.Source == source);
         }
 
         public IEnumerable<FakeImageOperations<TPixel>.AppliedOperation> AppliedOperations<TPixel>(Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return this.Created(source)
                 .SelectMany(x => x.Applied);
         }
 
         public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Configuration configuration, Image<TPixel> source, bool mutate)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var op = new FakeImageOperations<TPixel>(configuration, source, mutate);
             this.imageOperators.Add(op);
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
         }
 
         public class FakeImageOperations<TPixel> : IInternalImageProcessingContext<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             public FakeImageOperations(Configuration configuration, Image<TPixel> source, bool mutate)
             {

@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// therefore it's not recommended to mutate the image while holding a reference to it's <see cref="IMemoryGroup{T}"/>.
         /// </remarks>
         public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this ImageFrame<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
             => source?.PixelBuffer.FastMemoryGroup.View ?? throw new ArgumentNullException(nameof(source));
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// therefore it's not recommended to mutate the image while holding a reference to it's <see cref="IMemoryGroup{T}"/>.
         /// </remarks>
         public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
             => source?.Frames.RootFrame.GetPixelMemoryGroup() ?? throw new ArgumentNullException(nameof(source));
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Advanced
         [Obsolete(
             @"GetPixelSpan might fail, because the backing buffer could be discontiguous for large images. Use GetPixelMemoryGroup or GetPixelRowSpan instead!")]
         public static Span<TPixel> GetPixelSpan<TPixel>(this ImageFrame<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(source, nameof(source));
 
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Advanced
         [Obsolete(
             @"GetPixelSpan might fail, because the backing buffer could be discontiguous for large images. Use GetPixelMemoryGroup or GetPixelRowSpan instead!")]
         public static Span<TPixel> GetPixelSpan<TPixel>(this Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(source, nameof(source));
 
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
         public static Span<TPixel> GetPixelRowSpan<TPixel>(this ImageFrame<TPixel> source, int rowIndex)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(source, nameof(source));
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
         public static Span<TPixel> GetPixelRowSpan<TPixel>(this Image<TPixel> source, int rowIndex)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(source, nameof(source));
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
         public static Memory<TPixel> GetPixelRowMemory<TPixel>(this ImageFrame<TPixel> source, int rowIndex)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(source, nameof(source));
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="rowIndex">The row.</param>
         /// <returns>The <see cref="Span{TPixel}"/></returns>
         public static Memory<TPixel> GetPixelRowMemory<TPixel>(this Image<TPixel> source, int rowIndex)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(source, nameof(source));
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel</typeparam>
     public abstract class PixelBlender<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Blend 2 pixels together.
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ReadOnlySpan<TPixel> background,
             ReadOnlySpan<TPixelSrc> source,
             float amount)
-            where TPixelSrc : struct, IPixel<TPixelSrc>
+            where TPixelSrc : unmanaged, IPixel<TPixelSrc>
         {
             Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
             Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             ReadOnlySpan<TPixel> background,
             ReadOnlySpan<TPixelSrc> source,
             ReadOnlySpan<float> amount)
-            where TPixelSrc : struct, IPixel<TPixelSrc>
+            where TPixelSrc : unmanaged, IPixel<TPixelSrc>
         {
             Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
             Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));

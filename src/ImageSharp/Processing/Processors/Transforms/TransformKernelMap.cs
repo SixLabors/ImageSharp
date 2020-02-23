@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ref float xSpanRef,
             Buffer2D<TPixel> sourcePixels,
             Span<Vector4> targetRow)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // Clamp sampling pixel radial extents to the source image edges
             Vector2 minXY = transformedPoint - this.extents;

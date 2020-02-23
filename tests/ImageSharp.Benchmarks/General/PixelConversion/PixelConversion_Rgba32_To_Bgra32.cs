@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Default_GenericImpl<TPixel>(ReadOnlySpan<Rgba32> source, Span<TPixel> dest)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ref Rgba32 sBase = ref MemoryMarshal.GetReference(source);
             ref TPixel dBase = ref MemoryMarshal.GetReference(dest);
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Group4GenericImpl<TPixel>(ReadOnlySpan<Rgba32> source, Span<TPixel> dest)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ref Rgba32 sBase = ref MemoryMarshal.GetReference(source);
             ref TPixel dBase = ref MemoryMarshal.GetReference(dest);

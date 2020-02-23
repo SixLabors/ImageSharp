@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             Image<TPixel> image,
             bool useExactComparer = true,
             float compareTolerance = 0.01f)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
             if (path == null)
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         }
 
         public static Image<TPixel> DecodeWithMagick<TPixel>(Configuration configuration, FileInfo fileInfo)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var magickImage = new MagickImage(fileInfo))
             {

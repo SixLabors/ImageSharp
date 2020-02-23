@@ -12,13 +12,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Provides resize kernel values from an optimized contiguous memory region.
     /// </summary>
-    /// <typeparam name="TResampler">The type of sampler.</typeparam>
-    internal partial class ResizeKernelMap<TResampler> : IDisposable
-        where TResampler : unmanaged, IResampler
+    internal partial class ResizeKernelMap : IDisposable
     {
         private static readonly TolerantMath TolerantMath = TolerantMath.Default;
-
-        private readonly TResampler sampler;
 
         private readonly int sourceLength;
 
@@ -41,7 +37,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private ResizeKernelMap(
             MemoryAllocator memoryAllocator,
-            TResampler sampler,
             int sourceLength,
             int destinationLength,
             int bufferHeight,
@@ -49,7 +44,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             double scale,
             int radius)
         {
-            this.sampler = sampler;
             this.ratio = ratio;
             this.scale = scale;
             this.radius = radius;
@@ -79,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             $"radius:{this.radius}|sourceSize:{this.sourceLength}|destinationSize:{this.DestinationLength}|ratio:{this.ratio}|scale:{this.scale}";
 
         /// <summary>
-        /// Disposes <see cref="ResizeKernelMap{TResampler}"/> instance releasing it's backing buffer.
+        /// Disposes <see cref="ResizeKernelMap"/> instance releasing it's backing buffer.
         /// </summary>
         public void Dispose()
             => this.Dispose(true);
@@ -111,16 +105,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Computes the weights to apply at each pixel when resizing.
         /// </summary>
+        /// <typeparam name="TResampler">The type of sampler.</typeparam>
         /// <param name="sampler">The <see cref="IResampler"/></param>
         /// <param name="destinationSize">The destination size</param>
         /// <param name="sourceSize">The source size</param>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations</param>
-        /// <returns>The <see cref="ResizeKernelMap{IResampler}"/></returns>
-        public static ResizeKernelMap<TResampler> Calculate(
+        /// <returns>The <see cref="ResizeKernelMap"/></returns>
+        public static ResizeKernelMap Calculate<TResampler>(
             in TResampler sampler,
             int destinationSize,
             int sourceSize,
             MemoryAllocator memoryAllocator)
+            where TResampler : unmanaged, IResampler
         {
             double ratio = (double)sourceSize / destinationSize;
             double scale = ratio;
@@ -158,10 +154,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // If we don't have at least 2 periods, we go with the basic implementation:
             bool hasAtLeast2Periods = 2 * (cornerInterval + period) < destinationSize;
 
-            ResizeKernelMap<TResampler> result = hasAtLeast2Periods
+            ResizeKernelMap result = hasAtLeast2Periods
                                          ? new PeriodicKernelMap(
                                              memoryAllocator,
-                                             sampler,
                                              sourceSize,
                                              destinationSize,
                                              ratio,
@@ -169,9 +164,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                              radius,
                                              period,
                                              cornerInterval)
-                                         : new ResizeKernelMap<TResampler>(
+                                         : new ResizeKernelMap(
                                              memoryAllocator,
-                                             sampler,
                                              sourceSize,
                                              destinationSize,
                                              destinationSize,
@@ -179,7 +173,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                                              scale,
                                              radius);
 
-            result.Initialize();
+            result.Initialize(in sampler);
 
             return result;
         }
@@ -187,11 +181,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Initializes the kernel map.
         /// </summary>
-        protected internal virtual void Initialize()
+        protected internal virtual void Initialize<TResampler>(in TResampler sampler)
+            where TResampler : unmanaged, IResampler
         {
             for (int i = 0; i < this.DestinationLength; i++)
             {
-                this.kernels[i] = this.BuildKernel(i, i);
+                this.kernels[i] = this.BuildKernel(in sampler, i, i);
             }
         }
 
@@ -200,7 +195,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// referencing the data at row <paramref name="dataRowIndex"/> within <see cref="data"/>,
         /// so the data reusable by other data rows.
         /// </summary>
-        private ResizeKernel BuildKernel(int destRowIndex, int dataRowIndex)
+        private ResizeKernel BuildKernel<TResampler>(in TResampler sampler, int destRowIndex, int dataRowIndex)
+            where TResampler : unmanaged, IResampler
         {
             double center = ((destRowIndex + .5) * this.ratio) - .5;
 
@@ -224,7 +220,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             for (int j = left; j <= right; j++)
             {
-                double value = this.sampler.GetValue((float)((j - center) / this.scale));
+                double value = sampler.GetValue((float)((j - center) / this.scale));
                 sum += value;
 
                 kernelValues[j - left] = value;

@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [Theory]
         [WithFile(FlipTestFile, nameof(ExifOrientationValues), PixelTypes.Rgba32)]
         public void AutoOrient_WorksForAllExifOrientations<TPixel>(TestImageProvider<TPixel> provider, ushort orientation)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [Theory]
         [WithFile(FlipTestFile, nameof(InvalidOrientationValues), PixelTypes.Rgba32)]
         public void AutoOrient_WorksWithCorruptExifData<TPixel>(TestImageProvider<TPixel> provider, ExifDataType dataType, byte[] orientation)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var profile = new ExifProfile();
             profile.SetValue(ExifTag.JPEGTables, orientation);

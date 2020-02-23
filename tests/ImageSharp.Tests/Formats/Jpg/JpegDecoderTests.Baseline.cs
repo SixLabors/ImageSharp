@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Jpeg.Baseline.Turtle420, PixelTypes.Rgba32, true)]
         public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider, bool enforceDiscontiguousBuffers)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
@@ -53,6 +53,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFileCollection(nameof(UnrecoverableTestJpegs), PixelTypes.Rgba32)]
         public void UnrecoverableImage_Throws_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel> => Assert.Throws<ImageFormatException>(provider.GetImage);
+            where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<ImageFormatException>(provider.GetImage);
     }
 }

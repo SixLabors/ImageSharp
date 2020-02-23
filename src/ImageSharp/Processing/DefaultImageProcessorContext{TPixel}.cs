@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     /// <typeparam name="TPixel">The pixel format</typeparam>
     internal class DefaultImageProcessorContext<TPixel> : IInternalImageProcessingContext<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly bool mutate;
         private readonly Image<TPixel> source;

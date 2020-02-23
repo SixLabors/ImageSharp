@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     internal interface IPixelSource<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Gets the pixel buffer.

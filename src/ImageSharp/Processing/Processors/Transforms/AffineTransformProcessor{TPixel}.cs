@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly Size targetSize;
         private readonly Matrix3x2 transformMatrix;

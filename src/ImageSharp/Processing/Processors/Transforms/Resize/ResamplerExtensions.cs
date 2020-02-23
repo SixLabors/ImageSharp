@@ -78,13 +78,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // Since all image frame dimensions have to be the same we can calculate
             // the kernel maps and reuse for all frames.
             MemoryAllocator allocator = configuration.MemoryAllocator;
-            using var horizontalKernelMap = ResizeKernelMap<TResampler>.Calculate(
+            using var horizontalKernelMap = ResizeKernelMap.Calculate(
                 in sampler,
                 destinationRectangle.Width,
                 sourceRectangle.Width,
                 allocator);
 
-            using var verticalKernelMap = ResizeKernelMap<TResampler>.Calculate(
+            using var verticalKernelMap = ResizeKernelMap.Calculate(
                 in sampler,
                 destinationRectangle.Height,
                 sourceRectangle.Height,
@@ -135,17 +135,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 in operation);
         }
 
-        private static void ApplyResizeFrameTransform<TResampler, TPixel>(
+        private static void ApplyResizeFrameTransform<TPixel>(
             Configuration configuration,
             ImageFrame<TPixel> source,
             ImageFrame<TPixel> destination,
-            ResizeKernelMap<TResampler> horizontalKernelMap,
-            ResizeKernelMap<TResampler> verticalKernelMap,
+            ResizeKernelMap horizontalKernelMap,
+            ResizeKernelMap verticalKernelMap,
             Rectangle sourceRectangle,
             Rectangle destinationRectangle,
             Rectangle interest,
             bool compand)
-            where TResampler : unmanaged, IResampler
             where TPixel : struct, IPixel<TPixel>
         {
             PixelConversionModifiers conversionModifiers =
@@ -155,7 +154,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             // To reintroduce parallel processing, we would launch multiple workers
             // for different row intervals of the image.
-            using (var worker = new ResizeWorker<TResampler, TPixel>(
+            using (var worker = new ResizeWorker<TPixel>(
                 configuration,
                 sourceArea,
                 conversionModifiers,

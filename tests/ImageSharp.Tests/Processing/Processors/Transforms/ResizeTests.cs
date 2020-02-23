@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 configuration.MemoryAllocator = allocator;
                 configuration.WorkingBufferSizeHintInBytes = workingBufferSizeHintInBytes;
 
-                var verticalKernelMap = ResizeKernelMap<BicubicResampler>.Calculate(
+                var verticalKernelMap = ResizeKernelMap.Calculate<BicubicResampler>(
                     default,
                     destSize.Height,
                     image0.Height,

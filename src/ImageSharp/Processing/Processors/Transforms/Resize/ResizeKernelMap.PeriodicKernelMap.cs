@@ -5,13 +5,12 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
-    internal partial class ResizeKernelMap<TResampler>
-        where TResampler : unmanaged, IResampler
+    internal partial class ResizeKernelMap
     {
         /// <summary>
-        /// Memory-optimized <see cref="ResizeKernelMap{TResampler}"/> where repeating rows are stored only once.
+        /// Memory-optimized <see cref="ResizeKernelMap"/> where repeating rows are stored only once.
         /// </summary>
-        private sealed class PeriodicKernelMap : ResizeKernelMap<TResampler>
+        private sealed class PeriodicKernelMap : ResizeKernelMap
         {
             private readonly int period;
 
@@ -19,7 +18,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             public PeriodicKernelMap(
                 MemoryAllocator memoryAllocator,
-                TResampler sampler,
                 int sourceLength,
                 int destinationLength,
                 double ratio,
@@ -29,7 +27,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 int cornerInterval)
                 : base(
                     memoryAllocator,
-                    sampler,
                     sourceLength,
                     destinationLength,
                     (cornerInterval * 2) + period,
@@ -43,14 +40,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             internal override string Info => base.Info + $"|period:{this.period}|cornerInterval:{this.cornerInterval}";
 
-            protected internal override void Initialize()
+            protected internal override void Initialize<TResampler>(in TResampler sampler)
             {
                 // Build top corner data + one period of the mosaic data:
                 int startOfFirstRepeatedMosaic = this.cornerInterval + this.period;
 
                 for (int i = 0; i < startOfFirstRepeatedMosaic; i++)
                 {
-                    this.kernels[i] = this.BuildKernel(i, i);
+                    this.kernels[i] = this.BuildKernel(in sampler, i, i);
                 }
 
                 // Copy the mosaics:
@@ -67,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 int bottomStartData = this.cornerInterval + this.period;
                 for (int i = 0; i < this.cornerInterval; i++)
                 {
-                    this.kernels[bottomStartDest + i] = this.BuildKernel(bottomStartDest + i, bottomStartData + i);
+                    this.kernels[bottomStartDest + i] = this.BuildKernel(in sampler, bottomStartDest + i, bottomStartData + i);
                 }
             }
         }

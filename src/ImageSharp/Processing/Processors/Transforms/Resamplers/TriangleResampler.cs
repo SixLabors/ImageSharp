@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ApplyTransform<TPixel>(IResamplingImageProcessor<TPixel> processor)
+        public void ApplyTransform<TPixel>(IResamplingTransformImageProcessor<TPixel> processor)
             where TPixel : struct, IPixel<TPixel>
             => processor.ApplyTransform(in this);
     }

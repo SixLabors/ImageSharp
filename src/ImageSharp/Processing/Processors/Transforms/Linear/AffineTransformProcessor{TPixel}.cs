@@ -11,28 +11,53 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
-    /// <content>
-    /// Contains the application code for performing an affine transform.
-    /// </content>
-    internal partial class AffineTransformProcessor<TPixel>
+    /// <summary>
+    /// Provides the base methods to perform affine transforms on an image.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IResamplingTransformImageProcessor<TPixel>
+        where TPixel : struct, IPixel<TPixel>
     {
+        private readonly Size destinationSize;
+        private readonly Matrix3x2 transformMatrix;
+        private readonly IResampler resampler;
+        private ImageFrame<TPixel> source;
+        private ImageFrame<TPixel> destination;
+
         /// <summary>
-        /// Applies an affine transformation upon an image.
+        /// Initializes a new instance of the <see cref="AffineTransformProcessor{TPixel}"/> class.
         /// </summary>
-        /// <typeparam name="TResampler">The type of sampler.</typeparam>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="sampler">The pixel sampler.</param>
-        /// <param name="source">The source image frame.</param>
-        /// <param name="destination">The destination image frame.</param>
-        /// <param name="matrix">The transform matrix.</param>
-        public static void ApplyAffineTransform<TResampler>(
-            Configuration configuration,
-            in TResampler sampler,
-            ImageFrame<TPixel> source,
-            ImageFrame<TPixel> destination,
-            Matrix3x2 matrix)
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="definition">The <see cref="AffineTransformProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public AffineTransformProcessor(Configuration configuration, AffineTransformProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
+        {
+            this.destinationSize = definition.DestinationSize;
+            this.transformMatrix = definition.TransformMatrix;
+            this.resampler = definition.Sampler;
+        }
+
+        protected override Size GetDestinationSize() => this.destinationSize;
+
+        /// <inheritdoc/>
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+        {
+            this.source = source;
+            this.destination = destination;
+            this.resampler.ApplyTransform(this);
+        }
+
+        /// <inheritdoc/>
+        public void ApplyTransform<TResampler>(in TResampler sampler)
             where TResampler : struct, IResampler
         {
+            Configuration configuration = this.Configuration;
+            ImageFrame<TPixel> source = this.source;
+            ImageFrame<TPixel> destination = this.destination;
+            Matrix3x2 matrix = this.transformMatrix;
+
             // Handle transforms that result in output identical to the original.
             if (matrix.Equals(default) || matrix.Equals(Matrix3x2.Identity))
             {
@@ -55,8 +80,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            int yRadius = AutomorphicTransformUtilities.GetSamplingRadius(in sampler, source.Height, destination.Height);
-            int xRadius = AutomorphicTransformUtilities.GetSamplingRadius(in sampler, source.Width, destination.Width);
+            int yRadius = LinearTransformUtilities.GetSamplingRadius(in sampler, source.Height, destination.Height);
+            int xRadius = LinearTransformUtilities.GetSamplingRadius(in sampler, source.Width, destination.Width);
             var radialExtents = new Vector2(xRadius, yRadius);
             int yLength = (yRadius * 2) + 1;
             int xLength = (xRadius * 2) + 1;
@@ -186,7 +211,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         // Use the single precision position to calculate correct bounding pixels
                         // otherwise we get rogue pixels outside of the bounds.
                         var point = Vector2.Transform(new Vector2(x, y), this.matrix);
-                        AutomorphicTransformUtilities.Convolve(
+                        LinearTransformUtilities.Convolve(
                             in this.sampler,
                             point,
                             sourceBuffer,

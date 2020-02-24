@@ -6,10 +6,10 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Implements an algorithm to alter the pixels of an image via a resampling transforms.
+    /// Implements an algorithm to alter the pixels of an image via resampling transforms.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public interface IResamplingImageProcessor<TPixel> : IImageProcessor<TPixel>
+    public interface IResamplingTransformImageProcessor<TPixel> : IImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         /// <summary>

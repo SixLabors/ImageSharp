@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Utility methods for affine and projective transforms.
     /// </summary>
-    internal static class AutomorphicTransformUtilities
+    internal static class LinearTransformUtilities
     {
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static int GetSamplingRadius<TResampler>(in TResampler sampler, int sourceSize, int destinationSize)

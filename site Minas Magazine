@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="pt-bt">
+ <head>
+     <meta charset="utf-8">
+     <title>MINAS MAGAZINE</title>
+     <link rel="shortcut icon" async href="img/gg.jpg" />
+     
+
+     
+ </head>
+ <body>
+    <link rel="stylesheet" type="text/css"
+    href="css/principal.css">
+    <div id="minas"  style="font-family:  fantasy"><h1>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MINAS MAGAZINE MÓVEIS</h1></div>
+
+        <div id="minas"  style="font-family:  fantasy"><h1>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+             COMPRA.VENDA.TROCA</h1></div>
+
+ <h2 style="color: rgb(255, 136, 0);">
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;
+
+    Móveis novos e semi-novos para sua residência<BR>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    para seu escritório e sua empresa.</h2>
+          
+         
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <button type="button" name="" value="" class="css3button">Móveis</button>
+     <nav id="moveis">
+        <ul>
+            <li><a href="#Cadeiras para escritório" style="color:rgb(180, 248, 178)"> Cadeiras para escritório</a></li>
+            <li><a href="#mesae" style="color:rgb(180, 248, 178)">Mesas de Escritório</a></li>
+            <li><a href="#madeira" style="color:rgb(180, 248, 178)">Móveis de Madeira</a></li>
+            <li><a href="#mesa" style="color:rgb(180, 248, 178)">Mesa de cozinha</a></li>
+            <li><a href="#Prateleiras de aço" style="color:rgb(180, 248, 178)">Prateleiras de aço</a></li>
+            <li><a href="#geladeira" style="color:rgb(180, 248, 178)">Geladeiras</a></li>
+            <li><a href="#Poltronas"style="color:rgb(180, 248, 178)">Poltronas</a></li>
+            <li><a href="#sofa" style="color:rgb(180, 248, 178)">Sofas</a></li>
+        </ul>
+
+        <button type="button" name="" value="" class="css3button">Nóssa Empresa</button>
+ <nav id="menu">
+     <ul>
+        <li > <a href="#QuemSomos" style="color:rgb(180, 248, 178)"> Quem Somos</a> </li>
+        <li> <a href="#Localizacao" style="color:rgb(180, 248, 178)">Localização</a></li>
+        <li> <a href="#Nossaloja" style="color:rgb(180, 248, 178)">Nossa Lója</a></li>
+         <li> <a href="#Contato" style="color:rgb(180, 248, 178)">Contato</a></li>
+     </ul>
+    
+     
+        
+        
+     
+    </nav id="contato">
+    <section id="Contato">
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" name="" value="" class="css3button">Contato</button>
+        <ul>
+            <a  href="Telefone:+551691744955" style="color:rgb(180, 248, 178)"> Whatsapp </a> <br>
+            <a href="Telefone:+551637060109" style="color:rgb(180, 248, 178)"> Tel fixo </a> <br>
+            <a  href="mailto:minasmagazine@hotmail.com" style="color:rgb(180, 248, 178)">Email</a> <br>
+        </p>
+            </ul>
+        </nav>
+    
+
+ </nav>
+ <section id="Nossaloja">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <button type="button" name="" value="" class="css3button">Nóssa Loja</button>
+     <img src="img/frente.jpg" width="800px" height="550px"> 
+ </section>
+
+
+
+ 
+ </section>
+ <section id="Cadeiras para escritório">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <button type="button" name="" value="" class="css3button">Cadeiras Para Escritório</button>
+     <p> <h3 style="color: rgba(115, 255, 0, 0.89);">
+    Trabalhamos com vários modelos e cores de cadeiras para escritório<br>
+    entre elas, cadeiras fixas, giratórias, longarinas e até cadeiras presidênciais. </h3></p>
+     <img src="img/cadeiras.jpg" width="450px" height="275px">
+     <img src="img/cad.jpg" width="350px" height="275px"><br>
+     <img src="img/cad3.jpg" width="350px" height="275px">
+     <img src="img/cad2.jpg" width="450px" height="275px">
+ </section>
+
+
+
+ <section id="geladeira">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    
+    <button type="button" name="" value="" class="css3button">Geladeiras</button>
+        <p> <h3 style="color: rgba(115, 255, 0, 0.89);">
+        Temos variedades entre geladeiras duplex, froost-free, inverse, entre outras.</h3>
+     <img src="img/gel.jpg" width="350px" height="550px">
+     <img src="img/gel2.jpg" width="450px" height="550px"> 
+</section>
+
+
+
+<section id="madeira">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" name="" value="" class="css3button">Móveis De Madeira</button>
+        <p> <h3 style="color: rgba(115, 255, 0, 0.89);">
+        Móveis de madeira novos, feitos de madeira maciça! Madeira de demolição,peroba,roxinho entre outros. </h3>
+    <img src="img/mad.jpg" width="450px" height="275px">
+    <img src="img/mad2.jpg" width="350px" height="275px"><br>
+    <img src="img/mad3.jpg" width="350px" height="275px">
+    <img src="img/mad4.jpg" width="450px" height="275px"><br>
+    <img src="img/mad6.jpg" width="450px" height="275px">
+    <img src="img/mad7.jpg" width="350px" height="275px">
+</section>
+
+
+
+<section id="Mesas">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" name="" value="" class="css3button">Mesas Para Escritório</button>
+        <p> <h3 style="color: rgba(115, 255, 0, 0.89);">
+        Mesas de escritório em L, resquadrada, normal, com gaveta ou sem.</h3>
+    <img src="img/mesae.jpg" width="450px" height="275px">
+    <img src="img/mesae2.jpg" width="350px" height="275px"><br> 
+    <img src="img/mesae3.jpg" width="350px" height="275px">
+    <img src="img/mesae4.jpg" width="450px" height="275px">
+</section>
+
+
+
+<section id="mesa">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;
+    <button type="button" name="" value="" class="css3button">Mesas Para Residência</button>
+        <p> <h3 style="color: rgba(115, 255, 0, 0.89);">
+        Mesa de cozinha com 4, 6, 8 cadeiras, measas de vidro ou pedra.</h3>
+    <img src="img/mesa.jpg" width="450px" height="275px">
+    <img src="img/mesa2.jpg" width="350px" height="275px"><br>
+    <img src="img/mesa4.jpg" width="350px" height="275px">
+    <img src="img/mesa0.jpg" width="450px" height="275px">
+</section>
+
+
+<section id="sofa">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <button type="button" name="" value="" class="css3button">Sofas</button>
+        <p> <h3 style="color: rgba(115, 255, 0, 0.89);">
+        Sofas retratil e reclinavel, tecido de suede, super confortaveis!!!</h3>
+    <img src="img/sofa.jpg" width="450px" height="275px">
+    <img src="img/spfa4.jpg" width="350px" height="275px"><br>
+    <img src="img/sofa2.jpg" width="350px" height="275px">
+    <img src="img/sofa3.jpg" width="450px" height="275px">
+</section>
+
+
+ <section id="Poltronas">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <button type="button" name="" value="" class="css3button">Poltronas</button>
+        <p> <h3 style="color: rgba(115, 255, 0, 0.89);">
+        Poltronas fixas E Giratórias, teciso suede, super confortaveis!</h3>
+     <img src="img/poltronas.jpg" width="450px" height="275px">
+     <img src="img/poltronas1.jpg" width="350px" height="275px"><br>
+     <img src="img/pol.jfif" width="350px" height="275px">
+     <img src="img/pol4.jpg" width="450px" height="275px">
+     </section>
+
+
+  <section id="Prateleiras de aço">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <button type="button" name="" value="" class="css3button">Prateleiras De Aço</button>
+        <p> <h3 style="color: rgba(115, 255, 0, 0.89);">
+        Prateleiras de aço novas, com 6 e 10 bandejas, varias cores disponiveis, super reforçadas!</h3>
+      <img src="img/prateleira.jpg" width="450px" height="550px">
+      <img src="img/prat.jpg" width="350px" height="550px"><br>
+   </section>
+
+
+ <section id="Localizacao">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <button type="button" name="" value="" class="css3button">localização</button>
+        <p> <h3 style="color: rgba(115, 255, 0, 0.89);">
+        Aqui é onde voês podem nos encotrar, venham nos visitar!!! ;D</h3>
+    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3736.4796421329665!2d-47.37888058512513!3d-20.52754708627201!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94b0a60edd156279%3A0xfc77168098e596ff!2sAv.%20Alagoas%2C%201144%20-%20Jardim%20Paulista%2C%20Franca%20-%20SP%2C%2014401-402!5e0!3m2!1spt-BR!2sbr!4v1582400914804!5m2!1spt-BR!2sbr"
+     width="800" 
+     height="550" 
+     frameborder="0" 
+     style="border:0;"
+      allowfullscreen=""></iframe>
+</section>
+ <section id=QuemSomos>
+    <div id="historia" style="font-family: fantasy;"> <h1>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Nossa História</h1></div>
+
+     <p style = "font-family: fantasy"> No começo, nossa empresa começou com uma pequena loja.
+     só trabalhavamos com móveis usados,<br> nosso cômodo era alugado,
+      o que nos impedia de ter um lucro mais alto.
+     depois de anos de luta e trabalho,<br> hoje nos  tornamos umas das maiores
+     lojas de móveis novos e usados de franca, possuimos 2 lojas,umas <br> com móveis de escritório
+     outra com móveis para residência.</p>
+</section>
+<footer>
+    <a>Desenvolvido por Luís Felipe Capel. </a>
+</footer>
+
+
+ </body>
+</html>
+
+
+
+body{
+    background-image: url(cvc.jpg);
+    background-size: 1920px 1080px;
+    background-repeat: repeat;
+    background-clip: padding-box;
+    background-origin: padding-box;
+    margin-left: 250px;
+    margin-right: 300px;
+    margin-top:100px;
+}
+button.css3button {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 14px;
+	color: #ff0000;
+	padding: 10px 19px;
+	background: -webkit-gradient(
+		linear, left top, left bottom,
+		from(#f0ff17),
+		to(#ccb629));
+	background: linear-gradient(
+		top,
+		#f0ff17 0%,
+		#ccb629);
+	border-radius: 30px;
+	border: 3px solid #000000;
+	box-shadow:
+		0px 1px 2px rgba(000,000,000,0.7),
+		inset 0px 0px 1px rgba(242,242,242,0.7);
+	text-shadow:
+		0px -1px 0px rgba(255,0,255,0.4),
+		0px 1px 0px rgba(237,14,14,0.3);
+}
+button.css3button {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 14px;
+	color: #ff0000;
+	padding: 10px 19px;
+	background: -webkit-gradient(
+		linear, left top, left bottom,
+		from(#fffb0f),
+		to(#ff9500));
+	background: linear-gradient(
+		top,
+		#fffb0f 0%,
+		#ff9500);
+	border-radius: 30px;
+	border: 2px solid #000000;
+	box-shadow:
+		0px 1px 2px rgba(000,000,000,0.7),
+		inset 0px 0px 1px rgba(242,242,242,0.7);
+	text-shadow:
+		0px -1px 0px rgba(255,0,255,0.4),
+		0px 1px 0px rgba(237,14,14,0.3);
+}
+div {background-color: rgb(255, 230, 0);
+	
+
+

@@ -18,28 +18,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private readonly MemoryAllocator memoryAllocator;
 
-        private readonly byte[,][] bModesProba = new byte[10, 10][];
-
         public WebPLossyDecoder(Vp8BitReader bitReader, MemoryAllocator memoryAllocator)
         {
             this.memoryAllocator = memoryAllocator;
             this.bitReader = bitReader;
-            this.InitializeModesProbabilities();
         }
 
         public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, WebPImageInfo info)
             where TPixel : struct, IPixel<TPixel>
         {
-            // we need buffers for Y U and V in size of the image
-            // TODO: increase size to enable using all prediction blocks? (see https://tools.ietf.org/html/rfc6386#page-9 )
-            Buffer2D<YUVPixel> yuvBufferCurrentFrame = this.memoryAllocator.Allocate2D<YUVPixel>(width, height);
-
-            // TODO: var predictionBuffer - macro-block-sized with approximation of the portion of the image being reconstructed.
-            //  those prediction values are the base, the values from DCT processing are added to that
-
-            // TODO residue signal from DCT: 4x4 blocks of DCT transforms, 16Y, 4U, 4V
-            Vp8Profile vp8Profile = this.DecodeProfile(info.Vp8Profile);
-
             // Paragraph 9.2: color space and clamp type follow.
             sbyte colorSpace = (sbyte)this.bitReader.ReadValue(1);
             sbyte clampType = (sbyte)this.bitReader.ReadValue(1);
@@ -176,7 +163,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     int yMode = left[y];
                     for (int x = 0; x < 4; ++x)
                     {
-                        byte[] prob = this.bModesProba[top[x], yMode];
+                        byte[] prob = Vp8LookupTables.ModesProba[top[x], yMode];
                         int i = WebPConstants.YModesIntra4[this.bitReader.GetBit(prob[0])];
                         while (i > 0)
                         {
@@ -326,7 +313,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         if (mbx >= dec.MbWidth - 1)
                         {
                             // On rightmost border.
-                            LossyUtils.Memset(topRight, topYuv.Y[15],0, 4);
+                            LossyUtils.Memset(topRight, topYuv.Y[15], 0, 4);
                         }
                         else
                         {
@@ -1242,20 +1229,20 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 Vp8QuantMatrix m = decoder.DeQuantMatrices[i];
-                m.Y1Mat[0] = WebPConstants.DcTable[Clip(q + dqy1Dc, 127)];
-                m.Y1Mat[1] = WebPConstants.AcTable[Clip(q + 0, 127)];
-                m.Y2Mat[0] = WebPConstants.DcTable[Clip(q + dqy2Dc, 127)] * 2;
+                m.Y1Mat[0] = Vp8LookupTables.DcTable[Clip(q + dqy1Dc, 127)];
+                m.Y1Mat[1] = Vp8LookupTables.AcTable[Clip(q + 0, 127)];
+                m.Y2Mat[0] = Vp8LookupTables.DcTable[Clip(q + dqy2Dc, 127)] * 2;
 
                 // For all x in [0..284], x*155/100 is bitwise equal to (x*101581) >> 16.
                 // The smallest precision for that is '(x*6349) >> 12' but 16 is a good word size.
-                m.Y2Mat[1] = (WebPConstants.AcTable[Clip(q + dqy2Ac, 127)] * 101581) >> 16;
+                m.Y2Mat[1] = (Vp8LookupTables.AcTable[Clip(q + dqy2Ac, 127)] * 101581) >> 16;
                 if (m.Y2Mat[1] < 8)
                 {
                     m.Y2Mat[1] = 8;
                 }
 
-                m.UvMat[0] = WebPConstants.DcTable[Clip(q + dquvDc, 117)];
-                m.UvMat[1] = WebPConstants.AcTable[Clip(q + dquvAc, 127)];
+                m.UvMat[0] = Vp8LookupTables.DcTable[Clip(q + dquvDc, 117)];
+                m.UvMat[1] = Vp8LookupTables.AcTable[Clip(q + dquvAc, 127)];
 
                 // For dithering strength evaluation.
                 m.UvQuant = q + dquvAc;
@@ -1274,10 +1261,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     {
                         for (int p = 0; p < WebPConstants.NumProbas; ++p)
                         {
-                            byte prob = WebPConstants.CoeffsUpdateProba[t, b, c, p];
+                            byte prob = Vp8LookupTables.CoeffsUpdateProba[t, b, c, p];
                             int v = this.bitReader.GetBit(prob) != 0
                                         ? (int)this.bitReader.ReadValue(8)
-                                        : WebPConstants.DefaultCoeffsProba[t, b, c, p];
+                                        : Vp8LookupTables.DefaultCoeffsProba[t, b, c, p];
                             proba.Bands[t, b].Probabilities[c].Probabilities[p] = (byte)v;
                         }
                     }
@@ -1427,121 +1414,5 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             return value < 0 ? 0 : value > max ? max : value;
         }
-
-        // TODO: move to LookupTables
-        private void InitializeModesProbabilities()
-        {
-            // Paragraph 11.5
-            this.bModesProba[0, 0] = new byte[] { 231, 120, 48, 89, 115, 113, 120, 152, 112 };
-            this.bModesProba[0, 1] = new byte[] { 152, 179, 64, 126, 170, 118, 46, 70, 95 };
-            this.bModesProba[0, 2] = new byte[] { 175, 69, 143, 80, 85, 82, 72, 155, 103 };
-            this.bModesProba[0, 3] = new byte[] { 56, 58, 10, 171, 218, 189, 17, 13, 152 };
-            this.bModesProba[0, 4] = new byte[] { 114, 26, 17, 163, 44, 195, 21, 10, 173 };
-            this.bModesProba[0, 5] = new byte[] { 121, 24, 80, 195, 26, 62, 44, 64, 85 };
-            this.bModesProba[0, 6] = new byte[] { 144, 71, 10, 38, 171, 213, 144, 34, 26 };
-            this.bModesProba[0, 7] = new byte[] { 170, 46, 55, 19, 136, 160, 33, 206, 71 };
-            this.bModesProba[0, 8] = new byte[] { 63, 20, 8, 114, 114, 208, 12, 9, 226 };
-            this.bModesProba[0, 9] = new byte[] { 81, 40, 11, 96, 182, 84, 29, 16, 36 };
-            this.bModesProba[1, 0] = new byte[] { 134, 183, 89, 137, 98, 101, 106, 165, 148 };
-            this.bModesProba[1, 1] = new byte[] { 72, 187, 100, 130, 157, 111, 32, 75, 80 };
-            this.bModesProba[1, 2] = new byte[] { 66, 102, 167, 99, 74, 62, 40, 234, 128 };
-            this.bModesProba[1, 3] = new byte[] { 41, 53, 9, 178, 241, 141, 26, 8, 107 };
-            this.bModesProba[1, 4] = new byte[] { 74, 43, 26, 146, 73, 166, 49, 23, 157 };
-            this.bModesProba[1, 5] = new byte[] { 65, 38, 105, 160, 51, 52, 31, 115, 128 };
-            this.bModesProba[1, 6] = new byte[] { 104, 79, 12, 27, 217, 255, 87, 17, 7 };
-            this.bModesProba[1, 7] = new byte[] { 87, 68, 71, 44, 114, 51, 15, 186, 23 };
-            this.bModesProba[1, 8] = new byte[] { 47, 41, 14, 110, 182, 183, 21, 17, 194 };
-            this.bModesProba[1, 9] = new byte[] { 66, 45, 25, 102, 197, 189, 23, 18, 22 };
-            this.bModesProba[2, 0] = new byte[] { 88, 88, 147, 150, 42, 46, 45, 196, 205 };
-            this.bModesProba[2, 1] = new byte[] { 43, 97, 183, 117, 85, 38, 35, 179, 61 };
-            this.bModesProba[2, 2] = new byte[] { 39, 53, 200, 87, 26, 21, 43, 232, 171 };
-            this.bModesProba[2, 3] = new byte[] { 56, 34, 51, 104, 114, 102, 29, 93, 77 };
-            this.bModesProba[2, 4] = new byte[] { 39, 28, 85, 171, 58, 165, 90, 98, 64 };
-            this.bModesProba[2, 5] = new byte[] { 34, 22, 116, 206, 23, 34, 43, 166, 73 };
-            this.bModesProba[2, 6] = new byte[] { 107, 54, 32, 26, 51, 1, 81, 43, 31 };
-            this.bModesProba[2, 7] = new byte[] { 68, 25, 106, 22, 64, 171, 36, 225, 114 };
-            this.bModesProba[2, 8] = new byte[] { 34, 19, 21, 102, 132, 188, 16, 76, 124 };
-            this.bModesProba[2, 9] = new byte[] { 62, 18, 78, 95, 85, 57, 50, 48, 51 };
-            this.bModesProba[3, 0] = new byte[] { 193, 101, 35, 159, 215, 111, 89, 46, 111 };
-            this.bModesProba[3, 1] = new byte[] { 60, 148, 31, 172, 219, 228, 21, 18, 111 };
-            this.bModesProba[3, 2] = new byte[] { 112, 113, 77, 85, 179, 255, 38, 120, 114 };
-            this.bModesProba[3, 3] = new byte[] { 40, 42, 1, 196, 245, 209, 10, 25, 109 };
-            this.bModesProba[3, 4] = new byte[] { 88, 43, 29, 140, 166, 213, 37, 43, 154 };
-            this.bModesProba[3, 5] = new byte[] { 61, 63, 30, 155, 67, 45, 68, 1, 209 };
-            this.bModesProba[3, 6] = new byte[] { 100, 80, 8, 43, 154, 1, 51, 26, 71 };
-            this.bModesProba[3, 7] = new byte[] { 142, 78, 78, 16, 255, 128, 34, 197, 171 };
-            this.bModesProba[3, 8] = new byte[] { 41, 40, 5, 102, 211, 183, 4, 1, 221 };
-            this.bModesProba[3, 9] = new byte[] { 51, 50, 17, 168, 209, 192, 23, 25, 82 };
-            this.bModesProba[4, 0] = new byte[] { 138, 31, 36, 171, 27, 166, 38, 44, 229 };
-            this.bModesProba[4, 1] = new byte[] { 67, 87, 58, 169, 82, 115, 26, 59, 179 };
-            this.bModesProba[4, 2] = new byte[] { 63, 59, 90, 180, 59, 166, 93, 73, 154 };
-            this.bModesProba[4, 3] = new byte[] { 40, 40, 21, 116, 143, 209, 34, 39, 175 };
-            this.bModesProba[4, 4] = new byte[] { 47, 15, 16, 183, 34, 223, 49, 45, 183 };
-            this.bModesProba[4, 5] = new byte[] { 46, 17, 33, 183, 6, 98, 15, 32, 183 };
-            this.bModesProba[4, 6] = new byte[] { 57, 46, 22, 24, 128, 1, 54, 17, 37 };
-            this.bModesProba[4, 7] = new byte[] { 65, 32, 73, 115, 28, 128, 23, 128, 205 };
-            this.bModesProba[4, 8] = new byte[] { 40, 3, 9, 115, 51, 192, 18, 6, 223 };
-            this.bModesProba[4, 9] = new byte[] { 87, 37, 9, 115, 59, 77, 64, 21, 47 };
-            this.bModesProba[5, 0] = new byte[] { 104, 55, 44, 218, 9, 54, 53, 130, 226 };
-            this.bModesProba[5, 1] = new byte[] { 64, 90, 70, 205, 40, 41, 23, 26, 57 };
-            this.bModesProba[5, 2] = new byte[] { 54, 57, 112, 184, 5, 41, 38, 166, 213 };
-            this.bModesProba[5, 3] = new byte[] { 30, 34, 26, 133, 152, 116, 10, 32, 134 };
-            this.bModesProba[5, 4] = new byte[] { 39, 19, 53, 221, 26, 114, 32, 73, 255 };
-            this.bModesProba[5, 5] = new byte[] { 31, 9, 65, 234, 2, 15, 1, 118, 73 };
-            this.bModesProba[5, 6] = new byte[] { 75, 32, 12, 51, 192, 255, 160, 43, 51 };
-            this.bModesProba[5, 7] = new byte[] { 88, 31, 35, 67, 102, 85, 55, 186, 85 };
-            this.bModesProba[5, 8] = new byte[] { 56, 21, 23, 111, 59, 205, 45, 37, 192 };
-            this.bModesProba[5, 9] = new byte[] { 55, 38, 70, 124, 73, 102, 1, 34, 98 };
-            this.bModesProba[6, 0] = new byte[] { 125, 98, 42, 88, 104, 85, 117, 175, 82 };
-            this.bModesProba[6, 1] = new byte[] { 95, 84, 53, 89, 128, 100, 113, 101, 45 };
-            this.bModesProba[6, 2] = new byte[] { 75, 79, 123, 47, 51, 128, 81, 171, 1 };
-            this.bModesProba[6, 3] = new byte[] { 57, 17, 5, 71, 102, 57, 53, 41, 49 };
-            this.bModesProba[6, 4] = new byte[] { 38, 33, 13, 121, 57, 73, 26, 1, 85 };
-            this.bModesProba[6, 5] = new byte[] { 41, 10, 67, 138, 77, 110, 90, 47, 114 };
-            this.bModesProba[6, 6] = new byte[] { 115, 21, 2, 10, 102, 255, 166, 23, 6 };
-            this.bModesProba[6, 7] = new byte[] { 101, 29, 16, 10, 85, 128, 101, 196, 26 };
-            this.bModesProba[6, 8] = new byte[] { 57, 18, 10, 102, 102, 213, 34, 20, 43 };
-            this.bModesProba[6, 9] = new byte[] { 117, 20, 15, 36, 163, 128, 68, 1, 26 };
-            this.bModesProba[7, 0] = new byte[] { 102, 61, 71, 37, 34, 53, 31, 243, 192 };
-            this.bModesProba[7, 1] = new byte[] { 69, 60, 71, 38, 73, 119, 28, 222, 37 };
-            this.bModesProba[7, 2] = new byte[] { 68, 45, 128, 34, 1, 47, 11, 245, 171 };
-            this.bModesProba[7, 3] = new byte[] { 62, 17, 19, 70, 146, 85, 55, 62, 70 };
-            this.bModesProba[7, 4] = new byte[] { 37, 43, 37, 154, 100, 163, 85, 160, 1 };
-            this.bModesProba[7, 5] = new byte[] { 63, 9, 92, 136, 28, 64, 32, 201, 85 };
-            this.bModesProba[7, 6] = new byte[] { 75, 15, 9, 9, 64, 255, 184, 119, 16 };
-            this.bModesProba[7, 7] = new byte[] { 86, 6, 28, 5, 64, 255, 25, 248, 1 };
-            this.bModesProba[7, 8] = new byte[] { 56, 8, 17, 132, 137, 255, 55, 116, 128 };
-            this.bModesProba[7, 9] = new byte[] { 58, 15, 20, 82, 135, 57, 26, 121, 40 };
-            this.bModesProba[8, 0] = new byte[] { 164, 50, 31, 137, 154, 133, 25, 35, 218 };
-            this.bModesProba[8, 1] = new byte[] { 51, 103, 44, 131, 131, 123, 31, 6, 158 };
-            this.bModesProba[8, 2] = new byte[] { 86, 40, 64, 135, 148, 224, 45, 183, 128 };
-            this.bModesProba[8, 3] = new byte[] { 22, 26, 17, 131, 240, 154, 14, 1, 209 };
-            this.bModesProba[8, 4] = new byte[] { 45, 16, 21, 91, 64, 222, 7, 1, 197 };
-            this.bModesProba[8, 5] = new byte[] { 56, 21, 39, 155, 60, 138, 23, 102, 213 };
-            this.bModesProba[8, 6] = new byte[] { 83, 12, 13, 54, 192, 255, 68, 47, 28 };
-            this.bModesProba[8, 7] = new byte[] { 85, 26, 85, 85, 128, 128, 32, 146, 171 };
-            this.bModesProba[8, 8] = new byte[] { 18, 11, 7, 63, 144, 171, 4, 4, 246 };
-            this.bModesProba[8, 9] = new byte[] { 35, 27, 10, 146, 174, 171, 12, 26, 128 };
-            this.bModesProba[9, 0] = new byte[] { 190, 80, 35, 99, 180, 80, 126, 54, 45 };
-            this.bModesProba[9, 1] = new byte[] { 85, 126, 47, 87, 176, 51, 41, 20, 32 };
-            this.bModesProba[9, 2] = new byte[] { 101, 75, 128, 139, 118, 146, 116, 128, 85 };
-            this.bModesProba[9, 3] = new byte[] { 56, 41, 15, 176, 236, 85, 37, 9, 62 };
-            this.bModesProba[9, 4] = new byte[] { 71, 30, 17, 119, 118, 255, 17, 18, 138 };
-            this.bModesProba[9, 5] = new byte[] { 101, 38, 60, 138, 55, 70, 43, 26, 142 };
-            this.bModesProba[9, 6] = new byte[] { 146, 36, 19, 30, 171, 255, 97, 27, 20 };
-            this.bModesProba[9, 7] = new byte[] { 138, 45, 61, 62, 219, 1, 81, 188, 64 };
-            this.bModesProba[9, 8] = new byte[] { 32, 41, 20, 117, 151, 142, 20, 21, 163 };
-            this.bModesProba[9, 9] = new byte[] { 112, 19, 12, 61, 195, 128, 48, 4, 24 };
-        }
-
-    }
-
-    struct YUVPixel
-    {
-        public byte Y { get; }
-
-        public byte U { get; }
-
-        public byte V { get; }
     }
 }

@@ -1101,10 +1101,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             while (length < 0 || length > (this.currentStream.Length - this.currentStream.Position))
             {
-                // Not a valid chunk so we skip back all but one of the four bytes we have just read.
-                // That lets us read one byte at a time until we reach a known chunk.
-                this.currentStream.Position -= 3;
-
+                // Not a valid chunk so try again until we reach a known chunk.
                 if (!this.TryReadChunkLength(out length))
                 {
                     chunk = default;

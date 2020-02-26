@@ -12,59 +12,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Implements resizing of images using various resamplers.
     /// </summary>
-    /// <remarks>
-    /// The original code has been adapted from <see href="http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/filter_rcg.c"/>.
-    /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private bool isDisposed;
-        private readonly int targetWidth;
-        private readonly int targetHeight;
+        private readonly int destinationWidth;
+        private readonly int destinationHeight;
         private readonly IResampler resampler;
-        private readonly Rectangle targetRectangle;
+        private readonly Rectangle destinationRectangle;
         private readonly bool compand;
-
-        // The following fields are not immutable but are optionally created on demand.
-        private ResizeKernelMap horizontalKernelMap;
-        private ResizeKernelMap verticalKernelMap;
+        private Image<TPixel> destination;
 
         public ResizeProcessor(Configuration configuration, ResizeProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
-            this.targetWidth = definition.TargetWidth;
-            this.targetHeight = definition.TargetHeight;
-            this.targetRectangle = definition.TargetRectangle;
+            this.destinationWidth = definition.DestinationWidth;
+            this.destinationHeight = definition.DestinationHeight;
+            this.destinationRectangle = definition.DestinationRectangle;
             this.resampler = definition.Sampler;
             this.compand = definition.Compand;
         }
 
         /// <inheritdoc/>
-        protected override Size GetTargetSize() => new Size(this.targetWidth, this.targetHeight);
+        protected override Size GetDestinationSize() => new Size(this.destinationWidth, this.destinationHeight);
 
         /// <inheritdoc/>
         protected override void BeforeImageApply(Image<TPixel> destination)
         {
-            if (!(this.resampler is NearestNeighborResampler))
-            {
-                Image<TPixel> source = this.Source;
-                Rectangle sourceRectangle = this.SourceRectangle;
-
-                // Since all image frame dimensions have to be the same we can calculate this for all frames.
-                MemoryAllocator memoryAllocator = source.GetMemoryAllocator();
-                this.horizontalKernelMap = ResizeKernelMap.Calculate(
-                    this.resampler,
-                    this.targetRectangle.Width,
-                    sourceRectangle.Width,
-                    memoryAllocator);
-
-                this.verticalKernelMap = ResizeKernelMap.Calculate(
-                    this.resampler,
-                    this.targetRectangle.Height,
-                    sourceRectangle.Height,
-                    memoryAllocator);
-            }
+            this.destination = destination;
+            this.resampler.ApplyTransform(this);
 
             base.BeforeImageApply(destination);
         }
@@ -72,54 +48,143 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         {
-            Rectangle sourceRectangle = this.SourceRectangle;
+            // Everything happens in BeforeImageApply.
+        }
+
+        public void ApplyTransform<TResampler>(in TResampler sampler)
+            where TResampler : struct, IResampler
+        {
             Configuration configuration = this.Configuration;
+            Image<TPixel> source = this.Source;
+            Image<TPixel> destination = this.destination;
+            Rectangle sourceRectangle = this.SourceRectangle;
+            Rectangle destinationRectangle = this.destinationRectangle;
+            bool compand = this.compand;
 
             // Handle resize dimensions identical to the original
             if (source.Width == destination.Width
                 && source.Height == destination.Height
-                && sourceRectangle == this.targetRectangle)
+                && sourceRectangle == destinationRectangle)
             {
-                // The cloned will be blank here copy all the pixel data over
-                source.GetPixelMemoryGroup().CopyTo(destination.GetPixelMemoryGroup());
+                for (int i = 0; i < source.Frames.Count; i++)
+                {
+                    ImageFrame<TPixel> sourceFrame = source.Frames[i];
+                    ImageFrame<TPixel> destinationFrame = destination.Frames[i];
+
+                    // The cloned will be blank here copy all the pixel data over
+                    sourceFrame.GetPixelMemoryGroup().CopyTo(destinationFrame.GetPixelMemoryGroup());
+                }
+
                 return;
             }
 
-            int width = this.targetWidth;
-            int height = this.targetHeight;
-            var interest = Rectangle.Intersect(this.targetRectangle, new Rectangle(0, 0, width, height));
+            var interest = Rectangle.Intersect(destinationRectangle, destination.Bounds());
 
-            if (this.resampler is NearestNeighborResampler)
+            if (sampler is NearestNeighborResampler)
             {
-                // Scaling factors
-                float widthFactor = sourceRectangle.Width / (float)this.targetRectangle.Width;
-                float heightFactor = sourceRectangle.Height / (float)this.targetRectangle.Height;
+                for (int i = 0; i < source.Frames.Count; i++)
+                {
+                    ImageFrame<TPixel> sourceFrame = source.Frames[i];
+                    ImageFrame<TPixel> destinationFrame = destination.Frames[i];
 
-                var operation = new RowIntervalOperation(sourceRectangle, this.targetRectangle, widthFactor, heightFactor, source, destination);
-                ParallelRowIterator.IterateRows(
+                    ApplyNNResizeFrameTransform(
+                        configuration,
+                        sourceFrame,
+                        destinationFrame,
+                        sourceRectangle,
+                        destinationRectangle,
+                        interest);
+                }
+
+                return;
+            }
+
+            // Since all image frame dimensions have to be the same we can calculate
+            // the kernel maps and reuse for all frames.
+            MemoryAllocator allocator = configuration.MemoryAllocator;
+            using var horizontalKernelMap = ResizeKernelMap.Calculate(
+                in sampler,
+                destinationRectangle.Width,
+                sourceRectangle.Width,
+                allocator);
+
+            using var verticalKernelMap = ResizeKernelMap.Calculate(
+                in sampler,
+                destinationRectangle.Height,
+                sourceRectangle.Height,
+                allocator);
+
+            for (int i = 0; i < source.Frames.Count; i++)
+            {
+                ImageFrame<TPixel> sourceFrame = source.Frames[i];
+                ImageFrame<TPixel> destinationFrame = destination.Frames[i];
+
+                ApplyResizeFrameTransform(
                     configuration,
+                    sourceFrame,
+                    destinationFrame,
+                    horizontalKernelMap,
+                    verticalKernelMap,
+                    sourceRectangle,
+                    destinationRectangle,
                     interest,
-                    in operation);
-
-                return;
+                    compand);
             }
+        }
 
+        private static void ApplyNNResizeFrameTransform(
+            Configuration configuration,
+            ImageFrame<TPixel> source,
+            ImageFrame<TPixel> destination,
+            Rectangle sourceRectangle,
+            Rectangle destinationRectangle,
+            Rectangle interest)
+        {
+            // Scaling factors
+            float widthFactor = sourceRectangle.Width / (float)destinationRectangle.Width;
+            float heightFactor = sourceRectangle.Height / (float)destinationRectangle.Height;
+
+            var operation = new NNRowIntervalOperation(
+                sourceRectangle,
+                destinationRectangle,
+                widthFactor,
+                heightFactor,
+                source,
+                destination);
+
+            ParallelRowIterator.IterateRows(
+                configuration,
+                interest,
+                in operation);
+        }
+
+        private static void ApplyResizeFrameTransform(
+            Configuration configuration,
+            ImageFrame<TPixel> source,
+            ImageFrame<TPixel> destination,
+            ResizeKernelMap horizontalKernelMap,
+            ResizeKernelMap verticalKernelMap,
+            Rectangle sourceRectangle,
+            Rectangle destinationRectangle,
+            Rectangle interest,
+            bool compand)
+        {
             PixelConversionModifiers conversionModifiers =
-                PixelConversionModifiers.Premultiply.ApplyCompanding(this.compand);
+                PixelConversionModifiers.Premultiply.ApplyCompanding(compand);
 
             BufferArea<TPixel> sourceArea = source.PixelBuffer.GetArea(sourceRectangle);
 
-            // To reintroduce parallel processing, we to launch multiple workers
+            // To reintroduce parallel processing, we would launch multiple workers
             // for different row intervals of the image.
             using (var worker = new ResizeWorker<TPixel>(
                 configuration,
                 sourceArea,
                 conversionModifiers,
-                this.horizontalKernelMap,
-                this.verticalKernelMap,
-                width,
+                horizontalKernelMap,
+                verticalKernelMap,
+                destination.Width,
                 interest,
-                this.targetRectangle.Location))
+                destinationRectangle.Location))
             {
                 worker.Initialize();
 
@@ -128,27 +193,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                this.horizontalKernelMap?.Dispose();
-                this.horizontalKernelMap = null;
-                this.verticalKernelMap?.Dispose();
-                this.verticalKernelMap = null;
-            }
-
-            this.isDisposed = true;
-            base.Dispose(disposing);
-        }
-
-        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        private readonly struct NNRowIntervalOperation : IRowIntervalOperation
         {
             private readonly Rectangle sourceBounds;
             private readonly Rectangle destinationBounds;
@@ -158,7 +203,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalOperation(
+            public NNRowIntervalOperation(
                 Rectangle sourceBounds,
                 Rectangle destinationBounds,
                 float widthFactor,

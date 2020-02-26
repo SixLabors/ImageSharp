@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Contains utility methods for working with transforms.
     /// </summary>
-    internal static class TransformUtils
+    internal static class TransformUtilities
     {
         /// <summary>
         /// Applies the projective transform against the given coordinates flattened into the 2D space.
@@ -33,6 +33,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="degrees">The amount of rotation, in degrees.</param>
         /// <param name="size">The source image size.</param>
         /// <returns>The <see cref="Matrix3x2"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Matrix3x2 CreateRotationMatrixDegrees(float degrees, Size size)
             => CreateCenteredTransformMatrix(
                 new Rectangle(Point.Empty, size),
@@ -44,6 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <param name="size">The source image size.</param>
         /// <returns>The <see cref="Matrix3x2"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Matrix3x2 CreateRotationMatrixRadians(float radians, Size size)
             => CreateCenteredTransformMatrix(
                 new Rectangle(Point.Empty, size),
@@ -56,6 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <param name="size">The source image size.</param>
         /// <returns>The <see cref="Matrix3x2"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Matrix3x2 CreateSkewMatrixDegrees(float degreesX, float degreesY, Size size)
             => CreateCenteredTransformMatrix(
                 new Rectangle(Point.Empty, size),
@@ -68,6 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="radiansY">The Y angle, in radians.</param>
         /// <param name="size">The source image size.</param>
         /// <returns>The <see cref="Matrix3x2"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Matrix3x2 CreateSkewMatrixRadians(float radiansX, float radiansY, Size size)
             => CreateCenteredTransformMatrix(
                 new Rectangle(Point.Empty, size),
@@ -79,6 +83,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sourceRectangle">The source image bounds.</param>
         /// <param name="matrix">The transformation matrix.</param>
         /// <returns>The <see cref="Matrix3x2"/></returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Matrix3x2 CreateCenteredTransformMatrix(Rectangle sourceRectangle, Matrix3x2 matrix)
         {
             Rectangle destinationRectangle = GetTransformedBoundingRectangle(sourceRectangle, matrix);
@@ -105,6 +110,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="corner">An enumeration that indicates on which corners to taper the rectangle.</param>
         /// <param name="fraction">The amount to taper.</param>
         /// <returns>The <see cref="Matrix4x4"/></returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Matrix4x4 CreateTaperMatrix(Size size, TaperSide side, TaperCorner corner, float fraction)
         {
             Matrix4x4 matrix = Matrix4x4.Identity;
@@ -225,6 +231,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Rectangle GetTransformedBoundingRectangle(Rectangle rectangle, Matrix3x2 matrix)
         {
             Rectangle transformed = GetTransformedRectangle(rectangle, matrix);
@@ -284,6 +291,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>
         /// The <see cref="Rectangle"/>.
         /// </returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Rectangle GetTransformedRectangle(Rectangle rectangle, Matrix4x4 matrix)
         {
             if (rectangle.Equals(default) || Matrix4x4.Identity.Equals(matrix))
@@ -307,6 +315,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>
         /// The <see cref="Size"/>.
         /// </returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static Size GetTransformedSize(Size size, Matrix4x4 matrix)
         {
             Guard.IsTrue(size.Width > 0 && size.Height > 0, nameof(size), "Source size dimensions cannot be 0!");
@@ -321,6 +330,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             return ConstrainSize(rectangle);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static Size ConstrainSize(Rectangle rectangle)
         {
             // We want to resize the canvas here taking into account any translations.
@@ -342,6 +352,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             return new Size(width, height);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static Rectangle GetBoundingRectangle(Vector2 tl, Vector2 tr, Vector2 bl, Vector2 br)
         {
             // Find the minimum and maximum "corners" based on the given vectors

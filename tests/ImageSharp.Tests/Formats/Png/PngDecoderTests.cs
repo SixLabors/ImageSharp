@@ -244,6 +244,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
+        [WithFile(TestImages.Png.Issue1127, PixelTypes.Rgba32)]
+        public void Issue1127<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            System.Exception ex = Record.Exception(
+                () =>
+                {
+                    using (Image<TPixel> image = provider.GetImage(PngDecoder))
+                    {
+                        image.DebugSave(provider);
+                        image.CompareToOriginal(provider, ImageComparer.Exact);
+                    }
+                });
+            Assert.Null(ex);
+        }
+
+        [Theory]
         [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32)]
         public void PngDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)

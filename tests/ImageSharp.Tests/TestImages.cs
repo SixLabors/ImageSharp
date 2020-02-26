@@ -90,6 +90,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Issue1014_4 = "Png/issues/Issue_1014_4.png";
             public const string Issue1014_5 = "Png/issues/Issue_1014_5.png";
             public const string Issue1014_6 = "Png/issues/Issue_1014_6.png";
+            public const string Issue1127 = "Png/issues/Issue_1127.png";
 
             public static class Bad
             {

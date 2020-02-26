@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -104,7 +103,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.tempColumnBuffer.Dispose();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Span<Vector4> GetColumnSpan(int x, int startY)
         {
             return this.transposedFirstPassBuffer.GetRowSpan(x).Slice(startY - this.currentWindow.Min);

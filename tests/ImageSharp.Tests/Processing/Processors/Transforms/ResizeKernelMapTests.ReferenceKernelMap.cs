@@ -26,7 +26,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             public ReferenceKernel GetKernel(int destinationIndex) => this.kernels[destinationIndex];
 
-            public static ReferenceKernelMap Calculate(IResampler sampler, int destinationSize, int sourceSize, bool normalize = true)
+            public static ReferenceKernelMap Calculate<TResampler>(in TResampler sampler, int destinationSize, int sourceSize, bool normalize = true)
+                where TResampler : struct, IResampler
             {
                 double ratio = (double)sourceSize / destinationSize;
                 double scale = ratio;

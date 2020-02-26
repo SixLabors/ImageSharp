@@ -428,11 +428,18 @@ namespace SixLabors.ImageSharp.Tests
 
             public static class Lossy
             {
-                public const string SampleWebpOne = "WebP/Lossy/1.webp";
-                public const string SampleWebpTwo = "WebP/Lossy/2.webp";
-                public const string SampleWebpThree = "WebP/Lossy/3.webp";
-                public const string SampleWebpFour = "WebP/Lossy/4.webp";
-                public const string SampleWebpFive = "WebP/Lossy/5.webp";
+                public const string Bike = "WebP/bike_lossy.webp";
+                public const string LenaIccp = "WebP/lossy_iccp.webp";
+                public const string VeryShort = "WebP/very_short.webp";
+                public const string Lossy01 = "WebP/vp80-01-intra-1400.webp";
+                public const string Lossy02 = "WebP/vp80-00-comprehensive-010.webp";
+                public const string Lossy03 = "WebP/vp80-01-intra-1417.webp";
+                public const string Lossy04 = "WebP/vp80-02-inter-1402.webp";
+                public const string Lossy05 = "WebP/vp80-03-segmentation-1401.webp";
+                public const string Lossy06 = "WebP/vp80-02-inter-1418.webp";
+                public const string Lossy07 = "WebP/vp80-03-segmentation-1403.webp";
+                public const string Lossy08 = "WebP/vp80-03-segmentation-1407.webp";
+                public const string Lossy09 = "WebP/test.webp";
 
                 public static class Alpha
                 {
@@ -440,6 +447,7 @@ namespace SixLabors.ImageSharp.Tests
                     public const string LossyAlpha2 = "WebP/lossy_alpha2.webp";
                     public const string LossyAlpha3 = "WebP/lossy_alpha3.webp";
                     public const string LossyAlpha4 = "WebP/lossy_alpha4.webp";
+                    public const string LossyAlphaNoCompression = "WebP/alpha_no_compression.webp";
                 }
             }
 

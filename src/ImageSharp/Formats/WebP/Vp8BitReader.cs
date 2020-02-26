@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return bit ? 1 : 0;
         }
 
-        // simplified version of VP8GetBit() for prob=0x80 (note shift is always 1 here)
+        // Simplified version of VP8GetBit() for prob=0x80 (note shift is always 1 here)
         public int GetSigned(int v)
         {
             if (this.bits < 0)
@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 n >>= 8;
             }
 
-            return logValue + WebPConstants.LogTable8bit[n];
+            return logValue + Vp8LookupTables.LogTable8bit[n];
         }
     }
 }

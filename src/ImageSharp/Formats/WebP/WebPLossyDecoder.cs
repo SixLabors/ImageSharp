@@ -320,23 +320,23 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // Predict and add residuals.
                 if (block.IsI4x4)
                 {
-                    // uint32_t* const top_right = (uint32_t*)(y_dst - BPS + 16);
-                    //Span<uint> topRight = MemoryMarshal.Cast<byte, uint>(yuv.AsSpan(yOff - WebPConstants.Bps + 16));
+                    Span<uint> topRight = MemoryMarshal.Cast<byte, uint>(yuv.AsSpan(yOff - WebPConstants.Bps + 16));
                     if (mby > 0)
                     {
                         if (mbx >= dec.MbWidth - 1)
                         {
                             // On rightmost border.
-                            // memset(top_right, top_yuv[0].y[15], sizeof(*top_right));
+                            LossyUtils.Memset(topRight, topYuv.Y[15],0, 4);
                         }
                         else
                         {
-                            // memcpy(top_right, top_yuv[1].y, sizeof(*top_right));
+                            Span<uint> topYuvSamples = MemoryMarshal.Cast<byte, uint>(dec.YuvTopSamples[mbx + 1].Y.AsSpan());
+                            topYuvSamples.Slice(0, 4).CopyTo(topRight);
                         }
                     }
 
                     // Replicate the top-right pixels below.
-                    //topRight[WebPConstants.Bps] = topRight[2 * WebPConstants.Bps] = topRight[3 * WebPConstants.Bps] = topRight[0];
+                    topRight[WebPConstants.Bps] = topRight[2 * WebPConstants.Bps] = topRight[3 * WebPConstants.Bps] = topRight[0];
 
                     // Predict and add residuals for all 4x4 blocks in turn.
                     for (int n = 0; n < 16; ++n, bits <<= 2)

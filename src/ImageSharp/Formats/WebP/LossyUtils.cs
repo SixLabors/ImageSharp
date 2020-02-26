@@ -756,11 +756,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            int a = (3 * (q0 - p0)) + Vp8LookupTables.Sclip1(p1 - q1);
-            int a1 = Vp8LookupTables.Sclip2((a + 4) >> 3);
-            int a2 = Vp8LookupTables.Sclip2((a + 3) >> 3);
-            p[offset - step] = Vp8LookupTables.Clip1(p0 + a2);
-            p[offset] = Vp8LookupTables.Clip1(q0 - a1);
+            int a = (3 * (q0 - p0)) + Vp8LookupTables.Sclip1[p1 - q1];
+            int a1 = Vp8LookupTables.Sclip2[(a + 4) >> 3];
+            int a2 = Vp8LookupTables.Sclip2[(a + 3) >> 3];
+            p[offset - step] = Vp8LookupTables.Clip1[p0 + a2];
+            p[offset] = Vp8LookupTables.Clip1[q0 - a1];
         }
 
         private static void DoFilter4(byte[] p, int offset, int step)
@@ -771,13 +771,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int q0 = p[offset];
             int q1 = p[offset + step];
             int a = 3 * (q0 - p0);
-            int a1 = Vp8LookupTables.Sclip2((a + 4) >> 3);
-            int a2 = Vp8LookupTables.Sclip2((a + 3) >> 3);
+            int a1 = Vp8LookupTables.Sclip2[(a + 4) >> 3];
+            int a2 = Vp8LookupTables.Sclip2[(a + 3) >> 3];
             int a3 = (a1 + 1) >> 1;
-            p[offset - (2 * step)] = Vp8LookupTables.Clip1(p1 + a3);
-            p[offset - step] = Vp8LookupTables.Clip1(p0 + a2);
-            p[offset] = Vp8LookupTables.Clip1(q0 - a1);
-            p[offset + step] = Vp8LookupTables.Clip1(q1 - a3);
+            p[offset - (2 * step)] = Vp8LookupTables.Clip1[p1 + a3];
+            p[offset - step] = Vp8LookupTables.Clip1[p0 + a2];
+            p[offset] = Vp8LookupTables.Clip1[q0 - a1];
+            p[offset + step] = Vp8LookupTables.Clip1[q1 - a3];
         }
 
         private static void DoFilter6(byte[] p, int offset, int step)
@@ -789,18 +789,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int q0 = p[offset];
             int q1 = p[offset + step];
             int q2 = p[offset + (2 * step)];
-            int a = Vp8LookupTables.Clip1((3 * (q0 - p0)) + Vp8LookupTables.Clip1(p1 - q1));
+            int a = Vp8LookupTables.Clip1[(3 * (q0 - p0)) + Vp8LookupTables.Clip1[p1 - q1]];
 
             // a is in [-128,127], a1 in [-27,27], a2 in [-18,18] and a3 in [-9,9]
             int a1 = ((27 * a) + 63) >> 7;  // eq. to ((3 * a + 7) * 9) >> 7
             int a2 = ((18 * a) + 63) >> 7;  // eq. to ((2 * a + 7) * 9) >> 7
             int a3 = ((9 * a) + 63) >> 7;  // eq. to ((1 * a + 7) * 9) >> 7
-            p[offset - (3 * step)] = Vp8LookupTables.Clip1(p2 + a3);
-            p[offset - (2 * step)] = Vp8LookupTables.Clip1(p1 + a2);
-            p[offset - step] = Vp8LookupTables.Clip1(p0 + a1);
-            p[offset] = Vp8LookupTables.Clip1(q0 - a1);
-            p[offset + step] = Vp8LookupTables.Clip1(q1 - a2);
-            p[offset + (2 * step)] = Vp8LookupTables.Clip1(q2 - a3);
+            p[offset - (3 * step)] = Vp8LookupTables.Clip1[p2 + a3];
+            p[offset - (2 * step)] = Vp8LookupTables.Clip1[p1 + a2];
+            p[offset - step] = Vp8LookupTables.Clip1[p0 + a1];
+            p[offset] = Vp8LookupTables.Clip1[q0 - a1];
+            p[offset + step] = Vp8LookupTables.Clip1[q1 - a2];
+            p[offset + (2 * step)] = Vp8LookupTables.Clip1[q2 - a3];
         }
 
         private static bool NeedsFilter(byte[] p, int offset, int step, int thresh)
@@ -809,7 +809,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            return (Vp8LookupTables.Abs0(p1 - p0) > thresh) || (Vp8LookupTables.Abs0(q1 - q0) > thresh);
+            return (Vp8LookupTables.Abs0[p1 - p0] > thresh) || (Vp8LookupTables.Abs0[q1 - q0] > thresh);
         }
 
         private static bool NeedsFilter2(byte[] p, int offset, int step, int t, int it)
@@ -822,23 +822,23 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int q1 = p[offset + step];
             int q2 = p[offset + (2 * step)];
             int q3 = p[offset + (3 * step)];
-            if (((4 * Vp8LookupTables.Abs0(p0 - q0)) + Vp8LookupTables.Abs0(p1 - q1)) > t)
+            if (((4 * Vp8LookupTables.Abs0[p0 - q0]) + Vp8LookupTables.Abs0[p1 - q1]) > t)
             {
                 return false;
             }
 
-            return Vp8LookupTables.Abs0(p3 - p2) <= it && Vp8LookupTables.Abs0(p2 - p1) <= it &&
-                   Vp8LookupTables.Abs0(p1 - p0) <= it && Vp8LookupTables.Abs0(q3 - q2) <= it &&
-                   Vp8LookupTables.Abs0(q2 - q1) <= it && Vp8LookupTables.Abs0(q1 - q0) <= it;
+            return Vp8LookupTables.Abs0[p3 - p2] <= it && Vp8LookupTables.Abs0[p2 - p1] <= it &&
+                   Vp8LookupTables.Abs0[p1 - p0] <= it && Vp8LookupTables.Abs0[q3 - q2] <= it &&
+                   Vp8LookupTables.Abs0[q2 - q1] <= it && Vp8LookupTables.Abs0[q1 - q0] <= it;
         }
 
         private static bool Hev(byte[] p, int offset, int step, int thresh)
         {
-            int p1 = p[offset -(2 * step)];
+            int p1 = p[offset - (2 * step)];
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            return (Vp8LookupTables.Abs0(p1 - p0) > thresh) || (Vp8LookupTables.Abs0(q1 - q0) > thresh);
+            return (Vp8LookupTables.Abs0[p1 - p0] > thresh) || (Vp8LookupTables.Abs0[q1 - q0] > thresh);
         }
 
         private static int MultHi(int v, int coeff)

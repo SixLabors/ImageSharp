@@ -68,8 +68,7 @@ namespace SixLabors.ImageSharp.Advanced
 
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-            var info = new IterationParameters(top, bottom, verticalStep);
-            var wrappingOperation = new RowOperationWrapper<T>(in info, in operation);
+            var wrappingOperation = new RowOperationWrapper<T>(top, bottom, verticalStep, in operation);
 
             Parallel.For(
                 0,
@@ -138,8 +137,7 @@ namespace SixLabors.ImageSharp.Advanced
 
             int verticalStep = DivideCeil(height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-            var info = new IterationParameters(top, bottom, verticalStep, width);
-            var wrappingOperation = new RowOperationWrapper<T, TBuffer>(in info, allocator, in operation);
+            var wrappingOperation = new RowOperationWrapper<T, TBuffer>(top, bottom, verticalStep, width, allocator, in operation);
 
             Parallel.For(
                 0,
@@ -196,8 +194,7 @@ namespace SixLabors.ImageSharp.Advanced
 
             int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-            var info = new IterationParameters(top, bottom, verticalStep);
-            var wrappingOperation = new RowIntervalOperationWrapper<T>(in info, in operation);
+            var wrappingOperation = new RowIntervalOperationWrapper<T>(top, bottom, verticalStep, in operation);
 
             Parallel.For(
                 0,
@@ -263,8 +260,7 @@ namespace SixLabors.ImageSharp.Advanced
 
             int verticalStep = DivideCeil(height, numOfSteps);
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-            var info = new IterationParameters(top, bottom, verticalStep, width);
-            var wrappingOperation = new RowIntervalOperationWrapper<T, TBuffer>(in info, allocator, in operation);
+            var wrappingOperation = new RowIntervalOperationWrapper<T, TBuffer>(top, bottom, verticalStep, width, allocator, in operation);
 
             Parallel.For(
                 0,

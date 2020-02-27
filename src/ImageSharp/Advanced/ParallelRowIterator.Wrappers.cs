@@ -38,14 +38,14 @@ namespace SixLabors.ImageSharp.Advanced
             }
         }
 
-        private readonly struct WrappingRowAction<T>
-            where T : struct, IRowAction
+        private readonly struct RowOperationWrapper<T>
+            where T : struct, IRowOperation
         {
             private readonly IterationParameters info;
             private readonly T action;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public WrappingRowAction(in IterationParameters info, in T action)
+            public RowOperationWrapper(in IterationParameters info, in T action)
             {
                 this.info = info;
                 this.action = action;
@@ -71,8 +71,8 @@ namespace SixLabors.ImageSharp.Advanced
             }
         }
 
-        private readonly struct WrappingRowAction<T, TBuffer>
-            where T : struct, IRowAction<TBuffer>
+        private readonly struct RowOperationWrapper<T, TBuffer>
+            where T : struct, IRowOperation<TBuffer>
             where TBuffer : unmanaged
         {
             private readonly IterationParameters info;
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Advanced
             private readonly T action;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public WrappingRowAction(
+            public RowOperationWrapper(
                 in IterationParameters info,
                 MemoryAllocator allocator,
                 in T action)
@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Advanced
 
                 int yMax = Math.Min(yMin + this.info.StepY, this.info.MaxY);
 
-                using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.MaxX);
+                using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.Width);
 
                 Span<TBuffer> span = buffer.Memory.Span;
 

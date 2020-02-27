@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// <summary>
     /// Defines the contract for an action that operates on a row.
     /// </summary>
-    public interface IRowAction
+    public interface IRowOperation
     {
         /// <summary>
         /// Invokes the method passing the row y coordinate.

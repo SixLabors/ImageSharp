@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Advanced
     /// Defines the contract for an action that operates on a row with a temporary buffer.
     /// </summary>
     /// <typeparam name="TBuffer">The type of buffer elements.</typeparam>
-    public interface IRowAction<TBuffer>
+    public interface IRowOperation<TBuffer>
         where TBuffer : unmanaged
     {
         /// <summary>

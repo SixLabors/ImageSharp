@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteHeader(Stream stream) => stream.Write(GifConstants.MagicNumber, 0, GifConstants.MagicNumber.Length);
+        private void WriteHeader(Stream stream) => stream.Write(GifConstants.MagicNumber);
 
         /// <summary>
         /// Writes the logical screen descriptor to the stream.

@@ -93,6 +93,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public static readonly Encoding Encoding = Encoding.ASCII;
 
         /// <summary>
+        /// The collection of mimetypes that equate to a Gif.
+        /// </summary>
+        public static readonly IEnumerable<string> MimeTypes = new[] { "image/gif" };
+
+        /// <summary>
+        /// The collection of file extensions that equate to a Gif.
+        /// </summary>
+        public static readonly IEnumerable<string> FileExtensions = new[] { "gif" };
+
+        /// <summary>
         /// Gets the ASCII encoded bytes used to identify the GIF file (combining <see cref="FileType"/> and <see cref="FileVersion"/>).
         /// </summary>
         internal static ReadOnlySpan<byte> MagicNumber => new[]
@@ -111,15 +121,5 @@ namespace SixLabors.ImageSharp.Formats.Gif
             (byte)'P', (byte)'E',
             (byte)'2', (byte)'.', (byte)'0'
         };
-
-        /// <summary>
-        /// The collection of mimetypes that equate to a Gif.
-        /// </summary>
-        public static readonly IEnumerable<string> MimeTypes = new[] { "image/gif" };
-
-        /// <summary>
-        /// The collection of file extensions that equate to a Gif.
-        /// </summary>
-        public static readonly IEnumerable<string> FileExtensions = new[] { "gif" };
     }
 }

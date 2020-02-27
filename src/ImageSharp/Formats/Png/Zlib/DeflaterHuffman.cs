@@ -40,8 +40,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         // probability, to avoid transmitting the lengths for unused bit length codes.
         private static readonly int[] BitLengthOrder = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
 
-        private static readonly byte[] Bit4Reverse = { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
-
         private static readonly short[] StaticLCodes;
         private static readonly byte[] StaticLLength;
         private static readonly short[] StaticDCodes;
@@ -127,6 +125,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.literalBufferHandle = this.literalManagedBuffer.Memory.Pin();
             this.pinnedLiteralBuffer = (short*)this.literalBufferHandle.Pointer;
         }
+
+        private static ReadOnlySpan<byte> Bit4Reverse => new byte[] { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
 
         /// <summary>
         /// Gets the pending buffer to use.
@@ -363,10 +363,17 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         [MethodImpl(InliningOptions.ShortMethod)]
         public static short BitReverse(int toReverse)
         {
-            return (short)(Bit4Reverse[toReverse & 0xF] << 12
-                           | Bit4Reverse[(toReverse >> 4) & 0xF] << 8
-                           | Bit4Reverse[(toReverse >> 8) & 0xF] << 4
-                           | Bit4Reverse[toReverse >> 12]);
+            DebugGuard.MustBeLessThan(toReverse & 0xF, Bit4Reverse.Length, nameof(toReverse));
+            DebugGuard.MustBeLessThan((toReverse >> 4) & 0xF, Bit4Reverse.Length, nameof(toReverse));
+            DebugGuard.MustBeLessThan((toReverse >> 8) & 0xF, Bit4Reverse.Length, nameof(toReverse));
+            DebugGuard.MustBeLessThan(toReverse >> 12, Bit4Reverse.Length, nameof(toReverse));
+
+            ref byte bit4ReverseRef = ref MemoryMarshal.GetReference(Bit4Reverse);
+
+            return (short)(Unsafe.Add(ref bit4ReverseRef, toReverse & 0xF) << 12
+                           | Unsafe.Add(ref bit4ReverseRef, (toReverse >> 4) & 0xF) << 8
+                           | Unsafe.Add(ref bit4ReverseRef, (toReverse >> 8) & 0xF) << 4
+                           | Unsafe.Add(ref bit4ReverseRef, toReverse >> 12));
         }
 
         /// <inheritdoc/>

@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 source,
                 destination);
 
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 configuration,
                 interest,
                 in operation);

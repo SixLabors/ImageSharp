@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             rowColors.GetSpan().Fill(vignetteColor);
 
             var operation = new RowIntervalOperation(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source);
-            ParallelRowIterator.IterateRows<RowIntervalOperation, float>(
+            ParallelRowIterator.IterateRowIntervals<RowIntervalOperation, float>(
                 configuration,
                 interest,
                 in operation);

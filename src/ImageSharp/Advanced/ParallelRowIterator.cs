@@ -25,11 +25,11 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
         /// <param name="operation">The operation defining the iteration logic on a single <see cref="RowInterval"/>.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void IterateRows<T>(Configuration configuration, Rectangle rectangle, in T operation)
+        public static void IterateRowIntervals<T>(Configuration configuration, Rectangle rectangle, in T operation)
             where T : struct, IRowIntervalOperation
         {
             var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
-            IterateRows(rectangle, in parallelSettings, in operation);
+            IterateRowIntervals(rectangle, in parallelSettings, in operation);
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
         /// <param name="parallelSettings">The <see cref="ParallelExecutionSettings"/>.</param>
         /// <param name="operation">The operation defining the iteration logic on a single <see cref="RowInterval"/>.</param>
-        public static void IterateRows<T>(
+        public static void IterateRowIntervals<T>(
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
             in T operation)
@@ -84,12 +84,12 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="configuration">The <see cref="Configuration"/> to get the parallel settings from.</param>
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
         /// <param name="operation">The operation defining the iteration logic on a single <see cref="RowInterval"/>.</param>
-        public static void IterateRows<T, TBuffer>(Configuration configuration, Rectangle rectangle, in T operation)
+        public static void IterateRowIntervals<T, TBuffer>(Configuration configuration, Rectangle rectangle, in T operation)
             where T : struct, IRowIntervalOperation<TBuffer>
             where TBuffer : unmanaged
         {
             var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
-            IterateRows<T, TBuffer>(rectangle, in parallelSettings, in operation);
+            IterateRowIntervals<T, TBuffer>(rectangle, in parallelSettings, in operation);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="rectangle">The <see cref="Rectangle"/>.</param>
         /// <param name="parallelSettings">The <see cref="ParallelExecutionSettings"/>.</param>
         /// <param name="operation">The operation defining the iteration logic on a single <see cref="RowInterval"/>.</param>
-        public static void IterateRows<T, TBuffer>(
+        public static void IterateRowIntervals<T, TBuffer>(
             Rectangle rectangle,
             in ParallelExecutionSettings parallelSettings,
             in T operation)

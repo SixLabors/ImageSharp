@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 palette,
                 ImageMaths.GetBitsNeededForColorDepth(palette.Span.Length));
 
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 quantizer.Configuration,
                 bounds,
                 in ditherOperation);
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 scale,
                 ImageMaths.GetBitsNeededForColorDepth(palette.Span.Length));
 
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 configuration,
                 bounds,
                 in ditherOperation);

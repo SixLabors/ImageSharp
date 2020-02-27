@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             // Build the histogram of the grayscale levels
             var grayscaleOperation = new GrayscaleLevelsRowIntervalOperation(interest, histogramBuffer, source, this.LuminanceLevels);
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 this.Configuration,
                 interest,
                 in grayscaleOperation);
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             // Apply the cdf to each pixel of the image
             var cdfOperation = new CdfApplicationRowIntervalOperation(interest, cdfBuffer, source, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 this.Configuration,
                 interest,
                 in cdfOperation);

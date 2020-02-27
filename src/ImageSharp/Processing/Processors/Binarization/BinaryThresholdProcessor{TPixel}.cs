@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -87,10 +88,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             {
                 Rgba32 rgba = default;
                 Span<TPixel> row = this.source.GetPixelRowSpan(y);
+                ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
 
                 for (int x = this.minX; x < this.maxX; x++)
                 {
-                    ref TPixel color = ref row[x];
+                    ref TPixel color = ref Unsafe.Add(ref rowRef, x);
                     color.ToRgba32(ref rgba);
 
                     // Convert to grayscale using ITU-R Recommendation BT.709 if required

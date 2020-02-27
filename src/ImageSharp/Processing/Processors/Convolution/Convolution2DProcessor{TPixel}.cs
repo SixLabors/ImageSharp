@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             var operation = new RowIntervalOperation(interest, targetPixels, source.PixelBuffer, this.KernelY, this.KernelX, this.Configuration, this.PreserveAlpha);
 
-            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
+            ParallelRowIterator.IterateRowIntervals<RowIntervalOperation, Vector4>(
                 this.Configuration,
                 interest,
                 in operation);

@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             // Preliminary gamma highlight pass
             var gammaOperation = new ApplyGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
-            ParallelRowIterator.IterateRows<ApplyGammaExposureRowIntervalOperation, Vector4>(
+            ParallelRowIterator.IterateRowIntervals<ApplyGammaExposureRowIntervalOperation, Vector4>(
                 this.Configuration,
                 this.SourceRectangle,
                 in gammaOperation);
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             // Apply the inverse gamma exposure pass, and write the final pixel data
             var operation = new ApplyInverseGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, inverseGamma);
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 this.Configuration,
                 this.SourceRectangle,
                 in operation);
@@ -121,14 +121,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 // Compute the vertical 1D convolution
                 var verticalOperation = new ApplyVerticalConvolutionRowIntervalOperation(sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel);
-                ParallelRowIterator.IterateRows(
+                ParallelRowIterator.IterateRowIntervals(
                     configuration,
                     sourceRectangle,
                     in verticalOperation);
 
                 // Compute the horizontal 1D convolutions and accumulate the partial results on the target buffer
                 var horizontalOperation = new ApplyHorizontalConvolutionRowIntervalOperation(sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W);
-                ParallelRowIterator.IterateRows(
+                ParallelRowIterator.IterateRowIntervals(
                     configuration,
                     sourceRectangle,
                     in horizontalOperation);

@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             }
 
             var operation = new RowIntervalOperation(source, targetImage, blender, configuration, minX, width, locationY, targetX, this.Opacity);
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 configuration,
                 workingRect,
                 in operation);

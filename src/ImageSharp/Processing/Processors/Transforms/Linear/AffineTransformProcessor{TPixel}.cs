@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (sampler is NearestNeighborResampler)
             {
                 var nnOperation = new NNAffineOperation(source, destination, matrix);
-                ParallelRowIterator.IterateRows(
+                ParallelRowIterator.IterateRowIntervals(
                     configuration,
                     destination.Bounds(),
                     in nnOperation);
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 radialExtents,
                 maxSourceExtents);
 
-            ParallelRowIterator.IterateRows<AffineOperation<TResampler>, Vector4>(
+            ParallelRowIterator.IterateRowIntervals<AffineOperation<TResampler>, Vector4>(
                 configuration,
                 destination.Bounds(),
                 in operation);

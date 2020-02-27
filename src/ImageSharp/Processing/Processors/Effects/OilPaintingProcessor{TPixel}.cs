@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             source.CopyTo(targetPixels);
 
             var operation = new RowIntervalOperation(this.SourceRectangle, targetPixels, source, this.Configuration, brushSize >> 1, this.definition.Levels);
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 this.Configuration,
                 this.SourceRectangle,
                 in operation);

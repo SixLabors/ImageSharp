@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             var operation = new RowIntervalOperation(interest.X, source, this.definition.Matrix, this.Configuration);
 
-            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
+            ParallelRowIterator.IterateRowIntervals<RowIntervalOperation, Vector4>(
                 this.Configuration,
                 interest,
                 in operation);

@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
             var operation = new RowIntervalOperation(interest, source, upper, lower, threshold, isAlphaOnly);
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 configuration,
                 interest,
                 in operation);

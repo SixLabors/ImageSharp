@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 }
 
                 var operation = new RowIntervalOperation(source.PixelBuffer, pass.PixelBuffer, interest);
-                ParallelRowIterator.IterateRows(
+                ParallelRowIterator.IterateRowIntervals(
                     this.Configuration,
                     interest,
                     in operation);

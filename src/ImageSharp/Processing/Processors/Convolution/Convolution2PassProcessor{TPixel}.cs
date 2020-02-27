@@ -65,14 +65,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             // Horizontal convolution
             var horizontalOperation = new RowIntervalOperation(interest, firstPassPixels, source.PixelBuffer, this.KernelX, this.Configuration, this.PreserveAlpha);
-            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
+            ParallelRowIterator.IterateRowIntervals<RowIntervalOperation, Vector4>(
                 this.Configuration,
                 interest,
                 in horizontalOperation);
 
             // Vertical convolution
             var verticalOperation = new RowIntervalOperation(interest, source.PixelBuffer, firstPassPixels, this.KernelY, this.Configuration, this.PreserveAlpha);
-            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
+            ParallelRowIterator.IterateRowIntervals<RowIntervalOperation, Vector4>(
                 this.Configuration,
                 interest,
                 in verticalOperation);

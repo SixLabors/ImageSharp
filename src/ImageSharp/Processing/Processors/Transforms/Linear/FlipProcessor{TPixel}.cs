@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private void FlipY(ImageFrame<TPixel> source, Configuration configuration)
         {
             var operation = new RowIntervalOperation(source);
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 configuration,
                 source.Bounds(),
                 in operation);

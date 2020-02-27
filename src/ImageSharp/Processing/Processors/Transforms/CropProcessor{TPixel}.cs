@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             var operation = new RowIntervalOperation(bounds, source, destination);
 
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 bounds,
                 in parallelSettings,
                 in operation);

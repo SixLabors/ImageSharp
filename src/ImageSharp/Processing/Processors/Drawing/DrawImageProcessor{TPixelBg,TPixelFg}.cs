@@ -15,8 +15,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
     /// <typeparam name="TPixelBg">The pixel format of destination image.</typeparam>
     /// <typeparam name="TPixelFg">The pixel format of source image.</typeparam>
     internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
-        where TPixelBg : struct, IPixel<TPixelBg>
-        where TPixelFg : struct, IPixel<TPixelFg>
+        where TPixelBg : unmanaged, IPixel<TPixelBg>
+        where TPixelFg : unmanaged, IPixel<TPixelFg>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixelBg, TPixelFg}"/> class.

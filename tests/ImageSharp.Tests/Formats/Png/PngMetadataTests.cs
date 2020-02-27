@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
         public void Decoder_CanReadTextData<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
         public void Encoder_PreservesTextData<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new PngDecoder();
             using (Image<TPixel> input = provider.GetImage(decoder))
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFile(TestImages.Png.InvalidTextData, PixelTypes.Rgba32)]
         public void Decoder_IgnoresInvalidTextData<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
         public void Encode_UseCompression_WhenTextIsGreaterThenThreshold_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new PngDecoder();
             using (Image<TPixel> input = provider.GetImage(decoder))

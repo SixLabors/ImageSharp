@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, nameof(stream));
 

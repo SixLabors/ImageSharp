@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [WithSolidFilledImages(nameof(PngColorTypes), 1, 1, 255, 100, 50, 255, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(PngColorTypes), 7, 5, PixelTypes.Rgba32)]
         public void WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TestPngEncoderCore(
                 provider,
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithTestPatternImages(nameof(PngColorTypes), 24, 24, PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24)]
         public void IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithTestPatternImages(nameof(PngFilterMethods), 24, 24, PixelTypes.Rgba32)]
         public void WorksWithAllFilterMethods<TPixel>(TestImageProvider<TPixel> provider, PngFilterMethod pngFilterMethod)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithTestPatternImages(nameof(CompressionLevels), 24, 24, PixelTypes.Rgba32)]
         public void WorksWithAllCompressionLevels<TPixel>(TestImageProvider<TPixel> provider, int compressionLevel)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [WithTestPatternImages(24, 24, PixelTypes.Rgba32, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
         [WithTestPatternImages(24, 24, PixelTypes.Rgba64, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit16)]
         public void WorksWithAllBitDepths<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Investigate WuQuantizer to see if we can reduce memory pressure.
             if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [WithBlankImages(1, 1, PixelTypes.La16, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
         [WithBlankImages(1, 1, PixelTypes.La32, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit16)]
         public void InfersColorTypeAndBitDepth<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Stream stream = new MemoryStream())
             {
@@ -252,7 +252,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFile(TestImages.Png.Palette8Bpp, nameof(PaletteLargeOnly), PixelTypes.Rgba32)]
         public void PaletteColorType_WuQuantizer<TPixel>(TestImageProvider<TPixel> provider, int paletteSize)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Investigate WuQuantizer to see if we can reduce memory pressure.
             if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.Rgba32)]
         public void WritesFileMarker<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             using (var ms = new MemoryStream())
@@ -408,7 +408,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [WithTestPatternImages(587, 821, PixelTypes.Rgba32)]
         [WithTestPatternImages(677, 683, PixelTypes.Rgba32)]
         public void Encode_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
@@ -438,7 +438,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             bool appendCompressionLevel = false,
             bool appendPaletteSize = false,
             bool appendPngBitDepth = false)
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {

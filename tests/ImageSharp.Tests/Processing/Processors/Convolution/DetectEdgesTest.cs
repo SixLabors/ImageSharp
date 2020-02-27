@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithFileCollection(nameof(TestImages), PixelTypes.Rgba32)]
         public void DetectEdges_WorksOnWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTestOnWrappedMemoryImage(
                 ctx =>
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, PixelTypes.Rgba32)]
         [WithFileCollection(nameof(TestImages), nameof(DetectEdgesFilters), PixelTypes.Rgba32)]
         public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithFileCollection(nameof(TestImages), CommonNonDefaultPixelTypes)]
         public void DetectEdges_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithFile(Tests.TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         public void DetectEdges_IsAppliedToAllFrames<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithFileCollection(nameof(TestImages), PixelTypes.Rgba32)]
         public void DetectEdges_InBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithFile(Tests.TestImages.Png.Bike, nameof(DetectEdgesFilters), PixelTypes.Rgba32)]
         public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunBufferCapacityLimitProcessorTest(
                 41,

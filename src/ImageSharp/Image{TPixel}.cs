@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public sealed class Image<TPixel> : Image
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private bool isDisposed;
 

@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal readonly struct EuclideanPixelMap<TPixel> : IPixelMap<TPixel>, IEquatable<EuclideanPixelMap<TPixel>>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly ConcurrentDictionary<int, Vector4> vectorCache;
         private readonly ConcurrentDictionary<TPixel, int> distanceCache;

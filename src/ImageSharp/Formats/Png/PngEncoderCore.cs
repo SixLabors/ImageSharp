@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             QuantizedFrame<TPixel> quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, image);
             this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, image, quantized);
 
-            stream.Write(PngConstants.HeaderBytes, 0, PngConstants.HeaderBytes.Length);
+            stream.Write(PngConstants.HeaderBytes);
 
             this.WriteHeaderChunk(stream);
             this.WritePaletteChunk(stream, quantized);

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -37,9 +38,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         public static readonly IEnumerable<string> FileExtensions = new[] { "png" };
 
         /// <summary>
-        /// The header bytes identifying a Png.
+        /// Gets the header bytes identifying a Png.
         /// </summary>
-        public static readonly byte[] HeaderBytes =
+        public static ReadOnlySpan<byte> HeaderBytes => new byte[]
         {
              0x89, // Set the high bit.
              0x50, // P

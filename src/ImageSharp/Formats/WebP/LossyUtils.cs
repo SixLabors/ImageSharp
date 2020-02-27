@@ -682,14 +682,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);
         }
 
-        public static void Memset(Span<uint> dst, uint value, int startIdx, int count)
-        {
-            for (int i = 0; i < count; i++)
-            {
-                dst[startIdx + i] = value;
-            }
-        }
-
         // Complex In-loop filtering (Paragraph 15.3)
         private static void FilterLoop24(
             byte[] p,

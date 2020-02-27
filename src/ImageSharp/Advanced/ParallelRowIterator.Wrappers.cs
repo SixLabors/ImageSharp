@@ -38,6 +38,81 @@ namespace SixLabors.ImageSharp.Advanced
             }
         }
 
+        private readonly struct WrappingRowAction<T>
+            where T : struct, IRowAction
+        {
+            private readonly IterationParameters info;
+            private readonly T action;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public WrappingRowAction(in IterationParameters info, in T action)
+            {
+                this.info = info;
+                this.action = action;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(int i)
+            {
+                int yMin = this.info.MinY + (i * this.info.StepY);
+
+                if (yMin >= this.info.MaxY)
+                {
+                    return;
+                }
+
+                int yMax = Math.Min(yMin + this.info.StepY, this.info.MaxY);
+
+                for (int y = yMin; y < yMax; y++)
+                {
+                    // Skip the safety copy when invoking a potentially impure method on a readonly field
+                    Unsafe.AsRef(this.action).Invoke(y);
+                }
+            }
+        }
+
+        private readonly struct WrappingRowAction<T, TBuffer>
+            where T : struct, IRowAction<TBuffer>
+            where TBuffer : unmanaged
+        {
+            private readonly IterationParameters info;
+            private readonly MemoryAllocator allocator;
+            private readonly T action;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public WrappingRowAction(
+                in IterationParameters info,
+                MemoryAllocator allocator,
+                in T action)
+            {
+                this.info = info;
+                this.allocator = allocator;
+                this.action = action;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(int i)
+            {
+                int yMin = this.info.MinY + (i * this.info.StepY);
+
+                if (yMin >= this.info.MaxY)
+                {
+                    return;
+                }
+
+                int yMax = Math.Min(yMin + this.info.StepY, this.info.MaxY);
+
+                using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.info.MaxX);
+
+                Span<TBuffer> span = buffer.Memory.Span;
+
+                for (int y = yMin; y < yMax; y++)
+                {
+                    Unsafe.AsRef(this.action).Invoke(y, span);
+                }
+            }
+        }
+
         private readonly struct RowIntervalOperationWrapper<T>
             where T : struct, IRowIntervalOperation
         {

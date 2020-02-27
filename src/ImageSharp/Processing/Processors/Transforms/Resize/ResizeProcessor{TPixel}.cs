@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Implements resizing of images using various resamplers.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>
+    internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResamplingTransformImageProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly int destinationWidth;

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Implements resizing of images using various resamplers.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal partial class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResamplingTransformImageProcessor<TPixel>
+    internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResamplingTransformImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
         private readonly int destinationWidth;
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             float widthFactor = sourceRectangle.Width / (float)destinationRectangle.Width;
             float heightFactor = sourceRectangle.Height / (float)destinationRectangle.Height;
 
-            var operation = new NNRowIntervalOperation(
+            var operation = new NNRowOperation(
                 sourceRectangle,
                 destinationRectangle,
                 widthFactor,
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 source,
                 destination);
 
-            ParallelRowIterator.IterateRowIntervals(
+            ParallelRowIterator.IterateRows(
                 configuration,
                 interest,
                 in operation);
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
-        private readonly struct NNRowIntervalOperation : IRowIntervalOperation
+        private readonly struct NNRowOperation : IRowOperation
         {
             private readonly Rectangle sourceBounds;
             private readonly Rectangle destinationBounds;
@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public NNRowIntervalOperation(
+            public NNRowOperation(
                 Rectangle sourceBounds,
                 Rectangle destinationBounds,
                 float widthFactor,
@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
                 int sourceX = this.sourceBounds.X;
                 int sourceY = this.sourceBounds.Y;
@@ -229,17 +229,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 int destLeft = this.destinationBounds.Left;
                 int destRight = this.destinationBounds.Right;
 
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    // Y coordinates of source points
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan((int)(((y - destY) * this.heightFactor) + sourceY));
-                    Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y);
+                // Y coordinates of source points
+                Span<TPixel> sourceRow = this.source.GetPixelRowSpan((int)(((y - destY) * this.heightFactor) + sourceY));
+                Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y);
 
-                    for (int x = destLeft; x < destRight; x++)
-                    {
-                        // X coordinates of source points
-                        targetRow[x] = sourceRow[(int)(((x - destX) * this.widthFactor) + sourceX)];
-                    }
+                for (int x = destLeft; x < destRight; x++)
+                {
+                    // X coordinates of source points
+                    targetRow[x] = sourceRow[(int)(((x - destX) * this.widthFactor) + sourceX)];
                 }
             }
         }

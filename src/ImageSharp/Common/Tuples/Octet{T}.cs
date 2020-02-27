@@ -3,9 +3,8 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Tuples;
 
-namespace SixLabors.ImageSharp.Common.Tuples
+namespace SixLabors.ImageSharp.Tuples
 {
     /// <summary>
     /// Contains 8 element value tuples of various types.
@@ -26,7 +25,7 @@ namespace SixLabors.ImageSharp.Common.Tuples
         /// <inheritdoc/>
         public override readonly string ToString()
         {
-            return $"{nameof(Octet)}<{typeof(T)}>({this.V0},{this.V1},{this.V2},{this.V3},{this.V4},{this.V5},{this.V6},{this.V7})";
+            return $"Octet<{typeof(T)}>({this.V0},{this.V1},{this.V2},{this.V3},{this.V4},{this.V5},{this.V6},{this.V7})";
         }
     }
 

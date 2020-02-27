@@ -94,17 +94,17 @@ namespace SixLabors.ImageSharp
                 var magicInt = new Vector<uint>(1191182336); // reinterpreted value of 32768.0f
                 var mask = new Vector<uint>(255);
 
-                ref Octet.OfByte sourceBase = ref Unsafe.As<byte, Octet.OfByte>(ref MemoryMarshal.GetReference(source));
-                ref Octet.OfUInt32 destBaseAsWideOctet = ref Unsafe.As<float, Octet.OfUInt32>(ref MemoryMarshal.GetReference(dest));
+                ref Octet<byte> sourceBase = ref Unsafe.As<byte, Octet<byte>>(ref MemoryMarshal.GetReference(source));
+                ref Octet<uint> destBaseAsWideOctet = ref Unsafe.As<float, Octet<uint>>(ref MemoryMarshal.GetReference(dest));
 
-                ref Vector<float> destBaseAsFloat = ref Unsafe.As<Octet.OfUInt32, Vector<float>>(ref destBaseAsWideOctet);
+                ref Vector<float> destBaseAsFloat = ref Unsafe.As<Octet<uint>, Vector<float>>(ref destBaseAsWideOctet);
 
                 int n = dest.Length / 8;
 
                 for (int i = 0; i < n; i++)
                 {
-                    ref Octet.OfByte s = ref Unsafe.Add(ref sourceBase, i);
-                    ref Octet.OfUInt32 d = ref Unsafe.Add(ref destBaseAsWideOctet, i);
+                    ref Octet<byte> s = ref Unsafe.Add(ref sourceBase, i);
+                    ref Octet<uint> d = ref Unsafe.Add(ref destBaseAsWideOctet, i);
                     d.LoadFrom(ref s);
                 }
 
@@ -137,17 +137,17 @@ namespace SixLabors.ImageSharp
                 }
 
                 ref Vector<float> srcBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
-                ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref MemoryMarshal.GetReference(dest));
+                ref Octet<byte> destBase = ref Unsafe.As<byte, Octet<byte>>(ref MemoryMarshal.GetReference(dest));
                 int n = source.Length / 8;
 
                 var magick = new Vector<float>(32768.0f);
                 var scale = new Vector<float>(255f) / new Vector<float>(256f);
 
                 // need to copy to a temporary struct, because
-                // SimdUtils.Octet.OfUInt32 temp = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x)
+                // SimdUtils.Octet<uint> temp = Unsafe.As<Vector<float>, SimdUtils.Octet<uint>>(ref x)
                 // does not work. TODO: This might be a CoreClr bug, need to ask/report
-                var temp = default(Octet.OfUInt32);
-                ref Vector<float> tempRef = ref Unsafe.As<Octet.OfUInt32, Vector<float>>(ref temp);
+                var temp = default(Octet<uint>);
+                ref Vector<float> tempRef = ref Unsafe.As<Octet<uint>, Vector<float>>(ref temp);
 
                 for (int i = 0; i < n; i++)
                 {
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp
                     x = (x * scale) + magick;
                     tempRef = x;
 
-                    ref Octet.OfByte d = ref Unsafe.Add(ref destBase, i);
+                    ref Octet<byte> d = ref Unsafe.Add(ref destBase, i);
                     d.LoadFrom(ref temp);
                 }
             }
@@ -186,17 +186,17 @@ namespace SixLabors.ImageSharp
                 }
 
                 ref Vector<float> srcBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
-                ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref MemoryMarshal.GetReference(dest));
+                ref Octet<byte> destBase = ref Unsafe.As<byte, Octet<byte>>(ref MemoryMarshal.GetReference(dest));
                 int n = source.Length / 8;
 
                 var magick = new Vector<float>(32768.0f);
                 var scale = new Vector<float>(255f) / new Vector<float>(256f);
 
                 // need to copy to a temporary struct, because
-                // SimdUtils.Octet.OfUInt32 temp = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x)
+                // SimdUtils.Octet<uint> temp = Unsafe.As<Vector<float>, SimdUtils.Octet<uint>>(ref x)
                 // does not work. TODO: This might be a CoreClr bug, need to ask/report
-                var temp = default(Octet.OfUInt32);
-                ref Vector<float> tempRef = ref Unsafe.As<Octet.OfUInt32, Vector<float>>(ref temp);
+                var temp = default(Octet<uint>);
+                ref Vector<float> tempRef = ref Unsafe.As<Octet<uint>, Vector<float>>(ref temp);
 
                 for (int i = 0; i < n; i++)
                 {
@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp
                     x = (x * scale) + magick;
                     tempRef = x;
 
-                    ref Octet.OfByte d = ref Unsafe.Add(ref destBase, i);
+                    ref Octet<byte> d = ref Unsafe.Add(ref destBase, i);
                     d.LoadFrom(ref temp);
                 }
             }

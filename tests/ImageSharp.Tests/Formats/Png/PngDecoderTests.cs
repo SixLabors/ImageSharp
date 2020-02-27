@@ -246,7 +246,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFile(TestImages.Png.Issue1127, PixelTypes.Rgba32)]
         public void Issue1127<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             System.Exception ex = Record.Exception(
                 () =>

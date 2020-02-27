@@ -4,6 +4,9 @@
 using System;
 using System.IO;
 using SixLabors.ImageSharp.Memory;
+#if !SUPPORTS_SPAN_STREAM
+using System.Buffers;
+#endif
 
 namespace SixLabors.ImageSharp
 {

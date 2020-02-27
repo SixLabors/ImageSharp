@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             Span<TPixel> background,
             Span<TPixel> source,
             Span<float> amount)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.MustBeGreaterThanOrEqualTo(background.Length, destination.Length, nameof(background.Length));
             Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             Span<TPixel> background,
             Span<TPixel> source,
             Span<float> amount)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.MustBeGreaterThanOrEqualTo(destination.Length, background.Length, nameof(destination));
             Guard.MustBeGreaterThanOrEqualTo(source.Length, background.Length, nameof(destination));

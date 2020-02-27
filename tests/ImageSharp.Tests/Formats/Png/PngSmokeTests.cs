@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithTestPatternImages(300, 300, PixelTypes.Rgba32)]
         public void GeneralTest<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // does saving a file then reopening mean both files are identical???
             using (Image<TPixel> image = provider.GetImage())
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void CanSaveIndexedPng<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // does saving a file then reopening mean both files are identical???
             using (Image<TPixel> image = provider.GetImage())
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Color)]
         public void CanSaveIndexedPngTwice<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // does saving a file then reopening mean both files are identical???
             using (Image<TPixel> source = provider.GetImage())
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithTestPatternImages(300, 300, PixelTypes.Rgba32)]
         public void Resize<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // does saving a file then reopening mean both files are identical???
             using (Image<TPixel> image = provider.GetImage())

@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         /// <param name="bmp">The input bitmap.</param>
         /// <exception cref="ArgumentException">Thrown if the image pixel format is not of type <see cref="PixelFormat.Format32bppArgb"/></exception>
         internal static unsafe Image<TPixel> From32bppArgbSystemDrawingBitmap<TPixel>(Bitmap bmp)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int w = bmp.Width;
             int h = bmp.Height;
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         /// <param name="bmp">The input bitmap.</param>
         /// <exception cref="ArgumentException">Thrown if the image pixel format is not of type <see cref="PixelFormat.Format24bppRgb"/></exception>
         internal static unsafe Image<TPixel> From24bppRgbSystemDrawingBitmap<TPixel>(Bitmap bmp)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int w = bmp.Width;
             int h = bmp.Height;
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         }
 
         internal static unsafe Bitmap To32bppArgbSystemDrawingBitmap<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Configuration configuration = image.GetConfiguration();
             int w = image.Width;

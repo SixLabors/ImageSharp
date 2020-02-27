@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
             [WithBasicTestPatternImages(131, 127, PixelTypes.Rgba32)]
             [WithBasicTestPatternImages(333, 555, PixelTypes.Bgr24)]
             public void OwnedMemory_PixelDataIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
 
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
             [Theory]
             [WithBlankImages(16, 16, PixelTypes.Rgba32)]
             public void OwnedMemory_DestructiveMutate_ShouldInvalidateMemoryGroup<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using Image<TPixel> image = provider.GetImage();
 
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
             [WithBasicTestPatternImages(1, 1, PixelTypes.Rgba32)]
             [WithBasicTestPatternImages(131, 127, PixelTypes.Bgr24)]
             public void ConsumedMemory_PixelDataIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using Image<TPixel> image0 = provider.GetImage();
                 var targetBuffer = new TPixel[image0.Width * image0.Height];
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
                 TestImageProvider<TPixel> provider,
                 IMemoryGroup<TPixel> memoryGroup,
                 Size size)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 Assert.True(memoryGroup.IsValid);
                 Assert.Equal(size.Width * size.Height, memoryGroup.TotalLength);
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         [WithBasicTestPatternImages(131, 127, PixelTypes.Rgba32)]
         [WithBasicTestPatternImages(333, 555, PixelTypes.Bgr24)]
         public void GetPixelRowMemory_PixelDataIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
 
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         [Theory]
         [WithBasicTestPatternImages(16, 16, PixelTypes.Rgba32)]
         public void GetPixelRowMemory_DestructiveMutate_ShouldInvalidateMemory<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image<TPixel> image = provider.GetImage();
 
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Tests.Advanced
         [WithBlankImages(100, 111, PixelTypes.Rgba32)]
         [WithBlankImages(400, 600, PixelTypes.Rgba32)]
         public void GetPixelRowSpan_ShouldReferenceSpanOfMemory<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
 

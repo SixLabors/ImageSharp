@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         [Theory]
         [WithFile(TestImages.Png.Ducky, nameof(PixelateValues), PixelTypes.Rgba32)]
         public void FullImage<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(x => x.Pixelate(value), value, appendPixelTypeToFileName: false);
         }
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         [WithTestPatternImages(nameof(PixelateValues), 320, 240, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(PixelateValues), PixelTypes.Rgba32)]
         public void InBox<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunRectangleConstrainedValidatingProcessorTest((x, rect) => x.Pixelate(value, rect), value);
         }

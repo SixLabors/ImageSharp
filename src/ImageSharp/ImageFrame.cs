@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp
         protected abstract void Dispose(bool disposing);
 
         internal abstract void CopyPixelsTo<TDestinationPixel>(MemoryGroup<TDestinationPixel> destination)
-            where TDestinationPixel : struct, IPixel<TDestinationPixel>;
+            where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>;
 
         /// <summary>
         /// Updates the size of the image frame.

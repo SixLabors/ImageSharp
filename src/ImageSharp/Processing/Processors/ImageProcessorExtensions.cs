@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
             }
 
             public void Visit<TPixel>(Image<TPixel> image)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using (IImageProcessor<TPixel> processorImpl = this.processor.CreatePixelSpecificProcessor(this.configuration, image, this.sourceRectangle))
                 {

@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 ReadOnlySpan<TPixel> sourcePixels,
                 Span<Vector4> destVectors,
                 PixelConversionModifiers modifiers)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 Span<Vector4> sourceVectors,
                 Span<TPixel> destPixels,
                 PixelConversionModifiers modifiers)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));

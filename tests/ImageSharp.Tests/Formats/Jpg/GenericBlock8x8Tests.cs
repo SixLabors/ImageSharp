@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     public class GenericBlock8x8Tests
     {
         public static Image<TPixel> CreateTestImage<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var image = new Image<TPixel>(10, 10);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgb24 | PixelTypes.Rgba32 /* | PixelTypes.Rgba32 | PixelTypes.Argb32*/)]
         public void LoadAndStretchCorners_FromOrigo<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> s = provider.GetImage())
             {
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgb24 | PixelTypes.Rgba32)]
         public void LoadAndStretchCorners_WithOffset<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> s = provider.GetImage())
             {

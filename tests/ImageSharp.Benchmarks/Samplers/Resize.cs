@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Benchmarks
 #pragma warning disable SA1649 // File name should match first type name
     public abstract class ResizeBenchmarkBase<TPixel>
 #pragma warning restore SA1649 // File name should match first type name
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         protected readonly Configuration Configuration = new Configuration(new JpegConfigurationModule());
 

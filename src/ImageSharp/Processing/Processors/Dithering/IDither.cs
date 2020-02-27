@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             Memory<byte> output,
             Rectangle bounds)
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
-            where TPixel : struct, IPixel<TPixel>;
+            where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
         /// Transforms the image frame applying a dither matrix.
@@ -48,6 +48,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             ImageFrame<TPixel> source,
             Rectangle bounds,
             float scale)
-            where TPixel : struct, IPixel<TPixel>;
+            where TPixel : unmanaged, IPixel<TPixel>;
     }
 }

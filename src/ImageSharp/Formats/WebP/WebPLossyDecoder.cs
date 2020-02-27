@@ -216,7 +216,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void ReconstructRow(Vp8Decoder dec)
         {
             int mby = dec.MbY;
-
             int yOff = (WebPConstants.Bps * 1) + 8;
             int uOff = yOff + (WebPConstants.Bps * 16) + WebPConstants.Bps;
             int vOff = uOff + 16;
@@ -307,23 +306,26 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // Predict and add residuals.
                 if (block.IsI4x4)
                 {
-                    Span<uint> topRight = MemoryMarshal.Cast<byte, uint>(yuv.AsSpan(yOff - WebPConstants.Bps + 16));
+                    Span<byte> topRight = yuv.AsSpan(yOff - WebPConstants.Bps + 16);
                     if (mby > 0)
                     {
                         if (mbx >= dec.MbWidth - 1)
                         {
                             // On rightmost border.
-                            LossyUtils.Memset(topRight, topYuv.Y[15], 0, 4);
+                            topRight[0] = topYuv.Y[15];
+                            topRight[1] = topYuv.Y[15];
+                            topRight[2] = topYuv.Y[15];
+                            topRight[3] = topYuv.Y[15];
                         }
                         else
                         {
-                            Span<uint> topYuvSamples = MemoryMarshal.Cast<byte, uint>(dec.YuvTopSamples[mbx + 1].Y.AsSpan());
-                            topYuvSamples.Slice(0, 4).CopyTo(topRight);
+                            dec.YuvTopSamples[mbx + 1].Y.AsSpan(0, 4).CopyTo(topRight);
                         }
                     }
 
                     // Replicate the top-right pixels below.
-                    topRight[WebPConstants.Bps] = topRight[2 * WebPConstants.Bps] = topRight[3 * WebPConstants.Bps] = topRight[0];
+                    Span<uint> topRightUint = MemoryMarshal.Cast<byte, uint>(yuv.AsSpan(yOff - WebPConstants.Bps + 16));
+                    topRightUint[WebPConstants.Bps] = topRightUint[2 * WebPConstants.Bps] = topRightUint[3 * WebPConstants.Bps] = topRightUint[0];
 
                     // Predict and add residuals for all 4x4 blocks in turn.
                     for (int n = 0; n < 16; ++n, bits <<= 2)

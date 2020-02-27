@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Vp8MacroBlockData[] MacroBlockData { get; }
 
         /// <summary>
-        /// Gets contextual contextual macroblock info (mbw + 1).
+        /// Gets the contextual macroblock info.
         /// </summary>
         public Vp8MacroBlock[] MacroBlockInfo { get;  }
 

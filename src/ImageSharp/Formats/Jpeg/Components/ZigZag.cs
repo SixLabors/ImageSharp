@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             ref byte sourceRef = ref MemoryMarshal.GetReference(Unzig);
             ref byte destinationRef = ref Unsafe.AsRef<byte>(result.Data);
 
-            Unsafe.CopyBlock(ref sourceRef, ref destinationRef, Size);
+            Unzig.CopyTo(new Span<byte>(result.Data, Size));
 
             return result;
         }

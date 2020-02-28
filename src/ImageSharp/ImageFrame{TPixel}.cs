@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private bool isDisposed;
 
@@ -258,7 +258,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
         /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
         internal ImageFrame<TPixel2> CloneAs<TPixel2>()
-            where TPixel2 : struct, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.GetConfiguration());
+            where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.GetConfiguration());
 
         /// <summary>
         /// Returns a copy of the image frame in the given pixel format.
@@ -267,7 +267,7 @@ namespace SixLabors.ImageSharp
         /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
         /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
         internal ImageFrame<TPixel2> CloneAs<TPixel2>(Configuration configuration)
-            where TPixel2 : struct, IPixel<TPixel2>
+            where TPixel2 : unmanaged, IPixel<TPixel2>
         {
             if (typeof(TPixel2) == typeof(TPixel))
             {
@@ -327,7 +327,7 @@ namespace SixLabors.ImageSharp
         /// A <see langword="struct"/> implementing the clone logic for <see cref="ImageFrame{TPixel}"/>.
         /// </summary>
         private readonly struct RowIntervalOperation<TPixel2> : IRowIntervalOperation
-            where TPixel2 : struct, IPixel<TPixel2>
+            where TPixel2 : unmanaged, IPixel<TPixel2>
         {
             private readonly ImageFrame<TPixel> source;
             private readonly ImageFrame<TPixel2> target;

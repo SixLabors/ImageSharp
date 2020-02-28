@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats
         public int BitsPerPixel { get; }
 
         internal static PixelTypeInfo Create<TPixel>()
-            where TPixel : struct, IPixel<TPixel> =>
+            where TPixel : unmanaged, IPixel<TPixel> =>
             new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
     }
 }

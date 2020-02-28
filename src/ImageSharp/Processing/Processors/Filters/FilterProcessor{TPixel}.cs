@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly FilterProcessor definition;
 

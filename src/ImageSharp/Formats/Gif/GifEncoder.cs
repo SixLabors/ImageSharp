@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new GifEncoderCore(image.GetConfiguration(), this);
             encoder.Encode(image, stream);

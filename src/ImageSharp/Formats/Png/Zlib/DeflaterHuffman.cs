@@ -160,13 +160,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.Pending.WriteBits(this.distTree.NumCodes - 1, 5);
             this.Pending.WriteBits(blTreeCodes - 4, 4);
 
-            ref byte bitLengthOrderRef = ref MemoryMarshal.GetReference(BitLengthOrder);
-
             for (int rank = 0; rank < blTreeCodes; rank++)
             {
-                ref byte bitsRef = ref Unsafe.Add(ref bitLengthOrderRef, rank);
-
-                this.Pending.WriteBits(this.blTree.Length[bitsRef], 3);
+                this.Pending.WriteBits(this.blTree.Length[BitLengthOrder[rank]], 3);
             }
 
             this.literalTree.WriteTree(this.Pending, this.blTree);
@@ -255,14 +251,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             // Build bitlen tree
             this.blTree.BuildTree();
 
-            ref byte bitLengthOrderRef = ref MemoryMarshal.GetReference(BitLengthOrder);
             int blTreeCodes = 4;
 
             for (int i = 18; i > blTreeCodes; i--)
             {
-                ref byte bits = ref Unsafe.Add(ref bitLengthOrderRef, i);
-
-                if (this.blTree.Length[bits] > 0)
+                if (this.blTree.Length[BitLengthOrder[i]] > 0)
                 {
                     blTreeCodes = i + 1;
                 }

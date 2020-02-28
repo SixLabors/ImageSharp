@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp
             int maxRow,
             int minColumn,
             int maxColumn)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Convolve2DImpl(
                 in matrixY,
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp
             int maxRow,
             int minColumn,
             int maxColumn)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Convolve2DImpl(
                 in matrixY,
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp
             int minColumn,
             int maxColumn,
             out Vector4 vector)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Vector4 vectorY = default;
             Vector4 vectorX = default;
@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp
             int maxRow,
             int minColumn,
             int maxColumn)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Vector4 vector = default;
 
@@ -222,7 +222,7 @@ namespace SixLabors.ImageSharp
             int maxRow,
             int minColumn,
             int maxColumn)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Vector4 vector = default;
 
@@ -253,7 +253,7 @@ namespace SixLabors.ImageSharp
             int minColumn,
             int maxColumn,
             ref Vector4 vector)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int matrixHeight = matrix.Rows;
             int matrixWidth = matrix.Columns;

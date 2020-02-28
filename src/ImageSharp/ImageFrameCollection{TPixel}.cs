@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumerable<ImageFrame<TPixel>>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly IList<ImageFrame<TPixel>> frames = new List<ImageFrame<TPixel>>();
         private readonly Image<TPixel> parent;

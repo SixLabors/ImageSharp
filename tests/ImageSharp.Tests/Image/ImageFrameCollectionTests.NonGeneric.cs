@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [WithTestPatternImages(10, 10, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
             public void CloneFrame<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using (Image<TPixel> img = provider.GetImage())
                 {
@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
             public void ExtractFrame<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using (Image<TPixel> img = provider.GetImage())
                 {
@@ -268,7 +268,7 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
             public void ConstructGif_FromDifferentPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using (Image source = provider.GetImage())
                 using (var dest = new Image<TPixel>(source.GetConfiguration(), source.Width, source.Height))
@@ -294,7 +294,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             private static void ImportFrameAs<TPixel>(ImageFrameCollection source, ImageFrameCollection destination, int index)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using (Image temp = source.CloneFrame(index))
                 {

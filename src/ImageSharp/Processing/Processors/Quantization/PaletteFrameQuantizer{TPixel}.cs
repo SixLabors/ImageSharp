@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal struct PaletteFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly ReadOnlyMemory<TPixel> palette;
         private readonly EuclideanPixelMap<TPixel> pixelMap;

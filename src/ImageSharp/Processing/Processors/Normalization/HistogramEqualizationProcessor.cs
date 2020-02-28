@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
         /// <inheritdoc />
         public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : struct, IPixel<TPixel>;
+            where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
         /// Creates the <see cref="HistogramEqualizationProcessor"/> that implements the algorithm

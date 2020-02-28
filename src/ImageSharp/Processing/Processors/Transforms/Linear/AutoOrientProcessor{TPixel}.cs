@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class AutoOrientProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="AutoOrientProcessor{TPixel}"/> class.

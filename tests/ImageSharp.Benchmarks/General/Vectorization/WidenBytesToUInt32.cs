@@ -31,8 +31,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         {
             const int N = Count / 8;
 
-            ref Octet.OfByte sBase = ref Unsafe.As<byte, Octet.OfByte>(ref this.source[0]);
-            ref Octet.OfUInt32 dBase = ref Unsafe.As<uint, Octet.OfUInt32>(ref this.dest[0]);
+            ref Octet<byte> sBase = ref Unsafe.As<byte, Octet<byte>>(ref this.source[0]);
+            ref Octet<uint> dBase = ref Unsafe.As<uint, Octet<uint>>(ref this.dest[0]);
 
             for (int i = 0; i < N; i++)
             {

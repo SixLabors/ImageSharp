@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.LowContrast, PixelTypes.Rgba32)]
         public void Adaptive_SlidingWindow_15Tiles_WithClipping<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.LowContrast, PixelTypes.Rgba32)]
         public void Adaptive_TileInterpolation_10Tiles_WithClipping<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         [WithTestPatternImages(110, 110, PixelTypes.Rgb24)]
         [WithTestPatternImages(170, 170, PixelTypes.Rgb24)]
         public void Issue984<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {

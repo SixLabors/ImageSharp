@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Default_GenericImpl<TPixel>(ReadOnlySpan<Rgba32> source, Span<TPixel> dest)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ref Rgba32 sBase = ref MemoryMarshal.GetReference(source);
             ref TPixel dBase = ref MemoryMarshal.GetReference(dest);
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Group4GenericImpl<TPixel>(ReadOnlySpan<Rgba32> source, Span<TPixel> dest)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ref Rgba32 sBase = ref MemoryMarshal.GetReference(source);
             ref TPixel dBase = ref MemoryMarshal.GetReference(dest);
@@ -233,8 +233,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         // [Benchmark]
         public void Bitops_Simd()
         {
-            ref Octet.OfUInt32 sBase = ref Unsafe.As<Rgba32, Octet.OfUInt32>(ref this.source[0]);
-            ref Octet.OfUInt32 dBase = ref Unsafe.As<Bgra32, Octet.OfUInt32>(ref this.dest[0]);
+            ref Octet<uint> sBase = ref Unsafe.As<Rgba32, Octet<uint>>(ref this.source[0]);
+            ref Octet<uint> dBase = ref Unsafe.As<Bgra32, Octet<uint>>(ref this.dest[0]);
 
             for (int i = 0; i < this.Count / 8; i++)
             {
@@ -257,9 +257,9 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 #pragma warning restore SA1132 // Do not combine fields
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void BitopsSimdImpl(ref Octet.OfUInt32 s, ref Octet.OfUInt32 d)
+        private static void BitopsSimdImpl(ref Octet<uint> s, ref Octet<uint> d)
         {
-            Vector<uint> sVec = Unsafe.As<Octet.OfUInt32, Vector<uint>>(ref s);
+            Vector<uint> sVec = Unsafe.As<Octet<uint>, Vector<uint>>(ref s);
             var aMask = new Vector<uint>(0xFF00FF00);
             var bMask = new Vector<uint>(0x00FF00FF);
 
@@ -282,7 +282,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             Vector<uint> cc = Unsafe.As<C, Vector<uint>>(ref c);
             Vector<uint> dd = aa + cc;
 
-            d = Unsafe.As<Vector<uint>, Octet.OfUInt32>(ref dd);
+            d = Unsafe.As<Vector<uint>, Octet<uint>>(ref dd);
         }
 
         // [Benchmark]

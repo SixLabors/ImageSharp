@@ -36,10 +36,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
         private const int EofSymbol = 256;
 
-        // The lengths of the bit length codes are sent in order of decreasing
-        // probability, to avoid transmitting the lengths for unused bit length codes.
-        private static readonly int[] BitLengthOrder = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
-
         private static readonly short[] StaticLCodes;
         private static readonly byte[] StaticLLength;
         private static readonly short[] StaticDCodes;
@@ -126,6 +122,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.pinnedLiteralBuffer = (short*)this.literalBufferHandle.Pointer;
         }
 
+        /// <summary>
+        /// Gets the lengths of the bit length codes are sent in order of decreasing probability, to avoid transmitting the lengths for unused bit length codes.
+        /// </summary>
+        private static ReadOnlySpan<byte> BitLengthOrder => new byte[] { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
+
         private static ReadOnlySpan<byte> Bit4Reverse => new byte[] { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
 
         /// <summary>
@@ -158,9 +159,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.Pending.WriteBits(this.literalTree.NumCodes - 257, 5);
             this.Pending.WriteBits(this.distTree.NumCodes - 1, 5);
             this.Pending.WriteBits(blTreeCodes - 4, 4);
+
+            ref byte bitLengthOrderRef = ref MemoryMarshal.GetReference(BitLengthOrder);
+
             for (int rank = 0; rank < blTreeCodes; rank++)
             {
-                this.Pending.WriteBits(this.blTree.Length[BitLengthOrder[rank]], 3);
+                ref byte bitsRef = ref Unsafe.Add(ref bitLengthOrderRef, rank);
+
+                this.Pending.WriteBits(this.blTree.Length[bitsRef], 3);
             }
 
             this.literalTree.WriteTree(this.Pending, this.blTree);
@@ -249,10 +255,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             // Build bitlen tree
             this.blTree.BuildTree();
 
+            ref byte bitLengthOrderRef = ref MemoryMarshal.GetReference(BitLengthOrder);
             int blTreeCodes = 4;
+
             for (int i = 18; i > blTreeCodes; i--)
             {
-                if (this.blTree.Length[BitLengthOrder[i]] > 0)
+                ref byte bits = ref Unsafe.Add(ref bitLengthOrderRef, i);
+
+                if (this.blTree.Length[bits] > 0)
                 {
                     blTreeCodes = i + 1;
                 }

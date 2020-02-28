@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public interface IPaletteDitherImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Gets the configration instance to use when performing operations.

@@ -201,15 +201,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void ProcessRow(Vp8Decoder dec, Vp8Io io)
         {
-            bool filterRow = (dec.Filter != LoopFilter.None) &&
-                             (dec.MbY >= dec.TopLeftMbY) && (dec.MbY <= dec.BottomRightMbY);
-
             this.ReconstructRow(dec);
-            if (filterRow)
-            {
-                this.FilterRow(dec);
-            }
-
             this.FinishRow(dec, io);
         }
 
@@ -455,12 +447,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 // Transfer reconstructed samples from yuv_buffer cache to final destination.
-                int cacheId = 0; // TODO: what should be cacheId, always 0?
-                int yOffset = cacheId * 16 * dec.CacheYStride;
-                int uvOffset = cacheId * 8 * dec.CacheUvStride;
-                Span<byte> yOut = dec.CacheY.AsSpan((mbx * 16) + yOffset);
-                Span<byte> uOut = dec.CacheU.AsSpan((mbx * 8) + uvOffset);
-                Span<byte> vOut = dec.CacheV.AsSpan((mbx * 8) + uvOffset);
+                Span<byte> yOut = dec.CacheY.AsSpan(dec.CacheYOffset + (mbx * 16));
+                Span<byte> uOut = dec.CacheU.AsSpan(dec.CacheUvOffset + (mbx * 8));
+                Span<byte> vOut = dec.CacheV.AsSpan(dec.CacheUvOffset + (mbx * 8));
                 for (int j = 0; j < 16; ++j)
                 {
                     yDst.Slice(j * WebPConstants.Bps, 16).CopyTo(yOut.Slice(j * dec.CacheYStride));
@@ -479,7 +468,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int mby = dec.MbY;
             for (int mbx = dec.TopLeftMbX; mbx < dec.BottomRightMbX; ++mbx)
             {
-                //this.DoFilter(dec, mbx, mby);
+                this.DoFilter(dec, mbx, mby);
             }
         }
 
@@ -497,7 +486,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             if (dec.Filter is LoopFilter.Simple)
             {
-                int offset = mbx * 16;
+                int offset = dec.CacheYOffset + (mbx * 16);
                 if (mbx > 0)
                 {
                     LossyUtils.SimpleHFilter16(dec.CacheY, offset, yBps, limit + 4);
@@ -521,8 +510,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             else if (dec.Filter is LoopFilter.Complex)
             {
                 int uvBps = dec.CacheUvStride;
-                int yOffset = mbx * 16;
-                int uvOffset = mbx * 8;
+                int yOffset = dec.CacheYOffset + (mbx * 16);
+                int uvOffset = dec.CacheUvOffset + (mbx * 8);
                 int hevThresh = filterInfo.HighEdgeVarianceThreshold;
                 if (mbx > 0)
                 {
@@ -552,22 +541,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void FinishRow(Vp8Decoder dec, Vp8Io io)
         {
-            int cacheId = 0;
-            int yBps = dec.CacheYStride;
             int extraYRows = WebPConstants.FilterExtraRows[(int)dec.Filter];
             int ySize = extraYRows * dec.CacheYStride;
             int uvSize = (extraYRows / 2) * dec.CacheUvStride;
-            int yOffset = cacheId * 16 * dec.CacheYStride;
-            int uvOffset = cacheId * 8 * dec.CacheUvStride;
             Span<byte> yDst = dec.CacheY.AsSpan();
             Span<byte> uDst = dec.CacheU.AsSpan();
             Span<byte> vDst = dec.CacheV.AsSpan();
             int mby = dec.MbY;
             bool isFirstRow = mby is 0;
             bool isLastRow = mby >= dec.BottomRightMbY - 1;
+            bool filterRow = (dec.Filter != LoopFilter.None) &&
+                             (dec.MbY >= dec.TopLeftMbY) && (dec.MbY <= dec.BottomRightMbY);
 
-            // TODO: Filter row
-            //FilterRow(dec);
+            if (filterRow)
+            {
+                this.FilterRow(dec);
+            }
 
             int yStart = mby * 16;
             int yEnd = (mby + 1) * 16;
@@ -580,9 +569,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
             else
             {
-                io.Y = dec.CacheY.AsSpan(yOffset);
-                io.U = dec.CacheU.AsSpan(uvOffset);
-                io.V = dec.CacheV.AsSpan(uvOffset);
+                io.Y = dec.CacheY.AsSpan(dec.CacheYOffset);
+                io.U = dec.CacheU.AsSpan(dec.CacheUvOffset);
+                io.V = dec.CacheV.AsSpan(dec.CacheUvOffset);
             }
 
             if (!isLastRow)
@@ -605,10 +594,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Rotate top samples if needed.
             if (!isLastRow)
             {
-                // TODO: double check this. Cache needs extra rows for filtering!
-                //yDst.Slice(16 * dec.CacheYStride, ySize).CopyTo(dec.CacheY);
-                //uDst.Slice(8 * dec.CacheUvStride, uvSize).CopyTo(dec.CacheU);
-                //vDst.Slice(8 * dec.CacheUvStride, uvSize).CopyTo(dec.CacheV);
+                yDst.Slice(16 * dec.CacheYStride, ySize).CopyTo(dec.CacheY.AsSpan());
+                uDst.Slice(8 * dec.CacheUvStride, uvSize).CopyTo(dec.CacheU.AsSpan());
+                vDst.Slice(8 * dec.CacheUvStride, uvSize).CopyTo(dec.CacheV.AsSpan());
             }
         }
 
@@ -1125,7 +1113,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return vp8SegmentHeader;
         }
 
-        private Vp8FilterHeader ParseFilterHeader(Vp8Decoder dec)
+        private void ParseFilterHeader(Vp8Decoder dec)
         {
             Vp8FilterHeader vp8FilterHeader = dec.FilterHeader;
             vp8FilterHeader.LoopFilter = this.bitReader.ReadBool() ? LoopFilter.Simple : LoopFilter.Complex;
@@ -1160,7 +1148,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
-            return vp8FilterHeader;
+            int extraRows = WebPConstants.FilterExtraRows[(int)dec.Filter];
+            int extraY = extraRows * dec.CacheYStride;
+            int extraUv = (extraRows / 2) * dec.CacheUvStride;
+            dec.CacheYOffset = extraY;
+            dec.CacheUvOffset = extraUv;
         }
 
         private void ParsePartitions(Vp8Decoder dec)

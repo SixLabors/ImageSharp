@@ -381,14 +381,15 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
              *      fail as expected. We can't simply check whether the value is lower than
              *      15 << 12, because higher values are acceptable in the first 3 accesses.
              * Doing this reduces the total number of index checks from 4 down to just 1. */
-            Guard.MustBeLessThanOrEqualTo<uint>((uint)(toReverse >> 12), 15, nameof(toReverse));
+            int toReverseRightShiftBy12 = toReverse >> 12;
+            Guard.MustBeLessThanOrEqualTo<uint>((uint)toReverseRightShiftBy12, 15, nameof(toReverse));
 
             ref byte bit4ReverseRef = ref MemoryMarshal.GetReference(Bit4Reverse);
 
             return (short)(Unsafe.Add(ref bit4ReverseRef, toReverse & 0xF) << 12
                            | Unsafe.Add(ref bit4ReverseRef, (toReverse >> 4) & 0xF) << 8
                            | Unsafe.Add(ref bit4ReverseRef, (toReverse >> 8) & 0xF) << 4
-                           | Unsafe.Add(ref bit4ReverseRef, toReverse >> 12));
+                           | Unsafe.Add(ref bit4ReverseRef, toReverseRightShiftBy12));
         }
 
         /// <inheritdoc/>

@@ -31,9 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>
         /// A <see cref="QuantizedFrame{TPixel}"/> representing a quantized version of the source frame pixels.
         /// </returns>
-        QuantizedFrame<TPixel> QuantizeFrame(
-            ImageFrame<TPixel> source,
-            Rectangle bounds);
+        QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds);
 
         /// <summary>
         /// Builds the quantized palette from the given image frame and bounds.
@@ -44,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds);
 
         /// <summary>
-        /// Returns the index and color from the quantized palette corresponding to the give to the given color.
+        /// Returns the index and color from the quantized palette corresponding to the given color.
         /// </summary>
         /// <param name="color">The color to match.</param>
         /// <param name="palette">The output color palette.</param>

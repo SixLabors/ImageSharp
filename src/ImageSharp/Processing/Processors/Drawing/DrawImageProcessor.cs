@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
         /// <inheritdoc />
         public IImageProcessor<TPixelBg> CreatePixelSpecificProcessor<TPixelBg>(Configuration configuration, Image<TPixelBg> source, Rectangle sourceRectangle)
-            where TPixelBg : struct, IPixel<TPixelBg>
+            where TPixelBg : unmanaged, IPixel<TPixelBg>
         {
             var visitor = new ProcessorFactoryVisitor<TPixelBg>(configuration, this, source, sourceRectangle);
             this.Image.AcceptVisitor(visitor);
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         }
 
         private class ProcessorFactoryVisitor<TPixelBg> : IImageVisitor
-            where TPixelBg : struct, IPixel<TPixelBg>
+            where TPixelBg : unmanaged, IPixel<TPixelBg>
         {
             private readonly Configuration configuration;
             private readonly DrawImageProcessor definition;
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             public IImageProcessor<TPixelBg> Result { get; private set; }
 
             public void Visit<TPixelFg>(Image<TPixelFg> image)
-                where TPixelFg : struct, IPixel<TPixelFg>
+                where TPixelFg : unmanaged, IPixel<TPixelFg>
             {
                 this.Result = new DrawImageProcessor<TPixelBg, TPixelFg>(
                     this.configuration,

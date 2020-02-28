@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EdgeDetectorCompassProcessor{TPixel}"/> class.

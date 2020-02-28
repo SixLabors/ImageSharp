@@ -269,7 +269,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="Rectangle"/>.
         /// </returns>
         public static Rectangle GetFilteredBoundingRectangle<TPixel>(ImageFrame<TPixel> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int width = bitmap.Width;
             int height = bitmap.Height;

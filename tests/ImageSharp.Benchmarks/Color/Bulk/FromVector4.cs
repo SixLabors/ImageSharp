@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     [Config(typeof(Config.ShortClr))]
     public abstract class FromVector4<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         protected IMemoryOwner<Vector4> source;
 

@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             QuantizedFrame<TPixel> destination,
             Rectangle bounds)
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var ditherOperation = new QuantizeDitherRowIntervalOperation<TFrameQuantizer, TPixel>(
                 ref quantizer,
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             ImageFrame<TPixel> source,
             Rectangle bounds)
             where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var ditherOperation = new PaletteDitherRowIntervalOperation<TPaletteDitherImageProcessor, TPixel>(
                 in processor,
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             int y,
             int bitDepth,
             float scale)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Rgba32 rgba = default;
             source.ToRgba32(ref rgba);
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
         private readonly struct QuantizeDitherRowIntervalOperation<TFrameQuantizer, TPixel> : IRowIntervalOperation
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             private readonly TFrameQuantizer quantizer;
             private readonly OrderedDither dither;
@@ -247,7 +247,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
         private readonly struct PaletteDitherRowIntervalOperation<TPaletteDitherImageProcessor, TPixel> : IRowIntervalOperation
             where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             private readonly TPaletteDitherImageProcessor processor;
             private readonly OrderedDither dither;

@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The pixel value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public TPixel ToPixel<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             pixel.FromRgba64(this.data);
@@ -239,7 +239,7 @@ namespace SixLabors.ImageSharp
             Configuration configuration,
             ReadOnlySpan<Color> source,
             Span<TPixel> destination)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ReadOnlySpan<Rgba64> rgba64Span = MemoryMarshal.Cast<Color, Rgba64>(source);
             PixelOperations<TPixel>.Instance.FromRgba64(configuration, rgba64Span, destination);

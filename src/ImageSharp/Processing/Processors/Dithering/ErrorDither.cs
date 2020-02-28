@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             QuantizedFrame<TPixel> destination,
             Rectangle bounds)
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ReadOnlySpan<TPixel> paletteSpan = destination.Palette.Span;
             int offsetY = bounds.Top;
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             ImageFrame<TPixel> source,
             Rectangle bounds)
             where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             float scale = processor.DitherScale;
             ReadOnlySpan<TPixel> palette = processor.Palette.Span;
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             int x,
             int y,
             float scale)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // Equal? Break out as there's no error to pass.
             if (source.Equals(transformed))

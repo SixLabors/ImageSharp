@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4()
+        public readonly Vector4 ToScaledVector4()
         {
             float single = this.ToSingle() + 1F;
             single /= 2F;
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4() => new Vector4(this.ToSingle(), 0, 0, 1F);
+        public readonly Vector4 ToVector4() => new Vector4(this.ToSingle(), 0, 0, 1F);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -136,20 +136,20 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="float"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public float ToSingle() => HalfTypeHelper.Unpack(this.PackedValue);
+        public readonly float ToSingle() => HalfTypeHelper.Unpack(this.PackedValue);
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is HalfSingle other && this.Equals(other);
-
-        /// <inheritdoc />
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(HalfSingle other) => this.PackedValue.Equals(other.PackedValue);
-
-        /// <inheritdoc />
-        public override string ToString() => FormattableString.Invariant($"HalfSingle({this.ToSingle():#0.##})");
+        public override readonly bool Equals(object obj) => obj is HalfSingle other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => this.PackedValue.GetHashCode();
+        public readonly bool Equals(HalfSingle other) => this.PackedValue.Equals(other.PackedValue);
+
+        /// <inheritdoc />
+        public override readonly string ToString() => FormattableString.Invariant($"HalfSingle({this.ToSingle():#0.##})");
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
     }
 }

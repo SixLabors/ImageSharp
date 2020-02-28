@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         [Theory]
         [WithTestPatternImages(nameof(ContrastValues), 48, 48, PixelTypes.Rgba32)]
         public void ApplyContrastFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(x => x.Contrast(value), value);
         }

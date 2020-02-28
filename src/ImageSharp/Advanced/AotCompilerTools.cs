@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         private static void Seed<TPixel>()
-             where TPixel : struct, IPixel<TPixel>
+             where TPixel : unmanaged, IPixel<TPixel>
         {
             // This is we actually call all the individual methods you need to seed.
             AotCompileOctreeQuantizer<TPixel>();
@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         private static void AotCompileOctreeQuantizer<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var test = new OctreeFrameQuantizer<TPixel>(Configuration.Default, new OctreeQuantizer().Options))
             {
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         private static void AotCompileWuQuantizer<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var test = new WuFrameQuantizer<TPixel>(Configuration.Default, new WuQuantizer().Options))
             {
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         private static void AotCompilePaletteQuantizer<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var test = (PaletteFrameQuantizer<TPixel>)new PaletteQuantizer(Array.Empty<Color>()).CreateFrameQuantizer<TPixel>(Configuration.Default))
             {
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         private static void AotCompileDithering<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ErrorDither errorDither = ErrorDither.FloydSteinberg;
             OrderedDither orderedDither = OrderedDither.Bayer2x2;
@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="encoder">The image encoder to seed.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         private static void AotCodec<TPixel>(IImageDecoder decoder, IImageEncoder encoder)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             try
             {
@@ -195,7 +195,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         private static void AotCompilePixelOperations<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var pixelOp = new PixelOperations<TPixel>();
             pixelOp.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Clear);

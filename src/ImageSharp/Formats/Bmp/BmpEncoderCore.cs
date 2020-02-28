@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
         /// </param>
         private void WriteImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Buffer2D<TPixel> pixels = image.PixelBuffer;
             switch (this.bitsPerPixel)
@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
         private void Write32Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 4))
             {
@@ -259,7 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
         private void Write24Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 3))
             {
@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
         private void Write16Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 2))
             {
@@ -309,7 +309,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
         private void Write8Bit<TPixel>(Stream stream, ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             bool isL8 = typeof(TPixel) == typeof(L8);
             using (IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(ColorPaletteSize8Bit, AllocationOptions.Clean))
@@ -334,7 +334,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
         /// <param name="colorPalette">A byte span of size 1024 for the color palette.</param>
         private void Write8BitColor<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using IFrameQuantizer<TPixel> quantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration);
             using QuantizedFrame<TPixel> quantized = quantizer.QuantizeFrame(image, image.Bounds());
@@ -378,7 +378,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
         /// <param name="colorPalette">A byte span of size 1024 for the color palette.</param>
         private void Write8BitGray<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // Create a color palette with 256 different gray values.
             for (int i = 0; i <= 255; i++)

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public sealed class QuantizedFrame<TPixel> : IDisposable
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private IMemoryOwner<byte> pixels;
         private bool isDisposed;

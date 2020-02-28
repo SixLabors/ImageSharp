@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// Converts the colors of the image recreating an old Lomograph effect.
     /// </summary>
     internal class LomographProcessor<TPixel> : FilterProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private static readonly Color VeryDarkGreen = Color.FromRgba(0, 10, 0, 255);
 

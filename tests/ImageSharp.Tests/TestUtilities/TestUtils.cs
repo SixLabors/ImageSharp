@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests
         public static bool HasFlag(this PixelTypes pixelTypes, PixelTypes flag) => (pixelTypes & flag) == flag;
 
         public static bool IsEquivalentTo<TPixel>(this Image<TPixel> a, Image<TPixel> b, bool compareAlpha = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (a.Width != b.Width || a.Height != b.Height)
             {
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         internal static TPixel GetPixelOfNamedColor<TPixel>(string colorName)
-            where TPixel : struct, IPixel<TPixel> =>
+            where TPixel : unmanaged, IPixel<TPixel> =>
             GetColorByName(colorName).ToPixel<TPixel>();
 
         internal static void RunBufferCapacityLimitProcessorTest<TPixel>(
@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.Tests
             Action<IImageProcessingContext> process,
             object testOutputDetails = null,
             ImageComparer comparer = null)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             comparer??= ImageComparer.Exact;
             using Image<TPixel> expected = provider.GetImage();
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Tests
             ImageComparer comparer = null,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (comparer == null)
             {
@@ -229,7 +229,7 @@ namespace SixLabors.ImageSharp.Tests
             ImageComparer comparer = null,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (comparer == null)
             {
@@ -268,7 +268,7 @@ namespace SixLabors.ImageSharp.Tests
             string useReferenceOutputFrom = null,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (comparer == null)
             {
@@ -320,7 +320,7 @@ namespace SixLabors.ImageSharp.Tests
             object testOutputDetails = null,
             ImageComparer comparer = null,
             bool appendPixelTypeToFileName = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (comparer == null)
             {
@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.Tests
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext> process,
             object testOutputDetails = null)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {

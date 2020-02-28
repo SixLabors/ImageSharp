@@ -363,10 +363,20 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         [MethodImpl(InliningOptions.ShortMethod)]
         public static short BitReverse(int toReverse)
         {
-            DebugGuard.MustBeLessThan(toReverse & 0xF, Bit4Reverse.Length, nameof(toReverse));
-            DebugGuard.MustBeLessThan((toReverse >> 4) & 0xF, Bit4Reverse.Length, nameof(toReverse));
-            DebugGuard.MustBeLessThan((toReverse >> 8) & 0xF, Bit4Reverse.Length, nameof(toReverse));
-            DebugGuard.MustBeLessThan(toReverse >> 12, Bit4Reverse.Length, nameof(toReverse));
+            /* Use unsafe offsetting and manually validate the input index to reduce the
+             * total number of conditional branches. There are two main cases to test here:
+             *   1. In the first 3, the input value (or some combination of it) is combined
+             *      with & 0xF, which results in a maximum value of 0xF no matter what the
+             *      input value was. That is 15, which is always in range for the target span.
+             *      As a result, no input validation is needed at all in this case.
+             *   2. There are two cases where the input value might cause an invalid access:
+             *      when it is either negative, or greater than 15 << 12. We can test both
+             *      conditions in a single pass by casting the input value to uint, and checking
+             *      whether that value is lower than 15 << 12. If it was a negative value (2-complement),
+             *      the test will fail as the uint cast will result in a much larger value.
+             *      If the value was simply too high, the test will fail as expected.
+             * Doing this reduces the total number of index checks from 4 down to just 1. */
+            Guard.MustBeLessThanOrEqualTo<uint>((uint)toReverse, 15 << 12, nameof(toReverse));
 
             ref byte bit4ReverseRef = ref MemoryMarshal.GetReference(Bit4Reverse);
 

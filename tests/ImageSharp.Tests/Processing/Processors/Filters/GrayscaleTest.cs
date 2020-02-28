@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         [Theory]
         [WithTestPatternImages(nameof(GrayscaleModeTypes), 48, 48, PixelTypes.Rgba32)]
         public void ApplyGrayscaleFilter<TPixel>(TestImageProvider<TPixel> provider, GrayscaleMode value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(x => x.Grayscale(value), value);
         }

@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Theory]
         [MemberData(nameof(BlenderMappings))]
         public void ReturnsCorrectBlender<TPixel>(TestPixel<TPixel> pixel, Type type, PixelColorBlendingMode mode)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(mode, PixelAlphaCompositionMode.SrcOver);
             Assert.IsType(type, blender);

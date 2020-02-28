@@ -170,6 +170,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public byte[] CacheV { get; }
 
+        public int CacheYOffset { get; set; }
+
+        public int CacheUvOffset { get; set; }
+
         public int CacheYStride { get; }
 
         public int CacheUvStride { get; }

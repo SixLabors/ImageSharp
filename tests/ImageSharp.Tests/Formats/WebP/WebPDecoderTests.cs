@@ -81,6 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [WithFile(Lossy.VeryShort, PixelTypes.Rgba32)]
         [WithFile(Lossy.BikeComplexFilter, PixelTypes.Rgba32)]
         [WithFile(Lossy.ComplexFilter01, PixelTypes.Rgba32)]
+        [WithFile(Lossy.ComplexFilter02, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossy_WithComplexFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

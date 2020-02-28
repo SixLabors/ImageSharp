@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         private void EncodeGlobal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, int transparencyIndex, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             for (int i = 0; i < image.Frames.Count; i++)
             {
@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         private void EncodeLocal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ImageFrame<TPixel> previousFrame = null;
             GifFrameMetadata previousMeta = null;
@@ -209,7 +209,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The <see cref="int"/>.
         /// </returns>
         private int GetTransparentIndex<TPixel>(QuantizedFrame<TPixel> quantized)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
@@ -411,7 +411,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="hasColorTable">Whether to use the global color table.</param>
         /// <param name="stream">The stream to write to.</param>
         private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, bool hasColorTable, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             byte packedValue = GifImageDescriptor.GetPackedValue(
                 localColorTableFlag: hasColorTable,
@@ -438,7 +438,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode.</param>
         /// <param name="stream">The stream to write to.</param>
         private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // The maximum number of colors for the bit depth
             int colorTableLength = ImageMaths.GetColorCountForBitDepth(this.bitDepth) * 3;
@@ -462,7 +462,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="image">The <see cref="QuantizedFrame{TPixel}"/> containing indexed pixels.</param>
         /// <param name="stream">The stream to write to.</param>
         private void WriteImageData<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var encoder = new LzwEncoder(this.memoryAllocator, (byte)this.bitDepth))
             {

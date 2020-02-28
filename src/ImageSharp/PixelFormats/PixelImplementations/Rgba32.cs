@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public uint Rgba
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => Unsafe.As<Rgba32, uint>(ref this);
+            readonly get => Unsafe.As<Rgba32, uint>(ref Unsafe.AsRef(this));
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set => Unsafe.As<Rgba32, uint>(ref this) = value;
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public Rgb24 Rgb
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => new Rgb24(this.R, this.G, this.B);
+            readonly get => new Rgb24(this.R, this.G, this.B);
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public Bgr24 Bgr
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => new Bgr24(this.R, this.G, this.B);
+            readonly get => new Bgr24(this.R, this.G, this.B);
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public uint PackedValue
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => this.Rgba;
+            readonly get => this.Rgba;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set => this.Rgba = value;
@@ -287,7 +287,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
+        public readonly PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -295,7 +295,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4() => this.ToVector4();
+        public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -303,7 +303,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
+        public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -422,25 +422,25 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Converts the value of this instance to a hexadecimal string.
         /// </summary>
         /// <returns>A hexadecimal string representation of the value.</returns>
-        public string ToHex()
+        public readonly string ToHex()
         {
             uint hexOrder = (uint)(this.A << 0 | this.B << 8 | this.G << 16 | this.R << 24);
             return hexOrder.ToString("X8");
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is Rgba32 rgba32 && this.Equals(rgba32);
+        public override readonly bool Equals(object obj) => obj is Rgba32 rgba32 && this.Equals(rgba32);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Rgba32 other) => this.Rgba.Equals(other.Rgba);
+        public readonly bool Equals(Rgba32 other) => this.Rgba.Equals(other.Rgba);
 
         /// <inheritdoc/>
-        public override string ToString() => $"Rgba32({this.R}, {this.G}, {this.B}, {this.A})";
+        public override readonly string ToString() => $"Rgba32({this.R}, {this.G}, {this.B}, {this.A})";
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => this.Rgba.GetHashCode();
+        public override readonly int GetHashCode() => this.Rgba.GetHashCode();
 
         /// <summary>
         /// Packs a <see cref="Vector4"/> into a color returning a new instance as a result.

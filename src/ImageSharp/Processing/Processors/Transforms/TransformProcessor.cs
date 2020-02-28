@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal abstract class TransformProcessor<TPixel> : CloningImageProcessor<TPixel>
-         where TPixel : struct, IPixel<TPixel>
+         where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TransformProcessor{TPixel}"/> class.

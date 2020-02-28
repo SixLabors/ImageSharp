@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [WithFileCollection(nameof(CommonTestImages), nameof(OrderedDitherers), PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(OrderedDitherers), 100, 100, PixelTypes.Rgba32)]
         public void BinaryDitherFilter_WorksWithAllDitherers<TPixel>(TestImageProvider<TPixel> provider, string name, IDither ditherer)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [WithFileCollection(nameof(CommonTestImages), nameof(ErrorDiffusers), PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(ErrorDiffusers), 100, 100, PixelTypes.Rgba32)]
         public void DiffusionFilter_WorksWithAllErrorDiffusers<TPixel>(TestImageProvider<TPixel> provider, string name, IDither diffuser)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [Theory]
         [WithFile(TestImages.Png.Bike, TestPixelTypes)]
         public void BinaryDitherFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [Theory]
         [WithFile(TestImages.Png.Bike, TestPixelTypes)]
         public void DiffusionFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
         public void ApplyDitherFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
             using (Image<TPixel> image = source.Clone())
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
         public void ApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
             using (Image<TPixel> image = source.Clone())

@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             TestImageProvider<TPixel> provider,
             LibJpegTools.SpectralData data,
             ITestOutputHelper output = null)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (LibJpegTools.ComponentData comp in data.Components)
             {

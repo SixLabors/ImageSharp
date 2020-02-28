@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests
         private ITestOutputHelper Output { get; }
 
         public static Image<TPixel> CreateTestImage<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var image = new Image<TPixel>(10, 10);
 
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, false)]
         public void IsEquivalentTo_WhenFalse<TPixel>(TestImageProvider<TPixel> provider, bool compareAlpha)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Image<TPixel> a = provider.GetImage();
             Image<TPixel> b = provider.GetImage(x => x.OilPaint(3, 2));
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32 | PixelTypes.Bgr565, true)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32 | PixelTypes.Bgr565, false)]
         public void IsEquivalentTo_WhenTrue<TPixel>(TestImageProvider<TPixel> provider, bool compareAlpha)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Image<TPixel> a = provider.GetImage();
             Image<TPixel> b = provider.GetImage();

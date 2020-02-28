@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     public abstract class ToVector4<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         protected IMemoryOwner<TPixel> source;
 

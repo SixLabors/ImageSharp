@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// For more details, and visual explanation, see "ResizeWorker.pptx".
     /// </summary>
     internal sealed class ResizeWorker<TPixel> : IDisposable
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly Buffer2D<Vector4> transposedFirstPassBuffer;
 

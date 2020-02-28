@@ -371,12 +371,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
              *      As a result, no input validation is needed at all in this case.
              *   2. There are two cases where the input value might cause an invalid access:
              *      when it is either negative, or greater than 15 << 12. We can test both
-             *      conditions in a single pass by casting the input value to uint, and checking
-             *      whether that value is lower than 15 << 12. If it was a negative value (2-complement),
-             *      the test will fail as the uint cast will result in a much larger value.
-             *      If the value was simply too high, the test will fail as expected.
+             *      conditions in a single pass by casting the input value to uint and right
+             *      shifting it by 12, which also preserves the sign. If it is a negative
+             *      value (2-complement), the test will fail as the uint cast will result
+             *      in a much larger value. If the value was simply too high, the test will
+             *      fail as expected. We can't simply check whether the value is lower than
+             *      15 << 12, because higher values are acceptable in the first 3 accesses.
              * Doing this reduces the total number of index checks from 4 down to just 1. */
-            Guard.MustBeLessThanOrEqualTo<uint>((uint)toReverse, 15 << 12, nameof(toReverse));
+            Guard.MustBeLessThanOrEqualTo<uint>((uint)(toReverse >> 12), 15, nameof(toReverse));
 
             ref byte bit4ReverseRef = ref MemoryMarshal.GetReference(Bit4Reverse);
 

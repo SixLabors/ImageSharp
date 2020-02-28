@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
         public void ApplyDiffusionFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (SkipAllDitherTests)
             {
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
         public void ApplyDitherFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (SkipAllDitherTests)
             {
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [Theory]
         [WithFile(TestImages.Png.Filter0, CommonNonDefaultPixelTypes)]
         public void DiffusionFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (SkipAllDitherTests)
             {
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             TestImageProvider<TPixel> provider,
             IDither diffuser,
             string name)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (SkipAllDitherTests)
             {
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         [Theory]
         [WithFile(TestImages.Png.Filter0, CommonNonDefaultPixelTypes)]
         public void DitherFilter_ShouldNotDependOnSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (SkipAllDitherTests)
             {
@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             TestImageProvider<TPixel> provider,
             IDither ditherer,
             string name)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (SkipAllDitherTests)
             {
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         public void CommonDitherers_WorkWithDiscoBuffers<TPixel>(
             TestImageProvider<TPixel> provider,
             string name)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             IDither dither = TestUtils.GetDither(name);
             if (SkipAllDitherTests)

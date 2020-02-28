@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly int paletteLength;
         private readonly IDither dither;

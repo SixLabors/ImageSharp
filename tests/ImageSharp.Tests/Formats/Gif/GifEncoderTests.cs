@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [WithTestPatternImages(100, 100, TestPixelTypes, false)]
         [WithTestPatternImages(100, 100, TestPixelTypes, false)]
         public void EncodeGeneratedPatterns<TPixel>(TestImageProvider<TPixel> provider, bool limitAllocationBuffer)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (limitAllocationBuffer)
             {
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Theory]
         [WithFile(TestImages.Gif.Cheers, PixelTypes.Rgba32)]
         public void EncodeGlobalPaletteReturnsSmallerFile<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {

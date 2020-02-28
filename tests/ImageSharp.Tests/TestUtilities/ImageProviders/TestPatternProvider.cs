@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests
 {
     public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// A test image provider that produces test patterns.

@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// The <see cref="Image{TPixel}"/>.
         /// </returns>
         public Image<TPixel> CreateThumbnail<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.InitializeValues();
 

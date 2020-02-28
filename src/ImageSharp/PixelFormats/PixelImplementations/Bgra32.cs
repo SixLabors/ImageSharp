@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public uint Bgra
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => Unsafe.As<Bgra32, uint>(ref this);
+            readonly get => Unsafe.As<Bgra32, uint>(ref Unsafe.AsRef(this));
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set => Unsafe.As<Bgra32, uint>(ref this) = value;
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public uint PackedValue
         {
-            get => this.Bgra;
+            readonly get => this.Bgra;
             set => this.Bgra = value;
         }
 
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Bgra32 left, Bgra32 right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public PixelOperations<Bgra32> CreatePixelOperations() => new PixelOperations();
+        public readonly PixelOperations<Bgra32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4() => this.ToVector4();
+        public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
+        public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -276,16 +276,16 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is Bgra32 other && this.Equals(other);
+        public override readonly bool Equals(object obj) => obj is Bgra32 other && this.Equals(other);
 
         /// <inheritdoc/>
-        public bool Equals(Bgra32 other) => this.Bgra.Equals(other.Bgra);
+        public readonly bool Equals(Bgra32 other) => this.Bgra.Equals(other.Bgra);
 
         /// <inheritdoc/>
-        public override int GetHashCode() => this.Bgra.GetHashCode();
+        public override readonly int GetHashCode() => this.Bgra.GetHashCode();
 
         /// <inheritdoc />
-        public override string ToString() => $"Bgra32({this.B}, {this.G}, {this.R}, {this.A})";
+        public override readonly string ToString() => $"Bgra32({this.B}, {this.G}, {this.R}, {this.A})";
 
         /// <summary>
         /// Packs a <see cref="Vector4"/> into a color.

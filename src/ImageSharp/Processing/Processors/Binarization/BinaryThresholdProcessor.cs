@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 
         /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
             => new BinaryThresholdProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

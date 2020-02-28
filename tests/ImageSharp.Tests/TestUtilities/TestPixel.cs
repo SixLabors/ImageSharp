@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.TestUtilities
 {
     public class TestPixel<TPixel> : IXunitSerializable
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         public TestPixel()
         {

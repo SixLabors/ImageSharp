@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public struct OctreeFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly int colors;
         private readonly Octree octree;

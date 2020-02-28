@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="stream">The stream containing image data. </param>
         /// <returns>The decoded image</returns>
         public Image<TPixel> Decode<TPixel>(Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Image<TPixel> image = null;
             ImageFrame<TPixel> previousFrame = null;
@@ -348,7 +348,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="image">The image to decode the information to.</param>
         /// <param name="previousFrame">The previous frame.</param>
         private void ReadFrame<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.ReadImageDescriptor();
 
@@ -405,7 +405,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="colorTable">The color table containing the available colors.</param>
         /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
         private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Span<byte> indices, ReadOnlySpan<Rgb24> colorTable, in GifImageDescriptor descriptor)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ref byte indicesRef = ref MemoryMarshal.GetReference(indices);
             int imageWidth = this.logicalScreenDescriptor.Width;
@@ -535,7 +535,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="frame">The frame.</param>
         private void RestoreToBackground<TPixel>(ImageFrame<TPixel> frame)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (this.restoreArea is null)
             {

@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The <see cref="IFrameQuantizer{TPixel}"/>.</returns>
         IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
-            where TPixel : struct, IPixel<TPixel>;
+            where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
         /// Creates the generic frame quantizer.
@@ -32,6 +32,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="options">The options to create the quantizer with.</param>
         /// <returns>The <see cref="IFrameQuantizer{TPixel}"/>.</returns>
         IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
-            where TPixel : struct, IPixel<TPixel>;
+            where TPixel : unmanaged, IPixel<TPixel>;
     }
 }

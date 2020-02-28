@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(byte[] data)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
             => Load<TPixel>(Configuration.Default, data);
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(byte[] data, out IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
             => Load<TPixel>(Configuration.Default, data, out format);
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, out IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(byte[] data, IImageDecoder decoder)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, IImageDecoder decoder)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(ReadOnlySpan<byte> data)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
             => Load<TPixel>(Configuration.Default, data);
 
         /// <summary>
@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(ReadOnlySpan<byte> data, out IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
             => Load<TPixel>(Configuration.Default, data, out format);
 
         /// <summary>
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(ReadOnlySpan<byte> data, IImageDecoder decoder)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
             => Load<TPixel>(Configuration.Default, data, decoder);
 
         /// <summary>
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static unsafe Image<TPixel> Load<TPixel>(Configuration config, ReadOnlySpan<byte> data)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             fixed (byte* ptr = &data.GetPinnableReference())
             {
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp
             Configuration config,
             ReadOnlySpan<byte> data,
             IImageDecoder decoder)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             fixed (byte* ptr = &data.GetPinnableReference())
             {
@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp
             Configuration config,
             ReadOnlySpan<byte> data,
             out IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             fixed (byte* ptr = &data.GetPinnableReference())
             {

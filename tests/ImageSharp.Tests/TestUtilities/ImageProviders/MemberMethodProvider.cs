@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests
     /// </summary>
     /// <typeparam name="TPixel">The pixel format of the image</typeparam>
     public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private class MemberMethodProvider : TestImageProvider<TPixel>
         {

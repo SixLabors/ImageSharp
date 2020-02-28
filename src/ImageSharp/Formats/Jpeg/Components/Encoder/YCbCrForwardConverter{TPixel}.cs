@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     /// </summary>
     /// <typeparam name="TPixel">The pixel type to work on</typeparam>
     internal ref struct YCbCrForwardConverter<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// The Y component

@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(Quantizers), PixelTypes.Rgba32)]
         public void ApplyQuantizationInBox<TPixel>(TestImageProvider<TPixel> provider, IQuantizer quantizer)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (SkipAllQuantizerTests)
             {
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), nameof(Quantizers), PixelTypes.Rgba32)]
         public void ApplyQuantization<TPixel>(TestImageProvider<TPixel> provider, IQuantizer quantizer)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (SkipAllQuantizerTests)
             {
@@ -198,7 +198,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
         [Theory]
         [WithFile(TestImages.Png.David, nameof(DitherScaleQuantizers), PixelTypes.Rgba32)]
         public void ApplyQuantizationWithDitheringScale<TPixel>(TestImageProvider<TPixel> provider, IQuantizer quantizer)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (SkipAllQuantizerTests)
             {

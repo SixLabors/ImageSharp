@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [Theory]
         [WithTestPatternImages(nameof(ResamplerNames), 150, 150, PixelTypes.Rgba32)]
         public void Transform_WithSampler<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             IResampler sampler = GetResampler(resamplerName);
             using (Image<TPixel> image = provider.GetImage())
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [Theory]
         [WithSolidFilledImages(nameof(TaperMatrixData), 30, 30, nameof(Color.Red), PixelTypes.Rgba32)]
         public void Transform_WithTaperMatrix<TPixel>(TestImageProvider<TPixel> provider, TaperSide taperSide, TaperCorner taperCorner)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [Theory]
         [WithSolidFilledImages(100, 100, 0, 0, 255, PixelTypes.Rgba32)]
         public void RawTransformMatchesDocumentedExample<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // Printing some extra output to help investigating rounding errors:
             this.Output.WriteLine($"Vector.IsHardwareAccelerated: {Vector.IsHardwareAccelerated}");
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         [Theory]
         [WithSolidFilledImages(290, 154, 0, 0, 255, PixelTypes.Rgba32)]
         public void PerspectiveTransformMatchesCSS<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // https://jsfiddle.net/dFrHS/545/
             // https://github.com/SixLabors/ImageSharp/issues/787

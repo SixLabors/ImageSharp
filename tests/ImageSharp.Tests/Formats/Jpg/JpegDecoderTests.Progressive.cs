@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32, false)]
         [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, true)]
         public void DecodeProgressiveJpeg<TPixel>(TestImageProvider<TPixel> provider, bool enforceDiscontiguousBuffers)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {

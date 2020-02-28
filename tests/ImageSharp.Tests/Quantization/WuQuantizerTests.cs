@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
         [Theory]
         [WithFile(TestImages.Png.LowColorVariance, PixelTypes.Rgba32)]
         public void LowVariance<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // See https://github.com/SixLabors/ImageSharp/issues/866
             using (Image<TPixel> image = provider.GetImage())

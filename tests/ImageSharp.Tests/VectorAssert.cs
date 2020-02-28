@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests
     public static class VectorAssert
     {
         public static void Equal<TPixel>(TPixel expected, TPixel actual, int precision = int.MaxValue)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Equal(expected.ToVector4(), actual.ToVector4(), precision);
         }

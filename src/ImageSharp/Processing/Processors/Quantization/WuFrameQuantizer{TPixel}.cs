@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal struct WuFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly MemoryAllocator memoryAllocator;
 

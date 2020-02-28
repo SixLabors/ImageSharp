@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory(Skip = "Debug only, enable manually!")]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void Decoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
 
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void VerifySpectralCorrectness<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (!TestEnvironment.IsWindows)
             {
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private void VerifySpectralCorrectnessImpl<TPixel>(
             TestImageProvider<TPixel> provider,
             LibJpegTools.SpectralData imageSharpData)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             LibJpegTools.SpectralData libJpegData = LibJpegTools.ExtractSpectralData(provider.SourceFileOrDescription);
 

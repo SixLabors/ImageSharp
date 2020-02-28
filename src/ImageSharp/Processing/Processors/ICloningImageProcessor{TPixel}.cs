@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public interface ICloningImageProcessor<TPixel> : IImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Clones the specified <see cref="Image{TPixel}"/> and executes the process against the clone.

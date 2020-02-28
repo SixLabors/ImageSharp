@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Provides access to pixel blenders
     /// </content>
     public partial class PixelOperations<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Find an instance of the pixel blender.

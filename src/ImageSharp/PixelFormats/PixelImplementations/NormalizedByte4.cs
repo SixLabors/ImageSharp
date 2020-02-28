@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(NormalizedByte4 left, NormalizedByte4 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<NormalizedByte4> CreatePixelOperations() => new PixelOperations<NormalizedByte4>();
+        public readonly PixelOperations<NormalizedByte4> CreatePixelOperations() => new PixelOperations<NormalizedByte4>();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4()
+        public readonly Vector4 ToScaledVector4()
         {
             var scaled = this.ToVector4();
             scaled += Vector4.One;
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4()
+        public readonly Vector4 ToVector4()
         {
             return new Vector4(
                 (sbyte)((this.PackedValue >> 0) & 0xFF) / 127F,
@@ -154,18 +154,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is NormalizedByte4 other && this.Equals(other);
+        public override readonly bool Equals(object obj) => obj is NormalizedByte4 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(NormalizedByte4 other) => this.PackedValue.Equals(other.PackedValue);
+        public readonly bool Equals(NormalizedByte4 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => this.PackedValue.GetHashCode();
+        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <inheritdoc />
-        public override string ToString()
+        public override readonly string ToString()
         {
             var vector = this.ToVector4();
             return FormattableString.Invariant($"NormalizedByte4({vector.X:#0.##}, {vector.Y:#0.##}, {vector.Z:#0.##}, {vector.W:#0.##})");

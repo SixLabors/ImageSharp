@@ -47,8 +47,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 Configuration configuration,
                 ReadOnlySpan<TSourcePixel> sourcePixels,
                 Span<TDestinationPixel> destinationPixels)
-                where TSourcePixel : struct, IPixel<TSourcePixel>
-                where TDestinationPixel : struct, IPixel<TDestinationPixel>
+                where TSourcePixel : unmanaged, IPixel<TSourcePixel>
+                where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));

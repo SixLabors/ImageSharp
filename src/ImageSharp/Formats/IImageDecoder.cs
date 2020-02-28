@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         // TODO: Document ImageFormatExceptions (https://github.com/SixLabors/ImageSharp/issues/1110)
         Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : struct, IPixel<TPixel>;
+            where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
         /// Decodes the image from the specified stream to an <see cref="Image"/>.

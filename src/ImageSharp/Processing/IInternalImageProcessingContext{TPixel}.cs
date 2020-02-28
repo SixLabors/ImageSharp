@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     /// <typeparam name="TPixel">The pixel type.</typeparam>
     internal interface IInternalImageProcessingContext<TPixel> : IImageProcessingContext
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Returns the result image to return by <see cref="ProcessingExtensions.Clone(Image, Configuration, System.Action{IImageProcessingContext})"/>

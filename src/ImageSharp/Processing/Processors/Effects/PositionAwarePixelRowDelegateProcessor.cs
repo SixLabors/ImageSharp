@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
         /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return new PixelRowDelegateProcessor<TPixel, PixelRowDelegate>(
                 new PixelRowDelegate(this.PixelRowOperation),

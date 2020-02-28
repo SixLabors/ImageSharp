@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class QuantizeProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly IQuantizer quantizer;
 

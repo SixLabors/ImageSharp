@@ -17,6 +17,6 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="image">The image.</param>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
         void Visit<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>;
+            where TPixel : unmanaged, IPixel<TPixel>;
     }
 }

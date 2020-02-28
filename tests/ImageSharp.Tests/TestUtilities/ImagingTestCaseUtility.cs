@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.Tests
             IImageEncoder encoder = null,
             object testOutputDetails = null,
             bool appendPixelTypeToFileName = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             encoder = encoder ?? TestEnvironment.GetReferenceEncoder($"foo.{extension}");
 
@@ -276,10 +276,10 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         public static void ModifyPixel<TPixel>(Image<TPixel> img, int x, int y, byte perChannelChange)
-            where TPixel : struct, IPixel<TPixel> => ModifyPixel(img.Frames.RootFrame, x, y, perChannelChange);
+            where TPixel : unmanaged, IPixel<TPixel> => ModifyPixel(img.Frames.RootFrame, x, y, perChannelChange);
 
         public static void ModifyPixel<TPixel>(ImageFrame<TPixel> img, int x, int y, byte perChannelChange)
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = img[x, y];
             Rgba64 rgbaPixel = default;

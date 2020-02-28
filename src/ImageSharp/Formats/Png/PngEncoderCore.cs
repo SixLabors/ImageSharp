@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="rowSpan">The image row span.</param>
         private void CollectGrayscaleBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
             Span<byte> rawScanlineSpan = this.currentScanline.GetSpan();
@@ -288,7 +288,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="rowSpan">The row span.</param>
         private void CollectTPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Span<byte> rawScanlineSpan = this.currentScanline.GetSpan();
 
@@ -372,7 +372,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="quantized">The quantized pixels. Can be null.</param>
         /// <param name="row">The row.</param>
         private void CollectPixelBytes<TPixel>(ReadOnlySpan<TPixel> rowSpan, QuantizedFrame<TPixel> quantized, int row)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             switch (this.options.ColorType)
             {
@@ -441,7 +441,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="row">The row.</param>
         /// <returns>The <see cref="IManagedByteBuffer"/></returns>
         private IManagedByteBuffer EncodePixelRow<TPixel>(ReadOnlySpan<TPixel> rowSpan, QuantizedFrame<TPixel> quantized, int row)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.CollectPixelBytes(rowSpan, quantized, row);
             return this.FilterPixelBytes();
@@ -547,7 +547,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="quantized">The quantized frame.</param>
         private void WritePaletteChunk<TPixel>(Stream stream, QuantizedFrame<TPixel> quantized)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (quantized == null)
             {
@@ -784,7 +784,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="quantized">The quantized pixel data. Can be null.</param>
         /// <param name="stream">The stream.</param>
         private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, QuantizedFrame<TPixel> quantized, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             byte[] buffer;
             int bufferLength;
@@ -882,7 +882,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="quantized">The quantized pixels span.</param>
         /// <param name="deflateStream">The deflate stream.</param>
         private void EncodePixels<TPixel>(ImageFrame<TPixel> pixels, QuantizedFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             int bytesPerScanline = this.CalculateScanlineLength(this.width);
             int resultLength = bytesPerScanline + 1;
@@ -906,7 +906,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pixels">The pixels.</param>
         /// <param name="deflateStream">The deflate stream.</param>
         private void EncodeAdam7Pixels<TPixel>(ImageFrame<TPixel> pixels, ZlibDeflateStream deflateStream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int width = pixels.Width;
             int height = pixels.Height;
@@ -961,7 +961,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="quantized">The quantized.</param>
         /// <param name="deflateStream">The deflate stream.</param>
         private void EncodeAdam7IndexedPixels<TPixel>(QuantizedFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int width = quantized.Width;
             int height = quantized.Height;

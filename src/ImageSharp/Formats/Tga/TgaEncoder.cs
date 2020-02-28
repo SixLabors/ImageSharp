@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new TgaEncoderCore(this, image.GetMemoryAllocator());
             encoder.Encode(image, stream);

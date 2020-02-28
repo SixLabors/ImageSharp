@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Grey, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_Uncompressed_MonoChrome<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit15, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_Uncompressed_15Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit15Rle, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_RunLengthEncoded_15Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit16, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_Uncompressed_16Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit16PalRle, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_RunLengthEncoded_WithPalette_16Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit24, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_Uncompressed_24Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit24RleTopLeft, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_RunLengthEncoded_WithTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit24TopLeft, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_Palette_WithTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_Uncompressed_32Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(GreyRle, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_RunLengthEncoded_MonoChrome<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit16Rle, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_RunLengthEncoded_16Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit24Rle, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_RunLengthEncoded_24Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit32Rle, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_RunLengthEncoded_32Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit16Pal, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_WithPalette_16Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit24Pal, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_WithPalette_24Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [WithFile(Bit24, PixelTypes.Rgba32)]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void TgaDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
             ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(TgaDecoder));
@@ -214,7 +214,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [WithFile(Bit24, PixelTypes.Rgba32)]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {

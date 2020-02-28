@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [Theory]
         [WithTestPatternImages(nameof(SkewValues), 100, 50, CommonPixelTypes)]
         public void Skew_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, float x, float y)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(ctx => ctx.Skew(x, y), $"{x}_{y}", ValidatorComparer);
         }
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [Theory]
         [WithFile(TestImages.Png.Ducky, nameof(ResamplerNames), PixelTypes.Rgba32)]
         public void Skew_WorksWithAllResamplers<TPixel>(TestImageProvider<TPixel> provider, string resamplerName)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             IResampler sampler = TestUtils.GetResampler(resamplerName);
 

@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         [Theory]
         [WithTestPatternImages(nameof(HueValues), 48, 48, PixelTypes.Rgba32)]
         public void ApplyHueFilter<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(x => x.Hue(value), value);
         }

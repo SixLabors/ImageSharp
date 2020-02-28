@@ -89,29 +89,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
             ref TFrameQuantizer quantizer,
-            ReadOnlyMemory<TPixel> palette,
             ImageFrame<TPixel> source,
-            Memory<byte> output,
+            QuantizedFrame<TPixel> destination,
             Rectangle bounds)
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
-            Span<byte> outputSpan = output.Span;
-            ReadOnlySpan<TPixel> paletteSpan = palette.Span;
-            int width = bounds.Width;
+            ReadOnlySpan<TPixel> paletteSpan = destination.Palette.Span;
             int offsetY = bounds.Top;
             int offsetX = bounds.Left;
             float scale = quantizer.Options.DitherScale;
 
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                int rowStart = (y - offsetY) * width;
+                Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
+                Span<byte> destinationRow = destination.GetPixelRowSpan(y - offsetY);
 
                 for (int x = bounds.Left; x < bounds.Right; x++)
                 {
-                    TPixel sourcePixel = row[x];
-                    outputSpan[rowStart + x - offsetX] = quantizer.GetQuantizedColor(sourcePixel, paletteSpan, out TPixel transformed);
+                    TPixel sourcePixel = sourceRow[x];
+                    destinationRow[x - offsetX] = quantizer.GetQuantizedColor(sourcePixel, paletteSpan, out TPixel transformed);
                     this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
                 }
             }
@@ -119,23 +116,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ApplyPaletteDither<TPixel>(
-            Configuration configuration,
-            ReadOnlyMemory<TPixel> palette,
+        public void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
+            in TPaletteDitherImageProcessor processor,
             ImageFrame<TPixel> source,
-            Rectangle bounds,
-            float scale)
+            Rectangle bounds)
+            where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
-            var pixelMap = new EuclideanPixelMap<TPixel>(palette);
-
+            float scale = processor.DitherScale;
+            ReadOnlySpan<TPixel> palette = processor.Palette.Span;
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
                 Span<TPixel> row = source.GetPixelRowSpan(y);
                 for (int x = bounds.Left; x < bounds.Right; x++)
                 {
                     TPixel sourcePixel = row[x];
-                    pixelMap.GetClosestColor(sourcePixel, out TPixel transformed);
+                    TPixel transformed = processor.GetPaletteColor(sourcePixel, palette);
                     this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
                     row[x] = transformed;
                 }

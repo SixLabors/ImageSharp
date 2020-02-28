@@ -24,6 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Initializes a new instance of the <see cref="EuclideanPixelMap{TPixel}"/> struct.
         /// </summary>
         /// <param name="palette">The color palette to map from.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public EuclideanPixelMap(ReadOnlyMemory<TPixel> palette)
         {
             Guard.MustBeGreaterThan(palette.Length, 0, nameof(palette));
@@ -40,7 +41,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc/>
-        public ReadOnlyMemory<TPixel> Palette { get; }
+        public ReadOnlyMemory<TPixel> Palette
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get;
+        }
 
         /// <inheritdoc/>
         public override bool Equals(object obj)

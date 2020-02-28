@@ -57,16 +57,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <returns>The <see cref="Span{T}"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public ReadOnlySpan<byte> GetPixelSpan() => this.pixels.GetSpan();
+        public Span<byte> GetPixelSpan() => this.pixels.GetSpan();
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
         /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
         /// </summary>
         /// <param name="rowIndex">The row.</param>
-        /// <returns>The pixel row as a <see cref="ReadOnlySpan{T}"/>.</returns>
+        /// <returns>The pixel row as a <see cref="Span{T}"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public ReadOnlySpan<byte> GetRowSpan(int rowIndex)
+        public Span<byte> GetPixelRowSpan(int rowIndex)
             => this.GetPixelSpan().Slice(rowIndex * this.Width, this.Width);
 
         /// <inheritdoc/>
@@ -82,10 +82,5 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.pixels = null;
             this.Palette = null;
         }
-
-        /// <summary>
-        /// Get the non-readonly memory of pixel data so <see cref="IFrameQuantizer{TPixel}"/> can fill it.
-        /// </summary>
-        internal Memory<byte> GetWritablePixelMemory() => this.pixels.Memory;
     }
 }

@@ -380,7 +380,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     if (this.bitDepth < 8)
                     {
-                        PngEncoderHelpers.ScaleDownFrom8BitArray(quantized.GetRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
+                        PngEncoderHelpers.ScaleDownFrom8BitArray(quantized.GetPixelRowSpan(row), this.currentScanline.GetSpan(), this.bitDepth);
                     }
                     else
                     {
@@ -987,7 +987,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         row += Adam7.RowIncrement[pass])
                     {
                         // collect data
-                        ReadOnlySpan<byte> srcRow = quantized.GetRowSpan(row);
+                        ReadOnlySpan<byte> srcRow = quantized.GetPixelRowSpan(row);
                         for (int col = startCol, i = 0;
                             col < width;
                             col += Adam7.ColumnIncrement[pass])

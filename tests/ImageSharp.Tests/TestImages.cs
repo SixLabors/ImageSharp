@@ -428,27 +428,35 @@ namespace SixLabors.ImageSharp.Tests
 
             public static class Lossy
             {
+                // Lossy images without macroblock filtering.
                 public const string Bike = "WebP/bike_lossy.webp";
-                public const string LenaIccp = "WebP/lossy_iccp.webp";
-                public const string VeryShort = "WebP/very_short.webp";
-                public const string Lossy01 = "WebP/vp80-01-intra-1400.webp";
-                public const string Lossy02 = "WebP/vp80-00-comprehensive-010.webp";
-                public const string Lossy03 = "WebP/vp80-01-intra-1417.webp";
-                public const string Lossy04 = "WebP/vp80-02-inter-1402.webp";
-                public const string Lossy05 = "WebP/vp80-03-segmentation-1401.webp";
-                public const string Lossy06 = "WebP/vp80-02-inter-1418.webp";
-                public const string Lossy07 = "WebP/vp80-03-segmentation-1403.webp";
-                public const string Lossy08 = "WebP/vp80-03-segmentation-1407.webp";
-                public const string Lossy09 = "WebP/test.webp";
+                public const string NoFilter01 = "WebP/vp80-01-intra-1400.webp";
+                public const string NoFilter02 = "WebP/vp80-00-comprehensive-010.webp";
+                public const string NoFilter03 = "WebP/vp80-00-comprehensive-005.webp";
+                public const string NoFilter04 = "WebP/vp80-01-intra-1417.webp";
+                public const string NoFilter05 = "WebP/vp80-02-inter-1402.webp";
+                public const string NoFilter06 = "WebP/vp80-03-segmentation-1401.webp";
+                public const string NoFilter07 = "WebP/vp80-03-segmentation-1403.webp";
+                public const string NoFilter08 = "WebP/vp80-03-segmentation-1407.webp";
+                public const string NoFilter09 = "WebP/test.webp";
 
-                public static class Alpha
-                {
-                    public const string LossyAlpha1 = "WebP/lossy_alpha1.webp";
-                    public const string LossyAlpha2 = "WebP/lossy_alpha2.webp";
-                    public const string LossyAlpha3 = "WebP/lossy_alpha3.webp";
-                    public const string LossyAlpha4 = "WebP/lossy_alpha4.webp";
-                    public const string LossyAlphaNoCompression = "WebP/alpha_no_compression.webp";
-                }
+                // Lossy images with a simple filter.
+                public const string SimpleFilter01 = "WebP/segment01.webp";
+                public const string SimpleFilter02 = "WebP/segment02.webp";
+
+                // Losyy images with a complex filter.
+                public const string IccpComplexFilter = "WebP/lossy_iccp.webp";
+                public const string VeryShort = "WebP/very_short.webp";
+                public const string BikeComplexFilter = "WebP/bike_lossy_complex_filter.webp";
+                public const string ComplexFilter01 = "WebP/vp80-02-inter-1418.webp";
+                public const string ComplexFilter02 = "WebP/vp80-02-inter-1418.webp";
+
+                // Lossy images with an alpha channel.
+                public const string Alpha1 = "WebP/lossy_alpha1.webp";
+                public const string Alpha2 = "WebP/lossy_alpha2.webp";
+                public const string Alpha3 = "WebP/lossy_alpha3.webp";
+                public const string Alpha4 = "WebP/lossy_alpha4.webp";
+                public const string AlphaNoCompression = "WebP/alpha_no_compression.webp";
             }
 
             public static readonly string[] All =

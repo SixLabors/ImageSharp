@@ -360,7 +360,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             for (int y = image.Height - 1; y >= 0; y--)
             {
-                ReadOnlySpan<byte> pixelSpan = quantized.GetRowSpan(y);
+                ReadOnlySpan<byte> pixelSpan = quantized.GetPixelRowSpan(y);
                 stream.Write(pixelSpan);
 
                 for (int i = 0; i < this.padding; i++)

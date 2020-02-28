@@ -41,18 +41,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             MemoryAllocator memoryAllocator = quantizer.Configuration.MemoryAllocator;
 
             var quantizedFrame = new QuantizedFrame<TPixel>(memoryAllocator, interest.Width, interest.Height, palette);
-            Memory<byte> output = quantizedFrame.GetWritablePixelMemory();
 
             if (quantizer.Options.Dither is null)
             {
-                SecondPass(ref quantizer, source, interest, output, palette);
+                SecondPass(ref quantizer, source, quantizedFrame, interest);
             }
             else
             {
                 // We clone the image as we don't want to alter the original via error diffusion based dithering.
                 using (ImageFrame<TPixel> clone = source.Clone())
                 {
-                    SecondPass(ref quantizer, clone, interest, output, palette);
+                    SecondPass(ref quantizer, clone, quantizedFrame, interest);
                 }
             }
 
@@ -63,9 +62,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private static void SecondPass<TFrameQuantizer, TPixel>(
             ref TFrameQuantizer quantizer,
             ImageFrame<TPixel> source,
-            Rectangle bounds,
-            Memory<byte> output,
-            ReadOnlyMemory<TPixel> palette)
+            QuantizedFrame<TPixel> destination,
+            Rectangle bounds)
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
             where TPixel : struct, IPixel<TPixel>
         {
@@ -73,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             if (dither is null)
             {
-                var operation = new RowIntervalOperation<TFrameQuantizer, TPixel>(quantizer, source, output, bounds, palette);
+                var operation = new RowIntervalOperation<TFrameQuantizer, TPixel>(quantizer, source, destination, bounds);
                 ParallelRowIterator.IterateRows(
                     quantizer.Configuration,
                     bounds,
@@ -82,7 +80,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 return;
             }
 
-            dither.ApplyQuantizationDither(ref quantizer, palette, source, output, bounds);
+            dither.ApplyQuantizationDither(ref quantizer, source, destination, bounds);
         }
 
         private readonly struct RowIntervalOperation<TFrameQuantizer, TPixel> : IRowIntervalOperation
@@ -91,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             private readonly TFrameQuantizer quantizer;
             private readonly ImageFrame<TPixel> source;
-            private readonly Memory<byte> output;
+            private readonly QuantizedFrame<TPixel> destination;
             private readonly Rectangle bounds;
             private readonly ReadOnlyMemory<TPixel> palette;
 
@@ -99,35 +97,31 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             public RowIntervalOperation(
                 in TFrameQuantizer quantizer,
                 ImageFrame<TPixel> source,
-                Memory<byte> output,
-                Rectangle bounds,
-                ReadOnlyMemory<TPixel> palette)
+                QuantizedFrame<TPixel> destination,
+                Rectangle bounds)
             {
                 this.quantizer = quantizer;
                 this.source = source;
-                this.output = output;
+                this.destination = destination;
                 this.bounds = bounds;
-                this.palette = palette;
+                this.palette = destination.Palette;
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)
             {
                 ReadOnlySpan<TPixel> paletteSpan = this.palette.Span;
-                Span<byte> outputSpan = this.output.Span;
-                int width = this.bounds.Width;
                 int offsetY = this.bounds.Top;
                 int offsetX = this.bounds.Left;
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
-                    int rowStart = (y - offsetY) * width;
+                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
+                    Span<byte> destinationRow = this.destination.GetPixelRowSpan(y - offsetY);
 
-                    // TODO: This can be a bulk operation.
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        outputSpan[rowStart + x - offsetX] = this.quantizer.GetQuantizedColor(row[x], paletteSpan, out TPixel _);
+                        destinationRow[x - offsetX] = this.quantizer.GetQuantizedColor(sourceRow[x], paletteSpan, out TPixel _);
                     }
                 }
             }

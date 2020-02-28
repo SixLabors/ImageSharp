@@ -23,8 +23,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [Theory]
         [InlineData(Lossless.Lossless1, 1000, 307, 24)]
         [InlineData(Lossless.Lossless2, 1000, 307, 24)]
-        [InlineData(Lossy.Alpha.LossyAlpha1, 1000, 307, 32)]
-        [InlineData(Lossy.Alpha.LossyAlpha2, 1000, 307, 32)]
+        [InlineData(Lossy.Alpha1, 1000, 307, 32)]
+        [InlineData(Lossy.Alpha2, 1000, 307, 32)]
         public void Identify_DetectsCorrectDimensions(
             string imagePath,
             int expectedWidth,
@@ -44,17 +44,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
 
         [Theory]
         [WithFile(Lossy.Bike, PixelTypes.Rgba32)]
-        [WithFile(Lossy.LenaIccp, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Lossy01, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Lossy02, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Lossy03, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Lossy04, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Lossy05, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Lossy06, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Lossy07, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Lossy08, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Lossy09, PixelTypes.Rgba32)]
-        public void WebpDecoder_CanDecode_Lossy<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(Lossy.NoFilter01, PixelTypes.Rgba32)]
+        [WithFile(Lossy.NoFilter02, PixelTypes.Rgba32)]
+        [WithFile(Lossy.NoFilter03, PixelTypes.Rgba32)]
+        [WithFile(Lossy.NoFilter04, PixelTypes.Rgba32)]
+        [WithFile(Lossy.NoFilter05, PixelTypes.Rgba32)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32)]
+        [WithFile(Lossy.NoFilter07, PixelTypes.Rgba32)]
+        [WithFile(Lossy.NoFilter08, PixelTypes.Rgba32)]
+        [WithFile(Lossy.NoFilter09, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossy_WithoutFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(WebpDecoder))
@@ -65,11 +64,39 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         }
 
         [Theory]
-        [WithFile(Lossy.Alpha.LossyAlpha1, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Alpha.LossyAlpha2, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Alpha.LossyAlpha3, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Alpha.LossyAlpha4, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Alpha.LossyAlphaNoCompression, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SimpleFilter01, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SimpleFilter02, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossy_WithSimpleFilter<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossy.IccpComplexFilter, PixelTypes.Rgba32)]
+        [WithFile(Lossy.VeryShort, PixelTypes.Rgba32)]
+        [WithFile(Lossy.BikeComplexFilter, PixelTypes.Rgba32)]
+        [WithFile(Lossy.ComplexFilter01, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossy_WithComplexFilter<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossy.Alpha1, PixelTypes.Rgba32)]
+        [WithFile(Lossy.Alpha2, PixelTypes.Rgba32)]
+        [WithFile(Lossy.Alpha3, PixelTypes.Rgba32)]
+        [WithFile(Lossy.Alpha4, PixelTypes.Rgba32)]
+        [WithFile(Lossy.AlphaNoCompression, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossy_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

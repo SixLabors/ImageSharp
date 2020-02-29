@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public static class BasicIntrinsics256
         {
-            public static bool IsAvailable { get; } = IsAvx2CompatibleArchitecture;
+            public static bool IsAvailable { get; } = HasVector8;
 
 #if !SUPPORTS_EXTENDED_INTRINSICS
             /// <summary>
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp
             /// </summary>
             internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
-                VerifyIsAvx2Compatible(nameof(BulkConvertByteToNormalizedFloat));
+                VerifyHasVector8(nameof(BulkConvertByteToNormalizedFloat));
                 VerifySpanInput(source, dest, 8);
 
                 var bVec = new Vector<float>(256.0f / 255.0f);
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp
             /// </summary>
             internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
             {
-                VerifyIsAvx2Compatible(nameof(BulkConvertNormalizedFloatToByteClampOverflows));
+                VerifyHasVector8(nameof(BulkConvertNormalizedFloatToByteClampOverflows));
                 VerifySpanInput(source, dest, 8);
 
                 if (source.Length == 0)
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp
             /// </summary>
             internal static void BulkConvertNormalizedFloatToByte(ReadOnlySpan<float> source, Span<byte> dest)
             {
-                VerifyIsAvx2Compatible(nameof(BulkConvertNormalizedFloatToByte));
+                VerifyHasVector8(nameof(BulkConvertNormalizedFloatToByte));
                 VerifySpanInput(source, dest, 8);
 
                 if (source.Length == 0)

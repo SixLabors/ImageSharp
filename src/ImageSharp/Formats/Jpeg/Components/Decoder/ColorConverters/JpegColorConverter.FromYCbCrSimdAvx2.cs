@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
             }
 
-            public static bool IsAvailable => Vector.IsHardwareAccelerated && SimdUtils.IsAvx2CompatibleArchitecture;
+            public static bool IsAvailable => Vector.IsHardwareAccelerated && SimdUtils.HasVector8;
 
             public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -159,6 +160,36 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
+        /// Gets a <see cref="Span{T}"/> to the backing data if the backing group consists of a single contiguous memory buffer.
+        /// Throws <see cref="InvalidOperationException"/> otherwise.
+        /// </summary>
+        /// <returns>The <see cref="Span{T}"/> referencing the memory area.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the backing group is discontiguous.
+        /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal Span<T> GetSingleSpan()
+        {
+            // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
+            return this.cachedMemory.Length != 0 ? this.cachedMemory.Span : ThrowInvalidOperationSingleSpan();
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Memory{T}"/> to the backing data of if the backing group consists of a single contiguous memory buffer.
+        /// Throws <see cref="InvalidOperationException"/> otherwise.
+        /// </summary>
+        /// <returns>The <see cref="Memory{T}"/>.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the backing group is discontiguous.
+        /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal Memory<T> GetSingleMemory()
+        {
+            // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
+            return this.cachedMemory.Length != 0 ? this.cachedMemory : ThrowInvalidOperationSingleMemory();
+        }
+
+        /// <summary>
         /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
         /// copies the contents of 'source' to 'destination' otherwise (2). Buffers should be of same size in case 2!
         /// </summary>
@@ -170,6 +201,9 @@ namespace SixLabors.ImageSharp.Memory
 
         [MethodImpl(InliningOptions.ColdPath)]
         private Memory<T> GetRowMemorySlow(int y) => this.FastMemoryGroup.GetBoundedSlice(y * this.Width, this.Width);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private Memory<T> GetSingleMemorySlow() => this.FastMemoryGroup.Single();
 
         [MethodImpl(InliningOptions.ColdPath)]
         private ref T GetElementSlow(int x, int y)
@@ -195,6 +229,18 @@ namespace SixLabors.ImageSharp.Memory
                 a.cachedMemory = b.cachedMemory;
                 b.cachedMemory = aCached;
             }
+        }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static Memory<T> ThrowInvalidOperationSingleMemory()
+        {
+            throw new InvalidOperationException("GetSingleMemory is only valid for a single-buffer group!");
+        }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static Span<T> ThrowInvalidOperationSingleSpan()
+        {
+            throw new InvalidOperationException("GetSingleSpan is only valid for a single-buffer group!");
         }
     }
 }

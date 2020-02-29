@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
@@ -50,7 +51,7 @@ namespace SixLabors.ImageSharp.Memory
             {
                 if (this.Data == null)
                 {
-                    throw new ObjectDisposedException("ArrayPoolMemoryAllocator.Buffer<T>");
+                    ThrowObjectDisposedException();
                 }
 
                 return MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
@@ -74,6 +75,12 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             protected override object GetPinnableObject() => this.Data;
+
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static void ThrowObjectDisposedException()
+            {
+                throw new ObjectDisposedException("ArrayPoolMemoryAllocator.Buffer<T>");
+            }
         }
 
         /// <summary>

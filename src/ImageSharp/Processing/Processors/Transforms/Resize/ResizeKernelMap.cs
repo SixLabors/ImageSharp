@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -249,18 +250,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private unsafe ResizeKernel CreateKernel(int dataRowIndex, int left, int right)
         {
             int length = right - left + 1;
-
-            if (length > this.data.Width)
-            {
-                throw new InvalidOperationException(
-                    $"Error in KernelMap.CreateKernel({dataRowIndex},{left},{right}): left > this.data.Width");
-            }
+            this.ValidateSizesForCreateKernel(length, dataRowIndex, left, right);
 
             Span<float> rowSpan = this.data.GetRowSpan(dataRowIndex);
 
             ref float rowReference = ref MemoryMarshal.GetReference(rowSpan);
             float* rowPtr = (float*)Unsafe.AsPointer(ref rowReference);
             return new ResizeKernel(left, rowPtr, length);
+        }
+
+        [Conditional("DEBUG")]
+        private void ValidateSizesForCreateKernel(int length, int dataRowIndex, int left, int right)
+        {
+            if (length > this.data.Width)
+            {
+                throw new InvalidOperationException(
+                    $"Error in KernelMap.CreateKernel({dataRowIndex},{left},{right}): left > this.data.Width");
+            }
         }
     }
 }

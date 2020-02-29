@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
@@ -22,8 +21,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     {
         private readonly int colors;
         private readonly Octree octree;
+        private IMemoryOwner<TPixel> palette;
         private EuclideanPixelMap<TPixel> pixelMap;
         private readonly bool isDithering;
+        private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeFrameQuantizer{TPixel}"/> struct.
@@ -41,8 +42,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             this.colors = this.Options.MaxColors;
             this.octree = new Octree(ImageMaths.GetBitsNeededForColorDepth(this.colors).Clamp(1, 8));
+            this.palette = configuration.MemoryAllocator.Allocate<TPixel>(this.colors, AllocationOptions.Clean);
             this.pixelMap = default;
             this.isDithering = !(this.Options.Dither is null);
+            this.isDisposed = false;
         }
 
         /// <inheritdoc/>
@@ -53,12 +56,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => FrameQuantizerExtensions.QuantizeFrame(ref this, source, bounds);
+        public readonly QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => FrameQuantizerExtensions.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
+        public ReadOnlySpan<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
         {
             using IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(bounds.Width);
             Span<Rgba32> bufferSpan = buffer.GetSpan();
@@ -78,15 +81,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 }
             }
 
-            TPixel[] palette = this.octree.Palletize(this.colors);
-            this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
+            Span<TPixel> paletteSpan = this.palette.GetSpan();
+            this.octree.Palletize(paletteSpan, this.colors);
 
-            return palette;
+            // TODO: Cannot make method readonly due to this line.
+            this.pixelMap = new EuclideanPixelMap<TPixel>(this.palette.Memory);
+
+            return paletteSpan;
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+        public readonly byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
             // Octree only maps the RGB component of a color
             // so cannot tell the difference between a fully transparent
@@ -104,6 +110,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc/>
         public void Dispose()
         {
+            if (!this.isDisposed)
+            {
+                this.isDisposed = true;
+                this.palette.Dispose();
+                this.palette = null;
+            }
         }
 
         /// <summary>
@@ -116,14 +128,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             /// </summary>
             private static readonly byte[] Mask = new byte[]
             {
-                0b10000000,
-                0b1000000,
-                0b100000,
-                0b10000,
-                0b1000,
-                0b100,
-                0b10,
-                0b1
+                0b10000000, 0b1000000, 0b100000, 0b10000, 0b1000, 0b100, 0b10, 0b1
             };
 
             /// <summary>
@@ -216,26 +221,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             /// <summary>
             /// Convert the nodes in the Octree to a palette with a maximum of colorCount colors
             /// </summary>
+            /// <param name="palette">The palette to fill.</param>
             /// <param name="colorCount">The maximum number of colors</param>
-            /// <returns>
-            /// An <see cref="List{TPixel}"/> with the palletized colors
-            /// </returns>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public TPixel[] Palletize(int colorCount)
+            public void Palletize(Span<TPixel> palette, int colorCount)
             {
                 while (this.Leaves > colorCount - 1)
                 {
                     this.Reduce();
                 }
 
-                // Now palletize the nodes
-                var palette = new TPixel[colorCount];
-
                 int paletteIndex = 0;
                 this.root.ConstructPalette(palette, ref paletteIndex);
-
-                // And return the palette
-                return palette;
             }
 
             /// <summary>
@@ -437,12 +434,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 /// <param name="palette">The palette</param>
                 /// <param name="index">The current palette index</param>
                 [MethodImpl(InliningOptions.ColdPath)]
-                public void ConstructPalette(TPixel[] palette, ref int index)
+                public void ConstructPalette(Span<TPixel> palette, ref int index)
                 {
                     if (this.leaf)
                     {
                         // Set the color of the palette entry
-                        var vector = Vector3.Clamp(new Vector3(this.red, this.green, this.blue) / this.pixelCount, Vector3.Zero, new Vector3(255));
+                        var vector = Vector3.Clamp(
+                            new Vector3(this.red, this.green, this.blue) / this.pixelCount,
+                            Vector3.Zero,
+                            new Vector3(255));
+
                         TPixel pixel = default;
                         pixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, byte.MaxValue));
                         palette[index] = pixel;
@@ -516,8 +517,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     int shift = 7 - level;
                     byte mask = Mask[level];
                     return ((color.R & mask) >> shift)
-                         | ((color.G & mask) >> (shift - 1))
-                         | ((color.B & mask) >> (shift - 2));
+                           | ((color.G & mask) >> (shift - 1))
+                           | ((color.B & mask) >> (shift - 2));
                 }
 
                 /// <summary>

@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
     /// <summary>
-    /// Gets the closest color to the supplied color based upon the Eucladean distance.
+    /// Gets the closest color to the supplied color based upon the Euclidean distance.
     /// TODO: Expose this somehow.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -62,18 +62,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             ReadOnlySpan<TPixel> paletteSpan = this.Palette.Span;
 
             // Check if the color is in the lookup table
-            if (this.distanceCache.TryGetValue(color, out int index))
+            if (!this.distanceCache.TryGetValue(color, out int index))
             {
-                match = paletteSpan[index];
-                return index;
+                return this.GetClosestColorSlow(color, paletteSpan, out match);
             }
 
-            return this.GetClosestColorSlow(color, paletteSpan, out match);
+            match = paletteSpan[index];
+            return index;
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-            => this.vectorCache.GetHashCode();
+        public override int GetHashCode() => this.vectorCache.GetHashCode();
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private int GetClosestColorSlow(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
@@ -88,17 +87,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 Vector4 candidate = this.vectorCache[i];
                 float distance = Vector4.DistanceSquared(vector, candidate);
 
-                // Less than... assign.
-                if (distance < leastDistance)
+                if (!(distance < leastDistance))
                 {
-                    index = i;
-                    leastDistance = distance;
+                    continue;
+                }
 
-                    // And if it's an exact match, exit the loop
-                    if (distance == 0)
-                    {
-                        break;
-                    }
+                // Less than... assign.
+                index = i;
+                leastDistance = distance;
+
+                // And if it's an exact match, exit the loop
+                if (distance == 0)
+                {
+                    break;
                 }
             }
 

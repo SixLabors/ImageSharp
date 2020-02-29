@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             public void Invoke(in RowInterval rows)
             {
                 ReadOnlySpan<byte> quantizedPixelSpan = this.quantized.GetPixelSpan();
-                ReadOnlySpan<TPixel> paletteSpan = this.quantized.Palette.Span;
+                ReadOnlySpan<TPixel> paletteSpan = this.quantized.Palette;
                 int offsetY = this.bounds.Top;
                 int offsetX = this.bounds.Left;
                 int width = this.bounds.Width;

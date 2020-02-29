@@ -16,6 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public sealed class QuantizedFrame<TPixel> : IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        private IMemoryOwner<TPixel> palette;
         private IMemoryOwner<byte> pixels;
         private bool isDisposed;
 
@@ -26,15 +27,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="width">The image width.</param>
         /// <param name="height">The image height.</param>
         /// <param name="palette">The color palette.</param>
-        internal QuantizedFrame(MemoryAllocator memoryAllocator, int width, int height, ReadOnlyMemory<TPixel> palette)
+        internal QuantizedFrame(MemoryAllocator memoryAllocator, int width, int height, ReadOnlySpan<TPixel> palette)
         {
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 
             this.Width = width;
             this.Height = height;
-            this.Palette = palette;
             this.pixels = memoryAllocator.AllocateManagedByteBuffer(width * height, AllocationOptions.Clean);
+
+            this.palette = memoryAllocator.Allocate<TPixel>(palette.Length);
+            palette.CopyTo(this.palette.GetSpan());
         }
 
         /// <summary>
@@ -50,7 +53,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Gets the color palette of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
-        public ReadOnlyMemory<TPixel> Palette { get; private set; }
+        public ReadOnlySpan<TPixel> Palette
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get { return this.palette.GetSpan(); }
+        }
 
         /// <summary>
         /// Gets the pixels of this <see cref="QuantizedFrame{TPixel}"/>.
@@ -72,15 +79,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (this.isDisposed)
+            if (!this.isDisposed)
             {
                 return;
             }
 
             this.isDisposed = true;
             this.pixels?.Dispose();
+            this.palette?.Dispose();
             this.pixels = null;
-            this.Palette = null;
+            this.palette = null;
         }
     }
 }

@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
             Rgba32 trans = default;
-            ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
+            ReadOnlySpan<TPixel> paletteSpan = quantized.Palette;
             for (int i = paletteSpan.Length - 1; i >= 0; i--)
             {
                 paletteSpan[i].ToRgba32(ref trans);

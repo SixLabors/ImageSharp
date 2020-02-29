@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ReadOnlySpan<TPixel> paletteSpan = destination.Palette.Span;
+            ReadOnlySpan<TPixel> paletteSpan = destination.Palette;
             int offsetY = bounds.Top;
             int offsetX = bounds.Left;
             float scale = quantizer.Options.DitherScale;

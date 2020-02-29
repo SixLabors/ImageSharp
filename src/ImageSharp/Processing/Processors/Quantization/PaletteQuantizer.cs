@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     public class PaletteQuantizer : IQuantizer
     {
+        private readonly ReadOnlyMemory<Color> palette;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
         /// </summary>
@@ -30,14 +32,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Guard.MustBeGreaterThan(palette.Length, 0, nameof(palette));
             Guard.NotNull(options, nameof(options));
 
-            this.Palette = palette;
+            this.palette = palette;
             this.Options = options;
         }
-
-        /// <summary>
-        /// Gets the color palette.
-        /// </summary>
-        public ReadOnlyMemory<Color> Palette { get; }
 
         /// <inheritdoc />
         public QuantizerOptions Options { get; }
@@ -52,12 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(options, nameof(options));
-
-            int length = Math.Min(this.Palette.Span.Length, options.MaxColors);
-            var palette = new TPixel[length];
-
-            Color.ToPixel(configuration, this.Palette.Span, palette.AsSpan());
-            return new PaletteFrameQuantizer<TPixel>(configuration, options, palette);
+            return new PaletteFrameQuantizer<TPixel>(configuration, options, this.palette.Span);
         }
     }
 }

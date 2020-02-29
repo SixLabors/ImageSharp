@@ -65,30 +65,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
-        /// <summary>
-        /// Color moments.
-        /// </summary>
         private IMemoryOwner<Moment> moments;
-
-        /// <summary>
-        /// Color space tag.
-        /// </summary>
         private IMemoryOwner<byte> tag;
-
-        /// <summary>
-        /// Maximum allowed color depth
-        /// </summary>
+        private IMemoryOwner<TPixel> palette;
         private int colors;
-
-        /// <summary>
-        /// The color cube representing the image palette
-        /// </summary>
         private readonly Box[] colorCube;
-
         private EuclideanPixelMap<TPixel> pixelMap;
-
         private readonly bool isDithering;
-
         private bool isDisposed;
 
         /// <summary>
@@ -104,10 +87,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             this.Configuration = configuration;
             this.Options = options;
+            this.colors = this.Options.MaxColors;
             this.memoryAllocator = this.Configuration.MemoryAllocator;
             this.moments = this.memoryAllocator.Allocate<Moment>(TableLength, AllocationOptions.Clean);
             this.tag = this.memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
-            this.colors = this.Options.MaxColors;
+            this.palette = this.memoryAllocator.Allocate<TPixel>(this.colors, AllocationOptions.Clean);
             this.colorCube = new Box[this.colors];
             this.isDisposed = false;
             this.pixelMap = default;
@@ -122,19 +106,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => FrameQuantizerExtensions.QuantizeFrame(ref this, source, bounds);
+        public readonly QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => FrameQuantizerExtensions.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
 
         /// <inheritdoc/>
-        public ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
+        public ReadOnlySpan<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
         {
             this.Build3DHistogram(source, bounds);
             this.Get3DMoments(this.memoryAllocator);
             this.BuildCube();
 
-            var palette = new TPixel[this.colors];
             ReadOnlySpan<Moment> momentsSpan = this.moments.GetSpan();
-
+            Span<TPixel> paletteSpan = this.palette.GetSpan();
             for (int k = 0; k < this.colors; k++)
             {
                 this.Mark(ref this.colorCube[k], (byte)k);
@@ -143,17 +126,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
                 if (moment.Weight > 0)
                 {
-                    ref TPixel color = ref palette[k];
+                    ref TPixel color = ref paletteSpan[k];
                     color.FromScaledVector4(moment.Normalize());
                 }
             }
 
-            this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
-            return palette;
+            // TODO: Cannot make methods readonly due to this line.
+            this.pixelMap = new EuclideanPixelMap<TPixel>(this.palette.Memory);
+            return paletteSpan;
         }
 
         /// <inheritdoc/>
-        public byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+        public readonly byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
             if (!this.isDithering)
             {
@@ -177,16 +161,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (this.isDisposed)
+            if (!this.isDisposed)
             {
-                return;
+                this.isDisposed = true;
+                this.moments?.Dispose();
+                this.tag?.Dispose();
+                this.palette?.Dispose();
+                this.moments = null;
+                this.tag = null;
+                this.palette = null;
             }
-
-            this.isDisposed = true;
-            this.moments?.Dispose();
-            this.tag?.Dispose();
-            this.moments = null;
-            this.tag = null;
         }
 
         /// <summary>

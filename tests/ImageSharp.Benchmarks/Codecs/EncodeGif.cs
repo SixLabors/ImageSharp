@@ -21,6 +21,12 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         private SDImage bmpDrawing;
         private Image<Rgba32> bmpCore;
 
+        // Try to get as close to System.Drawing's output as possible
+        private readonly GifEncoder encoder = new GifEncoder
+        {
+            Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
+        };
+
         [GlobalSetup]
         public void ReadImages()
         {
@@ -53,15 +59,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [Benchmark(Description = "ImageSharp Gif")]
         public void GifCore()
         {
-            // Try to get as close to System.Drawing's output as possible
-            var options = new GifEncoder
-            {
-                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
-            };
-
             using (var memoryStream = new MemoryStream())
             {
-                this.bmpCore.SaveAsGif(memoryStream, options);
+                this.bmpCore.SaveAsGif(memoryStream, this.encoder);
             }
         }
     }

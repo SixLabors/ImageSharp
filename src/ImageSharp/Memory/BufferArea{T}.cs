@@ -79,8 +79,12 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <returns>The reference to the [0,0] element</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T GetReferenceToOrigin() =>
-            ref this.GetRowSpan(0)[0];
+        public ref T GetReferenceToOrigin()
+        {
+            int y = this.Rectangle.Y;
+            int x = this.Rectangle.X;
+            return ref this.DestinationBuffer.GetRowSpan(y)[x];
+        }
 
         /// <summary>
         /// Gets a span to row 'y' inside this area.
@@ -90,11 +94,11 @@ namespace SixLabors.ImageSharp.Memory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<T> GetRowSpan(int y)
         {
-            int yy = this.GetRowIndex(y);
+            int yy = this.Rectangle.Y + y;
             int xx = this.Rectangle.X;
             int width = this.Rectangle.Width;
 
-            return this.DestinationBuffer.FastMemoryGroup.GetBoundedSlice(yy + xx, width).Span;
+            return this.DestinationBuffer.GetRowSpan(yy).Slice(xx, width);
         }
 
         /// <summary>
@@ -127,12 +131,6 @@ namespace SixLabors.ImageSharp.Memory
             int y = this.Rectangle.Y + rectangle.Y;
             rectangle = new Rectangle(x, y, rectangle.Width, rectangle.Height);
             return new BufferArea<T>(this.DestinationBuffer, rectangle);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal int GetRowIndex(int y)
-        {
-            return (y + this.Rectangle.Y) * this.DestinationBuffer.Width;
         }
 
         public void Clear()

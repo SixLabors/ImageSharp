@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             // JpegColorConverter.FromYCbCrSimdAvx2.LogPlz = s => this.Output.WriteLine(s);
             ValidateRgbToYCbCrConversion(
-                new JpegColorConverter.FromYCbCrSimdAvx2(8),
+                new JpegColorConverter.FromYCbCrSimdVector8(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,

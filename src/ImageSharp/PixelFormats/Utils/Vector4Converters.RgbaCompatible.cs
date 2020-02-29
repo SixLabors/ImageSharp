@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                     return int.MaxValue;
                 }
 
-                return SimdUtils.ExtendedIntrinsics.IsAvailable && SimdUtils.IsAvx2CompatibleArchitecture ? 256 : 128;
+                return SimdUtils.ExtendedIntrinsics.IsAvailable && SimdUtils.HasVector8 ? 256 : 128;
             }
         }
     }

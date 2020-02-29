@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private bool SkipOnNonAvx2Runner()
         {
-            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            if (!SimdUtils.HasVector8)
             {
                 this.Output.WriteLine("AVX2 not supported, skipping!");
                 return true;
@@ -257,7 +257,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             expected.RoundInplace();
 
             Block8x8F actual = source;
-            actual.NormalizeColorsAndRoundInplaceAvx2(255);
+            actual.NormalizeColorsAndRoundInplaceVector8(255);
 
             this.Output.WriteLine(expected.ToString());
             this.Output.WriteLine(actual.ToString());

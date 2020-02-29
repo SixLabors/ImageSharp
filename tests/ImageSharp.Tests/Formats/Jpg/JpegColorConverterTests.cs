@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromYCbCrSimdAvx2(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            if (!SimdUtils.HasVector8)
             {
                 this.Output.WriteLine("No AVX2 present, skipping test!");
                 return;

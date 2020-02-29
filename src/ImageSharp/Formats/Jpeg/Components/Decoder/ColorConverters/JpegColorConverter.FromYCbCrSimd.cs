@@ -90,15 +90,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     if (Vector<float>.Count == 4)
                     {
                         // TODO: Find a way to properly run & test this path on AVX2 PC-s! (Have I already mentioned that Vector<T> is terrible?)
-                        r.RoundAndDownscalePreAvx2(maxValue);
-                        g.RoundAndDownscalePreAvx2(maxValue);
-                        b.RoundAndDownscalePreAvx2(maxValue);
+                        r.RoundAndDownscalePreVector8(maxValue);
+                        g.RoundAndDownscalePreVector8(maxValue);
+                        b.RoundAndDownscalePreVector8(maxValue);
                     }
-                    else if (SimdUtils.IsAvx2CompatibleArchitecture)
+                    else if (SimdUtils.HasVector8)
                     {
-                        r.RoundAndDownscaleAvx2(maxValue);
-                        g.RoundAndDownscaleAvx2(maxValue);
-                        b.RoundAndDownscaleAvx2(maxValue);
+                        r.RoundAndDownscaleVector8(maxValue);
+                        g.RoundAndDownscaleVector8(maxValue);
+                        b.RoundAndDownscaleVector8(maxValue);
                     }
                     else
                     {

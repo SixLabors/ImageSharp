@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         [GlobalSetup]
         public void Setup()
         {
-            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            if (!SimdUtils.HasVector8)
             {
                 throw new InvalidOperationException("Benchmark Block8x8F_CopyTo1x1 is invalid on platforms without AVX2 support.");
             }

@@ -30,12 +30,12 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
             { TestImages.Jpeg.BenchmarkSuite.Jpeg400_SmallMonochrome, 20 },
             { TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr, 20 },
             { TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr, 40 },
-            // TestImages.Jpeg.BenchmarkSuite.MissingFF00ProgressiveBedroom159_MidSize420YCbCr,
-            // TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,
+            // { TestImages.Jpeg.BenchmarkSuite.MissingFF00ProgressiveBedroom159_MidSize420YCbCr, 10 },
+            // { TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr, 5 },
             { TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr, 5 }
         };
 
-        [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
+        [Theory]
         [MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg(string fileName, int executionCount)
         {

@@ -79,6 +79,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             var blockPp = new JpegBlockPostProcessor(this.ImagePostProcessor.RawJpeg, this.Component);
             float maximumValue = MathF.Pow(2, this.ImagePostProcessor.RawJpeg.Precision) - 1;
 
+            int destAreaStride = this.ColorBuffer.Width;
+
             for (int y = 0; y < this.BlockRowsPerStep; y++)
             {
                 int yBlock = this.currentComponentRowInBlocks + y;
@@ -90,22 +92,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 int yBuffer = y * this.blockAreaSize.Height;
 
+                Span<float> colorBufferRow = this.ColorBuffer.GetRowSpan(yBuffer);
                 Span<Block8x8> blockRow = this.Component.SpectralBlocks.GetRowSpan(yBlock);
-
-                ref Block8x8 blockRowBase = ref MemoryMarshal.GetReference(blockRow);
 
                 for (int xBlock = 0; xBlock < this.SizeInBlocks.Width; xBlock++)
                 {
-                    ref Block8x8 block = ref Unsafe.Add(ref blockRowBase, xBlock);
+                    ref Block8x8 block = ref blockRow[xBlock];
                     int xBuffer = xBlock * this.blockAreaSize.Width;
+                    ref float destAreaOrigin = ref colorBufferRow[xBuffer];
 
-                    BufferArea<float> destArea = this.ColorBuffer.GetArea(
-                        xBuffer,
-                        yBuffer,
-                        this.blockAreaSize.Width,
-                        this.blockAreaSize.Height);
-
-                    blockPp.ProcessBlockColorsInto(ref block, destArea, maximumValue);
+                    blockPp.ProcessBlockColorsInto(ref block, ref destAreaOrigin, destAreaStride, maximumValue);
                 }
             }
 

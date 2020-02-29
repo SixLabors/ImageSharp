@@ -17,27 +17,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         public void CopyTo(in BufferArea<float> area, int horizontalScale, int verticalScale)
         {
+            ref float areaOrigin = ref area.GetReferenceToOrigin();
+            this.CopyTo(ref areaOrigin, area.Stride, horizontalScale, verticalScale);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void CopyTo(ref float areaOrigin, int areaStride, int horizontalScale, int verticalScale)
+        {
             if (horizontalScale == 1 && verticalScale == 1)
             {
-                this.Copy1x1Scale(area);
+                this.Copy1x1Scale(ref areaOrigin, areaStride);
                 return;
             }
 
             if (horizontalScale == 2 && verticalScale == 2)
             {
-                this.Copy2x2Scale(area);
+                this.Copy2x2Scale(ref areaOrigin, areaStride);
                 return;
             }
 
             // TODO: Optimize: implement all cases with scale-specific, loopless code!
-            this.CopyArbitraryScale(area, horizontalScale, verticalScale);
+            this.CopyArbitraryScale(ref areaOrigin, areaStride, horizontalScale, verticalScale);
         }
 
-        public void Copy1x1Scale(in BufferArea<float> destination)
+        public void Copy1x1Scale(ref float areaOrigin, int areaStride)
         {
             ref byte selfBase = ref Unsafe.As<Block8x8F, byte>(ref this);
-            ref byte destBase = ref Unsafe.As<float, byte>(ref destination.GetReferenceToOrigin());
-            int destStride = destination.Stride * sizeof(float);
+            ref byte destBase = ref Unsafe.As<float, byte>(ref areaOrigin);
+            int destStride = areaStride * sizeof(float);
 
             CopyRowImpl(ref selfBase, ref destBase, destStride, 0);
             CopyRowImpl(ref selfBase, ref destBase, destStride, 1);
@@ -57,10 +64,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             Unsafe.CopyBlock(ref d, ref s, 8 * sizeof(float));
         }
 
-        private void Copy2x2Scale(in BufferArea<float> area)
+        private void Copy2x2Scale(ref float areaOrigin, int areaStride)
         {
-            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref area.GetReferenceToOrigin());
-            int destStride = area.Stride / 2;
+            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref areaOrigin);
+            int destStride = areaStride / 2;
 
             this.WidenCopyRowImpl2x2(ref destBase, 0, destStride);
             this.WidenCopyRowImpl2x2(ref destBase, 1, destStride);
@@ -110,10 +117,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         [MethodImpl(InliningOptions.ColdPath)]
-        private void CopyArbitraryScale(BufferArea<float> area, int horizontalScale, int verticalScale)
+        private void CopyArbitraryScale(ref float areaOrigin, int areaStride, int horizontalScale, int verticalScale)
         {
-            ref float destBase = ref area.GetReferenceToOrigin();
-
             for (int y = 0; y < 8; y++)
             {
                 int yy = y * verticalScale;
@@ -127,12 +132,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                     for (int i = 0; i < verticalScale; i++)
                     {
-                        int baseIdx = ((yy + i) * area.Stride) + xx;
+                        int baseIdx = ((yy + i) * areaStride) + xx;
 
                         for (int j = 0; j < horizontalScale; j++)
                         {
                             // area[xx + j, yy + i] = value;
-                            Unsafe.Add(ref destBase, baseIdx + j) = value;
+                            Unsafe.Add(ref areaOrigin, baseIdx + j) = value;
                         }
                     }
                 }

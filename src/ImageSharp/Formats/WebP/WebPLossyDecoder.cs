@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Paragraph 9.6: Dequantization Indices.
             this.ParseDequantizationIndices(decoder);
 
-            // Ignore the value of update_proba
+            // Ignore the value of update probabilities.
             this.bitReader.ReadBool();
 
             // Paragraph 13.4: Parse probabilities.
@@ -475,7 +475,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void DoFilter(Vp8Decoder dec, int mbx, int mby)
         {
             int yBps = dec.CacheYStride;
-            Vp8FilterInfo filterInfo = dec.FilterInfo[dec.MbX];
+            Vp8FilterInfo filterInfo = dec.FilterInfo[mbx];
             int iLevel = filterInfo.InnerLevel;
             int limit = filterInfo.Limit;
 

@@ -234,7 +234,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 int baseLevel;
 
-                // First, compute the initial level
+                // First, compute the initial level.
                 if (this.SegmentHeader.UseSegment)
                 {
                     baseLevel = this.SegmentHeader.FilterStrength[s];
@@ -296,7 +296,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         info.Limit = 0;  // no filtering.
                     }
 
-                    info.InnerLevel = (byte)i4x4;
+                    info.UseInnerFiltering = (byte)i4x4;
                 }
             }
         }

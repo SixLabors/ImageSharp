@@ -38,6 +38,14 @@ namespace SixLabors.ImageSharp.Benchmarks
             }
         }
 
+        public class ShortCore31 : Config
+        {
+            public ShortCore31()
+            {
+                this.Add(Job.Default.With(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3));
+            }
+        }
+
 #if Windows_NT
         private bool IsElevated
         {

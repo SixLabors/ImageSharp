@@ -6,6 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Tuples;
 
 using Xunit;
@@ -276,6 +277,24 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected1, actual1);
             Assert.Equal(expected2, actual2);
         }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+
+        [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy32))]
+        public void Avx2_BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        {
+            if (!System.Runtime.Intrinsics.X86.Avx2.IsSupported)
+            {
+                return;
+            }
+
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+                count,
+                (s, d) => SimdUtils.Avx2Intrinsics.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span));
+        }
+
+#endif
 
         [Theory]
         [MemberData(nameof(ArbitraryArraySizes))]

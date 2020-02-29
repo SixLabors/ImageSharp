@@ -27,11 +27,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private const float ProgressiveTolerance = 0.2F / 100;
 
-        static JpegDecoderTests()
-        {
-            TestEnvironment.PrepareRemoteExecutor();
-        }
-
         private static ImageComparer GetImageComparer<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

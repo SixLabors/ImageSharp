@@ -18,6 +18,13 @@ namespace SixLabors.ImageSharp.Tests
 
         protected readonly PixelTypes PixelTypes;
 
+        static ImageDataAttributeBase()
+        {
+            // ImageDataAttributes are used in almost all tests, thus a good place to enforce the execution of
+            // TestEnvironment static constructor before anything else is done.
+            TestEnvironment.EnsureSharedInitializersDone();
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageDataAttributeBase"/> class.
         /// </summary>

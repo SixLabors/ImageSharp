@@ -339,7 +339,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             using IFrameQuantizer<TPixel> quantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration);
             using QuantizedFrame<TPixel> quantized = quantizer.QuantizeFrame(image, image.Bounds());
 
-            ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
+            ReadOnlySpan<TPixel> quantizedColors = quantized.Palette;
             var color = default(Rgba32);
 
             // TODO: Use bulk conversion here for better perf

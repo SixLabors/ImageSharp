@@ -203,7 +203,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             private readonly ImageFrame<TPixel> source;
             private readonly QuantizedFrame<TPixel> destination;
             private readonly Rectangle bounds;
-            private readonly ReadOnlyMemory<TPixel> palette;
             private readonly int bitDepth;
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -219,14 +218,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 this.source = source;
                 this.destination = destination;
                 this.bounds = bounds;
-                this.palette = destination.Palette;
-                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(destination.Palette.Span.Length);
+                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(destination.Palette.Length);
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)
             {
-                ReadOnlySpan<TPixel> paletteSpan = this.palette.Span;
+                ReadOnlySpan<TPixel> paletteSpan = this.destination.Palette;
                 int offsetY = this.bounds.Top;
                 int offsetX = this.bounds.Left;
                 float scale = this.quantizer.Options.DitherScale;

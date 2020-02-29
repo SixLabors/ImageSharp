@@ -38,8 +38,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="source">The source image frame.</param>
         /// <param name="bounds">The region of interest bounds.</param>
-        /// <returns>The <see cref="ReadOnlyMemory{TPixel}"/> palette.</returns>
-        ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds);
+        /// <returns>The <see cref="ReadOnlySpan{TPixel}"/> palette.</returns>
+        ReadOnlySpan<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds);
 
         /// <summary>
         /// Returns the index and color from the quantized palette corresponding to the given color.
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="palette">The output color palette.</param>
         /// <param name="match">The matched color.</param>
         /// <returns>The <see cref="byte"/> index.</returns>
-        public byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match);
+        byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match);
 
         // TODO: Enable bulk operations.
         // void GetQuantizedColors(ReadOnlySpan<TPixel> colors, ReadOnlySpan<TPixel> palette, Span<byte> indices, Span<TPixel> matches);

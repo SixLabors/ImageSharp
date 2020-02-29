@@ -443,13 +443,29 @@ namespace SixLabors.ImageSharp.Tests
                 // Lossy images with a simple filter.
                 public const string SimpleFilter01 = "WebP/segment01.webp";
                 public const string SimpleFilter02 = "WebP/segment02.webp";
+                public const string SimpleFilter03 = "WebP/vp80-00-comprehensive-003.webp";
+                public const string SimpleFilter04 = "WebP/vp80-00-comprehensive-007.webp";
+                public const string SimpleFilter05 = "WebP/test-nostrong.webp";
 
-                // Losyy images with a complex filter.
+                // Lossy images with a complex filter.
                 public const string IccpComplexFilter = "WebP/lossy_iccp.webp";
                 public const string VeryShort = "WebP/very_short.webp";
                 public const string BikeComplexFilter = "WebP/bike_lossy_complex_filter.webp";
                 public const string ComplexFilter01 = "WebP/vp80-02-inter-1418.webp";
                 public const string ComplexFilter02 = "WebP/vp80-02-inter-1418.webp";
+                public const string ComplexFilter03 = "WebP/vp80-00-comprehensive-002.webp";
+                public const string ComplexFilter04 = "WebP/vp80-00-comprehensive-006.webp";
+                public const string ComplexFilter05 = "WebP/vp80-00-comprehensive-009.webp";
+                public const string ComplexFilter06 = "WebP/vp80-00-comprehensive-012.webp";
+                public const string ComplexFilter07 = "WebP/vp80-00-comprehensive-015.webp";
+                public const string ComplexFilter08 = "WebP/vp80-00-comprehensive-016.webp";
+                public const string ComplexFilter09 = "WebP/vp80-00-comprehensive-017.webp";
+
+                // Very small images (all with complex filter).
+                public const string Small01 = "WebP/small_13x1.webp";
+                public const string Small02 = "WebP/small_1x1.webp";
+                public const string Small03 = "WebP/small_1x13.webp";
+                public const string Small04 = "WebP/small_31x13.webp";
 
                 // Lossy images with an alpha channel.
                 public const string Alpha1 = "WebP/lossy_alpha1.webp";
@@ -457,6 +473,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Alpha3 = "WebP/lossy_alpha3.webp";
                 public const string Alpha4 = "WebP/lossy_alpha4.webp";
                 public const string AlphaNoCompression = "WebP/alpha_no_compression.webp";
+
             }
 
             public static readonly string[] All =

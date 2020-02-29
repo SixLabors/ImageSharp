@@ -596,7 +596,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             for (int k = 3; k > 0; --k)
             {
-                offset += stride;
+                offset += 4;
                 SimpleHFilter16(p, offset, stride, thresh);
             }
         }
@@ -781,7 +781,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int q0 = p[offset];
             int q1 = p[offset + step];
             int q2 = p[offset + (2 * step)];
-            int a = Vp8LookupTables.Clip1[(3 * (q0 - p0)) + Vp8LookupTables.Clip1[p1 - q1]];
+            int a = Vp8LookupTables.Sclip1[(3 * (q0 - p0)) + Vp8LookupTables.Sclip1[p1 - q1]];
 
             // a is in [-128,127], a1 in [-27,27], a2 in [-18,18] and a3 in [-9,9]
             int a1 = ((27 * a) + 63) >> 7;  // eq. to ((3 * a + 7) * 9) >> 7
@@ -795,13 +795,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             p[offset + (2 * step)] = Vp8LookupTables.Clip1[q2 - a3];
         }
 
-        private static bool NeedsFilter(byte[] p, int offset, int step, int thresh)
+        private static bool NeedsFilter(byte[] p, int offset, int step, int t)
         {
             int p1 = p[offset + (-2 * step)];
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            return (Vp8LookupTables.Abs0[p1 - p0] > thresh) || (Vp8LookupTables.Abs0[q1 - q0] > thresh);
+            return ((4 * Vp8LookupTables.Abs0[p0 - q0]) + Vp8LookupTables.Abs0[p1 - q1]) <= t;
         }
 
         private static bool NeedsFilter2(byte[] p, int offset, int step, int t, int it)

@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private bool SkipOnNonAvx2([CallerMemberName] string testCaseName = null)
         {
-            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            if (!SimdUtils.HasVector8)
             {
                 this.Output.WriteLine("Skipping AVX2 specific test case: " + testCaseName);
                 return true;

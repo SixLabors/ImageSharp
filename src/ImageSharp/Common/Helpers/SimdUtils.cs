@@ -15,9 +15,10 @@ namespace SixLabors.ImageSharp
     internal static partial class SimdUtils
     {
         /// <summary>
-        /// Gets a value indicating whether the code is being executed on AVX2 CPU where both float and integer registers are of size 256 byte.
+        /// Gets a value indicating whether <see cref="Vector{T}"/> code is being JIT-ed to AVX2 instructions
+        /// where both float and integer registers are of size 256 byte.
         /// </summary>
-        public static bool IsAvx2CompatibleArchitecture { get; } =
+        public static bool HasVector8 { get; } =
             Vector.IsHardwareAccelerated && Vector<float>.Count == 8 && Vector<int>.Count == 8;
 
         /// <summary>
@@ -151,9 +152,9 @@ namespace SixLabors.ImageSharp
         private static byte ConvertToByte(float f) => (byte)ComparableExtensions.Clamp((f * 255f) + 0.5f, 0, 255f);
 
         [Conditional("DEBUG")]
-        private static void VerifyIsAvx2Compatible(string operation)
+        private static void VerifyHasVector8(string operation)
         {
-            if (!IsAvx2CompatibleArchitecture)
+            if (!HasVector8)
             {
                 throw new NotSupportedException($"{operation} is supported only on AVX2 CPU!");
             }

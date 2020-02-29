@@ -471,9 +471,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         public void NormalizeColorsAndRoundInplace(float maximum)
         {
-            if (SimdUtils.IsAvx2CompatibleArchitecture)
+            if (SimdUtils.HasVector8)
             {
-                this.NormalizeColorsAndRoundInplaceAvx2(maximum);
+                this.NormalizeColorsAndRoundInplaceVector8(maximum);
             }
             else
             {
@@ -497,7 +497,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public void LoadFrom(ref Block8x8 source)
         {
 #if SUPPORTS_EXTENDED_INTRINSICS
-            if (SimdUtils.IsAvx2CompatibleArchitecture)
+            if (SimdUtils.HasVector8)
             {
                 this.LoadFromInt16ExtendedAvx2(ref source);
                 return;
@@ -513,7 +513,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public void LoadFromInt16ExtendedAvx2(ref Block8x8 source)
         {
             DebugGuard.IsTrue(
-                SimdUtils.IsAvx2CompatibleArchitecture,
+                SimdUtils.HasVector8,
                 "LoadFromUInt16ExtendedAvx2 only works on AVX2 compatible architecture!");
 
             ref Vector<short> sRef = ref Unsafe.As<Block8x8, Vector<short>>(ref source);

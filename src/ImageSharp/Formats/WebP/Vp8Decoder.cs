@@ -50,12 +50,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint height = pictureHeader.Height;
 
             // TODO: use memory allocator
-            this.CacheY = new byte[width * height]; // TODO: this is way too much mem, figure out what the min req is.
-            this.CacheU = new byte[width * height];
-            this.CacheV = new byte[width * height];
-            this.TmpYBuffer = new byte[width * height]; // TODO: figure out min buffer length
-            this.TmpUBuffer = new byte[width * height]; // TODO: figure out min buffer length
-            this.TmpVBuffer = new byte[width * height]; // TODO: figure out min buffer length
+            int extraRows = WebPConstants.FilterExtraRows[2]; // TODO: assuming worst case: complex filter
+            int extraY = extraRows * this.CacheYStride;
+            int extraUv = (extraRows / 2) * this.CacheUvStride;
+            this.CacheY = new byte[width * height + extraY + 256]; // TODO: this is way too much mem, figure out what the min req is.
+            this.CacheU = new byte[width * height + extraUv + 256];
+            this.CacheV = new byte[width * height + extraUv + 256];
+            this.TmpYBuffer = new byte[width * height + extraY]; // TODO: figure out min buffer length
+            this.TmpUBuffer = new byte[width * height + extraUv]; // TODO: figure out min buffer length
+            this.TmpVBuffer = new byte[width * height + extraUv]; // TODO: figure out min buffer length
             this.Bgr = new byte[width * height * 4];
 
             for (int i = 0; i < this.YuvBuffer.Length; i++)
@@ -66,6 +69,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             for (int i = 0; i < this.CacheY.Length; i++)
             {
                 this.CacheY[i] = 205;
+            }
+
+            for (int i = 0; i < this.CacheU.Length; i++)
+            {
                 this.CacheU[i] = 205;
                 this.CacheV[i] = 205;
             }
@@ -82,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Vp8SegmentHeader SegmentHeader { get; }
 
         // number of partitions minus one.
-        public uint NumPartsMinusOne { get; }
+        public int NumPartsMinusOne { get; set; }
 
         // per-partition boolean decoders.
         public Vp8BitReader[] Vp8BitReaders { get; }

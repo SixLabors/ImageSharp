@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 float ditherScale)
             {
                 this.Configuration = configuration;
-                this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
+                this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
                 this.Palette = palette;
                 this.DitherScale = ditherScale;
             }

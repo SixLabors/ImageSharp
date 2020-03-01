@@ -10,11 +10,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     public class WebSafePaletteQuantizer : PaletteQuantizer
     {
+        private static readonly QuantizerOptions DefaultOptions = new QuantizerOptions();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSafePaletteQuantizer" /> class.
         /// </summary>
         public WebSafePaletteQuantizer()
-            : this(new QuantizerOptions())
+            : this(DefaultOptions)
         {
         }
 

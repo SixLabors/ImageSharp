@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 for (int x = bounds.Left; x < bounds.Right; x++)
                 {
                     TPixel sourcePixel = row[x];
-                    TPixel transformed = processor.GetPaletteColor(sourcePixel, palette);
+                    TPixel transformed = Unsafe.AsRef(processor).GetPaletteColor(sourcePixel, palette);
                     this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
                     row[x] = transformed;
                 }

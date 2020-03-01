@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
-        /// Gets the configration instance to use when performing operations.
+        /// Gets the configuration instance to use when performing operations.
         /// </summary>
-        public Configuration Configuration { get; }
+        Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the dithering palette.

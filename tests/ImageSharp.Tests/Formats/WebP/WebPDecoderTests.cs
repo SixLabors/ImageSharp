@@ -49,10 +49,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [WithFile(Lossy.NoFilter03, PixelTypes.Rgba32)]
         [WithFile(Lossy.NoFilter04, PixelTypes.Rgba32)]
         [WithFile(Lossy.NoFilter05, PixelTypes.Rgba32)]
-        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32)]
-        [WithFile(Lossy.NoFilter07, PixelTypes.Rgba32)]
-        [WithFile(Lossy.NoFilter08, PixelTypes.Rgba32)]
-        [WithFile(Lossy.NoFilter09, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SegmentationNoFilter01, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SegmentationNoFilter02, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SegmentationNoFilter03, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossy_WithoutFilter<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
@@ -80,6 +79,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         }
 
         [Theory]
+        [WithFile(Lossy.IccpComplexFilter, PixelTypes.Rgba32)]
+        [WithFile(Lossy.VeryShort, PixelTypes.Rgba32)]
+        [WithFile(Lossy.BikeComplexFilter, PixelTypes.Rgba32)]
+        [WithFile(Lossy.ComplexFilter01, PixelTypes.Rgba32)]
+        [WithFile(Lossy.ComplexFilter02, PixelTypes.Rgba32)]
+        [WithFile(Lossy.ComplexFilter03, PixelTypes.Rgba32)]
+        [WithFile(Lossy.ComplexFilter04, PixelTypes.Rgba32)]
+        [WithFile(Lossy.ComplexFilter05, PixelTypes.Rgba32)]
+        [WithFile(Lossy.ComplexFilter06, PixelTypes.Rgba32)]
+        [WithFile(Lossy.ComplexFilter07, PixelTypes.Rgba32)]
+        [WithFile(Lossy.ComplexFilter08, PixelTypes.Rgba32)]
+        [WithFile(Lossy.ComplexFilter09, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossy_WithComplexFilter<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        [Theory]
         [WithFile(Lossy.Small01, PixelTypes.Rgba32)]
         [WithFile(Lossy.Small02, PixelTypes.Rgba32)]
         [WithFile(Lossy.Small03, PixelTypes.Rgba32)]
@@ -95,17 +117,46 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         }
 
         [Theory]
-        [WithFile(Lossy.IccpComplexFilter, PixelTypes.Rgba32)]
-        [WithFile(Lossy.VeryShort, PixelTypes.Rgba32)]
-        [WithFile(Lossy.BikeComplexFilter, PixelTypes.Rgba32)]
-        [WithFile(Lossy.ComplexFilter01, PixelTypes.Rgba32)]
-        [WithFile(Lossy.ComplexFilter02, PixelTypes.Rgba32)]
-        [WithFile(Lossy.ComplexFilter03, PixelTypes.Rgba32)]
-        [WithFile(Lossy.ComplexFilter04, PixelTypes.Rgba32)]
-        [WithFile(Lossy.ComplexFilter05, PixelTypes.Rgba32)]
-        [WithFile(Lossy.ComplexFilter06, PixelTypes.Rgba32)]
-        [WithFile(Lossy.ComplexFilter07, PixelTypes.Rgba32)]
-        public void WebpDecoder_CanDecode_Lossy_WithComplexFilter<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(Lossy.SegmentationNoFilter04, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SegmentationNoFilter05, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SegmentationNoFilter06, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SegmentationComplexFilter01, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SegmentationComplexFilter02, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SegmentationComplexFilter03, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SegmentationComplexFilter04, PixelTypes.Rgba32)]
+        [WithFile(Lossy.SegmentationComplexFilter05, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossy_WithPartitions<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossy.Partitions01, PixelTypes.Rgba32)]
+        [WithFile(Lossy.Partitions02, PixelTypes.Rgba32)]
+        [WithFile(Lossy.Partitions03, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossy_WithSegmentation<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : struct, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
+            }
+        }
+
+        [Theory]
+        [WithFile(Lossy.Sharpness01, PixelTypes.Rgba32)]
+        [WithFile(Lossy.Sharpness02, PixelTypes.Rgba32)]
+        [WithFile(Lossy.Sharpness03, PixelTypes.Rgba32)]
+        [WithFile(Lossy.Sharpness04, PixelTypes.Rgba32)]
+        [WithFile(Lossy.Sharpness05, PixelTypes.Rgba32)]
+        [WithFile(Lossy.Sharpness06, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Lossy_WithSharpnessLevel<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(WebpDecoder))

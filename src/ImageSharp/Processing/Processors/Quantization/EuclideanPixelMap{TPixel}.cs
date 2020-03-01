@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
@@ -17,27 +18,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     internal readonly struct EuclideanPixelMap<TPixel> : IPixelMap<TPixel>, IEquatable<EuclideanPixelMap<TPixel>>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly ConcurrentDictionary<int, Vector4> vectorCache;
+        private readonly Vector4[] vectorCache;
         private readonly ConcurrentDictionary<TPixel, int> distanceCache;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EuclideanPixelMap{TPixel}"/> struct.
         /// </summary>
+        /// <param name="configuration">The configuration.</param>
         /// <param name="palette">The color palette to map from.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public EuclideanPixelMap(ReadOnlyMemory<TPixel> palette)
+        public EuclideanPixelMap(Configuration configuration, ReadOnlyMemory<TPixel> palette)
         {
             Guard.MustBeGreaterThan(palette.Length, 0, nameof(palette));
 
             this.Palette = palette;
             ReadOnlySpan<TPixel> paletteSpan = this.Palette.Span;
-            this.vectorCache = new ConcurrentDictionary<int, Vector4>();
+            this.vectorCache = new Vector4[paletteSpan.Length];
             this.distanceCache = new ConcurrentDictionary<TPixel, int>();
 
-            for (int i = 0; i < paletteSpan.Length; i++)
-            {
-                this.vectorCache[i] = paletteSpan[i].ToScaledVector4();
-            }
+            PixelOperations<TPixel>.Instance.ToVector4(configuration, paletteSpan, this.vectorCache);
         }
 
         /// <inheritdoc/>
@@ -81,31 +80,32 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             int index = 0;
             float leastDistance = float.MaxValue;
             Vector4 vector = color.ToScaledVector4();
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(palette);
+            ref Vector4 vectorCacheRef = ref MemoryMarshal.GetReference<Vector4>(this.vectorCache);
 
             for (int i = 0; i < palette.Length; i++)
             {
-                Vector4 candidate = this.vectorCache[i];
+                Vector4 candidate = Unsafe.Add(ref vectorCacheRef, i);
                 float distance = Vector4.DistanceSquared(vector, candidate);
 
-                if (!(distance < leastDistance))
-                {
-                    continue;
-                }
-
-                // Less than... assign.
-                index = i;
-                leastDistance = distance;
-
-                // And if it's an exact match, exit the loop
+                // If it's an exact match, exit the loop
                 if (distance == 0)
                 {
+                    index = i;
                     break;
+                }
+
+                if (distance < leastDistance)
+                {
+                    // Less than... assign.
+                    index = i;
+                    leastDistance = distance;
                 }
             }
 
             // Now I have the index, pop it into the cache for next time
             this.distanceCache[color] = index;
-            match = palette[index];
+            match = Unsafe.Add(ref paletteRef, index);
             return index;
         }
     }

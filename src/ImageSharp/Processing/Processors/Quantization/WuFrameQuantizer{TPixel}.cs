@@ -132,30 +132,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             // TODO: Cannot make methods readonly due to this line.
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.palette.Memory);
+            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, this.palette.Memory);
             return paletteSpan;
         }
 
         /// <inheritdoc/>
         public readonly byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
-            if (!this.isDithering)
+            if (this.isDithering)
             {
-                Rgba32 rgba = default;
-                color.ToRgba32(ref rgba);
-
-                int r = rgba.R >> (8 - IndexBits);
-                int g = rgba.G >> (8 - IndexBits);
-                int b = rgba.B >> (8 - IndexBits);
-                int a = rgba.A >> (8 - IndexAlphaBits);
-
-                ReadOnlySpan<byte> tagSpan = this.tag.GetSpan();
-                byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
-                match = palette[index];
-                return index;
+                return (byte)this.pixelMap.GetClosestColor(color, out match);
             }
 
-            return (byte)this.pixelMap.GetClosestColor(color, out match);
+            Rgba32 rgba = default;
+            color.ToRgba32(ref rgba);
+
+            int r = rgba.R >> (8 - IndexBits);
+            int g = rgba.G >> (8 - IndexBits);
+            int b = rgba.B >> (8 - IndexBits);
+            int a = rgba.A >> (8 - IndexAlphaBits);
+
+            ReadOnlySpan<byte> tagSpan = this.tag.GetSpan();
+            byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
+            match = palette[index];
+            return index;
         }
 
         /// <inheritdoc/>
@@ -376,11 +376,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Converts the histogram into moments so that we can rapidly calculate the sums of the above quantities over any desired box.
         /// </summary>
-        /// <param name="memoryAllocator">The memory allocator used for allocating buffers.</param>
-        private void Get3DMoments(MemoryAllocator memoryAllocator)
+        /// <param name="allocator">The memory allocator used for allocating buffers.</param>
+        private void Get3DMoments(MemoryAllocator allocator)
         {
-            using IMemoryOwner<Moment> volume = memoryAllocator.Allocate<Moment>(IndexCount * IndexAlphaCount);
-            using IMemoryOwner<Moment> area = memoryAllocator.Allocate<Moment>(IndexAlphaCount);
+            using IMemoryOwner<Moment> volume = allocator.Allocate<Moment>(IndexCount * IndexAlphaCount);
+            using IMemoryOwner<Moment> area = allocator.Allocate<Moment>(IndexAlphaCount);
 
             Span<Moment> momentSpan = this.moments.GetSpan();
             Span<Moment> volumeSpan = volume.GetSpan();

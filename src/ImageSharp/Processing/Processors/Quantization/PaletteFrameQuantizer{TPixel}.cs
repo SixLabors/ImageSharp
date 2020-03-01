@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(maxLength);
             Color.ToPixel(configuration, colors, this.paletteOwner.GetSpan());
 
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.paletteOwner.Memory);
+            this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, this.paletteOwner.Memory);
             this.isDisposed = false;
         }
 
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(maxLength);
             palette.CopyTo(this.paletteOwner.GetSpan());
 
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.paletteOwner.Memory);
+            this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, this.paletteOwner.Memory);
             this.isDisposed = false;
         }
 

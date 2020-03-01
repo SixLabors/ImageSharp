@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
                         TPixel dithered = this.dither.Dither(sourceRow[x], x, y, this.bitDepth, scale);
-                        destinationRow[x - offsetX] = this.quantizer.GetQuantizedColor(dithered, paletteSpan, out TPixel _);
+                        destinationRow[x - offsetX] = Unsafe.AsRef(this.quantizer).GetQuantizedColor(dithered, paletteSpan, out TPixel _);
                     }
                 }
             }
@@ -281,7 +281,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                     {
                         ref TPixel sourcePixel = ref row[x];
                         TPixel dithered = this.dither.Dither(sourcePixel, x, y, this.bitDepth, this.scale);
-                        sourcePixel = this.processor.GetPaletteColor(dithered, paletteSpan);
+                        sourcePixel = Unsafe.AsRef(this.processor).GetPaletteColor(dithered, paletteSpan);
                     }
                 }
             }

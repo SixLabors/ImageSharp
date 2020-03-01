@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.octree.Palletize(paletteSpan, this.colors);
 
             // TODO: Cannot make method readonly due to this line.
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.palette.Memory);
+            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, this.palette.Memory);
 
             return paletteSpan;
         }

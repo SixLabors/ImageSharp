@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        destinationRow[x - offsetX] = this.quantizer.GetQuantizedColor(sourceRow[x], paletteSpan, out TPixel _);
+                        destinationRow[x - offsetX] = Unsafe.AsRef(this.quantizer).GetQuantizedColor(sourceRow[x], paletteSpan, out TPixel _);
                     }
                 }
             }

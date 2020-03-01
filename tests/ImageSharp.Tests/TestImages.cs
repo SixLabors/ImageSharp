@@ -435,10 +435,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string NoFilter03 = "WebP/vp80-00-comprehensive-005.webp";
                 public const string NoFilter04 = "WebP/vp80-01-intra-1417.webp";
                 public const string NoFilter05 = "WebP/vp80-02-inter-1402.webp";
-                public const string NoFilter06 = "WebP/vp80-03-segmentation-1401.webp";
-                public const string NoFilter07 = "WebP/vp80-03-segmentation-1403.webp";
-                public const string NoFilter08 = "WebP/vp80-03-segmentation-1407.webp";
-                public const string NoFilter09 = "WebP/test.webp";
+                public const string NoFilter06 = "WebP/test.webp";
 
                 // Lossy images with a simple filter.
                 public const string SimpleFilter01 = "WebP/segment01.webp";
@@ -460,6 +457,32 @@ namespace SixLabors.ImageSharp.Tests
                 public const string ComplexFilter07 = "WebP/vp80-00-comprehensive-015.webp";
                 public const string ComplexFilter08 = "WebP/vp80-00-comprehensive-016.webp";
                 public const string ComplexFilter09 = "WebP/vp80-00-comprehensive-017.webp";
+
+                // Lossy with partitions.
+                public const string Partitions01 = "WebP/vp80-04-partitions-1404.webp";
+                public const string Partitions02 = "WebP/vp80-04-partitions-1405.webp";
+                public const string Partitions03 = "WebP/vp80-04-partitions-1406.webp";
+
+                // Lossy with segmentation.
+                public const string SegmentationNoFilter01 = "WebP/vp80-03-segmentation-1401.webp";
+                public const string SegmentationNoFilter02 = "WebP/vp80-03-segmentation-1403.webp";
+                public const string SegmentationNoFilter03 = "WebP/vp80-03-segmentation-1407.webp";
+                public const string SegmentationNoFilter04 = "WebP/vp80-03-segmentation-1408.webp";
+                public const string SegmentationNoFilter05 = "WebP/vp80-03-segmentation-1409.webp";
+                public const string SegmentationNoFilter06 = "WebP/vp80-03-segmentation-1410.webp";
+                public const string SegmentationComplexFilter01 = "WebP/vp80-03-segmentation-1413.webp";
+                public const string SegmentationComplexFilter02 = "WebP/vp80-03-segmentation-1425.webp";
+                public const string SegmentationComplexFilter03 = "WebP/vp80-03-segmentation-1426.webp";
+                public const string SegmentationComplexFilter04 = "WebP/vp80-03-segmentation-1427.webp";
+                public const string SegmentationComplexFilter05 = "WebP/vp80-03-segmentation-1432.webp";
+
+                // Lossy with sharpness level.
+                public const string Sharpness01 = "WebP/vp80-05-sharpness-1428.webp";
+                public const string Sharpness02 = "WebP/vp80-05-sharpness-1429.webp";
+                public const string Sharpness03 = "WebP/vp80-05-sharpness-1430.webp";
+                public const string Sharpness04 = "WebP/vp80-05-sharpness-1431.webp";
+                public const string Sharpness05 = "WebP/vp80-05-sharpness-1433.webp";
+                public const string Sharpness06 = "WebP/vp80-05-sharpness-1434.webp";
 
                 // Very small images (all with complex filter).
                 public const string Small01 = "WebP/small_13x1.webp";

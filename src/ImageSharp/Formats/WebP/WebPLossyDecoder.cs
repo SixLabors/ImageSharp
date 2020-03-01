@@ -452,13 +452,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 Span<byte> vOut = dec.CacheV.AsSpan(dec.CacheUvOffset + (mbx * 8));
                 for (int j = 0; j < 16; ++j)
                 {
-                    yDst.Slice(j * WebPConstants.Bps, 16).CopyTo(yOut.Slice(j * dec.CacheYStride));
+                    yDst.Slice(j * WebPConstants.Bps, Math.Min(16, yOut.Length)).CopyTo(yOut.Slice(j * dec.CacheYStride));
                 }
 
                 for (int j = 0; j < 8; ++j)
                 {
-                    uDst.Slice(j * WebPConstants.Bps, 8).CopyTo(uOut.Slice(j * dec.CacheUvStride));
-                    vDst.Slice(j * WebPConstants.Bps, 8).CopyTo(vOut.Slice(j * dec.CacheUvStride));
+                    uDst.Slice(j * WebPConstants.Bps, Math.Min(8, uOut.Length)).CopyTo(uOut.Slice(j * dec.CacheUvStride));
+                    vDst.Slice(j * WebPConstants.Bps, Math.Min(8, vOut.Length)).CopyTo(vOut.Slice(j * dec.CacheUvStride));
                 }
             }
         }
@@ -577,6 +577,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (!isLastRow)
             {
                 yEnd -= extraYRows;
+            }
+
+            if (yEnd > io.CropBottom)
+            {
+                yEnd = io.CropBottom; // make sure we don't overflow on last row.
             }
 
             if (yStart < yEnd)
@@ -791,7 +796,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             else
             {
                 left.NoneZeroAcDcCoeffs = macroBlock.NoneZeroAcDcCoeffs = 0;
-                if (blockData.IsI4x4)
+                if (!blockData.IsI4x4)
                 {
                     left.NoneZeroDcCoeffs = macroBlock.NoneZeroDcCoeffs = 0;
                 }
@@ -917,8 +922,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             block.NonZeroUv = nonZeroUv;
 
             // We look at the mode-code of each block and check if some blocks have less
-            // than three non-zero coeffs (code < 2). This is to avoid dithering flat and
-            // empty blocks.
+            // than three non-zero coeffs (code < 2). This is to avoid dithering flat and empty blocks.
             block.Dither = (byte)((nonZeroUv & 0xaaaa) > 0 ? 0 : q.Dither);
 
             return (nonZeroY | nonZeroUv) is 0;
@@ -1161,8 +1165,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int startIdx = (int)this.bitReader.PartitionLength;
             Span<byte> sz = this.bitReader.Data.AsSpan(startIdx);
             int sizeLeft = (int)size;
-            int numPartsMinusOne = (1 << (int)this.bitReader.ReadValue(2)) - 1;
-            int lastPart = numPartsMinusOne;
+            dec.NumPartsMinusOne = (1 << (int)this.bitReader.ReadValue(2)) - 1;
+            int lastPart = dec.NumPartsMinusOne;
 
             int partStart = startIdx + (lastPart * 3);
             sizeLeft -= lastPart * 3;

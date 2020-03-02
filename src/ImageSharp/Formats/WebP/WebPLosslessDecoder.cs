@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// The lossless specification can be found here:
     /// https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification
     /// </remarks>
-    internal sealed class WebPLosslessDecoder : WebPDecoderBase
+    internal sealed class WebPLosslessDecoder
     {
         private readonly Vp8LBitReader bitReader;
 
@@ -27,11 +27,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private static readonly uint PackedNonLiteralCode = 0;
 
-        private static readonly int NumArgbCacheRows = 16;
+        private static readonly int CodeToPlaneCodes = WebPLookupTables.CodeToPlane.Length;
 
         private static readonly int FixedTableSize = (630 * 3) + 410;
 
-        private static readonly int[] KTableSize =
+        private static readonly int[] TableSize =
         {
             FixedTableSize + 654,
             FixedTableSize + 656,
@@ -47,10 +47,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             FixedTableSize + 2704
         };
 
-        private static readonly byte[] KCodeLengthCodeOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-        private static readonly int NumCodeLengthCodes = KCodeLengthCodeOrder.Length;
+        private static readonly byte[] CodeLengthCodeOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
-        private static readonly byte[] KLiteralMap =
+        private static readonly int NumCodeLengthCodes = CodeLengthCodeOrder.Length;
+
+        private static readonly byte[] LiteralMap =
         {
             0, 1, 1, 1, 0
         };
@@ -235,7 +236,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
                 else
                 {
-                    code = (int)this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Green], this.bitReader);
+                    code = (int)this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Green]);
                 }
 
                 if (this.bitReader.IsEndOfStream())
@@ -252,10 +253,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     }
                     else
                     {
-                        uint red = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Red], this.bitReader);
+                        uint red = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Red]);
                         this.bitReader.FillBitWindow();
-                        uint blue = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Blue], this.bitReader);
-                        uint alpha = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Alpha], this.bitReader);
+                        uint blue = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Blue]);
+                        uint alpha = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Alpha]);
                         if (this.bitReader.IsEndOfStream())
                         {
                             break;
@@ -271,10 +272,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 {
                     // Backward reference is used.
                     int lengthSym = code - WebPConstants.NumLiteralCodes;
-                    int length = this.GetCopyLength(lengthSym, this.bitReader);
-                    uint distSymbol = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Dist], this.bitReader);
+                    int length = this.GetCopyLength(lengthSym);
+                    uint distSymbol = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Dist]);
                     this.bitReader.FillBitWindow();
-                    int distCode = this.GetCopyDistance((int)distSymbol, this.bitReader);
+                    int distCode = this.GetCopyDistance((int)distSymbol);
                     int dist = this.PlaneCodeToDistance(width, distCode);
                     if (this.bitReader.IsEndOfStream())
                     {
@@ -392,7 +393,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
-            int tableSize = KTableSize[colorCacheBits];
+            int tableSize = TableSize[colorCacheBits];
             var huffmanTables = new HuffmanCode[numHTreeGroups * tableSize];
             var hTreeGroups = new HTreeGroup[numHTreeGroups];
             Span<HuffmanCode> huffmanTable = huffmanTables.AsSpan();
@@ -420,7 +421,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                     hTreeGroup.HTrees.Add(huffmanTable.ToArray());
 
-                    if (isTrivialLiteral && KLiteralMap[j] == 1)
+                    if (isTrivialLiteral && LiteralMap[j] == 1)
                     {
                         isTrivialLiteral = huffmanTable[0].BitsUsed == 0;
                     }
@@ -515,7 +516,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 for (int i = 0; i < numCodes; i++)
                 {
-                    codeLengthCodeLengths[KCodeLengthCodeOrder[i]] = (int)this.bitReader.ReadValue(3);
+                    codeLengthCodeLengths[CodeLengthCodeOrder[i]] = (int)this.bitReader.ReadValue(3);
                 }
 
                 this.ReadHuffmanCodeLengths(table.ToArray(), codeLengthCodeLengths, alphabetSize, codeLengths);
@@ -748,6 +749,81 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     bits >>= this.AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Alpha][bits], 24, huff);
                 }
             }
+        }
+
+        /// <summary>
+        /// Decodes the next Huffman code from bit-stream.
+        /// FillBitWindow(br) needs to be called at minimum every second call to ReadSymbol, in order to pre-fetch enough bits.
+        /// </summary>
+        private uint ReadSymbol(Span<HuffmanCode> table)
+        {
+            // TODO: if the bitReader field is moved to this base class we could omit the parameter.
+            uint val = (uint)this.bitReader.PrefetchBits();
+            Span<HuffmanCode> tableSpan = table.Slice((int)(val & HuffmanUtils.HuffmanTableMask));
+            int nBits = tableSpan[0].BitsUsed - HuffmanUtils.HuffmanTableBits;
+            if (nBits > 0)
+            {
+                this.bitReader.AdvanceBitPosition(HuffmanUtils.HuffmanTableBits);
+                val = (uint)this.bitReader.PrefetchBits();
+                tableSpan = tableSpan.Slice((int)tableSpan[0].Value);
+                tableSpan = tableSpan.Slice((int)val & ((1 << nBits) - 1));
+            }
+
+            this.bitReader.AdvanceBitPosition(tableSpan[0].BitsUsed);
+
+            return tableSpan[0].Value;
+        }
+
+        private HTreeGroup[] GetHTreeGroupForPos(Vp8LMetadata metadata, int x, int y)
+        {
+            uint metaIndex = this.GetMetaIndex(metadata.HuffmanImage, metadata.HuffmanXSize, metadata.HuffmanSubSampleBits, x, y);
+            return metadata.HTreeGroups.AsSpan((int)metaIndex).ToArray();
+        }
+
+        private uint GetMetaIndex(IMemoryOwner<uint> huffmanImage, int xSize, int bits, int x, int y)
+        {
+            if (bits is 0)
+            {
+                return 0;
+            }
+
+            Span<uint> huffmanImageSpan = huffmanImage.GetSpan();
+            return huffmanImageSpan[(xSize * (y >> bits)) + (x >> bits)];
+        }
+
+        private int PlaneCodeToDistance(int xSize, int planeCode)
+        {
+            if (planeCode > CodeToPlaneCodes)
+            {
+                return planeCode - CodeToPlaneCodes;
+            }
+
+            int distCode = WebPLookupTables.CodeToPlane[planeCode - 1];
+            int yOffset = distCode >> 4;
+            int xOffset = 8 - (distCode & 0xf);
+            int dist = (yOffset * xSize) + xOffset;
+
+            // dist < 1 can happen if xSize is very small.
+            return (dist >= 1) ? dist : 1;
+        }
+
+        private int GetCopyDistance(int distanceSymbol)
+        {
+            if (distanceSymbol < 4)
+            {
+                return distanceSymbol + 1;
+            }
+
+            int extraBits = (distanceSymbol - 2) >> 1;
+            int offset = (2 + (distanceSymbol & 1)) << extraBits;
+
+            return (int)(offset + this.bitReader.ReadValue(extraBits) + 1);
+        }
+
+        private int GetCopyLength(int lengthSymbol)
+        {
+            // Length and distance prefixes are encoded the same way.
+            return this.GetCopyDistance(lengthSymbol);
         }
 
         private int AccumulateHCode(HuffmanCode hCode, int shift, HuffmanCode huff)

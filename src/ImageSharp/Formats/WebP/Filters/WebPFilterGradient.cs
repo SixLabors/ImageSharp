@@ -1,10 +1,12 @@
-﻿using System;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Filters
 {
     class WebPFilterGradient : WebPFilterBase
     {
-
         public override void Unfilter(
             Span<byte> prevLine,
             int? prevLineOffsetNullable,
@@ -34,9 +36,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
         }
 
         public override void Filter(
-            Span<byte> input, int inputOffset,
-            int width, int height, int stride,
-            Span<byte> output, int outputOffset)
+            Span<byte> input,
+            int inputOffset,
+            int width,
+            int height,
+            int stride,
+            Span<byte> output,
+            int outputOffset)
         {
             // calling (input, width, height, stride, 0, height, 0, output
             int row = 0;
@@ -65,20 +71,27 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
             {
                 output[outputOffset] = input[inputOffset];
                 PredictLine(
-                    input, inputOffset+1,
-                    preds, predsOffset,
-                    output, outputOffset+1,
-                    width-1,
+                    input,
+                    inputOffset + 1,
+                    preds,
+                    predsOffset,
+                    output,
+                    outputOffset + 1,
+                    width - 1,
                     inverse);
             }
 
             while (row < lastRow)
             {
                 PredictLine(
-                    input, inputOffset,
-                    preds, predsOffset-stride,
-                    output, outputOffset,
-                    1, inverse);
+                    input,
+                    inputOffset,
+                    preds,
+                    predsOffset - stride,
+                    output,
+                    outputOffset,
+                    1,
+                    inverse);
 
                 for (int w = 1; w < width; w++)
                 {

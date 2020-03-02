@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 n >>= 8;
             }
 
-            return logValue + Vp8LookupTables.LogTable8bit[n];
+            return logValue + WebPLookupTables.LogTable8bit[n];
         }
     }
 }

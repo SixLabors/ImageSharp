@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public bool IsI4x4 { get; set; }
 
         /// <summary>
-        /// Gets or sets the modes. One 16x16 mode (#0) or sixteen 4x4 modes.
+        /// Gets the modes. One 16x16 mode (#0) or sixteen 4x4 modes.
         /// </summary>
         public byte[] Modes { get; }
 
@@ -37,11 +37,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public uint NonZeroY { get; set; }
 
         public uint NonZeroUv { get; set; }
-
-        /// <summary>
-        /// Gets or sets the local dithering strength (deduced from NonZero_*).
-        /// </summary>
-        public byte Dither { get; set; }
 
         public byte Skip { get; set; }
 

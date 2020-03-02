@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -39,9 +39,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
             int width);
 
         public abstract void Filter(
-            Span<byte> input, int inputOffset,
-            int width, int height, int stride,
-            Span<byte> output, int outputOffset);
+            Span<byte> input,
+            int inputOffset,
+            int width,
+            int height,
+            int stride,
+            Span<byte> output,
+            int outputOffset);
 
         protected static void SanityCheck(
             Span<byte> input, Span<byte> output, int width, int numRows, int height, int stride, int row)
@@ -57,10 +61,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
         }
 
         protected static void PredictLine(
-            Span<byte> src, int srcOffset,
-            Span<byte> pred, int predOffset,
-            Span<byte> dst, int dstOffset,
-            int length, bool inverse)
+            Span<byte> src,
+            int srcOffset,
+            Span<byte> pred,
+            int predOffset,
+            Span<byte> dst,
+            int dstOffset,
+            int length,
+            bool inverse)
         {
             if (inverse)
             {
@@ -80,8 +88,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
 
         protected void UnfilterHorizontalOrVerticalCore(
             byte pred,
-            Span<byte> input, int inputOffset,
-            Span<byte> output, int outputOffset,
+            Span<byte> input,
+            int inputOffset,
+            Span<byte> output,
+            int outputOffset,
             int width)
         {
             for (int i = 0; i < width; i++)

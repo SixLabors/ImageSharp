@@ -5,59 +5,59 @@ using System;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
-    public ref struct Vp8Io
+    internal ref struct Vp8Io
     {
         /// <summary>
-        /// Picture Width in pixels (invariable).
+        /// Gets or sets the picture width in pixels (invariable).
         /// Original, uncropped dimensions.
         /// The actual area passed to put() is stored in <see cref="MbW"/> /> field.
         /// </summary>
         public int Width { get; set; }
 
         /// <summary>
-        /// Picture Width in pixels (invariable).
+        /// Gets or sets the picture height in pixels (invariable).
         /// Original, uncropped dimensions.
         /// The actual area passed to put() is stored in <see cref="MbH"/> /> field.
         /// </summary>
         public int Height { get; set; }
 
         /// <summary>
-        /// Position of the current Rows (in pixels)
+        /// Gets or sets the y-position of the current macroblock.
         /// </summary>
         public int MbY { get; set; }
 
         /// <summary>
-        /// number of columns in the sample
+        /// Gets or sets the macroblock width.
         /// </summary>
         public int MbW { get; set; }
 
         /// <summary>
-        /// Number of Rows in the sample
+        /// Gets or sets the macroblock height.
         /// </summary>
         public int MbH { get; set; }
 
         /// <summary>
-        /// Rows to copy (in YUV format)
+        /// Rows to copy (in YUV format).
         /// </summary>
         public Span<byte> Y { get; set; }
 
         /// <summary>
-        /// Rows to copy (in YUV format)
+        /// Rows to copy (in YUV format).
         /// </summary>
         public Span<byte> U { get; set; }
 
         /// <summary>
-        /// Rows to copy (in YUV format)
+        /// Rows to copy (in YUV format).
         /// </summary>
         public Span<byte> V { get; set; }
 
         /// <summary>
-        /// Row stride for luma
+        /// Gets or sets the row stride for luma.
         /// </summary>
         public int YStride { get; set; }
 
         /// <summary>
-        /// Row stride for chroma
+        /// Gets or sets the row stride for chroma.
         /// </summary>
         public int UvStride { get; set; }
 

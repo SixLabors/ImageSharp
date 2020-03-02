@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// <summary>
     /// Image features of a VP8X image.
     /// </summary>
-    public class WebPFeatures
+    internal class WebPFeatures
     {
         /// <summary>
         /// Gets or sets a value indicating whether this image has a ICC Profile.
@@ -17,6 +17,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Gets or sets a value indicating whether this image has a alpha channel.
         /// </summary>
         public bool Alpha { get; set; }
+
+        /// <summary>
+        /// Gets or sets the alpha data, if an ALPH chunk is present.
+        /// </summary>
+        public byte[] AlphaData { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this image has a EXIF Profile.

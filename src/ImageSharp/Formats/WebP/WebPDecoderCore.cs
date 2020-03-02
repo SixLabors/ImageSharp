@@ -168,6 +168,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// - A 'VP8X' chunk with information about features used in the file.
         /// - An optional 'ICCP' chunk with color profile.
         /// - An optional 'ANIM' chunk with animation control data.
+        /// - An optional 'ALPH' chunk with alpha channel data.
         /// After the image header, image data will follow. After that optional image metadata chunks (EXIF and XMP) can follow.
         /// </summary>
         /// <returns>Information about this webp image.</returns>
@@ -240,19 +241,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        };
             }
 
+            byte[] alphaData = null;
             if (isAlphaPresent)
             {
                 chunkType = this.ReadChunkType();
-                uint alphaChunkSize = this.ReadChunkSize();
+                if (chunkType != WebPChunkType.Alpha)
+                {
+                    WebPThrowHelper.ThrowImageFormatException($"unexpected chunk type {chunkType}, expected ALPH chunk is missing");
+                }
 
-                // ALPH chunks will be skipped for now.
-                this.currentStream.Skip((int)alphaChunkSize);
+                uint alphaChunkSize = this.ReadChunkSize();
+                alphaData = new byte[alphaChunkSize];
+                this.currentStream.Read(alphaData, 0, (int)alphaChunkSize);
             }
 
             var features = new WebPFeatures()
                                     {
                                         Animation = isAnimationPresent,
                                         Alpha = isAlphaPresent,
+                                        AlphaData = alphaData,
                                         ExifProfile = isExifPresent,
                                         IccProfile = isIccPresent,
                                         XmpMetaData = isXmpPresent

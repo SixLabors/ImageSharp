@@ -66,25 +66,46 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Decode image data.
             this.ParseFrame(decoder, io);
 
-            this.DecodePixelValues(width, height, decoder.Bgr, pixels);
+            byte[] decodedAlpha = null;
+            if (info.Features?.Alpha is true)
+            {
+                var alphaDecoder = new AlphaDecoder(width, height, info.Features.AlphaData);
+
+                // TODO: use memory allocator.
+                decodedAlpha = new byte[width * height];
+                alphaDecoder.Decode(decoder, decodedAlpha.AsSpan());
+            }
+
+            this.DecodePixelValues(width, height, decoder.Bgr, decodedAlpha, pixels);
         }
 
-        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> pixels)
+        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, byte[] alpha, Buffer2D<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel color = default;
+            bool hasAlpha = alpha != null;
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y);
                 for (int x = 0; x < width; x++)
                 {
-                    int idx = ((y * width) + x) * 3;
-                    byte b = pixelData[idx];
-                    byte g = pixelData[idx + 1];
-                    byte r = pixelData[idx + 2];
+                    int offset = (y * width) + x;
+                    int idxBgr = offset * 3;
+                    byte b = pixelData[idxBgr];
+                    byte g = pixelData[idxBgr + 1];
+                    byte r = pixelData[idxBgr + 2];
 
                     // TODO: use bulk conversion here.
-                    color.FromBgr24(new Bgr24(r, g, b));
+                    if (hasAlpha)
+                    {
+                        byte a = alpha[offset];
+                        color.FromBgra32(new Bgra32(r, g, b, a));
+                    }
+                    else
+                    {
+                        color.FromBgr24(new Bgr24(r, g, b));
+                    }
+
                     pixelRow[x] = color;
                 }
             }

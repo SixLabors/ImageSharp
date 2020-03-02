@@ -21,11 +21,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
         [Theory]
-        [InlineData(Lossless.Lossless1, 1000, 307, 24)]
-        [InlineData(Lossless.Lossless2, 1000, 307, 24)]
+        [InlineData(Lossless.GreenTransform1, 1000, 307, 32)]
+        [InlineData(Lossless.BikeThreeTransforms, 250, 195, 32)]
+        [InlineData(Lossless.NoTransform2, 128, 128, 32)]
         [InlineData(Lossy.Alpha1, 1000, 307, 32)]
         [InlineData(Lossy.Alpha2, 1000, 307, 32)]
-        public void Identify_DetectsCorrectDimensions(
+        [InlineData(Lossy.Bike, 250, 195, 24)]
+        public void Identify_DetectsCorrectDimensionsAndBitDepth(
             string imagePath,
             int expectedWidth,
             int expectedHeight,

@@ -37,8 +37,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         // Taken from vp8l_dec.c AlphaApplyFilter
         public void AlphaApplyFilter(
-            int firstRow, int lastRow,
-            Span<byte> output, int outputOffset,
+            int firstRow,
+            int lastRow,
+            Span<byte> output,
+            int outputOffset,
             int stride)
         {
             if (!(this.Filter is WebPFilterNone))
@@ -50,9 +52,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 {
                     this.Filter
                         .Unfilter(
-                            prevLine, prevLineOffset,
-                            output, outputOffset,
-                            output, outputOffset,
+                            prevLine,
+                            prevLineOffset,
+                            output,
+                            outputOffset,
+                            output,
+                            outputOffset,
                             stride);
                     prevLineOffset = outputOffset;
                     outputOffset += stride;

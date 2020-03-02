@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             }
         }
 
-        [Benchmark(Baseline = true, Description = "Magick Lossy WebP")]
+        [Benchmark(Description = "Magick Lossy WebP")]
         public int WebpLossyMagick()
         {
             var settings = new MagickReadSettings { Format = MagickFormat.WebP };
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             }
         }
 
-        [Benchmark(Baseline = true, Description = "Magick Lossless WebP")]
+        [Benchmark(Description = "Magick Lossless WebP")]
         public int WebpLosslessMagick()
         {
             var settings = new MagickReadSettings { Format = MagickFormat.WebP };

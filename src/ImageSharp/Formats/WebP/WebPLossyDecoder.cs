@@ -12,7 +12,7 @@ using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
-    internal sealed class WebPLossyDecoder : WebPDecoderBase
+    internal sealed class WebPLossyDecoder
     {
         private readonly Vp8BitReader bitReader;
 
@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     int yMode = left[y];
                     for (int x = 0; x < 4; ++x)
                     {
-                        byte[] prob = Vp8LookupTables.ModesProba[top[x], yMode];
+                        byte[] prob = WebPLookupTables.ModesProba[top[x], yMode];
                         int i = WebPConstants.YModesIntra4[this.bitReader.GetBit(prob[0])];
                         while (i > 0)
                         {
@@ -328,34 +328,34 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         switch (lumaMode)
                         {
                             case 0:
-                                LossyUtils.DC4_C(dst, yuv, offset);
+                                LossyUtils.DC4(dst, yuv, offset);
                                 break;
                             case 1:
-                                LossyUtils.TM4_C(dst, yuv, offset);
+                                LossyUtils.TM4(dst, yuv, offset);
                                 break;
                             case 2:
-                                LossyUtils.VE4_C(dst, yuv, offset);
+                                LossyUtils.VE4(dst, yuv, offset);
                                 break;
                             case 3:
-                                LossyUtils.HE4_C(dst, yuv, offset);
+                                LossyUtils.HE4(dst, yuv, offset);
                                 break;
                             case 4:
-                                LossyUtils.RD4_C(dst, yuv, offset);
+                                LossyUtils.RD4(dst, yuv, offset);
                                 break;
                             case 5:
-                                LossyUtils.VR4_C(dst, yuv, offset);
+                                LossyUtils.VR4(dst, yuv, offset);
                                 break;
                             case 6:
-                                LossyUtils.LD4_C(dst, yuv, offset);
+                                LossyUtils.LD4(dst, yuv, offset);
                                 break;
                             case 7:
-                                LossyUtils.VL4_C(dst, yuv, offset);
+                                LossyUtils.VL4(dst, yuv, offset);
                                 break;
                             case 8:
-                                LossyUtils.HD4_C(dst, yuv, offset);
+                                LossyUtils.HD4(dst, yuv, offset);
                                 break;
                             case 9:
-                                LossyUtils.HU4_C(dst, yuv, offset);
+                                LossyUtils.HU4(dst, yuv, offset);
                                 break;
                         }
 
@@ -369,25 +369,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     switch (mode)
                     {
                         case 0:
-                            LossyUtils.DC16_C(yDst, yuv, yOff);
+                            LossyUtils.DC16(yDst, yuv, yOff);
                             break;
                         case 1:
-                            LossyUtils.TM16_C(yDst, yuv, yOff);
+                            LossyUtils.TM16(yDst, yuv, yOff);
                             break;
                         case 2:
-                            LossyUtils.VE16_C(yDst, yuv, yOff);
+                            LossyUtils.VE16(yDst, yuv, yOff);
                             break;
                         case 3:
-                            LossyUtils.HE16_C(yDst, yuv, yOff);
+                            LossyUtils.HE16(yDst, yuv, yOff);
                             break;
                         case 4:
-                            LossyUtils.DC16NoTop_C(yDst, yuv, yOff);
+                            LossyUtils.DC16NoTop(yDst, yuv, yOff);
                             break;
                         case 5:
-                            LossyUtils.DC16NoLeft_C(yDst, yuv, yOff);
+                            LossyUtils.DC16NoLeft(yDst, yuv, yOff);
                             break;
                         case 6:
-                            LossyUtils.DC16NoTopLeft_C(yDst);
+                            LossyUtils.DC16NoTopLeft(yDst);
                             break;
                     }
 
@@ -406,32 +406,32 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 switch (chromaMode)
                 {
                     case 0:
-                        LossyUtils.DC8uv_C(uDst, yuv, uOff);
-                        LossyUtils.DC8uv_C(vDst, yuv, vOff);
+                        LossyUtils.DC8uv(uDst, yuv, uOff);
+                        LossyUtils.DC8uv(vDst, yuv, vOff);
                         break;
                     case 1:
-                        LossyUtils.TM8uv_C(uDst, yuv, uOff);
-                        LossyUtils.TM8uv_C(vDst, yuv, vOff);
+                        LossyUtils.TM8uv(uDst, yuv, uOff);
+                        LossyUtils.TM8uv(vDst, yuv, vOff);
                         break;
                     case 2:
-                        LossyUtils.VE8uv_C(uDst, yuv, uOff);
-                        LossyUtils.VE8uv_C(vDst, yuv, vOff);
+                        LossyUtils.VE8uv(uDst, yuv, uOff);
+                        LossyUtils.VE8uv(vDst, yuv, vOff);
                         break;
                     case 3:
-                        LossyUtils.HE8uv_C(uDst, yuv, uOff);
-                        LossyUtils.HE8uv_C(vDst, yuv, vOff);
+                        LossyUtils.HE8uv(uDst, yuv, uOff);
+                        LossyUtils.HE8uv(vDst, yuv, vOff);
                         break;
                     case 4:
-                        LossyUtils.DC8uvNoTop_C(uDst, yuv, uOff);
-                        LossyUtils.DC8uvNoTop_C(vDst, yuv, vOff);
+                        LossyUtils.DC8uvNoTop(uDst, yuv, uOff);
+                        LossyUtils.DC8uvNoTop(vDst, yuv, vOff);
                         break;
                     case 5:
-                        LossyUtils.DC8uvNoLeft_C(uDst, yuv, uOff);
-                        LossyUtils.DC8uvNoLeft_C(vDst, yuv, vOff);
+                        LossyUtils.DC8uvNoLeft(uDst, yuv, uOff);
+                        LossyUtils.DC8uvNoLeft(vDst, yuv, vOff);
                         break;
                     case 6:
-                        LossyUtils.DC8uvNoTopLeft_C(uDst);
-                        LossyUtils.DC8uvNoTopLeft_C(vDst);
+                        LossyUtils.DC8uvNoTopLeft(uDst);
+                        LossyUtils.DC8uvNoTopLeft(vDst);
                         break;
                 }
 
@@ -803,7 +803,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 blockData.NonZeroY = 0;
                 blockData.NonZeroUv = 0;
-                blockData.Dither = 0;
             }
 
             // Store filter info.
@@ -920,10 +919,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             block.NonZeroY = nonZeroY;
             block.NonZeroUv = nonZeroUv;
-
-            // We look at the mode-code of each block and check if some blocks have less
-            // than three non-zero coeffs (code < 2). This is to avoid dithering flat and empty blocks.
-            block.Dither = (byte)((nonZeroUv & 0xaaaa) > 0 ? 0 : q.Dither);
 
             return (nonZeroY | nonZeroUv) is 0;
         }
@@ -1227,20 +1222,20 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 Vp8QuantMatrix m = decoder.DeQuantMatrices[i];
-                m.Y1Mat[0] = Vp8LookupTables.DcTable[Clip(q + dqy1Dc, 127)];
-                m.Y1Mat[1] = Vp8LookupTables.AcTable[Clip(q + 0, 127)];
-                m.Y2Mat[0] = Vp8LookupTables.DcTable[Clip(q + dqy2Dc, 127)] * 2;
+                m.Y1Mat[0] = WebPLookupTables.DcTable[Clip(q + dqy1Dc, 127)];
+                m.Y1Mat[1] = WebPLookupTables.AcTable[Clip(q + 0, 127)];
+                m.Y2Mat[0] = WebPLookupTables.DcTable[Clip(q + dqy2Dc, 127)] * 2;
 
                 // For all x in [0..284], x*155/100 is bitwise equal to (x*101581) >> 16.
                 // The smallest precision for that is '(x*6349) >> 12' but 16 is a good word size.
-                m.Y2Mat[1] = (Vp8LookupTables.AcTable[Clip(q + dqy2Ac, 127)] * 101581) >> 16;
+                m.Y2Mat[1] = (WebPLookupTables.AcTable[Clip(q + dqy2Ac, 127)] * 101581) >> 16;
                 if (m.Y2Mat[1] < 8)
                 {
                     m.Y2Mat[1] = 8;
                 }
 
-                m.UvMat[0] = Vp8LookupTables.DcTable[Clip(q + dquvDc, 117)];
-                m.UvMat[1] = Vp8LookupTables.AcTable[Clip(q + dquvAc, 127)];
+                m.UvMat[0] = WebPLookupTables.DcTable[Clip(q + dquvDc, 117)];
+                m.UvMat[1] = WebPLookupTables.AcTable[Clip(q + dquvAc, 127)];
 
                 // For dithering strength evaluation.
                 m.UvQuant = q + dquvAc;
@@ -1259,10 +1254,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     {
                         for (int p = 0; p < WebPConstants.NumProbas; ++p)
                         {
-                            byte prob = Vp8LookupTables.CoeffsUpdateProba[t, b, c, p];
+                            byte prob = WebPLookupTables.CoeffsUpdateProba[t, b, c, p];
                             int v = this.bitReader.GetBit(prob) != 0
                                         ? (int)this.bitReader.ReadValue(8)
-                                        : Vp8LookupTables.DefaultCoeffsProba[t, b, c, p];
+                                        : WebPLookupTables.DefaultCoeffsProba[t, b, c, p];
                             proba.Bands[t, b].Probabilities[c].Probabilities[p] = (byte)v;
                         }
                     }
@@ -1343,9 +1338,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return io;
         }
 
-        static bool Is8bOptimizable(Vp8LMetadata hdr)
+        private static bool Is8bOptimizable(Vp8LMetadata hdr)
         {
-            int i;
             if (hdr.ColorCacheSize > 0)
             {
                 return false;
@@ -1353,7 +1347,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // When the Huffman tree contains only one symbol, we can skip the
             // call to ReadSymbol() for red/blue/alpha channels.
-            for (i = 0; i < hdr.NumHTreeGroups; ++i)
+            for (int i = 0; i < hdr.NumHTreeGroups; ++i)
             {
                 List<HuffmanCode[]> htrees = hdr.HTreeGroups[i].HTrees;
                 if (htrees[HuffIndex.Red][0].Value > 0)

@@ -1,13 +1,19 @@
-﻿using System;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Filters
 {
     class WebPFilterHorizontal : WebPFilterBase
     {
         public override void Unfilter(
-            Span<byte> prevLine, int? prevLineOffsetNullable,
-            Span<byte> input,  int inputOffset,
-            Span<byte> output, int outputOffset,
+            Span<byte> prevLine,
+            int? prevLineOffsetNullable,
+            Span<byte> input,
+            int inputOffset,
+            Span<byte> output,
+            int outputOffset,
             int width)
         {
             byte pred = prevLineOffsetNullable is int prevLineOffset
@@ -16,15 +22,21 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
 
             this.UnfilterHorizontalOrVerticalCore(
                 pred,
-                input, inputOffset,
-                output, outputOffset,
+                input,
+                inputOffset,
+                output,
+                outputOffset,
                 width);
         }
 
         public override void Filter(
-            Span<byte> input, int inputOffset,
-            int width, int height, int stride,
-            Span<byte> output, int outputOffset)
+            Span<byte> input,
+            int inputOffset,
+            int width,
+            int height,
+            int stride,
+            Span<byte> output,
+            int outputOffset)
         {
             int numRows = height;
             int row = 0;
@@ -51,16 +63,19 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
                 predsOffset = inputOffset;
             }
 
-
             if (row == 0)
             {
                 // leftmost pixel is the same as Input for topmost scanline
                 output[0] = input[0];
                 PredictLine(
-                    input, inputOffset + 1,
-                    preds, predsOffset,
-                    output, outputOffset + 1,
-                    width - 1, inverse);
+                    input,
+                    inputOffset + 1,
+                    preds,
+                    predsOffset,
+                    output,
+                    outputOffset + 1,
+                    width - 1,
+                    inverse);
 
                 row = 1;
                 predsOffset += stride;
@@ -68,19 +83,27 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
                 outputOffset += stride;
             }
 
-            // filter line by line
+            // Filter line by line.
             while (row < lastRow)
             {
                 PredictLine(
-                    input, inputOffset,
-                    preds, predsOffset - stride,
-                    output, 0,
-                    1, inverse);
+                    input,
+                    inputOffset,
+                    preds,
+                    predsOffset - stride,
+                    output,
+                    0,
+                    1,
+                    inverse);
                 PredictLine(
-                    input, inputOffset,
-                    preds, predsOffset,
-                    output,outputOffset + 1,
-                    width - 1, inverse);
+                    input,
+                    inputOffset,
+                    preds,
+                    predsOffset,
+                    output,
+                    outputOffset + 1,
+                    width - 1,
+                    inverse);
 
                 row++;
                 predsOffset += stride;

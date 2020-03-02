@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void DC16_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC16(Span<byte> dst, byte[] yuv, int offset)
         {
             int dc = 16;
             for (int j = 0; j < 16; ++j)
@@ -28,12 +28,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put16(dc >> 5, dst);
         }
 
-        public static void TM16_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void TM16(Span<byte> dst, byte[] yuv, int offset)
         {
             TrueMotion(dst, yuv, offset, 16);
         }
 
-        public static void VE16_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void VE16(Span<byte> dst, byte[] yuv, int offset)
         {
             // vertical
             Span<byte> src = yuv.AsSpan(offset - WebPConstants.Bps, 16);
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void HE16_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void HE16(Span<byte> dst, byte[] yuv, int offset)
         {
             // horizontal
             for (int j = 16; j > 0; --j)
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void DC16NoTop_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC16NoTop(Span<byte> dst, byte[] yuv, int offset)
         {
             // DC with top samples not available.
             int dc = 8;
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put16(dc >> 4, dst);
         }
 
-        public static void DC16NoLeft_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC16NoLeft(Span<byte> dst, byte[] yuv, int offset)
         {
             // DC with left samples not available.
             int dc = 8;
@@ -83,13 +83,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put16(dc >> 4, dst);
         }
 
-        public static void DC16NoTopLeft_C(Span<byte> dst)
+        public static void DC16NoTopLeft(Span<byte> dst)
         {
             // DC with no top and left samples.
             Put16(0x80, dst);
         }
 
-        public static void DC8uv_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC8uv(Span<byte> dst, byte[] yuv, int offset)
         {
             int dc0 = 8;
             for (int i = 0; i < 8; ++i)
@@ -101,13 +101,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put8x8uv((byte)(dc0 >> 4), dst);
         }
 
-        public static void TM8uv_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void TM8uv(Span<byte> dst, byte[] yuv, int offset)
         {
             // TrueMotion
             TrueMotion(dst, yuv, offset, 8);
         }
 
-        public static void VE8uv_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void VE8uv(Span<byte> dst, byte[] yuv, int offset)
         {
             // vertical
             Span<byte> src = yuv.AsSpan(offset - WebPConstants.Bps, 8);
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void HE8uv_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void HE8uv(Span<byte> dst, byte[] yuv, int offset)
         {
             // horizontal
             for (int j = 0; j < 8; ++j)
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void DC8uvNoTop_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC8uvNoTop(Span<byte> dst, byte[] yuv, int offset)
         {
             // DC with no top samples.
             int dc0 = 4;
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put8x8uv((byte)(dc0 >> 3), dst);
         }
 
-        public static void DC8uvNoLeft_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC8uvNoLeft(Span<byte> dst, byte[] yuv, int offset)
         {
             // DC with no left samples.
             int dc0 = 4;
@@ -159,13 +159,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put8x8uv((byte)(dc0 >> 3), dst);
         }
 
-        public static void DC8uvNoTopLeft_C(Span<byte> dst)
+        public static void DC8uvNoTopLeft(Span<byte> dst)
         {
             // DC with nothing.
             Put8x8uv(0x80, dst);
         }
 
-        public static void DC4_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC4(Span<byte> dst, byte[] yuv, int offset)
         {
             int dc = 4;
             for (int i = 0; i < 4; ++i)
@@ -180,12 +180,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void TM4_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void TM4(Span<byte> dst, byte[] yuv, int offset)
         {
             TrueMotion(dst, yuv, offset, 4);
         }
 
-        public static void VE4_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void VE4(Span<byte> dst, byte[] yuv, int offset)
         {
             // vertical
             int topOffset = offset - WebPConstants.Bps;
@@ -203,231 +203,231 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void HE4_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void HE4(Span<byte> dst, byte[] yuv, int offset)
         {
             // horizontal
-            byte A = yuv[offset - 1 - WebPConstants.Bps];
-            byte B = yuv[offset - 1];
-            byte C = yuv[offset - 1 + WebPConstants.Bps];
-            byte D = yuv[offset - 1 + (2 * WebPConstants.Bps)];
-            byte E = yuv[offset - 1 + (3 * WebPConstants.Bps)];
-            uint val = 0x01010101U * Avg3(A, B, C);
+            byte a = yuv[offset - 1 - WebPConstants.Bps];
+            byte b = yuv[offset - 1];
+            byte c = yuv[offset - 1 + WebPConstants.Bps];
+            byte d = yuv[offset - 1 + (2 * WebPConstants.Bps)];
+            byte e = yuv[offset - 1 + (3 * WebPConstants.Bps)];
+            uint val = 0x01010101U * Avg3(a, b, c);
             BinaryPrimitives.WriteUInt32BigEndian(dst, val);
-            val = 0x01010101U * Avg3(B, C, D);
+            val = 0x01010101U * Avg3(b, c, d);
             BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(WebPConstants.Bps), val);
-            val = 0x01010101U * Avg3(C, D, E);
+            val = 0x01010101U * Avg3(c, d, e);
             BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(2 * WebPConstants.Bps), val);
-            val = 0x01010101U * Avg3(D, E, E);
+            val = 0x01010101U * Avg3(d, e, e);
             BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(3 * WebPConstants.Bps), val);
         }
 
-        public static void RD4_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void RD4(Span<byte> dst, byte[] yuv, int offset)
         {
             // Down-right
-            byte I = yuv[offset - 1];
-            byte J = yuv[offset - 1 + (1 * WebPConstants.Bps)];
-            byte K = yuv[offset - 1 + (2 * WebPConstants.Bps)];
-            byte L = yuv[offset - 1 + (3 * WebPConstants.Bps)];
-            byte X = yuv[offset - 1 - WebPConstants.Bps];
-            byte A = yuv[offset - WebPConstants.Bps];
-            byte B = yuv[offset + 1 - WebPConstants.Bps];
-            byte C = yuv[offset + 2 - WebPConstants.Bps];
-            byte D = yuv[offset + 3 - WebPConstants.Bps];
+            byte i = yuv[offset - 1];
+            byte j = yuv[offset - 1 + (1 * WebPConstants.Bps)];
+            byte k = yuv[offset - 1 + (2 * WebPConstants.Bps)];
+            byte l = yuv[offset - 1 + (3 * WebPConstants.Bps)];
+            byte x = yuv[offset - 1 - WebPConstants.Bps];
+            byte a = yuv[offset - WebPConstants.Bps];
+            byte b = yuv[offset + 1 - WebPConstants.Bps];
+            byte c = yuv[offset + 2 - WebPConstants.Bps];
+            byte d = yuv[offset + 3 - WebPConstants.Bps];
 
-            Dst(dst, 0, 3, Avg3(J, K, L));
-            byte ijk = Avg3(I, J, K);
+            Dst(dst, 0, 3, Avg3(j, k, l));
+            byte ijk = Avg3(i, j, k);
             Dst(dst, 1, 3, ijk);
             Dst(dst, 0, 2, ijk);
-            byte xij = Avg3(X, I, J);
+            byte xij = Avg3(x, i, j);
             Dst(dst, 2, 3, xij);
             Dst(dst, 1, 2, xij);
             Dst(dst, 0, 1, xij);
-            byte axi = Avg3(A, X, I);
+            byte axi = Avg3(a, x, i);
             Dst(dst, 3, 3, axi);
             Dst(dst, 2, 2, axi);
             Dst(dst, 1, 1, axi);
             Dst(dst, 0, 0, axi);
-            byte bax = Avg3(B, A, X);
+            byte bax = Avg3(b, a, x);
             Dst(dst, 3, 2, bax);
             Dst(dst, 2, 1, bax);
             Dst(dst, 1, 0, bax);
-            byte cba = Avg3(C, B, A);
+            byte cba = Avg3(c, b, a);
             Dst(dst, 3, 1, cba);
             Dst(dst, 2, 0, cba);
-            Dst(dst, 3, 0, Avg3(D, C, B));
+            Dst(dst, 3, 0, Avg3(d, c, b));
         }
 
-        public static void VR4_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void VR4(Span<byte> dst, byte[] yuv, int offset)
         {
             // Vertical-Right
-            byte I = yuv[offset - 1];
-            byte J = yuv[offset - 1 + (1 * WebPConstants.Bps)];
-            byte K = yuv[offset - 1 + (2 * WebPConstants.Bps)];
-            byte X = yuv[offset - 1 - WebPConstants.Bps];
-            byte A = yuv[offset - WebPConstants.Bps];
-            byte B = yuv[offset + 1 - WebPConstants.Bps];
-            byte C = yuv[offset + 2 - WebPConstants.Bps];
-            byte D = yuv[offset + 3 - WebPConstants.Bps];
+            byte i = yuv[offset - 1];
+            byte j = yuv[offset - 1 + (1 * WebPConstants.Bps)];
+            byte k = yuv[offset - 1 + (2 * WebPConstants.Bps)];
+            byte x = yuv[offset - 1 - WebPConstants.Bps];
+            byte a = yuv[offset - WebPConstants.Bps];
+            byte b = yuv[offset + 1 - WebPConstants.Bps];
+            byte c = yuv[offset + 2 - WebPConstants.Bps];
+            byte d = yuv[offset + 3 - WebPConstants.Bps];
 
-            byte xa = Avg2(X, A);
+            byte xa = Avg2(x, a);
             Dst(dst, 0, 0, xa);
             Dst(dst, 1, 2, xa);
-            byte ab = Avg2(A, B);
+            byte ab = Avg2(a, b);
             Dst(dst, 1, 0, ab);
             Dst(dst, 2, 2, ab);
-            byte bc = Avg2(B, C);
+            byte bc = Avg2(b, c);
             Dst(dst, 2, 0, bc);
             Dst(dst, 3, 2, bc);
-            Dst(dst, 3, 0, Avg2(C, D));
-            Dst(dst, 0, 3, Avg3(K, J, I));
-            Dst(dst, 0, 2, Avg3(J, I, X));
-            byte ixa = Avg3(I, X, A);
+            Dst(dst, 3, 0, Avg2(c, d));
+            Dst(dst, 0, 3, Avg3(k, j, i));
+            Dst(dst, 0, 2, Avg3(j, i, x));
+            byte ixa = Avg3(i, x, a);
             Dst(dst, 0, 1, ixa);
             Dst(dst, 1, 3, ixa);
-            byte xab = Avg3(X, A, B);
+            byte xab = Avg3(x, a, b);
             Dst(dst, 1, 1, xab);
             Dst(dst, 2, 3, xab);
-            byte abc = Avg3(A, B, C);
+            byte abc = Avg3(a, b, c);
             Dst(dst, 2, 1, abc);
             Dst(dst, 3, 3, abc);
-            Dst(dst, 3, 1, Avg3(B, C, D));
+            Dst(dst, 3, 1, Avg3(b, c, d));
         }
 
-        public static void LD4_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void LD4(Span<byte> dst, byte[] yuv, int offset)
         {
             // Down-Left
-            byte A = yuv[offset - WebPConstants.Bps];
-            byte B = yuv[offset + 1 - WebPConstants.Bps];
-            byte C = yuv[offset + 2 - WebPConstants.Bps];
-            byte D = yuv[offset + 3 - WebPConstants.Bps];
-            byte E = yuv[offset + 4 - WebPConstants.Bps];
-            byte F = yuv[offset + 5 - WebPConstants.Bps];
-            byte G = yuv[offset + 6 - WebPConstants.Bps];
-            byte H = yuv[offset + 7 - WebPConstants.Bps];
+            byte a = yuv[offset - WebPConstants.Bps];
+            byte b = yuv[offset + 1 - WebPConstants.Bps];
+            byte c = yuv[offset + 2 - WebPConstants.Bps];
+            byte d = yuv[offset + 3 - WebPConstants.Bps];
+            byte e = yuv[offset + 4 - WebPConstants.Bps];
+            byte f = yuv[offset + 5 - WebPConstants.Bps];
+            byte g = yuv[offset + 6 - WebPConstants.Bps];
+            byte h = yuv[offset + 7 - WebPConstants.Bps];
 
-            Dst(dst, 0, 0, Avg3(A, B, C));
-            byte bcd = Avg3(B, C, D);
+            Dst(dst, 0, 0, Avg3(a, b, c));
+            byte bcd = Avg3(b, c, d);
             Dst(dst, 1, 0, bcd);
             Dst(dst, 0, 1, bcd);
-            byte cde = Avg3(C, D, E);
+            byte cde = Avg3(c, d, e);
             Dst(dst, 2, 0, cde);
             Dst(dst, 1, 1, cde);
             Dst(dst, 0, 2, cde);
-            byte def = Avg3(D, E, F);
+            byte def = Avg3(d, e, f);
             Dst(dst, 3, 0, def);
             Dst(dst, 2, 1, def);
             Dst(dst, 1, 2, def);
             Dst(dst, 0, 3, def);
-            byte efg = Avg3(E, F, G);
+            byte efg = Avg3(e, f, g);
             Dst(dst, 3, 1, efg);
             Dst(dst, 2, 2, efg);
             Dst(dst, 1, 3, efg);
-            byte fgh = Avg3(F, G, H);
+            byte fgh = Avg3(f, g, h);
             Dst(dst, 3, 2, fgh);
             Dst(dst, 2, 3, fgh);
-            Dst(dst, 3, 3, Avg3(G, H, H));
+            Dst(dst, 3, 3, Avg3(g, h, h));
         }
 
-        public static void VL4_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void VL4(Span<byte> dst, byte[] yuv, int offset)
         {
             // Vertical-Left
-            byte A = yuv[offset - WebPConstants.Bps];
-            byte B = yuv[offset + 1 - WebPConstants.Bps];
-            byte C = yuv[offset + 2 - WebPConstants.Bps];
-            byte D = yuv[offset + 3 - WebPConstants.Bps];
-            byte E = yuv[offset + 4 - WebPConstants.Bps];
-            byte F = yuv[offset + 5 - WebPConstants.Bps];
-            byte G = yuv[offset + 6 - WebPConstants.Bps];
-            byte H = yuv[offset + 7 - WebPConstants.Bps];
+            byte a = yuv[offset - WebPConstants.Bps];
+            byte b = yuv[offset + 1 - WebPConstants.Bps];
+            byte c = yuv[offset + 2 - WebPConstants.Bps];
+            byte d = yuv[offset + 3 - WebPConstants.Bps];
+            byte e = yuv[offset + 4 - WebPConstants.Bps];
+            byte f = yuv[offset + 5 - WebPConstants.Bps];
+            byte g = yuv[offset + 6 - WebPConstants.Bps];
+            byte h = yuv[offset + 7 - WebPConstants.Bps];
 
-            Dst(dst, 0, 0, Avg2(A, B));
-            byte bc = Avg2(B, C);
+            Dst(dst, 0, 0, Avg2(a, b));
+            byte bc = Avg2(b, c);
             Dst(dst, 1, 0, bc);
             Dst(dst, 0, 2, bc);
-            byte cd = Avg2(C, D);
+            byte cd = Avg2(c, d);
             Dst(dst, 2, 0, cd);
             Dst(dst, 1, 2, cd);
-            byte de = Avg2(D, E);
+            byte de = Avg2(d, e);
             Dst(dst, 3, 0, de);
             Dst(dst, 2, 2, de);
-            Dst(dst, 0, 1, Avg3(A, B, C));
-            byte bcd = Avg3(B, C, D);
+            Dst(dst, 0, 1, Avg3(a, b, c));
+            byte bcd = Avg3(b, c, d);
             Dst(dst, 1, 1, bcd);
             Dst(dst, 0, 3, bcd);
-            byte cde = Avg3(C, D, E);
+            byte cde = Avg3(c, d, e);
             Dst(dst, 2, 1, cde);
             Dst(dst, 1, 3, cde);
-            byte def = Avg3(D, E, F);
+            byte def = Avg3(d, e, f);
             Dst(dst, 3, 1, def);
             Dst(dst, 2, 3, def);
-            Dst(dst, 3, 2, Avg3(E, F, G));
-            Dst(dst, 3, 3, Avg3(F, G, H));
+            Dst(dst, 3, 2, Avg3(e, f, g));
+            Dst(dst, 3, 3, Avg3(f, g, h));
         }
 
-        public static void HD4_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void HD4(Span<byte> dst, byte[] yuv, int offset)
         {
             // Horizontal-Down
-            byte I = yuv[offset - 1];
-            byte J = yuv[offset - 1 + (1 * WebPConstants.Bps)];
-            byte K = yuv[offset - 1 + (2 * WebPConstants.Bps)];
-            byte L = yuv[offset - 1 + (3 * WebPConstants.Bps)];
-            byte X = yuv[offset - 1 - WebPConstants.Bps];
-            byte A = yuv[offset - WebPConstants.Bps];
-            byte B = yuv[offset + 1 - WebPConstants.Bps];
-            byte C = yuv[offset + 2 - WebPConstants.Bps];
+            byte i = yuv[offset - 1];
+            byte j = yuv[offset - 1 + (1 * WebPConstants.Bps)];
+            byte k = yuv[offset - 1 + (2 * WebPConstants.Bps)];
+            byte l = yuv[offset - 1 + (3 * WebPConstants.Bps)];
+            byte x = yuv[offset - 1 - WebPConstants.Bps];
+            byte a = yuv[offset - WebPConstants.Bps];
+            byte b = yuv[offset + 1 - WebPConstants.Bps];
+            byte c = yuv[offset + 2 - WebPConstants.Bps];
 
-            byte ix = Avg2(I, X);
+            byte ix = Avg2(i, x);
             Dst(dst, 0, 0, ix);
             Dst(dst, 2, 1, ix);
-            byte ji = Avg2(J, I);
+            byte ji = Avg2(j, i);
             Dst(dst, 0, 1, ji);
             Dst(dst, 2, 2, ji);
-            byte kj = Avg2(K, J);
+            byte kj = Avg2(k, j);
             Dst(dst, 0, 2, kj);
             Dst(dst, 2, 3, kj);
-            Dst(dst, 0, 3, Avg2(L, K));
-            Dst(dst, 3, 0, Avg3(A, B, C));
-            Dst(dst, 2, 0, Avg3(X, A, B));
-            byte ixa = Avg3(I, X, A);
+            Dst(dst, 0, 3, Avg2(l, k));
+            Dst(dst, 3, 0, Avg3(a, b, c));
+            Dst(dst, 2, 0, Avg3(x, a, b));
+            byte ixa = Avg3(i, x, a);
             Dst(dst, 1, 0, ixa);
             Dst(dst, 3, 1, ixa);
-            byte jix = Avg3(J, I, X);
+            byte jix = Avg3(j, i, x);
             Dst(dst, 1, 1, jix);
             Dst(dst, 3, 2, jix);
-            byte kji = Avg3(K, J, I);
+            byte kji = Avg3(k, j, i);
             Dst(dst, 1, 2, kji);
             Dst(dst, 3, 3, kji);
-            Dst(dst, 1, 3, Avg3(L, K, J));
+            Dst(dst, 1, 3, Avg3(l, k, j));
         }
 
-        public static void HU4_C(Span<byte> dst, byte[] yuv, int offset)
+        public static void HU4(Span<byte> dst, byte[] yuv, int offset)
         {
             // Horizontal-Up
-            byte I = yuv[offset - 1];
-            byte J = yuv[offset - 1 + (1 * WebPConstants.Bps)];
-            byte K = yuv[offset - 1 + (2 * WebPConstants.Bps)];
-            byte L = yuv[offset - 1 + (3 * WebPConstants.Bps)];
+            byte i = yuv[offset - 1];
+            byte j = yuv[offset - 1 + (1 * WebPConstants.Bps)];
+            byte k = yuv[offset - 1 + (2 * WebPConstants.Bps)];
+            byte l = yuv[offset - 1 + (3 * WebPConstants.Bps)];
 
-            Dst(dst, 0, 0, Avg2(I, J));
-            byte jk = Avg2(J, K);
+            Dst(dst, 0, 0, Avg2(i, j));
+            byte jk = Avg2(j, k);
             Dst(dst, 2, 0, jk);
             Dst(dst, 0, 1, jk);
-            byte kl = Avg2(K, L);
+            byte kl = Avg2(k, l);
             Dst(dst, 2, 1, kl);
             Dst(dst, 0, 2, kl);
-            Dst(dst, 1, 0, Avg3(I, J, K));
-            byte jkl = Avg3(J, K, L);
+            Dst(dst, 1, 0, Avg3(i, j, k));
+            byte jkl = Avg3(j, k, l);
             Dst(dst, 3, 0, jkl);
             Dst(dst, 1, 1, jkl);
-            byte kll = Avg3(K, L, L);
+            byte kll = Avg3(k, l, l);
             Dst(dst, 3, 1, kll);
             Dst(dst, 1, 2, kll);
-            Dst(dst, 3, 2, L);
-            Dst(dst, 2, 2, L);
-            Dst(dst, 0, 3, L);
-            Dst(dst, 1, 3, L);
-            Dst(dst, 2, 3, L);
-            Dst(dst, 3, 3, L);
+            Dst(dst, 3, 2, l);
+            Dst(dst, 2, 2, l);
+            Dst(dst, 0, 3, l);
+            Dst(dst, 1, 3, l);
+            Dst(dst, 2, 3, l);
+            Dst(dst, 3, 3, l);
         }
 
         public static void Transform(Span<short> src, Span<byte> dst, bool doTwo)
@@ -743,56 +743,56 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private static void DoFilter2(byte[] p, int offset, int step)
         {
-            // 4 pixels in, 2 pixels out
+            // 4 pixels in, 2 pixels out.
             int p1 = p[offset - (2 * step)];
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            int a = (3 * (q0 - p0)) + Vp8LookupTables.Sclip1[p1 - q1];
-            int a1 = Vp8LookupTables.Sclip2[(a + 4) >> 3];
-            int a2 = Vp8LookupTables.Sclip2[(a + 3) >> 3];
-            p[offset - step] = Vp8LookupTables.Clip1[p0 + a2];
-            p[offset] = Vp8LookupTables.Clip1[q0 - a1];
+            int a = (3 * (q0 - p0)) + WebPLookupTables.Sclip1[p1 - q1];
+            int a1 = WebPLookupTables.Sclip2[(a + 4) >> 3];
+            int a2 = WebPLookupTables.Sclip2[(a + 3) >> 3];
+            p[offset - step] = WebPLookupTables.Clip1[p0 + a2];
+            p[offset] = WebPLookupTables.Clip1[q0 - a1];
         }
 
         private static void DoFilter4(byte[] p, int offset, int step)
         {
-            // 4 pixels in, 4 pixels out
+            // 4 pixels in, 4 pixels out.
             int p1 = p[offset - (2 * step)];
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
             int a = 3 * (q0 - p0);
-            int a1 = Vp8LookupTables.Sclip2[(a + 4) >> 3];
-            int a2 = Vp8LookupTables.Sclip2[(a + 3) >> 3];
+            int a1 = WebPLookupTables.Sclip2[(a + 4) >> 3];
+            int a2 = WebPLookupTables.Sclip2[(a + 3) >> 3];
             int a3 = (a1 + 1) >> 1;
-            p[offset - (2 * step)] = Vp8LookupTables.Clip1[p1 + a3];
-            p[offset - step] = Vp8LookupTables.Clip1[p0 + a2];
-            p[offset] = Vp8LookupTables.Clip1[q0 - a1];
-            p[offset + step] = Vp8LookupTables.Clip1[q1 - a3];
+            p[offset - (2 * step)] = WebPLookupTables.Clip1[p1 + a3];
+            p[offset - step] = WebPLookupTables.Clip1[p0 + a2];
+            p[offset] = WebPLookupTables.Clip1[q0 - a1];
+            p[offset + step] = WebPLookupTables.Clip1[q1 - a3];
         }
 
         private static void DoFilter6(byte[] p, int offset, int step)
         {
-            // 6 pixels in, 6 pixels out
+            // 6 pixels in, 6 pixels out.
             int p2 = p[offset - (3 * step)];
             int p1 = p[offset - (2 * step)];
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
             int q2 = p[offset + (2 * step)];
-            int a = Vp8LookupTables.Sclip1[(3 * (q0 - p0)) + Vp8LookupTables.Sclip1[p1 - q1]];
+            int a = WebPLookupTables.Sclip1[(3 * (q0 - p0)) + WebPLookupTables.Sclip1[p1 - q1]];
 
             // a is in [-128,127], a1 in [-27,27], a2 in [-18,18] and a3 in [-9,9]
             int a1 = ((27 * a) + 63) >> 7;  // eq. to ((3 * a + 7) * 9) >> 7
             int a2 = ((18 * a) + 63) >> 7;  // eq. to ((2 * a + 7) * 9) >> 7
             int a3 = ((9 * a) + 63) >> 7;  // eq. to ((1 * a + 7) * 9) >> 7
-            p[offset - (3 * step)] = Vp8LookupTables.Clip1[p2 + a3];
-            p[offset - (2 * step)] = Vp8LookupTables.Clip1[p1 + a2];
-            p[offset - step] = Vp8LookupTables.Clip1[p0 + a1];
-            p[offset] = Vp8LookupTables.Clip1[q0 - a1];
-            p[offset + step] = Vp8LookupTables.Clip1[q1 - a2];
-            p[offset + (2 * step)] = Vp8LookupTables.Clip1[q2 - a3];
+            p[offset - (3 * step)] = WebPLookupTables.Clip1[p2 + a3];
+            p[offset - (2 * step)] = WebPLookupTables.Clip1[p1 + a2];
+            p[offset - step] = WebPLookupTables.Clip1[p0 + a1];
+            p[offset] = WebPLookupTables.Clip1[q0 - a1];
+            p[offset + step] = WebPLookupTables.Clip1[q1 - a2];
+            p[offset + (2 * step)] = WebPLookupTables.Clip1[q2 - a3];
         }
 
         private static bool NeedsFilter(byte[] p, int offset, int step, int t)
@@ -801,7 +801,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            return ((4 * Vp8LookupTables.Abs0[p0 - q0]) + Vp8LookupTables.Abs0[p1 - q1]) <= t;
+            return ((4 * WebPLookupTables.Abs0[p0 - q0]) + WebPLookupTables.Abs0[p1 - q1]) <= t;
         }
 
         private static bool NeedsFilter2(byte[] p, int offset, int step, int t, int it)
@@ -814,14 +814,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int q1 = p[offset + step];
             int q2 = p[offset + (2 * step)];
             int q3 = p[offset + (3 * step)];
-            if (((4 * Vp8LookupTables.Abs0[p0 - q0]) + Vp8LookupTables.Abs0[p1 - q1]) > t)
+            if (((4 * WebPLookupTables.Abs0[p0 - q0]) + WebPLookupTables.Abs0[p1 - q1]) > t)
             {
                 return false;
             }
 
-            return Vp8LookupTables.Abs0[p3 - p2] <= it && Vp8LookupTables.Abs0[p2 - p1] <= it &&
-                   Vp8LookupTables.Abs0[p1 - p0] <= it && Vp8LookupTables.Abs0[q3 - q2] <= it &&
-                   Vp8LookupTables.Abs0[q2 - q1] <= it && Vp8LookupTables.Abs0[q1 - q0] <= it;
+            return WebPLookupTables.Abs0[p3 - p2] <= it && WebPLookupTables.Abs0[p2 - p1] <= it &&
+                   WebPLookupTables.Abs0[p1 - p0] <= it && WebPLookupTables.Abs0[q3 - q2] <= it &&
+                   WebPLookupTables.Abs0[q2 - q1] <= it && WebPLookupTables.Abs0[q1 - q0] <= it;
         }
 
         private static bool Hev(byte[] p, int offset, int step, int thresh)
@@ -830,7 +830,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int p0 = p[offset - step];
             int q0 = p[offset];
             int q1 = p[offset + step];
-            return (Vp8LookupTables.Abs0[p1 - p0] > thresh) || (Vp8LookupTables.Abs0[q1 - q0] > thresh);
+            return (WebPLookupTables.Abs0[p1 - p0] > thresh) || (WebPLookupTables.Abs0[q1 - q0] > thresh);
         }
 
         private static int MultHi(int v, int coeff)

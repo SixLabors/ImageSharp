@@ -378,8 +378,6 @@ namespace SixLabors.ImageSharp.Tests
 
             public static class Lossless
             {
-                public const string Lossless1 = "WebP/lossless1.webp";
-                public const string Lossless2 = "WebP/lossless2.webp";
                 public const string NoTransform1 = "WebP/lossless_vec_1_0.webp";
                 public const string NoTransform2 = "WebP/lossless_vec_2_0.webp";
                 public const string GreenTransform1 = "WebP/lossless1.webp";
@@ -498,11 +496,6 @@ namespace SixLabors.ImageSharp.Tests
                 public const string AlphaNoCompression = "WebP/alpha_no_compression.webp";
 
             }
-
-            public static readonly string[] All =
-            {
-                Lossless.Lossless1
-            };
         }
     }
 }

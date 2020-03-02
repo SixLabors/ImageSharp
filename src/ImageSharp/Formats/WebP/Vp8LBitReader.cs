@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         private const int Vp8LWbits = 32;
 
-        private readonly uint[] BitMask =
+        private readonly uint[] bitMask =
         {
             0,
             0x000001, 0x000003, 0x000007, 0x00000f,
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             if (!this.eos && nBits <= Vp8LMaxNumBitRead)
             {
-                ulong val = this.PrefetchBits() & this.BitMask[nBits];
+                ulong val = this.PrefetchBits() & this.bitMask[nBits];
                 int newBits = this.bitPos + nBits;
                 this.bitPos = newBits;
                 this.ShiftBytes();

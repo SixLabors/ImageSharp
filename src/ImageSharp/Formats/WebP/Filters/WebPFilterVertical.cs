@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Filters
 {
@@ -20,9 +23,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
         }
 
         public override void Filter(
-            Span<byte> input, int inputOffset,
-            int width, int height, int stride,
-            Span<byte> output, int outputOffset)
+            Span<byte> input,
+            int inputOffset,
+            int width,
+            int height,
+            int stride,
+            Span<byte> output,
+            int outputOffset)
         {
             int row = 0;
             bool inverse = false;
@@ -49,14 +56,19 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
 
             if (row == 0)
             {
-                // very first top-left pixel is copied.
+                // Very first top-left pixel is copied.
                 output[0] = input[0];
-                // rest of top scan-line is left-predicted:
+
+                // Rest of top scan-line is left-predicted:
                 PredictLine(
-                    input, inputOffset + 1,
-                    preds, predsOffset,
-                    output, outputOffset + 1,
-                    width - 1, inverse);
+                    input,
+                    inputOffset + 1,
+                    preds,
+                    predsOffset,
+                    output,
+                    outputOffset + 1,
+                    width - 1,
+                    inverse);
                 row = 1;
                 inputOffset += stride;
                 outputOffset += stride;
@@ -66,14 +78,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
                 predsOffset -= stride;
             }
 
-            // filter line-by-line
+            // Filter line-by-line.
             while (row < lastRow)
             {
                 PredictLine(
-                    input, inputOffset,
-                    preds, predsOffset,
-                    output, outputOffset,
-                    width, inverse);
+                    input,
+                    inputOffset,
+                    preds,
+                    predsOffset,
+                    output,
+                    outputOffset,
+                    width,
+                    inverse);
                 row++;
                 predsOffset += stride;
                 inputOffset += stride;

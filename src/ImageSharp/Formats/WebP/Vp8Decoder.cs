@@ -8,6 +8,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class Vp8Decoder
     {
+        private Vp8MacroBlock leftMacroBlock;
+
         public Vp8Decoder(Vp8FrameHeader frameHeader, Vp8PictureHeader pictureHeader, Vp8SegmentHeader segmentHeader, Vp8Proba probabilities)
         {
             this.FilterHeader = new Vp8FilterHeader();
@@ -53,12 +55,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int extraRows = WebPConstants.FilterExtraRows[2]; // TODO: assuming worst case: complex filter
             int extraY = extraRows * this.CacheYStride;
             int extraUv = (extraRows / 2) * this.CacheUvStride;
-            this.CacheY = new byte[width * height + extraY + 256]; // TODO: this is way too much mem, figure out what the min req is.
-            this.CacheU = new byte[width * height + extraUv + 256];
-            this.CacheV = new byte[width * height + extraUv + 256];
-            this.TmpYBuffer = new byte[width * height + extraY]; // TODO: figure out min buffer length
-            this.TmpUBuffer = new byte[width * height + extraUv]; // TODO: figure out min buffer length
-            this.TmpVBuffer = new byte[width * height + extraUv]; // TODO: figure out min buffer length
+            this.CacheY = new byte[(width * height) + extraY + 256]; // TODO: this is way too much mem, figure out what the min req is.
+            this.CacheU = new byte[(width * height) + extraUv + 256];
+            this.CacheV = new byte[(width * height) + extraUv + 256];
+            this.TmpYBuffer = new byte[(width * height) + extraY]; // TODO: figure out min buffer length
+            this.TmpUBuffer = new byte[(width * height) + extraUv]; // TODO: figure out min buffer length
+            this.TmpVBuffer = new byte[(width * height) + extraUv]; // TODO: figure out min buffer length
             this.Bgr = new byte[width * height * 4];
 
             for (int i = 0; i < this.YuvBuffer.Length; i++)
@@ -88,38 +90,47 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public Vp8SegmentHeader SegmentHeader { get; }
 
-        // number of partitions minus one.
+        /// <summary>
+        /// Gets or sets the number of partitions minus one.
+        /// </summary>
         public int NumPartsMinusOne { get; set; }
 
-        // per-partition boolean decoders.
+        /// <summary>
+        /// Gets the per-partition boolean decoders.
+        /// </summary>
         public Vp8BitReader[] Vp8BitReaders { get; }
 
-        public bool Dither { get; set; }
-
         /// <summary>
-        /// Gets or sets dequantization matrices (one set of DC/AC dequant factor per segment).
+        /// Gets the dequantization matrices (one set of DC/AC dequant factor per segment).
         /// </summary>
         public Vp8QuantMatrix[] DeQuantMatrices { get; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether to use the skip probabilities.
+        /// </summary>
         public bool UseSkipProbability { get; set; }
 
         public byte SkipProbability { get; set; }
 
         public Vp8Proba Probabilities { get; set; }
 
-        // top intra modes values: 4 * MbWidth
+        /// <summary>
+        /// Gets or sets the top intra modes values: 4 * MbWidth.
+        /// </summary>
         public byte[] IntraT { get; set; }
 
-        // left intra modes values
+        /// <summary>
+        /// Gets the left intra modes values.
+        /// </summary>
         public byte[] IntraL { get; }
 
         /// <summary>
-        /// Gets or sets the width in macroblock units.
+        /// Gets the width in macroblock units.
         /// </summary>
         public int MbWidth { get; }
 
         /// <summary>
-        /// Gets or sets the height in macroblock units.
+        /// Gets the height in macroblock units.
         /// </summary>
         public int MbHeight { get; }
 
@@ -197,8 +208,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Gets or sets filter strength info.
         /// </summary>
         public Vp8FilterInfo[] FilterInfo { get; set; }
-
-        private Vp8MacroBlock leftMacroBlock;
 
         public Vp8MacroBlock CurrentMacroBlock
         {

@@ -22,6 +22,6 @@ namespace SixLabors.ImageSharp.Processing.Processors
         /// </param>
         /// <returns>The <see cref="ICloningImageProcessor{TPixel}"/></returns>
         ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : struct, IPixel<TPixel>;
+            where TPixel : unmanaged, IPixel<TPixel>;
     }
 }

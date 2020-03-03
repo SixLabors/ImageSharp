@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <remarks>This processor is based on the code from Mike Pound, see <a href="https://github.com/mikepound/convolve">github.com/mikepound/convolve</a>.</remarks>
     internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// The gamma highlight factor to use when applying the effect

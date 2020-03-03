@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </exception>
         /// <returns>The decoded image.</returns>
         public Image<TPixel> Decode<TPixel>(Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             try
             {
@@ -256,7 +256,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="pixels">The output pixel buffer containing the decoded image.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadBitFields<TPixel>(Buffer2D<TPixel> pixels, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (this.infoHeader.BitsPerPixel == 16)
             {
@@ -296,7 +296,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRle<TPixel>(BmpCompression compression, Buffer2D<TPixel> pixels, byte[] colors, int width, int height, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
             using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height, AllocationOptions.Clean))
@@ -376,7 +376,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRle24<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
             using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * 3, AllocationOptions.Clean))
@@ -814,7 +814,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// the bytes per color palette entry's can be 3 bytes instead of 4.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgbPalette<TPixel>(Buffer2D<TPixel> pixels, byte[] colors, int width, int height, int bitsPerPixel, int bytesPerColorMapEntry, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // Pixels per byte (bits per pixel).
             int ppb = 8 / bitsPerPixel;
@@ -872,7 +872,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="greenMask">The bitmask for the green channel.</param>
         /// <param name="blueMask">The bitmask for the blue channel.</param>
         private void ReadRgb16<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask = DefaultRgb16RMask, int greenMask = DefaultRgb16GMask, int blueMask = DefaultRgb16BMask)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 2);
             int stride = (width * 2) + padding;
@@ -939,7 +939,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgb24<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 3);
 
@@ -968,7 +968,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgb32Fast<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 4);
 
@@ -998,7 +998,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="height">The height of the bitmap.</param>
         /// <param name="inverted">Whether the bitmap is inverted.</param>
         private void ReadRgb32Slow<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int padding = CalculatePadding(width, 4);
 
@@ -1099,7 +1099,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="blueMask">The bitmask for the blue channel.</param>
         /// <param name="alphaMask">The bitmask for the alpha channel.</param>
         private void ReadRgb32BitFields<TPixel>(Buffer2D<TPixel> pixels, int width, int height, bool inverted, int redMask, int greenMask, int blueMask, int alphaMask)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
             int padding = CalculatePadding(width, 4);

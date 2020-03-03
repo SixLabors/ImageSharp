@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests
         public void OctreeQuantizerYieldsCorrectTransparentPixel<TPixel>(
             TestImageProvider<TPixel> provider,
             bool dither)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, false)]
         public void WuQuantizerYieldsCorrectTransparentPixel<TPixel>(TestImageProvider<TPixel> provider, bool dither)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         private int GetTransparentIndex<TPixel>(QuantizedFrame<TPixel> quantized)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;

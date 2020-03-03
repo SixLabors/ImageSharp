@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <typeparam name="TDelegate">The row processor type.</typeparam>
     internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
         where TDelegate : struct, IPixelRowDelegate
     {
         private readonly TDelegate rowDelegate;

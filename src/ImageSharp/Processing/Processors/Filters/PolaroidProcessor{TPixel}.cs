@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// Converts the colors of the image recreating an old Polaroid effect.
     /// </summary>
     internal class PolaroidProcessor<TPixel> : FilterProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private static readonly Color LightOrange = Color.FromRgba(255, 153, 102, 128);
         private static readonly Color VeryDarkOrange = Color.FromRgb(102, 34, 0);

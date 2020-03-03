@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="stream">The stream, where the image should be.</param>
         /// <returns>The decoded image.</returns>
         public Image<TPixel> Decode<TPixel>(Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.ParseStream(stream);
             this.InitExifProfile();
@@ -958,7 +958,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         private Image<TPixel> PostProcessIntoImage<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (this.ImageWidth == 0 || this.ImageHeight == 0)
             {

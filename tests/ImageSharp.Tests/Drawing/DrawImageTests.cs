@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Theory]
         [WithFile(TestImages.Png.Rainbow, nameof(BlendingModes), PixelTypes.Rgba32)]
         public void ImageBlendingMatchesSvgSpecExamples<TPixel>(TestImageProvider<TPixel> provider, PixelColorBlendingMode mode)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> background = provider.GetImage())
             using (var source = Image.Load<TPixel>(TestFile.Create(TestImages.Png.Ducky).Bytes))
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             string brushImage,
             PixelColorBlendingMode mode,
             float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             using (var blend = Image.Load<TPixel>(TestFile.Create(brushImage).Bytes))
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Theory]
         [WithTestPatternImages(200, 200, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void DrawImageOfDifferentPixelType<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             byte[] brushData = TestFile.Create(TestImages.Png.Ducky).Bytes;
 
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
         [Theory]
         [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
         public void DrawTransformed<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             using (var blend = Image.Load<TPixel>(TestFile.Create(TestImages.Bmp.Car).Bytes))

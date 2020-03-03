@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests
             object testOutputDetails = null,
             string extension = "png",
             bool appendPixelTypeToFileName = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (TestEnvironment.RunsOnCI)
             {
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests
             bool grayscale = false,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return image.CompareToReferenceOutput(
                 provider,
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Tests
             bool grayscale = false,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return CompareToReferenceOutput(
                 image,
@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Tests
             string extension = "png",
             bool grayscale = false,
             bool appendPixelTypeToFileName = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return image.CompareToReferenceOutput(
                 comparer,
@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true,
             IImageDecoder decoder = null)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> referenceImage = GetReferenceOutputImage<TPixel>(
                 provider,
@@ -262,7 +262,7 @@ namespace SixLabors.ImageSharp.Tests
             bool grayscale = false,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return image.CompareFirstFrameToReferenceOutput(
                 comparer,
@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.Tests
             bool grayscale = false,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var firstFrameOnlyImage = new Image<TPixel>(image.Width, image.Height))
             using (Image<TPixel> referenceImage = GetReferenceOutputImage<TPixel>(
@@ -310,7 +310,7 @@ namespace SixLabors.ImageSharp.Tests
             string extension = "png",
             bool grayscale = false,
             bool appendPixelTypeToFileName = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> referenceImage = GetReferenceOutputImageMultiFrame<TPixel>(
                 provider,
@@ -332,7 +332,7 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true,
             IImageDecoder decoder = null)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string referenceOutputFile = provider.Utility.GetReferenceOutputFileName(
                 extension,
@@ -356,7 +356,7 @@ namespace SixLabors.ImageSharp.Tests
             object testOutputDetails = null,
             string extension = "png",
             bool appendPixelTypeToFileName = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string[] frameFiles = provider.Utility.GetReferenceOutputFileNamesMultiFrame(
                 frameCount,
@@ -401,7 +401,7 @@ namespace SixLabors.ImageSharp.Tests
             object testOutputDetails = null,
             string extension = "png",
             bool appendPixelTypeToFileName = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(
                 testOutputDetails,
@@ -415,7 +415,7 @@ namespace SixLabors.ImageSharp.Tests
         public static Image<TPixel> ComparePixelBufferTo<TPixel>(
             this Image<TPixel> image,
             Span<TPixel> expectedPixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Span<TPixel> actualPixels = image.GetPixelSpan();
 
@@ -444,7 +444,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
         /// <returns>The image.</returns>
         public static Image<TPixel> ComparePixelBufferTo<TPixel>(this Image<TPixel> image, TPixel expectedPixel)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (ImageFrame<TPixel> imageFrame in image.Frames)
             {
@@ -460,7 +460,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
         /// <returns>The image.</returns>
         public static Image<TPixel> ComparePixelBufferTo<TPixel>(this Image<TPixel> image, Color expectedPixelColor)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (ImageFrame<TPixel> imageFrame in image.Frames)
             {
@@ -476,7 +476,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
         /// <returns>The image.</returns>
         public static ImageFrame<TPixel> ComparePixelBufferTo<TPixel>(this ImageFrame<TPixel> imageFrame, TPixel expectedPixel)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Span<TPixel> actualPixels = imageFrame.GetPixelSpan();
 
@@ -491,7 +491,7 @@ namespace SixLabors.ImageSharp.Tests
         public static ImageFrame<TPixel> ComparePixelBufferTo<TPixel>(
                     this ImageFrame<TPixel> image,
                     Span<TPixel> expectedPixels)
-                    where TPixel : struct, IPixel<TPixel>
+                    where TPixel : unmanaged, IPixel<TPixel>
         {
             Span<TPixel> actual = image.GetPixelSpan();
 
@@ -509,7 +509,7 @@ namespace SixLabors.ImageSharp.Tests
             this Image<TPixel> image,
             ITestImageProvider provider,
             IImageDecoder referenceDecoder = null)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return CompareToOriginal(image, provider, ImageComparer.Tolerant(), referenceDecoder);
         }
@@ -519,7 +519,7 @@ namespace SixLabors.ImageSharp.Tests
             ITestImageProvider provider,
             ImageComparer comparer,
             IImageDecoder referenceDecoder = null)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
             if (path == null)
@@ -552,7 +552,7 @@ namespace SixLabors.ImageSharp.Tests
             FormattableString testOutputDetails,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -585,7 +585,7 @@ namespace SixLabors.ImageSharp.Tests
             FormattableString testOutputDetails,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.VerifyOperation(
                 ImageComparer.Tolerant(),
@@ -607,7 +607,7 @@ namespace SixLabors.ImageSharp.Tests
             Action<Image<TPixel>> operation,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.VerifyOperation(
                 comparer,
@@ -628,7 +628,7 @@ namespace SixLabors.ImageSharp.Tests
             Action<Image<TPixel>> operation,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.VerifyOperation(operation, $"", appendPixelTypeToFileName, appendSourceFileOrDescription);
         }
@@ -647,7 +647,7 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true,
             string referenceImageExtension = null,
             IImageDecoder referenceDecoder = null)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string actualOutputFile = provider.Utility.SaveTestOutputFile(
                 image,
@@ -667,7 +667,7 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static AllocatorBufferCapacityConfigurator LimitAllocatorBufferCapacity<TPixel>(
             this TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var allocator = (ArrayPoolMemoryAllocator)provider.Configuration.MemoryAllocator;
             return new AllocatorBufferCapacityConfigurator(allocator, Unsafe.SizeOf<TPixel>());
@@ -694,12 +694,12 @@ namespace SixLabors.ImageSharp.Tests
         private class MakeOpaqueProcessor : IImageProcessor
         {
             public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
                 => new MakeOpaqueProcessor<TPixel>(configuration, source, sourceRectangle);
         }
 
         private class MakeOpaqueProcessor<TPixel> : ImageProcessor<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             public MakeOpaqueProcessor(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
                 : base(configuration, source, sourceRectangle)

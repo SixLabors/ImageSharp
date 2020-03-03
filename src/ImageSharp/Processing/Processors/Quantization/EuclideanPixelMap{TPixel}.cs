@@ -2,12 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
@@ -106,5 +104,5 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             match = Unsafe.Add(ref paletteRef, index);
             return index;
         }
-        }
+    }
 }

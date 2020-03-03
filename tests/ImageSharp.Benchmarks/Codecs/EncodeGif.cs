@@ -27,12 +27,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
         };
 
+        [Params(TestImages.Bmp.Car, TestImages.Png.Rgb48Bpp)]
+        public string TestImage { get; set; }
+
         [GlobalSetup]
         public void ReadImages()
         {
             if (this.bmpStream == null)
             {
-                this.bmpStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Bmp.Car));
+                this.bmpStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage));
                 this.bmpCore = Image.Load<Rgba32>(this.bmpStream);
                 this.bmpStream.Position = 0;
                 this.bmpDrawing = SDImage.FromStream(this.bmpStream);

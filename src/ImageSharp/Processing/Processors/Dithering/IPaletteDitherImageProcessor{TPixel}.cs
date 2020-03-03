@@ -32,8 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// Returns the color from the dithering palette corresponding to the given color.
         /// </summary>
         /// <param name="color">The color to match.</param>
-        /// <param name="palette">The output color palette.</param>
         /// <returns>The <typeparamref name="TPixel"/> match.</returns>
-        TPixel GetPaletteColor(TPixel color, ReadOnlySpan<TPixel> palette);
+        TPixel GetPaletteColor(TPixel color);
     }
 }

@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -224,20 +225,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)
             {
-                ReadOnlySpan<TPixel> paletteSpan = this.destination.Palette;
                 int offsetY = this.bounds.Top;
                 int offsetX = this.bounds.Left;
                 float scale = this.quantizer.Options.DitherScale;
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y);
-                    Span<byte> destinationRow = this.destination.GetPixelRowSpan(y - offsetY);
+                    ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
+                    ref byte destinationRowRef = ref MemoryMarshal.GetReference(this.destination.GetPixelRowSpan(y - offsetY));
 
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        TPixel dithered = this.dither.Dither(sourceRow[x], x, y, this.bitDepth, scale);
-                        destinationRow[x - offsetX] = Unsafe.AsRef(this.quantizer).GetQuantizedColor(dithered, paletteSpan, out TPixel _);
+                        TPixel dithered = this.dither.Dither(Unsafe.Add(ref sourceRowRef, x), x, y, this.bitDepth, scale);
+                        Unsafe.Add(ref destinationRowRef, x - offsetX) = Unsafe.AsRef(this.quantizer).GetQuantizedColor(dithered, out TPixel _);
                     }
                 }
             }
@@ -272,16 +272,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)
             {
-                ReadOnlySpan<TPixel> paletteSpan = this.processor.Palette.Span;
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
+                    ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
 
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        ref TPixel sourcePixel = ref row[x];
+                        ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, x);
                         TPixel dithered = this.dither.Dither(sourcePixel, x, y, this.bitDepth, this.scale);
-                        sourcePixel = Unsafe.AsRef(this.processor).GetPaletteColor(dithered, paletteSpan);
+                        sourcePixel = Unsafe.AsRef(this.processor).GetPaletteColor(dithered);
                     }
                 }
             }

@@ -53,10 +53,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Gets the color palette of this <see cref="QuantizedFrame{TPixel}"/>.
         /// </summary>
-        public ReadOnlySpan<TPixel> Palette
+        public ReadOnlyMemory<TPixel> Palette
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get { return this.palette.GetSpan(); }
+            get { return this.palette.Memory; }
         }
 
         /// <summary>

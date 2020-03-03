@@ -45,10 +45,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Returns the index and color from the quantized palette corresponding to the given color.
         /// </summary>
         /// <param name="color">The color to match.</param>
-        /// <param name="palette">The output color palette.</param>
         /// <param name="match">The matched color.</param>
         /// <returns>The <see cref="byte"/> index.</returns>
-        byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match);
+        byte GetQuantizedColor(TPixel color, out TPixel match);
 
         // TODO: Enable bulk operations.
         // void GetQuantizedColors(ReadOnlySpan<TPixel> colors, ReadOnlySpan<TPixel> palette, Span<byte> indices, Span<TPixel> matches);

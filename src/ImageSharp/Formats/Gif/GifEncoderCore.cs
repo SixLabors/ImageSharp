@@ -128,6 +128,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private void EncodeGlobal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, int transparencyIndex, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // The palette quantizer can reuse the same pixel map across multiple frames
+            // since the palette is unchanging. This allows a reduction of memory usage across
+            // multi frame gifs using a global palette.
+            EuclideanPixelMap<TPixel> pixelMap = default;
+            bool pixelMapSet = false;
             for (int i = 0; i < image.Frames.Count; i++)
             {
                 ImageFrame<TPixel> frame = image.Frames[i];
@@ -142,7 +147,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    using var paletteFrameQuantizer = new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Options, quantized.Palette);
+                    if (!pixelMapSet)
+                    {
+                        pixelMapSet = true;
+                        pixelMap = new EuclideanPixelMap<TPixel>(this.configuration, quantized.Palette, quantized.Palette.Span.Length);
+                    }
+
+                    using var paletteFrameQuantizer = new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Options, pixelMap);
                     using QuantizedFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds());
                     this.WriteImageData(paletteQuantized, stream);
                 }
@@ -214,7 +225,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
                 ref Rgba32 paletteRef = ref MemoryMarshal.GetReference(rgbaSpan);
-                PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, quantized.Palette, rgbaSpan);
+                PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, quantized.Palette.Span, rgbaSpan);
 
                 for (int i = quantized.Palette.Length - 1; i >= 0; i--)
                 {
@@ -321,8 +332,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            foreach (string comment in metadata.Comments)
+            for (var i = 0; i < metadata.Comments.Count; i++)
             {
+                string comment = metadata.Comments[i];
                 this.buffer[0] = GifConstants.ExtensionIntroducer;
                 this.buffer[1] = GifConstants.CommentLabel;
                 stream.Write(this.buffer, 0, 2);
@@ -330,7 +342,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 // Comment will be stored in chunks of 255 bytes, if it exceeds this size.
                 ReadOnlySpan<char> commentSpan = comment.AsSpan();
                 int idx = 0;
-                for (; idx <= comment.Length - GifConstants.MaxCommentSubBlockLength; idx += GifConstants.MaxCommentSubBlockLength)
+                for (;
+                    idx <= comment.Length - GifConstants.MaxCommentSubBlockLength;
+                    idx += GifConstants.MaxCommentSubBlockLength)
                 {
                     WriteCommentSubBlock(stream, commentSpan, idx, GifConstants.MaxCommentSubBlockLength);
                 }
@@ -443,7 +457,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             using IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength);
             PixelOperations<TPixel>.Instance.ToRgb24Bytes(
                 this.configuration,
-                image.Palette,
+                image.Palette.Span,
                 colorTable.GetSpan(),
                 pixelCount);
             stream.Write(colorTable.Array, 0, colorTableLength);

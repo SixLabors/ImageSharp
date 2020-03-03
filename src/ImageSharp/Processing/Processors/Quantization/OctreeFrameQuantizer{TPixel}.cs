@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -82,29 +83,32 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             Span<TPixel> paletteSpan = this.palette.GetSpan();
-            this.octree.Palletize(paletteSpan, this.colors);
+            int paletteIndex = 0;
+            this.octree.Palletize(paletteSpan, this.colors, ref paletteIndex);
 
-            // TODO: Cannot make method readonly due to this line.
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, this.palette.Memory);
+            // Length of reduced palette + transparency.
+            paletteSpan = paletteSpan.Slice(0, Math.Min(paletteIndex + 2, QuantizerConstants.MaxColors));
+            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, this.palette.Memory, paletteSpan.Length);
 
             return paletteSpan;
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+        public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
         {
             // Octree only maps the RGB component of a color
             // so cannot tell the difference between a fully transparent
             // pixel and a black one.
-            if (!this.isDithering && !color.Equals(default))
+            if (this.isDithering || color.Equals(default))
             {
-                var index = (byte)this.octree.GetPaletteIndex(color);
-                match = palette[index];
-                return index;
+                return (byte)this.pixelMap.GetClosestColor(color, out match);
             }
 
-            return (byte)this.pixelMap.GetClosestColor(color, out match);
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.pixelMap.GetPaletteSpan());
+            var index = (byte)this.octree.GetPaletteIndex(color);
+            match = Unsafe.Add(ref paletteRef, index);
+            return index;
         }
 
         /// <inheritdoc/>
@@ -223,15 +227,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             /// </summary>
             /// <param name="palette">The palette to fill.</param>
             /// <param name="colorCount">The maximum number of colors</param>
+            /// <param name="paletteIndex">The palette index, used to calculate the final size of the palette.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Palletize(Span<TPixel> palette, int colorCount)
+            public void Palletize(Span<TPixel> palette, int colorCount, ref int paletteIndex)
             {
                 while (this.Leaves > colorCount - 1)
                 {
                     this.Reduce();
                 }
 
-                int paletteIndex = 0;
                 this.root.ConstructPalette(palette, ref paletteIndex);
             }
 

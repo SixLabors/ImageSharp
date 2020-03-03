@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -95,20 +96,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ReadOnlySpan<TPixel> paletteSpan = destination.Palette;
             int offsetY = bounds.Top;
             int offsetX = bounds.Left;
             float scale = quantizer.Options.DitherScale;
 
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> sourceRow = source.GetPixelRowSpan(y);
-                Span<byte> destinationRow = destination.GetPixelRowSpan(y - offsetY);
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
+                ref byte destinationRowRef = ref MemoryMarshal.GetReference(destination.GetPixelRowSpan(y - offsetY));
 
                 for (int x = bounds.Left; x < bounds.Right; x++)
                 {
-                    TPixel sourcePixel = sourceRow[x];
-                    destinationRow[x - offsetX] = quantizer.GetQuantizedColor(sourcePixel, paletteSpan, out TPixel transformed);
+                    TPixel sourcePixel = Unsafe.Add(ref sourceRowRef, x);
+                    Unsafe.Add(ref destinationRowRef, x - offsetX) = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
                     this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
                 }
             }
@@ -124,16 +124,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TPixel : unmanaged, IPixel<TPixel>
         {
             float scale = processor.DitherScale;
-            ReadOnlySpan<TPixel> palette = processor.Palette.Span;
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
                 for (int x = bounds.Left; x < bounds.Right; x++)
                 {
-                    TPixel sourcePixel = row[x];
-                    TPixel transformed = Unsafe.AsRef(processor).GetPaletteColor(sourcePixel, palette);
+                    ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, x);
+                    TPixel transformed = Unsafe.AsRef(processor).GetPaletteColor(sourcePixel);
                     this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
-                    row[x] = transformed;
+                    sourcePixel = transformed;
                 }
             }
         }

@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -39,6 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
             this.ditherProcessor = new DitherProcessor(
                 this.Configuration,
+                Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
                 this.paletteMemory.Memory,
                 definition.DitherScale);
         }
@@ -71,7 +73,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
         /// <summary>
         /// Used to allow inlining of calls to
-        /// <see cref="IPaletteDitherImageProcessor{TPixel}.GetPaletteColor(TPixel, ReadOnlySpan{TPixel})"/>.
+        /// <see cref="IPaletteDitherImageProcessor{TPixel}.GetPaletteColor(TPixel)"/>.
         /// </summary>
         private readonly struct DitherProcessor : IPaletteDitherImageProcessor<TPixel>
         {
@@ -80,11 +82,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             [MethodImpl(InliningOptions.ShortMethod)]
             public DitherProcessor(
                 Configuration configuration,
+                Rectangle bounds,
                 ReadOnlyMemory<TPixel> palette,
                 float ditherScale)
             {
                 this.Configuration = configuration;
-                this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
+                this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette, palette.Span.Length);
                 this.Palette = palette;
                 this.DitherScale = ditherScale;
             }
@@ -96,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             public float DitherScale { get; }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public TPixel GetPaletteColor(TPixel color, ReadOnlySpan<TPixel> palette)
+            public TPixel GetPaletteColor(TPixel color)
             {
                 this.pixelMap.GetClosestColor(color, out TPixel match);
                 return match;

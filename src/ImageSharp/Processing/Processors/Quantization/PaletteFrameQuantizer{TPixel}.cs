@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -17,54 +18,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     internal struct PaletteFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private IMemoryOwner<TPixel> paletteOwner;
         private readonly EuclideanPixelMap<TPixel> pixelMap;
-        private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> struct.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="options">The quantizer options defining quantization rules.</param>
-        /// <param name="colors">A <see cref="ReadOnlyMemory{TPixel}"/> containing all colors in the palette.</param>
+        /// <param name="pixelMap">The pixel map for looking up color matches from a predefined palette.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public PaletteFrameQuantizer(Configuration configuration, QuantizerOptions options, ReadOnlySpan<Color> colors)
+        public PaletteFrameQuantizer(
+            Configuration configuration,
+            QuantizerOptions options,
+            EuclideanPixelMap<TPixel> pixelMap)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(options, nameof(options));
 
             this.Configuration = configuration;
             this.Options = options;
-
-            int maxLength = Math.Min(colors.Length, options.MaxColors);
-            this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(maxLength);
-            Color.ToPixel(configuration, colors, this.paletteOwner.GetSpan());
-
-            this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, this.paletteOwner.Memory);
-            this.isDisposed = false;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> struct.
-        /// </summary>
-        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="options">The quantizer options defining quantization rules.</param>
-        /// <param name="palette">A <see cref="ReadOnlyMemory{TPixel}"/> containing all colors in the palette.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public PaletteFrameQuantizer(Configuration configuration, QuantizerOptions options, ReadOnlySpan<TPixel> palette)
-        {
-            Guard.NotNull(configuration, nameof(configuration));
-            Guard.NotNull(options, nameof(options));
-
-            this.Configuration = configuration;
-            this.Options = options;
-
-            int maxLength = Math.Min(palette.Length, options.MaxColors);
-            this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(maxLength);
-            palette.CopyTo(this.paletteOwner.GetSpan());
-
-            this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, this.paletteOwner.Memory);
-            this.isDisposed = false;
+            this.pixelMap = pixelMap;
         }
 
         /// <inheritdoc/>
@@ -81,24 +54,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public readonly ReadOnlySpan<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
-            => this.paletteOwner.GetSpan();
+            => this.pixelMap.GetPaletteSpan();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+        public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
             => (byte)this.pixelMap.GetClosestColor(color, out match);
 
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            this.isDisposed = true;
-            this.paletteOwner.Dispose();
-            this.paletteOwner = null;
         }
     }
 }

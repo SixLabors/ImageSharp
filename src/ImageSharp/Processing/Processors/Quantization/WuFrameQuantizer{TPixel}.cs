@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -131,13 +132,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 }
             }
 
-            // TODO: Cannot make methods readonly due to this line.
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, this.palette.Memory);
+            paletteSpan = paletteSpan.Slice(0, this.colors);
+            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, this.palette.Memory, paletteSpan.Length);
             return paletteSpan;
         }
 
         /// <inheritdoc/>
-        public readonly byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+        public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
         {
             if (this.isDithering)
             {
@@ -154,7 +155,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             ReadOnlySpan<byte> tagSpan = this.tag.GetSpan();
             byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
-            match = palette[index];
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.pixelMap.GetPaletteSpan());
+            match = Unsafe.Add(ref paletteRef, index);
             return index;
         }
 

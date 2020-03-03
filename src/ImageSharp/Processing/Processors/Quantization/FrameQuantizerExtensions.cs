@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -40,20 +41,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             ReadOnlySpan<TPixel> palette = quantizer.BuildPalette(source, interest);
             MemoryAllocator memoryAllocator = quantizer.Configuration.MemoryAllocator;
 
-            var quantizedFrame = new QuantizedFrame<TPixel>(memoryAllocator, interest.Width, interest.Height, palette);
+            var destination = new QuantizedFrame<TPixel>(memoryAllocator, interest.Width, interest.Height, palette);
 
             if (quantizer.Options.Dither is null)
             {
-                SecondPass(ref quantizer, source, quantizedFrame, interest);
+                SecondPass(ref quantizer, source, destination, interest);
             }
             else
             {
                 // We clone the image as we don't want to alter the original via error diffusion based dithering.
                 using ImageFrame<TPixel> clone = source.Clone();
-                SecondPass(ref quantizer, clone, quantizedFrame, interest);
+                SecondPass(ref quantizer, clone, destination, interest);
             }
 
-            return quantizedFrame;
+            return destination;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -106,7 +107,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)
             {
-                ReadOnlySpan<TPixel> paletteSpan = this.destination.Palette;
                 int offsetY = this.bounds.Top;
                 int offsetX = this.bounds.Left;
 
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        destinationRow[x - offsetX] = Unsafe.AsRef(this.quantizer).GetQuantizedColor(sourceRow[x], paletteSpan, out TPixel _);
+                        destinationRow[x - offsetX] = Unsafe.AsRef(this.quantizer).GetQuantizedColor(sourceRow[x], out TPixel _);
                     }
                 }
             }

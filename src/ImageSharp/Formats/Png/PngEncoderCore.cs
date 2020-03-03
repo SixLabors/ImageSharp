@@ -555,7 +555,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             // Grab the palette and write it to the stream.
-            ReadOnlySpan<TPixel> palette = quantized.Palette;
+            ReadOnlySpan<TPixel> palette = quantized.Palette.Span;
             int paletteLength = Math.Min(palette.Length, 256);
             int colorTableLength = paletteLength * 3;
             bool anyAlpha = false;

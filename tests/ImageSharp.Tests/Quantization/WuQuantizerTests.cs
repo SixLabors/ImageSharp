@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             Assert.Equal(1, result.Palette.Length);
             Assert.Equal(1, result.GetPixelSpan().Length);
 
-            Assert.Equal(Color.Black, (Color)result.Palette[0]);
+            Assert.Equal(Color.Black, (Color)result.Palette.Span[0]);
             Assert.Equal(0, result.GetPixelSpan()[0]);
         }
 
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             Assert.Equal(1, result.Palette.Length);
             Assert.Equal(1, result.GetPixelSpan().Length);
 
-            Assert.Equal(default, result.Palette[0]);
+            Assert.Equal(default, result.Palette.Span[0]);
             Assert.Equal(0, result.GetPixelSpan()[0]);
         }
 
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
 
             var actualImage = new Image<Rgba32>(1, 256);
 
-            ReadOnlySpan<Rgba32> paletteSpan = result.Palette;
+            ReadOnlySpan<Rgba32> paletteSpan = result.Palette.Span;
             int paletteCount = result.Palette.Length - 1;
             for (int y = 0; y < actualImage.Height; y++)
             {
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
                     Assert.Equal(4 * 8, result.Palette.Length);
                     Assert.Equal(256, result.GetPixelSpan().Length);
 
-                    ReadOnlySpan<Rgba32> paletteSpan = result.Palette;
+                    ReadOnlySpan<Rgba32> paletteSpan = result.Palette.Span;
                     int paletteCount = result.Palette.Length - 1;
                     for (int y = 0; y < actualImage.Height; y++)
                     {

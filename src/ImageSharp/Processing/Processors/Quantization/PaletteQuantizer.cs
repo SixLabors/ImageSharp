@@ -56,7 +56,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             // multi frame gifs using a global palette.
             int length = Math.Min(this.colorPalette.Length, options.MaxColors);
             var palette = new TPixel[length];
+
             Color.ToPixel(configuration, this.colorPalette.Span, palette.AsSpan());
+
             var pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette, length);
             return new PaletteFrameQuantizer<TPixel>(configuration, options, pixelMap);
         }

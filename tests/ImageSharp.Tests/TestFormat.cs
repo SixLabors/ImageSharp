@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         public void VerifySpecificDecodeCall<TPixel>(byte[] marker, Configuration config)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TPixel))).ToArray();
 
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         public Image<TPixel> Sample<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             lock (this.sampleImages)
             {
@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Tests
             public int HeaderSize => this.testFormat.HeaderSize;
 
             public Image<TPixel> Decode<TPixel>(Configuration config, Stream stream)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 var ms = new MemoryStream();
                 stream.CopyTo(ms);
@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.Tests
             public IEnumerable<string> FileExtensions => this.testFormat.SupportedExtensions;
 
             public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 // TODO record this happened so we can verify it.
             }

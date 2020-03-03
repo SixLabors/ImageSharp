@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizationProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GlobalHistogramEqualizationProcessor{TPixel}"/> class.

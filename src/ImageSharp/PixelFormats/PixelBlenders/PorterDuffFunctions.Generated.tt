@@ -217,7 +217,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel <#=blender#><#=composer#><TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;

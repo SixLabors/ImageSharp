@@ -19,11 +19,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
     public class BokehBlurTest
     {
-        static BokehBlurTest()
-        {
-            TestEnvironment.PrepareRemoteExecutor();
-        }
-
         private static readonly string Components10x2 = @"
         [[ 0.00451261+0.0165137j   0.02161237-0.00299122j  0.00387479-0.02682816j
           -0.02752798-0.01788438j -0.03553877+0.0154543j  -0.01428268+0.04224722j
@@ -128,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [WithTestPatternImages(nameof(BokehBlurValues), 23, 31, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(BokehBlurValues), 30, 20, PixelTypes.Rgba32)]
         public void BokehBlurFilterProcessor<TPixel>(TestImageProvider<TPixel> provider, BokehBlurInfo value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             static void RunTest(string providerDump, string infoDump)
             {
@@ -154,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         */
         [WithTestPatternImages(200, 200, PixelTypes.Bgr24 | PixelTypes.Bgra32)]
         public void BokehBlurFilterProcessor_WorksWithAllPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             static void RunTest(string providerDump)
             {
@@ -173,7 +168,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32)]
         public void BokehBlurFilterProcessor_Bounded<TPixel>(TestImageProvider<TPixel> provider, BokehBlurInfo value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             static void RunTest(string providerDump, string infoDump)
             {
@@ -200,7 +195,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithTestPatternImages(100, 300, PixelTypes.Bgr24)]
         public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunBufferCapacityLimitProcessorTest(41, c => c.BokehBlur());
         }

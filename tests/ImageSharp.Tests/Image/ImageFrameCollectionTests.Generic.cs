@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
             public void CloneFrame<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using (Image<TPixel> img = provider.GetImage())
                 {
@@ -206,7 +206,7 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
             public void ExtractFrame<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using (Image<TPixel> img = provider.GetImage())
                 {

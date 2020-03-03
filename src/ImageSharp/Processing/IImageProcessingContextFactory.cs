@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="mutate">A flag to determine whether image operations are allowed to mutate the source image.</param>
         /// <returns>A new <see cref="IInternalImageProcessingContext{TPixel}"/></returns>
         IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Configuration configuration, Image<TPixel> source, bool mutate)
-            where TPixel : struct, IPixel<TPixel>;
+            where TPixel : unmanaged, IPixel<TPixel>;
     }
 
     /// <summary>
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing
     {
         /// <inheritdoc/>
         public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Configuration configuration, Image<TPixel> source, bool mutate)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return new DefaultImageProcessorContext<TPixel>(configuration, source, mutate);
         }

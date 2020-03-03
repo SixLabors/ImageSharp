@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(L16 left, L16 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<L16> CreatePixelOperations() => new PixelOperations();
+        public readonly PixelOperations<L16> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4() => this.ToVector4();
+        public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4()
+        public readonly Vector4 ToVector4()
         {
             float scaled = this.PackedValue / Max;
             return new Vector4(scaled, scaled, scaled, 1F);
@@ -160,18 +160,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void FromRgba64(Rgba64 source) => this.PackedValue = ImageMaths.Get16BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is L16 other && this.Equals(other);
+        public override readonly bool Equals(object obj) => obj is L16 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(L16 other) => this.PackedValue.Equals(other.PackedValue);
+        public readonly bool Equals(L16 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override string ToString() => $"L16({this.PackedValue})";
+        public override readonly string ToString() => $"L16({this.PackedValue})";
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => this.PackedValue.GetHashCode();
+        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
         [MethodImpl(InliningOptions.ShortMethod)]
         internal void ConvertFromRgbaScaledVector4(Vector4 vector)

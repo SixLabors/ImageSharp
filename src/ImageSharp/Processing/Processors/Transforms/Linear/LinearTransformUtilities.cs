@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Vector2 radialExtents,
             Vector4 maxSourceExtents)
             where TResampler : struct, IResampler
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // Clamp sampling pixel radial extents to the source image edges
             Vector2 minXY = transformedPoint - radialExtents;

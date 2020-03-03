@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public interface IFrameQuantizer<TPixel> : IDisposable
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Gets the configuration.

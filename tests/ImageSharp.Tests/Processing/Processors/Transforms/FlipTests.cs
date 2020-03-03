@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [WithTestPatternImages(nameof(FlipValues), 53, 37, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(FlipValues), 17, 32, PixelTypes.Rgba32)]
         public void Flip<TPixel>(TestImageProvider<TPixel> provider, FlipMode flipMode)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(
                 ctx => ctx.Flip(flipMode),
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [WithTestPatternImages(nameof(FlipValues), 53, 37, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(FlipValues), 17, 32, PixelTypes.Rgba32)]
         public void Flip_WorksOnWrappedMemoryImage<TPixel>(TestImageProvider<TPixel> provider, FlipMode flipMode)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTestOnWrappedMemoryImage(
                 ctx => ctx.Flip(flipMode),

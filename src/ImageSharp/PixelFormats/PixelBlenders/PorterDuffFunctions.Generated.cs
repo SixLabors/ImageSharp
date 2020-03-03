@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -221,7 +221,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -259,7 +259,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -278,7 +278,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -316,7 +316,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -335,7 +335,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -354,7 +354,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -373,7 +373,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -392,7 +392,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -411,7 +411,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel NormalXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -608,7 +608,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplySrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -627,7 +627,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplySrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -646,7 +646,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplySrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -665,7 +665,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplySrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -684,7 +684,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplySrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -703,7 +703,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplyDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -722,7 +722,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplyDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -741,7 +741,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplyDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -760,7 +760,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplyDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -779,7 +779,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplyDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -798,7 +798,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplyClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -817,7 +817,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel MultiplyXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1014,7 +1014,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1033,7 +1033,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1052,7 +1052,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1071,7 +1071,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1090,7 +1090,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1109,7 +1109,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1128,7 +1128,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1147,7 +1147,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1166,7 +1166,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1185,7 +1185,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1204,7 +1204,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1223,7 +1223,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel AddXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1420,7 +1420,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1439,7 +1439,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1458,7 +1458,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1477,7 +1477,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1496,7 +1496,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1515,7 +1515,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1534,7 +1534,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1553,7 +1553,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1572,7 +1572,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1591,7 +1591,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1610,7 +1610,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1629,7 +1629,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel SubtractXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1826,7 +1826,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1845,7 +1845,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1864,7 +1864,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1883,7 +1883,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1902,7 +1902,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1921,7 +1921,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1940,7 +1940,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1959,7 +1959,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1978,7 +1978,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -1997,7 +1997,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2016,7 +2016,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2035,7 +2035,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel ScreenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2232,7 +2232,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2251,7 +2251,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2270,7 +2270,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2289,7 +2289,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2308,7 +2308,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2327,7 +2327,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2346,7 +2346,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2365,7 +2365,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2384,7 +2384,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2403,7 +2403,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2422,7 +2422,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2441,7 +2441,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel DarkenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2638,7 +2638,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2657,7 +2657,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2676,7 +2676,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2695,7 +2695,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2714,7 +2714,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2733,7 +2733,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2752,7 +2752,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2771,7 +2771,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2790,7 +2790,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2809,7 +2809,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2828,7 +2828,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -2847,7 +2847,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel LightenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3044,7 +3044,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlaySrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3063,7 +3063,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlaySrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3082,7 +3082,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlaySrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3101,7 +3101,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlaySrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3120,7 +3120,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlaySrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3139,7 +3139,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlayDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3158,7 +3158,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlayDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3177,7 +3177,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlayDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3196,7 +3196,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlayDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3215,7 +3215,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlayDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3234,7 +3234,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlayClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3253,7 +3253,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel OverlayXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3450,7 +3450,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3469,7 +3469,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3488,7 +3488,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3507,7 +3507,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3526,7 +3526,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3545,7 +3545,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3564,7 +3564,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3583,7 +3583,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3602,7 +3602,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3621,7 +3621,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3640,7 +3640,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;
@@ -3659,7 +3659,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         /// <returns>The <typeparamref name="TPixel"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TPixel HardLightXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             opacity = opacity.Clamp(0, 1);
             TPixel dest = default;

@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithFileCollection(nameof(InputImages), nameof(Values), PixelTypes.Rgba32)]
         public void OnFullImage<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.Utility.TestGroupName = this.GetType().Name;
             provider.RunValidatingProcessorTest(
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithFileCollection(nameof(InputImages), nameof(Values), PixelTypes.Rgba32)]
         public void InBox<TPixel>(TestImageProvider<TPixel> provider, int value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.Utility.TestGroupName = this.GetType().Name;
             provider.RunRectangleConstrainedValidatingProcessorTest(

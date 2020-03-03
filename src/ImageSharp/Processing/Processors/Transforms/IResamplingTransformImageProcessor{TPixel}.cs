@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public interface IResamplingTransformImageProcessor<TPixel> : IImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Applies a resampling transform with the given sampler.

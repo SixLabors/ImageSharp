@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly PixelBlender<TPixel> blender;
         private readonly GlowProcessor definition;

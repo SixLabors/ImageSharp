@@ -22,12 +22,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.All)]
         public void GetGlobalInstance<T>(TestImageProvider<T> _)
-            where T : struct, IPixel<T> => Assert.NotNull(PixelOperations<T>.Instance);
+            where T : unmanaged, IPixel<T> => Assert.NotNull(PixelOperations<T>.Instance);
     }
 #pragma warning restore SA1313 // Parameter names should begin with lower-case letter
 
     public abstract class PixelOperationsTests<TPixel> : MeasureFixture
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         public const string SkipProfilingBenchmarks =
 #if true
@@ -288,7 +288,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         [Theory]
         [MemberData(nameof(Generic_To_Data))]
         public void Generic_To<TDestPixel>(TestPixel<TDestPixel> dummy)
-            where TDestPixel : struct, IPixel<TDestPixel>
+            where TDestPixel : unmanaged, IPixel<TDestPixel>
         {
             const int Count = 2134;
             TPixel[] source = CreatePixelTestData(Count);

@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             ImageFrame<TPixel> source,
             Rectangle bounds)
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(source, nameof(source));
             var interest = Rectangle.Intersect(source.Bounds(), bounds);
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Memory<byte> output,
             ReadOnlyMemory<TPixel> palette)
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             IDither dither = quantizer.Options.Dither;
 
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         private readonly struct RowIntervalOperation<TFrameQuantizer, TPixel> : IRowIntervalOperation
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             private readonly TFrameQuantizer quantizer;
             private readonly ImageFrame<TPixel> source;

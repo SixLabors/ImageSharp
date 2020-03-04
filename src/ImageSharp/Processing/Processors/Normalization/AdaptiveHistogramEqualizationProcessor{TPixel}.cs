@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 }
 
                 var operation = new RowIntervalOperation(cdfData, tileYStartPositions, tileWidth, tileHeight, tileCount, halfTileWidth, luminanceLevels, source);
-                ParallelRowIterator.IterateRows(
+                ParallelRowIterator.IterateRowIntervals(
                     this.Configuration,
                     new Rectangle(0, 0, sourceWidth, tileYStartPositions.Count),
                     in operation);
@@ -522,7 +522,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     this.luminanceLevels,
                     source);
 
-                ParallelRowIterator.IterateRows(
+                ParallelRowIterator.IterateRowIntervals(
                     this.configuration,
                     new Rectangle(0, 0, this.sourceWidth, this.tileYStartPositions.Count),
                     in operation);

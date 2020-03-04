@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             if (dither is null)
             {
                 var operation = new RowIntervalOperation<TFrameQuantizer, TPixel>(ref quantizer, source, destination, bounds);
-                ParallelRowIterator.IterateRows(
+                ParallelRowIterator.IterateRowIntervals(
                     quantizer.Configuration,
                     bounds,
                     in operation);

@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
@@ -76,28 +75,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="configuration">The configuration.</param>
         private void FlipY(ImageFrame<TPixel> source, Configuration configuration)
         {
-            var operation = new RowIntervalOperation(source);
+            var operation = new RowOperation(source);
             ParallelRowIterator.IterateRows(
                 configuration,
                 source.Bounds(),
                 in operation);
         }
 
-        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        private readonly struct RowOperation : IRowOperation
         {
             private readonly ImageFrame<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalOperation(ImageFrame<TPixel> source) => this.source = source;
+            public RowOperation(ImageFrame<TPixel> source) => this.source = source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
-            {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    this.source.GetPixelRowSpan(y).Reverse();
-                }
-            }
+            public void Invoke(int y) => this.source.GetPixelRowSpan(y).Reverse();
         }
     }
 }

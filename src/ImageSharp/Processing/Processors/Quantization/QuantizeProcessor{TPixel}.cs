@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             using QuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source, interest);
 
             var operation = new RowIntervalOperation(this.SourceRectangle, source, quantized);
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 configuration,
                 interest,
                 in operation);

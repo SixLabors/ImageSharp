@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 destination,
                 bounds);
 
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 quantizer.Configuration,
                 bounds,
                 in ditherOperation);
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 source,
                 bounds);
 
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 processor.Configuration,
                 bounds,
                 in ditherOperation);

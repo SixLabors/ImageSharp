@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 in operation);
         }
 
-        private readonly struct NNProjectiveOperation : IRowIntervalOperation
+        private readonly struct NNProjectiveOperation : IRowOperation
         {
             private readonly ImageFrame<TPixel> source;
             private readonly ImageFrame<TPixel> destination;
@@ -133,28 +133,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
+                Span<TPixel> destRow = this.destination.GetPixelRowSpan(y);
+
+                for (int x = 0; x < this.maxX; x++)
                 {
-                    Span<TPixel> destRow = this.destination.GetPixelRowSpan(y);
+                    Vector2 point = TransformUtilities.ProjectiveTransform2D(x, y, this.matrix);
+                    int px = (int)MathF.Round(point.X);
+                    int py = (int)MathF.Round(point.Y);
 
-                    for (int x = 0; x < this.maxX; x++)
+                    if (this.bounds.Contains(px, py))
                     {
-                        Vector2 point = TransformUtilities.ProjectiveTransform2D(x, y, this.matrix);
-                        int px = (int)MathF.Round(point.X);
-                        int py = (int)MathF.Round(point.Y);
-
-                        if (this.bounds.Contains(px, py))
-                        {
-                            destRow[x] = this.source[px, py];
-                        }
+                        destRow[x] = this.source[px, py];
                     }
                 }
             }
         }
 
-        private readonly struct ProjectiveOperation<TResampler> : IRowIntervalOperation<Vector4>
+        private readonly struct ProjectiveOperation<TResampler> : IRowOperation<Vector4>
             where TResampler : struct, IResampler
         {
             private readonly Configuration configuration;
@@ -193,41 +190,39 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Span<Vector4> span)
+            public void Invoke(int y, Span<Vector4> span)
             {
                 Buffer2D<TPixel> sourceBuffer = this.source.PixelBuffer;
-                for (int y = rows.Min; y < rows.Max; y++)
+
+                PixelOperations<TPixel>.Instance.ToVector4(
+                    this.configuration,
+                    this.destination.GetPixelRowSpan(y),
+                    span);
+
+                ref float yKernelSpanRef = ref MemoryMarshal.GetReference(this.yKernelBuffer.GetRowSpan(y));
+                ref float xKernelSpanRef = ref MemoryMarshal.GetReference(this.xKernelBuffer.GetRowSpan(y));
+
+                for (int x = 0; x < this.maxX; x++)
                 {
-                    PixelOperations<TPixel>.Instance.ToVector4(
-                        this.configuration,
-                        this.destination.GetPixelRowSpan(y),
-                        span);
-
-                    ref float yKernelSpanRef = ref MemoryMarshal.GetReference(this.yKernelBuffer.GetRowSpan(y));
-                    ref float xKernelSpanRef = ref MemoryMarshal.GetReference(this.xKernelBuffer.GetRowSpan(y));
-
-                    for (int x = 0; x < this.maxX; x++)
-                    {
-                        // Use the single precision position to calculate correct bounding pixels
-                        // otherwise we get rogue pixels outside of the bounds.
-                        Vector2 point = TransformUtilities.ProjectiveTransform2D(x, y, this.matrix);
-                        LinearTransformUtilities.Convolve(
-                            in this.sampler,
-                            point,
-                            sourceBuffer,
-                            span,
-                            x,
-                            ref yKernelSpanRef,
-                            ref xKernelSpanRef,
-                            this.radialExtents,
-                            this.maxSourceExtents);
-                    }
-
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(
-                        this.configuration,
+                    // Use the single precision position to calculate correct bounding pixels
+                    // otherwise we get rogue pixels outside of the bounds.
+                    Vector2 point = TransformUtilities.ProjectiveTransform2D(x, y, this.matrix);
+                    LinearTransformUtilities.Convolve(
+                        in this.sampler,
+                        point,
+                        sourceBuffer,
                         span,
-                        this.destination.GetPixelRowSpan(y));
+                        x,
+                        ref yKernelSpanRef,
+                        ref xKernelSpanRef,
+                        this.radialExtents,
+                        this.maxSourceExtents);
                 }
+
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(
+                    this.configuration,
+                    span,
+                    this.destination.GetPixelRowSpan(y));
             }
         }
     }

@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     "Cannot draw image because the source image does not overlap the target image.");
             }
 
-            var operation = new RowIntervalOperation(source, targetImage, blender, configuration, minX, width, locationY, targetX, this.Opacity);
+            var operation = new RowOperation(source, targetImage, blender, configuration, minX, width, locationY, targetX, this.Opacity);
             ParallelRowIterator.IterateRows(
                 configuration,
                 workingRect,
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
         /// <summary>
         /// A <see langword="struct"/> implementing the draw logic for <see cref="DrawImageProcessor{TPixelBg,TPixelFg}"/>.
         /// </summary>
-        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        private readonly struct RowOperation : IRowOperation
         {
             private readonly ImageFrame<TPixelBg> sourceFrame;
             private readonly Image<TPixelFg> targetImage;
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
             private readonly float opacity;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalOperation(
+            public RowOperation(
                 ImageFrame<TPixelBg> sourceFrame,
                 Image<TPixelFg> targetImage,
                 PixelBlender<TPixelBg> blender,
@@ -146,14 +146,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixelBg> background = this.sourceFrame.GetPixelRowSpan(y).Slice(this.minX, this.width);
-                    Span<TPixelFg> foreground = this.targetImage.GetPixelRowSpan(y - this.locationY).Slice(this.targetX, this.width);
-                    this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity);
-                }
+                Span<TPixelBg> background = this.sourceFrame.GetPixelRowSpan(y).Slice(this.minX, this.width);
+                Span<TPixelFg> foreground = this.targetImage.GetPixelRowSpan(y - this.locationY).Slice(this.targetX, this.width);
+                this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity);
             }
         }
     }

@@ -72,8 +72,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             // Preliminary gamma highlight pass
-            var gammaOperation = new ApplyGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
-            ParallelRowIterator.IterateRows<ApplyGammaExposureRowIntervalOperation, Vector4>(
+            var gammaOperation = new ApplyGammaExposureRowOperation(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
+            ParallelRowIterator.IterateRows<ApplyGammaExposureRowOperation, Vector4>(
                 this.Configuration,
                 this.SourceRectangle,
                 in gammaOperation);
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             float inverseGamma = 1 / this.gamma;
 
             // Apply the inverse gamma exposure pass, and write the final pixel data
-            var operation = new ApplyInverseGammaExposureRowIntervalOperation(this.SourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, inverseGamma);
+            var operation = new ApplyInverseGammaExposureRowOperation(this.SourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, inverseGamma);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
                 this.SourceRectangle,
@@ -120,14 +120,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Vector4 parameters = Unsafe.Add(ref paramsRef, i);
 
                 // Compute the vertical 1D convolution
-                var verticalOperation = new ApplyVerticalConvolutionRowIntervalOperation(sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel);
+                var verticalOperation = new ApplyVerticalConvolutionRowOperation(sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel);
                 ParallelRowIterator.IterateRows(
                     configuration,
                     sourceRectangle,
                     in verticalOperation);
 
                 // Compute the horizontal 1D convolutions and accumulate the partial results on the target buffer
-                var horizontalOperation = new ApplyHorizontalConvolutionRowIntervalOperation(sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W);
+                var horizontalOperation = new ApplyHorizontalConvolutionRowOperation(sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W);
                 ParallelRowIterator.IterateRows(
                     configuration,
                     sourceRectangle,
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// A <see langword="struct"/> implementing the vertical convolution logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        private readonly struct ApplyVerticalConvolutionRowIntervalOperation : IRowIntervalOperation
+        private readonly struct ApplyVerticalConvolutionRowOperation : IRowOperation
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<ComplexVector4> targetValues;
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly int maxX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyVerticalConvolutionRowIntervalOperation(
+            public ApplyVerticalConvolutionRowOperation(
                 Rectangle bounds,
                 Buffer2D<ComplexVector4> targetValues,
                 Buffer2D<TPixel> sourcePixels,
@@ -164,16 +164,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<ComplexVector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
+                Span<ComplexVector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
 
-                    for (int x = 0; x < this.bounds.Width; x++)
-                    {
-                        Buffer2DUtils.Convolve4(this.kernel, this.sourcePixels, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX);
-                    }
+                for (int x = 0; x < this.bounds.Width; x++)
+                {
+                    Buffer2DUtils.Convolve4(this.kernel, this.sourcePixels, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX);
                 }
             }
         }
@@ -181,7 +178,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// A <see langword="struct"/> implementing the horizontal convolution logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        private readonly struct ApplyHorizontalConvolutionRowIntervalOperation : IRowIntervalOperation
+        private readonly struct ApplyHorizontalConvolutionRowOperation : IRowOperation
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<Vector4> targetValues;
@@ -193,7 +190,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly int maxX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyHorizontalConvolutionRowIntervalOperation(
+            public ApplyHorizontalConvolutionRowOperation(
                 Rectangle bounds,
                 Buffer2D<Vector4> targetValues,
                 Buffer2D<ComplexVector4> sourceValues,
@@ -213,16 +210,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<Vector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
+                Span<Vector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
 
-                    for (int x = 0; x < this.bounds.Width; x++)
-                    {
-                        Buffer2DUtils.Convolve4AndAccumulatePartials(this.kernel, this.sourceValues, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX, this.z, this.w);
-                    }
+                for (int x = 0; x < this.bounds.Width; x++)
+                {
+                    Buffer2DUtils.Convolve4AndAccumulatePartials(this.kernel, this.sourceValues, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX, this.z, this.w);
                 }
             }
         }
@@ -230,7 +224,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// A <see langword="struct"/> implementing the gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        private readonly struct ApplyGammaExposureRowIntervalOperation : IRowIntervalOperation<Vector4>
+        private readonly struct ApplyGammaExposureRowOperation : IRowOperation<Vector4>
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> targetPixels;
@@ -238,7 +232,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly float gamma;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyGammaExposureRowIntervalOperation(
+            public ApplyGammaExposureRowOperation(
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 Configuration configuration,
@@ -252,31 +246,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Span<Vector4> span)
+            public void Invoke(int y, Span<Vector4> span)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
+                Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Premultiply);
+                ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
+
+                for (int x = 0; x < this.bounds.Width; x++)
                 {
-                    Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Premultiply);
-                    ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
-
-                    for (int x = 0; x < this.bounds.Width; x++)
-                    {
-                        ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
-                        v.X = MathF.Pow(v.X, this.gamma);
-                        v.Y = MathF.Pow(v.Y, this.gamma);
-                        v.Z = MathF.Pow(v.Z, this.gamma);
-                    }
-
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
+                    ref Vector4 v = ref Unsafe.Add(ref baseRef, x);
+                    v.X = MathF.Pow(v.X, this.gamma);
+                    v.Y = MathF.Pow(v.Y, this.gamma);
+                    v.Z = MathF.Pow(v.Z, this.gamma);
                 }
+
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
             }
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the inverse gamma exposure logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        private readonly struct ApplyInverseGammaExposureRowIntervalOperation : IRowIntervalOperation
+        private readonly struct ApplyInverseGammaExposureRowOperation : IRowOperation
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> targetPixels;
@@ -285,7 +276,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly float inverseGamma;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyInverseGammaExposureRowIntervalOperation(
+            public ApplyInverseGammaExposureRowOperation(
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<Vector4> sourceValues,
@@ -301,28 +292,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
                 Vector4 low = Vector4.Zero;
                 var high = new Vector4(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
 
-                for (int y = rows.Min; y < rows.Max; y++)
+                Span<TPixel> targetPixelSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+                Span<Vector4> sourceRowSpan = this.sourceValues.GetRowSpan(y).Slice(this.bounds.X);
+                ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
+
+                for (int x = 0; x < this.bounds.Width; x++)
                 {
-                    Span<TPixel> targetPixelSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                    Span<Vector4> sourceRowSpan = this.sourceValues.GetRowSpan(y).Slice(this.bounds.X);
-                    ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
-
-                    for (int x = 0; x < this.bounds.Width; x++)
-                    {
-                        ref Vector4 v = ref Unsafe.Add(ref sourceRef, x);
-                        var clamp = Vector4.Clamp(v, low, high);
-                        v.X = MathF.Pow(clamp.X, this.inverseGamma);
-                        v.Y = MathF.Pow(clamp.Y, this.inverseGamma);
-                        v.Z = MathF.Pow(clamp.Z, this.inverseGamma);
-                    }
-
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan.Slice(0, this.bounds.Width), targetPixelSpan, PixelConversionModifiers.Premultiply);
+                    ref Vector4 v = ref Unsafe.Add(ref sourceRef, x);
+                    var clamp = Vector4.Clamp(v, low, high);
+                    v.X = MathF.Pow(clamp.X, this.inverseGamma);
+                    v.Y = MathF.Pow(clamp.Y, this.inverseGamma);
+                    v.Z = MathF.Pow(clamp.Z, this.inverseGamma);
                 }
+
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan.Slice(0, this.bounds.Width), targetPixelSpan, PixelConversionModifiers.Premultiply);
             }
         }
     }

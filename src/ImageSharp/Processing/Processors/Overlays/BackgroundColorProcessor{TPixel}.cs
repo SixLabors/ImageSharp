@@ -49,14 +49,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
             PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(graphicsOptions);
 
-            var operation = new RowIntervalOperation(configuration, interest, blender, amount, colors, source);
+            var operation = new RowOperation(configuration, interest, blender, amount, colors, source);
             ParallelRowIterator.IterateRows(
                 configuration,
                 interest,
                 in operation);
         }
 
-        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        private readonly struct RowOperation : IRowOperation
         {
             private readonly Configuration configuration;
             private readonly Rectangle bounds;
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             private readonly ImageFrame<TPixel> source;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalOperation(
+            public RowOperation(
                 Configuration configuration,
                 Rectangle bounds,
                 PixelBlender<TPixel> blender,
@@ -83,23 +83,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixel> destination =
-                        this.source.GetPixelRowSpan(y)
-                                   .Slice(this.bounds.X, this.bounds.Width);
+                Span<TPixel> destination =
+                    this.source.GetPixelRowSpan(y)
+                        .Slice(this.bounds.X, this.bounds.Width);
 
-                    // Switch color & destination in the 2nd and 3rd places because we are
-                    // applying the target color under the current one.
-                    this.blender.Blend(
-                        this.configuration,
-                        destination,
-                        this.colors.GetSpan(),
-                        destination,
-                        this.amount.GetSpan());
-                }
+                // Switch color & destination in the 2nd and 3rd places because we are
+                // applying the target color under the current one.
+                this.blender.Blend(
+                    this.configuration,
+                    destination,
+                    this.colors.GetSpan(),
+                    destination,
+                    this.amount.GetSpan());
             }
         }
     }

@@ -713,7 +713,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 var operation = new RowOperation(configuration, sourceRectangle, source);
 
-                ParallelRowIterator.IterateRows<RowOperation, Vector4>(
+                ParallelRowIterator.IterateRowIntervals<RowOperation, Vector4>(
                     configuration,
                     sourceRectangle,
                     in operation);

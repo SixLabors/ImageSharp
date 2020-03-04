@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ParallelExecutionSettings parallelSettings =
                 ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
 
-            var operation = new RowIntervalOperation(bounds, source, destination);
+            var operation = new RowOperation(bounds, source, destination);
 
             ParallelRowIterator.IterateRows(
                 bounds,
@@ -62,20 +62,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// A <see langword="struct"/> implementing the processor logic for <see cref="CropProcessor{T}"/>.
         /// </summary>
-        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        private readonly struct RowOperation : IRowOperation
         {
             private readonly Rectangle bounds;
             private readonly ImageFrame<TPixel> source;
             private readonly ImageFrame<TPixel> destination;
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="RowIntervalOperation"/> struct.
+            /// Initializes a new instance of the <see cref="RowOperation"/> struct.
             /// </summary>
             /// <param name="bounds">The target processing bounds for the current instance.</param>
             /// <param name="source">The source <see cref="Image{TPixel}"/> for the current instance.</param>
             /// <param name="destination">The destination <see cref="Image{TPixel}"/> for the current instance.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalOperation(Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+            public RowOperation(Rectangle bounds, ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
             {
                 this.bounds = bounds;
                 this.source = source;
@@ -84,14 +84,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y).Slice(this.bounds.Left);
-                    Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y - this.bounds.Top);
-                    sourceRow.Slice(0, this.bounds.Width).CopyTo(targetRow);
-                }
+                Span<TPixel> sourceRow = this.source.GetPixelRowSpan(y).Slice(this.bounds.Left);
+                Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y - this.bounds.Top);
+                sourceRow.Slice(0, this.bounds.Width).CopyTo(targetRow);
             }
         }
     }

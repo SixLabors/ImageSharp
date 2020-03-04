@@ -50,9 +50,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-            var operation = new RowIntervalOperation(interest.X, source, this.Configuration, this.modifiers, this.rowDelegate);
+            var operation = new RowOperation(interest.X, source, this.Configuration, this.modifiers, this.rowDelegate);
 
-            ParallelRowIterator.IterateRows<RowIntervalOperation, Vector4>(
+            ParallelRowIterator.IterateRows<RowOperation, Vector4>(
                 this.Configuration,
                 interest,
                 in operation);
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// <summary>
         /// A <see langword="struct"/> implementing the convolution logic for <see cref="PixelRowDelegateProcessor{TPixel,TDelegate}"/>.
         /// </summary>
-        private readonly struct RowIntervalOperation : IRowIntervalOperation<Vector4>
+        private readonly struct RowOperation : IRowOperation<Vector4>
         {
             private readonly int startX;
             private readonly ImageFrame<TPixel> source;
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
             private readonly TDelegate rowProcessor;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalOperation(
+            public RowOperation(
                 int startX,
                 ImageFrame<TPixel> source,
                 Configuration configuration,
@@ -86,18 +86,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows, Span<Vector4> span)
+            public void Invoke(int y, Span<Vector4> span)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, this.modifiers);
+                Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, this.modifiers);
 
-                    // Run the user defined pixel shader to the current row of pixels
-                    Unsafe.AsRef(this.rowProcessor).Invoke(span, new Point(this.startX, y));
+                // Run the user defined pixel shader to the current row of pixels
+                Unsafe.AsRef(this.rowProcessor).Invoke(span, new Point(this.startX, y));
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, this.modifiers);
-                }
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, this.modifiers);
             }
         }
     }

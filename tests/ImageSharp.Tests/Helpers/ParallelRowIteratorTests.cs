@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             var operation = new TestRowIntervalOperation(RowAction);
 
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 rectangle,
                 in parallelSettings,
                 in operation);
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             var operation = new TestRowIntervalOperation(RowAction);
 
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 rectangle,
                 in parallelSettings,
                 in operation);
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             var operation = new TestRowIntervalOperation<Vector4>(RowAction);
 
-            ParallelRowIterator.IterateRows<TestRowIntervalOperation<Vector4>, Vector4>(
+            ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Vector4>, Vector4>(
                 rectangle,
                 in parallelSettings,
                 in operation);
@@ -195,7 +195,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             var operation = new TestRowIntervalOperation<Vector4>(RowAction);
 
-            ParallelRowIterator.IterateRows<TestRowIntervalOperation<Vector4>, Vector4>(
+            ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Vector4>, Vector4>(
                 rectangle,
                 in parallelSettings,
                 in operation);
@@ -249,7 +249,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             var operation = new TestRowIntervalOperation(RowAction);
 
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRowIntervals(
                 rectangle,
                 in parallelSettings,
                 in operation);
@@ -291,7 +291,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
             var operation = new TestRowIntervalOperation<Vector4>(RowAction);
 
-            ParallelRowIterator.IterateRows<TestRowIntervalOperation<Vector4>, Vector4>(
+            ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Vector4>, Vector4>(
                 rectangle,
                 in parallelSettings,
                 in operation);
@@ -355,7 +355,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
 
                 var operation = new TestRowIntervalOperation(RowAction);
 
-                ParallelRowIterator.IterateRows(
+                ParallelRowIterator.IterateRowIntervals(
                     rect,
                     settings,
                     in operation);
@@ -383,7 +383,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var operation = new TestRowIntervalOperation(RowAction);
 
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
-                () => ParallelRowIterator.IterateRows(rect, in parallelSettings, in operation));
+                () => ParallelRowIterator.IterateRowIntervals(rect, in parallelSettings, in operation));
 
             Assert.Contains(width <= 0 ? "Width" : "Height", ex.Message);
         }
@@ -406,7 +406,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var operation = new TestRowIntervalOperation<Rgba32>(RowAction);
 
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
-                () => ParallelRowIterator.IterateRows<TestRowIntervalOperation<Rgba32>, Rgba32>(rect, in parallelSettings, in operation));
+                () => ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Rgba32>, Rgba32>(rect, in parallelSettings, in operation));
 
             Assert.Contains(width <= 0 ? "Width" : "Height", ex.Message);
         }

@@ -23,6 +23,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private readonly int maxColors;
         private readonly Octree octree;
         private IMemoryOwner<TPixel> paletteOwner;
+        private ReadOnlyMemory<TPixel> palette;
         private EuclideanPixelMap<TPixel> pixelMap;
         private readonly bool isDithering;
         private bool isDisposed;
@@ -44,6 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.maxColors = this.Options.MaxColors;
             this.octree = new Octree(ImageMaths.GetBitsNeededForColorDepth(this.maxColors).Clamp(1, 8));
             this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
+            this.palette = default;
             this.pixelMap = default;
             this.isDithering = !(this.Options.Dither is null);
             this.isDisposed = false;
@@ -56,13 +58,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public QuantizerOptions Options { get; }
 
         /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => FrameQuantizerExtensions.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+        public ReadOnlyMemory<TPixel> Palette
+        {
+            get
+            {
+                FrameQuantizerUtilities.CheckPaletteState(in this.palette);
+                return this.palette;
+            }
+        }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
+        public void BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
         {
             using IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(bounds.Width);
             Span<Rgba32> bufferSpan = buffer.GetSpan();
@@ -90,8 +97,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, Math.Min(paletteIndex + 2, QuantizerConstants.MaxColors));
             this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
 
-            return result;
+            this.palette = result;
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => FrameQuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

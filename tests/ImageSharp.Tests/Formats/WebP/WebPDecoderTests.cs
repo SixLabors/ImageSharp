@@ -169,11 +169,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         }
 
         [Theory]
-        [WithFile(Lossy.Alpha1, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Alpha2, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Alpha3, PixelTypes.Rgba32)]
-        [WithFile(Lossy.Alpha4, PixelTypes.Rgba32)]
         [WithFile(Lossy.AlphaNoCompression, PixelTypes.Rgba32)]
+        [WithFile(Lossy.AlphaNoCompressionNoFilter, PixelTypes.Rgba32)]
+        [WithFile(Lossy.AlphaCompressedNoFilter, PixelTypes.Rgba32)]
+        [WithFile(Lossy.AlphaNoCompressionHorizontalFilter, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossy_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : struct, IPixel<TPixel>
         {

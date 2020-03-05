@@ -5,7 +5,9 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 
+using SixLabors.ImageSharp.Formats.WebP.Filters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -24,6 +26,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private readonly Vp8LBitReader bitReader;
 
         private static readonly int BitsSpecialMarker = 0x100;
+
+        private static readonly int NumArgbCacheRows = 16;
 
         private static readonly uint PackedNonLiteralCode = 0;
 
@@ -82,22 +86,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height)
             where TPixel : struct, IPixel<TPixel>
         {
-            var decoder = new Vp8LDecoder(width, height);
-            IMemoryOwner<uint> pixelData = this.DecodeImageStream(decoder, width, height, true);
-            this.DecodePixelValues(decoder, pixelData.GetSpan(), pixels);
-
-            // Free up allocated memory.
-            pixelData.Dispose();
-            foreach (Vp8LTransform transform in decoder.Transforms)
+            using (var decoder = new Vp8LDecoder(width, height, this.memoryAllocator))
             {
-                transform.Data?.Dispose();
+                this.DecodeImageStream(decoder, width, height, true);
+                this.DecodeImageData(decoder, decoder.Pixels.Memory.Span);
+                this.DecodePixelValues(decoder, pixels);
             }
-
-            decoder.Metadata?.HuffmanImage?.Dispose();
         }
 
-        private IMemoryOwner<uint> DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
+        public IMemoryOwner<uint> DecodeImageStream(Vp8LDecoder decoder, int xSize, int ySize, bool isLevel0)
         {
+            int transformXSize = xSize;
+            int transformYSize = ySize;
             int numberOfTransformsPresent = 0;
             if (isLevel0)
             {
@@ -111,7 +111,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         WebPThrowHelper.ThrowImageFormatException($"The maximum number of transforms of {WebPConstants.MaxNumberOfTransforms} was exceeded");
                     }
 
-                    this.ReadTransformation(xSize, ySize, decoder);
+                    this.ReadTransformation(transformXSize, transformYSize, decoder);
+                    if (decoder.Transforms[numberOfTransformsPresent].TransformType == Vp8LTransformType.ColorIndexingTransform)
+                    {
+                        transformXSize = LosslessUtils.SubSampleSize(transformXSize, decoder.Transforms[numberOfTransformsPresent].Bits);
+                    }
+
                     numberOfTransformsPresent++;
                 }
             }
@@ -135,14 +140,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             // Read the Huffman codes (may recurse).
-            this.ReadHuffmanCodes(decoder, xSize, ySize, colorCacheBits, isLevel0);
+            this.ReadHuffmanCodes(decoder, transformXSize, transformYSize, colorCacheBits, isLevel0);
             decoder.Metadata.ColorCacheSize = colorCacheSize;
 
-            // Finish setting up the color-cache
-            ColorCache colorCache = null;
+            // Finish setting up the color-cache.
             if (colorCachePresent)
             {
-                colorCache = new ColorCache();
+                decoder.Metadata.ColorCache = new ColorCache();
                 colorCacheSize = 1 << colorCacheBits;
                 decoder.Metadata.ColorCacheSize = colorCacheSize;
                 if (!(colorCacheBits >= 1 && colorCacheBits <= WebPConstants.MaxColorCacheBits))
@@ -150,24 +154,32 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     WebPThrowHelper.ThrowImageFormatException("Invalid color cache bits found");
                 }
 
-                colorCache.Init(colorCacheBits);
+                decoder.Metadata.ColorCache.Init(colorCacheBits);
             }
             else
             {
                 decoder.Metadata.ColorCacheSize = 0;
             }
 
-            this.UpdateDecoder(decoder, xSize, ySize);
+            this.UpdateDecoder(decoder, transformXSize, transformYSize);
+            if (isLevel0)
+            {
+                // level 0 complete.
+                return null;
+            }
 
+            // Use the Huffman trees to decode the LZ77 encoded data.
             IMemoryOwner<uint> pixelData = this.memoryAllocator.Allocate<uint>(decoder.Width * decoder.Height, AllocationOptions.Clean);
-            this.DecodeImageData(decoder, pixelData.GetSpan(), colorCacheSize, colorCache);
+            this.DecodeImageData(decoder, pixelData.GetSpan());
 
             return pixelData;
         }
 
-        private void DecodePixelValues<TPixel>(Vp8LDecoder decoder, Span<uint> pixelData, Buffer2D<TPixel> pixels)
+        private void DecodePixelValues<TPixel>(Vp8LDecoder decoder, Buffer2D<TPixel> pixels)
             where TPixel : struct, IPixel<TPixel>
         {
+            Span<uint> pixelData = decoder.Pixels.GetSpan();
+
             // Apply reverse transformations, if any are present.
             this.ApplyInverseTransforms(decoder, pixelData);
 
@@ -189,7 +201,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private void DecodeImageData(Vp8LDecoder decoder, Span<uint> pixelData, int colorCacheSize, ColorCache colorCache)
+        private void DecodeImageData(Vp8LDecoder decoder, Span<uint> pixelData)
         {
             int lastPixel = 0;
             int width = decoder.Width;
@@ -197,6 +209,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int row = lastPixel / width;
             int col = lastPixel % width;
             int lenCodeLimit = WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes;
+            int colorCacheSize = decoder.Metadata.ColorCacheSize;
+            ColorCache colorCache = decoder.Metadata.ColorCache;
             int colorCacheLimit = lenCodeLimit + colorCacheSize;
             int mask = decoder.Metadata.HuffmanMask;
             HTreeGroup[] hTreeGroup = this.GetHTreeGroupForPos(decoder.Metadata, col, row);
@@ -207,7 +221,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             while (decodedPixels < totalPixels)
             {
                 int code;
-                if ((col & mask) == 0)
+                if ((col & mask) is 0)
                 {
                     hTreeGroup = this.GetHTreeGroupForPos(decoder.Metadata, col, row);
                 }
@@ -621,7 +635,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                                      : (numColors > 4) ? 1
                                      : (numColors > 2) ? 2
                                      : 3;
-                    transform.XSize = LosslessUtils.SubSampleSize(transform.XSize, bits);
                     transform.Bits = bits;
                     using (IMemoryOwner<uint> colorMap = this.DecodeImageStream(decoder, (int)numColors, 1, false))
                     {
@@ -681,6 +694,208 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         break;
                 }
             }
+        }
+
+        public void DecodeAlphaData(AlphaDecoder dec)
+        {
+            Span<uint> pixelData = dec.Vp8LDec.Pixels.Memory.Span;
+            Span<byte> data = MemoryMarshal.Cast<uint, byte>(pixelData);
+            int row = 0;
+            int col = 0;
+            Vp8LDecoder vp8LDec = dec.Vp8LDec;
+            int width = vp8LDec.Width;
+            int height = vp8LDec.Height;
+            Vp8LMetadata hdr = vp8LDec.Metadata;
+            int pos = 0; // Current position.
+            int end = width * height; // End of data.
+            int last = end; // Last pixel to decode.
+            int lastRow = height;
+            int lenCodeLimit = WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes;
+            int mask = hdr.HuffmanMask;
+            HTreeGroup[] htreeGroup = (pos < last) ? this.GetHTreeGroupForPos(hdr, col, row) : null;
+            while (!this.bitReader.Eos && pos < last)
+            {
+                // Only update when changing tile.
+                if ((col & mask) is 0)
+                {
+                    htreeGroup = this.GetHTreeGroupForPos(hdr, col, row);
+                }
+
+                this.bitReader.FillBitWindow();
+                int code = (int)this.ReadSymbol(htreeGroup[0].HTrees[HuffIndex.Green]);
+                if (code < WebPConstants.NumLiteralCodes)
+                {
+                    // Literal
+                    data[pos] = (byte)code;
+                    ++pos;
+                    ++col;
+
+                    if (col >= width)
+                    {
+                        col = 0;
+                        ++row;
+                        if (row <= lastRow && (row % NumArgbCacheRows is 0))
+                        {
+                            this.ExtractPalettedAlphaRows(dec, row);
+                        }
+                    }
+                }
+                else if (code < lenCodeLimit)
+                {
+                    // Backward reference
+                    int lengthSym = code - WebPConstants.NumLiteralCodes;
+                    int length = this.GetCopyLength(lengthSym);
+                    int distSymbol = (int)this.ReadSymbol(htreeGroup[0].HTrees[HuffIndex.Dist]);
+                    this.bitReader.FillBitWindow();
+                    int distCode = this.GetCopyDistance(distSymbol);
+                    int dist = this.PlaneCodeToDistance(width, distCode);
+                    if (pos >= dist && end - pos >= length)
+                    {
+                        //CopyBlock8b(data + pos, dist, length);
+                    }
+                    else
+                    {
+                        // TODO: error?
+                        break;
+                    }
+
+                    pos += length;
+                    col += length;
+                    while (col >= width)
+                    {
+                        col -= width;
+                        ++row;
+                        if (row <= lastRow && (row % NumArgbCacheRows is 0))
+                        {
+                            this.ExtractPalettedAlphaRows(dec, row);
+                        }
+                    }
+
+                    if (pos < last && (col & mask) > 0)
+                    {
+                        htreeGroup = this.GetHTreeGroupForPos(hdr, col, row);
+                    }
+                }
+                else
+                {
+                    WebPThrowHelper.ThrowImageFormatException("bitstream error while parsing alpha data");
+                }
+
+                this.bitReader.Eos = this.bitReader.IsEndOfStream();
+            }
+
+            // Process the remaining rows corresponding to last row-block.
+            this.ExtractPalettedAlphaRows(dec, row > lastRow ? lastRow : row);
+        }
+
+        private void ExtractPalettedAlphaRows(AlphaDecoder dec, int lastRow)
+        {
+            // For vertical and gradient filtering, we need to decode the part above the
+            // cropTop row, in order to have the correct spatial predictors.
+            int topRow = (dec.FilterType is WebPFilterType.None || dec.FilterType is WebPFilterType.Horizontal)
+                             ? dec.CropTop
+                             : dec.LastRow;
+            int firstRow = (dec.LastRow < topRow) ? topRow : dec.LastRow;
+            if (lastRow > firstRow)
+            {
+                // Special method for paletted alpha data. We only process the cropped area.
+                Span<byte> output = dec.Alpha.AsSpan();
+                Span<uint> pixelData = dec.Vp8LDec.Pixels.Memory.Span;
+                Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
+                Span<byte> dst = output.Slice(dec.Width * firstRow);
+                Span<byte> input = pixelDataAsBytes.Slice(dec.Vp8LDec.Width * firstRow);
+
+                // TODO: check if any and the correct transform is present
+                Vp8LTransform transform = dec.Vp8LDec.Transforms[0];
+                this.ColorIndexInverseTransformAlpha(transform, firstRow, lastRow, input, dst);
+                //dec.AlphaApplyFilter(firstRow, lastRow, dst, width);
+            }
+
+            dec.LastRow = lastRow;
+        }
+
+        private void ColorIndexInverseTransformAlpha(
+            Vp8LTransform transform,
+            int yStart,
+            int yEnd,
+            Span<byte> src,
+            Span<byte> dst)
+        {
+            int bitsPerPixel = 8 >> transform.Bits;
+            int width = transform.XSize;
+            Span<uint> colorMap = transform.Data.Memory.Span;
+            int srcOffset = 0;
+            int dstOffset = 0;
+            if (bitsPerPixel < 8)
+            {
+                int pixelsPerByte = 1 << transform.Bits;
+                int countMask = pixelsPerByte - 1;
+                int bitMask = (1 << bitsPerPixel) - 1;
+                for (int y = yStart; y < yEnd; ++y)
+                {
+                    int packedPixels = 0;
+                    for (int x = 0; x < width; ++x)
+                    {
+                        if ((x & countMask) is 0)
+                        {
+                            packedPixels = src[srcOffset];
+                            srcOffset++;
+                        }
+
+                        dst[dstOffset] = GetAlphaValue((int)colorMap[packedPixels & bitMask]);
+                        dstOffset++;
+                        packedPixels >>= bitsPerPixel;
+                    }
+                }
+            }
+            else
+            {
+                MapAlpha(src, colorMap, dst, yStart, yEnd, width);
+            }
+        }
+
+        private static void MapAlpha(Span<byte> src, Span<uint> colorMap, Span<byte> dst, int yStart, int yEnd, int width)
+        {
+            int offset = 0;
+            for (int y = yStart; y < yEnd; ++y)
+            {
+                for (int x = 0; x < width; ++x)
+                {
+                    dst[offset] = GetAlphaValue((int)colorMap[src[offset]]);
+                    offset++;
+                }
+            }
+        }
+
+        private static bool Is8bOptimizable(Vp8LMetadata hdr)
+        {
+            if (hdr.ColorCacheSize > 0)
+            {
+                return false;
+            }
+
+            // When the Huffman tree contains only one symbol, we can skip the
+            // call to ReadSymbol() for red/blue/alpha channels.
+            for (int i = 0; i < hdr.NumHTreeGroups; ++i)
+            {
+                List<HuffmanCode[]> htrees = hdr.HTreeGroups[i].HTrees;
+                if (htrees[HuffIndex.Red][0].Value > 0)
+                {
+                    return false;
+                }
+
+                if (htrees[HuffIndex.Blue][0].Value > 0)
+                {
+                    return false;
+                }
+
+                if (htrees[HuffIndex.Alpha][0].Value > 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private void UpdateDecoder(Vp8LDecoder decoder, int width, int height)
@@ -752,12 +967,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// Decodes the next Huffman code from bit-stream.
+        /// Decodes the next Huffman code from the bit-stream.
         /// FillBitWindow(br) needs to be called at minimum every second call to ReadSymbol, in order to pre-fetch enough bits.
         /// </summary>
         private uint ReadSymbol(Span<HuffmanCode> table)
         {
-            // TODO: if the bitReader field is moved to this base class we could omit the parameter.
             uint val = (uint)this.bitReader.PrefetchBits();
             Span<HuffmanCode> tableSpan = table.Slice((int)(val & HuffmanUtils.HuffmanTableMask));
             int nBits = tableSpan[0].BitsUsed - HuffmanUtils.HuffmanTableBits;
@@ -831,6 +1045,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             huff.BitsUsed += hCode.BitsUsed;
             huff.Value |= hCode.Value << shift;
             return hCode.BitsUsed;
+        }
+
+        private static byte GetAlphaValue(int val)
+        {
+            return (byte)((val >> 8) & 0xff);
         }
     }
 }

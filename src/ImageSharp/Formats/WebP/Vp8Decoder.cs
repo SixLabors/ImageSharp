@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.TmpYBuffer = new byte[(width * height) + extraY]; // TODO: figure out min buffer length
             this.TmpUBuffer = new byte[(width * height) + extraUv]; // TODO: figure out min buffer length
             this.TmpVBuffer = new byte[(width * height) + extraUv]; // TODO: figure out min buffer length
-            this.Bgr = new byte[width * height * 4];
+            this.Pixels = new byte[width * height * 4];
 
             for (int i = 0; i < this.YuvBuffer.Length; i++)
             {
@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public byte[] TmpVBuffer { get; }
 
-        public byte[] Bgr { get; }
+        public byte[] Pixels { get; }
 
         /// <summary>
         /// Gets or sets filter strength info.

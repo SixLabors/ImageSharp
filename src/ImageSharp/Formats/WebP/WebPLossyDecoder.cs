@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -66,20 +65,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Decode image data.
             this.ParseFrame(decoder, io);
 
-            byte[] decodedAlpha = null;
             if (info.Features?.Alpha is true)
             {
-                var alphaDecoder = new AlphaDecoder(width, height, info.Features.AlphaData);
-
-                // TODO: use memory allocator.
-                decodedAlpha = new byte[width * height];
-                alphaDecoder.Decode(decoder, decodedAlpha.AsSpan());
+                var alphaDecoder = new AlphaDecoder(width, height, info.Features.AlphaData, info.Features.AlphaChunkHeader, this.memoryAllocator);
+                alphaDecoder.Decode();
+                this.DecodePixelValues(width, height, decoder.Pixels, pixels, alphaDecoder.Alpha);
             }
-
-            this.DecodePixelValues(width, height, decoder.Bgr, decodedAlpha, pixels);
+            else
+            {
+                this.DecodePixelValues(width, height, decoder.Pixels, pixels);
+            }
         }
 
-        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, byte[] alpha, Buffer2D<TPixel> pixels)
+        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> pixels, byte[] alpha = null)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel color = default;
@@ -628,7 +626,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private int EmitRgb(Vp8Decoder dec, Vp8Io io)
         {
-            byte[] buf = dec.Bgr;
+            byte[] buf = dec.Pixels;
             int numLinesOut = io.MbH; // a priori guess.
             Span<byte> curY = io.Y;
             Span<byte> curU = io.U;
@@ -1357,37 +1355,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             return io;
-        }
-
-        private static bool Is8bOptimizable(Vp8LMetadata hdr)
-        {
-            if (hdr.ColorCacheSize > 0)
-            {
-                return false;
-            }
-
-            // When the Huffman tree contains only one symbol, we can skip the
-            // call to ReadSymbol() for red/blue/alpha channels.
-            for (int i = 0; i < hdr.NumHTreeGroups; ++i)
-            {
-                List<HuffmanCode[]> htrees = hdr.HTreeGroups[i].HTrees;
-                if (htrees[HuffIndex.Red][0].Value > 0)
-                {
-                    return false;
-                }
-
-                if (htrees[HuffIndex.Blue][0].Value > 0)
-                {
-                    return false;
-                }
-
-                if (htrees[HuffIndex.Alpha][0].Value > 0)
-                {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         private static uint NzCodeBits(uint nzCoeffs, int nz, int dcNz)

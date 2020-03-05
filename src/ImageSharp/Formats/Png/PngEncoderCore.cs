@@ -567,7 +567,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             // Bulk convert our palette to RGBA to allow assignment to tables.
             // Palette length maxes out at 256 so safe to stackalloc.
-            Span<Rgba32> rgbaPaletteSpan = stackalloc Rgba32[palette.Length];
+            Span<Rgba32> rgbaPaletteSpan = stackalloc Rgba32[paletteLength];
             PixelOperations<TPixel>.Instance.ToRgba32(quantized.Configuration, quantized.Palette.Span, rgbaPaletteSpan);
             ref Rgba32 rgbaPaletteRef = ref MemoryMarshal.GetReference(rgbaPaletteSpan);
 

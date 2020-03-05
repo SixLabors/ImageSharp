@@ -32,6 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         internal IndexedImageFrame(Configuration configuration, int width, int height, ReadOnlyMemory<TPixel> palette)
         {
             Guard.NotNull(configuration, nameof(configuration));
+            Guard.MustBeLessThanOrEqualTo(palette.Length, QuantizerConstants.MaxColors, nameof(palette));
             Guard.MustBeGreaterThan(width, 0, nameof(width));
             Guard.MustBeGreaterThan(height, 0, nameof(height));
 

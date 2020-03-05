@@ -337,7 +337,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration);
-            using QuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image, image.Bounds());
+            using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image, image.Bounds());
 
             ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
             var color = default(Rgba32);

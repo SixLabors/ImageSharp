@@ -384,8 +384,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                     else
                     {
-                        int stride = this.currentScanline.Length();
-                        quantized.GetPixelBufferSpan().Slice(row * stride, stride).CopyTo(this.currentScanline.GetSpan());
+                        quantized.GetPixelRowSpan(row).CopyTo(this.currentScanline.GetSpan());
                     }
 
                     break;

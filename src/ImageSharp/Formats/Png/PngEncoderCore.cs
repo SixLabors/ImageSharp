@@ -555,49 +555,44 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             // Grab the palette and write it to the stream.
             ReadOnlySpan<TPixel> palette = quantized.Palette.Span;
-            int paletteLength = Math.Min(palette.Length, QuantizerConstants.MaxColors);
-            int colorTableLength = paletteLength * 3;
-            bool anyAlpha = false;
+            int paletteLength = palette.Length;
+            int colorTableLength = paletteLength * Unsafe.SizeOf<Rgb24>();
+            bool hasAlpha = false;
 
-            using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))
-            using (IManagedByteBuffer alphaTable = this.memoryAllocator.AllocateManagedByteBuffer(paletteLength))
+            using IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength);
+            using IManagedByteBuffer alphaTable = this.memoryAllocator.AllocateManagedByteBuffer(paletteLength);
+
+            ref Rgb24 colorTableRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<byte, Rgb24>(colorTable.GetSpan()));
+            ref byte alphaTableRef = ref MemoryMarshal.GetReference(alphaTable.GetSpan());
+
+            // Bulk convert our palette to RGBA to allow assignment to tables.
+            // Palette length maxes out at 256 so safe to stackalloc.
+            Span<Rgba32> rgbaPaletteSpan = stackalloc Rgba32[palette.Length];
+            PixelOperations<TPixel>.Instance.ToRgba32(quantized.Configuration, quantized.Palette.Span, rgbaPaletteSpan);
+            ref Rgba32 rgbaPaletteRef = ref MemoryMarshal.GetReference(rgbaPaletteSpan);
+
+            // Loop, assign, and extract alpha values from the palette.
+            for (int i = 0; i < paletteLength; i++)
             {
-                ref byte colorTableRef = ref MemoryMarshal.GetReference(colorTable.GetSpan());
-                ref byte alphaTableRef = ref MemoryMarshal.GetReference(alphaTable.GetSpan());
-                ReadOnlySpan<byte> quantizedSpan = quantized.GetPixelBufferSpan();
+                Rgba32 rgba = Unsafe.Add(ref rgbaPaletteRef, i);
+                byte alpha = rgba.A;
 
-                Rgba32 rgba = default;
-
-                for (int i = 0; i < paletteLength; i++)
+                Unsafe.Add(ref colorTableRef, i) = rgba.Rgb;
+                if (alpha > this.options.Threshold)
                 {
-                    if (quantizedSpan.IndexOf((byte)i) > -1)
-                    {
-                        int offset = i * 3;
-                        palette[i].ToRgba32(ref rgba);
-
-                        byte alpha = rgba.A;
-
-                        Unsafe.Add(ref colorTableRef, offset) = rgba.R;
-                        Unsafe.Add(ref colorTableRef, offset + 1) = rgba.G;
-                        Unsafe.Add(ref colorTableRef, offset + 2) = rgba.B;
-
-                        if (alpha > this.options.Threshold)
-                        {
-                            alpha = byte.MaxValue;
-                        }
-
-                        anyAlpha = anyAlpha || alpha < byte.MaxValue;
-                        Unsafe.Add(ref alphaTableRef, i) = alpha;
-                    }
+                    alpha = byte.MaxValue;
                 }
 
-                this.WriteChunk(stream, PngChunkType.Palette, colorTable.Array, 0, colorTableLength);
+                hasAlpha = hasAlpha || alpha < byte.MaxValue;
+                Unsafe.Add(ref alphaTableRef, i) = alpha;
+            }
 
-                // Write the transparency data
-                if (anyAlpha)
-                {
-                    this.WriteChunk(stream, PngChunkType.Transparency, alphaTable.Array, 0, paletteLength);
-                }
+            this.WriteChunk(stream, PngChunkType.Palette, colorTable.Array, 0, colorTableLength);
+
+            // Write the transparency data
+            if (hasAlpha)
+            {
+                this.WriteChunk(stream, PngChunkType.Transparency, alphaTable.Array, 0, paletteLength);
             }
         }
 

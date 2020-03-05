@@ -24,12 +24,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         QuantizerOptions Options { get; }
 
         /// <summary>
+        /// Gets the quantized color palette.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The palette has not been built via <see cref="BuildPalette(ImageFrame{TPixel}, Rectangle)"/>.
+        /// </exception>
+        ReadOnlyMemory<TPixel> Palette { get; }
+
+        /// <summary>
         /// Builds the quantized palette from the given image frame and bounds.
         /// </summary>
         /// <param name="source">The source image frame.</param>
         /// <param name="bounds">The region of interest bounds.</param>
-        /// <returns>The <see cref="ReadOnlyMemory{TPixel}"/> palette.</returns>
-        ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds);
+        void BuildPalette(ImageFrame<TPixel> source, Rectangle bounds);
 
         /// <summary>
         /// Quantizes an image frame and return the resulting output pixels.

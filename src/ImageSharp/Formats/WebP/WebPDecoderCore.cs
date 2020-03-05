@@ -242,6 +242,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             byte[] alphaData = null;
+            byte alphaChunkHeader = 0;
             if (isAlphaPresent)
             {
                 chunkType = this.ReadChunkType();
@@ -251,8 +252,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 uint alphaChunkSize = this.ReadChunkSize();
-                alphaData = new byte[alphaChunkSize];
-                this.currentStream.Read(alphaData, 0, (int)alphaChunkSize);
+                alphaChunkHeader = (byte)this.currentStream.ReadByte();
+                alphaData = new byte[alphaChunkSize - 1];
+                this.currentStream.Read(alphaData, 0, alphaData.Length);
             }
 
             var features = new WebPFeatures()
@@ -260,6 +262,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                                         Animation = isAnimationPresent,
                                         Alpha = isAlphaPresent,
                                         AlphaData = alphaData,
+                                        AlphaChunkHeader = alphaChunkHeader,
                                         ExifProfile = isExifPresent,
                                         IccProfile = isIccPresent,
                                         XmpMetaData = isXmpPresent

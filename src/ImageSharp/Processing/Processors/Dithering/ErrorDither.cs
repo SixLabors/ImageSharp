@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
             ref TFrameQuantizer quantizer,
             ImageFrame<TPixel> source,
-            QuantizedFrame<TPixel> destination,
+            IndexedImageFrame<TPixel> destination,
             Rectangle bounds)
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
                 ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
-                ref byte destinationRowRef = ref MemoryMarshal.GetReference(destination.GetPixelRowSpan(y - offsetY));
+                ref byte destinationRowRef = ref MemoryMarshal.GetReference(destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
 
                 for (int x = bounds.Left; x < bounds.Right; x++)
                 {

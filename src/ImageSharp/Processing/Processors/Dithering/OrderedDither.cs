@@ -5,7 +5,6 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -107,19 +106,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
             ref TFrameQuantizer quantizer,
             ImageFrame<TPixel> source,
-            QuantizedFrame<TPixel> destination,
+            IndexedImageFrame<TPixel> destination,
             Rectangle bounds)
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var ditherOperation = new QuantizeDitherRowIntervalOperation<TFrameQuantizer, TPixel>(
+            var ditherOperation = new QuantizeDitherRowOperation<TFrameQuantizer, TPixel>(
                 ref quantizer,
                 in Unsafe.AsRef(this),
                 source,
                 destination,
                 bounds);
 
-            ParallelRowIterator.IterateRowIntervals(
+            ParallelRowIterator.IterateRows(
                 quantizer.Configuration,
                 bounds,
                 in ditherOperation);
@@ -134,13 +133,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var ditherOperation = new PaletteDitherRowIntervalOperation<TPaletteDitherImageProcessor, TPixel>(
+            var ditherOperation = new PaletteDitherRowOperation<TPaletteDitherImageProcessor, TPixel>(
                 in processor,
                 in Unsafe.AsRef(this),
                 source,
                 bounds);
 
-            ParallelRowIterator.IterateRowIntervals(
+            ParallelRowIterator.IterateRows(
                 processor.Configuration,
                 bounds,
                 in ditherOperation);
@@ -195,23 +194,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public override int GetHashCode()
             => HashCode.Combine(this.thresholdMatrix, this.modulusX, this.modulusY);
 
-        private readonly struct QuantizeDitherRowIntervalOperation<TFrameQuantizer, TPixel> : IRowIntervalOperation
+        private readonly struct QuantizeDitherRowOperation<TFrameQuantizer, TPixel> : IRowOperation
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
             private readonly TFrameQuantizer quantizer;
             private readonly OrderedDither dither;
             private readonly ImageFrame<TPixel> source;
-            private readonly QuantizedFrame<TPixel> destination;
+            private readonly IndexedImageFrame<TPixel> destination;
             private readonly Rectangle bounds;
             private readonly int bitDepth;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public QuantizeDitherRowIntervalOperation(
+            public QuantizeDitherRowOperation(
                 ref TFrameQuantizer quantizer,
                 in OrderedDither dither,
                 ImageFrame<TPixel> source,
-                QuantizedFrame<TPixel> destination,
+                IndexedImageFrame<TPixel> destination,
                 Rectangle bounds)
             {
                 this.quantizer = quantizer;
@@ -223,27 +222,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
                 int offsetY = this.bounds.Top;
                 int offsetX = this.bounds.Left;
                 float scale = this.quantizer.Options.DitherScale;
 
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
-                    ref byte destinationRowRef = ref MemoryMarshal.GetReference(this.destination.GetPixelRowSpan(y - offsetY));
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
+                ref byte destinationRowRef = ref MemoryMarshal.GetReference(this.destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
 
-                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
-                    {
-                        TPixel dithered = this.dither.Dither(Unsafe.Add(ref sourceRowRef, x), x, y, this.bitDepth, scale);
-                        Unsafe.Add(ref destinationRowRef, x - offsetX) = Unsafe.AsRef(this.quantizer).GetQuantizedColor(dithered, out TPixel _);
-                    }
+                for (int x = this.bounds.Left; x < this.bounds.Right; x++)
+                {
+                    TPixel dithered = this.dither.Dither(Unsafe.Add(ref sourceRowRef, x), x, y, this.bitDepth, scale);
+                    Unsafe.Add(ref destinationRowRef, x - offsetX) = Unsafe.AsRef(this.quantizer).GetQuantizedColor(dithered, out TPixel _);
                 }
             }
         }
 
-        private readonly struct PaletteDitherRowIntervalOperation<TPaletteDitherImageProcessor, TPixel> : IRowIntervalOperation
+        private readonly struct PaletteDitherRowOperation<TPaletteDitherImageProcessor, TPixel> : IRowOperation
             where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -255,7 +251,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             private readonly int bitDepth;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public PaletteDitherRowIntervalOperation(
+            public PaletteDitherRowOperation(
                 in TPaletteDitherImageProcessor processor,
                 in OrderedDither dither,
                 ImageFrame<TPixel> source,
@@ -270,18 +266,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
 
-                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
-                    {
-                        ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, x);
-                        TPixel dithered = this.dither.Dither(sourcePixel, x, y, this.bitDepth, this.scale);
-                        sourcePixel = Unsafe.AsRef(this.processor).GetPaletteColor(dithered);
-                    }
+                for (int x = this.bounds.Left; x < this.bounds.Right; x++)
+                {
+                    ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, x);
+                    TPixel dithered = this.dither.Dither(sourcePixel, x, y, this.bitDepth, this.scale);
+                    sourcePixel = Unsafe.AsRef(this.processor).GetPaletteColor(dithered);
                 }
             }
         }

@@ -40,7 +40,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
             this.ditherProcessor = new DitherProcessor(
                 this.Configuration,
-                Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
                 this.paletteMemory.Memory,
                 definition.DitherScale);
         }
@@ -82,12 +81,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             [MethodImpl(InliningOptions.ShortMethod)]
             public DitherProcessor(
                 Configuration configuration,
-                Rectangle bounds,
                 ReadOnlyMemory<TPixel> palette,
                 float ditherScale)
             {
                 this.Configuration = configuration;
-                this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette, palette.Span.Length);
+                this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
                 this.Palette = palette;
                 this.DitherScale = ditherScale;
             }

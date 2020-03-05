@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -86,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             // Get the number of bits.
-            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
+            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length);
 
             // Write the header.
             this.WriteHeader(stream);
@@ -193,7 +192,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     }
                 }
 
-                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
+                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length);
                 this.WriteGraphicalControlExtension(frameMetadata, this.GetTransparentIndex(quantized), stream);
                 this.WriteImageDescriptor(frame, true, stream);
                 this.WriteColorTable(quantized, stream);
@@ -218,21 +217,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette.
+            // Palette length maxes out at 256 so safe to stackalloc.
             int index = -1;
-            int length = quantized.Palette.Length;
+            ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
+            Span<Rgba32> rgbaSpan = stackalloc Rgba32[paletteSpan.Length];
+            PixelOperations<TPixel>.Instance.ToRgba32(quantized.Configuration, paletteSpan, rgbaSpan);
+            ref Rgba32 rgbaSpanRef = ref MemoryMarshal.GetReference(rgbaSpan);
 
-            using (IMemoryOwner<Rgba32> rgbaBuffer = this.memoryAllocator.Allocate<Rgba32>(length))
+            for (int i = rgbaSpan.Length - 1; i >= 0; i--)
             {
-                Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
-                ref Rgba32 paletteRef = ref MemoryMarshal.GetReference(rgbaSpan);
-                PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, quantized.Palette.Span, rgbaSpan);
-
-                for (int i = quantized.Palette.Length - 1; i >= 0; i--)
+                if (Unsafe.Add(ref rgbaSpanRef, i).Equals(default))
                 {
-                    if (Unsafe.Add(ref paletteRef, i).Equals(default))
-                    {
-                        index = i;
-                    }
+                    index = i;
                 }
             }
 
@@ -451,15 +447,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // The maximum number of colors for the bit depth
-            int colorTableLength = ImageMaths.GetColorCountForBitDepth(this.bitDepth) * 3;
-            int pixelCount = image.Palette.Length;
+            int colorTableLength = ImageMaths.GetColorCountForBitDepth(this.bitDepth) * Unsafe.SizeOf<Rgb24>();
 
             using IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength, AllocationOptions.Clean);
             PixelOperations<TPixel>.Instance.ToRgb24Bytes(
                 this.configuration,
                 image.Palette.Span,
                 colorTable.GetSpan(),
-                pixelCount);
+                image.Palette.Length);
 
             stream.Write(colorTable.Array, 0, colorTableLength);
         }

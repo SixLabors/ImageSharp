@@ -61,7 +61,29 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// True if a bit was read past the end of buffer.
         /// </summary>
-        private bool eos;
+        public bool Eos;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8LBitReader"/> class.
+        /// </summary>
+        /// <param name="data">Lossless compressed image data.</param>
+        public Vp8LBitReader(byte[] data)
+        {
+            this.Data = data;
+            this.len = data.Length;
+            this.value = 0;
+            this.bitPos = 0;
+            this.Eos = false;
+
+            ulong currentValue = 0;
+            for (int i = 0; i < 8; ++i)
+            {
+                currentValue |= (ulong)this.Data[i] << (8 * i);
+            }
+
+            this.value = currentValue;
+            this.pos = 8;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LBitReader"/> class.
@@ -78,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.len = length;
             this.value = 0;
             this.bitPos = 0;
-            this.eos = false;
+            this.Eos = false;
 
             if (length > sizeof(long))
             {
@@ -104,7 +126,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
 
-            if (!this.eos && nBits <= Vp8LMaxNumBitRead)
+            if (!this.Eos && nBits <= Vp8LMaxNumBitRead)
             {
                 ulong val = this.PrefetchBits() & this.bitMask[nBits];
                 int newBits = this.bitPos + nBits;
@@ -139,7 +161,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Return the pre-fetched bits, so they can be looked up.
         /// </summary>
-        /// <returns>Prefetched bits.</returns>
+        /// <returns>The pre-fetched bits.</returns>
         public ulong PrefetchBits()
         {
             return this.value >> (this.bitPos & (Vp8LLbits - 1));
@@ -162,7 +184,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <returns>True, if end of buffer was reached.</returns>
         public bool IsEndOfStream()
         {
-            return this.eos || ((this.pos == this.len) && (this.bitPos > Vp8LLbits));
+            return this.Eos || ((this.pos == this.len) && (this.bitPos > Vp8LLbits));
         }
 
         private void DoFillBitWindow()
@@ -191,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void SetEndOfStream()
         {
-            this.eos = true;
+            this.Eos = true;
             this.bitPos = 0; // To avoid undefined behaviour with shifts.
         }
     }

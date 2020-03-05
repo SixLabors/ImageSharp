@@ -491,10 +491,15 @@ namespace SixLabors.ImageSharp.Tests
                 // Lossy images with an alpha channel.
                 public const string Alpha1 = "WebP/lossy_alpha1.webp";
                 public const string Alpha2 = "WebP/lossy_alpha2.webp";
-                public const string Alpha3 = "WebP/lossy_alpha3.webp";
-                public const string Alpha4 = "WebP/lossy_alpha4.webp";
                 public const string AlphaNoCompression = "WebP/alpha_no_compression.webp";
-
+                public const string AlphaNoCompressionNoFilter = "WebP/alpha_filter_0_method_0.webp";
+                public const string AlphaCompressedNoFilter = "WebP/alpha_filter_0_method_1.webp";
+                public const string AlphaNoCompressionHorizontalFilter = "WebP/alpha_filter_1_method_0.webp";
+                public const string AlphaCompressedHorizontalFilter = "WebP/alpha_filter_1_method_1.webp";
+                public const string AlphaNoCompressionVerticalFilter = "WebP/alpha_filter_2_method_0.webp";
+                public const string AlphaCompressedVerticalFilter = "WebP/alpha_filter_2_method_1.webp";
+                public const string AlphaNoCompressionGradientFilter = "WebP/alpha_filter_3_method_0.webp";
+                public const string AlphaCompressedGradientFilter = "WebP/alpha_filter_3_method_1.webp";
             }
         }
     }

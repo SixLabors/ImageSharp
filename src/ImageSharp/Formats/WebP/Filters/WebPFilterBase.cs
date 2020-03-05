@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
     //     Fast
     // }
 
-    abstract class WebPFilterBase
+    internal abstract class WebPFilterBase
     {
         /// <summary>
         /// </summary>

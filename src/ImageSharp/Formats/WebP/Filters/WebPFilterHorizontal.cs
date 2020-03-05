@@ -5,7 +5,7 @@ using System;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Filters
 {
-    class WebPFilterHorizontal : WebPFilterBase
+    internal class WebPFilterHorizontal : WebPFilterBase
     {
         public override void Unfilter(
             Span<byte> prevLine,
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Filters
                 predsOffset = inputOffset;
             }
 
-            if (row == 0)
+            if (row is 0)
             {
                 // leftmost pixel is the same as Input for topmost scanline
                 output[0] = input[0];

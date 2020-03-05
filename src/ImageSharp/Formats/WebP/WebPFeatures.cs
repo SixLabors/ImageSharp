@@ -24,6 +24,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public byte[] AlphaData { get; set; }
 
         /// <summary>
+        /// Gets or sets the alpha chunk header.
+        /// </summary>
+        public byte AlphaChunkHeader { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether this image has a EXIF Profile.
         /// </summary>
         public bool ExifProfile { get; set; }

@@ -5,7 +5,6 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
@@ -25,23 +24,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             { TestImages.Gif.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
             { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
         };
-
-        [Theory]
-        [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32)]
-        public void EncodeAllocationCheck<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            GifEncoder encoder = new GifEncoder
-            {
-                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
-            };
-
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                // Always save as we need to compare the encoded output.
-                provider.Utility.SaveTestOutputFile(image, "gif", encoder);
-            }
-        }
 
         [Theory]
         [WithTestPatternImages(100, 100, TestPixelTypes, false)]

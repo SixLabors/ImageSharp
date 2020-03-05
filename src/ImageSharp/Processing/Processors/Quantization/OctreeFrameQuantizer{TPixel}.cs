@@ -20,9 +20,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public struct OctreeFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly int colors;
+        private readonly int maxColors;
         private readonly Octree octree;
-        private IMemoryOwner<TPixel> palette;
+        private IMemoryOwner<TPixel> paletteOwner;
         private EuclideanPixelMap<TPixel> pixelMap;
         private readonly bool isDithering;
         private bool isDisposed;
@@ -41,9 +41,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Configuration = configuration;
             this.Options = options;
 
-            this.colors = this.Options.MaxColors;
-            this.octree = new Octree(ImageMaths.GetBitsNeededForColorDepth(this.colors).Clamp(1, 8));
-            this.palette = configuration.MemoryAllocator.Allocate<TPixel>(this.colors, AllocationOptions.Clean);
+            this.maxColors = this.Options.MaxColors;
+            this.octree = new Octree(ImageMaths.GetBitsNeededForColorDepth(this.maxColors).Clamp(1, 8));
+            this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
             this.pixelMap = default;
             this.isDithering = !(this.Options.Dither is null);
             this.isDisposed = false;
@@ -57,12 +57,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+        public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
             => FrameQuantizerExtensions.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public ReadOnlySpan<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
+        public ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
         {
             using IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(bounds.Width);
             Span<Rgba32> bufferSpan = buffer.GetSpan();
@@ -82,15 +82,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 }
             }
 
-            Span<TPixel> paletteSpan = this.palette.GetSpan();
+            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan();
             int paletteIndex = 0;
-            this.octree.Palletize(paletteSpan, this.colors, ref paletteIndex);
+            this.octree.Palletize(paletteSpan, this.maxColors, ref paletteIndex);
 
             // Length of reduced palette + transparency.
-            paletteSpan = paletteSpan.Slice(0, Math.Min(paletteIndex + 2, QuantizerConstants.MaxColors));
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, this.palette.Memory, paletteSpan.Length);
+            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, Math.Min(paletteIndex + 2, QuantizerConstants.MaxColors));
+            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
 
-            return paletteSpan;
+            return result;
         }
 
         /// <inheritdoc/>
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 return (byte)this.pixelMap.GetClosestColor(color, out match);
             }
 
-            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.pixelMap.GetPaletteSpan());
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.pixelMap.Palette.Span);
             var index = (byte)this.octree.GetPaletteIndex(color);
             match = Unsafe.Add(ref paletteRef, index);
             return index;
@@ -117,8 +117,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             if (!this.isDisposed)
             {
                 this.isDisposed = true;
-                this.palette.Dispose();
-                this.palette = null;
+                this.paletteOwner.Dispose();
+                this.paletteOwner = null;
             }
         }
 

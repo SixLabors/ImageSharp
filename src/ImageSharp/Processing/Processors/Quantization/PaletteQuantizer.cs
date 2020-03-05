@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             Color.ToPixel(configuration, this.colorPalette.Span, palette.AsSpan());
 
-            var pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette, length);
+            var pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
             return new PaletteFrameQuantizer<TPixel>(configuration, options, pixelMap);
         }
     }

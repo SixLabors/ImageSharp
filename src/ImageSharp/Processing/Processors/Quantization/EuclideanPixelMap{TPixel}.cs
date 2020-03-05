@@ -19,34 +19,32 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     {
         private readonly Vector4[] vectorCache;
         private readonly ConcurrentDictionary<TPixel, int> distanceCache;
-        private readonly ReadOnlyMemory<TPixel> palette;
-        private readonly int length;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EuclideanPixelMap{TPixel}"/> struct.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="palette">The color palette to map from.</param>
-        /// <param name="length">The length of the color palette.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public EuclideanPixelMap(Configuration configuration, ReadOnlyMemory<TPixel> palette, int length)
+        public EuclideanPixelMap(Configuration configuration, ReadOnlyMemory<TPixel> palette)
         {
-            this.palette = palette;
-            this.length = length;
-            ReadOnlySpan<TPixel> paletteSpan = this.palette.Span.Slice(0, this.length);
-            this.vectorCache = new Vector4[length];
+            this.Palette = palette;
+            this.vectorCache = new Vector4[palette.Length];
 
             // Use the same rules across all target frameworks.
             this.distanceCache = new ConcurrentDictionary<TPixel, int>(Environment.ProcessorCount, 31);
-            PixelOperations<TPixel>.Instance.ToVector4(configuration, paletteSpan, this.vectorCache);
+            PixelOperations<TPixel>.Instance.ToVector4(configuration, this.Palette.Span, this.vectorCache);
         }
 
         /// <summary>
-        /// Returns the palette span.
+        /// Gets the color palette of this <see cref="EuclideanPixelMap{TPixel}"/>.
+        /// The palette memory is owned by the palette source that created it.
         /// </summary>
-        /// <returns>The <seealso cref="ReadOnlySpan{TPixel}"/>.</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public ReadOnlySpan<TPixel> GetPaletteSpan() => this.palette.Span.Slice(0, this.length);
+        public ReadOnlyMemory<TPixel> Palette
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get;
+        }
 
         /// <summary>
         /// Returns the closest color in the palette and the index of that pixel.
@@ -58,7 +56,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         [MethodImpl(InliningOptions.ShortMethod)]
         public int GetClosestColor(TPixel color, out TPixel match)
         {
-            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.GetPaletteSpan());
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.Palette.Span);
 
             // Check if the color is in the lookup table
             if (!this.distanceCache.TryGetValue(color, out int index))
@@ -78,8 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             float leastDistance = float.MaxValue;
             var vector = color.ToVector4();
             ref Vector4 vectorCacheRef = ref MemoryMarshal.GetReference<Vector4>(this.vectorCache);
-
-            for (int i = 0; i < this.length; i++)
+            for (int i = 0; i < this.Palette.Length; i++)
             {
                 Vector4 candidate = Unsafe.Add(ref vectorCacheRef, i);
                 float distance = Vector4.DistanceSquared(vector, candidate);

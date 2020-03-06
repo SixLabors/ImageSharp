@@ -632,7 +632,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         private void BuildCube()
         {
-            Span<double> vv = stackalloc double[this.maxColors];
+            // Store the volume variance.
+            using IMemoryOwner<double> vvOwner = this.Configuration.MemoryAllocator.Allocate<double>(this.maxColors);
+            Span<double> vv = vvOwner.GetSpan();
 
             ref Box cube = ref this.colorCube[0];
             cube.RMin = cube.GMin = cube.BMin = cube.AMin = 0;

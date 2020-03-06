@@ -2,9 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.IO;
 using SixLabors.ImageSharp.Memory;
+#if !SUPPORTS_SPAN_STREAM
+using System.Buffers;
+#endif
 
 namespace SixLabors.ImageSharp
 {

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Text;
@@ -19,25 +19,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void ProfileResolverHasCorrectJFifMarker()
         {
-            Assert.Equal(JFifMarker, ProfileResolver.JFifMarker);
+            Assert.Equal(JFifMarker, ProfileResolver.JFifMarker.ToArray());
         }
 
         [Fact]
         public void ProfileResolverHasCorrectExifMarker()
         {
-            Assert.Equal(ExifMarker, ProfileResolver.ExifMarker);
+            Assert.Equal(ExifMarker, ProfileResolver.ExifMarker.ToArray());
         }
 
         [Fact]
         public void ProfileResolverHasCorrectIccMarker()
         {
-            Assert.Equal(IccMarker, ProfileResolver.IccMarker);
+            Assert.Equal(IccMarker, ProfileResolver.IccMarker.ToArray());
         }
 
         [Fact]
         public void ProfileResolverHasCorrectAdobeMarker()
         {
-            Assert.Equal(AdobeMarker, ProfileResolver.AdobeMarker);
+            Assert.Equal(AdobeMarker, ProfileResolver.AdobeMarker.ToArray());
         }
 
         [Fact]

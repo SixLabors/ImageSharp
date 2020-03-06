@@ -140,14 +140,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private sealed class Octree
         {
             /// <summary>
-            /// Mask used when getting the appropriate pixels for a given node.
-            /// </summary>
-            private static readonly byte[] Mask = new byte[]
-            {
-                0b10000000, 0b1000000, 0b100000, 0b10000, 0b1000, 0b100, 0b10, 0b1
-            };
-
-            /// <summary>
             /// The root of the Octree
             /// </summary>
             private readonly OctreeNode root;
@@ -182,6 +174,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 this.previousColor = default;
                 this.previousNode = null;
             }
+
+            /// <summary>
+            /// Gets the mask used when getting the appropriate pixels for a given node.
+            /// </summary>
+            private static ReadOnlySpan<byte> Mask => new byte[]
+            {
+                0b10000000,
+                0b1000000,
+                0b100000,
+                0b10000,
+                0b1000,
+                0b100,
+                0b10,
+                0b1
+            };
 
             /// <summary>
             /// Gets or sets the number of leaves in the tree
@@ -530,8 +537,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                 [MethodImpl(InliningOptions.ShortMethod)]
                 private static int GetColorIndex(ref Rgba32 color, int level)
                 {
+                    DebugGuard.MustBeLessThan(level, Mask.Length, nameof(level));
+
                     int shift = 7 - level;
-                    byte mask = Mask[level];
+                    ref byte maskRef = ref MemoryMarshal.GetReference(Mask);
+                    byte mask = Unsafe.Add(ref maskRef, level);
+
                     return ((color.R & mask) >> shift)
                            | ((color.G & mask) >> (shift - 1))
                            | ((color.B & mask) >> (shift - 2));

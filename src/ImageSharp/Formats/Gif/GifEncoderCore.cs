@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -217,10 +218,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette.
-            // Palette length maxes out at 256 so safe to stackalloc.
             int index = -1;
             ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
-            Span<Rgba32> rgbaSpan = stackalloc Rgba32[paletteSpan.Length];
+
+            using IMemoryOwner<Rgba32> rgbaOwner = quantized.Configuration.MemoryAllocator.Allocate<Rgba32>(paletteSpan.Length);
+            Span<Rgba32> rgbaSpan = rgbaOwner.GetSpan();
             PixelOperations<TPixel>.Instance.ToRgba32(quantized.Configuration, paletteSpan, rgbaSpan);
             ref Rgba32 rgbaSpanRef = ref MemoryMarshal.GetReference(rgbaSpan);
 

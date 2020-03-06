@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             int i = 0;
 
             // The byte order marker for little-endian, followed by the number 42 and a 0
-            ExifConstants.LittleEndianByteOrderMarker.AsSpan().CopyTo(result.AsSpan(start: i));
+            ExifConstants.LittleEndianByteOrderMarker.CopyTo(result.AsSpan(start: i));
             i += ExifConstants.LittleEndianByteOrderMarker.Length;
 
             uint ifdOffset = ((uint)i - startIndex) + 4U;

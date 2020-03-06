@@ -36,12 +36,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
         private const int EofSymbol = 256;
 
-        // The lengths of the bit length codes are sent in order of decreasing
-        // probability, to avoid transmitting the lengths for unused bit length codes.
-        private static readonly int[] BitLengthOrder = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
-
-        private static readonly byte[] Bit4Reverse = { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
-
         private static readonly short[] StaticLCodes;
         private static readonly byte[] StaticLLength;
         private static readonly short[] StaticDCodes;
@@ -129,6 +123,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         }
 
         /// <summary>
+        /// Gets the lengths of the bit length codes are sent in order of decreasing probability, to avoid transmitting the lengths for unused bit length codes.
+        /// </summary>
+        private static ReadOnlySpan<byte> BitLengthOrder => new byte[] { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
+
+        private static ReadOnlySpan<byte> Bit4Reverse => new byte[] { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
+
+        /// <summary>
         /// Gets the pending buffer to use.
         /// </summary>
         public DeflaterPendingBuffer Pending { get; private set; }
@@ -158,6 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.Pending.WriteBits(this.literalTree.NumCodes - 257, 5);
             this.Pending.WriteBits(this.distTree.NumCodes - 1, 5);
             this.Pending.WriteBits(blTreeCodes - 4, 4);
+
             for (int rank = 0; rank < blTreeCodes; rank++)
             {
                 this.Pending.WriteBits(this.blTree.Length[BitLengthOrder[rank]], 3);
@@ -250,6 +252,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.blTree.BuildTree();
 
             int blTreeCodes = 4;
+
             for (int i = 18; i > blTreeCodes; i--)
             {
                 if (this.blTree.Length[BitLengthOrder[i]] > 0)
@@ -363,10 +366,30 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         [MethodImpl(InliningOptions.ShortMethod)]
         public static short BitReverse(int toReverse)
         {
-            return (short)(Bit4Reverse[toReverse & 0xF] << 12
-                           | Bit4Reverse[(toReverse >> 4) & 0xF] << 8
-                           | Bit4Reverse[(toReverse >> 8) & 0xF] << 4
-                           | Bit4Reverse[toReverse >> 12]);
+            /* Use unsafe offsetting and manually validate the input index to reduce the
+             * total number of conditional branches. There are two main cases to test here:
+             *   1. In the first 3, the input value (or some combination of it) is combined
+             *      with & 0xF, which results in a maximum value of 0xF no matter what the
+             *      input value was. That is 15, which is always in range for the target span.
+             *      As a result, no input validation is needed at all in this case.
+             *   2. There are two cases where the input value might cause an invalid access:
+             *      when it is either negative, or greater than 15 << 12. We can test both
+             *      conditions in a single pass by casting the input value to uint and right
+             *      shifting it by 12, which also preserves the sign. If it is a negative
+             *      value (2-complement), the test will fail as the uint cast will result
+             *      in a much larger value. If the value was simply too high, the test will
+             *      fail as expected. We can't simply check whether the value is lower than
+             *      15 << 12, because higher values are acceptable in the first 3 accesses.
+             * Doing this reduces the total number of index checks from 4 down to just 1. */
+            int toReverseRightShiftBy12 = toReverse >> 12;
+            Guard.MustBeLessThanOrEqualTo<uint>((uint)toReverseRightShiftBy12, 15, nameof(toReverse));
+
+            ref byte bit4ReverseRef = ref MemoryMarshal.GetReference(Bit4Reverse);
+
+            return (short)(Unsafe.Add(ref bit4ReverseRef, toReverse & 0xF) << 12
+                           | Unsafe.Add(ref bit4ReverseRef, (toReverse >> 4) & 0xF) << 8
+                           | Unsafe.Add(ref bit4ReverseRef, (toReverse >> 8) & 0xF) << 4
+                           | Unsafe.Add(ref bit4ReverseRef, toReverseRightShiftBy12));
         }
 
         /// <inheritdoc/>

@@ -1,11 +1,13 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
+
+using System;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     internal static class ExifConstants
     {
-        public static readonly byte[] LittleEndianByteOrderMarker =
+        public static ReadOnlySpan<byte> LittleEndianByteOrderMarker => new byte[]
         {
             (byte)'I',
             (byte)'I',
@@ -13,7 +15,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             0x00,
         };
 
-        public static readonly byte[] BigEndianByteOrderMarker =
+        public static ReadOnlySpan<byte> BigEndianByteOrderMarker => new byte[]
         {
             (byte)'M',
             (byte)'M',

@@ -394,7 +394,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ProfileToByteArray()
         {
             // Arrange
-            byte[] exifBytesWithoutExifCode = ExifConstants.LittleEndianByteOrderMarker;
+            byte[] exifBytesWithoutExifCode = ExifConstants.LittleEndianByteOrderMarker.ToArray();
             ExifProfile expectedProfile = CreateExifProfile();
             var expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();
 

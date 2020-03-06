@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests
                         this.Collection.AddFrame((ImageFrame<Rgba32>)null);
                     });
 
-                Assert.StartsWith("Value cannot be null.", ex.Message);
+                Assert.StartsWith("Parameter \"frame\" must be not null.", ex.Message);
             }
 
             [Fact]
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests
                         this.Collection.AddFrame(data);
                     });
 
-                Assert.StartsWith("Value cannot be null.", ex.Message);
+                Assert.StartsWith("Parameter \"source\" must be not null.", ex.Message);
             }
 
             [Fact]
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests
                         this.Collection.AddFrame(new Rgba32[0]);
                     });
 
-                Assert.StartsWith("Value 0 must be greater than or equal to 100.", ex.Message);
+                Assert.StartsWith($"Parameter \"data\" ({typeof(int)}) must be greater than or equal to {100}, was {0}", ex.Message);
             }
 
             [Fact]
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests
                         this.Collection.InsertFrame(1, null);
                     });
 
-                Assert.StartsWith("Value cannot be null.", ex.Message);
+                Assert.StartsWith("Parameter \"frame\" must be not null.", ex.Message);
             }
 
             [Fact]

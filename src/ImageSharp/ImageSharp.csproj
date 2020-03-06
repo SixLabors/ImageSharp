@@ -37,6 +37,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="..\..\shared-infrastructure\src\SharedInfrastructure\Guard.Numeric.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Guard.Numeric.tt</DependentUpon>
+    </Compile>    
     <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -202,6 +207,9 @@
       <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
+    <None Update="..\..\shared-infrastructure\src\SharedInfrastructure\Guard.Numeric.tt">
+      <LastGenOutput>Guard.Numeric.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -209,5 +217,4 @@
   </ItemGroup>
 
   <Import Project="..\..\shared-infrastructure\src\SharedInfrastructure\SharedInfrastructure.projitems" Label="Shared" />
-
 </Project>

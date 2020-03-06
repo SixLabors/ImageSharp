@@ -22,7 +22,7 @@ namespace SixLabors
         {
             if (!value.GetType().GetTypeInfo().IsValueType)
             {
-                ThrowArgumentException("Type must be a struct.", parameterName);
+                ThrowHelper.ThrowArgumentException("Type must be a struct.", parameterName);
             }
         }
     }

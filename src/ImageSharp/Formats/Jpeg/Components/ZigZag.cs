@@ -34,12 +34,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public fixed byte Data[Size];
 
         /// <summary>
-        /// Unzig maps from the zigzag ordering to the natural ordering. For example,
-        /// unzig[3] is the column and row of the fourth element in zigzag order. The
-        /// value is 16, which means first column (16%8 == 0) and third row (16/8 == 2).
+        /// Gets the unzigs map, which maps from the zigzag ordering to the natural ordering.
+        /// For example, unzig[3] is the column and row of the fourth element in zigzag order.
+        /// The value is 16, which means first column (16%8 == 0) and third row (16/8 == 2).
         /// </summary>
-        private static readonly byte[] Unzig =
-        new byte[Size]
+        private static ReadOnlySpan<byte> Unzig => new byte[]
         {
             0,  1,  8, 16,  9,  2,  3, 10,
             17, 24, 32, 25, 18, 11,  4,  5,
@@ -75,8 +74,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public static ZigZag CreateUnzigTable()
         {
             ZigZag result = default;
-            byte* unzigPtr = result.Data;
-            Marshal.Copy(Unzig, 0, (IntPtr)unzigPtr, Size);
+            ref byte sourceRef = ref MemoryMarshal.GetReference(Unzig);
+            ref byte destinationRef = ref Unsafe.AsRef<byte>(result.Data);
+
+            Unzig.CopyTo(new Span<byte>(result.Data, Size));
+
             return result;
         }
 

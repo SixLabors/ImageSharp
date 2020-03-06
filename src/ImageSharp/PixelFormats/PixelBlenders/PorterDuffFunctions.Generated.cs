@@ -13,7 +13,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
 
 
 
-
         /// <summary>
         /// Returns the result of the "NormalSrc" compositing equation.
         /// </summary>
@@ -418,7 +417,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             dest.FromScaledVector4(NormalXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
-
 
         /// <summary>
         /// Returns the result of the "MultiplySrc" compositing equation.
@@ -825,7 +823,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return dest;
         }
 
-
         /// <summary>
         /// Returns the result of the "AddSrc" compositing equation.
         /// </summary>
@@ -1230,7 +1227,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             dest.FromScaledVector4(AddXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
-
 
         /// <summary>
         /// Returns the result of the "SubtractSrc" compositing equation.
@@ -1637,7 +1633,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return dest;
         }
 
-
         /// <summary>
         /// Returns the result of the "ScreenSrc" compositing equation.
         /// </summary>
@@ -2042,7 +2037,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             dest.FromScaledVector4(ScreenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
-
 
         /// <summary>
         /// Returns the result of the "DarkenSrc" compositing equation.
@@ -2449,7 +2443,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return dest;
         }
 
-
         /// <summary>
         /// Returns the result of the "LightenSrc" compositing equation.
         /// </summary>
@@ -2855,7 +2848,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return dest;
         }
 
-
         /// <summary>
         /// Returns the result of the "OverlaySrc" compositing equation.
         /// </summary>
@@ -3260,7 +3252,6 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             dest.FromScaledVector4(OverlayXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
         }
-
 
         /// <summary>
         /// Returns the result of the "HardLightSrc" compositing equation.

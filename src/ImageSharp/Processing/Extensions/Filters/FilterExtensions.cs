@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing
     public static class FilterExtensions
     {
         /// <summary>
-        /// Filters an image but the given color matrix
+        /// Filters an image by the given color matrix
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="matrix">The filter color matrix</param>
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing
             => source.ApplyProcessor(new FilterProcessor(matrix));
 
         /// <summary>
-        /// Filters an image but the given color matrix
+        /// Filters an image by the given color matrix
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="matrix">The filter color matrix</param>

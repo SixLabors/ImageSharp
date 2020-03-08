@@ -4,52 +4,107 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization.PaletteLookup;
+using SixLabors.ImageSharp.Processing.Processors.Quantization.PaletteLookup.Brian;
 
 namespace SixLabors.ImageSharp.Benchmarks.Quantization
 {
+    [ShortRunJob]
     public class ColorLookupConcepts
     {
-        private LinearRgba32 linearRgba;
-        private LinearVector4 linearVector4;
+        private LinearRgba32Map linearRgba;
+        private LinearVector4Map linearVector4Map;
         private HashMap hashMap;
         private BasicMap basicMap;
         private WuMap wuMap;
-        private Rgba32 color2Match;
+        private HeapKdTreePaletteLookup<Rgba32> heapKdMap;
+        private KdTreePixelMap<Rgba32> kdMap;
+
+        private Rgba32 color1;
+        private Rgba32 color2;
+        private Rgba32 color3;
 
         [GlobalSetup]
         public void Setup()
         {
-            this.color2Match = new Rgba32(128, 128, 128, 255);
+            this.color1 = new Rgba32(128, 128, 128, 255);
+            this.color2 = new Rgba32(199, 163, 51, 255);
 
-            this.linearRgba = LinearRgba32.Create();
-            this.linearVector4 = LinearVector4.Create();
+            this.linearRgba = LinearRgba32Map.Create();
+            this.linearVector4Map = LinearVector4Map.Create();
             this.hashMap = HashMap.Create();
             this.basicMap = BasicMap.Create();
             this.wuMap = WuMap.Create();
+
+            Rgba32[] testPalette = CreateTestPalette();
+            this.color3 = testPalette[161];
+            this.heapKdMap = new HeapKdTreePaletteLookup<Rgba32>(Configuration.Default, testPalette);
+            this.kdMap = new KdTreePixelMap<Rgba32>(testPalette);
+        }
+
+        [Benchmark(Baseline = true)]
+        public int LinearVector4()
+        {
+            return this.linearVector4Map.Match(this.color1) +
+                   this.linearVector4Map.Match(this.color2) +
+                   this.linearVector4Map.Match(this.color3);
         }
 
         [Benchmark]
-        public byte UseLinearVector4() => this.linearVector4.Match(this.color2Match);
+        public int LinearRgba()
+        {
+            return this.linearRgba.Match(this.color1) +
+                   this.linearRgba.Match(this.color2) +
+                   this.linearRgba.Match(this.color3);
+        }
 
         [Benchmark]
-        public byte UseLinearRgba() => this.linearRgba.Match(this.color2Match);
-
-        [Benchmark(Baseline = true)]
-        public byte UseHashMap() => this.hashMap.Match(this.color2Match);
+        public int AntonsHeapKdTree()
+        {
+            return this.heapKdMap.GetPaletteIndex(this.color1) +
+                   this.heapKdMap.GetPaletteIndex(this.color2) +
+                   this.heapKdMap.GetPaletteIndex(this.color3);
+        }
 
         [Benchmark]
-        public byte UseBasicMap() => this.basicMap.Match(this.color2Match);
+        public int BriansNormalKdTree()
+        {
+            return this.kdMap.GetPaletteIndex(this.color1) +
+                   this.kdMap.GetPaletteIndex(this.color2) +
+                   this.kdMap.GetPaletteIndex(this.color3);
+        }
 
         [Benchmark]
-        public byte UseWuMap() => this.wuMap.Match(this.color2Match);
+        public int Dictionary()
+        {
+            return this.hashMap.Match(this.color1) +
+                   this.hashMap.Match(this.color2) +
+                   this.hashMap.Match(this.color3);
+        }
 
-        struct LinearRgba32
+        [Benchmark]
+        public int BasicBitShift()
+        {
+            return this.basicMap.Match(this.color1) +
+                   this.basicMap.Match(this.color2) +
+                   this.basicMap.Match(this.color3);
+        }
+
+        // [Benchmark]
+        public int UseWuMap()
+        {
+            return this.wuMap.Match(this.color1) +
+                   this.wuMap.Match(this.color2) +
+                   this.wuMap.Match(this.color3);
+        }
+
+        struct LinearRgba32Map
         {
             private Rgba32[] palette;
 
-            public static LinearRgba32 Create()
+            public static LinearRgba32Map Create()
             {
-                LinearRgba32 result = default;
+                LinearRgba32Map result = default;
                 var palette = new Rgba32[256];
                 int idx = 0;
                 for (int r = 0; r < 256; r += 32)
@@ -116,34 +171,48 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
             }
         }
 
-        internal struct LinearVector4
+        private static HeapKdTreePaletteLookup<Rgba32> CreateKdLookup()
+        {
+            return new HeapKdTreePaletteLookup<Rgba32>(Configuration.Default, CreateTestPalette());
+        }
+
+        private static Rgba32[] CreateTestPalette()
+        {
+            var palette = new Rgba32[256];
+            int idx = 0;
+            for (int r = 0; r < 256; r += 32)
+            {
+                for (int g = 0; g < 256; g += 32)
+                {
+                    for (int b = 0; b < 256; b += 64)
+                    {
+                        palette[idx] = new Rgba32(r, g, b, 255);
+                        idx++;
+                    }
+                }
+            }
+
+            return palette;
+        }
+
+        internal struct LinearVector4Map
         {
             private readonly Vector4[] paletteVectors;
 
-            private LinearVector4(Configuration configuration, ReadOnlyMemory<Rgba32> palette)
+            private LinearVector4Map(Configuration configuration, ReadOnlyMemory<Rgba32> palette)
             {
                 this.paletteVectors = new Vector4[palette.Length];
                 PixelOperations<Rgba32>.Instance.ToVector4(configuration, palette.Span, this.paletteVectors);
             }
 
-            public static LinearVector4 Create()
+            public static LinearVector4Map Create()
             {
-                var palette = new Rgba32[256];
-                int idx = 0;
-                for (int r = 0; r < 256; r += 32)
-                {
-                    for (int g = 0; g < 256; g += 32)
-                    {
-                        for (int b = 0; b < 256; b += 64)
-                        {
-                            palette[idx] = new Rgba32(r, g, b, 255);
-                            idx++;
-                        }
-                    }
-                }
+                Rgba32[] palette = CreateTestPalette();
 
-                return new LinearVector4(Configuration.Default, palette);
+                return new LinearVector4Map(Configuration.Default, palette);
             }
+
+
 
             public byte Match(Rgba32 pixel)
             {

@@ -11,19 +11,22 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization.PaletteLookup
 {
-    internal struct KdTreePaletteLookup<TPixel>
+    interface IPaletteMap<TPixel>
+    {
+        byte GetPaletteIndex(TPixel pixel);
+    }
+
+    internal struct HeapKdTreePaletteLookup<TPixel> : IPaletteMap<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private const int MaxPalette = 256;
         private readonly Vector4[] paletteVectors;
-        private readonly Action<string> debugPrint;
         private int treeEnd;
 
         internal readonly ushort[] PaletteIndices;
 
-        public KdTreePaletteLookup(Configuration configuration, ReadOnlyMemory<TPixel> palette, Action<string> debugPrint = null)
+        public HeapKdTreePaletteLookup(Configuration configuration, ReadOnlyMemory<TPixel> palette)
         {
-            this.debugPrint = debugPrint;
             Guard.MustBeLessThanOrEqualTo(palette.Length, MaxPalette, "palette.Length");
 
             var originalPaletteVectors = new Vector4[palette.Length];
@@ -38,78 +41,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization.PaletteLookup
 
         public ReadOnlyMemory<TPixel> Palette { get; }
 
-        public byte GetPaletteIndexFor(TPixel pixel)
+        public byte GetPaletteIndex(TPixel pixel)
         {
             var finder = new NearestNeighbourFinder(this.paletteVectors, this.PaletteIndices, pixel, this.treeEnd);
             finder.SearchSubtree(0, -1);
             return (byte)this.PaletteIndices[finder.MinIdx];
         }
 
-        private ref struct NearestNeighbourFinder
+        public byte GetPaletteIndex(TPixel pixel, out int steps)
         {
-            private readonly Span<Vector4> paletteTree;
-            private readonly Span<ushort> paletteIndices;
-            private Vector4 searchColor;
-            private float minDist;
-            private int minIdx;
-            private readonly int treeEnd;
-
-            public NearestNeighbourFinder(Vector4[] paletteTree, Span<ushort> paletteIndices, TPixel pixel, int treeEnd)
-            {
-                this.paletteTree = paletteTree;
-                this.paletteIndices = paletteIndices;
-                this.treeEnd = treeEnd;
-                this.searchColor = pixel.ToVector4();
-                this.minDist = float.MaxValue;
-                this.minIdx = -1;
-            }
-
-            public int MinIdx => this.minIdx;
-
-            public void SearchSubtree(int currentIdx, int currentCoord)
-            {
-                if (currentIdx > this.treeEnd || this.paletteIndices[currentIdx] == ushort.MaxValue)
-                {
-                    return;
-                }
-
-                currentCoord = ImageMaths.Modulo4(currentCoord + 1);
-
-                ref Vector4 v = ref this.paletteTree[currentIdx];
-                float d = Vector4.DistanceSquared(v, this.searchColor);
-
-                if (d < this.minDist)
-                {
-                    this.minDist = d;
-                    this.minIdx = currentIdx;
-                }
-
-                float searchVal = GetValue(ref this.searchColor, currentCoord);
-                float paletteVal = GetValue(ref v, currentCoord);
-                float coordDiff = searchVal - paletteVal;
-
-                // need to check both subtrees, if hypersphere intersects hyperplane:
-                bool searchBoth = this.minDist > coordDiff * coordDiff;
-
-                if (coordDiff < 0)
-                {
-                    // go left first:
-                    this.SearchSubtree((currentIdx * 2) + 1, currentCoord);
-                    if (searchBoth)
-                    {
-                        this.SearchSubtree((currentIdx * 2) + 2, currentCoord);
-                    }
-                }
-                else
-                {
-                    // go right first:
-                    this.SearchSubtree((currentIdx * 2) + 2, currentCoord);
-                    if (searchBoth)
-                    {
-                        this.SearchSubtree((currentIdx * 2) + 1, currentCoord);
-                    }
-                }
-            }
+            var finder = new NearestNeighbourFinder(this.paletteVectors, this.PaletteIndices, pixel, this.treeEnd);
+            finder.SearchSubtree(0, -1);
+            steps = finder.Steps;
+            return (byte)this.PaletteIndices[finder.MinIdx];
         }
 
         private void BuildTree(Vector4[] originalPalette)
@@ -118,16 +62,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization.PaletteLookup
             this.BuildSegment(ref initial, 0, 0);
         }
 
-        private void Print(string str)
-        {
-            this.debugPrint?.Invoke(str);
-        }
-
         private void BuildSegment(ref Segment segment, int currentCoord, int currentPaletteIndex)
         {
             this.treeEnd = Math.Max(this.treeEnd, currentPaletteIndex);
-
-            this.Print($"i={currentPaletteIndex}  | L={segment.Length} | | M={segment.Length / 2}");
             (Vector4 median, int medianIndex, Segment left, Segment right) = segment.Partitionate(currentCoord);
             segment.Dispose(); // We'll no longer use this segment, return it's array to the pool
 
@@ -137,16 +74,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization.PaletteLookup
 
             if (left.Length > 0)
             {
-                this.Print($"<-- left  -- {currentPaletteIndex}");
                 this.BuildSegment(ref left, currentCoord, (currentPaletteIndex * 2) + 1);
             }
 
             if (right.Length > 0)
             {
-                this.Print($" {currentPaletteIndex} -- right -->");
                 this.BuildSegment(ref right, currentCoord, (currentPaletteIndex * 2) + 2);
             }
         }
+
+        private static float GetValue(ref Vector4 v, int coord) =>
+            Unsafe.Add(ref Unsafe.As<Vector4, float>(ref v), coord);
 
         private struct Segment : IDisposable
         {
@@ -236,25 +174,97 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization.PaletteLookup
             }
         }
 
-        private static float GetValue(ref Vector4 v, int coord) =>
-            Unsafe.Add(ref Unsafe.As<Vector4, float>(ref v), coord);
+        private ref struct NearestNeighbourFinder
+        {
+            private readonly Span<Vector4> paletteTree;
+            private readonly Span<ushort> paletteIndices;
+            private Vector4 searchColor;
+            private float minDist;
+            private int minIdx;
+            private readonly int treeEnd;
+
+            public NearestNeighbourFinder(Vector4[] paletteTree, Span<ushort> paletteIndices, TPixel pixel, int treeEnd)
+            {
+                this.paletteTree = paletteTree;
+                this.paletteIndices = paletteIndices;
+                this.treeEnd = treeEnd;
+                this.searchColor = pixel.ToVector4();
+                this.minDist = float.MaxValue;
+                this.minIdx = -1;
+                this.Steps = 0;
+            }
+
+            public int MinIdx => this.minIdx;
+
+            public int Steps { get; private set; }
+
+            public void SearchSubtree(int currentIdx, int currentCoord)
+            {
+                if (currentIdx > this.treeEnd || this.paletteIndices[currentIdx] == ushort.MaxValue)
+                {
+                    return;
+                }
+
+                this.Steps++;
+
+                currentCoord = ImageMaths.Modulo4(currentCoord + 1);
+
+                ref Vector4 v = ref this.paletteTree[currentIdx];
+                float d = Vector4.DistanceSquared(v, this.searchColor);
+
+                if (d < this.minDist)
+                {
+                    this.minDist = d;
+                    this.minIdx = currentIdx;
+                }
+
+                float searchVal = GetValue(ref this.searchColor, currentCoord);
+                float paletteVal = GetValue(ref v, currentCoord);
+                float coordDiff = searchVal - paletteVal;
+
+                float dd = coordDiff * coordDiff;
+
+                if (coordDiff < 0)
+                {
+                    // go left first:
+                    this.SearchSubtree((currentIdx * 2) + 1, currentCoord);
+
+                    // need to check both subtrees, if hypersphere intersects hyperplane:
+                    if (this.minDist > dd)
+                    {
+                        this.SearchSubtree((currentIdx * 2) + 2, currentCoord);
+                    }
+                }
+                else
+                {
+                    // go right first:
+                    this.SearchSubtree((currentIdx * 2) + 2, currentCoord);
+
+                    // need to check both subtrees, if hypersphere intersects hyperplane:
+                    if (this.minDist > dd)
+                    {
+                        this.SearchSubtree((currentIdx * 2) + 1, currentCoord);
+                    }
+                }
+            }
+        }
 
         private class ByCoordVectorComparer : IComparer<Vector4>
         {
             private int coord;
 
-            public static ByCoordVectorComparer[] Comparers =
+            private ByCoordVectorComparer(int coord)
+            {
+                this.coord = coord;
+            }
+
+            public static ByCoordVectorComparer[] Comparers { get; } =
             {
                 new ByCoordVectorComparer(0),
                 new ByCoordVectorComparer(1),
                 new ByCoordVectorComparer(2),
                 new ByCoordVectorComparer(3),
             };
-
-            public ByCoordVectorComparer(int coord)
-            {
-                this.coord = coord;
-            }
 
             public int Compare(Vector4 x, Vector4 y)
             {

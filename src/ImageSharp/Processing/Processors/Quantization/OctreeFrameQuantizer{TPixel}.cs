@@ -100,10 +100,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             // Octree only maps the RGB component of a color
             // so cannot tell the difference between a fully transparent
             // pixel and a black one.
-            if (this.isDithering || color.Equals(default))
-            {
-                return (byte)this.pixelMap.GetClosestColor(color, out match);
-            }
+            // if (this.isDithering || color.Equals(default))
+            // {
+            //     return (byte)this.pixelMap.GetClosestColor(color, out match);
+            // }
 
             ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.pixelMap.GetPaletteSpan());
             var index = (byte)this.octree.GetPaletteIndex(color);

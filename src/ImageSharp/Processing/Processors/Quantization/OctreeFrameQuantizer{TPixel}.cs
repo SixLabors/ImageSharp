@@ -23,8 +23,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     {
         private readonly int colors;
         private readonly Octree octree;
-        private EuclideanPixelMap<TPixel> pixelMap;
-        private readonly bool isDithering;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeFrameQuantizer{TPixel}"/> struct.
@@ -42,8 +40,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             this.colors = this.Options.MaxColors;
             this.octree = new Octree(ImageMaths.GetBitsNeededForColorDepth(this.colors).Clamp(1, 8));
-            this.pixelMap = default;
-            this.isDithering = !(this.Options.Dither is null);
         }
 
         /// <inheritdoc/>
@@ -80,7 +76,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             TPixel[] palette = this.octree.Palletize(this.colors);
-            this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
 
             return palette;
         }
@@ -89,17 +84,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         [MethodImpl(InliningOptions.ShortMethod)]
         public byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
         {
-            // Octree only maps the RGB component of a color
-            // so cannot tell the difference between a fully transparent
-            // pixel and a black one.
-            if (!this.isDithering && !color.Equals(default))
-            {
-                var index = (byte)this.octree.GetPaletteIndex(color);
-                match = palette[index];
-                return index;
-            }
-
-            return (byte)this.pixelMap.GetClosestColor(color, out match);
+            var index = (byte)this.octree.GetPaletteIndex(color);
+            match = palette[index];
+            return index;
         }
 
         /// <inheritdoc/>

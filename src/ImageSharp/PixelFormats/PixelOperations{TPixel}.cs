@@ -152,5 +152,20 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             PixelOperations<TDestinationPixel>.Instance.From(configuration, sourcePixels, destinationPixels);
         }
+
+        /// <summary>
+        /// Non-destructive variant of
+        /// <see cref="FromVector4Destructive(SixLabors.ImageSharp.Configuration,System.Span{System.Numerics.Vector4},System.Span{TPixel},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
+        /// </summary>
+        internal void FromVector4(
+            Configuration configuration,
+            Span<Vector4> sourceVectors,
+            Span<TPixel> destinationPixels)
+        {
+            using IMemoryOwner<Vector4> tempBuffer = configuration.MemoryAllocator.Allocate<Vector4>(sourceVectors.Length);
+            Span<Vector4> tempSpan = tempBuffer.Memory.Span;
+            sourceVectors.CopyTo(tempSpan);
+            this.FromVector4Destructive(configuration, tempSpan, destinationPixels, PixelConversionModifiers.None);
+        }
     }
 }

@@ -248,7 +248,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         }
 
         /// <summary>
-        /// Performs the bulk conversion from <see cref="Lms"/> into <see cref="LinearRgb"/>.
+        /// Performs the bulk conversion from <see cref="Rgb"/> into <see cref="LinearRgb"/>.
         /// </summary>
         /// <param name="source">The span to the source colors</param>
         /// <param name="destination">The span to the destination colors</param>

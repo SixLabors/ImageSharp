@@ -1,20 +1,24 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Processing.Processors.Quantization.PaletteLookup;
 using SixLabors.ImageSharp.Processing.Processors.Quantization.PaletteLookup.Brian;
+using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Quantization
 {
-    [ShortRunJob]
     public class ColorLookupConcepts
     {
         private LinearRgba32Map linearRgba;
         private LinearVector4Map linearVector4Map;
         private HashMap hashMap;
+        private ConcurrentHashMap concurrentMap;
         private BasicMap basicMap;
         private WuMap wuMap;
         private HeapKdTreePaletteLookup<Rgba32> heapKdMap;
@@ -23,6 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
         private Rgba32 color1;
         private Rgba32 color2;
         private Rgba32 color3;
+        private OctreeFrameQuantizer<Rgba32> octree;
 
         [GlobalSetup]
         public void Setup()
@@ -33,6 +38,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
             this.linearRgba = LinearRgba32Map.Create();
             this.linearVector4Map = LinearVector4Map.Create();
             this.hashMap = HashMap.Create();
+            this.concurrentMap = ConcurrentHashMap.Create();
             this.basicMap = BasicMap.Create();
             this.wuMap = WuMap.Create();
 
@@ -40,9 +46,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
             this.color3 = testPalette[161];
             this.heapKdMap = new HeapKdTreePaletteLookup<Rgba32>(Configuration.Default, testPalette);
             this.kdMap = new KdTreePixelMap<Rgba32>(testPalette);
+            this.octree = CreateOctreeFrameQuantizer();
         }
 
-        [Benchmark(Baseline = true)]
+        [Benchmark]
         public int LinearVector4()
         {
             return this.linearVector4Map.Match(this.color1) +
@@ -58,7 +65,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
                    this.linearRgba.Match(this.color3);
         }
 
-        [Benchmark]
+        // [Benchmark]
         public int AntonsHeapKdTree()
         {
             return this.heapKdMap.GetPaletteIndex(this.color1) +
@@ -66,7 +73,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
                    this.heapKdMap.GetPaletteIndex(this.color3);
         }
 
-        [Benchmark]
+        // [Benchmark]
         public int BriansNormalKdTree()
         {
             return this.kdMap.GetPaletteIndex(this.color1) +
@@ -74,12 +81,20 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
                    this.kdMap.GetPaletteIndex(this.color3);
         }
 
-        [Benchmark]
+        [Benchmark(Baseline = true)]
         public int Dictionary()
         {
             return this.hashMap.Match(this.color1) +
                    this.hashMap.Match(this.color2) +
                    this.hashMap.Match(this.color3);
+        }
+
+        [Benchmark]
+        public int ConcurrentDictionary()
+        {
+            return this.concurrentMap.Match(this.color1) +
+                   this.concurrentMap.Match(this.color2) +
+                   this.concurrentMap.Match(this.color3);
         }
 
         [Benchmark]
@@ -90,7 +105,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
                    this.basicMap.Match(this.color3);
         }
 
-        // [Benchmark]
+        [Benchmark]
+        public int Octree()
+        {
+            return this.octree.GetQuantizedColor(this.color1) +
+                   this.octree.GetQuantizedColor(this.color2) +
+                   this.octree.GetQuantizedColor(this.color3);
+        }
+
+        [Benchmark]
         public int UseWuMap()
         {
             return this.wuMap.Match(this.color1) +
@@ -171,6 +194,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
             }
         }
 
+        private OctreeFrameQuantizer<Rgba32> CreateOctreeFrameQuantizer()
+        {
+            string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.Rgb48Bpp);
+            using var img = Image.Load<Rgba32>(path);
+            var frameQuantizer = new OctreeFrameQuantizer<Rgba32>(Configuration.Default, new QuantizerOptions());
+            frameQuantizer.BuildPalette(img.Frames.RootFrame, img.Bounds());
+            return frameQuantizer;
+        }
+
         private static HeapKdTreePaletteLookup<Rgba32> CreateKdLookup()
         {
             return new HeapKdTreePaletteLookup<Rgba32>(Configuration.Default, CreateTestPalette());
@@ -245,6 +277,43 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
                 HashMap result = default;
 
                 var map = new Dictionary<Rgba32, byte>();
+
+                int cnt = 0;
+                for (int r = 0; r < 256; r += 4)
+                {
+                    for (int g = 0; g < 256; g += 4)
+                    {
+                        for (int b = 0; b < 256; b += 4)
+                        {
+                            var rgba = new Rgba32(r, g, b, 255);
+                            map[rgba] = (byte)cnt;
+                            cnt++;
+                            cnt %= 256;
+                        }
+                    }
+                }
+
+                result.map = map;
+                return result;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public byte Match(Rgba32 rgba)
+            {
+                this.map.TryGetValue(rgba, out byte result);
+                return result;
+            }
+        }
+
+        struct ConcurrentHashMap
+        {
+            private ConcurrentDictionary<Rgba32, byte> map;
+
+            public static ConcurrentHashMap Create()
+            {
+                ConcurrentHashMap result = default;
+
+                var map = new ConcurrentDictionary<Rgba32, byte>();
 
                 int cnt = 0;
                 for (int r = 0; r < 256; r += 4)

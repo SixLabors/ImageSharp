@@ -2,8 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using Xunit;
 using Xunit.Abstractions;
+
+#pragma warning disable SA1516
+#pragma warning disable SA1028
+#pragma warning disable SA1509
 
 namespace SixLabors.ImageSharp.Tests.Quantization.PaletteLookup
 {
@@ -16,18 +21,91 @@ namespace SixLabors.ImageSharp.Tests.Quantization.PaletteLookup
             this.output = output;
         }
 
-        public static TheoryData<int, int, string, Color[]> Data = new TheoryData<int, int, string, Color[]>()
+        public static TheoryData<int, int, string> Data = new TheoryData<int, int, string>()
             {
-                { 4, 4, nameof(Color.WernerPalette), Color.WernerPalette.ToArray() },
-                { 4, 4, nameof(Color.WebSafePalette), Color.WebSafePalette.ToArray() },
-                { 5, 5, nameof(Color.WernerPalette), Color.WernerPalette.ToArray() },
-                { 5, 5, nameof(Color.WebSafePalette), Color.WebSafePalette.ToArray() },
-                { 5, 6, nameof(Color.WebSafePalette), Color.WebSafePalette.ToArray() },
-                { 6, 6, nameof(Color.WernerPalette), Color.WernerPalette.ToArray() },
-                { 6, 6, nameof(Color.WebSafePalette), Color.WebSafePalette.ToArray() },
-                { 6, 7, nameof(Color.WebSafePalette), Color.WebSafePalette.ToArray() },
-                { 7, 7, nameof(Color.WebSafePalette), Color.WebSafePalette.ToArray() }
+                { 3, 3, nameof(WebSafePalette) },
+                { 4, 4, nameof(WebSafePalette) },
+                { 4, 4, nameof(WebSafePalette) },
+                { 5, 5, nameof(WebSafePalette) },
+                { 5, 5, nameof(WebSafePalette) },
+                { 5, 6, nameof(WebSafePalette) },
+                { 6, 6, nameof(WebSafePalette) },
+                { 6, 6, nameof(WebSafePalette) },
+                { 6, 7, nameof(WebSafePalette) },
+                { 7, 7, nameof(WebSafePalette) },
+
+                { 3, 3, nameof(Ducky) },
+                { 4, 4, nameof(Ducky) },
+                { 4, 4, nameof(Ducky) },
+                { 5, 5, nameof(Ducky) },
+                { 5, 5, nameof(Ducky) },
+                { 5, 6, nameof(Ducky) },
+                { 6, 6, nameof(Ducky) },
+                { 6, 6, nameof(Ducky) },
+                { 6, 7, nameof(Ducky) },
+                { 7, 7, nameof(Ducky) },
+
+                { 3, 3, nameof(Bike) },
+                { 4, 4, nameof(Bike) },
+                { 4, 4, nameof(Bike) },
+                { 5, 5, nameof(Bike) },
+                { 5, 5, nameof(Bike) },
+                { 5, 6, nameof(Bike) },
+                { 6, 6, nameof(Bike) },
+                { 6, 6, nameof(Bike) },
+                { 6, 7, nameof(Bike) },
+                { 7, 7, nameof(Bike) },
+
+                { 3, 3, nameof(Rgb48Bpp) },
+                { 4, 4, nameof(Rgb48Bpp) },
+                { 4, 4, nameof(Rgb48Bpp) },
+                { 5, 5, nameof(Rgb48Bpp) },
+                { 5, 5, nameof(Rgb48Bpp) },
+                { 5, 6, nameof(Rgb48Bpp) },
+                { 6, 6, nameof(Rgb48Bpp) },
+                { 6, 6, nameof(Rgb48Bpp) },
+                { 6, 7, nameof(Rgb48Bpp) },
+                { 7, 7, nameof(Rgb48Bpp) },
+
+                { 3, 3, nameof(CalliphoraPartial) },
+                { 4, 4, nameof(CalliphoraPartial) },
+                { 4, 4, nameof(CalliphoraPartial) },
+                { 5, 5, nameof(CalliphoraPartial) },
+                { 5, 5, nameof(CalliphoraPartial) },
+                { 5, 6, nameof(CalliphoraPartial) },
+                { 6, 6, nameof(CalliphoraPartial) },
+                { 6, 6, nameof(CalliphoraPartial) },
+                { 6, 7, nameof(CalliphoraPartial) },
+                { 7, 7, nameof(CalliphoraPartial) },
+
+                { 3, 3, nameof(CalliphoraPartialGrayscale) },
+                { 4, 4, nameof(CalliphoraPartialGrayscale) },
+                { 4, 4, nameof(CalliphoraPartialGrayscale) },
+                { 5, 5, nameof(CalliphoraPartialGrayscale) },
+                { 5, 5, nameof(CalliphoraPartialGrayscale) },
+                { 5, 6, nameof(CalliphoraPartialGrayscale) },
+                { 6, 6, nameof(CalliphoraPartialGrayscale) },
+                { 6, 6, nameof(CalliphoraPartialGrayscale) },
+                { 6, 7, nameof(CalliphoraPartialGrayscale) },
+                { 7, 7, nameof(CalliphoraPartialGrayscale) },
             };
+
+        public static Rgb24[] WebSafePalette => Color.WebSafePalette.ToArray().Select(c => c.ToRgb24()).ToArray();
+        public static Rgb24[] WernerPalette => Color.WebSafePalette.ToArray().Select(c => c.ToRgb24()).ToArray();
+        public static Rgb24[] Ducky => CreatePaletteFrom(TestImages.Png.Ducky);
+        public static Rgb24[] Bike => CreatePaletteFrom(TestImages.Png.Bike);
+        public static Rgb24[] Rgb48Bpp => CreatePaletteFrom(TestImages.Png.Rgb48Bpp);
+        public static Rgb24[] CalliphoraPartial => CreatePaletteFrom(TestImages.Png.CalliphoraPartial);
+        public static Rgb24[] CalliphoraPartialGrayscale => CreatePaletteFrom(TestImages.Png.CalliphoraPartialGrayscale);
+
+        private static Rgb24[] CreatePaletteFrom(string imgPath)
+        {
+            using var img = Image.Load<Rgb24>(TestFile.Create(imgPath).Bytes);
+
+            using IFrameQuantizer<Rgb24> q = new OctreeQuantizer().CreateFrameQuantizer<Rgb24>(Configuration.Default);
+            ReadOnlySpan<Rgb24> palette = q.BuildPalette(img.Frames.RootFrame, img.Bounds());
+            return palette.ToArray();
+        }
 
         struct BitInfo
         {
@@ -47,9 +125,9 @@ namespace SixLabors.ImageSharp.Tests.Quantization.PaletteLookup
 
         [Theory]
         [MemberData(nameof(Data))]
-        public void TestCollisions(int rbBits, int gBits, string paletteName, Color[] palette)
+        public void TestCollisions(int rbBits, int gBits, string paletteName)
         {
-            Rgb24[] rgb = palette.Select(p => p.ToRgb24()).ToArray();
+            var rgb = (Rgb24[])this.GetType().GetProperty(paletteName).GetValue(null);
 
             var iR = new BitInfo(rbBits);
             var iG = new BitInfo(gBits);

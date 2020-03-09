@@ -18,12 +18,12 @@ namespace SixLabors.ImageSharp.Memory
         /// Gets the number of elements per contiguous sub-buffer preceding the last buffer.
         /// The last buffer is allowed to be smaller.
         /// </summary>
-        public int BufferLength { get; }
+        int BufferLength { get; }
 
         /// <summary>
         /// Gets the aggregate number of elements in the group.
         /// </summary>
-        public long TotalLength { get; }
+        long TotalLength { get; }
 
         /// <summary>
         /// Gets a value indicating whether the group has been invalidated.

@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="options">The options.</param>
         /// <param name="image">The image.</param>
-        public static QuantizedFrame<TPixel> CreateQuantizedFrame<TPixel>(
+        public static IndexedImageFrame<TPixel> CreateQuantizedFrame<TPixel>(
             PngEncoderOptions options,
             Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public static byte CalculateBitDepth<TPixel>(
             PngEncoderOptions options,
             Image<TPixel> image,
-            QuantizedFrame<TPixel> quantizedFrame)
+            IndexedImageFrame<TPixel> quantizedFrame)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             byte bitDepth;

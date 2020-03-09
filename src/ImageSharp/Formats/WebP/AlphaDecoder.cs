@@ -2,45 +2,26 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
+using System.Collections.Generic;
 
-using SixLabors.ImageSharp.Formats.WebP.Filters;
 using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
-    internal class AlphaDecoder
+    /// <summary>
+    /// Implements decoding for lossy alpha chunks which may be compressed.
+    /// </summary>
+    internal class AlphaDecoder : IDisposable
     {
-        public int Width { get; }
-
-        public int Height { get; }
-
-        public WebPFilterBase Filter { get; }
-
-        public WebPFilterType FilterType { get; }
-
-        public int CropTop { get; }
-
-        public int LastRow { get; set; }
-
-        public Vp8LDecoder Vp8LDec { get; }
-
-        public byte[] Alpha { get; }
-
-        private int PreProcessing { get; }
-
-        private bool Compressed { get; }
-
-        private byte[] Data { get; }
-
-        private WebPLosslessDecoder LosslessDecoder { get; }
-
         /// <summary>
-        /// Although Alpha Channel requires only 1 byte per pixel,
-        /// sometimes Vp8LDecoder may need to allocate
-        /// 4 bytes per pixel internally during decode.
+        /// Initializes a new instance of the <see cref="AlphaDecoder"/> class.
         /// </summary>
-        public bool Use8BDecode { get; set; }
-
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="data">The (maybe compressed) alpha data.</param>
+        /// <param name="alphaChunkHeader">The first byte of the alpha image stream contains information on ow to decode the stream.</param>
+        /// <param name="memoryAllocator">Used for allocating memory during decoding.</param>
         public AlphaDecoder(int width, int height, byte[] data, byte alphaChunkHeader, MemoryAllocator memoryAllocator)
         {
             this.Width = width;
@@ -64,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPThrowHelper.ThrowImageFormatException($"unexpected alpha filter method {filter} found");
             }
 
-            this.FilterType = (WebPFilterType)filter;
+            this.AlphaFilterType = (WebPAlphaFilterType)filter;
 
             // These INFORMATIVE bits are used to signal the pre-processing that has been performed during compression.
             // The decoder can use this information to e.g. dither the values or smooth the gradients prior to display.
@@ -73,8 +54,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             this.Vp8LDec = new Vp8LDecoder(width, height, memoryAllocator);
 
-            // TODO: use memory allocator
-            this.Alpha = new byte[width * height];
+            this.Alpha = memoryAllocator.Allocate<byte>(width * height);
 
             if (this.Compressed)
             {
@@ -84,8 +64,74 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private int PrevLineOffset { get; set; }
+        /// <summary>
+        /// Gets the the width of the image.
+        /// </summary>
+        public int Width { get; }
 
+        /// <summary>
+        /// Gets the height of the image.
+        /// </summary>
+        public int Height { get; }
+
+        /// <summary>
+        /// Gets the used filter type.
+        /// </summary>
+        public WebPAlphaFilterType AlphaFilterType { get; }
+
+        /// <summary>
+        /// Gets or sets the last decoded row.
+        /// </summary>
+        public int LastRow { get; set; }
+
+        /// <summary>
+        /// Gets or sets the row before the last decoded row.
+        /// </summary>
+        public int PrevRow { get; set; }
+
+        /// <summary>
+        /// Gets information for decoding Vp8L compressed alpha data.
+        /// </summary>
+        public Vp8LDecoder Vp8LDec { get; }
+
+        /// <summary>
+        /// Gets the decoded alpha data.
+        /// </summary>
+        public IMemoryOwner<byte> Alpha { get; }
+
+        public int CropTop { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether pre-processing was used during compression.
+        /// 0: no pre-processing, 1: level reduction.
+        /// </summary>
+        private int PreProcessing { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the alpha channel uses compression.
+        /// </summary>
+        private bool Compressed { get; }
+
+        /// <summary>
+        /// Gets the (maybe compressed) alpha data.
+        /// </summary>
+        private byte[] Data { get; }
+
+        /// <summary>
+        /// Gets the Vp8L decoder which is used to de compress the alpha channel, if needed.
+        /// </summary>
+        private WebPLosslessDecoder LosslessDecoder { get; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the decoding needs 1 byte per pixel for decoding.
+        /// Although Alpha Channel requires only 1 byte per pixel, sometimes Vp8LDecoder may need to allocate
+        /// 4 bytes per pixel internally during decode.
+        /// </summary>
+        public bool Use8BDecode { get; set; }
+
+        /// <summary>
+        /// Decodes and filters the maybe compressed alpha data.
+        /// </summary>
         public void Decode()
         {
             if (this.Compressed is false)
@@ -95,26 +141,27 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     WebPThrowHelper.ThrowImageFormatException("not enough data in the ALPH chunk");
                 }
 
-                if (this.FilterType == WebPFilterType.None)
+                Span<byte> alphaSpan = this.Alpha.Memory.Span;
+                if (this.AlphaFilterType == WebPAlphaFilterType.None)
                 {
-                    this.Data.AsSpan(0, this.Width * this.Height).CopyTo(this.Alpha);
+                    this.Data.AsSpan(0, this.Width * this.Height).CopyTo(alphaSpan);
                     return;
                 }
 
                 Span<byte> deltas = this.Data.AsSpan();
-                Span<byte> dst = this.Alpha.AsSpan();
+                Span<byte> dst = alphaSpan;
                 Span<byte> prev = null;
                 for (int y = 0; y < this.Height; ++y)
                 {
-                    switch (this.FilterType)
+                    switch (this.AlphaFilterType)
                     {
-                        case WebPFilterType.Horizontal:
+                        case WebPAlphaFilterType.Horizontal:
                             HorizontalUnfilter(prev, deltas, dst, this.Width);
                             break;
-                        case WebPFilterType.Vertical:
+                        case WebPAlphaFilterType.Vertical:
                             VerticalUnfilter(prev, deltas, dst, this.Width);
                             break;
-                        case WebPFilterType.Gradient:
+                        case WebPAlphaFilterType.Gradient:
                             GradientUnfilter(prev, deltas, dst, this.Width);
                             break;
                     }
@@ -128,6 +175,44 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 this.LosslessDecoder.DecodeAlphaData(this);
             }
+        }
+
+        /// <summary>
+        /// Applies filtering to a set of rows.
+        /// </summary>
+        /// <param name="firstRow">The first row index to start filtering.</param>
+        /// <param name="lastRow">The last row index for filtering.</param>
+        /// <param name="dst">The destination to store the filtered data.</param>
+        /// <param name="stride">The stride to use.</param>
+        public void AlphaApplyFilter(int firstRow, int lastRow, Span<byte> dst, int stride)
+        {
+            if (this.AlphaFilterType is WebPAlphaFilterType.None)
+            {
+                return;
+            }
+
+            Span<byte> alphaSpan = this.Alpha.Memory.Span;
+            Span<byte> prev = this.PrevRow == 0 ? null : alphaSpan.Slice(this.Width * this.PrevRow);
+            for (int y = firstRow; y < lastRow; ++y)
+            {
+                switch (this.AlphaFilterType)
+                {
+                    case WebPAlphaFilterType.Horizontal:
+                        HorizontalUnfilter(prev, dst, dst, this.Width);
+                        break;
+                    case WebPAlphaFilterType.Vertical:
+                        VerticalUnfilter(prev, dst, dst, this.Width);
+                        break;
+                    case WebPAlphaFilterType.Gradient:
+                        GradientUnfilter(prev, dst, dst, this.Width);
+                        break;
+                }
+
+                prev = dst;
+                dst = dst.Slice(stride);
+            }
+
+            this.PrevRow = lastRow - 1;
         }
 
         private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
@@ -177,42 +262,48 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        private static bool Is8bOptimizable(Vp8LMetadata hdr)
+        {
+            if (hdr.ColorCacheSize > 0)
+            {
+                return false;
+            }
+
+            // When the Huffman tree contains only one symbol, we can skip the
+            // call to ReadSymbol() for red/blue/alpha channels.
+            for (int i = 0; i < hdr.NumHTreeGroups; ++i)
+            {
+                List<HuffmanCode[]> htrees = hdr.HTreeGroups[i].HTrees;
+                if (htrees[HuffIndex.Red][0].Value > 0)
+                {
+                    return false;
+                }
+
+                if (htrees[HuffIndex.Blue][0].Value > 0)
+                {
+                    return false;
+                }
+
+                if (htrees[HuffIndex.Alpha][0].Value > 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private static int GradientPredictor(byte a, byte b, byte c)
         {
             int g = a + b - c;
             return ((g & ~0xff) is 0) ? g : (g < 0) ? 0 : 255;  // clip to 8bit
         }
 
-        // Taken from vp8l_dec.c AlphaApplyFilter
-        public void AlphaApplyFilter(
-            int firstRow,
-            int lastRow,
-            Span<byte> prevLine,
-            Span<byte> output,
-            int outputOffset,
-            int stride)
+        /// <inheritdoc/>
+        public void Dispose()
         {
-            if (this.Filter is WebPFilterNone)
-            {
-                return;
-            }
-
-            int prevLineOffset = this.PrevLineOffset;
-
-            for (int y = firstRow; y < lastRow; y++)
-            {
-                this.Filter
-                    .Unfilter(
-                        prevLine,
-                        prevLineOffset,
-                        output,
-                        outputOffset,
-                        output,
-                        outputOffset,
-                        stride);
-                prevLineOffset = outputOffset;
-                outputOffset += stride;
-            }
+            this.Vp8LDec?.Dispose();
+            this.Alpha?.Dispose();
         }
     }
 }

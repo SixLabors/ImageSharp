@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Formats.WebP.Filters;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.Memory;
@@ -23,6 +22,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </remarks>
     internal sealed class WebPLosslessDecoder
     {
+        /// <summary>
+        /// A bit reader for reading lossless webp streams.
+        /// </summary>
         private readonly Vp8LBitReader bitReader;
 
         private static readonly int BitsSpecialMarker = 0x100;
@@ -751,12 +753,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     int dist = this.PlaneCodeToDistance(width, distCode);
                     if (pos >= dist && end - pos >= length)
                     {
-                        //CopyBlock8b(data + pos, dist, length);
+                        data.Slice(pos - dist, length).CopyTo(data.Slice(pos));
                     }
                     else
                     {
-                        // TODO: error?
-                        break;
+                        WebPThrowHelper.ThrowImageFormatException("error while decoding alpha data");
                     }
 
                     pos += length;
@@ -792,14 +793,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             // For vertical and gradient filtering, we need to decode the part above the
             // cropTop row, in order to have the correct spatial predictors.
-            int topRow = (dec.FilterType is WebPFilterType.None || dec.FilterType is WebPFilterType.Horizontal)
+            int topRow = (dec.AlphaFilterType is WebPAlphaFilterType.None || dec.AlphaFilterType is WebPAlphaFilterType.Horizontal)
                              ? dec.CropTop
                              : dec.LastRow;
             int firstRow = (dec.LastRow < topRow) ? topRow : dec.LastRow;
             if (lastRow > firstRow)
             {
                 // Special method for paletted alpha data. We only process the cropped area.
-                Span<byte> output = dec.Alpha.AsSpan();
+                Span<byte> output = dec.Alpha.Memory.Span;
                 Span<uint> pixelData = dec.Vp8LDec.Pixels.Memory.Span;
                 Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
                 Span<byte> dst = output.Slice(dec.Width * firstRow);
@@ -808,7 +809,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // TODO: check if any and the correct transform is present
                 Vp8LTransform transform = dec.Vp8LDec.Transforms[0];
                 this.ColorIndexInverseTransformAlpha(transform, firstRow, lastRow, input, dst);
-                //dec.AlphaApplyFilter(firstRow, lastRow, dst, width);
+                dec.AlphaApplyFilter(firstRow, lastRow, dst, dec.Width);
             }
 
             dec.LastRow = lastRow;
@@ -865,37 +866,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     offset++;
                 }
             }
-        }
-
-        private static bool Is8bOptimizable(Vp8LMetadata hdr)
-        {
-            if (hdr.ColorCacheSize > 0)
-            {
-                return false;
-            }
-
-            // When the Huffman tree contains only one symbol, we can skip the
-            // call to ReadSymbol() for red/blue/alpha channels.
-            for (int i = 0; i < hdr.NumHTreeGroups; ++i)
-            {
-                List<HuffmanCode[]> htrees = hdr.HTreeGroups[i].HTrees;
-                if (htrees[HuffIndex.Red][0].Value > 0)
-                {
-                    return false;
-                }
-
-                if (htrees[HuffIndex.Blue][0].Value > 0)
-                {
-                    return false;
-                }
-
-                if (htrees[HuffIndex.Alpha][0].Value > 0)
-                {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         private void UpdateDecoder(Vp8LDecoder decoder, int width, int height)

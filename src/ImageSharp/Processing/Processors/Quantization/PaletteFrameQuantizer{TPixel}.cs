@@ -15,7 +15,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     internal struct PaletteFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly ReadOnlyMemory<TPixel> palette;
         private readonly EuclideanPixelMap<TPixel> pixelMap;
 
         /// <summary>
@@ -23,18 +22,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="options">The quantizer options defining quantization rules.</param>
-        /// <param name="colors">A <see cref="ReadOnlyMemory{TPixel}"/> containing all colors in the palette.</param>
+        /// <param name="pixelMap">The pixel map for looking up color matches from a predefined palette.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public PaletteFrameQuantizer(Configuration configuration, QuantizerOptions options, ReadOnlyMemory<TPixel> colors)
+        public PaletteFrameQuantizer(
+            Configuration configuration,
+            QuantizerOptions options,
+            EuclideanPixelMap<TPixel> pixelMap)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(options, nameof(options));
 
             this.Configuration = configuration;
             this.Options = options;
-
-            this.palette = colors;
-            this.pixelMap = new EuclideanPixelMap<TPixel>(colors);
+            this.pixelMap = pixelMap;
         }
 
         /// <inheritdoc/>
@@ -44,18 +44,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public QuantizerOptions Options { get; }
 
         /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => FrameQuantizerExtensions.QuantizeFrame(ref this, source, bounds);
+        public ReadOnlyMemory<TPixel> Palette => this.pixelMap.Palette;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
-            => this.palette;
+        public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => FrameQuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+        public void BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
+        {
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
             => (byte)this.pixelMap.GetClosestColor(color, out match);
 
         /// <inheritdoc/>

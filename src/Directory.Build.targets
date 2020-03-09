@@ -55,14 +55,6 @@
   <ItemGroup>
     <!--Shared config files that have to exist at root level.-->
     <ConfigFilesToCopy Include="..\..\shared-infrastructure\.editorconfig;..\..\shared-infrastructure\.gitattributes" />
-    <!--
-    Copy submodule files generated via T4 templates.
-    We cannot include the generated files in the submodule as any solution wide T4 regeneration
-    could potentially cause the module to be marked dirty which is a headache.
-    This, instead, combined with using 'Compile Update' over 'Include' allows us to copy the file
-    across from the submodule and place it directly in the src folder for compilation.    
-    -->
-    <SubmoduleSourceFilesToCopy Include="..\..\shared-infrastructure\src\SharedInfrastructure\Guard.Numeric.cs" />
   </ItemGroup>
 
   <!--Ensures our config files are up to date.-->
@@ -70,11 +62,6 @@
     <Copy SourceFiles="@(ConfigFilesToCopy)"
           SkipUnchangedFiles = "true"
           DestinationFolder="..\..\" />
-    
-    <Copy SourceFiles="@(SubmoduleSourceFilesToCopy)"
-          DestinationFolder="..\..\src\ImageSharp\Common\Helpers"
-          SkipUnchangedFiles="true"
-          ContinueOnError="true" />
   </Target>
   
   <!-- Allows regenerating T4-generated files at build time using MsBuild -->

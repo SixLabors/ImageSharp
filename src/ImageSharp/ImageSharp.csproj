@@ -37,17 +37,7 @@
     <PackageReference Include="System.ValueTuple" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!--
-    Note: Generating all templates via Visual Studio causes a duplicate entry that requires deleting
-    post operation. MSBuild target leaves the csproj file intact.
-    -->
-    <Compile Update="..\..\shared-infrastructure\src\SharedInfrastructure\Guard.Numeric.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Guard.Numeric.tt</DependentUpon>
-    </Compile>
-    
+  <ItemGroup>  
     <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -211,10 +201,6 @@
     </None>
     <None Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.tt">
       <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
-      <Generator>TextTemplatingFileGenerator</Generator>
-    </None>
-    <None Update="..\..\shared-infrastructure\src\SharedInfrastructure\Guard.Numeric.tt">
-      <LastGenOutput>Guard.Numeric.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
   </ItemGroup>

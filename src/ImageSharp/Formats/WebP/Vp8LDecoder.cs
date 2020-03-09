@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         public IMemoryOwner<uint> Pixels { get; }
 
-        ///<inheritdoc/>
+        /// <inheritdoc/>
         public void Dispose()
         {
             this.Pixels.Dispose();

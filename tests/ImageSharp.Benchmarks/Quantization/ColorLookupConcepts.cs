@@ -23,6 +23,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
         private WuMap wuMap;
         private HeapKdTreePaletteLookup<Rgba32> heapKdMap;
         private KdTreePixelMap<Rgba32> kdMap;
+        private LinearBoxesMap linearBoxes;
 
         private Rgba32 color1;
         private Rgba32 color2;
@@ -41,6 +42,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
             this.concurrentMap = ConcurrentHashMap.Create();
             this.basicMap = BasicMap.Create();
             this.wuMap = WuMap.Create();
+            this.linearBoxes = LinearBoxesMap.Create();
 
             Rgba32[] testPalette = CreateTestPalette();
             this.color3 = testPalette[161];
@@ -106,6 +108,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
         }
 
         [Benchmark]
+        public int BasicBitShift_NoAlpha()
+        {
+            return this.basicMap.MatchNoAlpha(this.color1) +
+                   this.basicMap.MatchNoAlpha(this.color2) +
+                   this.basicMap.MatchNoAlpha(this.color3);
+        }
+
+        [Benchmark]
         public int Octree()
         {
             return this.octree.GetQuantizedColor(this.color1) +
@@ -114,11 +124,19 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
         }
 
         [Benchmark]
-        public int UseWuMap()
+        public int Wu()
         {
             return this.wuMap.Match(this.color1) +
                    this.wuMap.Match(this.color2) +
                    this.wuMap.Match(this.color3);
+        }
+
+        [Benchmark]
+        public int LinearBoxes()
+        {
+            return this.linearBoxes.Match(this.color1) +
+                   this.linearBoxes.Match(this.color2) +
+                   this.linearBoxes.Match(this.color3);
         }
 
         struct LinearRgba32Map
@@ -194,7 +212,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
             }
         }
 
-        private OctreeFrameQuantizer<Rgba32> CreateOctreeFrameQuantizer()
+        private static OctreeFrameQuantizer<Rgba32> CreateOctreeFrameQuantizer()
         {
             string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.Rgb48Bpp);
             using var img = Image.Load<Rgba32>(path);
@@ -385,6 +403,20 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
 
                 return this.table[idx];
             }
+
+            public byte MatchNoAlpha(Rgba32 rgba)
+            {
+                int r = ((rgba.R >> 3) + 4) & 31;
+                int g = ((rgba.G >> 2) + 2) & 63;
+                int b = ((rgba.B >> 3) + 4) & 31;
+
+                int idx =
+                    (b << (Gbits + Rbits)) +
+                    (g << Rbits) +
+                    r;
+
+                return this.table[idx];
+            }
         }
 
         struct WuMap
@@ -425,6 +457,158 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
                        + (g << IndexBits)
                        + ((r + g + b) << IndexAlphaBits)
                        + r + g + b + a;
+            }
+        }
+
+        struct LinearBoxesMap
+        {
+            private const int Rbits = 5;
+            private const int Gbits = 5;
+            private const int Bbits = 5;
+
+            private const int RBoxes = 1 << Rbits;
+            private const int GBoxes = 1 << Gbits;
+            private const int BBoxes = 1 << Bbits;
+
+            private const int TotalBoxes = RBoxes * GBoxes * BBoxes;
+
+            private Box[] map;
+
+            public static LinearBoxesMap Create()
+            {
+                LinearBoxesMap result = default;
+                result.map = new Box[TotalBoxes];
+
+                Rgba32[] palette = CreateTestPalette();
+
+                for (int i = 0; i < palette.Length; i++)
+                {
+                    result.Add(palette[i], i);
+                }
+
+                return result;
+            }
+
+            public byte Match(Rgba32 c)
+            {
+                int r = c.R >> Rbits;
+                int g = c.G >> Gbits;
+                int b = c.B >> Bbits;
+
+                int idx =
+                    (b << (Gbits + Rbits)) +
+                    (g << Rbits) +
+                    r;
+                ref Box box = ref this.map[idx];
+
+                return (byte)(box.Match(c) >> 1);
+            }
+
+            private void Add(Rgba32 c, int paletteIndex)
+            {
+                int r = c.R >> Rbits;
+                int g = c.G >> Gbits;
+                int b = c.B >> Bbits;
+
+                int idx =
+                    (b << (Gbits + Rbits)) +
+                    (g << Rbits) +
+                    r;
+                ref Box box = ref this.map[idx];
+                byte bIdx = (byte)(paletteIndex << 1);
+                box.Add(c, bIdx);
+            }
+
+            struct Box
+            {
+                public Rgba32 Color0;
+                public short Index0;
+
+                public Rgba32 Color1;
+                public short Index1;
+
+                public Rgba32 Color2;
+                public short Index2;
+
+                public Rgba32 Color3;
+                public short Index3;
+
+                public void Add(Rgba32 c, byte index)
+                {
+                    if (this.Index0 == 0)
+                    {
+                        this.Color0 = c;
+                        this.Index0 = index;
+                        return;
+                    }
+
+                    if (this.Index1 == 0)
+                    {
+                        this.Color1 = c;
+                        this.Index1 = index;
+                        return;
+                    }
+
+                    if (this.Index2 == 0)
+                    {
+                        this.Color2 = c;
+                        this.Index2 = index;
+                        return;
+                    }
+
+                    if (this.Index3 == 0)
+                    {
+                        this.Color3 = c;
+                        this.Index3 = index;
+                        return;
+                    }
+                }
+
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public short Match(Rgba32 c)
+                {
+                    if (this.Index0 == 0)
+                    {
+                        return 0;
+                    }
+
+                    if (this.Color0.Equals(c))
+                    {
+                        return this.Index0;
+                    }
+
+                    if (this.Index1 == 0)
+                    {
+                        return 0;
+                    }
+
+                    if (this.Color1.Equals(c))
+                    {
+                        return this.Index1;
+                    }
+
+                    if (this.Index2 == 0)
+                    {
+                        return 0;
+                    }
+
+                    if (this.Color2.Equals(c))
+                    {
+                        return this.Index2;
+                    }
+
+                    if (this.Index3 == 0)
+                    {
+                        return 0;
+                    }
+
+                    if (this.Color2.Equals(c))
+                    {
+                        return this.Index3;
+                    }
+
+                    return 0;
+                }
             }
         }
     }

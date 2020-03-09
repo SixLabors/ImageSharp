@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -13,10 +14,21 @@ namespace SixLabors.ImageSharp.Formats.WebP
 {
     internal sealed class WebPLossyDecoder
     {
+        /// <summary>
+        /// A bit reader for reading lossy webp streams.
+        /// </summary>
         private readonly Vp8BitReader bitReader;
 
+        /// <summary>
+        /// Used for allocating memory during processing operations.
+        /// </summary>
         private readonly MemoryAllocator memoryAllocator;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WebPLossyDecoder"/> class.
+        /// </summary>
+        /// <param name="bitReader">Bitreader to read from the stream.</param>
+        /// <param name="memoryAllocator">Used for allocating memory during processing operations.</param>
         public WebPLossyDecoder(Vp8BitReader bitReader, MemoryAllocator memoryAllocator)
         {
             this.memoryAllocator = memoryAllocator;
@@ -77,11 +89,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> pixels, byte[] alpha = null)
+        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> pixels, IMemoryOwner<byte> alpha = null)
             where TPixel : struct, IPixel<TPixel>
         {
             TPixel color = default;
-            bool hasAlpha = alpha != null;
+            bool hasAlpha = false;
+            Span<byte> alphaSpan = null;
+            if (alpha != null)
+            {
+                hasAlpha = true;
+                alphaSpan = alpha.Memory.Span;
+            }
+            
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y);
@@ -96,7 +115,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     // TODO: use bulk conversion here.
                     if (hasAlpha)
                     {
-                        byte a = alpha[offset];
+                        byte a = alphaSpan[offset];
                         color.FromBgra32(new Bgra32(r, g, b, a));
                     }
                     else
@@ -778,26 +797,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 {
                     LossyUtils.TransformDcuv(src, dst);
                 }
-            }
-        }
-
-        private Vp8Profile DecodeProfile(int version)
-        {
-            switch (version)
-            {
-                case 0:
-                    return new Vp8Profile { ReconstructionFilter = ReconstructionFilter.Bicubic, LoopFilter = LoopFilter.Complex };
-                case 1:
-                    return new Vp8Profile { ReconstructionFilter = ReconstructionFilter.Bilinear, LoopFilter = LoopFilter.Simple };
-                case 2:
-                    return new Vp8Profile { ReconstructionFilter = ReconstructionFilter.Bilinear, LoopFilter = LoopFilter.None };
-                case 3:
-                    return new Vp8Profile { ReconstructionFilter = ReconstructionFilter.None, LoopFilter = LoopFilter.None };
-                default:
-                    // Reserved for future use in Spec.
-                    // https://tools.ietf.org/html/rfc6386#page-30
-                    WebPThrowHelper.ThrowNotSupportedException($"unsupported VP8 version {version} found");
-                    return new Vp8Profile();
             }
         }
 

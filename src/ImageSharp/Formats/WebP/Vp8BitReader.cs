@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private int bits;
 
         /// <summary>
-        /// Max packed-read position on buffer.
+        /// Max packed-read position of the buffer.
         /// </summary>
         private uint bufferMax;
 
@@ -54,6 +54,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="inputStream">The input stream to read from.</param>
         /// <param name="imageDataSize">The raw image data size in bytes.</param>
         /// <param name="memoryAllocator">Used for allocating memory during reading data from the stream.</param>
+        /// <param name="partitionLength">The partition length.</param>
         /// <param name="startPos">Start index in the data array. Defaults to 0.</param>
         public Vp8BitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator, uint partitionLength, int startPos = 0)
         {
@@ -63,6 +64,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.InitBitreader(partitionLength, startPos);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8BitReader"/> class.
+        /// </summary>
+        /// <param name="imageData">The raw encoded image data.</param>
+        /// <param name="partitionLength">The partition length.</param>
+        /// <param name="startPos">Start index in the data array. Defaults to 0.</param>
         public Vp8BitReader(byte[] imageData, uint partitionLength, int startPos = 0)
         {
             this.Data = imageData;

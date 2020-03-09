@@ -37,17 +37,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public int MbH { get; set; }
 
         /// <summary>
-        /// Rows to copy (in YUV format).
+        /// Gets or sets the luma component.
         /// </summary>
         public Span<byte> Y { get; set; }
 
         /// <summary>
-        /// Rows to copy (in YUV format).
+        /// Gets or sets the U chroma component.
         /// </summary>
         public Span<byte> U { get; set; }
 
         /// <summary>
-        /// Rows to copy (in YUV format).
+        /// Gets or sets the V chroma component.
         /// </summary>
         public Span<byte> V { get; set; }
 
@@ -76,10 +76,5 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public int ScaledWidth { get; set; }
 
         public int ScaledHeight { get; set; }
-
-        /// <summary>
-        /// User data
-        /// </summary>
-        private object Opaque { get; set; }
     }
 }

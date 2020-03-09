@@ -34,4 +34,6 @@
     <InternalsVisibleTo Include="SixLabors.ImageSharp.Tests" PublicKey="$(SixLaborsPublicKey)" />
   </ItemGroup>
 
+
+  
 </Project>

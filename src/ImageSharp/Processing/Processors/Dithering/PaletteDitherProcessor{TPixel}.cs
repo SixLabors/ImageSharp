@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -19,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
     {
         private readonly DitherProcessor ditherProcessor;
         private readonly IDither dither;
-        private IMemoryOwner<TPixel> paletteMemory;
+        private IMemoryOwner<TPixel> paletteOwner;
         private bool isDisposed;
 
         /// <summary>
@@ -35,13 +34,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             this.dither = definition.Dither;
 
             ReadOnlySpan<Color> sourcePalette = definition.Palette.Span;
-            this.paletteMemory = this.Configuration.MemoryAllocator.Allocate<TPixel>(sourcePalette.Length);
-            Color.ToPixel(this.Configuration, sourcePalette, this.paletteMemory.Memory.Span);
+            this.paletteOwner = this.Configuration.MemoryAllocator.Allocate<TPixel>(sourcePalette.Length);
+            Color.ToPixel(this.Configuration, sourcePalette, this.paletteOwner.Memory.Span);
 
             this.ditherProcessor = new DitherProcessor(
                 this.Configuration,
-                Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
-                this.paletteMemory.Memory,
+                this.paletteOwner.Memory,
                 definition.DitherScale);
         }
 
@@ -60,14 +58,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 return;
             }
 
+            this.isDisposed = true;
             if (disposing)
             {
-                this.paletteMemory?.Dispose();
+                this.paletteOwner.Dispose();
             }
 
-            this.paletteMemory = null;
-
-            this.isDisposed = true;
+            this.paletteOwner = null;
             base.Dispose(disposing);
         }
 
@@ -82,12 +79,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             [MethodImpl(InliningOptions.ShortMethod)]
             public DitherProcessor(
                 Configuration configuration,
-                Rectangle bounds,
                 ReadOnlyMemory<TPixel> palette,
                 float ditherScale)
             {
                 this.Configuration = configuration;
-                this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette, palette.Span.Length);
+                this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
                 this.Palette = palette;
                 this.DitherScale = ditherScale;
             }

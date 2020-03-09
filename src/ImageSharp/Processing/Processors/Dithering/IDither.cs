@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
             ref TFrameQuantizer quantizer,
             ImageFrame<TPixel> source,
-            QuantizedFrame<TPixel> destination,
+            IndexedImageFrame<TPixel> destination,
             Rectangle bounds)
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>;

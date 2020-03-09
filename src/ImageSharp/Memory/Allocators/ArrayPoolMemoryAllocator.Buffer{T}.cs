@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Memory
             /// <inheritdoc />
             public override Span<T> GetSpan()
             {
-                if (this.Data == null)
+                if (this.Data is null)
                 {
                     throw new ObjectDisposedException("ArrayPoolMemoryAllocator.Buffer<T>");
                 }

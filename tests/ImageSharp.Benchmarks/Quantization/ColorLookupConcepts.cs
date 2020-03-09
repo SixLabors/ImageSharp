@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -118,9 +118,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Quantization
         [Benchmark]
         public int Octree()
         {
-            return this.octree.GetQuantizedColor(this.color1) +
-                   this.octree.GetQuantizedColor(this.color2) +
-                   this.octree.GetQuantizedColor(this.color3);
+            return this.octree.GetQuantizedColor(this.color1, out Rgba32 _) +
+                   this.octree.GetQuantizedColor(this.color2, out _) +
+                   this.octree.GetQuantizedColor(this.color3, out _);
         }
 
         [Benchmark]

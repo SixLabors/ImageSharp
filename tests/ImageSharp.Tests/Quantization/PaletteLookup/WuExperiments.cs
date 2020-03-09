@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -91,9 +91,9 @@ namespace SixLabors.ImageSharp.Tests.Quantization.PaletteLookup
                 Dither = null,
                 MaxColors = maxColors
             });
-            ReadOnlySpan<TPixel> palette = octreeQuantizer.BuildPalette(image.Frames.RootFrame, image.Bounds());
 
-            map.BuildPalette(palette);
+            octreeQuantizer.BuildPalette(image.Frames.RootFrame, image.Bounds());
+            map.BuildPalette(octreeQuantizer.Palette.Span);
             QuantizeImage(image, map);
 
             image.DebugSave(provider, new
@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization.PaletteLookup
                 Dither = TestUtils.GetDither(ditherName),
             });
             q.BuildPalette(image.Frames.RootFrame, image.Bounds());
-            using QuantizedFrame<TPixel> qq = q.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
+            using IndexedImageFrame<TPixel> qq = q.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
             QuantizeImage(image, qq);
 
             image.DebugSave(provider, new
@@ -190,14 +190,14 @@ namespace SixLabors.ImageSharp.Tests.Quantization.PaletteLookup
             });
         }
 
-        private static void QuantizeImage<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> map)
+        private static void QuantizeImage<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> map)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             ReadOnlySpan<TPixel> palette = map.Palette.Span;
             for (int y = 0; y < image.Height; y++)
             {
                 Span<TPixel> imageRow = image.GetPixelRowSpan(y);
-                Span<byte> qRow = map.GetPixelRowSpan(y);
+                ReadOnlySpan<byte> qRow = map.GetPixelRowSpan(y);
                 for (int x = 0; x < imageRow.Length; x++)
                 {
                     imageRow[x] = palette[qRow[x]];

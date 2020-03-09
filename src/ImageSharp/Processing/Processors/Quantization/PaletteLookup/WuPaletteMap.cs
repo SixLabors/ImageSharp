@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization.PaletteLookup
             Span<TPixel> paletteSpan = this.palette.GetSpan();
             for (int k = 0; k < this.colors; k++)
             {
-                this.Mark(ref this.colorCube[k], (byte) k);
+                this.Mark(ref this.colorCube[k], (byte)k);
 
                 Moment moment = Volume(ref this.colorCube[k], momentsSpan);
 

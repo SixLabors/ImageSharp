@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.PixelFormats;
@@ -103,8 +103,8 @@ namespace SixLabors.ImageSharp.Tests.Quantization.PaletteLookup
             using var img = Image.Load<Rgb24>(TestFile.Create(imgPath).Bytes);
 
             using IFrameQuantizer<Rgb24> q = new OctreeQuantizer().CreateFrameQuantizer<Rgb24>(Configuration.Default);
-            ReadOnlySpan<Rgb24> palette = q.BuildPalette(img.Frames.RootFrame, img.Bounds());
-            return palette.ToArray();
+            q.BuildPalette(img.Frames.RootFrame, img.Bounds());
+            return q.Palette.ToArray();
         }
 
         struct BitInfo

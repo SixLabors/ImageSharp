@@ -95,24 +95,92 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     WebPThrowHelper.ThrowImageFormatException("not enough data in the ALPH chunk");
                 }
 
-                switch (this.FilterType)
+                if (this.FilterType == WebPFilterType.None)
                 {
-                    case WebPFilterType.None:
-                        this.Data.AsSpan(0, this.Width * this.Height).CopyTo(this.Alpha);
-                        break;
-                    case WebPFilterType.Horizontal:
+                    this.Data.AsSpan(0, this.Width * this.Height).CopyTo(this.Alpha);
+                    return;
+                }
 
-                        break;
-                    case WebPFilterType.Vertical:
-                        break;
-                    case WebPFilterType.Gradient:
-                        break;
+                Span<byte> deltas = this.Data.AsSpan();
+                Span<byte> dst = this.Alpha.AsSpan();
+                Span<byte> prev = null;
+                for (int y = 0; y < this.Height; ++y)
+                {
+                    switch (this.FilterType)
+                    {
+                        case WebPFilterType.Horizontal:
+                            HorizontalUnfilter(prev, deltas, dst, this.Width);
+                            break;
+                        case WebPFilterType.Vertical:
+                            VerticalUnfilter(prev, deltas, dst, this.Width);
+                            break;
+                        case WebPFilterType.Gradient:
+                            GradientUnfilter(prev, deltas, dst, this.Width);
+                            break;
+                    }
+
+                    prev = dst;
+                    deltas = deltas.Slice(this.Width);
+                    dst = dst.Slice(this.Width);
                 }
             }
             else
             {
                 this.LosslessDecoder.DecodeAlphaData(this);
             }
+        }
+
+        private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
+        {
+            byte pred = (byte)(prev == null ? 0 : prev[0]);
+
+            for (int i = 0; i < width; ++i)
+            {
+                dst[i] = (byte)(pred + input[i]);
+                pred = dst[i];
+            }
+        }
+
+        private static void VerticalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
+        {
+            if (prev == null)
+            {
+                HorizontalUnfilter(null, input, dst, width);
+            }
+            else
+            {
+                for (int i = 0; i < width; ++i)
+                {
+                    dst[i] = (byte)(prev[i] + input[i]);
+                }
+            }
+        }
+
+        private static void GradientUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
+        {
+            if (prev == null)
+            {
+                HorizontalUnfilter(null, input, dst, width);
+            }
+            else
+            {
+                byte top = prev[0];
+                byte topLeft = top;
+                byte left = top;
+                for (int i = 0; i < width; ++i)
+                {
+                    top = prev[i];
+                    left = (byte)(input[i] + GradientPredictor(left, top, topLeft));
+                    topLeft = top;
+                    dst[i] = left;
+                }
+            }
+        }
+
+        private static int GradientPredictor(byte a, byte b, byte c)
+        {
+            int g = a + b - c;
+            return ((g & ~0xff) is 0) ? g : (g < 0) ? 0 : 255;  // clip to 8bit
         }
 
         // Taken from vp8l_dec.c AlphaApplyFilter

@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
@@ -12,24 +11,38 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     internal static class ProfileResolver
     {
         /// <summary>
-        /// Describes the JFIF specific markers.
+        /// Gets the JFIF specific markers.
         /// </summary>
-        public static readonly byte[] JFifMarker = Encoding.ASCII.GetBytes("JFIF\0");
+        public static ReadOnlySpan<byte> JFifMarker => new[]
+        {
+            (byte)'J', (byte)'F', (byte)'I', (byte)'F', (byte)'\0'
+        };
 
         /// <summary>
-        /// Describes the ICC specific markers.
+        /// Gets the ICC specific markers.
         /// </summary>
-        public static readonly byte[] IccMarker = Encoding.ASCII.GetBytes("ICC_PROFILE\0");
+        public static ReadOnlySpan<byte> IccMarker => new[]
+        {
+            (byte)'I', (byte)'C', (byte)'C', (byte)'_',
+            (byte)'P', (byte)'R', (byte)'O', (byte)'F',
+            (byte)'I', (byte)'L', (byte)'E', (byte)'\0'
+        };
 
         /// <summary>
-        /// Describes the EXIF specific markers.
+        /// Gets the EXIF specific markers.
         /// </summary>
-        public static readonly byte[] ExifMarker = Encoding.ASCII.GetBytes("Exif\0\0");
+        public static ReadOnlySpan<byte> ExifMarker => new[]
+        {
+            (byte)'E', (byte)'x', (byte)'i', (byte)'f', (byte)'\0', (byte)'\0'
+        };
 
         /// <summary>
-        /// Describes Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>.
+        /// Gets the Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>.
         /// </summary>
-        public static readonly byte[] AdobeMarker = Encoding.ASCII.GetBytes("Adobe");
+        public static ReadOnlySpan<byte> AdobeMarker => new[]
+        {
+            (byte)'A', (byte)'d', (byte)'o', (byte)'b', (byte)'e'
+        };
 
         /// <summary>
         /// Returns a value indicating whether the passed bytes are a match to the profile identifier.

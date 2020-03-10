@@ -79,9 +79,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             if (info.Features?.Alpha is true)
             {
-                var alphaDecoder = new AlphaDecoder(width, height, info.Features.AlphaData, info.Features.AlphaChunkHeader, this.memoryAllocator);
-                alphaDecoder.Decode();
-                this.DecodePixelValues(width, height, decoder.Pixels, pixels, alphaDecoder.Alpha);
+                using (var alphaDecoder = new AlphaDecoder(width, height, info.Features.AlphaData, info.Features.AlphaChunkHeader, this.memoryAllocator))
+                {
+                    alphaDecoder.Decode();
+                    this.DecodePixelValues(width, height, decoder.Pixels, pixels, alphaDecoder.Alpha);
+                }
             }
             else
             {
@@ -100,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 hasAlpha = true;
                 alphaSpan = alpha.Memory.Span;
             }
-            
+
             for (int y = 0; y < height; y++)
             {
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y);
@@ -826,7 +828,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Store filter info.
             if (dec.Filter != LoopFilter.None)
             {
-                dec.FilterInfo[dec.MbX] = dec.FilterStrength[blockData.Segment, blockData.IsI4x4 ? 1 : 0];
+                Vp8FilterInfo precomputedFilterInfo = dec.FilterStrength[blockData.Segment, blockData.IsI4x4 ? 1 : 0];
+                dec.FilterInfo[dec.MbX] = (Vp8FilterInfo)precomputedFilterInfo.DeepClone();
                 dec.FilterInfo[dec.MbX].UseInnerFiltering |= (byte)(skip is 0 ? 1 : 0);
             }
         }

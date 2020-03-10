@@ -57,12 +57,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public void Dispose()
         {
             this.Pixels.Dispose();
-            foreach (Vp8LTransform transform in this.Transforms)
-            {
-                transform.Data?.Dispose();
-            }
-
             this.Metadata?.HuffmanImage?.Dispose();
+
+            if (this.Transforms != null)
+            {
+                foreach (Vp8LTransform transform in this.Transforms)
+                {
+                    transform.Data?.Dispose();
+                }
+            }
         }
     }
 }

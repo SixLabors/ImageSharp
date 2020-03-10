@@ -10,6 +10,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
     {
         private Vp8MacroBlock leftMacroBlock;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8Decoder"/> class.
+        /// </summary>
+        /// <param name="frameHeader">The frame header.</param>
+        /// <param name="pictureHeader">The picture header.</param>
+        /// <param name="segmentHeader">The segment header.</param>
+        /// <param name="probabilities">The probabilities.</param>
         public Vp8Decoder(Vp8FrameHeader frameHeader, Vp8PictureHeader pictureHeader, Vp8SegmentHeader segmentHeader, Vp8Proba probabilities)
         {
             this.FilterHeader = new Vp8FilterHeader();
@@ -18,7 +25,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.SegmentHeader = segmentHeader;
             this.Probabilities = probabilities;
             this.IntraL = new byte[4];
-            this.YuvBuffer = new byte[2000]; // new byte[(WebPConstants.Bps * 17) + (WebPConstants.Bps * 9)];
             this.MbWidth = (int)((this.PictureHeader.Width + 15) >> 4);
             this.MbHeight = (int)((this.PictureHeader.Height + 15) >> 4);
             this.CacheYStride = 16 * this.MbWidth;
@@ -52,15 +58,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint height = pictureHeader.Height;
 
             // TODO: use memory allocator
-            int extraRows = WebPConstants.FilterExtraRows[2]; // TODO: assuming worst case: complex filter
+            int extraRows = WebPConstants.FilterExtraRows[(int)LoopFilter.Complex]; // assuming worst case: complex filter
             int extraY = extraRows * this.CacheYStride;
             int extraUv = (extraRows / 2) * this.CacheUvStride;
-            this.CacheY = new byte[(width * height) + extraY + 256]; // TODO: this is way too much mem, figure out what the min req is.
-            this.CacheU = new byte[(width * height) + extraUv + 256];
-            this.CacheV = new byte[(width * height) + extraUv + 256];
-            this.TmpYBuffer = new byte[(width * height) + extraY]; // TODO: figure out min buffer length
-            this.TmpUBuffer = new byte[(width * height) + extraUv]; // TODO: figure out min buffer length
-            this.TmpVBuffer = new byte[(width * height) + extraUv]; // TODO: figure out min buffer length
+            this.YuvBuffer = new byte[(WebPConstants.Bps * 17) + (WebPConstants.Bps * 9) + extraY];
+            this.CacheY = new byte[(16 * this.CacheYStride) + extraY];
+            this.CacheU = new byte[(16 * this.CacheUvStride) + extraUv];
+            this.CacheV = new byte[(16 * this.CacheUvStride) + extraUv];
+            this.TmpYBuffer = new byte[width];
+            this.TmpUBuffer = new byte[width];
+            this.TmpVBuffer = new byte[width];
             this.Pixels = new byte[width * height * 4];
 
             for (int i = 0; i < this.YuvBuffer.Length; i++)
@@ -82,12 +89,24 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.Vp8BitReaders = new Vp8BitReader[WebPConstants.MaxNumPartitions];
         }
 
+        /// <summary>
+        /// Gets the frame header.
+        /// </summary>
         public Vp8FrameHeader FrameHeader { get; }
 
+        /// <summary>
+        /// Gets the picture header.
+        /// </summary>
         public Vp8PictureHeader PictureHeader { get; }
 
+        /// <summary>
+        /// Gets the filter header.
+        /// </summary>
         public Vp8FilterHeader FilterHeader { get; }
 
+        /// <summary>
+        /// Gets the segment header.
+        /// </summary>
         public Vp8SegmentHeader SegmentHeader { get; }
 
         /// <summary>
@@ -110,8 +129,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         public bool UseSkipProbability { get; set; }
 
+        /// <summary>
+        /// Gets or sets the skip probability.
+        /// </summary>
         public byte SkipProbability { get; set; }
 
+        /// <summary>
+        /// Gets or sets the Probabilities.
+        /// </summary>
         public Vp8Proba Probabilities { get; set; }
 
         /// <summary>
@@ -174,8 +199,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         public Vp8MacroBlock[] MacroBlockInfo { get;  }
 
+        /// <summary>
+        /// Gets or sets the loop filter used. The purpose of the loop filter is to eliminate (or at least reduce)
+        /// visually objectionable artifacts.
+        /// </summary>
         public LoopFilter Filter { get; set; }
 
+        /// <summary>
+        /// Gets or sets the filter strengths.
+        /// </summary>
         public Vp8FilterInfo[,] FilterStrength { get; }
 
         public byte[] YuvBuffer { get; }

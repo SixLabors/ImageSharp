@@ -27,12 +27,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public int MbY { get; set; }
 
         /// <summary>
-        /// Gets or sets the macroblock width.
+        /// Gets or sets number of columns in the sample.
         /// </summary>
         public int MbW { get; set; }
 
         /// <summary>
-        /// Gets or sets the macroblock height.
+        /// Gets or sets number of rows in the sample.
         /// </summary>
         public int MbH { get; set; }
 

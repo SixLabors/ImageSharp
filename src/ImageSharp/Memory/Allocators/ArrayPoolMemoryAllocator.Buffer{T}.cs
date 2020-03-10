@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Memory
 
             protected override object GetPinnableObject() => this.Data;
 
-            [MethodImpl(MethodImplOptions.NoInlining)]
+            [MethodImpl(InliningOptions.ColdPath)]
             private static void ThrowObjectDisposedException()
             {
                 throw new ObjectDisposedException("ArrayPoolMemoryAllocator.Buffer<T>");

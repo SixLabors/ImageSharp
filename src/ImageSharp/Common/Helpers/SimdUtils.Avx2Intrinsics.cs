@@ -48,6 +48,10 @@ namespace SixLabors.ImageSharp
             /// <summary>
             /// Implementation of <see cref="SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows"/>, which is faster on new .NET runtime.
             /// </summary>
+            /// <remarks>
+            /// Implementation is based on MagicScaler code:
+            /// https://github.com/saucecontrol/PhotoSauce/blob/a9bd6e5162d2160419f0cf743fd4f536c079170b/src/MagicScaler/Magic/Processors/ConvertersFloat.cs#L453-L477
+            /// </remarks>
             internal static void BulkConvertNormalizedFloatToByteClampOverflows(
                 ReadOnlySpan<float> source,
                 Span<byte> dest)

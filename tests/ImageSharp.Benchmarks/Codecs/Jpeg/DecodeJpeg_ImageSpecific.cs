@@ -44,6 +44,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
+        #pragma warning disable SA1115
         [Params(
             TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
             TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,

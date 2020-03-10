@@ -21,7 +21,7 @@ using SixLabors.ImageSharp.PixelFormats;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
-    [Config(typeof(Config.ShortCore31))]
+    [Config(typeof(Config.ShortClr))]
     public abstract class FromVector4<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {

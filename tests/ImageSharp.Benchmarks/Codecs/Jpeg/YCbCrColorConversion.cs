@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
-    [Config(typeof(Config.ShortCore31))]
+    [Config(typeof(Config.ShortClr))]
     public class YCbCrColorConversion
     {
         private Buffer2D<float>[] input;

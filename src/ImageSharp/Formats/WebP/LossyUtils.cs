@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void DC16(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC16(Span<byte> dst, Span<byte> yuv, int offset)
         {
             int dc = 16;
             for (int j = 0; j < 16; ++j)
@@ -28,15 +28,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put16(dc >> 5, dst);
         }
 
-        public static void TM16(Span<byte> dst, byte[] yuv, int offset)
+        public static void TM16(Span<byte> dst, Span<byte> yuv, int offset)
         {
             TrueMotion(dst, yuv, offset, 16);
         }
 
-        public static void VE16(Span<byte> dst, byte[] yuv, int offset)
+        public static void VE16(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // vertical
-            Span<byte> src = yuv.AsSpan(offset - WebPConstants.Bps, 16);
+            Span<byte> src = yuv.Slice(offset - WebPConstants.Bps, 16);
             for (int j = 0; j < 16; ++j)
             {
                 // memcpy(dst + j * BPS, dst - BPS, 16);
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void HE16(Span<byte> dst, byte[] yuv, int offset)
+        public static void HE16(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // horizontal
             for (int j = 16; j > 0; --j)
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void DC16NoTop(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC16NoTop(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // DC with top samples not available.
             int dc = 8;
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put16(dc >> 4, dst);
         }
 
-        public static void DC16NoLeft(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC16NoLeft(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // DC with left samples not available.
             int dc = 8;
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put16(0x80, dst);
         }
 
-        public static void DC8uv(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC8uv(Span<byte> dst, Span<byte> yuv, int offset)
         {
             int dc0 = 8;
             for (int i = 0; i < 8; ++i)
@@ -101,16 +101,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put8x8uv((byte)(dc0 >> 4), dst);
         }
 
-        public static void TM8uv(Span<byte> dst, byte[] yuv, int offset)
+        public static void TM8uv(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // TrueMotion
             TrueMotion(dst, yuv, offset, 8);
         }
 
-        public static void VE8uv(Span<byte> dst, byte[] yuv, int offset)
+        public static void VE8uv(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // vertical
-            Span<byte> src = yuv.AsSpan(offset - WebPConstants.Bps, 8);
+            Span<byte> src = yuv.Slice(offset - WebPConstants.Bps, 8);
 
             for (int j = 0; j < 8; ++j)
             {
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void HE8uv(Span<byte> dst, byte[] yuv, int offset)
+        public static void HE8uv(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // horizontal
             for (int j = 0; j < 8; ++j)
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void DC8uvNoTop(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC8uvNoTop(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // DC with no top samples.
             int dc0 = 4;
@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put8x8uv((byte)(dc0 >> 3), dst);
         }
 
-        public static void DC8uvNoLeft(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC8uvNoLeft(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // DC with no left samples.
             int dc0 = 4;
@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put8x8uv(0x80, dst);
         }
 
-        public static void DC4(Span<byte> dst, byte[] yuv, int offset)
+        public static void DC4(Span<byte> dst, Span<byte> yuv, int offset)
         {
             int dc = 4;
             for (int i = 0; i < 4; ++i)
@@ -180,12 +180,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void TM4(Span<byte> dst, byte[] yuv, int offset)
+        public static void TM4(Span<byte> dst, Span<byte> yuv, int offset)
         {
             TrueMotion(dst, yuv, offset, 4);
         }
 
-        public static void VE4(Span<byte> dst, byte[] yuv, int offset)
+        public static void VE4(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // vertical
             int topOffset = offset - WebPConstants.Bps;
@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void HE4(Span<byte> dst, byte[] yuv, int offset)
+        public static void HE4(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // horizontal
             byte a = yuv[offset - 1 - WebPConstants.Bps];
@@ -221,7 +221,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(3 * WebPConstants.Bps), val);
         }
 
-        public static void RD4(Span<byte> dst, byte[] yuv, int offset)
+        public static void RD4(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // Down-right
             byte i = yuv[offset - 1];
@@ -257,7 +257,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Dst(dst, 3, 0, Avg3(d, c, b));
         }
 
-        public static void VR4(Span<byte> dst, byte[] yuv, int offset)
+        public static void VR4(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // Vertical-Right
             byte i = yuv[offset - 1];
@@ -293,7 +293,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Dst(dst, 3, 1, Avg3(b, c, d));
         }
 
-        public static void LD4(Span<byte> dst, byte[] yuv, int offset)
+        public static void LD4(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // Down-Left
             byte a = yuv[offset - WebPConstants.Bps];
@@ -328,7 +328,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Dst(dst, 3, 3, Avg3(g, h, h));
         }
 
-        public static void VL4(Span<byte> dst, byte[] yuv, int offset)
+        public static void VL4(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // Vertical-Left
             byte a = yuv[offset - WebPConstants.Bps];
@@ -364,7 +364,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Dst(dst, 3, 3, Avg3(f, g, h));
         }
 
-        public static void HD4(Span<byte> dst, byte[] yuv, int offset)
+        public static void HD4(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // Horizontal-Down
             byte i = yuv[offset - 1];
@@ -400,7 +400,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Dst(dst, 1, 3, Avg3(l, k, j));
         }
 
-        public static void HU4(Span<byte> dst, byte[] yuv, int offset)
+        public static void HU4(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // Horizontal-Up
             byte i = yuv[offset - 1];
@@ -537,11 +537,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void TrueMotion(Span<byte> dst, byte[] yuv, int offset, int size)
+        private static void TrueMotion(Span<byte> dst, Span<byte> yuv, int offset, int size)
         {
             // For information about how true motion works, see rfc6386, page 52. ff and section 20.14.
             int topOffset = offset - WebPConstants.Bps;
-            Span<byte> top = yuv.AsSpan(topOffset);
+            Span<byte> top = yuv.Slice(topOffset);
             byte p = yuv[topOffset - 1];
             int leftOffset = offset - 1;
             byte left = yuv[leftOffset];
@@ -559,7 +559,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         // Simple In-loop filtering (Paragraph 15.2)
-        public static void SimpleVFilter16(byte[] p, int offset, int stride, int thresh)
+        public static void SimpleVFilter16(Span<byte> p, int offset, int stride, int thresh)
         {
             int thresh2 = (2 * thresh) + 1;
             for (int i = 0; i < 16; ++i)
@@ -571,7 +571,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void SimpleHFilter16(byte[] p, int offset, int stride, int thresh)
+        public static void SimpleHFilter16(Span<byte> p, int offset, int stride, int thresh)
         {
             int thresh2 = (2 * thresh) + 1;
             for (int i = 0; i < 16; ++i)
@@ -583,7 +583,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void SimpleVFilter16i(byte[] p, int offset, int stride, int thresh)
+        public static void SimpleVFilter16i(Span<byte> p, int offset, int stride, int thresh)
         {
             for (int k = 3; k > 0; --k)
             {
@@ -592,7 +592,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void SimpleHFilter16i(byte[] p, int offset, int stride, int thresh)
+        public static void SimpleHFilter16i(Span<byte> p, int offset, int stride, int thresh)
         {
             for (int k = 3; k > 0; --k)
             {
@@ -601,17 +601,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void VFilter16(byte[] p, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        public static void VFilter16(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop26(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
         }
 
-        public static void HFilter16(byte[] p, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        public static void HFilter16(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop26(p, offset, 1, stride, 16, thresh, ithresh, hevThresh);
         }
 
-        public static void VFilter16i(byte[] p, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        public static void VFilter16i(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             for (int k = 3; k > 0; --k)
             {
@@ -620,7 +620,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        public static void HFilter16i(byte[] p, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        public static void HFilter16i(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             for (int k = 3; k > 0; --k)
             {
@@ -630,25 +630,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         // 8-pixels wide variant, for chroma filtering.
-        public static void VFilter8(byte[] u, byte[] v, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        public static void VFilter8(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop26(u, offset, stride, 1, 8, thresh, ithresh, hevThresh);
             FilterLoop26(v, offset, stride, 1, 8, thresh, ithresh, hevThresh);
         }
 
-        public static void HFilter8(byte[] u, byte[] v, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        public static void HFilter8(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop26(u, offset, 1, stride, 8, thresh, ithresh, hevThresh);
             FilterLoop26(v, offset, 1, stride, 8, thresh, ithresh, hevThresh);
         }
 
-        public static void VFilter8i(byte[] u, byte[] v, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        public static void VFilter8i(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop24(u, offset + (4 * stride), stride, 1, 8, thresh, ithresh, hevThresh);
             FilterLoop24(v, offset + (4 * stride), stride, 1, 8, thresh, ithresh, hevThresh);
         }
 
-        public static void HFilter8i(byte[] u, byte[] v, int offset, int stride, int thresh, int ithresh, int hevThresh)
+        public static void HFilter8i(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop24(u, offset + 4, 1, stride, 8, thresh, ithresh, hevThresh);
             FilterLoop24(v, offset + 4, 1, stride, 8, thresh, ithresh, hevThresh);
@@ -684,7 +684,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         // Complex In-loop filtering (Paragraph 15.3)
         private static void FilterLoop24(
-            byte[] p,
+            Span<byte> p,
             int offset,
             int hStride,
             int vStride,
@@ -713,7 +713,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         private static void FilterLoop26(
-            byte[] p,
+            Span<byte> p,
             int offset,
             int hStride,
             int vStride,
@@ -741,7 +741,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static void DoFilter2(byte[] p, int offset, int step)
+        private static void DoFilter2(Span<byte> p, int offset, int step)
         {
             // 4 pixels in, 2 pixels out.
             int p1 = p[offset - (2 * step)];
@@ -755,7 +755,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             p[offset] = WebPLookupTables.Clip1[q0 - a1];
         }
 
-        private static void DoFilter4(byte[] p, int offset, int step)
+        private static void DoFilter4(Span<byte> p, int offset, int step)
         {
             // 4 pixels in, 4 pixels out.
             int p1 = p[offset - (2 * step)];
@@ -772,7 +772,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             p[offset + step] = WebPLookupTables.Clip1[q1 - a3];
         }
 
-        private static void DoFilter6(byte[] p, int offset, int step)
+        private static void DoFilter6(Span<byte> p, int offset, int step)
         {
             // 6 pixels in, 6 pixels out.
             int p2 = p[offset - (3 * step)];
@@ -795,7 +795,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             p[offset + (2 * step)] = WebPLookupTables.Clip1[q2 - a3];
         }
 
-        private static bool NeedsFilter(byte[] p, int offset, int step, int t)
+        private static bool NeedsFilter(Span<byte> p, int offset, int step, int t)
         {
             int p1 = p[offset + (-2 * step)];
             int p0 = p[offset - step];
@@ -804,7 +804,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return ((4 * WebPLookupTables.Abs0[p0 - q0]) + WebPLookupTables.Abs0[p1 - q1]) <= t;
         }
 
-        private static bool NeedsFilter2(byte[] p, int offset, int step, int t, int it)
+        private static bool NeedsFilter2(Span<byte> p, int offset, int step, int t, int it)
         {
             int p3 = p[offset - (4 * step)];
             int p2 = p[offset - (3 * step)];
@@ -824,7 +824,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                    WebPLookupTables.Abs0[q2 - q1] <= it && WebPLookupTables.Abs0[q1 - q0] <= it;
         }
 
-        private static bool Hev(byte[] p, int offset, int step, int thresh)
+        private static bool Hev(Span<byte> p, int offset, int step, int thresh)
         {
             int p1 = p[offset - (2 * step)];
             int p0 = p[offset - step];

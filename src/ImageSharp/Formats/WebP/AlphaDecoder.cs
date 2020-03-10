@@ -22,7 +22,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="data">The (maybe compressed) alpha data.</param>
         /// <param name="alphaChunkHeader">The first byte of the alpha image stream contains information on ow to decode the stream.</param>
         /// <param name="memoryAllocator">Used for allocating memory during decoding.</param>
-        public AlphaDecoder(int width, int height, byte[] data, byte alphaChunkHeader, MemoryAllocator memoryAllocator)
+        /// <param name="configuration">The configuration.</param>
+        public AlphaDecoder(int width, int height, byte[] data, byte alphaChunkHeader, MemoryAllocator memoryAllocator, Configuration configuration)
         {
             this.Width = width;
             this.Height = height;
@@ -59,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (this.Compressed)
             {
                 var bitReader = new Vp8LBitReader(data);
-                this.LosslessDecoder = new WebPLosslessDecoder(bitReader, memoryAllocator);
+                this.LosslessDecoder = new WebPLosslessDecoder(bitReader, memoryAllocator, configuration);
                 this.LosslessDecoder.DecodeImageStream(this.Vp8LDec, width, height, true);
             }
         }

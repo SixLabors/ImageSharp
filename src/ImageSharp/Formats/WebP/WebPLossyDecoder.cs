@@ -25,14 +25,21 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
+        /// The global configuration.
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebPLossyDecoder"/> class.
         /// </summary>
         /// <param name="bitReader">Bitreader to read from the stream.</param>
         /// <param name="memoryAllocator">Used for allocating memory during processing operations.</param>
-        public WebPLossyDecoder(Vp8BitReader bitReader, MemoryAllocator memoryAllocator)
+        /// <param name="configuration">The configuration.</param>
+        public WebPLossyDecoder(Vp8BitReader bitReader, MemoryAllocator memoryAllocator, Configuration configuration)
         {
-            this.memoryAllocator = memoryAllocator;
             this.bitReader = bitReader;
+            this.memoryAllocator = memoryAllocator;
+            this.configuration = configuration;
         }
 
         public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, WebPImageInfo info)
@@ -85,7 +92,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         height,
                         info.Features.AlphaData,
                         info.Features.AlphaChunkHeader,
-                        this.memoryAllocator))
+                        this.memoryAllocator,
+                        this.configuration))
                     {
                         alphaDecoder.Decode();
                         this.DecodePixelValues(width, height, decoder.Pixels.Memory.Span, pixels, alphaDecoder.Alpha);
@@ -101,39 +109,38 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> pixels, IMemoryOwner<byte> alpha = null)
             where TPixel : struct, IPixel<TPixel>
         {
-            TPixel color = default;
-            bool hasAlpha = false;
-            Span<byte> alphaSpan = null;
             if (alpha != null)
             {
-                hasAlpha = true;
-                alphaSpan = alpha.Memory.Span;
+                TPixel color = default;
+                Span<byte> alphaSpan = alpha.Memory.Span;
+                for (int y = 0; y < height; y++)
+                {
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                    for (int x = 0; x < width; x++)
+                    {
+                        int offset = (y * width) + x;
+                        int idxBgr = offset * 3;
+                        byte b = pixelData[idxBgr];
+                        byte g = pixelData[idxBgr + 1];
+                        byte r = pixelData[idxBgr + 2];
+                        byte a = alphaSpan[offset];
+                        color.FromBgra32(new Bgra32(r, g, b, a));
+                        pixelRow[x] = color;
+                    }
+                }
+
+                return;
             }
 
             for (int y = 0; y < height; y++)
             {
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
-                for (int x = 0; x < width; x++)
-                {
-                    int offset = (y * width) + x;
-                    int idxBgr = offset * 3;
-                    byte b = pixelData[idxBgr];
-                    byte g = pixelData[idxBgr + 1];
-                    byte r = pixelData[idxBgr + 2];
-
-                    // TODO: use bulk conversion here.
-                    if (hasAlpha)
-                    {
-                        byte a = alphaSpan[offset];
-                        color.FromBgra32(new Bgra32(r, g, b, a));
-                    }
-                    else
-                    {
-                        color.FromBgr24(new Bgr24(r, g, b));
-                    }
-
-                    pixelRow[x] = color;
-                }
+                Span<byte> row = pixelData.Slice(y * width * 3, width * 3);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                PixelOperations<TPixel>.Instance.FromBgr24Bytes(
+                    this.configuration,
+                    row,
+                    pixelSpan,
+                    width);
             }
         }
 

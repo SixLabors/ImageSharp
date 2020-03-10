@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     {
                         var b = default(Block8x8F);
                         b.LoadFrom(data);
-                        b.CopyTo(mirror);
+                        b.ScaledCopyTo(mirror);
                     });
 
             Assert.Equal(data, mirror);
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     {
                         var b = default(Block8x8F);
                         Block8x8F.LoadFrom(&b, data);
-                        Block8x8F.CopyTo(&b, mirror);
+                        Block8x8F.ScaledCopyTo(&b, mirror);
                     });
 
             Assert.Equal(data, mirror);
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     {
                         var v = default(Block8x8F);
                         v.LoadFrom(data);
-                        v.CopyTo(mirror);
+                        v.ScaledCopyTo(mirror);
                     });
 
             Assert.Equal(data, mirror);
@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             source.TransposeInto(ref dest);
 
             float[] actual = new float[64];
-            dest.CopyTo(actual);
+            dest.ScaledCopyTo(actual);
 
             Assert.Equal(expected, actual);
         }
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             dest.NormalizeColorsInplace(255);
 
             float[] array = new float[64];
-            dest.CopyTo(array);
+            dest.ScaledCopyTo(array);
             this.Output.WriteLine("Result:");
             this.PrintLinearData(array);
             foreach (float val in array)

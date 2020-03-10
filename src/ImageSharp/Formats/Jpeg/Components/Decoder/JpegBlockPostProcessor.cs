@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // To be "more accurate", we need to emulate this by rounding!
             this.WorkspaceBlock1.NormalizeColorsAndRoundInplace(maximumValue);
 
-            this.WorkspaceBlock1.CopyTo(
+            this.WorkspaceBlock1.ScaledCopyTo(
                 ref destAreaOrigin,
                 destAreaStride,
                 this.subSamplingDivisors.Width,

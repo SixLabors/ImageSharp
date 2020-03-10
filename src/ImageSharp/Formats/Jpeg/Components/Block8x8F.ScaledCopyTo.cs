@@ -15,14 +15,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Copy block data into the destination color buffer pixel area with the provided horizontal and vertical scale factors.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void CopyTo(in BufferArea<float> area, int horizontalScale, int verticalScale)
+        public void ScaledCopyTo(in BufferArea<float> area, int horizontalScale, int verticalScale)
         {
             ref float areaOrigin = ref area.GetReferenceToOrigin();
-            this.CopyTo(ref areaOrigin, area.Stride, horizontalScale, verticalScale);
+            this.ScaledCopyTo(ref areaOrigin, area.Stride, horizontalScale, verticalScale);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void CopyTo(ref float areaOrigin, int areaStride, int horizontalScale, int verticalScale)
+        public void ScaledCopyTo(ref float areaOrigin, int areaStride, int horizontalScale, int verticalScale)
         {
             if (horizontalScale == 1 && verticalScale == 1)
             {

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 
         public int ExecutionCount { get; set; } = 50;
 
-        [Theory]
+        [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
         [InlineData(100, 100)]
         [InlineData(2000, 2000)]
         public void ResizeBicubic(int width, int height)

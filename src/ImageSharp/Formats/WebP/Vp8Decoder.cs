@@ -1,12 +1,17 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers;
+
+using SixLabors.Memory;
+
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
     /// Holds information for decoding a lossy webp image.
     /// </summary>
-    internal class Vp8Decoder
+    internal class Vp8Decoder : IDisposable
     {
         private Vp8MacroBlock leftMacroBlock;
 
@@ -17,7 +22,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="pictureHeader">The picture header.</param>
         /// <param name="segmentHeader">The segment header.</param>
         /// <param name="probabilities">The probabilities.</param>
-        public Vp8Decoder(Vp8FrameHeader frameHeader, Vp8PictureHeader pictureHeader, Vp8SegmentHeader segmentHeader, Vp8Proba probabilities)
+        /// <param name="memoryAllocator">Used for allocating memory for the pixel data output and the temporary buffers.</param>
+        public Vp8Decoder(Vp8FrameHeader frameHeader, Vp8PictureHeader pictureHeader, Vp8SegmentHeader segmentHeader, Vp8Proba probabilities, MemoryAllocator memoryAllocator)
         {
             this.FilterHeader = new Vp8FilterHeader();
             this.FrameHeader = frameHeader;
@@ -57,34 +63,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint width = pictureHeader.Width;
             uint height = pictureHeader.Height;
 
-            // TODO: use memory allocator
             int extraRows = WebPConstants.FilterExtraRows[(int)LoopFilter.Complex]; // assuming worst case: complex filter
             int extraY = extraRows * this.CacheYStride;
             int extraUv = (extraRows / 2) * this.CacheUvStride;
-            this.YuvBuffer = new byte[(WebPConstants.Bps * 17) + (WebPConstants.Bps * 9) + extraY];
-            this.CacheY = new byte[(16 * this.CacheYStride) + extraY];
-            this.CacheU = new byte[(16 * this.CacheUvStride) + extraUv];
-            this.CacheV = new byte[(16 * this.CacheUvStride) + extraUv];
-            this.TmpYBuffer = new byte[width];
-            this.TmpUBuffer = new byte[width];
-            this.TmpVBuffer = new byte[width];
-            this.Pixels = new byte[width * height * 4];
+            this.YuvBuffer = memoryAllocator.Allocate<byte>((WebPConstants.Bps * 17) + (WebPConstants.Bps * 9) + extraY);
+            this.CacheY = memoryAllocator.Allocate<byte>((16 * this.CacheYStride) + extraY);
+            this.CacheU = memoryAllocator.Allocate<byte>((16 * this.CacheUvStride) + extraUv);
+            this.CacheV = memoryAllocator.Allocate<byte>((16 * this.CacheUvStride) + extraUv);
+            this.TmpYBuffer = memoryAllocator.Allocate<byte>((int)width);
+            this.TmpUBuffer = memoryAllocator.Allocate<byte>((int)width);
+            this.TmpVBuffer = memoryAllocator.Allocate<byte>((int)width);
+            this.Pixels = memoryAllocator.Allocate<byte>((int)(width * height * 4));
 
-            for (int i = 0; i < this.YuvBuffer.Length; i++)
-            {
-                this.YuvBuffer[i] = 205;
-            }
-
-            for (int i = 0; i < this.CacheY.Length; i++)
-            {
-                this.CacheY[i] = 205;
-            }
-
-            for (int i = 0; i < this.CacheU.Length; i++)
-            {
-                this.CacheU[i] = 205;
-                this.CacheV[i] = 205;
-            }
+            this.YuvBuffer.Memory.Span.Fill(205);
+            this.CacheY.Memory.Span.Fill(205);
+            this.CacheU.Memory.Span.Fill(205);
+            this.CacheV.Memory.Span.Fill(205);
 
             this.Vp8BitReaders = new Vp8BitReader[WebPConstants.MaxNumPartitions];
         }
@@ -206,19 +200,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public LoopFilter Filter { get; set; }
 
         /// <summary>
-        /// Gets or sets the filter strengths.
+        /// Gets the filter strengths.
         /// </summary>
         public Vp8FilterInfo[,] FilterStrength { get; }
 
-        public byte[] YuvBuffer { get; }
+        public IMemoryOwner<byte> YuvBuffer { get; }
 
         public Vp8TopSamples[] YuvTopSamples { get; }
 
-        public byte[] CacheY { get; }
+        public IMemoryOwner<byte> CacheY { get; }
 
-        public byte[] CacheU { get; }
+        public IMemoryOwner<byte> CacheU { get; }
 
-        public byte[] CacheV { get; }
+        public IMemoryOwner<byte> CacheV { get; }
 
         public int CacheYOffset { get; set; }
 
@@ -228,13 +222,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public int CacheUvStride { get; }
 
-        public byte[] TmpYBuffer { get; }
+        public IMemoryOwner<byte> TmpYBuffer { get; }
 
-        public byte[] TmpUBuffer { get; }
+        public IMemoryOwner<byte> TmpUBuffer { get; }
 
-        public byte[] TmpVBuffer { get; }
+        public IMemoryOwner<byte> TmpVBuffer { get; }
 
-        public byte[] Pixels { get; }
+        /// <summary>
+        /// Gets the pixel buffer where the decoded pixel data will be stored.
+        /// </summary>
+        public IMemoryOwner<byte> Pixels { get; }
 
         /// <summary>
         /// Gets or sets filter strength info.
@@ -347,6 +344,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     info.UseInnerFiltering = (byte)i4x4;
                 }
             }
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.YuvBuffer.Dispose();
+            this.CacheY.Dispose();
+            this.CacheU.Dispose();
+            this.CacheV.Dispose();
+            this.TmpYBuffer.Dispose();
+            this.TmpUBuffer.Dispose();
+            this.TmpVBuffer.Dispose();
+            this.Pixels.Dispose();
         }
     }
 }

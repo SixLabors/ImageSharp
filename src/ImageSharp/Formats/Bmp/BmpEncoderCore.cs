@@ -336,8 +336,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write8BitColor<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using IFrameQuantizer<TPixel> quantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration);
-            using QuantizedFrame<TPixel> quantized = quantizer.QuantizeFrame(image, image.Bounds());
+            using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration);
+            using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image, image.Bounds());
 
             ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
             var color = default(Rgba32);
@@ -360,7 +360,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             for (int y = image.Height - 1; y >= 0; y--)
             {
-                ReadOnlySpan<byte> pixelSpan = quantized.GetRowSpan(y);
+                ReadOnlySpan<byte> pixelSpan = quantized.GetPixelRowSpan(y);
                 stream.Write(pixelSpan);
 
                 for (int i = 0; i < this.padding; i++)

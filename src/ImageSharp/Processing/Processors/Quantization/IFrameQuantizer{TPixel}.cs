@@ -24,33 +24,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         QuantizerOptions Options { get; }
 
         /// <summary>
-        /// Quantizes an image frame and return the resulting output pixels.
+        /// Gets the quantized color palette.
         /// </summary>
-        /// <param name="source">The source image frame to quantize.</param>
-        /// <param name="bounds">The bounds within the frame to quantize.</param>
-        /// <returns>
-        /// A <see cref="QuantizedFrame{TPixel}"/> representing a quantized version of the source frame pixels.
-        /// </returns>
-        QuantizedFrame<TPixel> QuantizeFrame(
-            ImageFrame<TPixel> source,
-            Rectangle bounds);
+        /// <exception cref="InvalidOperationException">
+        /// The palette has not been built via <see cref="BuildPalette(ImageFrame{TPixel}, Rectangle)"/>.
+        /// </exception>
+        ReadOnlyMemory<TPixel> Palette { get; }
 
         /// <summary>
         /// Builds the quantized palette from the given image frame and bounds.
         /// </summary>
         /// <param name="source">The source image frame.</param>
         /// <param name="bounds">The region of interest bounds.</param>
-        /// <returns>The <see cref="ReadOnlyMemory{TPixel}"/> palette.</returns>
-        ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds);
+        void BuildPalette(ImageFrame<TPixel> source, Rectangle bounds);
 
         /// <summary>
-        /// Returns the index and color from the quantized palette corresponding to the give to the given color.
+        /// Quantizes an image frame and return the resulting output pixels.
+        /// </summary>
+        /// <param name="source">The source image frame to quantize.</param>
+        /// <param name="bounds">The bounds within the frame to quantize.</param>
+        /// <returns>
+        /// A <see cref="IndexedImageFrame{TPixel}"/> representing a quantized version of the source frame pixels.
+        /// </returns>
+        IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds);
+
+        /// <summary>
+        /// Returns the index and color from the quantized palette corresponding to the given color.
         /// </summary>
         /// <param name="color">The color to match.</param>
-        /// <param name="palette">The output color palette.</param>
         /// <param name="match">The matched color.</param>
         /// <returns>The <see cref="byte"/> index.</returns>
-        public byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match);
+        byte GetQuantizedColor(TPixel color, out TPixel match);
 
         // TODO: Enable bulk operations.
         // void GetQuantizedColors(ReadOnlySpan<TPixel> colors, ReadOnlySpan<TPixel> palette, Span<byte> indices, Span<TPixel> matches);

@@ -3,8 +3,8 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -105,21 +105,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
             ref TFrameQuantizer quantizer,
-            ReadOnlyMemory<TPixel> palette,
             ImageFrame<TPixel> source,
-            Memory<byte> output,
+            IndexedImageFrame<TPixel> destination,
             Rectangle bounds)
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var ditherOperation = new QuantizeDitherRowIntervalOperation<TFrameQuantizer, TPixel>(
+            var ditherOperation = new QuantizeDitherRowOperation<TFrameQuantizer, TPixel>(
                 ref quantizer,
                 in Unsafe.AsRef(this),
                 source,
-                output,
-                bounds,
-                palette,
-                ImageMaths.GetBitsNeededForColorDepth(palette.Span.Length));
+                destination,
+                bounds);
 
             ParallelRowIterator.IterateRows(
                 quantizer.Configuration,
@@ -129,24 +126,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ApplyPaletteDither<TPixel>(
-            Configuration configuration,
-            ReadOnlyMemory<TPixel> palette,
+        public void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
+            in TPaletteDitherImageProcessor processor,
             ImageFrame<TPixel> source,
-            Rectangle bounds,
-            float scale)
+            Rectangle bounds)
+            where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var ditherOperation = new PaletteDitherRowIntervalOperation<TPixel>(
+            var ditherOperation = new PaletteDitherRowOperation<TPaletteDitherImageProcessor, TPixel>(
+                in processor,
                 in Unsafe.AsRef(this),
                 source,
-                bounds,
-                palette,
-                scale,
-                ImageMaths.GetBitsNeededForColorDepth(palette.Span.Length));
+                bounds);
 
             ParallelRowIterator.IterateRows(
-                configuration,
+                processor.Configuration,
                 bounds,
                 in ditherOperation);
         }
@@ -200,102 +194,87 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public override int GetHashCode()
             => HashCode.Combine(this.thresholdMatrix, this.modulusX, this.modulusY);
 
-        private readonly struct QuantizeDitherRowIntervalOperation<TFrameQuantizer, TPixel> : IRowIntervalOperation
+        private readonly struct QuantizeDitherRowOperation<TFrameQuantizer, TPixel> : IRowOperation
             where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
             private readonly TFrameQuantizer quantizer;
             private readonly OrderedDither dither;
             private readonly ImageFrame<TPixel> source;
-            private readonly Memory<byte> output;
+            private readonly IndexedImageFrame<TPixel> destination;
             private readonly Rectangle bounds;
-            private readonly ReadOnlyMemory<TPixel> palette;
             private readonly int bitDepth;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public QuantizeDitherRowIntervalOperation(
+            public QuantizeDitherRowOperation(
                 ref TFrameQuantizer quantizer,
                 in OrderedDither dither,
                 ImageFrame<TPixel> source,
-                Memory<byte> output,
-                Rectangle bounds,
-                ReadOnlyMemory<TPixel> palette,
-                int bitDepth)
+                IndexedImageFrame<TPixel> destination,
+                Rectangle bounds)
             {
                 this.quantizer = quantizer;
                 this.dither = dither;
                 this.source = source;
-                this.output = output;
+                this.destination = destination;
                 this.bounds = bounds;
-                this.palette = palette;
-                this.bitDepth = bitDepth;
+                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(destination.Palette.Length);
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                ReadOnlySpan<TPixel> paletteSpan = this.palette.Span;
-                Span<byte> outputSpan = this.output.Span;
-                int width = this.bounds.Width;
                 int offsetY = this.bounds.Top;
                 int offsetX = this.bounds.Left;
                 float scale = this.quantizer.Options.DitherScale;
 
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
-                    int rowStart = (y - offsetY) * width;
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
+                ref byte destinationRowRef = ref MemoryMarshal.GetReference(this.destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
 
-                    // TODO: This can be a bulk operation.
-                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
-                    {
-                        TPixel dithered = this.dither.Dither(row[x], x, y, this.bitDepth, scale);
-                        outputSpan[rowStart + x - offsetX] = this.quantizer.GetQuantizedColor(dithered, paletteSpan, out TPixel _);
-                    }
+                for (int x = this.bounds.Left; x < this.bounds.Right; x++)
+                {
+                    TPixel dithered = this.dither.Dither(Unsafe.Add(ref sourceRowRef, x), x, y, this.bitDepth, scale);
+                    Unsafe.Add(ref destinationRowRef, x - offsetX) = Unsafe.AsRef(this.quantizer).GetQuantizedColor(dithered, out TPixel _);
                 }
             }
         }
 
-        private readonly struct PaletteDitherRowIntervalOperation<TPixel> : IRowIntervalOperation
+        private readonly struct PaletteDitherRowOperation<TPaletteDitherImageProcessor, TPixel> : IRowOperation
+            where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            private readonly TPaletteDitherImageProcessor processor;
             private readonly OrderedDither dither;
             private readonly ImageFrame<TPixel> source;
             private readonly Rectangle bounds;
-            private readonly EuclideanPixelMap<TPixel> pixelMap;
             private readonly float scale;
             private readonly int bitDepth;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public PaletteDitherRowIntervalOperation(
+            public PaletteDitherRowOperation(
+                in TPaletteDitherImageProcessor processor,
                 in OrderedDither dither,
                 ImageFrame<TPixel> source,
-                Rectangle bounds,
-                ReadOnlyMemory<TPixel> palette,
-                float scale,
-                int bitDepth)
+                Rectangle bounds)
             {
+                this.processor = processor;
                 this.dither = dither;
                 this.source = source;
                 this.bounds = bounds;
-                this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
-                this.scale = scale;
-                this.bitDepth = bitDepth;
+                this.scale = processor.DitherScale;
+                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(processor.Palette.Span.Length);
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
-                {
-                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
 
-                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
-                    {
-                        TPixel dithered = this.dither.Dither(row[x], x, y, this.bitDepth, this.scale);
-                        this.pixelMap.GetClosestColor(dithered, out TPixel transformed);
-                        row[x] = transformed;
-                    }
+                for (int x = this.bounds.Left; x < this.bounds.Right; x++)
+                {
+                    ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, x);
+                    TPixel dithered = this.dither.Dither(sourcePixel, x, y, this.bitDepth, this.scale);
+                    sourcePixel = Unsafe.AsRef(this.processor).GetPaletteColor(dithered);
                 }
             }
         }

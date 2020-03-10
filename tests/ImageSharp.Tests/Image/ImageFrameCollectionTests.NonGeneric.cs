@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests
                         this.Collection.AddFrame(null);
                     });
 
-                Assert.StartsWith("Value cannot be null.", ex.Message);
+                Assert.StartsWith("Parameter \"source\" must be not null.", ex.Message);
             }
 
             [Fact]
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests
                         this.Collection.InsertFrame(1, null);
                     });
 
-                Assert.StartsWith("Value cannot be null.", ex.Message);
+                Assert.StartsWith("Parameter \"source\" must be not null.", ex.Message);
             }
 
             [Fact]

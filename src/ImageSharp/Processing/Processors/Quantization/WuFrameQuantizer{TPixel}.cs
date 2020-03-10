@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -65,30 +66,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
-        /// <summary>
-        /// Color moments.
-        /// </summary>
-        private IMemoryOwner<Moment> moments;
-
-        /// <summary>
-        /// Color space tag.
-        /// </summary>
-        private IMemoryOwner<byte> tag;
-
-        /// <summary>
-        /// Maximum allowed color depth
-        /// </summary>
-        private int colors;
-
-        /// <summary>
-        /// The color cube representing the image palette
-        /// </summary>
+        private IMemoryOwner<Moment> momentsOwner;
+        private IMemoryOwner<byte> tagsOwner;
+        private IMemoryOwner<TPixel> paletteOwner;
+        private ReadOnlyMemory<TPixel> palette;
+        private int maxColors;
         private readonly Box[] colorCube;
-
         private EuclideanPixelMap<TPixel> pixelMap;
-
         private readonly bool isDithering;
-
         private bool isDisposed;
 
         /// <summary>
@@ -104,11 +89,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             this.Configuration = configuration;
             this.Options = options;
+            this.maxColors = this.Options.MaxColors;
             this.memoryAllocator = this.Configuration.MemoryAllocator;
-            this.moments = this.memoryAllocator.Allocate<Moment>(TableLength, AllocationOptions.Clean);
-            this.tag = this.memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
-            this.colors = this.Options.MaxColors;
-            this.colorCube = new Box[this.colors];
+            this.momentsOwner = this.memoryAllocator.Allocate<Moment>(TableLength, AllocationOptions.Clean);
+            this.tagsOwner = this.memoryAllocator.Allocate<byte>(TableLength, AllocationOptions.Clean);
+            this.paletteOwner = this.memoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
+            this.palette = default;
+            this.colorCube = new Box[this.maxColors];
             this.isDisposed = false;
             this.pixelMap = default;
             this.isDithering = this.isDithering = !(this.Options.Dither is null);
@@ -121,21 +108,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public QuantizerOptions Options { get; }
 
         /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public QuantizedFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => FrameQuantizerExtensions.QuantizeFrame(ref this, source, bounds);
+        public ReadOnlyMemory<TPixel> Palette
+        {
+            get
+            {
+                FrameQuantizerUtilities.CheckPaletteState(in this.palette);
+                return this.palette;
+            }
+        }
 
         /// <inheritdoc/>
-        public ReadOnlyMemory<TPixel> BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
+        public void BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
         {
             this.Build3DHistogram(source, bounds);
             this.Get3DMoments(this.memoryAllocator);
             this.BuildCube();
 
-            var palette = new TPixel[this.colors];
-            ReadOnlySpan<Moment> momentsSpan = this.moments.GetSpan();
-
-            for (int k = 0; k < this.colors; k++)
+            ReadOnlySpan<Moment> momentsSpan = this.momentsOwner.GetSpan();
+            Span<TPixel> paletteSpan = this.paletteOwner.GetSpan();
+            for (int k = 0; k < this.maxColors; k++)
             {
                 this.Mark(ref this.colorCube[k], (byte)k);
 
@@ -143,50 +134,57 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
                 if (moment.Weight > 0)
                 {
-                    ref TPixel color = ref palette[k];
+                    ref TPixel color = ref paletteSpan[k];
                     color.FromScaledVector4(moment.Normalize());
                 }
             }
 
-            this.pixelMap = new EuclideanPixelMap<TPixel>(palette);
-            return palette;
+            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, this.maxColors);
+            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+            this.palette = result;
         }
 
         /// <inheritdoc/>
-        public byte GetQuantizedColor(TPixel color, ReadOnlySpan<TPixel> palette, out TPixel match)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => FrameQuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+
+        /// <inheritdoc/>
+        public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
         {
-            if (!this.isDithering)
+            if (this.isDithering)
             {
-                Rgba32 rgba = default;
-                color.ToRgba32(ref rgba);
-
-                int r = rgba.R >> (8 - IndexBits);
-                int g = rgba.G >> (8 - IndexBits);
-                int b = rgba.B >> (8 - IndexBits);
-                int a = rgba.A >> (8 - IndexAlphaBits);
-
-                ReadOnlySpan<byte> tagSpan = this.tag.GetSpan();
-                byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
-                match = palette[index];
-                return index;
+                return (byte)this.pixelMap.GetClosestColor(color, out match);
             }
 
-            return (byte)this.pixelMap.GetClosestColor(color, out match);
+            Rgba32 rgba = default;
+            color.ToRgba32(ref rgba);
+
+            int r = rgba.R >> (8 - IndexBits);
+            int g = rgba.G >> (8 - IndexBits);
+            int b = rgba.B >> (8 - IndexBits);
+            int a = rgba.A >> (8 - IndexAlphaBits);
+
+            ReadOnlySpan<byte> tagSpan = this.tagsOwner.GetSpan();
+            byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
+            ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.pixelMap.Palette.Span);
+            match = Unsafe.Add(ref paletteRef, index);
+            return index;
         }
 
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (this.isDisposed)
+            if (!this.isDisposed)
             {
-                return;
+                this.isDisposed = true;
+                this.momentsOwner?.Dispose();
+                this.tagsOwner?.Dispose();
+                this.paletteOwner?.Dispose();
+                this.momentsOwner = null;
+                this.tagsOwner = null;
+                this.paletteOwner = null;
             }
-
-            this.isDisposed = true;
-            this.moments?.Dispose();
-            this.tag?.Dispose();
-            this.moments = null;
-            this.tag = null;
         }
 
         /// <summary>
@@ -364,7 +362,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="bounds">The bounds within the source image to quantize.</param>
         private void Build3DHistogram(ImageFrame<TPixel> source, Rectangle bounds)
         {
-            Span<Moment> momentSpan = this.moments.GetSpan();
+            Span<Moment> momentSpan = this.momentsOwner.GetSpan();
 
             // Build up the 3-D color histogram
             using IMemoryOwner<Rgba32> buffer = this.memoryAllocator.Allocate<Rgba32>(bounds.Width);
@@ -392,13 +390,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Converts the histogram into moments so that we can rapidly calculate the sums of the above quantities over any desired box.
         /// </summary>
-        /// <param name="memoryAllocator">The memory allocator used for allocating buffers.</param>
-        private void Get3DMoments(MemoryAllocator memoryAllocator)
+        /// <param name="allocator">The memory allocator used for allocating buffers.</param>
+        private void Get3DMoments(MemoryAllocator allocator)
         {
-            using IMemoryOwner<Moment> volume = memoryAllocator.Allocate<Moment>(IndexCount * IndexAlphaCount);
-            using IMemoryOwner<Moment> area = memoryAllocator.Allocate<Moment>(IndexAlphaCount);
+            using IMemoryOwner<Moment> volume = allocator.Allocate<Moment>(IndexCount * IndexAlphaCount);
+            using IMemoryOwner<Moment> area = allocator.Allocate<Moment>(IndexAlphaCount);
 
-            Span<Moment> momentSpan = this.moments.GetSpan();
+            Span<Moment> momentSpan = this.momentsOwner.GetSpan();
             Span<Moment> volumeSpan = volume.GetSpan();
             Span<Moment> areaSpan = area.GetSpan();
             int baseIndex = GetPaletteIndex(1, 0, 0, 0);
@@ -440,7 +438,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>The <see cref="float"/>.</returns>
         private double Variance(ref Box cube)
         {
-            ReadOnlySpan<Moment> momentSpan = this.moments.GetSpan();
+            ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
 
             Moment volume = Volume(ref cube, momentSpan);
             Moment variance =
@@ -481,7 +479,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>The <see cref="float"/>.</returns>
         private float Maximize(ref Box cube, int direction, int first, int last, out int cut, Moment whole)
         {
-            ReadOnlySpan<Moment> momentSpan = this.moments.GetSpan();
+            ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
             Moment bottom = Bottom(ref cube, direction, momentSpan);
 
             float max = 0F;
@@ -527,7 +525,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>Returns a value indicating whether the box has been split.</returns>
         private bool Cut(ref Box set1, ref Box set2)
         {
-            ReadOnlySpan<Moment> momentSpan = this.moments.GetSpan();
+            ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
             Moment whole = Volume(ref set1, momentSpan);
 
             float maxR = this.Maximize(ref set1, 3, set1.RMin + 1, set1.RMax, out int cutR, whole);
@@ -612,7 +610,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <param name="label">A label.</param>
         private void Mark(ref Box cube, byte label)
         {
-            Span<byte> tagSpan = this.tag.GetSpan();
+            Span<byte> tagSpan = this.tagsOwner.GetSpan();
 
             for (int r = cube.RMin + 1; r <= cube.RMax; r++)
             {
@@ -634,7 +632,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         private void BuildCube()
         {
-            Span<double> vv = stackalloc double[this.colors];
+            // Store the volume variance.
+            using IMemoryOwner<double> vvOwner = this.Configuration.MemoryAllocator.Allocate<double>(this.maxColors);
+            Span<double> vv = vvOwner.GetSpan();
 
             ref Box cube = ref this.colorCube[0];
             cube.RMin = cube.GMin = cube.BMin = cube.AMin = 0;
@@ -643,7 +643,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             int next = 0;
 
-            for (int i = 1; i < this.colors; i++)
+            for (int i = 1; i < this.maxColors; i++)
             {
                 ref Box nextCube = ref this.colorCube[next];
                 ref Box currentCube = ref this.colorCube[i];
@@ -672,7 +672,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
                 if (temp <= 0D)
                 {
-                    this.colors = i + 1;
+                    this.maxColors = i + 1;
                     break;
                 }
             }

@@ -21,13 +21,13 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
             using IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(config);
-            using QuantizedFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
+            using IndexedImageFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
 
             Assert.Equal(1, result.Palette.Length);
-            Assert.Equal(1, result.GetPixelSpan().Length);
+            Assert.Equal(1, result.GetPixelBufferSpan().Length);
 
             Assert.Equal(Color.Black, (Color)result.Palette.Span[0]);
-            Assert.Equal(0, result.GetPixelSpan()[0]);
+            Assert.Equal(0, result.GetPixelBufferSpan()[0]);
         }
 
         [Fact]
@@ -40,13 +40,13 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
             using IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(config);
-            using QuantizedFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
+            using IndexedImageFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
 
             Assert.Equal(1, result.Palette.Length);
-            Assert.Equal(1, result.GetPixelSpan().Length);
+            Assert.Equal(1, result.GetPixelBufferSpan().Length);
 
             Assert.Equal(default, result.Palette.Span[0]);
-            Assert.Equal(0, result.GetPixelSpan()[0]);
+            Assert.Equal(0, result.GetPixelBufferSpan()[0]);
         }
 
         [Fact]
@@ -85,19 +85,19 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
             using IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(config);
-            using QuantizedFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
+            using IndexedImageFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
 
             Assert.Equal(256, result.Palette.Length);
-            Assert.Equal(256, result.GetPixelSpan().Length);
+            Assert.Equal(256, result.GetPixelBufferSpan().Length);
 
             var actualImage = new Image<Rgba32>(1, 256);
 
             ReadOnlySpan<Rgba32> paletteSpan = result.Palette.Span;
-            int paletteCount = result.Palette.Length - 1;
+            int paletteCount = paletteSpan.Length - 1;
             for (int y = 0; y < actualImage.Height; y++)
             {
                 Span<Rgba32> row = actualImage.GetPixelRowSpan(y);
-                ReadOnlySpan<byte> quantizedPixelSpan = result.GetPixelSpan();
+                ReadOnlySpan<byte> quantizedPixelSpan = result.GetPixelBufferSpan();
                 int yy = y * actualImage.Width;
 
                 for (int x = 0; x < actualImage.Width; x++)
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
                 ImageFrame<TPixel> frame = image.Frames.RootFrame;
 
                 using IFrameQuantizer<TPixel> frameQuantizer = quantizer.CreateFrameQuantizer<TPixel>(config);
-                using QuantizedFrame<TPixel> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
+                using IndexedImageFrame<TPixel> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
 
                 Assert.Equal(48, result.Palette.Length);
             }
@@ -152,17 +152,17 @@ namespace SixLabors.ImageSharp.Tests.Quantization
 
                 ImageFrame<Rgba32> frame = image.Frames.RootFrame;
                 using (IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(config))
-                using (QuantizedFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
+                using (IndexedImageFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
                 {
                     Assert.Equal(4 * 8, result.Palette.Length);
-                    Assert.Equal(256, result.GetPixelSpan().Length);
+                    Assert.Equal(256, result.GetPixelBufferSpan().Length);
 
                     ReadOnlySpan<Rgba32> paletteSpan = result.Palette.Span;
-                    int paletteCount = result.Palette.Length - 1;
+                    int paletteCount = paletteSpan.Length - 1;
                     for (int y = 0; y < actualImage.Height; y++)
                     {
                         Span<Rgba32> row = actualImage.GetPixelRowSpan(y);
-                        ReadOnlySpan<byte> quantizedPixelSpan = result.GetPixelSpan();
+                        ReadOnlySpan<byte> quantizedPixelSpan = result.GetPixelBufferSpan();
                         int yy = y * actualImage.Width;
 
                         for (int x = 0; x < actualImage.Width; x++)

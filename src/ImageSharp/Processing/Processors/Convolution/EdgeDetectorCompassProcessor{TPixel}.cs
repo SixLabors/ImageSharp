@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     processor.Apply(pass);
                 }
 
-                var operation = new RowIntervalOperation(source.PixelBuffer, pass.PixelBuffer, interest);
+                var operation = new RowOperation(source.PixelBuffer, pass.PixelBuffer, interest);
                 ParallelRowIterator.IterateRows(
                     this.Configuration,
                     interest,
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// A <see langword="struct"/> implementing the convolution logic for <see cref="EdgeDetectorCompassProcessor{T}"/>.
         /// </summary>
-        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        private readonly struct RowOperation : IRowOperation
         {
             private readonly Buffer2D<TPixel> targetPixels;
             private readonly Buffer2D<TPixel> passPixels;
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly int maxX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public RowIntervalOperation(
+            public RowOperation(
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<TPixel> passPixels,
                 Rectangle bounds)
@@ -110,23 +110,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(in RowInterval rows)
+            public void Invoke(int y)
             {
-                for (int y = rows.Min; y < rows.Max; y++)
+                ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(this.passPixels.GetRowSpan(y));
+                ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(this.targetPixels.GetRowSpan(y));
+
+                for (int x = this.minX; x < this.maxX; x++)
                 {
-                    ref TPixel passPixelsBase = ref MemoryMarshal.GetReference(this.passPixels.GetRowSpan(y));
-                    ref TPixel targetPixelsBase = ref MemoryMarshal.GetReference(this.targetPixels.GetRowSpan(y));
+                    // Grab the max components of the two pixels
+                    ref TPixel currentPassPixel = ref Unsafe.Add(ref passPixelsBase, x);
+                    ref TPixel currentTargetPixel = ref Unsafe.Add(ref targetPixelsBase, x);
 
-                    for (int x = this.minX; x < this.maxX; x++)
-                    {
-                        // Grab the max components of the two pixels
-                        ref TPixel currentPassPixel = ref Unsafe.Add(ref passPixelsBase, x);
-                        ref TPixel currentTargetPixel = ref Unsafe.Add(ref targetPixelsBase, x);
+                    var pixelValue = Vector4.Max(currentPassPixel.ToVector4(), currentTargetPixel.ToVector4());
 
-                        var pixelValue = Vector4.Max(currentPassPixel.ToVector4(), currentTargetPixel.ToVector4());
-
-                        currentTargetPixel.FromVector4(pixelValue);
-                    }
+                    currentTargetPixel.FromVector4(pixelValue);
                 }
             }
         }

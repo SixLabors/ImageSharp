@@ -27,6 +27,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         private readonly Vp8LBitReader bitReader;
 
+        /// <summary>
+        /// The global configuration.
+        /// </summary>
+        private readonly Configuration configuration;
+
+        /// <summary>
+        /// Used for allocating memory during processing operations.
+        /// </summary>
+        private readonly MemoryAllocator memoryAllocator;
+
         private static readonly int BitsSpecialMarker = 0x100;
 
         private static readonly int NumArgbCacheRows = 16;
@@ -63,19 +73,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
         };
 
         /// <summary>
-        /// Used for allocating memory during processing operations.
-        /// </summary>
-        private readonly MemoryAllocator memoryAllocator;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="WebPLosslessDecoder"/> class.
         /// </summary>
         /// <param name="bitReader">Bitreader to read from the stream.</param>
         /// <param name="memoryAllocator">Used for allocating memory during processing operations.</param>
-        public WebPLosslessDecoder(Vp8LBitReader bitReader, MemoryAllocator memoryAllocator)
+        /// <param name="configuration">The configuration.</param>
+        public WebPLosslessDecoder(Vp8LBitReader bitReader, MemoryAllocator memoryAllocator, Configuration configuration)
         {
             this.bitReader = bitReader;
             this.memoryAllocator = memoryAllocator;
+            this.configuration = configuration;
         }
 
         /// <summary>
@@ -181,25 +188,21 @@ namespace SixLabors.ImageSharp.Formats.WebP
             where TPixel : struct, IPixel<TPixel>
         {
             Span<uint> pixelData = decoder.Pixels.GetSpan();
+            int width = decoder.Width;
 
             // Apply reverse transformations, if any are present.
             this.ApplyInverseTransforms(decoder, pixelData);
 
-            TPixel color = default;
+            Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
             for (int y = 0; y < decoder.Height; y++)
             {
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
-                for (int x = 0; x < decoder.Width; x++)
-                {
-                    int idx = (y * decoder.Width) + x;
-                    uint pixel = pixelData[idx];
-                    byte a = (byte)((pixel & 0xFF000000) >> 24);
-                    byte r = (byte)((pixel & 0xFF0000) >> 16);
-                    byte g = (byte)((pixel & 0xFF00) >> 8);
-                    byte b = (byte)(pixel & 0xFF);
-                    color.FromRgba32(new Rgba32(r, g, b, a));
-                    pixelRow[x] = color;
-                }
+                Span<byte> row = pixelDataAsBytes.Slice(y * width * 4, width * 4);
+                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                PixelOperations<TPixel>.Instance.FromBgra32Bytes(
+                    this.configuration,
+                    row,
+                    pixelSpan,
+                    width);
             }
         }
 

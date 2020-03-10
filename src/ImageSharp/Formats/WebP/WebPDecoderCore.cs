@@ -89,12 +89,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossLess)
             {
-                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp8LBitReader, this.memoryAllocator);
+                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
                 losslessDecoder.Decode(pixels, image.Width, image.Height);
             }
             else
             {
-                var lossyDecoder = new WebPLossyDecoder(imageInfo.Vp8BitReader, this.memoryAllocator);
+                var lossyDecoder = new WebPLossyDecoder(imageInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
                 lossyDecoder.Decode(pixels, image.Width, image.Height, imageInfo);
             }
 

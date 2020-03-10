@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
             { TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr, 5 }
         };
 
-        [Theory]
+        [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
         [MemberData(nameof(DecodeJpegData))]
         public void DecodeJpeg(string fileName, int executionCount)
         {

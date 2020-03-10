@@ -95,7 +95,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 Span<float> colorBufferRow = this.ColorBuffer.GetRowSpan(yBuffer);
                 Span<Block8x8> blockRow = this.Component.SpectralBlocks.GetRowSpan(yBlock);
 
-                for (int xBlock = 0; xBlock < this.SizeInBlocks.Width; xBlock++)
+                // see: https://github.com/SixLabors/ImageSharp/issues/824
+                int widthInBlocks = Math.Min(this.Component.SpectralBlocks.Width, this.SizeInBlocks.Width);
+
+                for (int xBlock = 0; xBlock < widthInBlocks; xBlock++)
                 {
                     ref Block8x8 block = ref blockRow[xBlock];
                     int xBuffer = xBlock * this.blockAreaSize.Width;

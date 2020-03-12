@@ -19,10 +19,10 @@ namespace SixLabors.ImageSharp
             private static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
 
             /// <summary>
-            /// <see cref="BulkConvertNormalizedFloatToByteClampOverflows"/> as many elements as possible, slicing them down (keeping the remainder).
+            /// <see cref="NormalizedFloatToByteSaturate"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void BulkConvertNormalizedFloatToByteClampOverflowsReduce(
+            internal static void NormalizedFloatToByteSaturateReduce(
                 ref ReadOnlySpan<float> source,
                 ref Span<byte> dest)
             {
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp
 
                     if (adjustedCount > 0)
                     {
-                        BulkConvertNormalizedFloatToByteClampOverflows(
+                        NormalizedFloatToByteSaturate(
                             source.Slice(0, adjustedCount),
                             dest.Slice(0, adjustedCount));
 
@@ -46,13 +46,13 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// Implementation of <see cref="SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows"/>, which is faster on new .NET runtime.
+            /// Implementation of <see cref="SimdUtils.NormalizedFloatToByteSaturate"/>, which is faster on new .NET runtime.
             /// </summary>
             /// <remarks>
             /// Implementation is based on MagicScaler code:
             /// https://github.com/saucecontrol/PhotoSauce/blob/a9bd6e5162d2160419f0cf743fd4f536c079170b/src/MagicScaler/Magic/Processors/ConvertersFloat.cs#L453-L477
             /// </remarks>
-            internal static void BulkConvertNormalizedFloatToByteClampOverflows(
+            internal static void NormalizedFloatToByteSaturate(
                 ReadOnlySpan<float> source,
                 Span<byte> dest)
             {

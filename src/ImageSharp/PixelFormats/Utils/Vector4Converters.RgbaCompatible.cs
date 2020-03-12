@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
                 // 'destVectors' and 'lastQuarterOfDestBuffer' are overlapping buffers,
                 // but we are always reading/writing at different positions:
-                SimdUtils.BulkConvertByteToNormalizedFloat(
+                SimdUtils.ByteToNormalizedFloat(
                     MemoryMarshal.Cast<Rgba32, byte>(lastQuarterOfDestBuffer),
                     MemoryMarshal.Cast<Vector4, float>(destVectors.Slice(0, countWithoutLastItem)));
 
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 {
                     Span<Rgba32> tempSpan = tempBuffer.Memory.Span;
 
-                    SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(
+                    SimdUtils.NormalizedFloatToByteSaturate(
                         MemoryMarshal.Cast<Vector4, float>(sourceVectors),
                         MemoryMarshal.Cast<Rgba32, byte>(tempSpan));
 

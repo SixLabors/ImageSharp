@@ -21,10 +21,10 @@ namespace SixLabors.ImageSharp
 
 #if !SUPPORTS_EXTENDED_INTRINSICS
             /// <summary>
-            /// <see cref="BulkConvertByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
+            /// <see cref="ByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void BulkConvertByteToNormalizedFloatReduce(
+            internal static void ByteToNormalizedFloatReduce(
                 ref ReadOnlySpan<byte> source,
                 ref Span<float> dest)
             {
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp
 
                 if (adjustedCount > 0)
                 {
-                    BulkConvertByteToNormalizedFloat(
+                    ByteToNormalizedFloat(
                         source.Slice(0, adjustedCount),
                         dest.Slice(0, adjustedCount));
 
@@ -50,10 +50,10 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// <see cref="BulkConvertNormalizedFloatToByteClampOverflows"/> as many elements as possible, slicing them down (keeping the remainder).
+            /// <see cref="NormalizedFloatToByteSaturate"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void BulkConvertNormalizedFloatToByteClampOverflowsReduce(
+            internal static void NormalizedFloatToByteSaturateReduce(
                 ref ReadOnlySpan<float> source,
                 ref Span<byte> dest)
             {
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp
 
                 if (adjustedCount > 0)
                 {
-                    BulkConvertNormalizedFloatToByteClampOverflows(source.Slice(0, adjustedCount), dest.Slice(0, adjustedCount));
+                    NormalizedFloatToByteSaturate(source.Slice(0, adjustedCount), dest.Slice(0, adjustedCount));
 
                     source = source.Slice(adjustedCount);
                     dest = dest.Slice(adjustedCount);
@@ -78,15 +78,15 @@ namespace SixLabors.ImageSharp
 #endif
 
             /// <summary>
-            /// SIMD optimized implementation for <see cref="SimdUtils.BulkConvertByteToNormalizedFloat"/>.
+            /// SIMD optimized implementation for <see cref="SimdUtils.ByteToNormalizedFloat"/>.
             /// Works only with span Length divisible by 8.
             /// Implementation adapted from:
             /// http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
             /// http://stackoverflow.com/a/536278
             /// </summary>
-            internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
+            internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
-                VerifyHasVector8(nameof(BulkConvertByteToNormalizedFloat));
+                VerifyHasVector8(nameof(ByteToNormalizedFloat));
                 VerifySpanInput(source, dest, 8);
 
                 var bVec = new Vector<float>(256.0f / 255.0f);
@@ -124,11 +124,11 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// Implementation of <see cref="SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows"/> which is faster on older runtimes.
+            /// Implementation of <see cref="SimdUtils.NormalizedFloatToByteSaturate"/> which is faster on older runtimes.
             /// </summary>
-            internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
+            internal static void NormalizedFloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> dest)
             {
-                VerifyHasVector8(nameof(BulkConvertNormalizedFloatToByteClampOverflows));
+                VerifyHasVector8(nameof(NormalizedFloatToByteSaturate));
                 VerifySpanInput(source, dest, 8);
 
                 if (source.Length == 0)

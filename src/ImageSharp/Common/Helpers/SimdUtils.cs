@@ -61,16 +61,18 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The source span of bytes</param>
         /// <param name="dest">The destination span of floats</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
+        internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
 #if SUPPORTS_EXTENDED_INTRINSICS
-            ExtendedIntrinsics.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
+            ExtendedIntrinsics.ByteToNormalizedFloatReduce(ref source, ref dest);
 #else
-            BasicIntrinsics256.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
+            BasicIntrinsics256.ByteToNormalizedFloatReduce(ref source, ref dest);
 #endif
-            FallbackIntrinsics128.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
+
+            // Also deals with the remainder from previous conversions:
+            FallbackIntrinsics128.ByteToNormalizedFloatReduce(ref source, ref dest);
 
             // Deal with the remainder:
             if (source.Length > 0)
@@ -88,20 +90,20 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The source span of floats</param>
         /// <param name="dest">The destination span of bytes</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
+        internal static void NormalizedFloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> dest)
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-            Avx2Intrinsics.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
+            Avx2Intrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
 #elif SUPPORTS_EXTENDED_INTRINSICS
-            ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
+            ExtendedIntrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
 #else
-            BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
+            BasicIntrinsics256.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
 #endif
 
             // Also deals with the remainder from previous conversions:
-            FallbackIntrinsics128.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
+            FallbackIntrinsics128.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
 
             // Deal with the remainder:
             if (source.Length > 0)

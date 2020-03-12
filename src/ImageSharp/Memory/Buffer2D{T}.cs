@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Memory
         internal Span<T> GetSingleSpan()
         {
             // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
-            return this.cachedMemory.Length != 0 ? this.cachedMemory.Span : ThrowInvalidOperationSingleSpan();
+            return this.cachedMemory.Length != 0 ? this.cachedMemory.Span : this.GetSingleSpanSlow();
         }
 
         /// <summary>
@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp.Memory
         internal Memory<T> GetSingleMemory()
         {
             // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
-            return this.cachedMemory.Length != 0 ? this.cachedMemory : ThrowInvalidOperationSingleMemory();
+            return this.cachedMemory.Length != 0 ? this.cachedMemory : this.GetSingleMemorySlow();
         }
 
         /// <summary>
@@ -204,6 +204,9 @@ namespace SixLabors.ImageSharp.Memory
 
         [MethodImpl(InliningOptions.ColdPath)]
         private Memory<T> GetSingleMemorySlow() => this.FastMemoryGroup.Single();
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private Span<T> GetSingleSpanSlow() => this.FastMemoryGroup.Single().Span;
 
         [MethodImpl(InliningOptions.ColdPath)]
         private ref T GetElementSlow(int x, int y)
@@ -229,18 +232,6 @@ namespace SixLabors.ImageSharp.Memory
                 a.cachedMemory = b.cachedMemory;
                 b.cachedMemory = aCached;
             }
-        }
-
-        [MethodImpl(InliningOptions.ColdPath)]
-        private static Memory<T> ThrowInvalidOperationSingleMemory()
-        {
-            throw new InvalidOperationException("GetSingleMemory is only valid for a single-buffer group!");
-        }
-
-        [MethodImpl(InliningOptions.ColdPath)]
-        private static Span<T> ThrowInvalidOperationSingleSpan()
-        {
-            throw new InvalidOperationException("GetSingleSpan is only valid for a single-buffer group!");
         }
     }
 }

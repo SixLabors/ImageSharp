@@ -390,6 +390,143 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit32Rle = "Tga/targa_32bit_rle.tga";
             public const string Bit16Pal = "Tga/targa_16bit_pal.tga";
             public const string Bit24Pal = "Tga/targa_24bit_pal.tga";
+		}
+		
+        public static class WebP
+        {
+            public static class Animated
+            {
+                public const string Animated1 = "WebP/animated-webp.webp";
+                public const string Animated2 = "WebP/animated2.webp";
+                public const string Animated3 = "WebP/animated3.webp";
+                public const string Animated4 = "WebP/animated_lossy.webp";
+            }
+
+            public static class Lossless
+            {
+                public const string NoTransform1 = "WebP/lossless_vec_1_0.webp";
+                public const string NoTransform2 = "WebP/lossless_vec_2_0.webp";
+                public const string GreenTransform1 = "WebP/lossless1.webp";
+                public const string GreenTransform2 = "WebP/lossless2.webp";
+                public const string GreenTransform3 = "WebP/lossless3.webp";
+                public const string GreenTransform4 = "WebP/lossless_vec_1_4.webp";
+                public const string GreenTransform5 = "WebP/lossless_vec_2_4.webp";
+                public const string CrossColorTransform1 = "WebP/lossless_vec_1_8.webp";
+                public const string CrossColorTransform2 = "WebP/lossless_vec_2_8.webp";
+                public const string PredictorTransform1 = "WebP/lossless_vec_1_2.webp";
+                public const string PredictorTransform2 = "WebP/lossless_vec_2_2.webp";
+                public const string ColorIndexTransform1 = "WebP/lossless4.webp";
+                public const string ColorIndexTransform2 = "WebP/lossless_vec_1_1.webp";
+                public const string ColorIndexTransform3 = "WebP/lossless_vec_1_5.webp";
+                public const string ColorIndexTransform4 = "WebP/lossless_vec_2_1.webp";
+                public const string ColorIndexTransform5 = "WebP/lossless_vec_2_5.webp";
+                public const string TwoTransforms1 = "Webp/lossless_vec_1_10.webp"; // cross_color, predictor
+                public const string TwoTransforms2 = "Webp/lossless_vec_1_12.webp"; // cross_color, substract_green
+                public const string TwoTransforms3 = "Webp/lossless_vec_1_13.webp"; // color_indexing, cross_color
+                public const string TwoTransforms4 = "Webp/lossless_vec_1_3.webp"; // color_indexing, predictor
+                public const string TwoTransforms5 = "Webp/lossless_vec_1_6.webp"; // substract_green, predictor
+                public const string TwoTransforms6 = "Webp/lossless_vec_1_7.webp"; // color_indexing, predictor
+                public const string TwoTransforms7 = "Webp/lossless_vec_1_9.webp"; // color_indexing, cross_color
+                public const string TwoTransforms8 = "Webp/lossless_vec_2_10.webp"; // predictor, cross_color
+                public const string TwoTransforms9 = "Webp/lossless_vec_2_12.webp"; // substract_green, cross_color
+                public const string TwoTransforms10 = "Webp/lossless_vec_2_13.webp"; // color_indexing, cross_color
+                public const string TwoTransforms11 = "Webp/lossless_vec_2_3.webp"; // color_indexing, predictor
+                public const string TwoTransforms12 = "Webp/lossless_vec_2_6.webp"; // substract_green, predictor
+                public const string TwoTransforms13 = "Webp/lossless_vec_2_9.webp"; // color_indexing, predictor
+                public const string ThreeTransforms1 = "Webp/color_cache_bits_11.webp"; // substract_green, predictor, cross_color
+                public const string ThreeTransforms2 = "Webp/lossless_vec_1_11.webp"; // color_indexing, predictor, cross_color
+                public const string ThreeTransforms3 = "Webp/lossless_vec_1_14.webp"; // substract_green, predictor, cross_color
+                public const string ThreeTransforms4 = "Webp/lossless_vec_1_15.webp"; // color_indexing, predictor, cross_color
+                public const string ThreeTransforms5 = "Webp/lossless_vec_2_11.webp"; // color_indexing, predictor, cross_color
+                public const string ThreeTransforms6 = "Webp/lossless_vec_2_14.webp"; // substract_green, predictor, cross_color
+                public const string ThreeTransforms7 = "Webp/lossless_vec_2_15.webp"; // color_indexing, predictor, cross_color
+                public const string BikeThreeTransforms = "Webp/bike_lossless.webp"; // substract_green, predictor, cross_color
+
+                // Invalid / corrupted images
+                // Below images have errors according to webpinfo. The error message webpinfo gives is "Truncated data detected when parsing RIFF payload."
+                public const string LossLessCorruptImage1 = "Webp/lossless_big_random_alpha.webp"; // substract_green, predictor, cross_color.
+                public const string LossLessCorruptImage2 = "Webp/lossless_vec_2_7.webp"; // color_indexing, predictor.
+                public const string LossLessCorruptImage3 = "Webp/lossless_color_transform.webp"; // cross_color, predictor
+                public const string LossLessCorruptImage4 = "Webp/near_lossless_75.webp"; // predictor, cross_color.
+            }
+
+            public static class Lossy
+            {
+                // Lossy images without macroblock filtering.
+                public const string Bike = "WebP/bike_lossy.webp";
+                public const string NoFilter01 = "WebP/vp80-01-intra-1400.webp";
+                public const string NoFilter02 = "WebP/vp80-00-comprehensive-010.webp";
+                public const string NoFilter03 = "WebP/vp80-00-comprehensive-005.webp";
+                public const string NoFilter04 = "WebP/vp80-01-intra-1417.webp";
+                public const string NoFilter05 = "WebP/vp80-02-inter-1402.webp";
+                public const string NoFilter06 = "WebP/test.webp";
+
+                // Lossy images with a simple filter.
+                public const string SimpleFilter01 = "WebP/segment01.webp";
+                public const string SimpleFilter02 = "WebP/segment02.webp";
+                public const string SimpleFilter03 = "WebP/vp80-00-comprehensive-003.webp";
+                public const string SimpleFilter04 = "WebP/vp80-00-comprehensive-007.webp";
+                public const string SimpleFilter05 = "WebP/test-nostrong.webp";
+
+                // Lossy images with a complex filter.
+                public const string IccpComplexFilter = "WebP/lossy_iccp.webp";
+                public const string VeryShort = "WebP/very_short.webp";
+                public const string BikeComplexFilter = "WebP/bike_lossy_complex_filter.webp";
+                public const string ComplexFilter01 = "WebP/vp80-02-inter-1418.webp";
+                public const string ComplexFilter02 = "WebP/vp80-02-inter-1418.webp";
+                public const string ComplexFilter03 = "WebP/vp80-00-comprehensive-002.webp";
+                public const string ComplexFilter04 = "WebP/vp80-00-comprehensive-006.webp";
+                public const string ComplexFilter05 = "WebP/vp80-00-comprehensive-009.webp";
+                public const string ComplexFilter06 = "WebP/vp80-00-comprehensive-012.webp";
+                public const string ComplexFilter07 = "WebP/vp80-00-comprehensive-015.webp";
+                public const string ComplexFilter08 = "WebP/vp80-00-comprehensive-016.webp";
+                public const string ComplexFilter09 = "WebP/vp80-00-comprehensive-017.webp";
+
+                // Lossy with partitions.
+                public const string Partitions01 = "WebP/vp80-04-partitions-1404.webp";
+                public const string Partitions02 = "WebP/vp80-04-partitions-1405.webp";
+                public const string Partitions03 = "WebP/vp80-04-partitions-1406.webp";
+
+                // Lossy with segmentation.
+                public const string SegmentationNoFilter01 = "WebP/vp80-03-segmentation-1401.webp";
+                public const string SegmentationNoFilter02 = "WebP/vp80-03-segmentation-1403.webp";
+                public const string SegmentationNoFilter03 = "WebP/vp80-03-segmentation-1407.webp";
+                public const string SegmentationNoFilter04 = "WebP/vp80-03-segmentation-1408.webp";
+                public const string SegmentationNoFilter05 = "WebP/vp80-03-segmentation-1409.webp";
+                public const string SegmentationNoFilter06 = "WebP/vp80-03-segmentation-1410.webp";
+                public const string SegmentationComplexFilter01 = "WebP/vp80-03-segmentation-1413.webp";
+                public const string SegmentationComplexFilter02 = "WebP/vp80-03-segmentation-1425.webp";
+                public const string SegmentationComplexFilter03 = "WebP/vp80-03-segmentation-1426.webp";
+                public const string SegmentationComplexFilter04 = "WebP/vp80-03-segmentation-1427.webp";
+                public const string SegmentationComplexFilter05 = "WebP/vp80-03-segmentation-1432.webp";
+
+                // Lossy with sharpness level.
+                public const string Sharpness01 = "WebP/vp80-05-sharpness-1428.webp";
+                public const string Sharpness02 = "WebP/vp80-05-sharpness-1429.webp";
+                public const string Sharpness03 = "WebP/vp80-05-sharpness-1430.webp";
+                public const string Sharpness04 = "WebP/vp80-05-sharpness-1431.webp";
+                public const string Sharpness05 = "WebP/vp80-05-sharpness-1433.webp";
+                public const string Sharpness06 = "WebP/vp80-05-sharpness-1434.webp";
+
+                // Very small images (all with complex filter).
+                public const string Small01 = "WebP/small_13x1.webp";
+                public const string Small02 = "WebP/small_1x1.webp";
+                public const string Small03 = "WebP/small_1x13.webp";
+                public const string Small04 = "WebP/small_31x13.webp";
+
+                // Lossy images with an alpha channel.
+                public const string Alpha1 = "WebP/lossy_alpha1.webp";
+                public const string Alpha2 = "WebP/lossy_alpha2.webp";
+                public const string AlphaNoCompression = "WebP/alpha_no_compression.webp";
+                public const string AlphaNoCompressionNoFilter = "WebP/alpha_filter_0_method_0.webp";
+                public const string AlphaCompressedNoFilter = "WebP/alpha_filter_0_method_1.webp";
+                public const string AlphaNoCompressionHorizontalFilter = "WebP/alpha_filter_1_method_0.webp";
+                public const string AlphaCompressedHorizontalFilter = "WebP/alpha_filter_1_method_1.webp";
+                public const string AlphaNoCompressionVerticalFilter = "WebP/alpha_filter_2_method_0.webp";
+                public const string AlphaCompressedVerticalFilter = "WebP/alpha_filter_2_method_1.webp";
+                public const string AlphaNoCompressionGradientFilter = "WebP/alpha_filter_3_method_0.webp";
+                public const string AlphaCompressedGradientFilter = "WebP/alpha_filter_3_method_1.webp";
+            }
         }
     }
 }

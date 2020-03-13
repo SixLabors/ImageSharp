@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
@@ -29,8 +29,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(
-                x => x.OilPaint(levels, brushSize),
-                $"{levels}-{brushSize}",
+                x =>
+                {
+                    x.OilPaint(levels, brushSize);
+                    return $"{levels}-{brushSize}";
+                },
+                ImageComparer.TolerantPercentage(0.01F),
                 appendPixelTypeToFileName: false);
         }
 
@@ -42,7 +46,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         {
             provider.RunRectangleConstrainedValidatingProcessorTest(
                 (x, rect) => x.OilPaint(levels, brushSize, rect),
-                $"{levels}-{brushSize}");
+                $"{levels}-{brushSize}",
+                ImageComparer.TolerantPercentage(0.01F));
         }
     }
 }

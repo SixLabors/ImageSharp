@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private bool SkipOnNonAvx2([CallerMemberName] string testCaseName = null)
         {
-            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            if (!SimdUtils.HasVector8)
             {
                 this.Output.WriteLine("Skipping AVX2 specific test case: " + testCaseName);
                 return true;
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             TestImpl_BulkConvertByteToNormalizedFloat(
                 count,
-                (s, d) => SimdUtils.FallbackIntrinsics128.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
+                (s, d) => SimdUtils.FallbackIntrinsics128.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
         [Theory]
@@ -192,7 +192,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             TestImpl_BulkConvertByteToNormalizedFloat(
                 count,
-                (s, d) => SimdUtils.BasicIntrinsics256.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
+                (s, d) => SimdUtils.BasicIntrinsics256.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
         [Theory]
@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             TestImpl_BulkConvertByteToNormalizedFloat(
                 count,
-                (s, d) => SimdUtils.ExtendedIntrinsics.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
+                (s, d) => SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
         [Theory]
@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             TestImpl_BulkConvertByteToNormalizedFloat(
                 count,
-                (s, d) => SimdUtils.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
+                (s, d) => SimdUtils.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
         private static void TestImpl_BulkConvertByteToNormalizedFloat(
@@ -232,7 +232,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
                 count,
-                (s, d) => SimdUtils.FallbackIntrinsics128.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span));
+                (s, d) => SimdUtils.FallbackIntrinsics128.NormalizedFloatToByteSaturate(s.Span, d.Span));
         }
 
         [Theory]
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 return;
             }
 
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count, (s, d) => SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span));
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count, (s, d) => SimdUtils.BasicIntrinsics256.NormalizedFloatToByteSaturate(s.Span, d.Span));
         }
 
         [Theory]
@@ -253,7 +253,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
                 count,
-                (s, d) => SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span));
+                (s, d) => SimdUtils.ExtendedIntrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
         }
 
         [Theory]
@@ -277,11 +277,29 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected2, actual2);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+
+        [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy32))]
+        public void Avx2_BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        {
+            if (!System.Runtime.Intrinsics.X86.Avx2.IsSupported)
+            {
+                return;
+            }
+
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+                count,
+                (s, d) => SimdUtils.Avx2Intrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
+        }
+
+#endif
+
         [Theory]
         [MemberData(nameof(ArbitraryArraySizes))]
         public void BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count, (s, d) => SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span));
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count, (s, d) => SimdUtils.NormalizedFloatToByteSaturate(s.Span, d.Span));
 
             // For small values, let's stress test the implementation a bit:
             if (count > 0 && count < 10)
@@ -290,7 +308,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 {
                     TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
                         count,
-                        (s, d) => SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span),
+                        (s, d) => SimdUtils.NormalizedFloatToByteSaturate(s.Span, d.Span),
                         i + 42);
                 }
             }

@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// AVX2-only variant for executing <see cref="NormalizeColorsInplace"/> and <see cref="RoundInplace"/> in one step.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void NormalizeColorsAndRoundInplaceAvx2(float maximum)
+        public void NormalizeColorsAndRoundInplaceVector8(float maximum)
         {
             var off = new Vector<float>(MathF.Ceiling(maximum / 2));
             var max = new Vector<float>(maximum);

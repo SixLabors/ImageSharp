@@ -28,52 +28,6 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Gets a <see cref="Span{T}"/> to the backing data of <paramref name="buffer"/>
-        /// if the backing group consists of one single contiguous memory buffer.
-        /// Throws <see cref="InvalidOperationException"/> otherwise.
-        /// </summary>
-        /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
-        /// <typeparam name="T">The value type.</typeparam>
-        /// <returns>The <see cref="Span{T}"/> referencing the memory area.</returns>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown when the backing group is discontiguous.
-        /// </exception>
-        internal static Span<T> GetSingleSpan<T>(this Buffer2D<T> buffer)
-            where T : struct
-        {
-            Guard.NotNull(buffer, nameof(buffer));
-            if (buffer.FastMemoryGroup.Count > 1)
-            {
-                throw new InvalidOperationException("GetSingleSpan is only valid for a single-buffer group!");
-            }
-
-            return buffer.FastMemoryGroup.Single().Span;
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Memory{T}"/> to the backing data of <paramref name="buffer"/>
-        /// if the backing group consists of one single contiguous memory buffer.
-        /// Throws <see cref="InvalidOperationException"/> otherwise.
-        /// </summary>
-        /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
-        /// <typeparam name="T">The value type.</typeparam>
-        /// <returns>The <see cref="Memory{T}"/>.</returns>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown when the backing group is discontiguous.
-        /// </exception>
-        internal static Memory<T> GetSingleMemory<T>(this Buffer2D<T> buffer)
-            where T : struct
-        {
-            Guard.NotNull(buffer, nameof(buffer));
-            if (buffer.FastMemoryGroup.Count > 1)
-            {
-                throw new InvalidOperationException("GetSingleMemory is only valid for a single-buffer group!");
-            }
-
-            return buffer.FastMemoryGroup.Single();
-        }
-
-        /// <summary>
         /// TODO: Does not work with multi-buffer groups, should be specific to Resize.
         /// Copy <paramref name="columnCount"/> columns of <paramref name="buffer"/> inplace,
         /// from positions starting at <paramref name="sourceIndex"/> to positions at <paramref name="destIndex"/>.

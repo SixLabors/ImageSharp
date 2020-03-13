@@ -215,12 +215,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 if (chunkType is WebPChunkType.Iccp)
                 {
                     uint iccpChunkSize = this.ReadChunkSize();
-                    var iccpData = new byte[iccpChunkSize];
-                    this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
-                    var profile = new IccProfile(iccpData);
-                    if (profile.CheckIsValid())
+                    if (!this.IgnoreMetadata)
                     {
-                        this.Metadata.IccProfile = profile;
+                        var iccpData = new byte[iccpChunkSize];
+                        this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
+                        var profile = new IccProfile(iccpData);
+                        if (profile.CheckIsValid())
+                        {
+                            this.Metadata.IccProfile = profile;
+                        }
+                    }
+                    else
+                    {
+                        this.currentStream.Skip((int)iccpChunkSize);
                     }
                 }
             }

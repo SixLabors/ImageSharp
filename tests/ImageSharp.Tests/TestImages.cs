@@ -390,8 +390,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit32Rle = "Tga/targa_32bit_rle.tga";
             public const string Bit16Pal = "Tga/targa_16bit_pal.tga";
             public const string Bit24Pal = "Tga/targa_24bit_pal.tga";
-		}
-		
+        }
+
         public static class WebP
         {
             public static class Animated
@@ -404,6 +404,8 @@ namespace SixLabors.ImageSharp.Tests
 
             public static class Lossless
             {
+                public const string WithExif = "WebP/exif_lossless.webp";
+                public const string WithIccp = "WebP/iccp_lossless.webp";
                 public const string NoTransform1 = "WebP/lossless_vec_1_0.webp";
                 public const string NoTransform2 = "WebP/lossless_vec_2_0.webp";
                 public const string GreenTransform1 = "WebP/lossless1.webp";
@@ -452,6 +454,9 @@ namespace SixLabors.ImageSharp.Tests
 
             public static class Lossy
             {
+                public const string WithExif = "WebP/exif_lossy.webp";
+                public const string WithIccp = "WebP/iccp_lossy.webp";
+
                 // Lossy images without macroblock filtering.
                 public const string Bike = "WebP/bike_lossy.webp";
                 public const string NoFilter01 = "WebP/vp80-01-intra-1400.webp";
@@ -469,7 +474,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string SimpleFilter05 = "WebP/test-nostrong.webp";
 
                 // Lossy images with a complex filter.
-                public const string IccpComplexFilter = "WebP/lossy_iccp.webp";
+                public const string IccpComplexFilter = "WebP/iccp_lossy.webp";
                 public const string VeryShort = "WebP/very_short.webp";
                 public const string BikeComplexFilter = "WebP/bike_lossy_complex_filter.webp";
                 public const string ComplexFilter01 = "WebP/vp80-02-inter-1418.webp";

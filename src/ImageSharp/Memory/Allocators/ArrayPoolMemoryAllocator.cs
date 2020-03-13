@@ -133,8 +133,7 @@ namespace SixLabors.ImageSharp.Memory
             int bufferSizeInBytes = length * itemSizeBytes;
             if (bufferSizeInBytes < 0 || bufferSizeInBytes > this.BufferCapacityInBytes)
             {
-                throw new InvalidMemoryOperationException(
-                    $"Requested allocation: {length} elements of {typeof(T).Name} is over the capacity of the MemoryAllocator.");
+                ThrowInvalidAllocationException<T>(length);
             }
 
             ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
@@ -170,6 +169,11 @@ namespace SixLabors.ImageSharp.Memory
         {
             return maxPoolSizeInBytes / 4;
         }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowInvalidAllocationException<T>(int length) =>
+            throw new InvalidMemoryOperationException(
+                $"Requested allocation: {length} elements of {typeof(T).Name} is over the capacity of the MemoryAllocator.");
 
         private ArrayPool<byte> GetArrayPool(int bufferSizeInBytes)
         {

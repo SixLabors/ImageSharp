@@ -13,14 +13,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal sealed class FromYCbCrSimdAvx2 : JpegColorConverter
+        internal sealed class FromYCbCrSimdVector8 : JpegColorConverter
         {
-            public FromYCbCrSimdAvx2(int precision)
+            public FromYCbCrSimdVector8(int precision)
                 : base(JpegColorSpace.YCbCr, precision)
             {
             }
 
-            public static bool IsAvailable => Vector.IsHardwareAccelerated && SimdUtils.IsAvx2CompatibleArchitecture;
+            public static bool IsAvailable => Vector.IsHardwareAccelerated && SimdUtils.HasVector8;
 
             public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {

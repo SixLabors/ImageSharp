@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
     [GroupOutput("Convolution")]
     public class DetectEdgesTest
     {
-        // I think our comparison is not accurate enough (nor can be) for RgbaVector.
-        // The image pixels are identical according to BeyondCompare.
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
+        private static readonly ImageComparer OpaqueComparer = ImageComparer.TolerantPercentage(0.01F);
+
+        private static readonly ImageComparer TransparentComparer = ImageComparer.TolerantPercentage(0.5F);
 
         public static readonly string[] TestImages = { Tests.TestImages.Png.Bike };
 
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                         var bounds = new Rectangle(10, 10, size.Width / 2, size.Height / 2);
                         ctx.DetectEdges(bounds);
                     },
-                comparer: ValidatorComparer,
+                comparer: OpaqueComparer,
                 useReferenceOutputFrom: nameof(this.DetectEdges_InBox));
         }
 
@@ -56,11 +56,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            bool hasAlpha = provider.SourceFileOrDescription.Contains("TestPattern");
+            ImageComparer comparer = hasAlpha ? TransparentComparer : OpaqueComparer;
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.DetectEdges(detector));
                 image.DebugSave(provider, detector.ToString());
-                image.CompareToReferenceOutput(ValidatorComparer, provider, detector.ToString());
+                image.CompareToReferenceOutput(comparer, provider, detector.ToString());
             }
         }
 
@@ -69,11 +71,18 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         public void DetectEdges_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // James:
+            // I think our comparison is not accurate enough (nor can be) for RgbaVector.
+            // The image pixels are identical according to BeyondCompare.
+            ImageComparer comparer = typeof(TPixel) == typeof(RgbaVector) ?
+                ImageComparer.TolerantPercentage(1f) :
+                OpaqueComparer;
+
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.Mutate(x => x.DetectEdges());
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(comparer, provider);
             }
         }
 
@@ -100,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 
                 image.Mutate(x => x.DetectEdges(bounds));
                 image.DebugSave(provider);
-                image.CompareToReferenceOutput(ValidatorComparer, provider);
+                image.CompareToReferenceOutput(OpaqueComparer, provider);
             }
         }
 

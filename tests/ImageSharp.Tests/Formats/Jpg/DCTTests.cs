@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 FastFloatingPointDCT.IDCT8x4_LeftPart(ref source, ref dest);
 
                 var actualDestArray = new float[64];
-                dest.CopyTo(actualDestArray);
+                dest.ScaledCopyTo(actualDestArray);
 
                 this.Print8x8Data(expectedDestArray);
                 this.Output.WriteLine("**************");
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 FastFloatingPointDCT.IDCT8x4_RightPart(ref source, ref dest);
 
                 var actualDestArray = new float[64];
-                dest.CopyTo(actualDestArray);
+                dest.ScaledCopyTo(actualDestArray);
 
                 this.Print8x8Data(expectedDestArray);
                 this.Output.WriteLine("**************");
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 FastFloatingPointDCT.FDCT8x4_LeftPart(ref srcBlock, ref destBlock);
 
                 var actualDest = new float[64];
-                destBlock.CopyTo(actualDest);
+                destBlock.ScaledCopyTo(actualDest);
 
                 Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
             }
@@ -148,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 FastFloatingPointDCT.FDCT8x4_RightPart(ref srcBlock, ref destBlock);
 
                 var actualDest = new float[64];
-                destBlock.CopyTo(actualDest);
+                destBlock.ScaledCopyTo(actualDest);
 
                 Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
             }
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 FastFloatingPointDCT.TransformFDCT(ref srcBlock, ref destBlock, ref temp2, false);
 
                 var actualDest = new float[64];
-                destBlock.CopyTo(actualDest);
+                destBlock.ScaledCopyTo(actualDest);
 
                 Assert.Equal(actualDest, expectedDest, new ApproximateFloatComparer(1f));
             }

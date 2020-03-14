@@ -38,6 +38,46 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="data">The byte array containing encoded image data to read the header from.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static IImageInfo Identify(byte[] data) => Identify(data, out IImageFormat _);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="data">The byte array containing encoded image data to read the header from.</param>
+        /// <param name="format">The format type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static IImageInfo Identify(byte[] data, out IImageFormat format) => Identify(Configuration.Default, data, out format);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="data">The byte array containing encoded image data to read the header from.</param>
+        /// <param name="format">The format type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// </returns>
+        public static IImageInfo Identify(Configuration config, byte[] data, out IImageFormat format)
+        {
+            config ??= Configuration.Default;
+            using (var stream = new MemoryStream(data))
+            {
+                return Identify(config, stream, out format);
+            }
+        }
+
+        /// <summary>
         /// Load a new instance of <see cref="Image{Rgba32}"/> from the given encoded byte array.
         /// </summary>
         /// <param name="data">The byte array containing image data.</param>

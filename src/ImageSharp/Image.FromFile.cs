@@ -31,10 +31,50 @@ namespace SixLabors.ImageSharp
         /// <returns>The mime type or null if none found.</returns>
         public static IImageFormat DetectFormat(Configuration config, string filePath)
         {
-            config = config ?? Configuration.Default;
+            config ??= Configuration.Default;
             using (Stream file = config.FileSystem.OpenRead(filePath))
             {
                 return DetectFormat(config, file);
+            }
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static IImageInfo Identify(string filePath) => Identify(filePath, out IImageFormat _);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <param name="format">The format type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static IImageInfo Identify(string filePath, out IImageFormat format) => Identify(Configuration.Default, filePath, out format);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="config">The configuration.</param>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <param name="format">The format type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// </returns>
+        public static IImageInfo Identify(Configuration config, string filePath, out IImageFormat format)
+        {
+            config ??= Configuration.Default;
+            using (Stream file = config.FileSystem.OpenRead(filePath))
+            {
+                return Identify(config, file, out format);
             }
         }
 

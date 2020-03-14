@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -25,15 +25,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void EntropyCrop<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // The result dimensions of EntropyCrop may differ on .NET Core 3.1 because of unstable edge detection results.
-            // TODO: Re-enable this test case if we manage to improve stability.
-#if SUPPORTS_RUNTIME_INTRINSICS
-            if (provider.SourceFileOrDescription.Contains(TestImages.Png.Ducky))
-            {
-                return;
-            }
-#endif
-
             provider.RunValidatingProcessorTest(x => x.EntropyCrop(value), value, appendPixelTypeToFileName: false);
         }
     }

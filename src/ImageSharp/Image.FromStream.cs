@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp
             => WithSeekableStream(config, stream, s => InternalDetectFormat(s, config));
 
         /// <summary>
-        /// By reading the header on the provided stream this reads the raw image information.
+        /// Reads the raw image information from the specified stream without fully decoding it.
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp
         public static IImageInfo Identify(Stream stream) => Identify(stream, out IImageFormat _);
 
         /// <summary>
-        /// By reading the header on the provided stream this reads the raw image information.
+        /// Reads the raw image information from the specified stream without fully decoding it.
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <param name="format">The format type of the decoded image.</param>

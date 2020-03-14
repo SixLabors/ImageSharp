@@ -26,14 +26,15 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// By reading the header on the provided byte array this calculates the images format.
         /// </summary>
-        /// <param name="config">The configuration.</param>
+        /// <param name="configuration">The configuration.</param>
         /// <param name="data">The byte array containing encoded image data to read the header from.</param>
         /// <returns>The mime type or null if none found.</returns>
-        public static IImageFormat DetectFormat(Configuration config, byte[] data)
+        public static IImageFormat DetectFormat(Configuration configuration, byte[] data)
         {
-            using (var stream = new MemoryStream(data))
+            Guard.NotNull(configuration, nameof(configuration));
+            using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
-                return DetectFormat(config, stream);
+                return DetectFormat(configuration, stream);
             }
         }
 
@@ -61,19 +62,19 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Reads the raw image information from the specified stream without fully decoding it.
         /// </summary>
-        /// <param name="config">The configuration.</param>
+        /// <param name="configuration">The configuration.</param>
         /// <param name="data">The byte array containing encoded image data to read the header from.</param>
         /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
         /// <returns>
         /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
         /// </returns>
-        public static IImageInfo Identify(Configuration config, byte[] data, out IImageFormat format)
+        public static IImageInfo Identify(Configuration configuration, byte[] data, out IImageFormat format)
         {
-            config ??= Configuration.Default;
-            using (var stream = new MemoryStream(data))
+            Guard.NotNull(configuration, nameof(configuration));
+            using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
-                return Identify(config, stream, out format);
+                return Identify(configuration, stream, out format);
             }
         }
 
@@ -108,33 +109,33 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Load a new instance of <see cref="Image{TPixel}"/> from the given encoded byte array.
         /// </summary>
-        /// <param name="config">The configuration options.</param>
+        /// <param name="configuration">The configuration options.</param>
         /// <param name="data">The byte array containing encoded image data.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data)
+        public static Image<TPixel> Load<TPixel>(Configuration configuration, byte[] data)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
-                return Load<TPixel>(config, stream);
+                return Load<TPixel>(configuration, stream);
             }
         }
 
         /// <summary>
         /// Load a new instance of <see cref="Image{TPixel}"/> from the given encoded byte array.
         /// </summary>
-        /// <param name="config">The configuration options.</param>
+        /// <param name="configuration">The configuration options.</param>
         /// <param name="data">The byte array containing encoded image data.</param>
         /// <param name="format">The <see cref="IImageFormat"/> of the decoded image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, out IImageFormat format)
+        public static Image<TPixel> Load<TPixel>(Configuration configuration, byte[] data, out IImageFormat format)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
-                return Load<TPixel>(config, stream, out format);
+                return Load<TPixel>(configuration, stream, out format);
             }
         }
 
@@ -157,17 +158,17 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Load a new instance of <see cref="Image{TPixel}"/> from the given encoded byte array.
         /// </summary>
-        /// <param name="config">The Configuration.</param>
+        /// <param name="configuration">The Configuration.</param>
         /// <param name="data">The byte array containing encoded image data.</param>
         /// <param name="decoder">The decoder.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load<TPixel>(Configuration config, byte[] data, IImageDecoder decoder)
+        public static Image<TPixel> Load<TPixel>(Configuration configuration, byte[] data, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
-                return Load<TPixel>(config, stream, decoder);
+                return Load<TPixel>(configuration, stream, decoder);
             }
         }
 
@@ -184,18 +185,18 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// By reading the header on the provided byte array this calculates the images format.
         /// </summary>
-        /// <param name="config">The configuration.</param>
+        /// <param name="configuration">The configuration.</param>
         /// <param name="data">The byte array containing encoded image data to read the header from.</param>
         /// <returns>The mime type or null if none found.</returns>
-        public static IImageFormat DetectFormat(Configuration config, ReadOnlySpan<byte> data)
+        public static IImageFormat DetectFormat(Configuration configuration, ReadOnlySpan<byte> data)
         {
-            int maxHeaderSize = config.MaxHeaderSize;
+            int maxHeaderSize = configuration.MaxHeaderSize;
             if (maxHeaderSize <= 0)
             {
                 return null;
             }
 
-            foreach (IImageFormatDetector detector in config.ImageFormatsManager.FormatDetectors)
+            foreach (IImageFormatDetector detector in configuration.ImageFormatsManager.FormatDetectors)
             {
                 IImageFormat f = detector.DetectFormat(data);
 
@@ -243,18 +244,18 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Load a new instance of <see cref="Image{TPixel}"/> from the given encoded byte span.
         /// </summary>
-        /// <param name="config">The configuration options.</param>
+        /// <param name="configuration">The configuration options.</param>
         /// <param name="data">The byte span containing encoded image data.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static unsafe Image<TPixel> Load<TPixel>(Configuration config, ReadOnlySpan<byte> data)
+        public static unsafe Image<TPixel> Load<TPixel>(Configuration configuration, ReadOnlySpan<byte> data)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             fixed (byte* ptr = &data.GetPinnableReference())
             {
                 using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
                 {
-                    return Load<TPixel>(config, stream);
+                    return Load<TPixel>(configuration, stream);
                 }
             }
         }
@@ -262,13 +263,13 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Load a new instance of <see cref="Image{TPixel}"/> from the given encoded byte span.
         /// </summary>
-        /// <param name="config">The Configuration.</param>
+        /// <param name="configuration">The Configuration.</param>
         /// <param name="data">The byte span containing image data.</param>
         /// <param name="decoder">The decoder.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static unsafe Image<TPixel> Load<TPixel>(
-            Configuration config,
+            Configuration configuration,
             ReadOnlySpan<byte> data,
             IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -277,7 +278,7 @@ namespace SixLabors.ImageSharp
             {
                 using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
                 {
-                    return Load<TPixel>(config, stream, decoder);
+                    return Load<TPixel>(configuration, stream, decoder);
                 }
             }
         }
@@ -285,13 +286,13 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Load a new instance of <see cref="Image{TPixel}"/> from the given encoded byte span.
         /// </summary>
-        /// <param name="config">The configuration options.</param>
+        /// <param name="configuration">The configuration options.</param>
         /// <param name="data">The byte span containing image data.</param>
         /// <param name="format">The <see cref="IImageFormat"/> of the decoded image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static unsafe Image<TPixel> Load<TPixel>(
-            Configuration config,
+            Configuration configuration,
             ReadOnlySpan<byte> data,
             out IImageFormat format)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -300,7 +301,7 @@ namespace SixLabors.ImageSharp
             {
                 using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
                 {
-                    return Load<TPixel>(config, stream, out format);
+                    return Load<TPixel>(configuration, stream, out format);
                 }
             }
         }
@@ -325,38 +326,38 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Load a new instance of <see cref="Image"/> from the given encoded byte array.
         /// </summary>
-        /// <param name="config">The config for the decoder.</param>
+        /// <param name="configuration">The configuration for the decoder.</param>
         /// <param name="data">The byte array containing encoded image data.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Load(Configuration config, byte[] data) => Load(config, data, out _);
+        public static Image Load(Configuration configuration, byte[] data) => Load(configuration, data, out _);
 
         /// <summary>
         /// Load a new instance of <see cref="Image"/> from the given encoded byte array.
         /// </summary>
-        /// <param name="config">The config for the decoder.</param>
+        /// <param name="configuration">The configuration for the decoder.</param>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="decoder">The decoder.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Load(Configuration config, byte[] data, IImageDecoder decoder)
+        public static Image Load(Configuration configuration, byte[] data, IImageDecoder decoder)
         {
             using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
-                return Load(config, stream, decoder);
+                return Load(configuration, stream, decoder);
             }
         }
 
         /// <summary>
         /// Load a new instance of <see cref="Image"/> from the given encoded byte array.
         /// </summary>
-        /// <param name="config">The config for the decoder.</param>
+        /// <param name="configuration">The configuration for the decoder.</param>
         /// <param name="data">The byte array containing image data.</param>
         /// <param name="format">The mime type of the decoded image.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Load(Configuration config, byte[] data, out IImageFormat format)
+        public static Image Load(Configuration configuration, byte[] data, out IImageFormat format)
         {
             using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
-                return Load(config, stream, out format);
+                return Load(configuration, stream, out format);
             }
         }
 
@@ -388,20 +389,20 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Decodes a new instance of <see cref="Image"/> from the given encoded byte span.
         /// </summary>
-        /// <param name="config">The configuration options.</param>
+        /// <param name="configuration">The configuration options.</param>
         /// <param name="data">The byte span containing image data.</param>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Load(Configuration config, ReadOnlySpan<byte> data) => Load(config, data, out _);
+        public static Image Load(Configuration configuration, ReadOnlySpan<byte> data) => Load(configuration, data, out _);
 
         /// <summary>
         /// Load a new instance of <see cref="Image"/> from the given encoded byte span.
         /// </summary>
-        /// <param name="config">The Configuration.</param>
+        /// <param name="configuration">The Configuration.</param>
         /// <param name="data">The byte span containing image data.</param>
         /// <param name="decoder">The decoder.</param>
         /// <returns>The <see cref="Image"/>.</returns>
         public static unsafe Image Load(
-            Configuration config,
+            Configuration configuration,
             ReadOnlySpan<byte> data,
             IImageDecoder decoder)
         {
@@ -409,7 +410,7 @@ namespace SixLabors.ImageSharp
             {
                 using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
                 {
-                    return Load(config, stream, decoder);
+                    return Load(configuration, stream, decoder);
                 }
             }
         }
@@ -417,12 +418,12 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Load a new instance of <see cref="Image"/> from the given encoded byte span.
         /// </summary>
-        /// <param name="config">The configuration options.</param>
+        /// <param name="configuration">The configuration options.</param>
         /// <param name="data">The byte span containing image data.</param>
         /// <param name="format">The <see cref="IImageFormat"/> of the decoded image.</param>>
         /// <returns>The <see cref="Image"/>.</returns>
         public static unsafe Image Load(
-            Configuration config,
+            Configuration configuration,
             ReadOnlySpan<byte> data,
             out IImageFormat format)
         {
@@ -430,7 +431,7 @@ namespace SixLabors.ImageSharp
             {
                 using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
                 {
-                    return Load(config, stream, out format);
+                    return Load(configuration, stream, out format);
                 }
             }
         }

@@ -58,9 +58,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             var operation = new RowOperation(interest, targetPixels, source.PixelBuffer, this.KernelXY, this.Configuration, this.PreserveAlpha);
             ParallelRowIterator.IterateRows<RowOperation, Vector4>(
-                this.Configuration,
-                interest,
-                in operation);
+               this.Configuration,
+               interest,
+               in operation);
 
             Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
         }

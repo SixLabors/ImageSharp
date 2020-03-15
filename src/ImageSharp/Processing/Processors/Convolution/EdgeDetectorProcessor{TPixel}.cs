@@ -43,6 +43,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc/>
         protected override void BeforeImageApply()
         {
+            using (IImageProcessor<TPixel> opaque = new OpaqueProcessor<TPixel>(this.Configuration, this.Source, this.SourceRectangle))
+            {
+                opaque.Execute();
+            }
+
             if (this.Grayscale)
             {
                 new GrayscaleBt709Processor(1F).Execute(this.Configuration, this.Source, this.SourceRectangle);

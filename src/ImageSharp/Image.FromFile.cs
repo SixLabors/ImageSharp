@@ -26,15 +26,55 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// By reading the header on the provided file this calculates the images mime type.
         /// </summary>
-        /// <param name="config">The configuration.</param>
+        /// <param name="configuration">The configuration.</param>
         /// <param name="filePath">The image file to open and to read the header from.</param>
         /// <returns>The mime type or null if none found.</returns>
-        public static IImageFormat DetectFormat(Configuration config, string filePath)
+        public static IImageFormat DetectFormat(Configuration configuration, string filePath)
         {
-            config = config ?? Configuration.Default;
-            using (Stream file = config.FileSystem.OpenRead(filePath))
+            Guard.NotNull(configuration, nameof(configuration));
+            using (Stream file = configuration.FileSystem.OpenRead(filePath))
             {
-                return DetectFormat(config, file);
+                return DetectFormat(configuration, file);
+            }
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static IImageInfo Identify(string filePath) => Identify(filePath, out IImageFormat _);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <param name="format">The format type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static IImageInfo Identify(string filePath, out IImageFormat format) => Identify(Configuration.Default, filePath, out format);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <param name="format">The format type of the decoded image.</param>
+        /// <exception cref="NotSupportedException">Thrown if the stream is not readable.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// </returns>
+        public static IImageInfo Identify(Configuration configuration, string filePath, out IImageFormat format)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            using (Stream file = configuration.FileSystem.OpenRead(filePath))
+            {
+                return Identify(configuration, file, out format);
             }
         }
 
@@ -62,29 +102,30 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// </summary>
-        /// <param name="config">The config for the decoder.</param>
+        /// <param name="configuration">The configuration for the decoder.</param>
         /// <param name="path">The file path to the image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Load(Configuration config, string path) => Load(config, path, out _);
+        public static Image Load(Configuration configuration, string path) => Load(configuration, path, out _);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// </summary>
-        /// <param name="config">The Configuration.</param>
+        /// <param name="configuration">The Configuration.</param>
         /// <param name="path">The file path to the image.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>The <see cref="Image"/>.</returns>
-        public static Image Load(Configuration config, string path, IImageDecoder decoder)
+        public static Image Load(Configuration configuration, string path, IImageDecoder decoder)
         {
-            using (Stream stream = config.FileSystem.OpenRead(path))
+            Guard.NotNull(configuration, nameof(configuration));
+            using (Stream stream = configuration.FileSystem.OpenRead(path))
             {
-                return Load(config, stream, decoder);
+                return Load(configuration, stream, decoder);
             }
         }
 
@@ -133,26 +174,27 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given file.
         /// </summary>
-        /// <param name="config">The configuration options.</param>
+        /// <param name="configuration">The configuration options.</param>
         /// <param name="path">The file path to the image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load<TPixel>(Configuration config, string path)
+        public static Image<TPixel> Load<TPixel>(Configuration configuration, string path)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Stream stream = config.FileSystem.OpenRead(path))
+            Guard.NotNull(configuration, nameof(configuration));
+            using (Stream stream = configuration.FileSystem.OpenRead(path))
             {
-                return Load<TPixel>(config, stream);
+                return Load<TPixel>(configuration, stream);
             }
         }
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given file.
         /// </summary>
-        /// <param name="config">The configuration options.</param>
+        /// <param name="configuration">The configuration options.</param>
         /// <param name="path">The file path to the image.</param>
         /// <param name="format">The mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">
@@ -160,12 +202,13 @@ namespace SixLabors.ImageSharp
         /// </exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load<TPixel>(Configuration config, string path, out IImageFormat format)
+        public static Image<TPixel> Load<TPixel>(Configuration configuration, string path, out IImageFormat format)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Stream stream = config.FileSystem.OpenRead(path))
+            Guard.NotNull(configuration, nameof(configuration));
+            using (Stream stream = configuration.FileSystem.OpenRead(path))
             {
-                return Load<TPixel>(config, stream, out format);
+                return Load<TPixel>(configuration, stream, out format);
             }
         }
 
@@ -173,18 +216,19 @@ namespace SixLabors.ImageSharp
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// The pixel type is selected by the decoder.
         /// </summary>
-        /// <param name="config">The configuration options.</param>
+        /// <param name="configuration">The configuration options.</param>
         /// <param name="path">The file path to the image.</param>
         /// <param name="format">The mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
         /// </exception>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image Load(Configuration config, string path, out IImageFormat format)
+        public static Image Load(Configuration configuration, string path, out IImageFormat format)
         {
-            using (Stream stream = config.FileSystem.OpenRead(path))
+            Guard.NotNull(configuration, nameof(configuration));
+            using (Stream stream = configuration.FileSystem.OpenRead(path))
             {
-                return Load(config, stream, out format);
+                return Load(configuration, stream, out format);
             }
         }
 
@@ -207,7 +251,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given file.
         /// </summary>
-        /// <param name="config">The Configuration.</param>
+        /// <param name="configuration">The Configuration.</param>
         /// <param name="path">The file path to the image.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="NotSupportedException">
@@ -215,12 +259,13 @@ namespace SixLabors.ImageSharp
         /// </exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static Image<TPixel> Load<TPixel>(Configuration config, string path, IImageDecoder decoder)
+        public static Image<TPixel> Load<TPixel>(Configuration configuration, string path, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Stream stream = config.FileSystem.OpenRead(path))
+            Guard.NotNull(configuration, nameof(configuration));
+            using (Stream stream = configuration.FileSystem.OpenRead(path))
             {
-                return Load<TPixel>(config, stream, decoder);
+                return Load<TPixel>(configuration, stream, decoder);
             }
         }
     }

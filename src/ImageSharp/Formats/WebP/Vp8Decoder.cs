@@ -340,7 +340,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         info.Limit = 0;  // no filtering.
                     }
 
-                    info.UseInnerFiltering = (byte)i4x4;
+                    info.UseInnerFiltering = i4x4 is 1;
                 }
             }
         }

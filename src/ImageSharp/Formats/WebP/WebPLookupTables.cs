@@ -444,7 +444,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         static WebPLookupTables()
         {
-            // TODO: maybe use hashset here
             Abs0 = new Dictionary<int, byte>();
             for (int i = -255; i <= 255; ++i)
             {

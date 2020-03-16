@@ -191,7 +191,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             if (dec.UseSkipProbability)
             {
-                block.Skip = (byte)this.bitReader.GetBit(dec.SkipProbability);
+                block.Skip = this.bitReader.GetBit(dec.SkipProbability) is 1;
             }
 
             block.IsI4x4 = this.bitReader.GetBit(145) is 0;
@@ -488,7 +488,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         break;
                 }
 
-                this.DoUVTransform(bitsUv >> 0, coeffs.AsSpan(16 * 16), uDst);
+                this.DoUVTransform(bitsUv, coeffs.AsSpan(16 * 16), uDst);
                 this.DoUVTransform(bitsUv >> 8, coeffs.AsSpan(20 * 16), vDst);
 
                 // Stash away top samples for next block.
@@ -545,7 +545,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     LossyUtils.SimpleHFilter16(dec.CacheY.Memory.Span, offset, yBps, limit + 4);
                 }
 
-                if (filterInfo.UseInnerFiltering > 0)
+                if (filterInfo.UseInnerFiltering)
                 {
                     LossyUtils.SimpleHFilter16i(dec.CacheY.Memory.Span, offset, yBps, limit);
                 }
@@ -555,7 +555,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     LossyUtils.SimpleVFilter16(dec.CacheY.Memory.Span, offset, yBps, limit + 4);
                 }
 
-                if (filterInfo.UseInnerFiltering > 0)
+                if (filterInfo.UseInnerFiltering)
                 {
                     LossyUtils.SimpleVFilter16i(dec.CacheY.Memory.Span, offset, yBps, limit);
                 }
@@ -572,7 +572,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     LossyUtils.HFilter8(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit + 4, iLevel, hevThresh);
                 }
 
-                if (filterInfo.UseInnerFiltering > 0)
+                if (filterInfo.UseInnerFiltering)
                 {
                     LossyUtils.HFilter16i(dec.CacheY.Memory.Span, yOffset, yBps, limit, iLevel, hevThresh);
                     LossyUtils.HFilter8i(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit, iLevel, hevThresh);
@@ -584,7 +584,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     LossyUtils.VFilter8(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit + 4, iLevel, hevThresh);
                 }
 
-                if (filterInfo.UseInnerFiltering > 0)
+                if (filterInfo.UseInnerFiltering)
                 {
                     LossyUtils.VFilter16i(dec.CacheY.Memory.Span, yOffset, yBps, limit, iLevel, hevThresh);
                     LossyUtils.VFilter8i(dec.CacheU.Memory.Span, dec.CacheV.Memory.Span, uvOffset, uvBps, limit, iLevel, hevThresh);
@@ -820,11 +820,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Vp8MacroBlock left = dec.LeftMacroBlock;
             Vp8MacroBlock macroBlock = dec.CurrentMacroBlock;
             Vp8MacroBlockData blockData = dec.CurrentBlockData;
-            int skip = dec.UseSkipProbability ? blockData.Skip : 0;
+            bool skip = dec.UseSkipProbability ? blockData.Skip : false;
 
-            if (skip is 0)
+            if (!skip)
             {
-                this.ParseResiduals(dec, bitreader, macroBlock);
+                skip = this.ParseResiduals(dec, bitreader, macroBlock);
             }
             else
             {
@@ -843,7 +843,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 Vp8FilterInfo precomputedFilterInfo = dec.FilterStrength[blockData.Segment, blockData.IsI4x4 ? 1 : 0];
                 dec.FilterInfo[dec.MbX] = (Vp8FilterInfo)precomputedFilterInfo.DeepClone();
-                dec.FilterInfo[dec.MbX].UseInnerFiltering |= (byte)(skip is 0 ? 1 : 0);
+                dec.FilterInfo[dec.MbX].UseInnerFiltering |= !skip;
             }
         }
 

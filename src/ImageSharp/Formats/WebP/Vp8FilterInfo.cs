@@ -39,9 +39,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         /// <summary>
         /// Gets or sets a value indicating whether to do inner filtering.
-        /// TODO: can this be a bool?
         /// </summary>
-        public byte UseInnerFiltering { get; set; }
+        public bool UseInnerFiltering { get; set; }
 
         /// <summary>
         /// Gets or sets the high edge variance threshold in [0..2].

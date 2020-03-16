@@ -8,6 +8,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class Vp8MacroBlockData
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8MacroBlockData"/> class.
+        /// </summary>
         public Vp8MacroBlockData()
         {
             this.Modes = new byte[16];
@@ -15,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// Gets or sets the coefficient. 384 coeffs = (16+4+4) * 4*4.
+        /// Gets or sets the coefficients. 384 coeffs = (16+4+4) * 4*4.
         /// </summary>
         public short[] Coeffs { get; set; }
 
@@ -38,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public uint NonZeroUv { get; set; }
 
-        public byte Skip { get; set; }
+        public bool Skip { get; set; }
 
         public byte Segment { get; set; }
     }

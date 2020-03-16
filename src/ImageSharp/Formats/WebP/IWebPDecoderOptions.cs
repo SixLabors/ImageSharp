@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
-    /// Image decoder for generating an image out of a webp stream.
+    /// Image decoder options for generating an image out of a webp stream.
     /// </summary>
     internal interface IWebPDecoderOptions
     {

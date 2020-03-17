@@ -3,11 +3,13 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     internal static class LossyUtils
     {
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static void Put16(int v, Span<byte> dst)
         {
             for (int j = 0; j < 16; ++j)
@@ -28,6 +30,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put16(dc >> 5, dst);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void TM16(Span<byte> dst, Span<byte> yuv, int offset)
         {
             TrueMotion(dst, yuv, offset, 16);
@@ -83,6 +86,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put16(dc >> 4, dst);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void DC16NoTopLeft(Span<byte> dst)
         {
             // DC with no top and left samples.
@@ -101,6 +105,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put8x8uv((byte)(dc0 >> 4), dst);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void TM8uv(Span<byte> dst, Span<byte> yuv, int offset)
         {
             // TrueMotion
@@ -159,6 +164,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Put8x8uv((byte)(dc0 >> 3), dst);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void DC8uvNoTopLeft(Span<byte> dst)
         {
             // DC with nothing.
@@ -180,6 +186,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void TM4(Span<byte> dst, Span<byte> yuv, int offset)
         {
             TrueMotion(dst, yuv, offset, 4);
@@ -601,11 +608,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void VFilter16(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop26(p, offset, stride, 1, 16, thresh, ithresh, hevThresh);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void HFilter16(Span<byte> p, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop26(p, offset, 1, stride, 16, thresh, ithresh, hevThresh);
@@ -630,36 +639,42 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         // 8-pixels wide variant, for chroma filtering.
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void VFilter8(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop26(u, offset, stride, 1, 8, thresh, ithresh, hevThresh);
             FilterLoop26(v, offset, stride, 1, 8, thresh, ithresh, hevThresh);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void HFilter8(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop26(u, offset, 1, stride, 8, thresh, ithresh, hevThresh);
             FilterLoop26(v, offset, 1, stride, 8, thresh, ithresh, hevThresh);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void VFilter8i(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop24(u, offset + (4 * stride), stride, 1, 8, thresh, ithresh, hevThresh);
             FilterLoop24(v, offset + (4 * stride), stride, 1, 8, thresh, ithresh, hevThresh);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void HFilter8i(Span<byte> u, Span<byte> v, int offset, int stride, int thresh, int ithresh, int hevThresh)
         {
             FilterLoop24(u, offset + 4, 1, stride, 8, thresh, ithresh, hevThresh);
             FilterLoop24(v, offset + 4, 1, stride, 8, thresh, ithresh, hevThresh);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static uint LoadUv(byte u, byte v)
         {
             // We process u and v together stashed into 32bit(16bit each).
             return (uint)(u | (v << 16));
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void YuvToBgr(int y, int u, int v, Span<byte> bgr)
         {
             bgr[0] = (byte)YuvToB(y, u);
@@ -667,16 +682,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             bgr[2] = (byte)YuvToR(y, v);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int YuvToR(int y, int v)
         {
             return Clip8(MultHi(y, 19077) + MultHi(v, 26149) - 14234);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int YuvToG(int y, int u, int v)
         {
             return Clip8(MultHi(y, 19077) - MultHi(u, 6419) - MultHi(v, 13320) + 8708);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int YuvToB(int y, int u)
         {
             return Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);
@@ -795,6 +813,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             p[offset + (2 * step)] = WebPLookupTables.Clip1[q2 - a3];
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static bool NeedsFilter(Span<byte> p, int offset, int step, int t)
         {
             int p1 = p[offset + (-2 * step)];
@@ -824,6 +843,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                    WebPLookupTables.Abs0[q2 - q1] <= it && WebPLookupTables.Abs0[q1 - q0] <= it;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static bool Hev(Span<byte> p, int offset, int step, int thresh)
         {
             int p1 = p[offset - (2 * step)];
@@ -833,16 +853,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return (WebPLookupTables.Abs0[p1 - p0] > thresh) || (WebPLookupTables.Abs0[q1 - q0] > thresh);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int MultHi(int v, int coeff)
         {
             return (v * coeff) >> 8;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static void Store(Span<byte> dst, int x, int y, int v)
         {
             dst[x + (y * WebPConstants.Bps)] = Clip8B(dst[x + (y * WebPConstants.Bps)] + (v >> 3));
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static void Store2(Span<byte> dst, int y, int dc, int d, int c)
         {
             Store(dst, 0, y, dc + d);
@@ -851,27 +874,32 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Store(dst, 3, y, dc - d);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int Mul1(int a)
         {
             return ((a * 20091) >> 16) + a;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int Mul2(int a)
         {
             return (a * 35468) >> 16;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static byte Clip8B(int v)
         {
             return (byte)((v & ~0xff) is 0 ? v : (v < 0) ? 0 : 255);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static byte Clip8(int v)
         {
             int yuvMask = (256 << 6) - 1;
             return (byte)(((v & ~yuvMask) is 0) ? (v >> 6) : (v < 0) ? 0 : 255);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static void Put8x8uv(byte value, Span<byte> dst)
         {
             for (int j = 0; j < 8; ++j)
@@ -881,6 +909,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static void Memset(Span<byte> dst, byte value, int startIdx, int count)
         {
             for (int i = 0; i < count; i++)
@@ -889,21 +918,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static byte Avg2(byte a, byte b)
         {
             return (byte)((a + b + 1) >> 1);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static byte Avg3(byte a, byte b, byte c)
         {
             return (byte)((a + (2 * b) + c + 2) >> 2);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static void Dst(Span<byte> dst, int x, int y, byte v)
         {
             dst[x + (y * WebPConstants.Bps)] = v;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int Clamp255(int x)
         {
             return x < 0 ? 0 : (x > 255 ? 255 : x);

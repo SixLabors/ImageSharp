@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
@@ -960,12 +961,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return tableSpan[0].Value;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private HTreeGroup[] GetHTreeGroupForPos(Vp8LMetadata metadata, int x, int y)
         {
             uint metaIndex = this.GetMetaIndex(metadata.HuffmanImage, metadata.HuffmanXSize, metadata.HuffmanSubSampleBits, x, y);
             return metadata.HTreeGroups.AsSpan((int)metaIndex).ToArray();
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private uint GetMetaIndex(IMemoryOwner<uint> huffmanImage, int xSize, int bits, int x, int y)
         {
             if (bits is 0)
@@ -1006,12 +1009,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return (int)(offset + this.bitReader.ReadValue(extraBits) + 1);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int GetCopyLength(int lengthSymbol)
         {
             // Length and distance prefixes are encoded the same way.
             return this.GetCopyDistance(lengthSymbol);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int AccumulateHCode(HuffmanCode hCode, int shift, HuffmanCode huff)
         {
             huff.BitsUsed += hCode.BitsUsed;
@@ -1019,6 +1024,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return hCode.BitsUsed;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static byte GetAlphaValue(int val)
         {
             return (byte)((val >> 8) & 0xff);

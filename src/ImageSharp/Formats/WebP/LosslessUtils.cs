@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
@@ -109,7 +110,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             while (y < yEnd)
             {
                 int predRowIdx = predRowIdxStart;
-                Vp8LMultipliers m = default(Vp8LMultipliers);
+                var m = default(Vp8LMultipliers);
                 int srcSafeEnd = pixelPos + safeWidth;
                 int srcEnd = pixelPos + width;
                 while (pixelPos < srcSafeEnd)
@@ -273,6 +274,24 @@ namespace SixLabors.ImageSharp.Formats.WebP
             output.CopyTo(pixelData);
         }
 
+        public static void ExpandColorMap(int numColors, Span<uint> transformData, Span<uint> newColorMap)
+        {
+            newColorMap[0] = transformData[0];
+            Span<byte> data = MemoryMarshal.Cast<uint, byte>(transformData);
+            Span<byte> newData = MemoryMarshal.Cast<uint, byte>(newColorMap);
+            int i;
+            for (i = 4; i < 4 * numColors; ++i)
+            {
+                // Equivalent to AddPixelEq(), on a byte-basis.
+                newData[i] = (byte)((data[i] + newData[i - 4]) & 0xff);
+            }
+
+            for (; i < 4 * newColorMap.Length; ++i)
+            {
+                newData[i] = 0;  // black tail.
+            }
+        }
+
         private static void PredictorAdd0(Span<uint> input, int startIdx, int numberOfPixels, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
@@ -425,79 +444,93 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor0()
         {
             return WebPConstants.ArgbBlack;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor1(uint left, Span<uint> top)
         {
             return left;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor2(uint left, Span<uint> top, int idx)
         {
             return top[idx];
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor3(uint left, Span<uint> top, int idx)
         {
             return top[idx + 1];
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor4(uint left, Span<uint> top, int idx)
         {
             return top[idx - 1];
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor5(uint left, Span<uint> top, int idx)
         {
             uint pred = Average3(left, top[idx], top[idx + 1]);
             return pred;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor6(uint left, Span<uint> top, int idx)
         {
             uint pred = Average2(left, top[idx - 1]);
             return pred;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor7(uint left, Span<uint> top, int idx)
         {
             uint pred = Average2(left, top[idx]);
             return pred;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor8(uint left, Span<uint> top, int idx)
         {
             uint pred = Average2(top[idx - 1], top[idx]);
             return pred;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor9(uint left, Span<uint> top, int idx)
         {
             uint pred = Average2(top[idx], top[idx + 1]);
             return pred;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor10(uint left, Span<uint> top, int idx)
         {
             uint pred = Average4(left, top[idx - 1], top[idx], top[idx + 1]);
             return pred;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor11(uint left, Span<uint> top, int idx)
         {
             uint pred = Select(top[idx], left, top[idx - 1]);
             return pred;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor12(uint left, Span<uint> top, int idx)
         {
             uint pred = ClampedAddSubtractFull(left, top[idx], top[idx - 1]);
             return pred;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Predictor13(uint left, Span<uint> top, int idx)
         {
             uint pred = ClampedAddSubtractHalf(left, top[idx], top[idx - 1]);
@@ -529,16 +562,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | (uint)b;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int AddSubtractComponentHalf(int a, int b)
         {
             return (int)Clip255((uint)(a + ((a - b) / 2)));
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int AddSubtractComponentFull(int a, int b, int c)
         {
             return (int)Clip255((uint)(a + b - c));
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Clip255(uint a)
         {
             if (a < 256)
@@ -559,6 +595,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return (paMinusPb <= 0) ? a : b;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int Sub3(int a, int b, int c)
         {
             int pb = b - c;
@@ -566,16 +603,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return Math.Abs(pb) - Math.Abs(pa);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Average2(uint a0, uint a1)
         {
             return (((a0 ^ a1) & 0xfefefefeu) >> 1) + (a0 & a1);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Average3(uint a0, uint a1, uint a2)
         {
             return Average2(Average2(a0, a2), a1);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Average4(uint a0, uint a1, uint a2, uint a3)
         {
             return Average2(Average2(a0, a1), Average2(a2, a3));
@@ -584,6 +624,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Computes sampled size of 'size' when sampling using 'sampling bits'.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static int SubSampleSize(int size, int samplingBits)
         {
             return (size + (1 << samplingBits) - 1) >> samplingBits;
@@ -592,6 +633,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Sum of each component, mod 256.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint AddPixels(uint a, uint b)
         {
             uint alphaAndGreen = (a & 0xff00ff00u) + (b & 0xff00ff00u);
@@ -602,6 +644,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Difference of each component, mod 256.
         /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint SubPixels(uint a, uint b)
         {
             uint alphaAndGreen = 0x00ff00ffu + (a & 0xff00ff00u) - (b & 0xff00ff00u);
@@ -609,34 +652,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return (alphaAndGreen & 0xff00ff00u) | (redAndBlue & 0x00ff00ffu);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint GetArgbIndex(uint idx)
         {
             return (idx >> 8) & 0xff;
         }
 
-        public static void ExpandColorMap(int numColors, Span<uint> transformData, Span<uint> newColorMap)
-        {
-            newColorMap[0] = transformData[0];
-            Span<byte> data = MemoryMarshal.Cast<uint, byte>(transformData);
-            Span<byte> newData = MemoryMarshal.Cast<uint, byte>(newColorMap);
-            int i;
-            for (i = 4; i < 4 * numColors; ++i)
-            {
-                // Equivalent to AddPixelEq(), on a byte-basis.
-                newData[i] = (byte)((data[i] + newData[i - 4]) & 0xff);
-            }
-
-            for (; i < 4 * newColorMap.Length; ++i)
-            {
-                newData[i] = 0;  // black tail.
-            }
-        }
-
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int ColorTransformDelta(sbyte colorPred, sbyte color)
         {
             return ((int)colorPred * color) >> 5;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static void ColorCodeToMultipliers(uint colorCode, ref Vp8LMultipliers m)
         {
             m.GreenToRed = (byte)(colorCode & 0xff);

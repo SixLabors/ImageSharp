@@ -4,6 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
@@ -139,6 +140,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return (v ^ (int)mask) - (int)mask;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool ReadBool()
         {
             return this.ReadValue(1) is 1;
@@ -215,6 +217,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private ulong ByteSwap64(ulong x)
         {
             x = ((x & 0xffffffff00000000ul) >> 32) | ((x & 0x00000000fffffffful) << 32);
@@ -224,6 +227,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         // Returns 31 ^ clz(n) = log2(n).Returns 31 ^ clz(n) = log2(n).
+        [MethodImpl(InliningOptions.ShortMethod)]
         private int BitsLog2Floor(uint n)
         {
             int logValue = 0;

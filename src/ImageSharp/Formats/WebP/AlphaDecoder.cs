@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
@@ -293,6 +294,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return true;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int GradientPredictor(byte a, byte b, byte c)
         {
             int g = a + b - c;

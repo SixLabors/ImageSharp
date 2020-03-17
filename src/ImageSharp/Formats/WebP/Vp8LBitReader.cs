@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
@@ -142,6 +143,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Reads a single bit from the stream.
         /// </summary>
         /// <returns>True if the bit read was 1, false otherwise.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool ReadBit()
         {
             uint bit = this.ReadValue(1);
@@ -152,6 +154,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// For jumping over a number of bits in the bit stream when accessed with PrefetchBits and FillBitWindow.
         /// </summary>
         /// <param name="numberOfBits">The number of bits to advance the position.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void AdvanceBitPosition(int numberOfBits)
         {
             this.bitPos += numberOfBits;
@@ -161,6 +164,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Return the pre-fetched bits, so they can be looked up.
         /// </summary>
         /// <returns>The pre-fetched bits.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public ulong PrefetchBits()
         {
             return this.value >> (this.bitPos & (Lbits - 1));

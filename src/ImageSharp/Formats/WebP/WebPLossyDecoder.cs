@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
@@ -1362,6 +1363,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return io;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint NzCodeBits(uint nzCoeffs, int nz, int dcNz)
         {
             nzCoeffs <<= 2;
@@ -1369,12 +1371,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return nzCoeffs;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static Vp8BandProbas[] GetBandsRow(Vp8BandProbas[,] bands, int rowIdx)
         {
             Vp8BandProbas[] bandsRow = Enumerable.Range(0, bands.GetLength(1)).Select(x => bands[rowIdx, x]).ToArray();
             return bandsRow;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int CheckMode(int mbx, int mby, int mode)
         {
             // B_DC_PRED
@@ -1395,6 +1399,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return mode;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int Clip(int value, int max)
         {
             return value < 0 ? 0 : value > max ? max : value;

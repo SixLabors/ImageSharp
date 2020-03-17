@@ -632,19 +632,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 yEnd -= extraYRows;
             }
 
-            if (yEnd > io.CropBottom)
+            if (yEnd > io.Height)
             {
-                yEnd = io.CropBottom; // make sure we don't overflow on last row.
+                yEnd = io.Height; // make sure we don't overflow on last row.
             }
 
             if (yStart < yEnd)
             {
-                io.Y = io.Y.Slice(io.CropLeft);
-                io.U = io.U.Slice(io.CropLeft);
-                io.V = io.V.Slice(io.CropLeft);
-
-                io.MbY = yStart - io.CropTop;
-                io.MbW = io.CropRight - io.CropLeft;
+                io.MbY = yStart;
+                io.MbW = io.Width;
                 io.MbH = yEnd - yStart;
                 this.EmitRgb(dec, io);
             }
@@ -705,7 +701,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // Move to last row.
             curY = curY.Slice(io.YStride);
-            if (io.CropTop + yEnd < io.CropBottom)
+            if (yEnd < io.Height)
             {
                 // Save the unfinished samples for next call (as we're not done yet).
                 curY.Slice(0, mbw).CopyTo(tmpYBuffer);
@@ -1315,11 +1311,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             var io = default(Vp8Io);
             io.Width = (int)pictureHeader.Width;
             io.Height = (int)pictureHeader.Height;
-            io.UseCropping = false;
-            io.CropTop = 0;
-            io.CropLeft = 0;
-            io.CropRight = io.Width;
-            io.CropBottom = io.Height;
             io.UseScaling = false;
             io.ScaledWidth = io.Width;
             io.ScaledHeight = io.ScaledHeight;
@@ -1340,11 +1331,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
             else
             {
-                // For simple filter, we can filter only the cropped region. We include 'extraPixels' on
-                // the other side of the boundary, since vertical or horizontal filtering of the previous
-                // macroblock can modify some abutting pixels.
-                dec.TopLeftMbX = (io.CropLeft - extraPixels) >> 4;
-                dec.TopLeftMbY = (io.CropTop - extraPixels) >> 4;
+                // For simple filter, we include 'extraPixels' on the other side of the boundary,
+                // since vertical or horizontal filtering of the previous macroblock can modify some abutting pixels.
+                dec.TopLeftMbX = (-extraPixels) >> 4;
+                dec.TopLeftMbY = (-extraPixels) >> 4;
                 if (dec.TopLeftMbX < 0)
                 {
                     dec.TopLeftMbX = 0;
@@ -1357,8 +1347,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             // We need some 'extra' pixels on the right/bottom.
-            dec.BottomRightMbY = (io.CropBottom + 15 + extraPixels) >> 4;
-            dec.BottomRightMbX = (io.CropRight + 15 + extraPixels) >> 4;
+            dec.BottomRightMbY = (io.Height + 15 + extraPixels) >> 4;
+            dec.BottomRightMbX = (io.Width + 15 + extraPixels) >> 4;
             if (dec.BottomRightMbX > dec.MbWidth)
             {
                 dec.BottomRightMbX = dec.MbWidth;

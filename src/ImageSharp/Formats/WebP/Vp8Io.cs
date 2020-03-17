@@ -9,14 +9,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
     {
         /// <summary>
         /// Gets or sets the picture width in pixels (invariable).
-        /// Original, uncropped dimensions.
         /// The actual area passed to put() is stored in <see cref="MbW"/> /> field.
         /// </summary>
         public int Width { get; set; }
 
         /// <summary>
         /// Gets or sets the picture height in pixels (invariable).
-        /// Original, uncropped dimensions.
         /// The actual area passed to put() is stored in <see cref="MbH"/> /> field.
         /// </summary>
         public int Height { get; set; }
@@ -60,16 +58,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Gets or sets the row stride for chroma.
         /// </summary>
         public int UvStride { get; set; }
-
-        public bool UseCropping { get; set; }
-
-        public int CropLeft { get; set; }
-
-        public int CropRight { get; set; }
-
-        public int CropTop { get; set; }
-
-        public int CropBottom { get; set; }
 
         public bool UseScaling { get; set; }
 

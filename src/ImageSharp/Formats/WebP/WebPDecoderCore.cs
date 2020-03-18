@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.currentStream = stream;
 
             uint fileSize = this.ReadImageHeader();
-            WebPImageInfo imageInfo = this.ReadVp8Info();
+            using var imageInfo = this.ReadVp8Info();
             if (imageInfo.Features != null && imageInfo.Features.Animation)
             {
                 WebPThrowHelper.ThrowNotSupportedException("Animations are not supported");
@@ -186,7 +186,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // The first two bit of it are reserved and should be 0.
             if (imageFeatures >> 6 != 0)
             {
-                WebPThrowHelper.ThrowImageFormatException("first two bits of the VP8X header are expected to be zero");
+                WebPThrowHelper.ThrowImageFormatException(
+                    "first two bits of the VP8X header are expected to be zero");
             }
 
             // If bit 3 is set, a ICC Profile Chunk should be present.
@@ -232,12 +233,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (features.Animation)
             {
                 // TODO: Animations are not yet supported.
-                return new WebPImageInfo()
-                       {
-                           Width = width,
-                           Height = height,
-                           Features = features
-                       };
+                return new WebPImageInfo() { Width = width, Height = height, Features = features };
             }
 
             // TODO: check if VP8 or VP8L info about the dimensions match VP8X info
@@ -444,8 +440,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 case WebPChunkType.Alpha:
                     uint alphaChunkSize = this.ReadChunkSize();
                     features.AlphaChunkHeader = (byte)this.currentStream.ReadByte();
-                    features.AlphaData = new byte[alphaChunkSize - 1];
-                    this.currentStream.Read(features.AlphaData, 0, features.AlphaData.Length);
+                    var alphaDataSize = (int)(alphaChunkSize - 1);
+                    features.AlphaData = this.memoryAllocator.Allocate<byte>(alphaDataSize);
+                    this.currentStream.Read(features.AlphaData.Memory.Span, 0, alphaDataSize);
                     break;
             }
         }

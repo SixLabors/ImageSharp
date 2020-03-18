@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 
 using SixLabors.ImageSharp.Memory;
@@ -11,12 +12,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// <summary>
     /// Base class for VP8 and VP8L bitreader.
     /// </summary>
-    internal abstract class BitReaderBase
+    internal abstract class BitReaderBase : IDisposable
     {
         /// <summary>
         /// Gets or sets the raw encoded image data.
         /// </summary>
-        public byte[] Data { get; set; }
+        public IMemoryOwner<byte> Data { get; set; }
 
         /// <summary>
         /// Copies the raw encoded image data from the stream into a byte array.
@@ -26,24 +27,28 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="memoryAllocator">Used for allocating memory during reading data from the stream.</param>
         protected void ReadImageDataFromStream(Stream input, int bytesToRead, MemoryAllocator memoryAllocator)
         {
-            using (var ms = new MemoryStream())
+            this.Data = memoryAllocator.Allocate<byte>(bytesToRead);
+            Span<byte> dataSpan = this.Data.Memory.Span;
+
             using (IManagedByteBuffer buffer = memoryAllocator.AllocateManagedByteBuffer(4096))
             {
                 Span<byte> bufferSpan = buffer.GetSpan();
                 int read;
                 while (bytesToRead > 0 && (read = input.Read(buffer.Array, 0, Math.Min(bufferSpan.Length, bytesToRead))) > 0)
                 {
-                    ms.Write(buffer.Array, 0, read);
+                    buffer.Array.AsSpan(0, read).CopyTo(dataSpan);
                     bytesToRead -= read;
+                    dataSpan = dataSpan.Slice(read);
                 }
 
                 if (bytesToRead > 0)
                 {
                     WebPThrowHelper.ThrowImageFormatException("image file has insufficient data");
                 }
-
-                this.Data = ms.ToArray();
             }
         }
+
+        /// <inheritdoc/>
+        public void Dispose() => this.Data?.Dispose();
     }
 }

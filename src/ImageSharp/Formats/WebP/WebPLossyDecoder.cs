@@ -1195,7 +1195,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             uint size = this.bitReader.Remaining - this.bitReader.PartitionLength;
             int startIdx = (int)this.bitReader.PartitionLength;
-            Span<byte> sz = this.bitReader.Data.AsSpan(startIdx);
+            Span<byte> sz = this.bitReader.Data.Slice(startIdx);
             int sizeLeft = (int)size;
             dec.NumPartsMinusOne = (1 << (int)this.bitReader.ReadValue(2)) - 1;
             int lastPart = dec.NumPartsMinusOne;

@@ -1,17 +1,19 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.WebP
 {
-    internal class WebPImageInfo
+    internal class WebPImageInfo : IDisposable
     {
         /// <summary>
-        /// Gets or sets the bitmap width in pixels (signed integer).
+        /// Gets or sets the bitmap width in pixels.
         /// </summary>
         public uint Width { get; set; }
 
         /// <summary>
-        /// Gets or sets the bitmap height in pixels (signed integer).
+        /// Gets or sets the bitmap height in pixels.
         /// </summary>
         public uint Height { get; set; }
 
@@ -53,5 +55,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Gets or sets the VP8 bitreader. Will be null, if its not a lossy image.
         /// </summary>
         public Vp8BitReader Vp8BitReader { get; set; } = null;
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.Vp8BitReader?.Dispose();
+            this.Vp8LBitReader?.Dispose();
+            this.Features?.AlphaData?.Dispose();
+        }
     }
 }

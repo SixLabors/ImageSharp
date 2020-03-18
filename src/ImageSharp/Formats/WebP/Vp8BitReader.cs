@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -70,10 +70,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="imageData">The raw encoded image data.</param>
         /// <param name="partitionLength">The partition length.</param>
         /// <param name="startPos">Start index in the data array. Defaults to 0.</param>
-        public Vp8BitReader(byte[] imageData, uint partitionLength, int startPos = 0)
+        public Vp8BitReader(IMemoryOwner<byte> imageData, uint partitionLength, int startPos = 0)
         {
             this.Data = imageData;
-            this.ImageDataSize = (uint)imageData.Length;
+            this.ImageDataSize = (uint)imageData.Memory.Length;
             this.PartitionLength = partitionLength;
             this.InitBitreader(partitionLength, startPos);
         }
@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             if (this.pos < this.bufferMax)
             {
-                ulong inBits = BinaryPrimitives.ReadUInt64LittleEndian(this.Data.AsSpan((int)this.pos, 8));
+                ulong inBits = BinaryPrimitives.ReadUInt64LittleEndian(this.Data.Memory.Span.Slice((int)this.pos, 8));
                 this.pos += BitsCount >> 3;
                 ulong bits = this.ByteSwap64(inBits);
                 bits >>= 64 - BitsCount;
@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (this.pos < this.bufferEnd)
             {
                 this.bits += 8;
-                this.value = this.Data[this.pos++] | (this.value << 8);
+                this.value = this.Data.Memory.Span[(int)this.pos++] | (this.value << 8);
             }
             else if (!this.eof)
             {

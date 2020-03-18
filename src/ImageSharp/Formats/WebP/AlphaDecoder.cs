@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="alphaChunkHeader">The first byte of the alpha image stream contains information on ow to decode the stream.</param>
         /// <param name="memoryAllocator">Used for allocating memory during decoding.</param>
         /// <param name="configuration">The configuration.</param>
-        public AlphaDecoder(int width, int height, byte[] data, byte alphaChunkHeader, MemoryAllocator memoryAllocator, Configuration configuration)
+        public AlphaDecoder(int width, int height, IMemoryOwner<byte> data, byte alphaChunkHeader, MemoryAllocator memoryAllocator, Configuration configuration)
         {
             this.Width = width;
             this.Height = height;
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets the (maybe compressed) alpha data.
         /// </summary>
-        private byte[] Data { get; }
+        private IMemoryOwner<byte> Data { get; }
 
         /// <summary>
         /// Gets the Vp8L decoder which is used to de compress the alpha channel, if needed.
@@ -137,7 +137,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             if (this.Compressed is false)
             {
-                if (this.Data.Length < (this.Width * this.Height))
+                Span<byte> dataSpan = this.Data.Memory.Span;
+                if (dataSpan.Length < (this.Width * this.Height))
                 {
                     WebPThrowHelper.ThrowImageFormatException("not enough data in the ALPH chunk");
                 }
@@ -145,11 +146,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 Span<byte> alphaSpan = this.Alpha.Memory.Span;
                 if (this.AlphaFilterType == WebPAlphaFilterType.None)
                 {
-                    this.Data.AsSpan(0, this.Width * this.Height).CopyTo(alphaSpan);
+                    dataSpan.Slice(0, this.Width * this.Height).CopyTo(alphaSpan);
                     return;
                 }
 
-                Span<byte> deltas = this.Data.AsSpan();
+                Span<byte> deltas = dataSpan;
                 Span<byte> dst = alphaSpan;
                 Span<byte> prev = null;
                 for (int y = 0; y < this.Height; ++y)
@@ -305,6 +306,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public void Dispose()
         {
             this.Vp8LDec?.Dispose();
+            this.Data.Dispose();
             this.Alpha?.Dispose();
         }
     }

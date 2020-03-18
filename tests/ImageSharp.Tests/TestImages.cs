@@ -404,6 +404,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public static class Lossless
             {
+                public const string Earth = "WebP/earth_lossless.webp";
                 public const string WithExif = "WebP/exif_lossless.webp";
                 public const string WithIccp = "WebP/iccp_lossless.webp";
                 public const string NoTransform1 = "WebP/lossless_vec_1_0.webp";
@@ -454,6 +455,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public static class Lossy
             {
+                public const string Earth = "WebP/earth_lossy.webp";
                 public const string WithExif = "WebP/exif_lossy.webp";
                 public const string WithIccp = "WebP/iccp_lossy.webp";
 

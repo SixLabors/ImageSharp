@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
@@ -62,18 +63,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Initializes a new instance of the <see cref="Vp8LBitReader"/> class.
         /// </summary>
         /// <param name="data">Lossless compressed image data.</param>
-        public Vp8LBitReader(byte[] data)
+        public Vp8LBitReader(IMemoryOwner<byte> data)
         {
             this.Data = data;
-            this.len = data.Length;
+            this.len = data.Memory.Length;
             this.value = 0;
             this.bitPos = 0;
             this.Eos = false;
 
             ulong currentValue = 0;
+            System.Span<byte> dataSpan = this.Data.Memory.Span;
             for (int i = 0; i < 8; ++i)
             {
-                currentValue |= (ulong)this.Data[i] << (8 * i);
+                currentValue |= (ulong)dataSpan[i] << (8 * i);
             }
 
             this.value = currentValue;
@@ -103,9 +105,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             ulong currentValue = 0;
+            System.Span<byte> dataSpan = this.Data.Memory.Span;
             for (int i = 0; i < length; ++i)
             {
-                currentValue |= (ulong)this.Data[i] << (8 * i);
+                currentValue |= (ulong)dataSpan[i] << (8 * i);
             }
 
             this.value = currentValue;
@@ -200,10 +203,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         private void ShiftBytes()
         {
+            System.Span<byte> dataSpan = this.Data.Memory.Span;
             while (this.bitPos >= 8 && this.pos < this.len)
             {
                 this.value >>= 8;
-                this.value |= (ulong)this.Data[this.pos] << (Lbits - 8);
+                this.value |= (ulong)dataSpan[(int)this.pos] << (Lbits - 8);
                 ++this.pos;
                 this.bitPos -= 8;
             }

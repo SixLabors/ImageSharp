@@ -1,12 +1,15 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers;
+
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
     /// Image features of a VP8X image.
     /// </summary>
-    internal class WebPFeatures
+    internal class WebPFeatures : IDisposable
     {
         /// <summary>
         /// Gets or sets a value indicating whether this image has a ICC Profile.
@@ -21,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets or sets the alpha data, if an ALPH chunk is present.
         /// </summary>
-        public byte[] AlphaData { get; set; }
+        public IMemoryOwner<byte> AlphaData { get; set; }
 
         /// <summary>
         /// Gets or sets the alpha chunk header.
@@ -42,5 +45,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Gets or sets a value indicating whether this image is a animation.
         /// </summary>
         public bool Animation { get; set; }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.AlphaData?.Dispose();
+        }
     }
 }

@@ -18,9 +18,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         private byte[] webpLosslessBytes;
 
         private string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImageLossy);
+
         private string TestImageLosslessFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImageLossless);
 
-        [Params(TestImages.WebP.Lossy.Bike)]
+        [Params(TestImages.WebP.Lossy.Alpha1)]
         public string TestImageLossy { get; set; }
 
         [Params(TestImages.WebP.Lossless.BikeThreeTransforms)]

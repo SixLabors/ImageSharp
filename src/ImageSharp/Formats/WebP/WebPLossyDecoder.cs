@@ -12,6 +12,12 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
+    /// <summary>
+    /// Decoder for lossy webp images. This code is a port of libwebp, which can be found here: https://chromium.googlesource.com/webm/libwebp
+    /// </summary>
+    /// <remarks>
+    /// The lossy specification can be found here: https://tools.ietf.org/html/rfc6386
+    /// </remarks>
     internal sealed class WebPLossyDecoder
     {
         /// <summary>

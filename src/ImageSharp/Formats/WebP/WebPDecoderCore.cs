@@ -14,7 +14,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
-    /// Performs the bitmap decoding operation.
+    /// Performs the webp decoding operation.
     /// </summary>
     internal sealed class WebPDecoderCore
     {
@@ -140,6 +140,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return chunkSize;
         }
 
+        /// <summary>
+        /// Reads information present in the image header, about the image content and how to decode the image.
+        /// </summary>
+        /// <returns>Information about the webp image.</returns>
         private WebPImageInfo ReadVp8Info()
         {
             this.Metadata = new ImageMetadata();
@@ -173,29 +177,39 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <returns>Information about this webp image.</returns>
         private WebPImageInfo ReadVp8XHeader()
         {
+            var features = new WebPFeatures();
             uint chunkSize = this.ReadChunkSize();
 
             // The first byte contains information about the image features used.
-            // The first two bit of it are reserved and should be 0. TODO: should an exception be thrown if its not the case, or just ignore it?
             byte imageFeatures = (byte)this.currentStream.ReadByte();
 
+            // The first two bit of it are reserved and should be 0.
+            if (imageFeatures >> 6 != 0)
+            {
+                WebPThrowHelper.ThrowImageFormatException("first two bits of the VP8X header are expected to be zero");
+            }
+
             // If bit 3 is set, a ICC Profile Chunk should be present.
-            bool isIccPresent = (imageFeatures & (1 << 5)) != 0;
+            features.IccProfile = (imageFeatures & (1 << 5)) != 0;
 
             // If bit 4 is set, any of the frames of the image contain transparency information ("alpha" chunk).
-            bool isAlphaPresent = (imageFeatures & (1 << 4)) != 0;
+            features.Alpha = (imageFeatures & (1 << 4)) != 0;
 
             // If bit 5 is set, a EXIF metadata should be present.
-            bool isExifPresent = (imageFeatures & (1 << 3)) != 0;
+            features.ExifProfile = (imageFeatures & (1 << 3)) != 0;
 
             // If bit 6 is set, XMP metadata should be present.
-            bool isXmpPresent = (imageFeatures & (1 << 2)) != 0;
+            features.XmpMetaData = (imageFeatures & (1 << 2)) != 0;
 
             // If bit 7 is set, animation should be present.
-            bool isAnimationPresent = (imageFeatures & (1 << 1)) != 0;
+            features.Animation = (imageFeatures & (1 << 1)) != 0;
 
             // 3 reserved bytes should follow which are supposed to be zero.
             this.currentStream.Read(this.buffer, 0, 3);
+            if (this.buffer[0] != 0 || this.buffer[1] != 0 | this.buffer[2] != 0)
+            {
+                WebPThrowHelper.ThrowImageFormatException("reserved bytes should be zero");
+            }
 
             // 3 bytes for the width.
             this.currentStream.Read(this.buffer, 0, 3);
@@ -208,76 +222,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint height = (uint)BinaryPrimitives.ReadInt32LittleEndian(this.buffer) + 1;
 
             // Optional chunks ICCP, ALPH and ANIM can follow here.
-            WebPChunkType chunkType;
-            if (isIccPresent)
+            WebPChunkType chunkType = this.ReadChunkType();
+            while (IsOptionalVp8XChunk(chunkType))
             {
+                this.ParseOptionalExtendedChunks(chunkType, features);
                 chunkType = this.ReadChunkType();
-                if (chunkType is WebPChunkType.Iccp)
-                {
-                    uint iccpChunkSize = this.ReadChunkSize();
-                    if (!this.IgnoreMetadata)
-                    {
-                        var iccpData = new byte[iccpChunkSize];
-                        this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
-                        var profile = new IccProfile(iccpData);
-                        if (profile.CheckIsValid())
-                        {
-                            this.Metadata.IccProfile = profile;
-                        }
-                    }
-                    else
-                    {
-                        this.currentStream.Skip((int)iccpChunkSize);
-                    }
-                }
             }
 
-            if (isAnimationPresent)
+            if (features.Animation)
             {
-                this.webpMetadata.Animated = true;
-
+                // TODO: Animations are not yet supported.
                 return new WebPImageInfo()
                        {
                            Width = width,
                            Height = height,
-                           Features = new WebPFeatures()
-                           {
-                               Animation = true
-                           }
+                           Features = features
                        };
             }
 
-            byte[] alphaData = null;
-            byte alphaChunkHeader = 0;
-            if (isAlphaPresent)
-            {
-                chunkType = this.ReadChunkType();
-                if (chunkType != WebPChunkType.Alpha)
-                {
-                    WebPThrowHelper.ThrowImageFormatException($"unexpected chunk type {chunkType}, expected ALPH chunk is missing");
-                }
-
-                uint alphaChunkSize = this.ReadChunkSize();
-                alphaChunkHeader = (byte)this.currentStream.ReadByte();
-                alphaData = new byte[alphaChunkSize - 1];
-                this.currentStream.Read(alphaData, 0, alphaData.Length);
-            }
-
-            var features = new WebPFeatures()
-                                    {
-                                        Animation = isAnimationPresent,
-                                        Alpha = isAlphaPresent,
-                                        AlphaData = alphaData,
-                                        AlphaChunkHeader = alphaChunkHeader,
-                                        ExifProfile = isExifPresent,
-                                        IccProfile = isIccPresent,
-                                        XmpMetaData = isXmpPresent
-                                    };
-
-            // A VP8 or VP8L chunk should follow here.
-            chunkType = this.ReadChunkType();
-
-            // TOOD: check if VP8 or VP8L info about the dimensions match VP8X info
+            // TODO: check if VP8 or VP8L info about the dimensions match VP8X info
             switch (chunkType)
             {
                 case WebPChunkType.Vp8:
@@ -447,6 +410,47 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
+        /// Parses optional VP8X chunks, which can be ICCP, ANIM or ALPH chunks.
+        /// </summary>
+        /// <param name="chunkType">The chunk type.</param>
+        /// <param name="features">The webp image features.</param>
+        private void ParseOptionalExtendedChunks(WebPChunkType chunkType, WebPFeatures features)
+        {
+            switch (chunkType)
+            {
+                case WebPChunkType.Iccp:
+                    uint iccpChunkSize = this.ReadChunkSize();
+                    if (!this.IgnoreMetadata)
+                    {
+                        var iccpData = new byte[iccpChunkSize];
+                        this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
+                        var profile = new IccProfile(iccpData);
+                        if (profile.CheckIsValid())
+                        {
+                            this.Metadata.IccProfile = profile;
+                        }
+                    }
+                    else
+                    {
+                        this.currentStream.Skip((int)iccpChunkSize);
+                    }
+
+                    break;
+
+                case WebPChunkType.Animation:
+                    this.webpMetadata.Animated = true;
+                    break;
+
+                case WebPChunkType.Alpha:
+                    uint alphaChunkSize = this.ReadChunkSize();
+                    features.AlphaChunkHeader = (byte)this.currentStream.ReadByte();
+                    features.AlphaData = new byte[alphaChunkSize - 1];
+                    this.currentStream.Read(features.AlphaData, 0, features.AlphaData.Length);
+                    break;
+            }
+        }
+
+        /// <summary>
         /// Parses optional metadata chunks. There SHOULD be at most one chunk of each type ('EXIF' and 'XMP ').
         /// If there are more such chunks, readers MAY ignore all except the first one.
         /// Also, a file may possibly contain both 'EXIF' and 'XMP ' chunks.
@@ -511,6 +515,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             throw new ImageFormatException("Invalid WebP data.");
+        }
+
+        /// <summary>
+        /// Determines if the chunk type is an optional VP8X chunk.
+        /// </summary>
+        /// <param name="chunkType">The chunk type.</param>
+        /// <returns>True, if its an optional chunk type.</returns>
+        private static bool IsOptionalVp8XChunk(WebPChunkType chunkType)
+        {
+            return chunkType switch
+            {
+                WebPChunkType.Alpha => true,
+                WebPChunkType.Animation => true,
+                WebPChunkType.Iccp => true,
+                _ => false
+            };
         }
     }
 }

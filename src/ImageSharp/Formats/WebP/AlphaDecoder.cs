@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         /// <param name="data">The (maybe compressed) alpha data.</param>
-        /// <param name="alphaChunkHeader">The first byte of the alpha image stream contains information on ow to decode the stream.</param>
+        /// <param name="alphaChunkHeader">The first byte of the alpha image stream contains information on how to decode the stream.</param>
         /// <param name="memoryAllocator">Used for allocating memory during decoding.</param>
         /// <param name="configuration">The configuration.</param>
         public AlphaDecoder(int width, int height, IMemoryOwner<byte> data, byte alphaChunkHeader, MemoryAllocator memoryAllocator, Configuration configuration)
@@ -30,32 +30,24 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.Data = data;
             this.LastRow = 0;
 
-            // Compression method: Either 0 (no compression) or 1 (Compressed using the WebP lossless format)
-            int method = alphaChunkHeader & 0x03;
-            if (method < 0 || method > 1)
+            var compression = (AlphaCompressionMethod)(alphaChunkHeader & 0x03);
+            if (compression != AlphaCompressionMethod.NoCompression && compression != AlphaCompressionMethod.WebPLosslessCompression)
             {
-                WebPThrowHelper.ThrowImageFormatException($"unexpected alpha compression method {method} found");
+                WebPThrowHelper.ThrowImageFormatException($"unexpected alpha compression method {compression} found");
             }
 
-            this.Compressed = !(method is 0);
+            this.Compressed = compression is AlphaCompressionMethod.WebPLosslessCompression;
 
-            // The filtering method used. Only  values between 0 and 3 are valid.
+            // The filtering method used. Only values between 0 and 3 are valid.
             int filter = (alphaChunkHeader >> 2) & 0x03;
-            if (filter < 0 || filter > 3)
+            if (filter < (int)WebPAlphaFilterType.None || filter > (int)WebPAlphaFilterType.Gradient)
             {
                 WebPThrowHelper.ThrowImageFormatException($"unexpected alpha filter method {filter} found");
             }
 
             this.AlphaFilterType = (WebPAlphaFilterType)filter;
-
-            // These INFORMATIVE bits are used to signal the pre-processing that has been performed during compression.
-            // The decoder can use this information to e.g. dither the values or smooth the gradients prior to display.
-            // 0: no pre-processing, 1: level reduction
-            this.PreProcessing = (alphaChunkHeader >> 4) & 0x03;
-
-            this.Vp8LDec = new Vp8LDecoder(width, height, memoryAllocator);
-
             this.Alpha = memoryAllocator.Allocate<byte>(width * height);
+            this.Vp8LDec = new Vp8LDecoder(width, height, memoryAllocator);
 
             if (this.Compressed)
             {
@@ -103,12 +95,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public int CropTop { get; }
 
         /// <summary>
-        /// Gets a value indicating whether pre-processing was used during compression.
-        /// 0: no pre-processing, 1: level reduction.
-        /// </summary>
-        private int PreProcessing { get; }
-
-        /// <summary>
         /// Gets a value indicating whether the alpha channel uses compression.
         /// </summary>
         private bool Compressed { get; }
@@ -138,15 +124,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (this.Compressed is false)
             {
                 Span<byte> dataSpan = this.Data.Memory.Span;
-                if (dataSpan.Length < (this.Width * this.Height))
+                var pixelCount = this.Width * this.Height;
+                if (dataSpan.Length < pixelCount)
                 {
                     WebPThrowHelper.ThrowImageFormatException("not enough data in the ALPH chunk");
                 }
 
                 Span<byte> alphaSpan = this.Alpha.Memory.Span;
-                if (this.AlphaFilterType == WebPAlphaFilterType.None)
+                if (this.AlphaFilterType is WebPAlphaFilterType.None)
                 {
-                    dataSpan.Slice(0, this.Width * this.Height).CopyTo(alphaSpan);
+                    dataSpan.Slice(0, pixelCount).CopyTo(alphaSpan);
                     return;
                 }
 
@@ -194,7 +181,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             Span<byte> alphaSpan = this.Alpha.Memory.Span;
-            Span<byte> prev = this.PrevRow == 0 ? null : alphaSpan.Slice(this.Width * this.PrevRow);
+            Span<byte> prev = this.PrevRow is 0 ? null : alphaSpan.Slice(this.Width * this.PrevRow);
             for (int y = firstRow; y < lastRow; ++y)
             {
                 switch (this.AlphaFilterType)
@@ -223,8 +210,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             for (int i = 0; i < width; ++i)
             {
-                dst[i] = (byte)(pred + input[i]);
-                pred = dst[i];
+                byte val = (byte)(pred + input[i]);
+                pred = val;
+                dst[i] = val;
             }
         }
 
@@ -251,12 +239,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
             else
             {
-                byte top = prev[0];
-                byte topLeft = top;
-                byte left = top;
+                byte prev0 = prev[0];
+                byte topLeft = prev0;
+                byte left = prev0;
                 for (int i = 0; i < width; ++i)
                 {
-                    top = prev[i];
+                    byte top = prev[i];
                     left = (byte)(input[i] + GradientPredictor(left, top, topLeft));
                     topLeft = top;
                     dst[i] = left;

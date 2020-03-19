@@ -524,6 +524,7 @@ namespace SixLabors.ImageSharp.Tests
                 // Lossy images with an alpha channel.
                 public const string Alpha1 = "WebP/lossy_alpha1.webp";
                 public const string Alpha2 = "WebP/lossy_alpha2.webp";
+                public const string Alpha3 = "WebP/lossy_alpha3.webp";
                 public const string AlphaNoCompression = "WebP/alpha_no_compression.webp";
                 public const string AlphaNoCompressionNoFilter = "WebP/alpha_filter_0_method_0.webp";
                 public const string AlphaCompressedNoFilter = "WebP/alpha_filter_0_method_1.webp";

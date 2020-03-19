@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             ColorCache colorCache = decoder.Metadata.ColorCache;
             int colorCacheLimit = lenCodeLimit + colorCacheSize;
             int mask = decoder.Metadata.HuffmanMask;
-            HTreeGroup[] hTreeGroup = this.GetHTreeGroupForPos(decoder.Metadata, col, row);
+            HTreeGroup[] hTreeGroup = GetHTreeGroupForPos(decoder.Metadata, col, row);
 
             int totalPixels = width * height;
             int decodedPixels = 0;
@@ -228,7 +228,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 int code;
                 if ((col & mask) is 0)
                 {
-                    hTreeGroup = this.GetHTreeGroupForPos(decoder.Metadata, col, row);
+                    hTreeGroup = GetHTreeGroupForPos(decoder.Metadata, col, row);
                 }
 
                 if (hTreeGroup[0].IsTrivialCode)
@@ -295,13 +295,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     uint distSymbol = this.ReadSymbol(hTreeGroup[0].HTrees[HuffIndex.Dist]);
                     this.bitReader.FillBitWindow();
                     int distCode = this.GetCopyDistance((int)distSymbol);
-                    int dist = this.PlaneCodeToDistance(width, distCode);
+                    int dist = PlaneCodeToDistance(width, distCode);
                     if (this.bitReader.IsEndOfStream())
                     {
                         break;
                     }
 
-                    this.CopyBlock(pixelData, decodedPixels, dist, length);
+                    CopyBlock(pixelData, decodedPixels, dist, length);
                     decodedPixels += length;
                     col += length;
                     while (col >= width)
@@ -312,7 +312,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                     if ((col & mask) != 0)
                     {
-                        hTreeGroup = this.GetHTreeGroupForPos(decoder.Metadata, col, row);
+                        hTreeGroup = GetHTreeGroupForPos(decoder.Metadata, col, row);
                     }
 
                     if (colorCache != null)
@@ -701,6 +701,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        /// <summary>
+        /// The alpha channel of a lossy webp image can be compressed using the lossless webp compression.
+        /// This method will undo the compression.
+        /// </summary>
+        /// <param name="dec">The alpha decoder.</param>
         public void DecodeAlphaData(AlphaDecoder dec)
         {
             Span<uint> pixelData = dec.Vp8LDec.Pixels.Memory.Span;
@@ -717,13 +722,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int lastRow = height;
             int lenCodeLimit = WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes;
             int mask = hdr.HuffmanMask;
-            HTreeGroup[] htreeGroup = (pos < last) ? this.GetHTreeGroupForPos(hdr, col, row) : null;
+            HTreeGroup[] htreeGroup = (pos < last) ? GetHTreeGroupForPos(hdr, col, row) : null;
             while (!this.bitReader.Eos && pos < last)
             {
                 // Only update when changing tile.
                 if ((col & mask) is 0)
                 {
-                    htreeGroup = this.GetHTreeGroupForPos(hdr, col, row);
+                    htreeGroup = GetHTreeGroupForPos(hdr, col, row);
                 }
 
                 this.bitReader.FillBitWindow();
@@ -753,10 +758,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     int distSymbol = (int)this.ReadSymbol(htreeGroup[0].HTrees[HuffIndex.Dist]);
                     this.bitReader.FillBitWindow();
                     int distCode = this.GetCopyDistance(distSymbol);
-                    int dist = this.PlaneCodeToDistance(width, distCode);
+                    int dist = PlaneCodeToDistance(width, distCode);
                     if (pos >= dist && end - pos >= length)
                     {
-                        data.Slice(pos - dist, length).CopyTo(data.Slice(pos));
+                        CopyBlock8B(data, pos, dist, length);
                     }
                     else
                     {
@@ -777,7 +782,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                     if (pos < last && (col & mask) > 0)
                     {
-                        htreeGroup = this.GetHTreeGroupForPos(hdr, col, row);
+                        htreeGroup = GetHTreeGroupForPos(hdr, col, row);
                     }
                 }
                 else
@@ -802,14 +807,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int firstRow = (dec.LastRow < topRow) ? topRow : dec.LastRow;
             if (lastRow > firstRow)
             {
-                // Special method for paletted alpha data. We only process the cropped area.
+                // Special method for paletted alpha data.
                 Span<byte> output = dec.Alpha.Memory.Span;
                 Span<uint> pixelData = dec.Vp8LDec.Pixels.Memory.Span;
                 Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
                 Span<byte> dst = output.Slice(dec.Width * firstRow);
                 Span<byte> input = pixelDataAsBytes.Slice(dec.Vp8LDec.Width * firstRow);
 
-                // TODO: check if any and the correct transform is present
+                if (dec.Vp8LDec.Transforms.Count is 0 || dec.Vp8LDec.Transforms[0].TransformType != Vp8LTransformType.ColorIndexingTransform)
+                {
+                    WebPThrowHelper.ThrowImageFormatException("error while decoding alpha channel, expected color index transform data is missing");
+                }
+
                 Vp8LTransform transform = dec.Vp8LDec.Transforms[0];
                 this.ColorIndexInverseTransformAlpha(transform, firstRow, lastRow, input, dst);
                 dec.AlphaApplyFilter(firstRow, lastRow, dst, dec.Width);
@@ -896,25 +905,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return code.Value;
         }
 
-        private void CopyBlock(Span<uint> pixelData, int decodedPixels, int dist, int length)
-        {
-            if (dist >= length)
-            {
-                Span<uint> src = pixelData.Slice(decodedPixels - dist, length);
-                Span<uint> dest = pixelData.Slice(decodedPixels);
-                src.CopyTo(dest);
-            }
-            else
-            {
-                Span<uint> src = pixelData.Slice(decodedPixels - dist);
-                Span<uint> dest = pixelData.Slice(decodedPixels);
-                for (int i = 0; i < length; ++i)
-                {
-                    dest[i] = src[i];
-                }
-            }
-        }
-
         private void BuildPackedTable(HTreeGroup hTreeGroup)
         {
             for (uint code = 0; code < HuffmanUtils.HuffmanPackedTableSize; ++code)
@@ -931,10 +921,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 {
                     huff.BitsUsed = 0;
                     huff.Value = 0;
-                    bits >>= this.AccumulateHCode(hCode, 8, huff);
-                    bits >>= this.AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Red][bits], 16, huff);
-                    bits >>= this.AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Blue][bits], 0, huff);
-                    bits >>= this.AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Alpha][bits], 24, huff);
+                    bits >>= AccumulateHCode(hCode, 8, huff);
+                    bits >>= AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Red][bits], 16, huff);
+                    bits >>= AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Blue][bits], 0, huff);
+                    bits >>= AccumulateHCode(hTreeGroup.HTrees[HuffIndex.Alpha][bits], 24, huff);
                 }
             }
         }
@@ -962,38 +952,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private HTreeGroup[] GetHTreeGroupForPos(Vp8LMetadata metadata, int x, int y)
+        private int GetCopyLength(int lengthSymbol)
         {
-            uint metaIndex = this.GetMetaIndex(metadata.HuffmanImage, metadata.HuffmanXSize, metadata.HuffmanSubSampleBits, x, y);
-            return metadata.HTreeGroups.AsSpan((int)metaIndex).ToArray();
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private uint GetMetaIndex(IMemoryOwner<uint> huffmanImage, int xSize, int bits, int x, int y)
-        {
-            if (bits is 0)
-            {
-                return 0;
-            }
-
-            Span<uint> huffmanImageSpan = huffmanImage.GetSpan();
-            return huffmanImageSpan[(xSize * (y >> bits)) + (x >> bits)];
-        }
-
-        private int PlaneCodeToDistance(int xSize, int planeCode)
-        {
-            if (planeCode > CodeToPlaneCodes)
-            {
-                return planeCode - CodeToPlaneCodes;
-            }
-
-            int distCode = WebPLookupTables.CodeToPlane[planeCode - 1];
-            int yOffset = distCode >> 4;
-            int xOffset = 8 - (distCode & 0xf);
-            int dist = (yOffset * xSize) + xOffset;
-
-            // dist < 1 can happen if xSize is very small.
-            return (dist >= 1) ? dist : 1;
+            // Length and distance prefixes are encoded the same way.
+            return this.GetCopyDistance(lengthSymbol);
         }
 
         private int GetCopyDistance(int distanceSymbol)
@@ -1010,14 +972,78 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int GetCopyLength(int lengthSymbol)
+        private static HTreeGroup[] GetHTreeGroupForPos(Vp8LMetadata metadata, int x, int y)
         {
-            // Length and distance prefixes are encoded the same way.
-            return this.GetCopyDistance(lengthSymbol);
+            uint metaIndex = GetMetaIndex(metadata.HuffmanImage, metadata.HuffmanXSize, metadata.HuffmanSubSampleBits, x, y);
+            return metadata.HTreeGroups.AsSpan((int)metaIndex).ToArray();
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int AccumulateHCode(HuffmanCode hCode, int shift, HuffmanCode huff)
+        private static uint GetMetaIndex(IMemoryOwner<uint> huffmanImage, int xSize, int bits, int x, int y)
+        {
+            if (bits is 0)
+            {
+                return 0;
+            }
+
+            Span<uint> huffmanImageSpan = huffmanImage.GetSpan();
+            return huffmanImageSpan[(xSize * (y >> bits)) + (x >> bits)];
+        }
+
+        private static int PlaneCodeToDistance(int xSize, int planeCode)
+        {
+            if (planeCode > CodeToPlaneCodes)
+            {
+                return planeCode - CodeToPlaneCodes;
+            }
+
+            int distCode = WebPLookupTables.CodeToPlane[planeCode - 1];
+            int yOffset = distCode >> 4;
+            int xOffset = 8 - (distCode & 0xf);
+            int dist = (yOffset * xSize) + xOffset;
+
+            // dist < 1 can happen if xSize is very small.
+            return (dist >= 1) ? dist : 1;
+        }
+
+        private static void CopyBlock(Span<uint> pixelData, int decodedPixels, int dist, int length)
+        {
+            if (dist >= length)
+            {
+                Span<uint> src = pixelData.Slice(decodedPixels - dist, length);
+                Span<uint> dest = pixelData.Slice(decodedPixels);
+                src.CopyTo(dest);
+            }
+            else
+            {
+                Span<uint> src = pixelData.Slice(decodedPixels - dist);
+                Span<uint> dest = pixelData.Slice(decodedPixels);
+                for (int i = 0; i < length; ++i)
+                {
+                    dest[i] = src[i];
+                }
+            }
+        }
+
+        private static void CopyBlock8B(Span<byte> data, int pos, int dist, int length)
+        {
+            if (dist >= length)
+            {
+                data.Slice(pos - dist, length).CopyTo(data.Slice(pos));
+            }
+            else
+            {
+                Span<byte> dst = data.Slice(pos);
+                Span<byte> src = data.Slice(pos - dist);
+                for (int i = 0; i < length; ++i)
+                {
+                    dst[i] = src[i];
+                }
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int AccumulateHCode(HuffmanCode hCode, int shift, HuffmanCode huff)
         {
             huff.BitsUsed += hCode.BitsUsed;
             huff.Value |= hCode.Value << shift;

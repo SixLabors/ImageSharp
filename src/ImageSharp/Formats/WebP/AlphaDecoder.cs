@@ -5,7 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
@@ -97,8 +97,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Gets the decoded alpha data.
         /// </summary>
         public IMemoryOwner<byte> Alpha { get; }
-
-        public int CropTop { get; }
 
         /// <summary>
         /// Gets a value indicating whether the alpha channel uses compression.
@@ -218,6 +216,34 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.PrevRow = lastRow - 1;
         }
 
+        public void ExtractPalettedAlphaRows(int lastRow)
+        {
+            // For vertical and gradient filtering, we need to decode the part above the
+            // cropTop row, in order to have the correct spatial predictors.
+            int topRow = (this.AlphaFilterType is WebPAlphaFilterType.None || this.AlphaFilterType is WebPAlphaFilterType.Horizontal) ? 0 : this.LastRow;
+            int firstRow = (this.LastRow < topRow) ? topRow : this.LastRow;
+            if (lastRow > firstRow)
+            {
+                // Special method for paletted alpha data.
+                Span<byte> output = this.Alpha.Memory.Span;
+                Span<uint> pixelData = this.Vp8LDec.Pixels.Memory.Span;
+                Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
+                Span<byte> dst = output.Slice(this.Width * firstRow);
+                Span<byte> input = pixelDataAsBytes.Slice(this.Vp8LDec.Width * firstRow);
+
+                if (this.Vp8LDec.Transforms.Count is 0 || this.Vp8LDec.Transforms[0].TransformType != Vp8LTransformType.ColorIndexingTransform)
+                {
+                    WebPThrowHelper.ThrowImageFormatException("error while decoding alpha channel, expected color index transform data is missing");
+                }
+
+                Vp8LTransform transform = this.Vp8LDec.Transforms[0];
+                ColorIndexInverseTransformAlpha(transform, firstRow, lastRow, input, dst);
+                this.AlphaApplyFilter(firstRow, lastRow, dst, this.Width);
+            }
+
+            this.LastRow = lastRow;
+        }
+
         /// <summary>
         /// Once the image-stream is decoded into ARGB color values, the transparency information will be extracted from the green channel of the ARGB quadruplet.
         /// </summary>
@@ -235,6 +261,46 @@ namespace SixLabors.ImageSharp.Formats.WebP
             WebPLosslessDecoder.ApplyInverseTransforms(dec, input, this.memoryAllocator);
             this.AlphaApplyFilter(0, numRowsToProcess, output, width);
             ExtractGreen(input, output, pixelCount);
+        }
+
+        private static void ColorIndexInverseTransformAlpha(
+            Vp8LTransform transform,
+            int yStart,
+            int yEnd,
+            Span<byte> src,
+            Span<byte> dst)
+        {
+            int bitsPerPixel = 8 >> transform.Bits;
+            int width = transform.XSize;
+            Span<uint> colorMap = transform.Data.Memory.Span;
+            int srcOffset = 0;
+            int dstOffset = 0;
+            if (bitsPerPixel < 8)
+            {
+                int pixelsPerByte = 1 << transform.Bits;
+                int countMask = pixelsPerByte - 1;
+                int bitMask = (1 << bitsPerPixel) - 1;
+                for (int y = yStart; y < yEnd; ++y)
+                {
+                    int packedPixels = 0;
+                    for (int x = 0; x < width; ++x)
+                    {
+                        if ((x & countMask) is 0)
+                        {
+                            packedPixels = src[srcOffset];
+                            srcOffset++;
+                        }
+
+                        dst[dstOffset] = GetAlphaValue((int)colorMap[packedPixels & bitMask]);
+                        dstOffset++;
+                        packedPixels >>= bitsPerPixel;
+                    }
+                }
+            }
+            else
+            {
+                MapAlpha(src, colorMap, dst, yStart, yEnd, width);
+            }
         }
 
         private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
@@ -290,7 +356,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// transform (color indexing), and trivial non-green literals.
         /// </summary>
         /// <param name="hdr">The VP8L meta data.</param>
-        /// <returns>True, if alpha channel has one byte per pixel, otherwise 4.</returns>
+        /// <returns>True, if alpha channel needs one byte per pixel, otherwise 4.</returns>
         private static bool Is8BOptimizable(Vp8LMetadata hdr)
         {
             if (hdr.ColorCacheSize > 0)
@@ -320,6 +386,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             return true;
+        }
+
+        private static void MapAlpha(Span<byte> src, Span<uint> colorMap, Span<byte> dst, int yStart, int yEnd, int width)
+        {
+            int offset = 0;
+            for (int y = yStart; y < yEnd; ++y)
+            {
+                for (int x = 0; x < width; ++x)
+                {
+                    dst[offset] = GetAlphaValue((int)colorMap[src[offset]]);
+                    offset++;
+                }
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static byte GetAlphaValue(int val)
+        {
+            return (byte)((val >> 8) & 0xff);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

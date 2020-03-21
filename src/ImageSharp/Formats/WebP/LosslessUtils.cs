@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// If there are not many unique pixel values, it may be more efficient to create a color index array and replace the pixel values by the array's indices.
+        /// If there are not many unique pixel values, it is more efficient to create a color index array and replace the pixel values by the array's indices.
         /// This will reverse the color index transform.
         /// </summary>
         /// <param name="transform">The transform data contains color table size and the entries in the color table.</param>

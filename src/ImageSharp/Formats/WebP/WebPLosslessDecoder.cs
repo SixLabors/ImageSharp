@@ -39,8 +39,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private static readonly int BitsSpecialMarker = 0x100;
 
-        private static readonly int NumArgbCacheRows = 16;
-
         private static readonly uint PackedNonLiteralCode = 0;
 
         private static readonly int CodeToPlaneCodes = WebPLookupTables.CodeToPlane.Length;
@@ -191,7 +189,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int width = decoder.Width;
 
             // Apply reverse transformations, if any are present.
-            this.ApplyInverseTransforms(decoder, pixelData);
+            ApplyInverseTransforms(decoder, pixelData, this.memoryAllocator);
 
             Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
             for (int y = 0; y < decoder.Height; y++)
@@ -206,7 +204,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private void DecodeImageData(Vp8LDecoder decoder, Span<uint> pixelData)
+        public void DecodeImageData(Vp8LDecoder decoder, Span<uint> pixelData)
         {
             int lastPixel = 0;
             int width = decoder.Width;
@@ -673,7 +671,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         /// <param name="decoder">The decoder holding the transformation infos.</param>
         /// <param name="pixelData">The pixel data to apply the transformation.</param>
-        private void ApplyInverseTransforms(Vp8LDecoder decoder, Span<uint> pixelData)
+        /// <param name="memoryAllocator">The memory allocator is needed to allocate memory during the predictor transform.</param>
+        public static void ApplyInverseTransforms(Vp8LDecoder decoder, Span<uint> pixelData, MemoryAllocator memoryAllocator)
         {
             List<Vp8LTransform> transforms = decoder.Transforms;
             for (int i = transforms.Count - 1; i >= 0; i--)
@@ -682,7 +681,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 switch (transformType)
                 {
                     case Vp8LTransformType.PredictorTransform:
-                        using (IMemoryOwner<uint> output = this.memoryAllocator.Allocate<uint>(pixelData.Length, AllocationOptions.Clean))
+                        using (IMemoryOwner<uint> output = memoryAllocator.Allocate<uint>(pixelData.Length, AllocationOptions.Clean))
                         {
                             LosslessUtils.PredictorInverseTransform(transforms[i], pixelData, output.GetSpan());
                         }
@@ -744,7 +743,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     {
                         col = 0;
                         ++row;
-                        if (row <= lastRow && (row % NumArgbCacheRows is 0))
+                        if (row <= lastRow && (row % WebPConstants.NumArgbCacheRows is 0))
                         {
                             this.ExtractPalettedAlphaRows(dec, row);
                         }
@@ -774,7 +773,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     {
                         col -= width;
                         ++row;
-                        if (row <= lastRow && (row % NumArgbCacheRows is 0))
+                        if (row <= lastRow && (row % WebPConstants.NumArgbCacheRows is 0))
                         {
                             this.ExtractPalettedAlphaRows(dec, row);
                         }
@@ -802,8 +801,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // For vertical and gradient filtering, we need to decode the part above the
             // cropTop row, in order to have the correct spatial predictors.
             int topRow = (dec.AlphaFilterType is WebPAlphaFilterType.None || dec.AlphaFilterType is WebPAlphaFilterType.Horizontal)
-                             ? dec.CropTop
-                             : dec.LastRow;
+                ? dec.CropTop
+                : dec.LastRow;
             int firstRow = (dec.LastRow < topRow) ? topRow : dec.LastRow;
             if (lastRow > firstRow)
             {

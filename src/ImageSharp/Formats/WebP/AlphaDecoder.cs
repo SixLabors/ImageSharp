@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP
@@ -14,6 +15,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class AlphaDecoder : IDisposable
     {
+        private readonly MemoryAllocator memoryAllocator;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="AlphaDecoder"/> class.
         /// </summary>
@@ -28,7 +31,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.Width = width;
             this.Height = height;
             this.Data = data;
+            this.memoryAllocator = memoryAllocator;
             this.LastRow = 0;
+            int totalPixels = width * height;
 
             var compression = (AlphaCompressionMethod)(alphaChunkHeader & 0x03);
             if (compression != AlphaCompressionMethod.NoCompression && compression != AlphaCompressionMethod.WebPLosslessCompression)
@@ -45,8 +50,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPThrowHelper.ThrowImageFormatException($"unexpected alpha filter method {filter} found");
             }
 
+            this.Alpha = memoryAllocator.Allocate<byte>(totalPixels);
             this.AlphaFilterType = (WebPAlphaFilterType)filter;
-            this.Alpha = memoryAllocator.Allocate<byte>(width * height);
             this.Vp8LDec = new Vp8LDecoder(width, height, memoryAllocator);
 
             if (this.Compressed)
@@ -54,6 +59,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 var bitReader = new Vp8LBitReader(data);
                 this.LosslessDecoder = new WebPLosslessDecoder(bitReader, memoryAllocator, configuration);
                 this.LosslessDecoder.DecodeImageStream(this.Vp8LDec, width, height, true);
+                this.Use8BDecode = Is8BOptimizable(this.Vp8LDec.Metadata);
             }
         }
 
@@ -110,11 +116,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private WebPLosslessDecoder LosslessDecoder { get; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the decoding needs 1 byte per pixel for decoding.
+        /// Gets a value indicating whether the decoding needs 1 byte per pixel for decoding.
         /// Although Alpha Channel requires only 1 byte per pixel, sometimes Vp8LDecoder may need to allocate
         /// 4 bytes per pixel internally during decode.
         /// </summary>
-        public bool Use8BDecode { get; set; }
+        public bool Use8BDecode { get; }
 
         /// <summary>
         /// Decodes and filters the maybe compressed alpha data.
@@ -162,7 +168,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
             else
             {
-                this.LosslessDecoder.DecodeAlphaData(this);
+                if (this.Use8BDecode)
+                {
+                    this.LosslessDecoder.DecodeAlphaData(this);
+                }
+                else
+                {
+                    this.LosslessDecoder.DecodeImageData(this.Vp8LDec, this.Vp8LDec.Pixels.Memory.Span);
+                    this.ExtractAlphaRows(this.Vp8LDec);
+                }
             }
         }
 
@@ -202,6 +216,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             this.PrevRow = lastRow - 1;
+        }
+
+        /// <summary>
+        /// Once the image-stream is decoded into ARGB color values, the transparency information will be extracted from the green channel of the ARGB quadruplet.
+        /// </summary>
+        /// <param name="dec">The VP8L decoder.</param>
+        private void ExtractAlphaRows(Vp8LDecoder dec)
+        {
+            int numRowsToProcess = dec.Height;
+            int width = dec.Width;
+            Span<uint> pixels = dec.Pixels.Memory.Span;
+            Span<uint> input = pixels;
+            Span<byte> output = this.Alpha.Memory.Span;
+
+            // Extract alpha (which is stored in the green plane).
+            int pixelCount = width * numRowsToProcess;
+            WebPLosslessDecoder.ApplyInverseTransforms(dec, input, this.memoryAllocator);
+            this.AlphaApplyFilter(0, numRowsToProcess, output, width);
+            ExtractGreen(input, output, pixelCount);
         }
 
         private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
@@ -252,7 +285,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private static bool Is8bOptimizable(Vp8LMetadata hdr)
+        /// <summary>
+        /// Row-processing for the special case when alpha data contains only one
+        /// transform (color indexing), and trivial non-green literals.
+        /// </summary>
+        /// <param name="hdr">The VP8L meta data.</param>
+        /// <returns>True, if alpha channel has one byte per pixel, otherwise 4.</returns>
+        private static bool Is8BOptimizable(Vp8LMetadata hdr)
         {
             if (hdr.ColorCacheSize > 0)
             {
@@ -264,17 +303,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
             for (int i = 0; i < hdr.NumHTreeGroups; ++i)
             {
                 List<HuffmanCode[]> htrees = hdr.HTreeGroups[i].HTrees;
-                if (htrees[HuffIndex.Red][0].Value > 0)
+                if (htrees[HuffIndex.Red][0].BitsUsed > 0)
                 {
                     return false;
                 }
 
-                if (htrees[HuffIndex.Blue][0].Value > 0)
+                if (htrees[HuffIndex.Blue][0].BitsUsed > 0)
                 {
                     return false;
                 }
 
-                if (htrees[HuffIndex.Alpha][0].Value > 0)
+                if (htrees[HuffIndex.Alpha][0].BitsUsed > 0)
                 {
                     return false;
                 }
@@ -288,6 +327,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             int g = a + b - c;
             return ((g & ~0xff) is 0) ? g : (g < 0) ? 0 : 255;  // clip to 8bit
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void ExtractGreen(Span<uint> argb, Span<byte> alpha, int size)
+        {
+            for (int i = 0; i < size; ++i)
+            {
+                alpha[i] = (byte)(argb[i] >> 8);
+            }
         }
 
         /// <inheritdoc/>

@@ -745,7 +745,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         ++row;
                         if (row <= lastRow && (row % WebPConstants.NumArgbCacheRows is 0))
                         {
-                            this.ExtractPalettedAlphaRows(dec, row);
+                            dec.ExtractPalettedAlphaRows(row);
                         }
                     }
                 }
@@ -775,7 +775,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         ++row;
                         if (row <= lastRow && (row % WebPConstants.NumArgbCacheRows is 0))
                         {
-                            this.ExtractPalettedAlphaRows(dec, row);
+                            dec.ExtractPalettedAlphaRows(row);
                         }
                     }
 
@@ -793,90 +793,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             // Process the remaining rows corresponding to last row-block.
-            this.ExtractPalettedAlphaRows(dec, row > lastRow ? lastRow : row);
-        }
-
-        private void ExtractPalettedAlphaRows(AlphaDecoder dec, int lastRow)
-        {
-            // For vertical and gradient filtering, we need to decode the part above the
-            // cropTop row, in order to have the correct spatial predictors.
-            int topRow = (dec.AlphaFilterType is WebPAlphaFilterType.None || dec.AlphaFilterType is WebPAlphaFilterType.Horizontal)
-                ? dec.CropTop
-                : dec.LastRow;
-            int firstRow = (dec.LastRow < topRow) ? topRow : dec.LastRow;
-            if (lastRow > firstRow)
-            {
-                // Special method for paletted alpha data.
-                Span<byte> output = dec.Alpha.Memory.Span;
-                Span<uint> pixelData = dec.Vp8LDec.Pixels.Memory.Span;
-                Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
-                Span<byte> dst = output.Slice(dec.Width * firstRow);
-                Span<byte> input = pixelDataAsBytes.Slice(dec.Vp8LDec.Width * firstRow);
-
-                if (dec.Vp8LDec.Transforms.Count is 0 || dec.Vp8LDec.Transforms[0].TransformType != Vp8LTransformType.ColorIndexingTransform)
-                {
-                    WebPThrowHelper.ThrowImageFormatException("error while decoding alpha channel, expected color index transform data is missing");
-                }
-
-                Vp8LTransform transform = dec.Vp8LDec.Transforms[0];
-                this.ColorIndexInverseTransformAlpha(transform, firstRow, lastRow, input, dst);
-                dec.AlphaApplyFilter(firstRow, lastRow, dst, dec.Width);
-            }
-
-            dec.LastRow = lastRow;
-        }
-
-        private void ColorIndexInverseTransformAlpha(
-            Vp8LTransform transform,
-            int yStart,
-            int yEnd,
-            Span<byte> src,
-            Span<byte> dst)
-        {
-            int bitsPerPixel = 8 >> transform.Bits;
-            int width = transform.XSize;
-            Span<uint> colorMap = transform.Data.Memory.Span;
-            int srcOffset = 0;
-            int dstOffset = 0;
-            if (bitsPerPixel < 8)
-            {
-                int pixelsPerByte = 1 << transform.Bits;
-                int countMask = pixelsPerByte - 1;
-                int bitMask = (1 << bitsPerPixel) - 1;
-                for (int y = yStart; y < yEnd; ++y)
-                {
-                    int packedPixels = 0;
-                    for (int x = 0; x < width; ++x)
-                    {
-                        if ((x & countMask) is 0)
-                        {
-                            packedPixels = src[srcOffset];
-                            srcOffset++;
-                        }
-
-                        dst[dstOffset] = GetAlphaValue((int)colorMap[packedPixels & bitMask]);
-                        dstOffset++;
-                        packedPixels >>= bitsPerPixel;
-                    }
-                }
-            }
-            else
-            {
-                MapAlpha(src, colorMap, dst, yStart, yEnd, width);
-            }
-        }
-
-        private static void MapAlpha(Span<byte> src, Span<uint> colorMap, Span<byte> dst, int yStart, int yEnd, int width)
-        {
-            int offset = 0;
-            for (int y = yStart; y < yEnd; ++y)
-            {
-                for (int x = 0; x < width; ++x)
-                {
-                    dst[offset] = GetAlphaValue((int)colorMap[src[offset]]);
-                    offset++;
-                }
-            }
+            dec.ExtractPalettedAlphaRows(row > lastRow ? lastRow : row);
         }
 
         private void UpdateDecoder(Vp8LDecoder decoder, int width, int height)
@@ -1047,12 +964,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             huff.BitsUsed += hCode.BitsUsed;
             huff.Value |= hCode.Value << shift;
             return hCode.BitsUsed;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte GetAlphaValue(int val)
-        {
-            return (byte)((val >> 8) & 0xff);
         }
     }
 }

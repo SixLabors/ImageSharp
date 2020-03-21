@@ -85,6 +85,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public const uint ArgbBlack = 0xff000000;
 
+        public const int NumArgbCacheRows = 16;
+
         public const int NumLiteralCodes = 256;
 
         public const int NumLengthCodes = 24;

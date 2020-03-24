@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector *= MaxBytes;
             vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, MaxBytes);
             this.PackedValue = ImageMaths.Get8BitBT709Luminance((byte)vector.X, (byte)vector.Y, (byte)vector.Z);
         }
     }

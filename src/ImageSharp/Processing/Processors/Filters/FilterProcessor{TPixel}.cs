@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
                 Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span);
 
-                Vector4Utils.Transform(span, ref Unsafe.AsRef(this.matrix));
+                Vector4Utilities.Transform(span, ref Unsafe.AsRef(this.matrix));
 
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan);
             }

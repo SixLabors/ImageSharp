@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -11,8 +11,20 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// Utility methods for the <see cref="Vector4"/> struct.
     /// </summary>
-    internal static class Vector4Utils
+    internal static class Vector4Utilities
     {
+        /// <summary>
+        /// Restricts a vector between a minimum and a maximum value.
+        /// 5x Faster then <see cref="Vector4.Clamp(Vector4, Vector4, Vector4)"/>.
+        /// </summary>
+        /// <param name="x">The vector to restrict.</param>
+        /// <param name="min">The minimum value.</param>
+        /// <param name="max">The maximum value.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static Vector4 FastClamp(Vector4 x, Vector4 min, Vector4 max)
+            => Vector4.Min(Vector4.Max(min, x), max);
+
         /// <summary>
         /// Pre-multiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
         /// </summary>

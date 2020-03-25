@@ -274,7 +274,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             ent = this.NextPixel(indexedPixels);
 
-            // TODO: PERF: It looks likt hshift could be calculated once statically.
+            // TODO: PERF: It looks like hshift could be calculated once statically.
             hshift = 0;
             for (fcode = this.hsize; fcode < 65536; fcode *= 2)
             {

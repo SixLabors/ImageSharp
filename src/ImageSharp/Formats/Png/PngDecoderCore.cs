@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private int currentRow = Adam7.FirstRow[0];
 
         /// <summary>
-        /// The current number of bytes read in the current scanline
+        /// The current number of bytes read in the current scanline.
         /// </summary>
         private int currentRowBytesRead;
 
@@ -133,19 +133,24 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
+        /// Gets the dimensions of the image.
+        /// </summary>
+        public Size Dimensions => new Size(this.header.Width, this.header.Height);
+
+        /// <summary>
         /// Decodes the stream to the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">The stream containing image data. </param>
+        /// <param name="stream">The stream containing image data.</param>
         /// <exception cref="ImageFormatException">
         /// Thrown if the stream does not contain and end chunk.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if the image is larger than the maximum allowable size.
         /// </exception>
-        /// <returns>The decoded image</returns>
+        /// <returns>The decoded image.</returns>
         public Image<TPixel> Decode<TPixel>(Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var metadata = new ImageMetadata();
             PngMetadata pngMetadata = metadata.GetPngMetadata();
@@ -373,7 +378,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="metadata">The metadata information for the image</param>
         /// <param name="image">The image that we will populate</param>
         private void InitializeImage<TPixel>(ImageMetadata metadata, out Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
             this.bytesPerPixel = this.CalculateBytesPerPixel();
@@ -466,7 +471,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="image"> The pixel data.</param>
         /// <param name="pngMetadata">The png metadata</param>
         private void ReadScanlines<TPixel>(PngChunk chunk, ImageFrame<TPixel> image, PngMetadata pngMetadata)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk))
             {
@@ -492,7 +497,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="image">The image to decode to.</param>
         /// <param name="pngMetadata">The png metadata</param>
         private void DecodePixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             while (this.currentRow < this.header.Height)
             {
@@ -548,7 +553,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="image">The current image.</param>
         /// <param name="pngMetadata">The png metadata.</param>
         private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int pass = 0;
             int width = this.header.Width;
@@ -637,7 +642,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pixels">The image</param>
         /// <param name="pngMetadata">The png metadata.</param>
         private void ProcessDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, ImageFrame<TPixel> pixels, PngMetadata pngMetadata)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Span<TPixel> rowSpan = pixels.GetPixelRowSpan(this.currentRow);
 
@@ -721,7 +726,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
         /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
         private void ProcessInterlacedDefilteredScanline<TPixel>(ReadOnlySpan<byte> defilteredScanline, Span<TPixel> rowSpan, PngMetadata pngMetadata, int pixelOffset = 0, int increment = 1)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // Trim the first marker byte from the buffer
             ReadOnlySpan<byte> trimmed = defilteredScanline.Slice(1, defilteredScanline.Length - 1);
@@ -1096,10 +1101,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             while (length < 0 || length > (this.currentStream.Length - this.currentStream.Position))
             {
-                // Not a valid chunk so we skip back all but one of the four bytes we have just read.
-                // That lets us read one byte at a time until we reach a known chunk.
-                this.currentStream.Position -= 3;
-
+                // Not a valid chunk so try again until we reach a known chunk.
                 if (!this.TryReadChunkLength(out length))
                 {
                     chunk = default;

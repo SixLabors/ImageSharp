@@ -18,7 +18,14 @@ namespace SixLabors.ImageSharp.Tests
     {
         public enum TestImageWriteFormat
         {
+            /// <summary>
+            /// Writes a jpg file.
+            /// </summary>
             Jpeg,
+
+            /// <summary>
+            /// Writes a png file.
+            /// </summary>
             Png
         }
 
@@ -257,18 +264,18 @@ namespace SixLabors.ImageSharp.Tests
 
             exifProfile.Sync(metaData);
 
-            Assert.Equal(100, (metaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
-            Assert.Equal(300, (metaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+            Assert.Equal(100, metaData.ExifProfile.GetValue(ExifTag.XResolution).Value.ToDouble());
+            Assert.Equal(300, metaData.ExifProfile.GetValue(ExifTag.YResolution).Value.ToDouble());
 
             metaData.VerticalResolution = 150;
 
-            Assert.Equal(100, (metaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
-            Assert.Equal(300, (metaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+            Assert.Equal(100, metaData.ExifProfile.GetValue(ExifTag.XResolution).Value.ToDouble());
+            Assert.Equal(300, metaData.ExifProfile.GetValue(ExifTag.YResolution).Value.ToDouble());
 
             exifProfile.Sync(metaData);
 
-            Assert.Equal(100, (metaData.ExifProfile.GetValue(ExifTag.XResolution).Value).ToDouble());
-            Assert.Equal(150, (metaData.ExifProfile.GetValue(ExifTag.YResolution).Value).ToDouble());
+            Assert.Equal(100, metaData.ExifProfile.GetValue(ExifTag.XResolution).Value.ToDouble());
+            Assert.Equal(150, metaData.ExifProfile.GetValue(ExifTag.YResolution).Value.ToDouble());
         }
 
         [Fact]
@@ -387,7 +394,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ProfileToByteArray()
         {
             // Arrange
-            byte[] exifBytesWithoutExifCode = ExifConstants.LittleEndianByteOrderMarker;
+            byte[] exifBytesWithoutExifCode = ExifConstants.LittleEndianByteOrderMarker.ToArray();
             ExifProfile expectedProfile = CreateExifProfile();
             var expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();
 

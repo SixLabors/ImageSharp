@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp
         /// <param name="format">The format.</param>
         /// <returns>The <see cref="string"/></returns>
         public static string ToBase64String<TPixel>(this Image<TPixel> source, IImageFormat format)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (var stream = new MemoryStream())
             {

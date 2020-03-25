@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
         public void ImageShouldPad<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
         public void ImageShouldPadWithBackgroundColor<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var color = Color.Red;
             TPixel expected = color.ToPixel<TPixel>();

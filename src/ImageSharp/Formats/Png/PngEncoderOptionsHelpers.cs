@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             PngMetadata pngMetadata,
             out bool use16Bit,
             out int bytesPerPixel)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // Always take the encoder options over the metadata values.
             options.Gamma ??= pngMetadata.Gamma;
@@ -53,10 +53,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="options">The options.</param>
         /// <param name="image">The image.</param>
-        public static IQuantizedFrame<TPixel> CreateQuantizedFrame<TPixel>(
+        public static IndexedImageFrame<TPixel> CreateQuantizedFrame<TPixel>(
             PngEncoderOptions options,
             Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (options.ColorType != PngColorType.Palette)
             {
@@ -72,13 +72,15 @@ namespace SixLabors.ImageSharp.Formats.Png
             // Use the metadata to determine what quantization depth to use if no quantizer has been set.
             if (options.Quantizer is null)
             {
-                options.Quantizer = new WuQuantizer(ImageMaths.GetColorCountForBitDepth(bits));
+                var maxColors = ImageMaths.GetColorCountForBitDepth(bits);
+                options.Quantizer = new WuQuantizer(new QuantizerOptions { MaxColors = maxColors });
             }
 
             // Create quantized frame returning the palette and set the bit depth.
             using (IFrameQuantizer<TPixel> frameQuantizer = options.Quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration()))
             {
-                return frameQuantizer.QuantizeFrame(image.Frames.RootFrame);
+                ImageFrame<TPixel> frame = image.Frames.RootFrame;
+                return frameQuantizer.QuantizeFrame(frame, frame.Bounds());
             }
         }
 
@@ -92,8 +94,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         public static byte CalculateBitDepth<TPixel>(
             PngEncoderOptions options,
             Image<TPixel> image,
-            IQuantizedFrame<TPixel> quantizedFrame)
-            where TPixel : struct, IPixel<TPixel>
+            IndexedImageFrame<TPixel> quantizedFrame)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             byte bitDepth;
             if (options.ColorType == PngColorType.Palette)
@@ -151,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// This is not exhaustive but covers many common pixel formats.
         /// </summary>
         private static PngColorType SuggestColorType<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return typeof(TPixel) switch
             {
@@ -177,7 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// This is not exhaustive but covers many common pixel formats.
         /// </summary>
         private static PngBitDepth SuggestBitDepth<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return typeof(TPixel) switch
             {

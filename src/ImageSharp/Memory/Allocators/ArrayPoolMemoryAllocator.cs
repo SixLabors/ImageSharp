@@ -60,13 +60,41 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="poolSelectorThresholdInBytes">The threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
         /// <param name="maxArraysPerBucketLargePool">Max arrays per bucket for the large array pool.</param>
         /// <param name="maxArraysPerBucketNormalPool">Max arrays per bucket for the normal array pool.</param>
-        public ArrayPoolMemoryAllocator(int maxPoolSizeInBytes, int poolSelectorThresholdInBytes, int maxArraysPerBucketLargePool, int maxArraysPerBucketNormalPool)
+        public ArrayPoolMemoryAllocator(
+            int maxPoolSizeInBytes,
+            int poolSelectorThresholdInBytes,
+            int maxArraysPerBucketLargePool,
+            int maxArraysPerBucketNormalPool)
+            : this(
+                maxPoolSizeInBytes,
+                poolSelectorThresholdInBytes,
+                maxArraysPerBucketLargePool,
+                maxArraysPerBucketNormalPool,
+                DefaultBufferCapacityInBytes)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
+        /// </summary>
+        /// <param name="maxPoolSizeInBytes">The maximum size of pooled arrays. Arrays over the thershold are gonna be always allocated.</param>
+        /// <param name="poolSelectorThresholdInBytes">The threshold to pool arrays in <see cref="largeArrayPool"/> which has less buckets for memory safety.</param>
+        /// <param name="maxArraysPerBucketLargePool">Max arrays per bucket for the large array pool.</param>
+        /// <param name="maxArraysPerBucketNormalPool">Max arrays per bucket for the normal array pool.</param>
+        /// <param name="bufferCapacityInBytes">The length of the largest contiguous buffer that can be handled by this allocator instance.</param>
+        public ArrayPoolMemoryAllocator(
+            int maxPoolSizeInBytes,
+            int poolSelectorThresholdInBytes,
+            int maxArraysPerBucketLargePool,
+            int maxArraysPerBucketNormalPool,
+            int bufferCapacityInBytes)
         {
             Guard.MustBeGreaterThan(maxPoolSizeInBytes, 0, nameof(maxPoolSizeInBytes));
             Guard.MustBeLessThanOrEqualTo(poolSelectorThresholdInBytes, maxPoolSizeInBytes, nameof(poolSelectorThresholdInBytes));
 
             this.MaxPoolSizeInBytes = maxPoolSizeInBytes;
             this.PoolSelectorThresholdInBytes = poolSelectorThresholdInBytes;
+            this.BufferCapacityInBytes = bufferCapacityInBytes;
             this.maxArraysPerBucketLargePool = maxArraysPerBucketLargePool;
             this.maxArraysPerBucketNormalPool = maxArraysPerBucketNormalPool;
 
@@ -83,6 +111,11 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         public int PoolSelectorThresholdInBytes { get; }
 
+        /// <summary>
+        /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance.
+        /// </summary>
+        public int BufferCapacityInBytes { get; internal set; } // Setter is internal for easy configuration in tests
+
         /// <inheritdoc />
         public override void ReleaseRetainedResources()
         {
@@ -90,16 +123,17 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <inheritdoc />
+        protected internal override int GetBufferCapacityInBytes() => this.BufferCapacityInBytes;
+
+        /// <inheritdoc />
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
-            if (bufferSizeInBytes < 0)
+            if (bufferSizeInBytes < 0 || bufferSizeInBytes > this.BufferCapacityInBytes)
             {
-                throw new ArgumentOutOfRangeException(
-                    nameof(length),
-                    $"{nameof(ArrayPoolMemoryAllocator)} can not allocate {length} elements of {typeof(T).Name}.");
+                ThrowInvalidAllocationException<T>(length);
             }
 
             ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
@@ -135,6 +169,11 @@ namespace SixLabors.ImageSharp.Memory
         {
             return maxPoolSizeInBytes / 4;
         }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private static void ThrowInvalidAllocationException<T>(int length) =>
+            throw new InvalidMemoryOperationException(
+                $"Requested allocation: {length} elements of {typeof(T).Name} is over the capacity of the MemoryAllocator.");
 
         private ArrayPool<byte> GetArrayPool(int bufferSizeInBytes)
         {

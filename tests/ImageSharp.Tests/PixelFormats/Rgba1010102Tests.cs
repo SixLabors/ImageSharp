@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -46,12 +46,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             float y = 0x36d;
             float z = 0x3b7;
             float w = 0x1;
-            Assert.Equal((uint)0x7B7DB6DB, new Rgba1010102(x / 0x3ff, y / 0x3ff, z / 0x3ff, w / 3).PackedValue);
+            Assert.Equal(0x7B7DB6DBU, new Rgba1010102(x / 0x3ff, y / 0x3ff, z / 0x3ff, w / 3).PackedValue);
 
-            Assert.Equal((uint)536871014, new Rgba1010102(0.1f, -0.3f, 0.5f, -0.7f).PackedValue);
+            Assert.Equal(536871014U, new Rgba1010102(0.1f, -0.3f, 0.5f, -0.7f).PackedValue);
 
             // Test the limits.
-            Assert.Equal((uint)0x0, new Rgba1010102(Vector4.Zero).PackedValue);
+            Assert.Equal(0x0U, new Rgba1010102(Vector4.Zero).PackedValue);
             Assert.Equal(0xFFFFFFFF, new Rgba1010102(Vector4.One).PackedValue);
         }
 

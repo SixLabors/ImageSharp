@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
                     PixelAlphaCompositionMode.DestOut,
                     PixelAlphaCompositionMode.Clear,
                     PixelAlphaCompositionMode.Xor
-                };        
+                };
 
         [Theory]
         [WithFile(TestImages.Png.PDDest, nameof(CompositingOperators), PixelTypes.Rgba32)]
@@ -46,7 +46,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelBlenders
                 {
                     string combinedMode = mode.ToString();
 
-                    if (combinedMode != "Src" && combinedMode.StartsWith("Src")) combinedMode = combinedMode.Substring(3);
+                    if (combinedMode != "Src" && combinedMode.StartsWith("Src"))
+                    {
+                        combinedMode = combinedMode.Substring(3);
+                    }
 
                     res.DebugSave(provider, combinedMode);
                     res.CompareToReferenceOutput(provider, combinedMode);

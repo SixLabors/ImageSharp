@@ -2,8 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
@@ -13,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class QuantizeProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly IQuantizer quantizer;
 
@@ -34,28 +35,54 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc />
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
+            var interest = Rectangle.Intersect(source.Bounds(), this.SourceRectangle);
+
             Configuration configuration = this.Configuration;
-            using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(configuration))
-            using (IQuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source))
+            using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(configuration);
+            using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source, interest);
+
+            var operation = new RowIntervalOperation(this.SourceRectangle, source, quantized);
+            ParallelRowIterator.IterateRowIntervals(
+                configuration,
+                interest,
+                in operation);
+        }
+
+        private readonly struct RowIntervalOperation : IRowIntervalOperation
+        {
+            private readonly Rectangle bounds;
+            private readonly ImageFrame<TPixel> source;
+            private readonly IndexedImageFrame<TPixel> quantized;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowIntervalOperation(
+                Rectangle bounds,
+                ImageFrame<TPixel> source,
+                IndexedImageFrame<TPixel> quantized)
             {
-                int paletteCount = quantized.Palette.Length - 1;
+                this.bounds = bounds;
+                this.source = source;
+                this.quantized = quantized;
+            }
 
-                // Not parallel to remove "quantized" closure allocation.
-                // We can operate directly on the source here as we've already read it to get the
-                // quantized result
-                for (int y = 0; y < source.Height; y++)
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(in RowInterval rows)
+            {
+                ReadOnlySpan<byte> quantizedPixelSpan = this.quantized.GetPixelBufferSpan();
+                ReadOnlySpan<TPixel> paletteSpan = this.quantized.Palette.Span;
+                int offsetY = this.bounds.Top;
+                int offsetX = this.bounds.Left;
+                int width = this.bounds.Width;
+
+                for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    Span<TPixel> row = source.GetPixelRowSpan(y);
-                    ReadOnlySpan<byte> quantizedPixelSpan = quantized.GetPixelSpan();
+                    Span<TPixel> row = this.source.GetPixelRowSpan(y);
+                    int rowStart = (y - offsetY) * width;
 
-                    ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
-
-                    int yy = y * source.Width;
-
-                    for (int x = 0; x < source.Width; x++)
+                    for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        int i = x + yy;
-                        row[x] = paletteSpan[Math.Min(paletteCount, quantizedPixelSpan[i])];
+                        int i = rowStart + x - offsetX;
+                        row[x] = paletteSpan[quantizedPixelSpan[i]];
                     }
                 }
             }

@@ -15,9 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="quantizer">The quantizer used to reduce the color palette.</param>
         public QuantizeProcessor(IQuantizer quantizer)
-        {
-            this.Quantizer = quantizer;
-        }
+            => this.Quantizer = quantizer;
 
         /// <summary>
         /// Gets the quantizer.
@@ -26,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
             => new QuantizeProcessor<TPixel>(configuration, this.Quantizer, source, sourceRectangle);
     }
 }

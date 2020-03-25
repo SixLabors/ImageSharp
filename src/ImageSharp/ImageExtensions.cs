@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+#if !SUPPORTS_BASE64SPAN
 using System.Buffers;
+#endif
 using System.Collections.Generic;
 using System.IO;
 using System.Text;

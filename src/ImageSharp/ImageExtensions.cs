@@ -112,12 +112,12 @@ namespace SixLabors.ImageSharp
         public static string ToBase64String<TPixel>(this Image<TPixel> source, IImageFormat format)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var stream = new MemoryStream())
-            {
-                source.Save(stream, format);
-                stream.Flush();
-                return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(stream.ToArray())}";
-            }
+            using var stream = new MemoryStream();
+            source.Save(stream, format);
+
+            // Always available.
+            stream.TryGetBuffer(out ArraySegment<byte> buffer);
+            return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(buffer.Array, 0, (int)stream.Length)}";
         }
     }
 }

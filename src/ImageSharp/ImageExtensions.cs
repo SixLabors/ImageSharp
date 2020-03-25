@@ -115,29 +115,12 @@ namespace SixLabors.ImageSharp
         public static string ToBase64String<TPixel>(this Image<TPixel> source, IImageFormat format)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var stream = new MemoryStream())
-            {
-                source.Save(stream, format);
+            using var stream = new MemoryStream();
+            source.Save(stream, format);
 
-                // Always available.
-                stream.TryGetBuffer(out ArraySegment<byte> buffer);
-
-#if !SUPPORTS_BASE64SPAN
-
-                byte[] sharedBuffer = ArrayPool<byte>.Shared.Rent(buffer.Count);
-                try
-                {
-                    buffer.AsSpan().CopyTo(sharedBuffer);
-                    return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(sharedBuffer)}";
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(sharedBuffer);
-                }
-#else
-                return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(buffer)}";
-#endif
-            }
+            // Always available.
+            stream.TryGetBuffer(out ArraySegment<byte> buffer);
+            return $"data:{format.DefaultMimeType};base64,{Convert.ToBase64String(buffer.Array, 0, (int)stream.Length)}";
         }
     }
 }

@@ -125,8 +125,7 @@ namespace SixLabors.ImageSharp
                     Vector4 s = Unsafe.Add(ref sBase, i);
                     s *= maxBytes;
                     s += half;
-                    s = Vector4.Max(Vector4.Zero, s);
-                    s = Vector4.Min(maxBytes, s);
+                    s = Vector4Utilities.FastClamp(s, Vector4.Zero, maxBytes);
 
                     ref ByteVector4 d = ref Unsafe.Add(ref dBase, i);
                     d.X = (byte)s.X;

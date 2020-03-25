@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static Vector4 FastClamp(Vector4 x, Vector4 min, Vector4 max)
-            => Vector4.Min(Vector4.Max(min, x), max);
+            => Vector4.Min(Vector4.Max(x, min), max);
 
         /// <summary>
         /// Pre-multiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.

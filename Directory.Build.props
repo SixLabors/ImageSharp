@@ -35,7 +35,7 @@
     | SUPPORTS          | MATHF | HASHCODE | EXTENDED_INTRINSICS | SPAN_STREAM | ENCODING_STRING | RUNTIME_INTRINSICS | CODECOVERAGE |
     +===================+=======+==========+=====================+=============+=================+====================+==============+
     | netcoreapp3.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        Y           |      Y       |
-    | netcoreapp2.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        N           |      Y       |    
+    | netcoreapp2.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        N           |      Y       |
     | netcoreapp2.0     |   Y   |    N     |         N           |      N      |        N        |        N           |      Y       |
     | netstandard2.1    |   Y   |    Y     |         N           |      Y      |        Y        |        N           |      Y       |
     | netstandard2.0    |   N   |    N     |         N           |      N      |        N        |        N           |      Y       |

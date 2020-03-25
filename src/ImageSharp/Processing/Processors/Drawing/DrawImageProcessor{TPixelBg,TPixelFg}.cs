@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Drawing
@@ -15,8 +15,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
     /// <typeparam name="TPixelBg">The pixel format of destination image.</typeparam>
     /// <typeparam name="TPixelFg">The pixel format of source image.</typeparam>
     internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
-        where TPixelBg : struct, IPixel<TPixelBg>
-        where TPixelFg : struct, IPixel<TPixelFg>
+        where TPixelBg : unmanaged, IPixel<TPixelBg>
+        where TPixelFg : unmanaged, IPixel<TPixelFg>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixelBg, TPixelFg}"/> class.
@@ -99,18 +99,59 @@ namespace SixLabors.ImageSharp.Processing.Processors.Drawing
                     "Cannot draw image because the source image does not overlap the target image.");
             }
 
-            ParallelHelper.IterateRows(
-                workingRect,
+            var operation = new RowOperation(source, targetImage, blender, configuration, minX, width, locationY, targetX, this.Opacity);
+            ParallelRowIterator.IterateRows(
                 configuration,
-                rows =>
-                {
-                    for (int y = rows.Min; y < rows.Max; y++)
-                    {
-                        Span<TPixelBg> background = source.GetPixelRowSpan(y).Slice(minX, width);
-                        Span<TPixelFg> foreground = targetImage.GetPixelRowSpan(y - locationY).Slice(targetX, width);
-                        blender.Blend<TPixelFg>(configuration, background, background, foreground, this.Opacity);
-                    }
-                });
+                workingRect,
+                in operation);
+        }
+
+        /// <summary>
+        /// A <see langword="struct"/> implementing the draw logic for <see cref="DrawImageProcessor{TPixelBg,TPixelFg}"/>.
+        /// </summary>
+        private readonly struct RowOperation : IRowOperation
+        {
+            private readonly ImageFrame<TPixelBg> sourceFrame;
+            private readonly Image<TPixelFg> targetImage;
+            private readonly PixelBlender<TPixelBg> blender;
+            private readonly Configuration configuration;
+            private readonly int minX;
+            private readonly int width;
+            private readonly int locationY;
+            private readonly int targetX;
+            private readonly float opacity;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowOperation(
+                ImageFrame<TPixelBg> sourceFrame,
+                Image<TPixelFg> targetImage,
+                PixelBlender<TPixelBg> blender,
+                Configuration configuration,
+                int minX,
+                int width,
+                int locationY,
+                int targetX,
+                float opacity)
+            {
+                this.sourceFrame = sourceFrame;
+                this.targetImage = targetImage;
+                this.blender = blender;
+                this.configuration = configuration;
+                this.minX = minX;
+                this.width = width;
+                this.locationY = locationY;
+                this.targetX = targetX;
+                this.opacity = opacity;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(int y)
+            {
+                Span<TPixelBg> background = this.sourceFrame.GetPixelRowSpan(y).Slice(this.minX, this.width);
+                Span<TPixelFg> foreground = this.targetImage.GetPixelRowSpan(y - this.locationY).Slice(this.targetX, this.width);
+                this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity);
+            }
         }
     }
 }

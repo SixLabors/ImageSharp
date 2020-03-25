@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public Rgba64(Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, Vector4.One) * Max;
             this.R = (ushort)MathF.Round(vector.X);
             this.G = (ushort)MathF.Round(vector.Y);
             this.B = (ushort)MathF.Round(vector.Z);
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public Rgb48 Rgb
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => Unsafe.As<Rgba64, Rgb48>(ref this);
+            readonly get => Unsafe.As<Rgba64, Rgb48>(ref Unsafe.AsRef(this));
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set => Unsafe.As<Rgba64, Rgb48>(ref this) = value;
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public ulong PackedValue
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => Unsafe.As<Rgba64, ulong>(ref this);
+            readonly get => Unsafe.As<Rgba64, ulong>(ref Unsafe.AsRef(this));
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set => Unsafe.As<Rgba64, ulong>(ref this) = value;
@@ -195,7 +195,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgba64 left, Rgba64 right) => left.PackedValue != right.PackedValue;
 
         /// <inheritdoc />
-        public PixelOperations<Rgba64> CreatePixelOperations() => new PixelOperations();
+        public readonly PixelOperations<Rgba64> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -203,13 +203,13 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4() => this.ToVector4();
+        public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromVector4(Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, Vector4.One) * Max;
             this.R = (ushort)MathF.Round(vector.X);
             this.G = (ushort)MathF.Round(vector.Y);
             this.B = (ushort)MathF.Round(vector.Z);
@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / Max;
+        public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / Max;
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Rgba32"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgba32 ToRgba32()
+        public readonly Rgba32 ToRgba32()
         {
             byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
             byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
@@ -357,7 +357,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Bgra32"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Bgra32 ToBgra32()
+        public readonly Bgra32 ToBgra32()
         {
             byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
             byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
@@ -371,7 +371,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Argb32"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Argb32 ToArgb32()
+        public readonly Argb32 ToArgb32()
         {
             byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
             byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
@@ -385,7 +385,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Rgb24"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Rgb24 ToRgb24()
+        public readonly Rgb24 ToRgb24()
         {
             byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
             byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
@@ -398,7 +398,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Bgr24"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Bgr24 ToBgr24()
+        public readonly Bgr24 ToBgr24()
         {
             byte r = ImageMaths.DownScaleFrom16BitTo8Bit(this.R);
             byte g = ImageMaths.DownScaleFrom16BitTo8Bit(this.G);
@@ -407,17 +407,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Rgba64 rgba64 && this.Equals(rgba64);
+        public override readonly bool Equals(object obj) => obj is Rgba64 rgba64 && this.Equals(rgba64);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Rgba64 other) => this.PackedValue.Equals(other.PackedValue);
+        public readonly bool Equals(Rgba64 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override string ToString() => $"Rgba64({this.R}, {this.G}, {this.B}, {this.A})";
+        public override readonly string ToString() => $"Rgba64({this.R}, {this.G}, {this.B}, {this.A})";
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => this.PackedValue.GetHashCode();
+        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
     }
 }

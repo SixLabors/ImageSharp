@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     public class GenericBlock8x8Tests
     {
         public static Image<TPixel> CreateTestImage<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var image = new Image<TPixel>(10, 10);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
@@ -36,12 +36,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgb24 | PixelTypes.Rgba32 /* | PixelTypes.Rgba32 | PixelTypes.Argb32*/)]
         public void LoadAndStretchCorners_FromOrigo<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> s = provider.GetImage())
             {
                 var d = default(GenericBlock8x8<TPixel>);
-                d.LoadAndStretchEdges(s.Frames.RootFrame, 0, 0);
+                var rowOctet = new RowOctet<TPixel>(s.GetRootFramePixelBuffer(), 0);
+                d.LoadAndStretchEdges(s.Frames.RootFrame.PixelBuffer, 0, 0, rowOctet);
 
                 TPixel a = s.Frames.RootFrame[0, 0];
                 TPixel b = d[0, 0];
@@ -60,12 +61,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgb24 | PixelTypes.Rgba32)]
         public void LoadAndStretchCorners_WithOffset<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> s = provider.GetImage())
             {
                 var d = default(GenericBlock8x8<TPixel>);
-                d.LoadAndStretchEdges(s.Frames.RootFrame, 6, 7);
+                var rowOctet = new RowOctet<TPixel>(s.GetRootFramePixelBuffer(), 7);
+                d.LoadAndStretchEdges(s.Frames.RootFrame.PixelBuffer, 6, 7, rowOctet);
 
                 Assert.Equal(s[6, 7], d[0, 0]);
                 Assert.Equal(s[6, 8], d[0, 1]);

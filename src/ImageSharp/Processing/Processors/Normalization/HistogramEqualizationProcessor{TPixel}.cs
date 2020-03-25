@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly float luminanceLevelsFloat;
 

@@ -1,6 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
@@ -33,7 +36,32 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
         /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : struct, IPixel<TPixel>
-            => new PixelRowDelegateProcessor<TPixel>(configuration, this, source, sourceRectangle);
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            return new PixelRowDelegateProcessor<TPixel, PixelRowDelegate>(
+                new PixelRowDelegate(this.PixelRowOperation),
+                configuration,
+                this.Modifiers,
+                source,
+                sourceRectangle);
+        }
+
+        /// <summary>
+        /// A <see langword="struct"/> implementing the row processing logic for <see cref="PixelRowDelegateProcessor"/>.
+        /// </summary>
+        public readonly struct PixelRowDelegate : IPixelRowDelegate
+        {
+            private readonly PixelRowOperation pixelRowOperation;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public PixelRowDelegate(PixelRowOperation pixelRowOperation)
+            {
+                this.pixelRowOperation = pixelRowOperation;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(Span<Vector4> span, Point offset) => this.pixelRowOperation(span);
+        }
     }
 }

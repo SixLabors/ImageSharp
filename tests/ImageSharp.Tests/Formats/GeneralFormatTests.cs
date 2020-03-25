@@ -1,27 +1,28 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    using System;
-    using System.Linq;
-    using System.Reflection;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Processors.Quantization;
-    using SixLabors.ImageSharp.Memory;
-
     public class GeneralFormatTests : FileTestBase
     {
         [Theory]
         [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ResolutionShouldChange<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -73,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(QuantizerNames), PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Bike, nameof(QuantizerNames), PixelTypes.Rgba32)]
         public void QuantizeImageShouldPreserveMaximumColorPrecision<TPixel>(TestImageProvider<TPixel> provider, string quantizerName)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
 
@@ -90,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests
         private static IQuantizer GetQuantizer(string name)
         {
             PropertyInfo property = typeof(KnownQuantizers).GetTypeInfo().GetProperty(name);
-            return (IQuantizer)property.GetMethod.Invoke(null, new object[0]);
+            return (IQuantizer)property.GetMethod.Invoke(null, Array.Empty<object>());
         }
 
         [Fact]

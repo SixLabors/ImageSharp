@@ -32,11 +32,11 @@ namespace SixLabors.ImageSharp
             int width,
             int height,
             ImageMetadata metadata)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Buffer2D<TPixel> uninitializedMemoryBuffer =
                 configuration.MemoryAllocator.Allocate2D<TPixel>(width, height);
-            return new Image<TPixel>(configuration, uninitializedMemoryBuffer.MemorySource, width, height, metadata);
+            return new Image<TPixel>(configuration, uninitializedMemoryBuffer.FastMemoryGroup, width, height, metadata);
         }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp
         /// </returns>
         private static (Image<TPixel> img, IImageFormat format) Decode<TPixel>(Stream stream, Configuration config)
 #pragma warning restore SA1008 // Opening parenthesis must be spaced correctly
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
             if (decoder is null)

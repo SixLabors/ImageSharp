@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -24,10 +26,22 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new GifDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(stream);
+
+            try
+            {
+                return decoder.Decode<TPixel>(stream);
+            }
+            catch (InvalidMemoryOperationException ex)
+            {
+                Size dims = decoder.Dimensions;
+
+                // TODO: use InvalidImageContentException here, if we decide to define it
+                // https://github.com/SixLabors/ImageSharp/issues/1110
+                throw new ImageFormatException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
+            }
         }
 
         /// <inheritdoc/>

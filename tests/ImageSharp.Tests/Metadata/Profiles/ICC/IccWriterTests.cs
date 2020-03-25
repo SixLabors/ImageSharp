@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [Fact]
         public void WriteProfile_NoEntries()
         {
-            IccWriter writer = CreateWriter();
+            IccWriter writer = this.CreateWriter();
 
             var profile = new IccProfile
             {
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Icc
         [Fact]
         public void WriteProfile_DuplicateEntry()
         {
-            IccWriter writer = CreateWriter();
+            IccWriter writer = this.CreateWriter();
 
             byte[] output = writer.Write(IccTestDataProfiles.Profile_Random_Val);
 

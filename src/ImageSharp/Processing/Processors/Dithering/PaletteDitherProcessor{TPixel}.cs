@@ -3,25 +3,22 @@
 
 using System;
 using System.Buffers;
-using System.Collections.Generic;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
     /// <summary>
-    /// The base class for dither and diffusion processors that consume a palette.
+    /// Allows the consumption a palette to dither an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly Dictionary<TPixel, PixelPair<TPixel>> cache = new Dictionary<TPixel, PixelPair<TPixel>>();
-        private IMemoryOwner<TPixel> palette;
-        private IMemoryOwner<Vector4> paletteVector;
-        private bool palleteVectorMapped;
+        private readonly DitherProcessor ditherProcessor;
+        private readonly IDither dither;
+        private IMemoryOwner<TPixel> paletteOwner;
         private bool isDisposed;
 
         /// <summary>
@@ -31,35 +28,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <param name="definition">The <see cref="PaletteDitherProcessor"/> defining the processor parameters.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        protected PaletteDitherProcessor(Configuration configuration, PaletteDitherProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+        public PaletteDitherProcessor(Configuration configuration, PaletteDitherProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
-            this.Definition = definition;
-            this.palette = this.Configuration.MemoryAllocator.Allocate<TPixel>(definition.Palette.Length);
-            this.paletteVector = this.Configuration.MemoryAllocator.Allocate<Vector4>(definition.Palette.Length);
+            this.dither = definition.Dither;
+
+            ReadOnlySpan<Color> sourcePalette = definition.Palette.Span;
+            this.paletteOwner = this.Configuration.MemoryAllocator.Allocate<TPixel>(sourcePalette.Length);
+            Color.ToPixel(this.Configuration, sourcePalette, this.paletteOwner.Memory.Span);
+
+            this.ditherProcessor = new DitherProcessor(
+                this.Configuration,
+                this.paletteOwner.Memory,
+                definition.DitherScale);
         }
 
-        protected PaletteDitherProcessor Definition { get; }
-
         /// <inheritdoc/>
-        protected override void BeforeFrameApply(ImageFrame<TPixel> source)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            // Lazy init palettes:
-            if (!this.palleteVectorMapped)
-            {
-                ReadOnlySpan<Color> sourcePalette = this.Definition.Palette.Span;
-                Color.ToPixel(this.Configuration, sourcePalette, this.palette.Memory.Span);
-
-                PixelOperations<TPixel>.Instance.ToVector4(
-                    this.Configuration,
-                    this.palette.Memory.Span,
-                    this.paletteVector.Memory.Span,
-                    PixelConversionModifiers.Scale);
-            }
-
-            this.palleteVectorMapped = true;
-
-            base.BeforeFrameApply(source);
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+            this.dither.ApplyPaletteDither(in this.ditherProcessor, source, interest);
         }
 
         /// <inheritdoc/>
@@ -70,74 +58,48 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 return;
             }
 
+            this.isDisposed = true;
             if (disposing)
             {
-                this.palette?.Dispose();
-                this.paletteVector?.Dispose();
+                this.paletteOwner.Dispose();
             }
 
-            this.palette = null;
-            this.paletteVector = null;
-
-            this.isDisposed = true;
+            this.paletteOwner = null;
             base.Dispose(disposing);
         }
 
         /// <summary>
-        /// Returns the two closest colors from the palette calculated via Euclidean distance in the Rgba space.
+        /// Used to allow inlining of calls to
+        /// <see cref="IPaletteDitherImageProcessor{TPixel}.GetPaletteColor(TPixel)"/>.
         /// </summary>
-        /// <param name="pixel">The source color to match.</param>
-        /// <returns>The <see cref="PixelPair{TPixel}"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected PixelPair<TPixel> GetClosestPixelPair(ref TPixel pixel)
+        private readonly struct DitherProcessor : IPaletteDitherImageProcessor<TPixel>
         {
-            // Check if the color is in the lookup table
-            if (this.cache.TryGetValue(pixel, out PixelPair<TPixel> value))
+            private readonly EuclideanPixelMap<TPixel> pixelMap;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public DitherProcessor(
+                Configuration configuration,
+                ReadOnlyMemory<TPixel> palette,
+                float ditherScale)
             {
-                return value;
+                this.Configuration = configuration;
+                this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
+                this.Palette = palette;
+                this.DitherScale = ditherScale;
             }
 
-            return this.GetClosestPixelPairSlow(ref pixel);
-        }
+            public Configuration Configuration { get; }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private PixelPair<TPixel> GetClosestPixelPairSlow(ref TPixel pixel)
-        {
-            // Not found - loop through the palette and find the nearest match.
-            float leastDistance = float.MaxValue;
-            float secondLeastDistance = float.MaxValue;
-            var vector = pixel.ToVector4();
+            public ReadOnlyMemory<TPixel> Palette { get; }
 
-            TPixel closest = default;
-            TPixel secondClosest = default;
-            Span<TPixel> paletteSpan = this.palette.Memory.Span;
-            ref TPixel paletteSpanBase = ref MemoryMarshal.GetReference(paletteSpan);
-            Span<Vector4> paletteVectorSpan = this.paletteVector.Memory.Span;
-            ref Vector4 paletteVectorSpanBase = ref MemoryMarshal.GetReference(paletteVectorSpan);
+            public float DitherScale { get; }
 
-            for (int index = 0; index < paletteVectorSpan.Length; index++)
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public TPixel GetPaletteColor(TPixel color)
             {
-                ref Vector4 candidate = ref Unsafe.Add(ref paletteVectorSpanBase, index);
-                float distance = Vector4.DistanceSquared(vector, candidate);
-
-                if (distance < leastDistance)
-                {
-                    leastDistance = distance;
-                    secondClosest = closest;
-                    closest = Unsafe.Add(ref paletteSpanBase, index);
-                }
-                else if (distance < secondLeastDistance)
-                {
-                    secondLeastDistance = distance;
-                    secondClosest = Unsafe.Add(ref paletteSpanBase, index);
-                }
+                this.pixelMap.GetClosestColor(color, out TPixel match);
+                return match;
             }
-
-            // Pop it into the cache for next time
-            var pair = new PixelPair<TPixel>(closest, secondClosest);
-            this.cache.Add(pixel, pair);
-
-            return pair;
         }
     }
 }

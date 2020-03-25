@@ -1,6 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
@@ -22,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [Theory]
         [WithFileCollection(nameof(InputImages), nameof(EntropyCropValues), PixelTypes.Rgba32)]
         public void EntropyCrop<TPixel>(TestImageProvider<TPixel> provider, float value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(x => x.EntropyCrop(value), value, appendPixelTypeToFileName: false);
         }

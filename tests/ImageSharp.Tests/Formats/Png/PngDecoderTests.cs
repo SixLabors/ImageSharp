@@ -1,21 +1,27 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-// ReSharper disable InconsistentNaming
-
 using System.IO;
+using Microsoft.DotNet.RemoteExecutor;
+
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+
 using Xunit;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     public partial class PngDecoderTests
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
+
+        private static PngDecoder PngDecoder => new PngDecoder();
 
         public static readonly string[] CommonTestImages =
         {
@@ -52,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         };
 
         public static readonly string[] TestImages64Bpp =
-{
+        {
             TestImages.Png.Rgba64Bpp,
             TestImages.Png.Rgb48BppTrans
         };
@@ -86,9 +92,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            using (Image<TPixel> image = provider.GetImage(PngDecoder))
             {
                 image.DebugSave(provider);
 
@@ -110,9 +116,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFile(TestImages.Png.Interlaced, PixelTypes.Rgba32)]
         public void Decode_Interlaced_ImageIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            using (Image<TPixel> image = provider.GetImage(PngDecoder))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
@@ -122,9 +128,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFileCollection(nameof(TestImages48Bpp), PixelTypes.Rgb48)]
         public void Decode_48Bpp<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            using (Image<TPixel> image = provider.GetImage(PngDecoder))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
@@ -134,9 +140,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFileCollection(nameof(TestImages64Bpp), PixelTypes.Rgba64)]
         public void Decode_64Bpp<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            using (Image<TPixel> image = provider.GetImage(PngDecoder))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
@@ -146,9 +152,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFileCollection(nameof(TestImagesL8BitInterlaced), PixelTypes.Rgba32)]
         public void Decoder_L8bitInterlaced<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            using (Image<TPixel> image = provider.GetImage(PngDecoder))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
@@ -158,9 +164,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFileCollection(nameof(TestImagesL16Bit), PixelTypes.Rgb48)]
         public void Decode_L16Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            using (Image<TPixel> image = provider.GetImage(PngDecoder))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
@@ -170,9 +176,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFileCollection(nameof(TestImagesGrayAlpha16Bit), PixelTypes.Rgba64)]
         public void Decode_GrayAlpha16Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            using (Image<TPixel> image = provider.GetImage(PngDecoder))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
@@ -182,9 +188,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFile(TestImages.Png.GrayA8BitInterlaced, PixelTypes)]
         public void Decoder_CanDecodeGrey8bitWithAlpha<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            using (Image<TPixel> image = provider.GetImage(PngDecoder))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
@@ -194,9 +200,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFile(TestImages.Png.Splash, PixelTypes)]
         public void Decoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+            using (Image<TPixel> image = provider.GetImage(PngDecoder))
             {
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
@@ -223,18 +229,71 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFileCollection(nameof(TestImagesIssue1014), PixelTypes.Rgba32)]
         public void Issue1014<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             System.Exception ex = Record.Exception(
                 () =>
                 {
-                    using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
+                    using (Image<TPixel> image = provider.GetImage(PngDecoder))
                     {
                         image.DebugSave(provider);
                         image.CompareToOriginal(provider, ImageComparer.Exact);
                     }
                 });
             Assert.Null(ex);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Issue1127, PixelTypes.Rgba32)]
+        public void Issue1127<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            System.Exception ex = Record.Exception(
+                () =>
+                {
+                    using (Image<TPixel> image = provider.GetImage(PngDecoder))
+                    {
+                        image.DebugSave(provider);
+                        image.CompareToOriginal(provider, ImageComparer.Exact);
+                    }
+                });
+            Assert.Null(ex);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32)]
+        public void PngDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
+            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(PngDecoder));
+            Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32)]
+        public void PngDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            static void RunTest(string providerDump, string nonContiguousBuffersStr)
+            {
+                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+
+                provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
+
+                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
+                image.CompareToOriginal(provider);
+            }
+
+            string providerDump = BasicSerializer.Serialize(provider);
+            RemoteExecutor.Invoke(
+                    RunTest,
+                    providerDump,
+                    "Disco")
+                .Dispose();
         }
     }
 }

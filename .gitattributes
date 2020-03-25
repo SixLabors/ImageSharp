@@ -96,21 +96,21 @@
 *.gif               binary
 *.jpg               binary
 *.ktx               binary
+*.otf               binary
 *.pbm               binary
 *.pdf               binary
 *.png               binary
 *.ppt               binary
 *.pptx              binary
 *.pvr               binary
-*.ttf               binary
 *.snk               binary
 *.tga               binary
+*.ttc               binary
 *.ttf               binary
 *.woff              binary
 *.woff2             binary
 *.xls               binary
 *.xlsx              binary
-
 
 ###############################################################################
 # Set explicit file behavior to:

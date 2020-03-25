@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
-
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
     using static TestImages.Bmp;

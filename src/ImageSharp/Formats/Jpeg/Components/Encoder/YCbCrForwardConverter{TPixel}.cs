@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
     /// </summary>
     /// <typeparam name="TPixel">The pixel type to work on</typeparam>
     internal ref struct YCbCrForwardConverter<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// The Y component
@@ -55,9 +55,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Converts a 8x8 image area inside 'pixels' at position (x,y) placing the result members of the structure (<see cref="Y"/>, <see cref="Cb"/>, <see cref="Cr"/>)
         /// </summary>
-        public void Convert(ImageFrame<TPixel> frame, int x, int y)
+        public void Convert(ImageFrame<TPixel> frame, int x, int y, in RowOctet<TPixel> currentRows)
         {
-            this.pixelBlock.LoadAndStretchEdges(frame, x, y);
+            this.pixelBlock.LoadAndStretchEdges(frame.PixelBuffer, x, y, currentRows);
 
             Span<Rgb24> rgbSpan = this.rgbBlock.AsSpanUnsafe();
             PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelBlock.AsSpanUnsafe(), rgbSpan);

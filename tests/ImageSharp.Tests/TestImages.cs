@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Linq;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 // ReSharper disable MemberHidesStaticFromOuterClass
 namespace SixLabors.ImageSharp.Tests
 {
@@ -56,6 +56,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string LowColorVariance = "Png/low-variance.png";
             public const string PngWithMetadata = "Png/PngWithMetaData.png";
             public const string InvalidTextData = "Png/InvalidTextData.png";
+            public const string David = "Png/david.png";
 
             // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
             public const string Filter0 = "Png/filter0.png";
@@ -89,6 +90,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Issue1014_4 = "Png/issues/Issue_1014_4.png";
             public const string Issue1014_5 = "Png/issues/Issue_1014_5.png";
             public const string Issue1014_6 = "Png/issues/Issue_1014_6.png";
+            public const string Issue1127 = "Png/issues/Issue_1127.png";
 
             public static class Bad
             {
@@ -142,7 +144,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Floorplan = "Jpg/baseline/Floorplan.jpg";
                 public const string Calliphora = "Jpg/baseline/Calliphora.jpg";
                 public const string Ycck = "Jpg/baseline/ycck.jpg";
-                public const string Turtle = "Jpg/baseline/turtle.jpg";
+                public const string Turtle420 = "Jpg/baseline/turtle.jpg";
                 public const string GammaDalaiLamaGray = "Jpg/baseline/gamma_dalai_lama_gray.jpg";
                 public const string Hiyamugi = "Jpg/baseline/Hiyamugi.jpg";
                 public const string Snake = "Jpg/baseline/Snake.jpg";
@@ -161,7 +163,7 @@ namespace SixLabors.ImageSharp.Tests
                 public static readonly string[] All =
                 {
                     Cmyk, Ycck, Exif, Floorplan,
-                    Calliphora, Turtle, GammaDalaiLamaGray,
+                    Calliphora, Turtle420, GammaDalaiLamaGray,
                     Hiyamugi, Jpeg400, Jpeg420Exif, Jpeg444,
                     Ratio1x1, Testorig12bit, YcckSubsample1222
                 };
@@ -310,8 +312,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
             public const string RgbaAlphaBitfields = "Bmp/rgba32abf.bmp";
 
-            public static readonly string[] BitFields
-            = {
+            public static readonly string[] BitFields =
+            {
                   Rgb32bfdef,
                   Rgb32bf,
                   Rgb16565,
@@ -320,32 +322,32 @@ namespace SixLabors.ImageSharp.Tests
                   Issue735,
             };
 
-            public static readonly string[] Miscellaneous
-            = {
+            public static readonly string[] Miscellaneous =
+            {
                 Car,
                 F,
                 NegHeight
             };
 
-            public static readonly string[] Benchmark
-                = {
-                          Car,
-                          F,
-                          NegHeight,
-                          CoreHeader,
-                          V5Header,
-                          RLE4,
-                          RLE8,
-                          RLE8Inverted,
-                          Bit1,
-                          Bit1Pal1,
-                          Bit4,
-                          Bit8,
-                          Bit8Inverted,
-                          Bit16,
-                          Bit16Inverted,
-                          Bit32Rgb
-                      };
+            public static readonly string[] Benchmark =
+            {
+                Car,
+                F,
+                NegHeight,
+                CoreHeader,
+                V5Header,
+                RLE4,
+                RLE8,
+                RLE8Inverted,
+                Bit1,
+                Bit1Pal1,
+                Bit4,
+                Bit8,
+                Bit8Inverted,
+                Bit16,
+                Bit16Inverted,
+                Bit32Rgb
+            };
         }
 
         public static class Gif
@@ -353,6 +355,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rings = "Gif/rings.gif";
             public const string Giphy = "Gif/giphy.gif";
             public const string Cheers = "Gif/cheers.gif";
+            public const string Receipt = "Gif/receipt.gif";
             public const string Trans = "Gif/trans.gif";
             public const string Kumin = "Gif/kumin.gif";
             public const string Leo = "Gif/leo.gif";

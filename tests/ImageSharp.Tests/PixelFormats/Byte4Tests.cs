@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -42,9 +42,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         [Fact]
         public void Byte4_PackedValue()
         {
-            Assert.Equal((uint)128, new Byte4(127.5f, -12.3f, 0.5f, -0.7f).PackedValue);
-            Assert.Equal((uint)0x1a7b362d, new Byte4(0x2d, 0x36, 0x7b, 0x1a).PackedValue);
-            Assert.Equal((uint)0x0, new Byte4(Vector4.Zero).PackedValue);
+            Assert.Equal(128U, new Byte4(127.5f, -12.3f, 0.5f, -0.7f).PackedValue);
+            Assert.Equal(0x1a7b362dU, new Byte4(0x2d, 0x36, 0x7b, 0x1a).PackedValue);
+            Assert.Equal(0x0U, new Byte4(Vector4.Zero).PackedValue);
             Assert.Equal(0xFFFFFFFF, new Byte4(Vector4.One * 255).PackedValue);
         }
 
@@ -195,10 +195,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // arrange
             var byte4 = default(Byte4);
             uint expectedPackedValue1 = uint.MaxValue;
-            
+
             // act
             byte4.FromRgba32(new Rgba32(255, 255, 255, 255));
-            
+
             // assert
             Assert.Equal(expectedPackedValue1, byte4.PackedValue);
         }

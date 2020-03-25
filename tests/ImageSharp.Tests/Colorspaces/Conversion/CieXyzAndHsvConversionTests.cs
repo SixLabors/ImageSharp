@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -64,12 +64,11 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             Span<CieXyz> actualSpan = new CieXyz[5];
 
             // Act
-            var actual = Converter.ToCieXyz(input);
+            CieXyz actual = Converter.ToCieXyz(input);
             Converter.Convert(inputSpan, actualSpan);
 
             // Assert
             Assert.Equal(expected, actual, ColorSpaceComparer);
-
 
             for (int i = 0; i < actualSpan.Length; i++)
             {

@@ -1,15 +1,19 @@
-// ReSharper disable InconsistentNaming
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.IO;
 using System.Linq;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
 using Xunit;
 using Xunit.Abstractions;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public class SpectralJpegTests
@@ -41,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory(Skip = "Debug only, enable manually!")]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void Decoder_ParseStream_SaveSpectralResult<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
 
@@ -59,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
         public void VerifySpectralCorrectness<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (!TestEnvironment.IsWindows)
             {
@@ -78,11 +82,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.VerifySpectralCorrectnessImpl(provider, imageSharpData);
             }
         }
-        
+
         private void VerifySpectralCorrectnessImpl<TPixel>(
             TestImageProvider<TPixel> provider,
             LibJpegTools.SpectralData imageSharpData)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             LibJpegTools.SpectralData libJpegData = LibJpegTools.ExtractSpectralData(provider.SourceFileOrDescription);
 
@@ -110,8 +114,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 this.Output.WriteLine($"Component{i}: {diff}");
                 averageDifference += diff.average;
                 totalDifference += diff.total;
-                tolerance += libJpegComponent.SpectralBlocks.MemorySource.GetSpan().Length;
+                tolerance += libJpegComponent.SpectralBlocks.GetSingleSpan().Length;
             }
+
             averageDifference /= componentCount;
 
             tolerance /= 64; // fair enough?

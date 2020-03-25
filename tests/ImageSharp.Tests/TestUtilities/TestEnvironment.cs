@@ -34,12 +34,18 @@ namespace SixLabors.ImageSharp.Tests
 
         private static readonly Lazy<string> NetCoreVersionLazy = new Lazy<string>(GetNetCoreVersion);
 
+        static TestEnvironment()
+        {
+            PrepareRemoteExecutor();
+        }
+
         /// <summary>
         /// Gets the .NET Core version, if running on .NET Core, otherwise returns an empty string.
         /// </summary>
         internal static string NetCoreVersion => NetCoreVersionLazy.Value;
 
         // ReSharper disable once InconsistentNaming
+
         /// <summary>
         /// Gets a value indicating whether test execution runs on CI.
         /// </summary>
@@ -111,6 +117,13 @@ namespace SixLabors.ImageSharp.Tests
         internal static bool IsFramework => string.IsNullOrEmpty(NetCoreVersion);
 
         /// <summary>
+        /// A dummy operation to enforce the execution of the static constructor.
+        /// </summary>
+        internal static void EnsureSharedInitializersDone()
+        {
+        }
+
+        /// <summary>
         /// Creates the image output directory.
         /// </summary>
         /// <param name="path">The path.</param>
@@ -140,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests
         /// When running in 32 bits, enforces 32 bit execution of Microsoft.DotNet.RemoteExecutor.exe
         /// with the help of CorFlags.exe found in Windows SDK.
         /// </summary>
-        internal static void PrepareRemoteExecutor()
+        private static void PrepareRemoteExecutor()
         {
             if (!IsFramework)
             {
@@ -152,12 +165,11 @@ namespace SixLabors.ImageSharp.Tests
 
             if (File.Exists(remoteExecutorConfigPath))
             {
-                // already prepared
+                // Already initialized
                 return;
             }
 
             string testProjectConfigPath = TestAssemblyFile.FullName + ".config";
-
             File.Copy(testProjectConfigPath, remoteExecutorConfigPath);
 
             if (Is64BitProcess)
@@ -174,14 +186,26 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         private static void EnsureRemoteExecutorIs32Bit()
         {
-            string windowsSdksDir = Path.Combine(Environment.GetEnvironmentVariable("PROGRAMFILES(x86)"),
-                "Microsoft SDKs", "Windows");
+            string windowsSdksDir = Path.Combine(
+                Environment.GetEnvironmentVariable("PROGRAMFILES(x86)"),
+                "Microsoft SDKs",
+                "Windows");
 
             FileInfo corFlagsFile = Find(new DirectoryInfo(windowsSdksDir), "CorFlags.exe");
 
             string remoteExecutorPath = Path.Combine(TestAssemblyFile.DirectoryName, "Microsoft.DotNet.RemoteExecutor.exe");
 
-            string args = $"{remoteExecutorPath} /32Bit+ /Force";
+            string remoteExecutorTmpPath = $"{remoteExecutorPath}._tmp";
+
+            if (File.Exists(remoteExecutorTmpPath))
+            {
+                // Already initialized
+                return;
+            }
+
+            File.Copy(remoteExecutorPath, remoteExecutorTmpPath);
+
+            string args = $"{remoteExecutorTmpPath} /32Bit+ /Force";
 
             var si = new ProcessStartInfo()
             {
@@ -202,6 +226,9 @@ namespace SixLabors.ImageSharp.Tests
                 throw new Exception(
                     $@"Failed to run {si.FileName} {si.Arguments}:\n STDOUT: {standardOutput}\n STDERR: {standardError}");
             }
+
+            File.Delete(remoteExecutorPath);
+            File.Copy(remoteExecutorTmpPath, remoteExecutorPath);
 
             static FileInfo Find(DirectoryInfo root, string name)
             {
@@ -234,8 +261,11 @@ namespace SixLabors.ImageSharp.Tests
             string[] assemblyPath = assembly.CodeBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
             int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
             if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
+            {
                 return assemblyPath[netCoreAppIndex + 1];
-            return "";
+            }
+
+            return string.Empty;
         }
     }
 }

@@ -32,9 +32,9 @@ namespace SixLabors.ImageSharp
             int width,
             int height,
             ImageMetadata metadata)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            var memorySource = new MemorySource<TPixel>(pixelMemory);
+            var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemory);
             return new Image<TPixel>(config, memorySource, width, height, metadata);
         }
 
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp
             Memory<TPixel> pixelMemory,
             int width,
             int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return WrapMemory(config, pixelMemory, width, height, new ImageMetadata());
         }
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp
             Memory<TPixel> pixelMemory,
             int width,
             int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return WrapMemory(Configuration.Default, pixelMemory, width, height);
         }
@@ -97,9 +97,9 @@ namespace SixLabors.ImageSharp
             int width,
             int height,
             ImageMetadata metadata)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            var memorySource = new MemorySource<TPixel>(pixelMemoryOwner, false);
+            var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
             return new Image<TPixel>(config, memorySource, width, height, metadata);
         }
 
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp
             IMemoryOwner<TPixel> pixelMemoryOwner,
             int width,
             int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return WrapMemory(config, pixelMemoryOwner, width, height, new ImageMetadata());
         }
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp
             IMemoryOwner<TPixel> pixelMemoryOwner,
             int width,
             int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return WrapMemory(Configuration.Default, pixelMemoryOwner, width, height);
         }

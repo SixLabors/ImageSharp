@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new JpegEncoderCore(this);
             encoder.Encode(image, stream);

@@ -3,6 +3,7 @@
 
 using System;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -78,8 +79,8 @@ namespace SixLabors.ImageSharp
         /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
         protected abstract void Dispose(bool disposing);
 
-        internal abstract void CopyPixelsTo<TDestinationPixel>(Span<TDestinationPixel> destination)
-            where TDestinationPixel : struct, IPixel<TDestinationPixel>;
+        internal abstract void CopyPixelsTo<TDestinationPixel>(MemoryGroup<TDestinationPixel> destination)
+            where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>;
 
         /// <summary>
         /// Updates the size of the image frame.

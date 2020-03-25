@@ -27,13 +27,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private const float ProgressiveTolerance = 0.2F / 100;
 
-        static JpegDecoderTests()
-        {
-            TestEnvironment.PrepareRemoteExecutor();
-        }
-
         private static ImageComparer GetImageComparer<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string file = provider.SourceFileOrDescription;
 
@@ -93,31 +88,39 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes)]
         public void JpegDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            static void RunTest(string providerDump)
-            {
-                TestImageProvider<TPixel> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
-                using Image<TPixel> image = provider.GetImage(JpegDecoder);
-                image.DebugSave(provider);
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            image.DebugSave(provider);
 
-                provider.Utility.TestName = DecodeBaselineJpegOutputName;
-                image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance), provider, appendPixelTypeToFileName: false);
-            }
+            provider.Utility.TestName = DecodeBaselineJpegOutputName;
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                appendPixelTypeToFileName: false);
+        }
 
-            string dump = BasicSerializer.Serialize(provider);
-            RemoteExecutor.Invoke(RunTest, dump).Dispose();
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Progressive.Festzug, PixelTypes.Rgba32)]
+        public void DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity().InBytesSqrt(10);
+            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(JpegDecoder));
+            this.Output.WriteLine(ex.Message);
+            Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
         // DEBUG ONLY!
         // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"
-        //[Theory]
-        //[WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, "PdfJsOriginal_progress.png")]
-        public void ValidateProgressivePdfJsOutput<TPixel>(TestImageProvider<TPixel> provider,
+        // [Theory]
+        // [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, "PdfJsOriginal_progress.png")]
+        public void ValidateProgressivePdfJsOutput<TPixel>(
+            TestImageProvider<TPixel> provider,
             string pdfJsOriginalResultImage)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm
             string pdfJsOriginalResultPath = Path.Combine(

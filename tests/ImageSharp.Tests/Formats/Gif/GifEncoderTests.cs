@@ -8,8 +8,8 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
     public class GifEncoderTests
@@ -20,23 +20,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
         new TheoryData<string, int, int, PixelResolutionUnit>
         {
-            { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution , PixelResolutionUnit.PixelsPerInch},
-            { TestImages.Gif.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
+            { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution, PixelResolutionUnit.PixelsPerInch },
+            { TestImages.Gif.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
             { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
         };
 
         [Theory]
-        [WithTestPatternImages(100, 100, TestPixelTypes)]
-        public void EncodeGeneratedPatterns<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [WithTestPatternImages(100, 100, TestPixelTypes, false)]
+        [WithTestPatternImages(100, 100, TestPixelTypes, false)]
+        public void EncodeGeneratedPatterns<TPixel>(TestImageProvider<TPixel> provider, bool limitAllocationBuffer)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
+            if (limitAllocationBuffer)
+            {
+                provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
+            }
+
             using (Image<TPixel> image = provider.GetImage())
             {
                 var encoder = new GifEncoder
                 {
                     // Use the palette quantizer without dithering to ensure results
                     // are consistent
-                    Quantizer = new WebSafePaletteQuantizer(false)
+                    Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null })
                 };
 
                 // Always save as we need to compare the encoded output.
@@ -103,14 +109,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Theory]
         [WithFile(TestImages.Gif.Cheers, PixelTypes.Rgba32)]
         public void EncodeGlobalPaletteReturnsSmallerFile<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 var encoder = new GifEncoder
                 {
                     ColorTableMode = GifColorTableMode.Global,
-                    Quantizer = new OctreeQuantizer(false)
+                    Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null })
                 };
 
                 // Always save as we need to compare the encoded output.
@@ -141,7 +147,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 var encoder = new GifEncoder
                 {
                     ColorTableMode = colorMode,
-                    Quantizer = new OctreeQuantizer(frameMetadata.ColorTableLength)
+                    Quantizer = new OctreeQuantizer(new QuantizerOptions { MaxColors = frameMetadata.ColorTableLength })
                 };
 
                 image.Save(outStream, encoder);

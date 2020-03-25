@@ -62,6 +62,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         /// <summary>
+        /// Gets the dimensions of the image.
+        /// </summary>
+        public Size Dimensions => new Size(this.fileHeader.Width, this.fileHeader.Height);
+
+        /// <summary>
         /// Decodes the image from the specified stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -71,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// </exception>
         /// <returns>The decoded image.</returns>
         public Image<TPixel> Decode<TPixel>(Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             try
             {
@@ -217,7 +222,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="colorMapPixelSizeInBytes">Color map size of one entry in bytes.</param>
         /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadPaletted<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(width, AllocationOptions.Clean))
             {
@@ -280,7 +285,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="colorMapPixelSizeInBytes">Color map size of one entry in bytes.</param>
         /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadPalettedRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int bytesPerPixel = 1;
             using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * bytesPerPixel, AllocationOptions.Clean))
@@ -331,7 +336,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadMonoChrome<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 1, 0))
             {
@@ -358,7 +363,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadBgra16<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, 0))
             {
@@ -393,7 +398,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadBgr24<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, 0))
             {
@@ -420,7 +425,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadBgra32<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0))
             {
@@ -448,7 +453,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
         /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
         private void ReadRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, int bytesPerPixel, bool inverted)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
             using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * bytesPerPixel, AllocationOptions.Clean))

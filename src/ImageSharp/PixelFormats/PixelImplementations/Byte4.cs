@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             const float Max = 255F;
 
             // Clamp the value between min and max values
-            vector = Vector4.Clamp(vector, Vector4.Zero, new Vector4(Max));
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, new Vector4(Max));
 
             uint byte4 = (uint)Math.Round(vector.X) & 0xFF;
             uint byte3 = ((uint)Math.Round(vector.Y) & 0xFF) << 0x8;

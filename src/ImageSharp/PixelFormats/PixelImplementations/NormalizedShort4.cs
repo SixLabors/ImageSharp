@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         private static ulong Pack(ref Vector4 vector)
         {
             vector *= Max;
-            vector = Vector4.Clamp(vector, Min, Max);
+            vector = Vector4Utilities.FastClamp(vector, Min, Max);
 
             // Round rather than truncate.
             ulong word4 = ((ulong)MathF.Round(vector.X) & 0xFFFF) << 0x00;

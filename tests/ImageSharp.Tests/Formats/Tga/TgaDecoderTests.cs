@@ -199,6 +199,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         }
 
         [Theory]
+        [WithFile(NoAlphaBits32Bit, PixelTypes.Rgba32)]
+        [WithFile(NoAlphaBits16Bit, PixelTypes.Rgba32)]
+        [WithFile(NoAlphaBits32BitRle, PixelTypes.Rgba32)]
+        [WithFile(NoAlphaBits16BitRle, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_WhenAlphaBitsNotSet<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
         [WithFile(Bit16, PixelTypes.Rgba32)]
         [WithFile(Bit24, PixelTypes.Rgba32)]
         [WithFile(Bit32, PixelTypes.Rgba32)]

@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -13,10 +14,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// A pixel-specific image frame where each pixel buffer value represents an index in a color palette.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public sealed class IndexedImageFrame<TPixel> : IDisposable
+    public sealed class IndexedImageFrame<TPixel> : IPixelSource, IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private IMemoryOwner<byte> pixelsOwner;
+        private Buffer2D<byte> pixelBuffer;
         private IMemoryOwner<TPixel> paletteOwner;
         private bool isDisposed;
 
@@ -39,7 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Configuration = configuration;
             this.Width = width;
             this.Height = height;
-            this.pixelsOwner = configuration.MemoryAllocator.AllocateManagedByteBuffer(width * height);
+            this.pixelBuffer = configuration.MemoryAllocator.Allocate2D<byte>(width, height);
 
             // Copy the palette over. We want the lifetime of this frame to be independant of any palette source.
             this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(palette.Length);
@@ -67,16 +68,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         public ReadOnlyMemory<TPixel> Palette { get; }
 
-        /// <summary>
-        /// Gets the pixels of this <see cref="IndexedImageFrame{TPixel}"/>.
-        /// </summary>
-        /// <returns>The <see cref="ReadOnlySpan{T}"/></returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public ReadOnlySpan<byte> GetPixelBufferSpan() => this.pixelsOwner.GetSpan(); // TODO: Buffer2D<byte>
+        /// <inheritdoc/>
+        Buffer2D<byte> IPixelSource.PixelBuffer => this.pixelBuffer;
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="ReadOnlySpan{T}"/> of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
+        /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
         /// </summary>
         /// <param name="rowIndex">The row index in the pixel buffer.</param>
         /// <returns>The pixel row as a <see cref="ReadOnlySpan{T}"/>.</returns>
@@ -87,7 +84,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// <para>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
+        /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
         /// </para>
         /// <para>
         /// Note: Values written to this span are not sanitized against the palette length.
@@ -98,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>The pixel row as a <see cref="Span{T}"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Span<byte> GetWritablePixelRowSpanUnsafe(int rowIndex)
-            => this.pixelsOwner.GetSpan().Slice(rowIndex * this.Width, this.Width);
+            => this.pixelBuffer.GetRowSpan(rowIndex);
 
         /// <inheritdoc/>
         public void Dispose()
@@ -106,9 +103,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             if (!this.isDisposed)
             {
                 this.isDisposed = true;
-                this.pixelsOwner.Dispose();
+                this.pixelBuffer.Dispose();
                 this.paletteOwner.Dispose();
-                this.pixelsOwner = null;
+                this.pixelBuffer = null;
                 this.paletteOwner = null;
             }
         }

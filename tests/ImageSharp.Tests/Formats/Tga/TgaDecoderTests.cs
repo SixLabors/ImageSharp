@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -199,17 +200,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         }
 
         [Theory]
-        [WithFile(NoAlphaBits32Bit, PixelTypes.Rgba32)]
         [WithFile(NoAlphaBits16Bit, PixelTypes.Rgba32)]
-        [WithFile(NoAlphaBits32BitRle, PixelTypes.Rgba32)]
         [WithFile(NoAlphaBits16BitRle, PixelTypes.Rgba32)]
-        public void TgaDecoder_CanDecode_WhenAlphaBitsNotSet<TPixel>(TestImageProvider<TPixel> provider)
+        public void TgaDecoder_CanDecode_WhenAlphaBitsNotSet_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
             {
                 image.DebugSave(provider);
                 TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(NoAlphaBits32Bit, PixelTypes.Rgba32)]
+        [WithFile(NoAlphaBits32BitRle, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_WhenAlphaBitsNotSet<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                // Using here the reference output instead of the the reference decoder,
+                // because the reference decoder does not ignore the alpha data here.
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(ImageComparer.Exact, provider);
             }
         }
 

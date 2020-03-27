@@ -392,7 +392,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit24Pal = "Tga/targa_24bit_pal.tga";
             public const string NoAlphaBits16Bit = "Tga/16bit_noalphabits.tga";
             public const string NoAlphaBits16BitRle = "Tga/16bit_rle_noalphabits.tga";
-            public const string NoAlphaBits32Bit = "Tga/32bit_noalphabits.tga";
+            public const string NoAlphaBits32Bit = "Tga/32bit_no_alphabits.tga";
             public const string NoAlphaBits32BitRle = "Tga/32bit_rle_no_alphabits.tga";
         }
     }

@@ -35,12 +35,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Build histogram of code lengths.
             for (symbol = 0; symbol < codeLengthsSize; ++symbol)
             {
-                if (codeLengths[symbol] > WebPConstants.MaxAllowedCodeLength)
+                var codeLengthOfSymbol = codeLengths[symbol];
+                if (codeLengthOfSymbol > WebPConstants.MaxAllowedCodeLength)
                 {
                     return 0;
                 }
 
-                count[codeLengths[symbol]]++;
+                count[codeLengthOfSymbol]++;
             }
 
             // Error, all code lengths are zeros.
@@ -53,19 +54,20 @@ namespace SixLabors.ImageSharp.Formats.WebP
             offset[1] = 0;
             for (len = 1; len < WebPConstants.MaxAllowedCodeLength; ++len)
             {
-                if (count[len] > (1 << len))
+                int codesOfLength = count[len];
+                if (codesOfLength > (1 << len))
                 {
                     return 0;
                 }
 
-                offset[len + 1] = offset[len] + count[len];
+                offset[len + 1] = offset[len] + codesOfLength;
             }
 
             // Sort symbols by length, by symbol order within each length.
             for (symbol = 0; symbol < codeLengthsSize; ++symbol)
             {
                 int symbolCodeLength = codeLengths[symbol];
-                if (codeLengths[symbol] > 0)
+                if (symbolCodeLength > 0)
                 {
                     sorted[offset[symbolCodeLength]++] = symbol;
                 }

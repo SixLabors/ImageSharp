@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     {
                         // We need to load fresh 'packed_pixels' once every
                         // 'pixelsPerByte' increments of x. Fortunately, pixelsPerByte
-                        // is a power of 2, so can just use a mask for that, instead of
+                        // is a power of 2, so we can just use a mask for that, instead of
                         // decrementing a counter.
                         if ((x & countMask) is 0)
                         {

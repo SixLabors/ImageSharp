@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// Gets the Huffman trees. This has a maximum of HuffmanCodesPerMetaCode (5) entry's.
+        /// Gets the Huffman trees. This has a maximum of <see cref="WebPConstants.HuffmanCodesPerMetaCode" /> (5) entry's.
         /// </summary>
         public List<HuffmanCode[]> HTrees { get; }
 

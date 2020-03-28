@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     TgaThrowHelper.ThrowNotSupportedException($"Unknown tga colormap type {this.fileHeader.ColorMapType} found");
                 }
 
-                if (this.fileHeader.Width is 0 || this.fileHeader.Height is 0)
+                if (this.fileHeader.Width == 0 || this.fileHeader.Height == 0)
                 {
                     throw new UnknownImageFormatException("Width or height cannot be 0");
                 }
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 var image = Image.CreateUninitialized<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-                if (this.fileHeader.ColorMapType is 1)
+                if (this.fileHeader.ColorMapType == 1)
                 {
                     if (this.fileHeader.CMapLength <= 0)
                     {
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     {
                         this.currentStream.Read(palette.Array, this.fileHeader.CMapStart, colorMapSizeInBytes);
 
-                        if (this.fileHeader.ImageType is TgaImageType.RleColorMapped)
+                        if (this.fileHeader.ImageType == TgaImageType.RleColorMapped)
                         {
                             this.ReadPalettedRle(
                                 this.fileHeader.Width,
@@ -341,7 +341,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 }
                                 else
                                 {
-                                    var alpha = alphaBits is 0 ? byte.MaxValue : bufferSpan[idx + 3];
+                                    var alpha = alphaBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
                                     color.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], (byte)alpha));
                                 }
 
@@ -445,7 +445,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadBgra32<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (this.tgaMetadata.AlphaChannelBits is 8)
+            if (this.tgaMetadata.AlphaChannelBits == 8)
             {
                 using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0))
                 {
@@ -476,7 +476,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     for (int x = 0; x < width; x++)
                     {
                         int idx = x * 4;
-                        var alpha = alphaBits is 0 ? byte.MaxValue : rowSpan[idx + 3];
+                        var alpha = alphaBits == 0 ? byte.MaxValue : rowSpan[idx + 3];
                         color.FromBgra32(new Bgra32(rowSpan[idx + 2], rowSpan[idx + 1], rowSpan[idx], (byte)alpha));
                         pixelRow[x] = color;
                     }
@@ -534,7 +534,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 }
                                 else
                                 {
-                                    var alpha = alphaBits is 0 ? byte.MaxValue : bufferSpan[idx + 3];
+                                    var alpha = alphaBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
                                     color.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], (byte)alpha));
                                 }
 
@@ -579,7 +579,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
                 // The high bit of a run length packet is set to 1.
                 int highBit = runLengthByte >> 7;
-                if (highBit is 1)
+                if (highBit == 1)
                 {
                     int runLength = runLengthByte & 127;
                     this.currentStream.Read(pixel, 0, bytesPerPixel);

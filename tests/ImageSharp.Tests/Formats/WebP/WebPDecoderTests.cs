@@ -209,6 +209,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [WithFile(Lossless.GreenTransform2, PixelTypes.Rgba32)]
         [WithFile(Lossless.GreenTransform3, PixelTypes.Rgba32)]
         [WithFile(Lossless.GreenTransform4, PixelTypes.Rgba32)]
+
         // TODO: Reference decoder throws here MagickCorruptImageErrorException, webpinfo also indicates an error here, but decoding the image seems to work.
         // [WithFile(Lossless.GreenTransform5, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossless_WithSubstractGreenTransform<TPixel>(
@@ -315,7 +316,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void WebpDecoder_ThrowImageFormatException_OnInvalidImages<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Assert.Throws<ImageFormatException>(() => { using (provider.GetImage(WebpDecoder)) { } });
+            Assert.Throws<ImageFormatException>(
+                () =>
+                {
+                    using (provider.GetImage(WebpDecoder))
+                    {
+                    }
+                });
         }
     }
 }

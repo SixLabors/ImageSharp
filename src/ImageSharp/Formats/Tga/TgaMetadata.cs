@@ -29,6 +29,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// </summary>
         public TgaBitsPerPixel BitsPerPixel { get; set; } = TgaBitsPerPixel.Pixel24;
 
+        /// <summary>
+        /// Gets or sets the the number of alpha bits per pixel.
+        /// </summary>
+        public byte AlphaChannelBits { get; set; } = 0;
+
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new TgaMetadata(this);
     }

@@ -7,8 +7,9 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
-namespace SixLabors.ImageSharp.Processing.Processors.Quantization
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// A pixel-specific image frame where each pixel buffer value represents an index in a color palette.

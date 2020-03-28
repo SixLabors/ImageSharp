@@ -12,6 +12,9 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tga
 {
+    /// <summary>
+    /// Performs the tga decoding operation.
+    /// </summary>
     internal sealed class TgaDecoderCore
     {
         /// <summary>
@@ -48,6 +51,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// The bitmap decoder options.
         /// </summary>
         private readonly ITgaDecoderOptions options;
+
+        /// <summary>
+        /// Indicates whether there is a alpha channel present.
+        /// </summary>
+        private bool hasAlpha;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TgaDecoderCore"/> class.
@@ -97,7 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 var image = Image.CreateUninitialized<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-                if (this.fileHeader.ColorMapType is 1)
+                if (this.fileHeader.ColorMapType == 1)
                 {
                     if (this.fileHeader.CMapLength <= 0)
                     {
@@ -115,7 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     {
                         this.currentStream.Read(palette.Array, this.fileHeader.CMapStart, colorMapSizeInBytes);
 
-                        if (this.fileHeader.ImageType is TgaImageType.RleColorMapped)
+                        if (this.fileHeader.ImageType == TgaImageType.RleColorMapped)
                         {
                             this.ReadPalettedRle(
                                 this.fileHeader.Width,
@@ -199,7 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         break;
 
                     default:
-                        TgaThrowHelper.ThrowNotSupportedException("Does not support this kind of tga files.");
+                        TgaThrowHelper.ThrowNotSupportedException("ImageSharp does not support this kind of tga files.");
                         break;
                 }
 
@@ -241,9 +249,13 @@ namespace SixLabors.ImageSharp.Formats.Tga
                             {
                                 int colorIndex = rowSpan[x];
 
-                                // Set alpha value to 1, to treat it as opaque for Bgra5551.
                                 Bgra5551 bgra = Unsafe.As<byte, Bgra5551>(ref palette[colorIndex * colorMapPixelSizeInBytes]);
-                                bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
+                                if (!this.hasAlpha)
+                                {
+                                    // Set alpha value to 1, to treat it as opaque for Bgra5551.
+                                    bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
+                                }
+
                                 color.FromBgra5551(bgra);
                                 pixelRow[x] = color;
                             }
@@ -291,6 +303,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * bytesPerPixel, AllocationOptions.Clean))
             {
                 TPixel color = default;
+                var alphaBits = this.tgaMetadata.AlphaChannelBits;
                 Span<byte> bufferSpan = buffer.GetSpan();
                 this.UncompressRle(width, height, bufferSpan, bytesPerPixel: 1);
 
@@ -308,16 +321,30 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 color.FromL8(Unsafe.As<byte, L8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                                 break;
                             case 2:
-                                // Set alpha value to 1, to treat it as opaque for Bgra5551.
+
                                 Bgra5551 bgra = Unsafe.As<byte, Bgra5551>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]);
-                                bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
+                                if (!this.hasAlpha)
+                                {
+                                    // Set alpha value to 1, to treat it as opaque for Bgra5551.
+                                    bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
+                                }
+
                                 color.FromBgra5551(bgra);
                                 break;
                             case 3:
                                 color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                                 break;
                             case 4:
-                                color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                                if (this.hasAlpha)
+                                {
+                                    color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                                }
+                                else
+                                {
+                                    var alpha = alphaBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
+                                    color.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], (byte)alpha));
+                                }
+
                                 break;
                         }
 
@@ -345,11 +372,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromL8Bytes(
-                        this.configuration,
-                        row.GetSpan(),
-                        pixelSpan,
-                        width);
+                    PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
                 }
             }
         }
@@ -372,19 +395,18 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     this.currentStream.Read(row);
                     Span<byte> rowSpan = row.GetSpan();
 
-                    // We need to set each alpha component value to fully opaque.
-                    for (int x = 1; x < rowSpan.Length; x += 2)
+                    if (!this.hasAlpha)
                     {
-                        rowSpan[x] = (byte)(rowSpan[x] | (1 << 7));
+                        // We need to set the alpha component value to fully opaque.
+                        for (int x = 1; x < rowSpan.Length; x += 2)
+                        {
+                            rowSpan[x] = (byte)(rowSpan[x] | (1 << 7));
+                        }
                     }
 
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromBgra5551Bytes(
-                        this.configuration,
-                        rowSpan,
-                        pixelSpan,
-                        width);
+                    PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.configuration, rowSpan, pixelSpan, width);
                 }
             }
         }
@@ -407,11 +429,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromBgr24Bytes(
-                        this.configuration,
-                        row.GetSpan(),
-                        pixelSpan,
-                        width);
+                    PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
                 }
             }
         }
@@ -427,18 +445,41 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadBgra32<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            if (this.tgaMetadata.AlphaChannelBits == 8)
+            {
+                using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0))
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        this.currentStream.Read(row);
+                        int newY = Invert(y, height, inverted);
+                        Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+
+                        PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
+                    }
+                }
+
+                return;
+            }
+
+            TPixel color = default;
+            var alphaBits = this.tgaMetadata.AlphaChannelBits;
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0))
             {
                 for (int y = 0; y < height; y++)
                 {
                     this.currentStream.Read(row);
                     int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromBgra32Bytes(
-                        this.configuration,
-                        row.GetSpan(),
-                        pixelSpan,
-                        width);
+                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                    Span<byte> rowSpan = row.GetSpan();
+
+                    for (int x = 0; x < width; x++)
+                    {
+                        int idx = x * 4;
+                        var alpha = alphaBits == 0 ? byte.MaxValue : rowSpan[idx + 3];
+                        color.FromBgra32(new Bgra32(rowSpan[idx + 2], rowSpan[idx + 1], rowSpan[idx], (byte)alpha));
+                        pixelRow[x] = color;
+                    }
                 }
             }
         }
@@ -456,6 +497,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
+            var alphaBits = this.tgaMetadata.AlphaChannelBits;
             using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * bytesPerPixel, AllocationOptions.Clean))
             {
                 Span<byte> bufferSpan = buffer.GetSpan();
@@ -474,15 +516,28 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 color.FromL8(Unsafe.As<byte, L8>(ref bufferSpan[idx]));
                                 break;
                             case 2:
-                                // Set alpha value to 1, to treat it as opaque for Bgra5551.
-                                bufferSpan[idx + 1] = (byte)(bufferSpan[idx + 1] | 128);
+                                if (!this.hasAlpha)
+                                {
+                                    // Set alpha value to 1, to treat it as opaque for Bgra5551.
+                                    bufferSpan[idx + 1] = (byte)(bufferSpan[idx + 1] | 128);
+                                }
+
                                 color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref bufferSpan[idx]));
                                 break;
                             case 3:
                                 color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
                                 break;
                             case 4:
-                                color.FromBgra32(Unsafe.As<byte, Bgra32>(ref bufferSpan[idx]));
+                                if (this.hasAlpha)
+                                {
+                                    color.FromBgra32(Unsafe.As<byte, Bgra32>(ref bufferSpan[idx]));
+                                }
+                                else
+                                {
+                                    var alpha = alphaBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
+                                    color.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], (byte)alpha));
+                                }
+
                                 break;
                         }
 
@@ -577,7 +632,18 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.tgaMetadata = this.metadata.GetTgaMetadata();
             this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
 
-            // Bit at position 5 of the descriptor indicates, that the origin is top left instead of bottom right.
+            var alphaBits = this.fileHeader.ImageDescriptor & 0xf;
+            if (alphaBits != 0 && alphaBits != 1 && alphaBits != 8)
+            {
+                TgaThrowHelper.ThrowImageFormatException("Invalid alpha channel bits");
+            }
+
+            this.tgaMetadata.AlphaChannelBits = (byte)alphaBits;
+            this.hasAlpha = alphaBits > 0;
+
+            // TODO: bits 4 and 5 describe the image origin. See spec page 9. bit 4 is currently ignored.
+            // Theoretically the origin could also be top right and bottom right.
+            // Bit at position 5 of the descriptor indicates, that the origin is top left instead of bottom left.
             if ((this.fileHeader.ImageDescriptor & (1 << 5)) != 0)
             {
                 return true;

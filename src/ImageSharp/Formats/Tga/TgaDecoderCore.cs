@@ -18,6 +18,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
     internal sealed class TgaDecoderCore
     {
         /// <summary>
+        /// A scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly byte[] buffer = new byte[4];
+
+        /// <summary>
         /// The metadata.
         /// </summary>
         private ImageMetadata metadata;
@@ -88,7 +93,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             try
             {
-                bool inverted = this.ReadFileHeader(stream);
+                TgaImageOrigin origin = this.ReadFileHeader(stream);
                 this.currentStream.Skip(this.fileHeader.IdLength);
 
                 // Parse the color map, if present.
@@ -131,7 +136,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 pixels,
                                 palette.Array,
                                 colorMapPixelSizeInBytes,
-                                inverted);
+                                origin);
                         }
                         else
                         {
@@ -141,7 +146,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 pixels,
                                 palette.Array,
                                 colorMapPixelSizeInBytes,
-                                inverted);
+                                origin);
                         }
                     }
 
@@ -160,11 +165,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     case 8:
                         if (this.fileHeader.ImageType.IsRunLengthEncoded())
                         {
-                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 1, inverted);
+                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 1, origin);
                         }
                         else
                         {
-                            this.ReadMonoChrome(this.fileHeader.Width, this.fileHeader.Height, pixels, inverted);
+                            this.ReadMonoChrome(this.fileHeader.Width, this.fileHeader.Height, pixels, origin);
                         }
 
                         break;
@@ -173,11 +178,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     case 16:
                         if (this.fileHeader.ImageType.IsRunLengthEncoded())
                         {
-                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 2, inverted);
+                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 2, origin);
                         }
                         else
                         {
-                            this.ReadBgra16(this.fileHeader.Width, this.fileHeader.Height, pixels, inverted);
+                            this.ReadBgra16(this.fileHeader.Width, this.fileHeader.Height, pixels, origin);
                         }
 
                         break;
@@ -185,11 +190,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     case 24:
                         if (this.fileHeader.ImageType.IsRunLengthEncoded())
                         {
-                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 3, inverted);
+                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 3, origin);
                         }
                         else
                         {
-                            this.ReadBgr24(this.fileHeader.Width, this.fileHeader.Height, pixels, inverted);
+                            this.ReadBgr24(this.fileHeader.Width, this.fileHeader.Height, pixels, origin);
                         }
 
                         break;
@@ -197,11 +202,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     case 32:
                         if (this.fileHeader.ImageType.IsRunLengthEncoded())
                         {
-                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 4, inverted);
+                            this.ReadRle(this.fileHeader.Width, this.fileHeader.Height, pixels, 4, origin);
                         }
                         else
                         {
-                            this.ReadBgra32(this.fileHeader.Width, this.fileHeader.Height, pixels, inverted);
+                            this.ReadBgra32(this.fileHeader.Width, this.fileHeader.Height, pixels, origin);
                         }
 
                         break;
@@ -228,8 +233,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="palette">The color palette.</param>
         /// <param name="colorMapPixelSizeInBytes">Color map size of one entry in bytes.</param>
-        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
-        private void ReadPaletted<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, bool inverted)
+        /// <param name="origin">The image origin.</param>
+        private void ReadPaletted<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(width, AllocationOptions.Clean))
@@ -240,7 +245,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 for (int y = 0; y < height; y++)
                 {
                     this.currentStream.Read(row);
-                    int newY = Invert(y, height, inverted);
+                    int newY = InvertY(y, height, origin);
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
                     switch (colorMapPixelSizeInBytes)
                     {
@@ -257,7 +262,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 }
 
                                 color.FromBgra5551(bgra);
-                                pixelRow[x] = color;
+                                int newX = InvertX(x, width, origin);
+                                pixelRow[newX] = color;
                             }
 
                             break;
@@ -267,7 +273,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                             {
                                 int colorIndex = rowSpan[x];
                                 color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
-                                pixelRow[x] = color;
+                                int newX = InvertX(x, width, origin);
+                                pixelRow[newX] = color;
                             }
 
                             break;
@@ -277,7 +284,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                             {
                                 int colorIndex = rowSpan[x];
                                 color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
-                                pixelRow[x] = color;
+                                int newX = InvertX(x, width, origin);
+                                pixelRow[newX] = color;
                             }
 
                             break;
@@ -295,8 +303,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="palette">The color palette.</param>
         /// <param name="colorMapPixelSizeInBytes">Color map size of one entry in bytes.</param>
-        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
-        private void ReadPalettedRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, bool inverted)
+        /// <param name="origin">The image origin.</param>
+        private void ReadPalettedRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int bytesPerPixel = 1;
@@ -309,7 +317,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
                 for (int y = 0; y < height; y++)
                 {
-                    int newY = Invert(y, height, inverted);
+                    int newY = InvertY(y, height, origin);
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
                     int rowStartIdx = y * width * bytesPerPixel;
                     for (int x = 0; x < width; x++)
@@ -348,7 +356,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 break;
                         }
 
-                        pixelRow[x] = color;
+                        int newX = InvertX(x, width, origin);
+                        pixelRow[newX] = color;
                     }
                 }
             }
@@ -361,16 +370,36 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
-        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
-        private void ReadMonoChrome<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
+        /// <param name="origin">the image origin.</param>
+        private void ReadMonoChrome<TPixel>(int width, int height, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            bool isXInverted = origin == TgaImageOrigin.BottomRight || origin == TgaImageOrigin.TopRight;
+            if (isXInverted)
+            {
+                TPixel color = default;
+                for (int y = 0; y < height; y++)
+                {
+                    int newY = InvertY(y, height, origin);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                    for (int x = 0; x < width; x++)
+                    {
+                        var pixelValue = (byte)this.currentStream.ReadByte();
+                        color.FromL8(Unsafe.As<byte, L8>(ref pixelValue));
+                        int newX = InvertX(x, width, origin);
+                        pixelSpan[newX] = color;
+                    }
+                }
+
+                return;
+            }
+
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 1, 0))
             {
                 for (int y = 0; y < height; y++)
                 {
                     this.currentStream.Read(row);
-                    int newY = Invert(y, height, inverted);
+                    int newY = InvertY(y, height, origin);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
                 }
@@ -384,29 +413,50 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
-        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
-        private void ReadBgra16<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
+        /// <param name="origin">The image origin.</param>
+        private void ReadBgra16<TPixel>(int width, int height, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            TPixel color = default;
+            bool isXInverted = origin == TgaImageOrigin.BottomRight || origin == TgaImageOrigin.TopRight;
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, 0))
             {
                 for (int y = 0; y < height; y++)
                 {
-                    this.currentStream.Read(row);
-                    Span<byte> rowSpan = row.GetSpan();
+                    int newY = InvertY(y, height, origin);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
 
-                    if (!this.hasAlpha)
+                    if (isXInverted)
                     {
-                        // We need to set the alpha component value to fully opaque.
-                        for (int x = 1; x < rowSpan.Length; x += 2)
+                        for (int x = 0; x < width; x++)
                         {
-                            rowSpan[x] = (byte)(rowSpan[x] | (1 << 7));
+                            this.currentStream.Read(this.buffer, 0, 2);
+                            if (!this.hasAlpha)
+                            {
+                                this.buffer[1] |= 1 << 7;
+                            }
+
+                            color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref this.buffer[0]));
+                            int newX = InvertX(x, width, origin);
+                            pixelSpan[newX] = color;
                         }
                     }
+                    else
+                    {
+                        this.currentStream.Read(row);
+                        Span<byte> rowSpan = row.GetSpan();
 
-                    int newY = Invert(y, height, inverted);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.configuration, rowSpan, pixelSpan, width);
+                        if (!this.hasAlpha)
+                        {
+                            // We need to set the alpha component value to fully opaque.
+                            for (int x = 1; x < rowSpan.Length; x += 2)
+                            {
+                                rowSpan[x] |= (1 << 7);
+                            }
+                        }
+
+                        PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.configuration, rowSpan, pixelSpan, width);
+                    }
                 }
             }
         }
@@ -418,16 +468,36 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
-        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
-        private void ReadBgr24<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
+        /// <param name="origin">The image origin.</param>
+        private void ReadBgr24<TPixel>(int width, int height, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            bool isXInverted = origin == TgaImageOrigin.BottomRight || origin == TgaImageOrigin.TopRight;
+            if (isXInverted)
+            {
+                TPixel color = default;
+                for (int y = 0; y < height; y++)
+                {
+                    int newY = InvertY(y, height, origin);
+                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                    for (int x = 0; x < width; x++)
+                    {
+                        this.currentStream.Read(this.buffer, 0, 3);
+                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref this.buffer[0]));
+                        int newX = InvertX(x, width, origin);
+                        pixelSpan[newX] = color;
+                    }
+                }
+
+                return;
+            }
+
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, 0))
             {
                 for (int y = 0; y < height; y++)
                 {
                     this.currentStream.Read(row);
-                    int newY = Invert(y, height, inverted);
+                    int newY = InvertY(y, height, origin);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
                 }
@@ -441,18 +511,38 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
-        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
-        private void ReadBgra32<TPixel>(int width, int height, Buffer2D<TPixel> pixels, bool inverted)
+        /// <param name="origin">The image origin.</param>
+        private void ReadBgra32<TPixel>(int width, int height, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            TPixel color = default;
             if (this.tgaMetadata.AlphaChannelBits == 8)
             {
+                bool isXInverted = origin == TgaImageOrigin.BottomRight || origin == TgaImageOrigin.TopRight;
+                if (isXInverted)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        int newY = InvertY(y, height, origin);
+                        Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
+                        for (int x = 0; x < width; x++)
+                        {
+                            this.currentStream.Read(this.buffer, 0, 4);
+                            color.FromBgra32(Unsafe.As<byte, Bgra32>(ref this.buffer[0]));
+                            int newX = InvertX(x, width, origin);
+                            pixelSpan[newX] = color;
+                        }
+                    }
+
+                    return;
+                }
+
                 using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0))
                 {
                     for (int y = 0; y < height; y++)
                     {
                         this.currentStream.Read(row);
-                        int newY = Invert(y, height, inverted);
+                        int newY = InvertY(y, height, origin);
                         Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
 
                         PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
@@ -462,14 +552,13 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 return;
             }
 
-            TPixel color = default;
             var alphaBits = this.tgaMetadata.AlphaChannelBits;
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0))
             {
                 for (int y = 0; y < height; y++)
                 {
                     this.currentStream.Read(row);
-                    int newY = Invert(y, height, inverted);
+                    int newY = InvertY(y, height, origin);
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
                     Span<byte> rowSpan = row.GetSpan();
 
@@ -478,7 +567,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         int idx = x * 4;
                         var alpha = alphaBits == 0 ? byte.MaxValue : rowSpan[idx + 3];
                         color.FromBgra32(new Bgra32(rowSpan[idx + 2], rowSpan[idx + 1], rowSpan[idx], (byte)alpha));
-                        pixelRow[x] = color;
+                        int newX = InvertX(x, width, origin);
+                        pixelRow[newX] = color;
                     }
                 }
             }
@@ -492,8 +582,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="height">The height of the image.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> to assign the palette to.</param>
         /// <param name="bytesPerPixel">The bytes per pixel.</param>
-        /// <param name="inverted">Indicates, if the origin of the image is top left rather the bottom left (the default).</param>
-        private void ReadRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, int bytesPerPixel, bool inverted)
+        /// <param name="origin">The image origin.</param>
+        private void ReadRle<TPixel>(int width, int height, Buffer2D<TPixel> pixels, int bytesPerPixel, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
@@ -504,7 +594,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 this.UncompressRle(width, height, bufferSpan, bytesPerPixel);
                 for (int y = 0; y < height; y++)
                 {
-                    int newY = Invert(y, height, inverted);
+                    int newY = InvertY(y, height, origin);
                     Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
                     int rowStartIdx = y * width * bytesPerPixel;
                     for (int x = 0; x < width; x++)
@@ -541,7 +631,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 break;
                         }
 
-                        pixelRow[x] = color;
+                        int newX = InvertX(x, width, origin);
+                        pixelRow[newX] = color;
                     }
                 }
             }
@@ -609,18 +700,48 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// Returns the y- value based on the given height.
         /// </summary>
         /// <param name="y">The y- value representing the current row.</param>
-        /// <param name="height">The height of the bitmap.</param>
-        /// <param name="inverted">Whether the bitmap is inverted.</param>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="origin">The image origin.</param>
         /// <returns>The <see cref="int"/> representing the inverted value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Invert(int y, int height, bool inverted) => (!inverted) ? height - y - 1 : y;
+        private static int InvertY(int y, int height, TgaImageOrigin origin)
+        {
+            switch (origin)
+            {
+                case TgaImageOrigin.BottomLeft:
+                case TgaImageOrigin.BottomRight:
+                    return height - y - 1;
+                default:
+                    return y;
+            }
+        }
+
+        /// <summary>
+        /// Returns the x- value based on the given width.
+        /// </summary>
+        /// <param name="x">The x- value representing the current column.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="origin">The image origin.</param>
+        /// <returns>The <see cref="int"/> representing the inverted value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int InvertX(int x, int width, TgaImageOrigin origin)
+        {
+            switch (origin)
+            {
+                case TgaImageOrigin.TopRight:
+                case TgaImageOrigin.BottomRight:
+                    return width - x - 1;
+                default:
+                    return x;
+            }
+        }
 
         /// <summary>
         /// Reads the tga file header from the stream.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        /// <returns>true, if the image origin is top left.</returns>
-        private bool ReadFileHeader(Stream stream)
+        /// <returns>The image origin.</returns>
+        private TgaImageOrigin ReadFileHeader(Stream stream)
         {
             this.currentStream = stream;
 
@@ -641,15 +762,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.tgaMetadata.AlphaChannelBits = (byte)alphaBits;
             this.hasAlpha = alphaBits > 0;
 
-            // TODO: bits 4 and 5 describe the image origin. See spec page 9. bit 4 is currently ignored.
-            // Theoretically the origin could also be top right and bottom right.
-            // Bit at position 5 of the descriptor indicates, that the origin is top left instead of bottom left.
-            if ((this.fileHeader.ImageDescriptor & (1 << 5)) != 0)
-            {
-                return true;
-            }
-
-            return false;
+            // Bits 4 and 5 describe the image origin.
+            var origin = (TgaImageOrigin)((this.fileHeader.ImageDescriptor & 0x30) >> 4);
+            return origin;
         }
     }
 }

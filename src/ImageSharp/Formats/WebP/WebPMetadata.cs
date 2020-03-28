@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Queue<WebPChunkType> ChunkTypes { get; set; } = new Queue<WebPChunkType>();
 
         /// <summary>
-        /// Gets or sets a value indicating whether the webp file contains a animation.
+        /// Gets or sets a value indicating whether the webp file contains an animation.
         /// </summary>
         public bool Animated { get; set; } = false;
 

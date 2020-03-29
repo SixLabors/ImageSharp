@@ -532,26 +532,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             TPixel color = default;
             bool isXInverted = origin == TgaImageOrigin.BottomRight || origin == TgaImageOrigin.TopRight;
-            if (this.tgaMetadata.AlphaChannelBits == 8)
+            if (this.tgaMetadata.AlphaChannelBits == 8 && !isXInverted)
             {
-                if (isXInverted)
-                {
-                    for (int y = 0; y < height; y++)
-                    {
-                        int newY = InvertY(y, height, origin);
-                        Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                        for (int x = 0; x < width; x++)
-                        {
-                            this.currentStream.Read(this.scratchBuffer, 0, 4);
-                            color.FromBgra32(Unsafe.As<byte, Bgra32>(ref this.scratchBuffer[0]));
-                            int newX = InvertX(x, width, origin);
-                            pixelSpan[newX] = color;
-                        }
-                    }
-
-                    return;
-                }
-
                 using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0))
                 {
                     for (int y = 0; y < height; y++)

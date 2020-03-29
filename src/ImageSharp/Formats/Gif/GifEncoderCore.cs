@@ -6,6 +6,7 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -471,7 +472,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using var encoder = new LzwEncoder(this.memoryAllocator, (byte)this.bitDepth);
-            encoder.Encode(image.GetPixelBufferSpan(), stream);
+            encoder.Encode(((IPixelSource)image).PixelBuffer, stream);
         }
     }
 }

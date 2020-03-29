@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.ColorSpaces;
 using SixLabors.ImageSharp.ColorSpaces.Conversion;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion

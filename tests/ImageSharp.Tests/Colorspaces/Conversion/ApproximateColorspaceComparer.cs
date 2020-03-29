@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {

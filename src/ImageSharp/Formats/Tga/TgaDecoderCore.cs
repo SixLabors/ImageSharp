@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// A scratch buffer to reduce allocations.
         /// </summary>
-        private readonly byte[] buffer = new byte[4];
+        private readonly byte[] scratchBuffer = new byte[4];
 
         /// <summary>
         /// The metadata.
@@ -430,19 +430,19 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     {
                         for (int x = 0; x < width; x++)
                         {
-                            this.currentStream.Read(this.buffer, 0, 2);
+                            this.currentStream.Read(this.scratchBuffer, 0, 2);
                             if (!this.hasAlpha)
                             {
-                                this.buffer[1] |= 1 << 7;
+                                this.scratchBuffer[1] |= 1 << 7;
                             }
 
                             if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
                             {
-                                color.FromLa16(Unsafe.As<byte, La16>(ref this.buffer[0]));
+                                color.FromLa16(Unsafe.As<byte, La16>(ref this.scratchBuffer[0]));
                             }
                             else
                             {
-                                color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref this.buffer[0]));
+                                color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref this.scratchBuffer[0]));
                             }
 
                             int newX = InvertX(x, width, origin);
@@ -497,8 +497,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     for (int x = 0; x < width; x++)
                     {
-                        this.currentStream.Read(this.buffer, 0, 3);
-                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref this.buffer[0]));
+                        this.currentStream.Read(this.scratchBuffer, 0, 3);
+                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref this.scratchBuffer[0]));
                         int newX = InvertX(x, width, origin);
                         pixelSpan[newX] = color;
                     }
@@ -531,9 +531,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
+            bool isXInverted = origin == TgaImageOrigin.BottomRight || origin == TgaImageOrigin.TopRight;
             if (this.tgaMetadata.AlphaChannelBits == 8)
             {
-                bool isXInverted = origin == TgaImageOrigin.BottomRight || origin == TgaImageOrigin.TopRight;
                 if (isXInverted)
                 {
                     for (int y = 0; y < height; y++)
@@ -542,8 +542,8 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                         for (int x = 0; x < width; x++)
                         {
-                            this.currentStream.Read(this.buffer, 0, 4);
-                            color.FromBgra32(Unsafe.As<byte, Bgra32>(ref this.buffer[0]));
+                            this.currentStream.Read(this.scratchBuffer, 0, 4);
+                            color.FromBgra32(Unsafe.As<byte, Bgra32>(ref this.scratchBuffer[0]));
                             int newX = InvertX(x, width, origin);
                             pixelSpan[newX] = color;
                         }

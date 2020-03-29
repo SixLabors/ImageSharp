@@ -436,7 +436,15 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 this.buffer[1] |= 1 << 7;
                             }
 
-                            color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref this.buffer[0]));
+                            if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
+                            {
+                                color.FromLa16(Unsafe.As<byte, La16>(ref this.buffer[0]));
+                            }
+                            else
+                            {
+                                color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref this.buffer[0]));
+                            }
+
                             int newX = InvertX(x, width, origin);
                             pixelSpan[newX] = color;
                         }
@@ -451,11 +459,18 @@ namespace SixLabors.ImageSharp.Formats.Tga
                             // We need to set the alpha component value to fully opaque.
                             for (int x = 1; x < rowSpan.Length; x += 2)
                             {
-                                rowSpan[x] |= (1 << 7);
+                                rowSpan[x] |= 1 << 7;
                             }
                         }
 
-                        PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.configuration, rowSpan, pixelSpan, width);
+                        if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
+                        {
+                            PixelOperations<TPixel>.Instance.FromLa16Bytes(this.configuration, rowSpan, pixelSpan, width);
+                        }
+                        else
+                        {
+                            PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.configuration, rowSpan, pixelSpan, width);
+                        }
                     }
                 }
             }
@@ -612,7 +627,15 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                     bufferSpan[idx + 1] = (byte)(bufferSpan[idx + 1] | 128);
                                 }
 
-                                color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref bufferSpan[idx]));
+                                if (this.fileHeader.ImageType == TgaImageType.RleBlackAndWhite)
+                                {
+                                    color.FromLa16(Unsafe.As<byte, La16>(ref bufferSpan[idx]));
+                                }
+                                else
+                                {
+                                    color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref bufferSpan[idx]));
+                                }
+
                                 break;
                             case 3:
                                 color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));

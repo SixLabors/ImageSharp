@@ -20,8 +20,104 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         private static TgaDecoder TgaDecoder => new TgaDecoder();
 
         [Theory]
-        [WithFile(Grey, PixelTypes.Rgba32)]
-        public void TgaDecoder_CanDecode_Uncompressed_MonoChrome<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(Gray8Bit, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_Uncompressed_MonoChrome_8Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Gray8BitRle, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RunLengthEncoded_MonoChrome_8Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Gray16Bit, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_Uncompressed_MonoChrome_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Gray16BitBottomLeft, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_Uncompressed_MonoChrome_WithBottomLeftOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Gray16BitBottomRight, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_Uncompressed_MonoChrome_WithBottomRightOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Gray16BitRle, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RunLengthEncoded_MonoChrome_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Gray16BitRleBottomLeft, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RunLengthEncoded_MonoChrome_WithBottomLeftOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Gray16BitRleBottomRight, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RunLengthEncoded_MonoChrome_WithBottomRightOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Gray16BitRleTopRight, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RunLengthEncoded_MonoChrome_WithTopRightOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))
@@ -118,18 +214,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_Uncompressed_32Bit<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
-            {
-                image.DebugSave(provider);
-                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
-            }
-        }
-
-        [Theory]
-        [WithFile(GreyRle, PixelTypes.Rgba32)]
-        public void TgaDecoder_CanDecode_RunLengthEncoded_MonoChrome<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))

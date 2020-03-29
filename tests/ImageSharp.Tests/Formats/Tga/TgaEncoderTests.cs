@@ -25,10 +25,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public static readonly TheoryData<string, TgaBitsPerPixel> TgaBitsPerPixelFiles =
             new TheoryData<string, TgaBitsPerPixel>
             {
-                { Grey, TgaBitsPerPixel.Pixel8 },
-                { Bit32, TgaBitsPerPixel.Pixel32 },
-                { Bit24, TgaBitsPerPixel.Pixel24 },
+                { Gray8Bit, TgaBitsPerPixel.Pixel8 },
                 { Bit16, TgaBitsPerPixel.Pixel16 },
+                { Bit24, TgaBitsPerPixel.Pixel24 },
+                { Bit32, TgaBitsPerPixel.Pixel32 },
             };
 
         [Theory]
@@ -37,14 +37,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         {
             var options = new TgaEncoder();
 
-            TestFile testFile = TestFile.Create(imagePath);
+            var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
                     input.Save(memStream, options);
                     memStream.Position = 0;
-                    using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
+                    using (var output = Image.Load<Rgba32>(memStream))
                     {
                         TgaMetadata meta = output.Metadata.GetTgaMetadata();
                         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);

@@ -26,8 +26,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             new TheoryData<string, TgaBitsPerPixel>
             {
                 { Gray8Bit, TgaBitsPerPixel.Pixel8 },
-                { Bit16, TgaBitsPerPixel.Pixel16 },
-                { Bit24, TgaBitsPerPixel.Pixel24 },
+                { Bit16BottomLeft, TgaBitsPerPixel.Pixel16 },
+                { Bit24BottomLeft, TgaBitsPerPixel.Pixel24 },
                 { Bit32, TgaBitsPerPixel.Pixel32 },
             };
 
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
         [Theory]
         [WithFile(Bit32, PixelTypes.Rgba32, TgaBitsPerPixel.Pixel32)]
-        [WithFile(Bit24, PixelTypes.Rgba32, TgaBitsPerPixel.Pixel24)]
+        [WithFile(Bit24BottomLeft, PixelTypes.Rgba32, TgaBitsPerPixel.Pixel24)]
         public void TgaEncoder_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, TgaBitsPerPixel bitsPerPixel)
             where TPixel : unmanaged, IPixel<TPixel>
         {

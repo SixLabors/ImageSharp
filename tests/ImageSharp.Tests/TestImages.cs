@@ -375,40 +375,54 @@ namespace SixLabors.ImageSharp.Tests
 
         public static class Tga
         {
+            public const string Gray8Bit = "Tga/targa_8bit.tga";
+            public const string Gray8BitBottomLeft = "Tga/grayscale_LL.tga";
+            public const string Gray8BitTopRight = "Tga/grayscale_UR.tga";
+            public const string Gray8BitBottomRight = "Tga/grayscale_UR.tga";
+            public const string Gray8BitRle = "Tga/targa_8bit_rle.tga";
+
             public const string Bit15 = "Tga/rgb15.tga";
             public const string Bit15Rle = "Tga/rgb15rle.tga";
-            public const string Bit16 = "Tga/targa_16bit.tga";
+            public const string Bit16BottomLeft = "Tga/targa_16bit.tga";
             public const string Bit16PalRle = "Tga/ccm8.tga";
-            public const string Bit24 = "Tga/targa_24bit.tga";
-            public const string Bit24TopRight = "Tga/rgb_UR.tga";
-            public const string Bit24BottomRight = "Tga/rgb_LR.tga";
-            public const string Bit24TopLeft = "Tga/targa_24bit_pal_origin_topleft.tga";
-            public const string Bit24RleTopLeft = "Tga/targa_24bit_rle_origin_topleft.tga";
-            public const string Bit24RleTopRight = "Tga/rgb_rle_UR.tga";
-            public const string Bit24RleBottomRight = "Tga/rgb_rle_LR.tga";
-            public const string Bit32 = "Tga/targa_32bit.tga";
-            public const string Bit32Pal = "Tga/indexed_a_UL.tga";
-            public const string Bit32PalBottomLeft = "Tga/indexed_a_LL.tga";
-            public const string Bit32PalBottomRight = "Tga/indexed_a_LR.tga";
-            public const string Bit32PalTopRight = "Tga/indexed_a_UR.tga";
-            public const string Bit32TopRight = "Tga/rgb_a_UR.tga";
-            public const string Bit32BottomRight = "Tga/rgb_a_LR.tga";
-            public const string Bit32RleTopRight = "Tga/rgb_a_rle_UR.tga";
-            public const string Bit32RleBottomRight = "Tga/rgb_a_rle_LR.tga";
-            public const string Gray8Bit = "Tga/targa_8bit.tga";
-            public const string Gray8BitRle = "Tga/targa_8bit_rle.tga";
+
             public const string Gray16Bit = "Tga/grayscale_a_UL.tga";
             public const string Gray16BitBottomLeft = "Tga/grayscale_a_LL.tga";
             public const string Gray16BitBottomRight = "Tga/grayscale_a_LR.tga";
+            public const string Gray16BitTopRight = "Tga/grayscale_a_UR.tga";
             public const string Gray16BitRle = "Tga/grayscale_a_rle_UL.tga";
             public const string Gray16BitRleBottomLeft = "Tga/grayscale_a_rle_LL.tga";
             public const string Gray16BitRleBottomRight = "Tga/grayscale_a_rle_LR.tga";
             public const string Gray16BitRleTopRight = "Tga/grayscale_a_rle_UR.tga";
+
+            public const string Bit24 = "Tga/rgb24_top_left.tga";
+            public const string Bit24BottomLeft = "Tga/targa_24bit.tga";
+            public const string Bit24BottomRight = "Tga/rgb_LR.tga";
+            public const string Bit24TopRight = "Tga/rgb_UR.tga";
+            public const string Bit24TopLeft = "Tga/targa_24bit_pal_origin_topleft.tga";
+
+            public const string Bit24RleTopLeft = "Tga/targa_24bit_rle_origin_topleft.tga";
+            public const string Bit24RleTopRight = "Tga/rgb_rle_UR.tga";
+            public const string Bit24RleBottomRight = "Tga/rgb_rle_LR.tga";
+
+            public const string Bit32 = "Tga/targa_32bit.tga";
+            public const string Bit32BottomLeft = "Tga/rgb_a_LL.tga";
+            public const string Bit32TopRight = "Tga/rgb_a_UR.tga";
+            public const string Bit32BottomRight = "Tga/rgb_a_LR.tga";
+
+            public const string Bit32Pal = "Tga/indexed_a_UL.tga";
+            public const string Bit32PalBottomLeft = "Tga/indexed_a_LL.tga";
+            public const string Bit32PalBottomRight = "Tga/indexed_a_LR.tga";
+            public const string Bit32PalTopRight = "Tga/indexed_a_UR.tga";
+            public const string Bit32RleTopRight = "Tga/rgb_a_rle_UR.tga";
+            public const string Bit32RleBottomRight = "Tga/rgb_a_rle_LR.tga";
+
             public const string Bit16Rle = "Tga/targa_16bit_rle.tga";
             public const string Bit24Rle = "Tga/targa_24bit_rle.tga";
             public const string Bit32Rle = "Tga/targa_32bit_rle.tga";
             public const string Bit16Pal = "Tga/targa_16bit_pal.tga";
             public const string Bit24Pal = "Tga/targa_24bit_pal.tga";
+
             public const string NoAlphaBits16Bit = "Tga/16bit_noalphabits.tga";
             public const string NoAlphaBits16BitRle = "Tga/16bit_rle_noalphabits.tga";
             public const string NoAlphaBits32Bit = "Tga/32bit_no_alphabits.tga";

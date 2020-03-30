@@ -237,59 +237,69 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadPaletted<TPixel>(int width, int height, Buffer2D<TPixel> pixels, byte[] palette, int colorMapPixelSizeInBytes, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(width, AllocationOptions.Clean))
+            TPixel color = default;
+            bool invertX = InvertX(origin);
+
+            for (int y = 0; y < height; y++)
             {
-                TPixel color = default;
-                Span<byte> rowSpan = row.GetSpan();
+                int newY = InvertY(y, height, origin);
+                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
 
-                for (int y = 0; y < height; y++)
+                switch (colorMapPixelSizeInBytes)
                 {
-                    this.currentStream.Read(row);
-                    int newY = InvertY(y, height, origin);
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
-                    switch (colorMapPixelSizeInBytes)
-                    {
-                        case 2:
+                    case 2:
+                        if (invertX)
+                        {
+                            for (int x = width - 1; x >= 0; x--)
+                            {
+                                this.ReadPalettedBgr16Pixel(palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                            }
+                        }
+                        else
+                        {
                             for (int x = 0; x < width; x++)
                             {
-                                int colorIndex = rowSpan[x];
-
-                                Bgra5551 bgra = Unsafe.As<byte, Bgra5551>(ref palette[colorIndex * colorMapPixelSizeInBytes]);
-                                if (!this.hasAlpha)
-                                {
-                                    // Set alpha value to 1, to treat it as opaque for Bgra5551.
-                                    bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
-                                }
-
-                                color.FromBgra5551(bgra);
-                                int newX = InvertX(x, width, origin);
-                                pixelRow[newX] = color;
+                                this.ReadPalettedBgr16Pixel(palette, colorMapPixelSizeInBytes, x, color, pixelRow);
                             }
+                        }
 
-                            break;
+                        break;
 
-                        case 3:
+                    case 3:
+                        if (invertX)
+                        {
+                            for (int x = width - 1; x >= 0; x--)
+                            {
+                                this.ReadPalettedBgr24Pixel(palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                            }
+                        }
+                        else
+                        {
                             for (int x = 0; x < width; x++)
                             {
-                                int colorIndex = rowSpan[x];
-                                color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
-                                int newX = InvertX(x, width, origin);
-                                pixelRow[newX] = color;
+                                this.ReadPalettedBgr24Pixel(palette, colorMapPixelSizeInBytes, x, color, pixelRow);
                             }
+                        }
 
-                            break;
+                        break;
 
-                        case 4:
+                    case 4:
+                        if (invertX)
+                        {
+                            for (int x = width - 1; x >= 0; x--)
+                            {
+                                this.ReadPalettedBgra32Pixel(palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                            }
+                        }
+                        else
+                        {
                             for (int x = 0; x < width; x++)
                             {
-                                int colorIndex = rowSpan[x];
-                                color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
-                                int newX = InvertX(x, width, origin);
-                                pixelRow[newX] = color;
+                                this.ReadPalettedBgra32Pixel(palette, colorMapPixelSizeInBytes, x, color, pixelRow);
                             }
+                        }
 
-                            break;
-                    }
+                        break;
                 }
             }
         }
@@ -374,20 +384,17 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadMonoChrome<TPixel>(int width, int height, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            bool isXInverted = origin == TgaImageOrigin.BottomRight || origin == TgaImageOrigin.TopRight;
-            if (isXInverted)
+            bool invertX = InvertX(origin);
+            if (invertX)
             {
                 TPixel color = default;
                 for (int y = 0; y < height; y++)
                 {
                     int newY = InvertY(y, height, origin);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    for (int x = 0; x < width; x++)
+                    for (int x = width - 1; x >= 0; x--)
                     {
-                        var pixelValue = (byte)this.currentStream.ReadByte();
-                        color.FromL8(Unsafe.As<byte, L8>(ref pixelValue));
-                        int newX = InvertX(x, width, origin);
-                        pixelSpan[newX] = color;
+                        this.ReadL8Pixel(color, x, pixelSpan);
                     }
                 }
 
@@ -396,12 +403,20 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 1, 0))
             {
-                for (int y = 0; y < height; y++)
+                bool invertY = InvertY(origin);
+                if (invertY)
                 {
-                    this.currentStream.Read(row);
-                    int newY = InvertY(y, height, origin);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
+                    for (int y = height - 1; y >= 0; y--)
+                    {
+                        this.ReadL8Row(width, pixels, row, y);
+                    }
+                }
+                else
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        this.ReadL8Row(width, pixels, row, y);
+                    }
                 }
             }
         }
@@ -418,7 +433,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
-            bool isXInverted = origin == TgaImageOrigin.BottomRight || origin == TgaImageOrigin.TopRight;
+            bool invertX = InvertX(origin);
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, 0))
             {
                 for (int y = 0; y < height; y++)
@@ -426,9 +441,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     int newY = InvertY(y, height, origin);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
 
-                    if (isXInverted)
+                    if (invertX)
                     {
-                        for (int x = 0; x < width; x++)
+                        for (int x = width - 1; x >= 0; x--)
                         {
                             this.currentStream.Read(this.scratchBuffer, 0, 2);
                             if (!this.hasAlpha)
@@ -445,8 +460,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref this.scratchBuffer[0]));
                             }
 
-                            int newX = InvertX(x, width, origin);
-                            pixelSpan[newX] = color;
+                            pixelSpan[x] = color;
                         }
                     }
                     else
@@ -487,20 +501,17 @@ namespace SixLabors.ImageSharp.Formats.Tga
         private void ReadBgr24<TPixel>(int width, int height, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            bool isXInverted = origin == TgaImageOrigin.BottomRight || origin == TgaImageOrigin.TopRight;
-            if (isXInverted)
+            bool invertX = InvertX(origin);
+            if (invertX)
             {
                 TPixel color = default;
                 for (int y = 0; y < height; y++)
                 {
                     int newY = InvertY(y, height, origin);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    for (int x = 0; x < width; x++)
+                    for (int x = width - 1; x >= 0; x--)
                     {
-                        this.currentStream.Read(this.scratchBuffer, 0, 3);
-                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref this.scratchBuffer[0]));
-                        int newX = InvertX(x, width, origin);
-                        pixelSpan[newX] = color;
+                        this.ReadBgr24Pixel(color, x, pixelSpan);
                     }
                 }
 
@@ -509,12 +520,21 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
             using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, 0))
             {
-                for (int y = 0; y < height; y++)
+                bool invertY = InvertY(origin);
+
+                if (invertY)
                 {
-                    this.currentStream.Read(row);
-                    int newY = InvertY(y, height, origin);
-                    Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-                    PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
+                    for (int y = height - 1; y >= 0; y--)
+                    {
+                        this.ReadBgr24Row(width, pixels, row, y);
+                    }
+                }
+                else
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        this.ReadBgr24Row(width, pixels, row, y);
+                    }
                 }
             }
         }
@@ -531,41 +551,46 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
-            bool isXInverted = origin == TgaImageOrigin.BottomRight || origin == TgaImageOrigin.TopRight;
-            if (this.tgaMetadata.AlphaChannelBits == 8 && !isXInverted)
+            bool invertX = InvertX(origin);
+            if (this.tgaMetadata.AlphaChannelBits == 8 && !invertX)
             {
                 using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0))
                 {
-                    for (int y = 0; y < height; y++)
+                    if (InvertY(origin))
                     {
-                        this.currentStream.Read(row);
-                        int newY = InvertY(y, height, origin);
-                        Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
-
-                        PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
+                        for (int y = height - 1; y >= 0; y--)
+                        {
+                            this.ReadBgra32Row(width, pixels, row, y);
+                        }
+                    }
+                    else
+                    {
+                        for (int y = 0; y < height; y++)
+                        {
+                            this.ReadBgra32Row(width, pixels, row, y);
+                        }
                     }
                 }
 
                 return;
             }
 
-            var alphaBits = this.tgaMetadata.AlphaChannelBits;
-            using (IManagedByteBuffer row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 4, 0))
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < height; y++)
+                int newY = InvertY(y, height, origin);
+                Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
+                if (invertX)
                 {
-                    this.currentStream.Read(row);
-                    int newY = InvertY(y, height, origin);
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(newY);
-                    Span<byte> rowSpan = row.GetSpan();
-
+                    for (int x = width - 1; x >= 0; x--)
+                    {
+                        this.ReadBgra32Pixel(x, color, pixelRow);
+                    }
+                }
+                else
+                {
                     for (int x = 0; x < width; x++)
                     {
-                        int idx = x * 4;
-                        var alpha = alphaBits == 0 ? byte.MaxValue : rowSpan[idx + 3];
-                        color.FromBgra32(new Bgra32(rowSpan[idx + 2], rowSpan[idx + 1], rowSpan[idx], (byte)alpha));
-                        int newX = InvertX(x, width, origin);
-                        pixelRow[newX] = color;
+                        this.ReadBgra32Pixel(x, color, pixelRow);
                     }
                 }
             }
@@ -657,6 +682,95 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 this.metadata);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadL8Row<TPixel>(int width, Buffer2D<TPixel> pixels, IManagedByteBuffer row, int y)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            this.currentStream.Read(row);
+            Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+            PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadL8Pixel<TPixel>(TPixel color, int x, Span<TPixel> pixelSpan)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var pixelValue = (byte)this.currentStream.ReadByte();
+            color.FromL8(Unsafe.As<byte, L8>(ref pixelValue));
+            pixelSpan[x] = color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadBgr24Pixel<TPixel>(TPixel color, int x, Span<TPixel> pixelSpan)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            this.currentStream.Read(this.scratchBuffer, 0, 3);
+            color.FromBgr24(Unsafe.As<byte, Bgr24>(ref this.scratchBuffer[0]));
+            pixelSpan[x] = color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadBgr24Row<TPixel>(int width, Buffer2D<TPixel> pixels, IManagedByteBuffer row, int y)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            this.currentStream.Read(row);
+            Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+            PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadBgra32Pixel<TPixel>(int x, TPixel color, Span<TPixel> pixelRow)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            this.currentStream.Read(this.scratchBuffer, 0, 4);
+            var alpha = this.tgaMetadata.AlphaChannelBits == 0 ? byte.MaxValue : this.scratchBuffer[3];
+            color.FromBgra32(new Bgra32(this.scratchBuffer[2], this.scratchBuffer[1], this.scratchBuffer[0], alpha));
+            pixelRow[x] = color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadBgra32Row<TPixel>(int width, Buffer2D<TPixel> pixels, IManagedByteBuffer row, int y)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            this.currentStream.Read(row);
+            Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+            PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
+        }
+
+        private void ReadPalettedBgr16Pixel<TPixel>(byte[] palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int colorIndex = this.currentStream.ReadByte();
+            Bgra5551 bgra = default;
+            bgra.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
+            if (!this.hasAlpha)
+            {
+                // Set alpha value to 1, to treat it as opaque for Bgra5551.
+                bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
+            }
+
+            color.FromBgra5551(bgra);
+            pixelRow[x] = color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadPalettedBgr24Pixel<TPixel>(byte[] palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int colorIndex = this.currentStream.ReadByte();
+            color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
+            pixelRow[x] = color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadPalettedBgra32Pixel<TPixel>(byte[] palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int colorIndex = this.currentStream.ReadByte();
+            color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
+            pixelRow[x] = color;
+        }
+
         /// <summary>
         /// Produce uncompressed tga data from a run length encoded stream.
         /// </summary>
@@ -711,13 +825,29 @@ namespace SixLabors.ImageSharp.Formats.Tga
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int InvertY(int y, int height, TgaImageOrigin origin)
         {
+            if (InvertY(origin))
+            {
+                return height - y - 1;
+            }
+
+            return y;
+        }
+
+        /// <summary>
+        /// Indicates whether the y coordinates needs to be inverted, to keep a top left origin.
+        /// </summary>
+        /// <param name="origin">The image origin.</param>
+        /// <returns>True, if y coordinate needs to be inverted.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool InvertY(TgaImageOrigin origin)
+        {
             switch (origin)
             {
                 case TgaImageOrigin.BottomLeft:
                 case TgaImageOrigin.BottomRight:
-                    return height - y - 1;
+                    return true;
                 default:
-                    return y;
+                    return false;
             }
         }
 
@@ -731,13 +861,29 @@ namespace SixLabors.ImageSharp.Formats.Tga
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int InvertX(int x, int width, TgaImageOrigin origin)
         {
+            if (InvertX(origin))
+            {
+                return width - x - 1;
+            }
+
+            return x;
+        }
+
+        /// <summary>
+        /// Indicates whether the x coordinates needs to be inverted, to keep a top left origin.
+        /// </summary>
+        /// <param name="origin">The image origin.</param>
+        /// <returns>True, if x coordinate needs to be inverted.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool InvertX(TgaImageOrigin origin)
+        {
             switch (origin)
             {
                 case TgaImageOrigin.TopRight:
                 case TgaImageOrigin.BottomRight:
-                    return width - x - 1;
+                    return true;
                 default:
-                    return x;
+                    return false;
             }
         }
 

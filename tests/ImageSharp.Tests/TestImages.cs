@@ -417,6 +417,11 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit24PalBottomLeft = "Tga/targa_24bit_pal.tga";
             public const string Bit24PalBottomRight = "Tga/indexed_LR.tga";
 
+            public const string Bit24PalRleTopLeft = "Tga/indexed_rle_UL.tga";
+            public const string Bit24PalRleBottomLeft = "Tga/indexed_rle_LL.tga";
+            public const string Bit24PalRleTopRight = "Tga/indexed_rle_UR.tga";
+            public const string Bit24PalRleBottomRight = "Tga/indexed_rle_LR.tga";
+
             public const string Bit32TopLeft = "Tga/rgb_a_UL.tga";
             public const string Bit32BottomLeft = "Tga/targa_32bit.tga";
             public const string Bit32TopRight = "Tga/rgb_a_UR.tga";
@@ -431,6 +436,11 @@ namespace SixLabors.ImageSharp.Tests
             public const string Bit32RleTopRight = "Tga/rgb_a_rle_UR.tga";
             public const string Bit32RleBottomRight = "Tga/rgb_a_rle_LR.tga";
             public const string Bit32RleBottomLeft = "Tga/targa_32bit_rle.tga";
+
+            public const string Bit32PalRleTopLeft = "Tga/indexed_a_rle_UL.tga";
+            public const string Bit32PalRleBottomLeft = "Tga/indexed_a_rle_LL.tga";
+            public const string Bit32PalRleTopRight = "Tga/indexed_a_rle_UR.tga";
+            public const string Bit32PalRleBottomRight = "Tga/indexed_a_rle_LR.tga";
 
             public const string NoAlphaBits16Bit = "Tga/16bit_noalphabits.tga";
             public const string NoAlphaBits16BitRle = "Tga/16bit_rle_noalphabits.tga";

@@ -1,11 +1,11 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
 
 // ReSharper disable CompareOfFloatsByEqualityOperator
-namespace SixLabors.ImageSharp.ColorSpaces
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
     /// <summary>
     /// Represents the coordinates of CIEXY chromaticity space.

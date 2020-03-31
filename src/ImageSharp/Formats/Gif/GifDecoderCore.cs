@@ -353,7 +353,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.ReadImageDescriptor();
 
             IManagedByteBuffer localColorTable = null;
-            IManagedByteBuffer indices = null;
+            Buffer2D<byte> indices = null;
             try
             {
                 // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
@@ -364,11 +364,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     this.stream.Read(localColorTable.Array, 0, length);
                 }
 
-                indices = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(this.imageDescriptor.Width * this.imageDescriptor.Height, AllocationOptions.Clean);
+                indices = this.configuration.MemoryAllocator.Allocate2D<byte>(this.imageDescriptor.Width, this.imageDescriptor.Height, AllocationOptions.Clean);
 
-                this.ReadFrameIndices(this.imageDescriptor, indices.GetSpan());
+                this.ReadFrameIndices(indices);
                 ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>((localColorTable ?? this.globalColorTable).GetSpan());
-                this.ReadFrameColors(ref image, ref previousFrame, indices.GetSpan(), colorTable, this.imageDescriptor);
+                this.ReadFrameColors(ref image, ref previousFrame, indices, colorTable, this.imageDescriptor);
 
                 // Skip any remaining blocks
                 this.SkipBlock();
@@ -383,16 +383,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Reads the frame indices marking the color to use for each pixel.
         /// </summary>
-        /// <param name="imageDescriptor">The <see cref="GifImageDescriptor"/>.</param>
-        /// <param name="indices">The pixel array to write to.</param>
+        /// <param name="indices">The 2D pixel buffer to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadFrameIndices(in GifImageDescriptor imageDescriptor, Span<byte> indices)
+        private void ReadFrameIndices(Buffer2D<byte> indices)
         {
             int dataSize = this.stream.ReadByte();
-            using (var lzwDecoder = new LzwDecoder(this.configuration.MemoryAllocator, this.stream))
-            {
-                lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize, indices);
-            }
+            using var lzwDecoder = new LzwDecoder(this.configuration.MemoryAllocator, this.stream);
+            lzwDecoder.DecodePixels(dataSize, indices);
         }
 
         /// <summary>
@@ -404,10 +401,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="indices">The indexed pixels.</param>
         /// <param name="colorTable">The color table containing the available colors.</param>
         /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
-        private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Span<byte> indices, ReadOnlySpan<Rgb24> colorTable, in GifImageDescriptor descriptor)
+        private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Buffer2D<byte> indices, ReadOnlySpan<Rgb24> colorTable, in GifImageDescriptor descriptor)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ref byte indicesRef = ref MemoryMarshal.GetReference(indices);
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 
@@ -440,13 +436,20 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 this.RestoreToBackground(imageFrame);
             }
 
-            int i = 0;
             int interlacePass = 0; // The interlace pass
             int interlaceIncrement = 8; // The interlacing line increment
             int interlaceY = 0; // The current interlaced line
+            int descriptorTop = descriptor.Top;
+            int descriptorBottom = descriptorTop + descriptor.Height;
+            int descriptorLeft = descriptor.Left;
+            int descriptorRight = descriptorLeft + descriptor.Width;
+            bool transFlag = this.graphicsControlExtension.TransparencyFlag;
+            byte transIndex = this.graphicsControlExtension.TransparencyIndex;
 
-            for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
+            for (int y = descriptorTop; y < descriptorBottom && y < imageHeight; y++)
             {
+                ref byte indicesRowRef = ref MemoryMarshal.GetReference(indices.GetRowSpan(y - descriptorTop));
+
                 // Check if this image is interlaced.
                 int writeY; // the target y offset to write to
                 if (descriptor.InterlaceFlag)
@@ -482,35 +485,29 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
 
                 ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.GetPixelRowSpan(writeY));
-                bool transFlag = this.graphicsControlExtension.TransparencyFlag;
 
                 if (!transFlag)
                 {
                     // #403 The left + width value can be larger than the image width
-                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
+                    for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                     {
-                        int index = Unsafe.Add(ref indicesRef, i);
+                        int index = Unsafe.Add(ref indicesRowRef, x - descriptorLeft);
                         ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                         Rgb24 rgb = colorTable[index];
                         pixel.FromRgb24(rgb);
-
-                        i++;
                     }
                 }
                 else
                 {
-                    byte transIndex = this.graphicsControlExtension.TransparencyIndex;
-                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
+                    for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                     {
-                        int index = Unsafe.Add(ref indicesRef, i);
+                        int index = Unsafe.Add(ref indicesRowRef, x - descriptorLeft);
                         if (transIndex != index)
                         {
                             ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                             Rgb24 rgb = colorTable[index];
                             pixel.FromRgb24(rgb);
                         }
-
-                        i++;
                     }
                 }
             }

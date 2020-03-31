@@ -6,6 +6,7 @@ using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
@@ -500,6 +501,54 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         }
 
         [Theory]
+        [WithFile(Bit32PalRleTopLeft, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RLE_Paletted_WithTopLeftOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit32PalRleBottomLeft, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RLE_Paletted_WithBottomLeftOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit32PalRleTopRight, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RLE_WithTopRightOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit32PalRleBottomRight, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RLE_Paletted_WithBottomRightOrigin_32Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
         [WithFile(Bit16PalBottomLeft, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_WithPaletteBottomLeftOrigin_16Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -550,6 +599,54 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit24PalBottomRight, PixelTypes.Rgba32)]
         public void TgaDecoder_CanDecode_WithPaletteBottomRightOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit24PalRleTopLeft, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RLE_WithPaletteTopLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit24PalRleTopRight, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RLE_WithPaletteTopRightOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit24PalRleBottomLeft, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RLE_WithPaletteBottomLeftOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(TgaDecoder))
+            {
+                image.DebugSave(provider);
+                TgaTestUtils.CompareWithReferenceDecoder(provider, image);
+            }
+        }
+
+        [Theory]
+        [WithFile(Bit24PalRleBottomRight, PixelTypes.Rgba32)]
+        public void TgaDecoder_CanDecode_RLE_WithPaletteBottomRightOrigin_24Bit<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(TgaDecoder))

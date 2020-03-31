@@ -321,7 +321,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
             using (IMemoryOwner<byte> buffer = this.memoryAllocator.Allocate<byte>(width * height * bytesPerPixel, AllocationOptions.Clean))
             {
                 TPixel color = default;
-                var alphaBits = this.tgaMetadata.AlphaChannelBits;
                 Span<byte> bufferSpan = buffer.GetSpan();
                 this.UncompressRle(width, height, bufferSpan, bytesPerPixel: 1);
 
@@ -339,30 +338,17 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 color.FromL8(Unsafe.As<byte, L8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                                 break;
                             case 2:
-
                                 Bgra5551 bgra = Unsafe.As<byte, Bgra5551>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]);
-                                if (!this.hasAlpha)
-                                {
-                                    // Set alpha value to 1, to treat it as opaque for Bgra5551.
-                                    bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
-                                }
 
+                                // Set alpha value to 1, to treat it as opaque for Bgra5551.
+                                bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
                                 color.FromBgra5551(bgra);
                                 break;
                             case 3:
                                 color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                                 break;
                             case 4:
-                                if (this.hasAlpha)
-                                {
-                                    color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
-                                }
-                                else
-                                {
-                                    var alpha = alphaBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
-                                    color.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], (byte)alpha));
-                                }
-
+                                color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                                 break;
                         }
 

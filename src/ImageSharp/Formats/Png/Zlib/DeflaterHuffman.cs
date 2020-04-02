@@ -413,8 +413,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 this.distTree = null;
                 this.isDisposed = true;
             }
-
-            GC.SuppressFinalize(this);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -553,6 +551,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 }
             }
 
+            [MethodImpl(InliningOptions.HotPath)]
             public void BuildTree()
             {
                 int numSymbols = this.elementCount;
@@ -964,8 +963,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
                     this.isDisposed = true;
                 }
-
-                GC.SuppressFinalize(this);
             }
         }
     }

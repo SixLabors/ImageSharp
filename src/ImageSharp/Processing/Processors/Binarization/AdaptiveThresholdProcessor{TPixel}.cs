@@ -135,10 +135,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             public void Invoke(int y)
             {
                 Rgba32 rgb = default;
+                Span<TPixel> pixelRow = this.source.GetPixelRowSpan(y);
 
                 for (int x = this.startX; x < this.endX; x++)
                 {
-                    TPixel pixel = this.source.PixelBuffer[x, y];
+                    TPixel pixel = pixelRow[x];
                     pixel.ToRgba32(ref rgb);
 
                     var x1 = (ushort)Math.Max(x - this.startX - this.clusterSize + 1, 0);

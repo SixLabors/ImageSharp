@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -43,10 +43,10 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// <see cref="BulkConvertByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
+            /// <see cref="ByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void BulkConvertByteToNormalizedFloatReduce(
+            internal static void ByteToNormalizedFloatReduce(
                 ref ReadOnlySpan<byte> source,
                 ref Span<float> dest)
             {
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp
 
                 if (adjustedCount > 0)
                 {
-                    BulkConvertByteToNormalizedFloat(source.Slice(0, adjustedCount), dest.Slice(0, adjustedCount));
+                    ByteToNormalizedFloat(source.Slice(0, adjustedCount), dest.Slice(0, adjustedCount));
 
                     source = source.Slice(adjustedCount);
                     dest = dest.Slice(adjustedCount);
@@ -70,10 +70,10 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// <see cref="BulkConvertNormalizedFloatToByteClampOverflows"/> as many elements as possible, slicing them down (keeping the remainder).
+            /// <see cref="NormalizedFloatToByteSaturate"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void BulkConvertNormalizedFloatToByteClampOverflowsReduce(
+            internal static void NormalizedFloatToByteSaturateReduce(
                 ref ReadOnlySpan<float> source,
                 ref Span<byte> dest)
             {
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp
 
                 if (adjustedCount > 0)
                 {
-                    BulkConvertNormalizedFloatToByteClampOverflows(
+                    NormalizedFloatToByteSaturate(
                         source.Slice(0, adjustedCount),
                         dest.Slice(0, adjustedCount));
 
@@ -99,9 +99,9 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// Implementation <see cref="SimdUtils.BulkConvertByteToNormalizedFloat"/>, which is faster on new RyuJIT runtime.
+            /// Implementation <see cref="SimdUtils.ByteToNormalizedFloat"/>, which is faster on new RyuJIT runtime.
             /// </summary>
-            internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
+            internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
                 VerifySpanInput(source, dest, Vector<byte>.Count);
 
@@ -132,9 +132,9 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// Implementation of <see cref="SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows"/>, which is faster on new .NET runtime.
+            /// Implementation of <see cref="SimdUtils.NormalizedFloatToByteSaturate"/>, which is faster on new .NET runtime.
             /// </summary>
-            internal static void BulkConvertNormalizedFloatToByteClampOverflows(
+            internal static void NormalizedFloatToByteSaturate(
                 ReadOnlySpan<float> source,
                 Span<byte> dest)
             {
@@ -172,7 +172,7 @@ namespace SixLabors.ImageSharp
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static Vector<uint> ConvertToUInt32(Vector<float> vf)
             {
-                Vector<float> maxBytes = new Vector<float>(255f);
+                var maxBytes = new Vector<float>(255f);
                 vf *= maxBytes;
                 vf += new Vector<float>(0.5f);
                 vf = Vector.Min(Vector.Max(vf, Vector<float>.Zero), maxBytes);

@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <summary>
     /// Provides enumeration of available PNG interlace modes.
     /// </summary>
-    internal enum PngInterlaceMode : byte
+    public enum PngInterlaceMode : byte
     {
         /// <summary>
         /// Non interlaced

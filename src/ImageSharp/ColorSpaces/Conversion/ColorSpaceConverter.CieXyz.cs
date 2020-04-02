@@ -1,11 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
@@ -465,7 +463,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// </summary>
         /// <param name="workingSpace">The source working space</param>
         /// <returns>The <see cref="LinearRgbToCieXyzConverter"/></returns>
-        private LinearRgbToCieXyzConverter GetLinearRgbToCieXyzConverter(RgbWorkingSpaceBase workingSpace)
+        private LinearRgbToCieXyzConverter GetLinearRgbToCieXyzConverter(RgbWorkingSpace workingSpace)
         {
             if (this.linearRgbToCieXyzConverter?.SourceWorkingSpace.Equals(workingSpace) == true)
             {

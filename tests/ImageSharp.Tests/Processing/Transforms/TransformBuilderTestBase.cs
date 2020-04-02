@@ -1,10 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using SixLabors.Primitives;
 
 using Xunit;
 
@@ -26,7 +25,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
         [Theory]
         [MemberData(nameof(ScaleTranslate_Data))]
+#pragma warning disable SA1300 // Element should begin with upper-case letter
         public void _1Scale_2Translate(Vector2 scale, Vector2 translate, Vector2 source, Vector2 expectedDest)
+#pragma warning restore SA1300 // Element should begin with upper-case letter
         {
             // These operations should be size-agnostic:
             var size = new Size(123, 321);
@@ -50,7 +51,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
         [Theory]
         [MemberData(nameof(TranslateScale_Data))]
+#pragma warning disable SA1300 // Element should begin with upper-case letter
         public void _1Translate_2Scale(Vector2 translate, Vector2 scale, Vector2 source, Vector2 expectedDest)
+#pragma warning restore SA1300 // Element should begin with upper-case letter
         {
             // Translate ans scale are size-agnostic:
             var size = new Size(456, 432);
@@ -96,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             this.AppendRotationDegrees(builder, degrees);
 
             // TODO: We should also test CreateRotationMatrixDegrees() (and all TransformUtils stuff!) for correctness
-            Matrix3x2 matrix = TransformUtils.CreateRotationMatrixDegrees(degrees, size);
+            Matrix3x2 matrix = TransformUtilities.CreateRotationMatrixDegrees(degrees, size);
 
             var position = new Vector2(x, y);
             var expected = Vector2.Transform(position, matrix);
@@ -150,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
             this.AppendSkewDegrees(builder, degreesX, degreesY);
 
-            Matrix3x2 matrix = TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size);
+            Matrix3x2 matrix = TransformUtilities.CreateSkewMatrixDegrees(degreesX, degreesY, size);
 
             var position = new Vector2(x, y);
             var expected = Vector2.Transform(position, matrix);

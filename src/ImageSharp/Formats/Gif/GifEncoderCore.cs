@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,14 +6,11 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -30,17 +27,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Configuration bound to the encoding operation.
         /// </summary>
-        private Configuration configuration;
+        private readonly Configuration configuration;
 
         /// <summary>
         /// A reusable buffer used to reduce allocations.
         /// </summary>
         private readonly byte[] buffer = new byte[20];
-
-        /// <summary>
-        /// The text encoding used to write comments.
-        /// </summary>
-        private readonly Encoding textEncoding;
 
         /// <summary>
         /// The quantizer used to generate the color palette.
@@ -58,19 +50,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private int bitDepth;
 
         /// <summary>
-        /// Gif specific metadata.
-        /// </summary>
-        private GifMetadata gifMetadata;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
-        /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="options">The options for the encoder.</param>
-        public GifEncoderCore(MemoryAllocator memoryAllocator, IGifEncoderOptions options)
+        public GifEncoderCore(Configuration configuration, IGifEncoderOptions options)
         {
-            this.memoryAllocator = memoryAllocator;
-            this.textEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
+            this.configuration = configuration;
+            this.memoryAllocator = configuration.MemoryAllocator;
             this.quantizer = options.Quantizer;
             this.colorTableMode = options.ColorTableMode;
         }
@@ -82,27 +69,25 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            this.configuration = image.GetConfiguration();
-
             ImageMetadata metadata = image.Metadata;
-            this.gifMetadata = metadata.GetFormatMetadata(GifFormat.Instance);
-            this.colorTableMode = this.colorTableMode ?? this.gifMetadata.ColorTableMode;
+            GifMetadata gifMetadata = metadata.GetGifMetadata();
+            this.colorTableMode ??= gifMetadata.ColorTableMode;
             bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
 
             // Quantize the image returning a palette.
-            QuantizedFrame<TPixel> quantized = null;
-            using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration()))
+            IndexedImageFrame<TPixel> quantized;
+            using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration))
             {
-                quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame);
+                quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
             }
 
             // Get the number of bits.
-            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
+            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length);
 
             // Write the header.
             this.WriteHeader(stream);
@@ -117,12 +102,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             // Write the comments.
-            this.WriteComments(metadata, stream);
+            this.WriteComments(gifMetadata, stream);
 
             // Write application extension to allow additional frames.
             if (image.Frames.Count > 1)
             {
-                this.WriteApplicationExtension(stream, this.gifMetadata.RepeatCount);
+                this.WriteApplicationExtension(stream, gifMetadata.RepeatCount);
             }
 
             if (useGlobalTable)
@@ -135,22 +120,25 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             // Clean up.
-            quantized?.Dispose();
+            quantized.Dispose();
 
             // TODO: Write extension etc
             stream.WriteByte(GifConstants.EndIntroducer);
         }
 
-        private void EncodeGlobal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, int transparencyIndex, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        private void EncodeGlobal<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, int transparencyIndex, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            var palleteQuantizer = new PaletteQuantizer<TPixel>(quantized.Palette, this.quantizer.Diffuser);
-
+            // The palette quantizer can reuse the same pixel map across multiple frames
+            // since the palette is unchanging. This allows a reduction of memory usage across
+            // multi frame gifs using a global palette.
+            EuclideanPixelMap<TPixel> pixelMap = default;
+            bool pixelMapSet = false;
             for (int i = 0; i < image.Frames.Count; i++)
             {
                 ImageFrame<TPixel> frame = image.Frames[i];
                 ImageFrameMetadata metadata = frame.Metadata;
-                GifFrameMetadata frameMetadata = metadata.GetFormatMetadata(GifFormat.Instance);
+                GifFrameMetadata frameMetadata = metadata.GetGifMetadata();
                 this.WriteGraphicalControlExtension(frameMetadata, transparencyIndex, stream);
                 this.WriteImageDescriptor(frame, false, stream);
 
@@ -160,51 +148,59 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
                 else
                 {
-                    using (IFrameQuantizer<TPixel> palleteFrameQuantizer = palleteQuantizer.CreateFrameQuantizer(image.GetConfiguration()))
-                    using (QuantizedFrame<TPixel> paletteQuantized = palleteFrameQuantizer.QuantizeFrame(frame))
+                    if (!pixelMapSet)
                     {
-                        this.WriteImageData(paletteQuantized, stream);
+                        pixelMapSet = true;
+                        pixelMap = new EuclideanPixelMap<TPixel>(this.configuration, quantized.Palette);
                     }
+
+                    using var paletteFrameQuantizer = new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Options, pixelMap);
+                    using IndexedImageFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds());
+                    this.WriteImageData(paletteQuantized, stream);
                 }
             }
         }
 
-        private void EncodeLocal<TPixel>(Image<TPixel> image, QuantizedFrame<TPixel> quantized, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        private void EncodeLocal<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ImageFrame<TPixel> previousFrame = null;
             GifFrameMetadata previousMeta = null;
-            foreach (ImageFrame<TPixel> frame in image.Frames)
+            for (int i = 0; i < image.Frames.Count; i++)
             {
+                ImageFrame<TPixel> frame = image.Frames[i];
                 ImageFrameMetadata metadata = frame.Metadata;
-                GifFrameMetadata frameMetadata = metadata.GetFormatMetadata(GifFormat.Instance);
+                GifFrameMetadata frameMetadata = metadata.GetGifMetadata();
                 if (quantized is null)
                 {
                     // Allow each frame to be encoded at whatever color depth the frame designates if set.
                     if (previousFrame != null && previousMeta.ColorTableLength != frameMetadata.ColorTableLength
                                               && frameMetadata.ColorTableLength > 0)
                     {
-                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration(), frameMetadata.ColorTableLength))
+                        var options = new QuantizerOptions
                         {
-                            quantized = frameQuantizer.QuantizeFrame(frame);
-                        }
+                            Dither = this.quantizer.Options.Dither,
+                            DitherScale = this.quantizer.Options.DitherScale,
+                            MaxColors = frameMetadata.ColorTableLength
+                        };
+
+                        using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, options);
+                        quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
                     }
                     else
                     {
-                        using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration()))
-                        {
-                            quantized = frameQuantizer.QuantizeFrame(frame);
-                        }
+                        using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration);
+                        quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
                     }
                 }
 
-                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length).Clamp(1, 8);
+                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length);
                 this.WriteGraphicalControlExtension(frameMetadata, this.GetTransparentIndex(quantized), stream);
                 this.WriteImageDescriptor(frame, true, stream);
                 this.WriteColorTable(quantized, stream);
                 this.WriteImageData(quantized, stream);
 
-                quantized?.Dispose();
+                quantized.Dispose();
                 quantized = null; // So next frame can regenerate it
                 previousFrame = frame;
                 previousMeta = frameMetadata;
@@ -214,32 +210,28 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Returns the index of the most transparent color in the palette.
         /// </summary>
-        /// <param name="quantized">
-        /// The quantized.
-        /// </param>
+        /// <param name="quantized">The quantized frame.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>
         /// The <see cref="int"/>.
         /// </returns>
-        private int GetTransparentIndex<TPixel>(QuantizedFrame<TPixel> quantized)
-            where TPixel : struct, IPixel<TPixel>
+        private int GetTransparentIndex<TPixel>(IndexedImageFrame<TPixel> quantized)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            // Transparent pixels are much more likely to be found at the end of a palette
+            // Transparent pixels are much more likely to be found at the end of a palette.
             int index = -1;
-            int length = quantized.Palette.Length;
+            ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
 
-            using (IMemoryOwner<Rgba32> rgbaBuffer = this.memoryAllocator.Allocate<Rgba32>(length))
+            using IMemoryOwner<Rgba32> rgbaOwner = quantized.Configuration.MemoryAllocator.Allocate<Rgba32>(paletteSpan.Length);
+            Span<Rgba32> rgbaSpan = rgbaOwner.GetSpan();
+            PixelOperations<TPixel>.Instance.ToRgba32(quantized.Configuration, paletteSpan, rgbaSpan);
+            ref Rgba32 rgbaSpanRef = ref MemoryMarshal.GetReference(rgbaSpan);
+
+            for (int i = rgbaSpan.Length - 1; i >= 0; i--)
             {
-                Span<Rgba32> rgbaSpan = rgbaBuffer.GetSpan();
-                ref Rgba32 paletteRef = ref MemoryMarshal.GetReference(rgbaSpan);
-                PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, quantized.Palette, rgbaSpan);
-
-                for (int i = quantized.Palette.Length - 1; i >= 0; i--)
+                if (Unsafe.Add(ref rgbaSpanRef, i).Equals(default))
                 {
-                    if (Unsafe.Add(ref paletteRef, i).Equals(default))
-                    {
-                        index = i;
-                    }
+                    index = i;
                 }
             }
 
@@ -251,7 +243,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteHeader(Stream stream) => stream.Write(GifConstants.MagicNumber, 0, GifConstants.MagicNumber.Length);
+        private void WriteHeader(Stream stream) => stream.Write(GifConstants.MagicNumber);
 
         /// <summary>
         /// Writes the logical screen descriptor to the stream.
@@ -332,25 +324,54 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="metadata">The metadata to be extract the comment data.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void WriteComments(ImageMetadata metadata, Stream stream)
+        private void WriteComments(GifMetadata metadata, Stream stream)
         {
-            if (!metadata.TryGetProperty(GifConstants.Comments, out ImageProperty property)
-                || string.IsNullOrEmpty(property.Value))
+            if (metadata.Comments.Count == 0)
             {
                 return;
             }
 
-            byte[] comments = this.textEncoding.GetBytes(property.Value);
+            for (var i = 0; i < metadata.Comments.Count; i++)
+            {
+                string comment = metadata.Comments[i];
+                this.buffer[0] = GifConstants.ExtensionIntroducer;
+                this.buffer[1] = GifConstants.CommentLabel;
+                stream.Write(this.buffer, 0, 2);
 
-            int count = Math.Min(comments.Length, 255);
+                // Comment will be stored in chunks of 255 bytes, if it exceeds this size.
+                ReadOnlySpan<char> commentSpan = comment.AsSpan();
+                int idx = 0;
+                for (;
+                    idx <= comment.Length - GifConstants.MaxCommentSubBlockLength;
+                    idx += GifConstants.MaxCommentSubBlockLength)
+                {
+                    WriteCommentSubBlock(stream, commentSpan, idx, GifConstants.MaxCommentSubBlockLength);
+                }
 
-            this.buffer[0] = GifConstants.ExtensionIntroducer;
-            this.buffer[1] = GifConstants.CommentLabel;
-            this.buffer[2] = (byte)count;
+                // Write the length bytes, if any, to another sub block.
+                if (idx < comment.Length)
+                {
+                    int remaining = comment.Length - idx;
+                    WriteCommentSubBlock(stream, commentSpan, idx, remaining);
+                }
 
-            stream.Write(this.buffer, 0, 3);
-            stream.Write(comments, 0, count);
-            stream.WriteByte(GifConstants.Terminator);
+                stream.WriteByte(GifConstants.Terminator);
+            }
+        }
+
+        /// <summary>
+        /// Writes a comment sub-block to the stream.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="commentSpan">Comment as a Span.</param>
+        /// <param name="idx">Current start index.</param>
+        /// <param name="length">The length of the string to write. Should not exceed 255 bytes.</param>
+        private static void WriteCommentSubBlock(Stream stream, ReadOnlySpan<char> commentSpan, int idx, int length)
+        {
+            string subComment = commentSpan.Slice(idx, length).ToString();
+            byte[] subCommentBytes = GifConstants.Encoding.GetBytes(subComment);
+            stream.WriteByte((byte)length);
+            stream.Write(subCommentBytes, 0, length);
         }
 
         /// <summary>
@@ -378,7 +399,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="extension">The extension to write to the stream.</param>
         /// <param name="stream">The stream to write to.</param>
-        public void WriteExtension(IGifExtension extension, Stream stream)
+        private void WriteExtension<TGifExtension>(TGifExtension extension, Stream stream)
+            where TGifExtension : struct, IGifExtension
         {
             this.buffer[0] = GifConstants.ExtensionIntroducer;
             this.buffer[1] = extension.Label;
@@ -398,7 +420,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="hasColorTable">Whether to use the global color table.</param>
         /// <param name="stream">The stream to write to.</param>
         private void WriteImageDescriptor<TPixel>(ImageFrame<TPixel> image, bool hasColorTable, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             byte packedValue = GifImageDescriptor.GetPackedValue(
                 localColorTableFlag: hasColorTable,
@@ -424,37 +446,33 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void WriteColorTable<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        private void WriteColorTable<TPixel>(IndexedImageFrame<TPixel> image, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // The maximum number of colors for the bit depth
-            int colorTableLength = ImageMaths.GetColorCountForBitDepth(this.bitDepth) * 3;
-            int pixelCount = image.Palette.Length;
+            int colorTableLength = ImageMaths.GetColorCountForBitDepth(this.bitDepth) * Unsafe.SizeOf<Rgb24>();
 
-            using (IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength))
-            {
-                PixelOperations<TPixel>.Instance.ToRgb24Bytes(
-                    this.configuration,
-                    image.Palette.AsSpan(),
-                    colorTable.GetSpan(),
-                    pixelCount);
-                stream.Write(colorTable.Array, 0, colorTableLength);
-            }
+            using IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength, AllocationOptions.Clean);
+            PixelOperations<TPixel>.Instance.ToRgb24Bytes(
+                this.configuration,
+                image.Palette.Span,
+                colorTable.GetSpan(),
+                image.Palette.Length);
+
+            stream.Write(colorTable.Array, 0, colorTableLength);
         }
 
         /// <summary>
         /// Writes the image pixel data to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="QuantizedFrame{TPixel}"/> containing indexed pixels.</param>
+        /// <param name="image">The <see cref="IndexedImageFrame{TPixel}"/> containing indexed pixels.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void WriteImageData<TPixel>(QuantizedFrame<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        private void WriteImageData<TPixel>(IndexedImageFrame<TPixel> image, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var encoder = new LzwEncoder(this.memoryAllocator, (byte)this.bitDepth))
-            {
-                encoder.Encode(image.GetPixelSpan(), stream);
-            }
+            using var encoder = new LzwEncoder(this.memoryAllocator, (byte)this.bitDepth);
+            encoder.Encode(((IPixelSource)image).PixelBuffer, stream);
         }
     }
 }

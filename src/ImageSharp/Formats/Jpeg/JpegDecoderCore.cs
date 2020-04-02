@@ -1,10 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -16,9 +15,6 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {
@@ -58,11 +54,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// The AC Huffman tables
         /// </summary>
         private HuffmanTable[] acHuffmanTables;
-
-        /// <summary>
-        /// The fast AC tables used for entropy decoding
-        /// </summary>
-        private FastACTable[] fastACTables;
 
         /// <summary>
         /// The reset interval determined by RST markers
@@ -217,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="stream">The stream, where the image should be.</param>
         /// <returns>The decoded image.</returns>
         public Image<TPixel> Decode<TPixel>(Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.ParseStream(stream);
             this.InitExifProfile();
@@ -269,7 +260,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 const int maxTables = 4;
                 this.dcHuffmanTables = new HuffmanTable[maxTables];
                 this.acHuffmanTables = new HuffmanTable[maxTables];
-                this.fastACTables = new FastACTable[maxTables];
             }
 
             // Break only when we discover a valid EOI marker.
@@ -385,7 +375,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.Frame = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;
-            this.fastACTables = null;
         }
 
         /// <summary>
@@ -473,24 +462,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
         }
 
-        private double GetExifResolutionValue(ExifTag tag)
+        private double GetExifResolutionValue(ExifTag<Rational> tag)
         {
-            if (!this.Metadata.ExifProfile.TryGetValue(tag, out ExifValue exifValue))
-            {
-                return 0;
-            }
+            IExifValue<Rational> resolution = this.Metadata.ExifProfile.GetValue(tag);
 
-            switch (exifValue.DataType)
-            {
-                case ExifDataType.Rational:
-                    return ((Rational)exifValue.Value).ToDouble();
-                case ExifDataType.Long:
-                    return (uint)exifValue.Value;
-                case ExifDataType.DoubleFloat:
-                    return (double)exifValue.Value;
-                default:
-                    return 0;
-            }
+            return resolution is null ? 0 : resolution.Value.ToDouble();
         }
 
         /// <summary>
@@ -546,7 +522,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            byte[] profile = new byte[remaining];
+            var profile = new byte[remaining];
             this.InputStream.Read(profile, 0, remaining);
 
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
@@ -579,14 +555,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            byte[] identifier = new byte[Icclength];
+            var identifier = new byte[Icclength];
             this.InputStream.Read(identifier, 0, Icclength);
             remaining -= Icclength; // We have read it by this point
 
             if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {
                 this.isIcc = true;
-                byte[] profile = new byte[remaining];
+                var profile = new byte[remaining];
                 this.InputStream.Read(profile, 0, remaining);
 
                 if (this.iccData is null)
@@ -657,48 +633,51 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 switch (quantizationTableSpec >> 4)
                 {
                     case 0:
+                    {
+                        // 8 bit values
+                        if (remaining < 64)
                         {
-                            // 8 bit values
-                            if (remaining < 64)
-                            {
-                                done = true;
-                                break;
-                            }
-
-                            this.InputStream.Read(this.temp, 0, 64);
-                            remaining -= 64;
-
-                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
-                            for (int j = 0; j < 64; j++)
-                            {
-                                table[j] = this.temp[j];
-                            }
+                            done = true;
+                            break;
                         }
 
-                        break;
+                        this.InputStream.Read(this.temp, 0, 64);
+                        remaining -= 64;
+
+                        ref Block8x8F table = ref this.QuantizationTables[tableIndex];
+                        for (int j = 0; j < 64; j++)
+                        {
+                            table[j] = this.temp[j];
+                        }
+                    }
+
+                    break;
                     case 1:
+                    {
+                        // 16 bit values
+                        if (remaining < 128)
                         {
-                            // 16 bit values
-                            if (remaining < 128)
-                            {
-                                done = true;
-                                break;
-                            }
-
-                            this.InputStream.Read(this.temp, 0, 128);
-                            remaining -= 128;
-
-                            ref Block8x8F table = ref this.QuantizationTables[tableIndex];
-                            for (int j = 0; j < 64; j++)
-                            {
-                                table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
-                            }
+                            done = true;
+                            break;
                         }
 
-                        break;
+                        this.InputStream.Read(this.temp, 0, 128);
+                        remaining -= 128;
+
+                        ref Block8x8F table = ref this.QuantizationTables[tableIndex];
+                        for (int j = 0; j < 64; j++)
+                        {
+                            table[j] = (this.temp[2 * j] << 8) | this.temp[(2 * j) + 1];
+                        }
+                    }
+
+                    break;
+
                     default:
+                    {
                         JpegThrowHelper.ThrowBadQuantizationTable();
                         break;
+                    }
                 }
 
                 if (done)
@@ -733,7 +712,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InputStream.Read(this.temp, 0, length);
 
             // We only support 8-bit and 12-bit precision.
-            if (!this.supportedPrecisions.Contains(this.temp[0]))
+            if (Array.IndexOf(this.supportedPrecisions, this.temp[0]) == -1)
             {
                 JpegThrowHelper.ThrowImageFormatException("Only 8-Bit and 12-Bit precision supported.");
             }
@@ -782,7 +761,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 for (int i = 0; i < this.ComponentCount; i++)
                 {
                     byte hv = this.temp[index + 1];
-                    int h = hv >> 4;
+                    int h = (hv >> 4) & 15;
                     int v = hv & 15;
 
                     if (maxH < h)
@@ -936,12 +915,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
 
-            var sd = new ScanDecoder(
+            var sd = new HuffmanScanDecoder(
                 this.InputStream,
                 this.Frame,
                 this.dcHuffmanTables,
                 this.acHuffmanTables,
-                this.fastACTables,
                 selectorsCount,
                 this.resetInterval,
                 spectralStart,
@@ -961,7 +939,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="values">The values</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         private void BuildHuffmanTable(HuffmanTable[] tables, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values)
-            => tables[index] = new HuffmanTable(this.configuration.MemoryAllocator, codeLengths, values);
+            => tables[index] = new HuffmanTable(codeLengths, values);
 
         /// <summary>
         /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes
@@ -980,7 +958,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         private Image<TPixel> PostProcessIntoImage<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (this.ImageWidth == 0 || this.ImageHeight == 0)
             {

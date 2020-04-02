@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
     /// <summary>
     /// Color converter between HSL and Rgb
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
             }
             else
             {
-                s = chroma / (2F - chroma);
+                s = chroma / (2F - max - min);
             }
 
             return new Hsl(h, s, l);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -18,11 +18,11 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             const float l = 75F;
             const float m = -64F;
             const float s = 87F;
-            var Lms = new Lms(l, m, s);
+            var lms = new Lms(l, m, s);
 
-            Assert.Equal(l, Lms.L);
-            Assert.Equal(m, Lms.M);
-            Assert.Equal(s, Lms.S);
+            Assert.Equal(l, lms.L);
+            Assert.Equal(m, lms.M);
+            Assert.Equal(s, lms.S);
         }
 
         [Fact]
@@ -32,8 +32,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var y = new Lms(Vector3.One);
 
             Assert.True(default(Lms) == default(Lms));
-            Assert.True(default(Lms) != new Lms(1, 0, 1));
-            Assert.False(default(Lms) == new Lms(1, 0, 1));
+            Assert.True(new Lms(1, 0, 1) != default(Lms));
+            Assert.False(new Lms(1, 0, 1) == default(Lms));
             Assert.Equal(default(Lms), default(Lms));
             Assert.Equal(new Lms(1, 0, 1), new Lms(1, 0, 1));
             Assert.Equal(new Lms(Vector3.One), new Lms(Vector3.One));

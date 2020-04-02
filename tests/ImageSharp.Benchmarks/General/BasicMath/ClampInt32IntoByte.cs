@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -76,8 +76,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
         public byte ClampBitwise()
         {
             int x = this.Value;
-            int absmax = byte.MaxValue - x;
-            x = (x + byte.MaxValue - AbsBitwiseVer(ref absmax)) >> 1;
+            int absMax = byte.MaxValue - x;
+            x = (x + byte.MaxValue - AbsBitwiseVer(ref absMax)) >> 1;
             x = (x + byte.MinValue + AbsBitwiseVer(ref x)) >> 1;
 
             return (byte)x;

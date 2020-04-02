@@ -1,15 +1,19 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using Microsoft.DotNet.RemoteExecutor;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -18,6 +22,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
     public class GifDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
+
+        private static GifDecoder GifDecoder => new GifDecoder();
 
         public static readonly string[] MultiFrameTestFiles =
         {
@@ -37,14 +43,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             TestImages.Gif.Issues.BadDescriptorWidth
         };
 
-        public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
-        new TheoryData<string, int, int, PixelResolutionUnit>
-        {
-            { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution , PixelResolutionUnit.PixelsPerInch},
-            { TestImages.Gif.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
-            { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
-        };
-
         private static readonly Dictionary<string, int> BasicVerificationFrameCount =
         new Dictionary<string, int>
         {
@@ -61,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Theory]
         [WithFileCollection(nameof(MultiFrameTestFiles), PixelTypes.Rgba32)]
         public void Decode_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -81,9 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             {
                 using (var stream = new UnmanagedMemoryStream(data, length))
                 {
-                    var decoder = new GifDecoder();
-
-                    using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                    using (Image<Rgba32> image = GifDecoder.Decode<Rgba32>(Configuration.Default, stream))
                     {
                         Assert.Equal((200, 200), (image.Width, image.Height));
                     }
@@ -92,43 +88,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         }
 
         [Theory]
-        [MemberData(nameof(RatioFiles))]
-        public void Decode_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
-        {
-            var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new GifDecoder();
-                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
-                {
-                    ImageMetadata meta = image.Metadata;
-                    Assert.Equal(xResolution, meta.HorizontalResolution);
-                    Assert.Equal(yResolution, meta.VerticalResolution);
-                    Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-                }
-            }
-        }
-
-        [Theory]
-        [MemberData(nameof(RatioFiles))]
-        public void Identify_VerifyRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
-        {
-            var testFile = TestFile.Create(imagePath);
-            using (var stream = new MemoryStream(testFile.Bytes, false))
-            {
-                var decoder = new GifDecoder();
-                IImageInfo image = decoder.Identify(Configuration.Default, stream);
-                ImageMetadata meta = image.Metadata;
-                Assert.Equal(xResolution, meta.HorizontalResolution);
-                Assert.Equal(yResolution, meta.VerticalResolution);
-                Assert.Equal(resolutionUnit, meta.ResolutionUnits);
-            }
-        }
-
-        [Theory]
         [WithFile(TestImages.Gif.Trans, TestPixelTypes)]
         public void GifDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -140,7 +102,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Theory]
         [WithFileCollection(nameof(BasicVerificationFiles), PixelTypes.Rgba32)]
         public void Decode_VerifyRootFrameAndFrameCount<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (!BasicVerificationFrameCount.TryGetValue(provider.SourceFileOrDescription, out int expectedFrameCount))
             {
@@ -155,61 +117,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             }
         }
 
-        [Fact]
-        public void Decode_IgnoreMetadataIsFalse_CommentsAreRead()
-        {
-            var options = new GifDecoder
-            {
-                IgnoreMetadata = false
-            };
-
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
-
-            using (Image<Rgba32> image = testFile.CreateImage(options))
-            {
-                Assert.Equal(1, image.Metadata.Properties.Count);
-                Assert.Equal("Comments", image.Metadata.Properties[0].Name);
-                Assert.Equal("ImageSharp", image.Metadata.Properties[0].Value);
-            }
-        }
-
-        [Fact]
-        public void Decode_IgnoreMetadataIsTrue_CommentsAreIgnored()
-        {
-            var options = new GifDecoder
-            {
-                IgnoreMetadata = true
-            };
-
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
-
-            using (Image<Rgba32> image = testFile.CreateImage(options))
-            {
-                Assert.Equal(0, image.Metadata.Properties.Count);
-            }
-        }
-
-        [Fact]
-        public void Decode_TextEncodingSetToUnicode_TextIsReadWithCorrectEncoding()
-        {
-            var options = new GifDecoder
-            {
-                TextEncoding = Encoding.Unicode
-            };
-
-            var testFile = TestFile.Create(TestImages.Gif.Rings);
-
-            using (Image<Rgba32> image = testFile.CreateImage(options))
-            {
-                Assert.Equal(1, image.Metadata.Properties.Count);
-                Assert.Equal("浉条卥慨灲", image.Metadata.Properties[0].Value);
-            }
-        }
-
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new GifDecoder { DecodingMode = FrameDecodingMode.First }))
             {
@@ -220,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         public void CanDecodeAllFrames<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new GifDecoder { DecodingMode = FrameDecodingMode.All }))
             {
@@ -246,7 +157,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public void CanDecodeIntermingledImages()
         {
             using (var kumin1 = Image.Load(TestFile.Create(TestImages.Gif.Kumin).Bytes))
-            using (var icon = Image.Load(TestFile.Create(TestImages.Png.Icon).Bytes))
+            using (Image.Load(TestFile.Create(TestImages.Png.Icon).Bytes))
             using (var kumin2 = Image.Load(TestFile.Create(TestImages.Gif.Kumin).Bytes))
             {
                 for (int i = 0; i < kumin1.Frames.Count; i++)
@@ -256,6 +167,42 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     first.ComparePixelBufferTo(second.GetPixelSpan());
                 }
             }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Gif.Kumin, PixelTypes.Rgba32)]
+        public void GifDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
+            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(GifDecoder));
+            Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Gif.Kumin, PixelTypes.Rgba32)]
+        public void GifDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            static void RunTest(string providerDump, string nonContiguousBuffersStr)
+            {
+                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+
+                provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
+
+                using Image<TPixel> image = provider.GetImage(GifDecoder);
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+
+            string providerDump = BasicSerializer.Serialize(provider);
+            RemoteExecutor.Invoke(
+                    RunTest,
+                    providerDump,
+                    "Disco")
+                .Dispose();
         }
     }
 }

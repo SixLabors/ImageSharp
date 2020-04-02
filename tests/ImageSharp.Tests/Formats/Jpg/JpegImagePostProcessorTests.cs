@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         private ITestOutputHelper Output { get; }
 
         private static void SaveBuffer<TPixel>(JpegComponentPostProcessor cp, TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<Rgba32> image = cp.ColorBuffer.ToGrayscaleImage(1f / 255f))
             {
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Baseline.Testorig420, PixelTypes.Rgba32)]
         public void DoProcessorStep<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;
             using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
@@ -60,11 +60,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 SaveBuffer(cp[2], provider);
             }
         }
-        
+
         [Theory]
         [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
         public void PostProcess<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string imageFile = provider.SourceFileOrDescription;
             using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))

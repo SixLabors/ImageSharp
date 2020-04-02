@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,8 +6,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.ColorSpaces.Companding;
 
 namespace SixLabors.ImageSharp.PixelFormats.Utils
 {
@@ -41,7 +39,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 ReadOnlySpan<TPixel> sourcePixels,
                 Span<Vector4> destVectors,
                 PixelConversionModifiers modifiers)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
@@ -64,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
                 // 'destVectors' and 'lastQuarterOfDestBuffer' are overlapping buffers,
                 // but we are always reading/writing at different positions:
-                SimdUtils.BulkConvertByteToNormalizedFloat(
+                SimdUtils.ByteToNormalizedFloat(
                     MemoryMarshal.Cast<Rgba32, byte>(lastQuarterOfDestBuffer),
                     MemoryMarshal.Cast<Vector4, float>(destVectors.Slice(0, countWithoutLastItem)));
 
@@ -85,7 +83,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 Span<Vector4> sourceVectors,
                 Span<TPixel> destPixels,
                 PixelConversionModifiers modifiers)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
@@ -109,7 +107,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 {
                     Span<Rgba32> tempSpan = tempBuffer.Memory.Span;
 
-                    SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(
+                    SimdUtils.NormalizedFloatToByteSaturate(
                         MemoryMarshal.Cast<Vector4, float>(sourceVectors),
                         MemoryMarshal.Cast<Rgba32, byte>(tempSpan));
 
@@ -124,7 +122,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                     return int.MaxValue;
                 }
 
-                return SimdUtils.ExtendedIntrinsics.IsAvailable && SimdUtils.IsAvx2CompatibleArchitecture ? 256 : 128;
+                return SimdUtils.ExtendedIntrinsics.IsAvailable && SimdUtils.HasVector8 ? 256 : 128;
             }
         }
     }

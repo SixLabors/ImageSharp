@@ -18,7 +18,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly AdaptiveThresholdProcessor definition;
-        private readonly PixelOperations<TPixel> pixelOpInstance;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AdaptiveThresholdProcessor{TPixel}"/> class.
@@ -30,7 +29,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         public AdaptiveThresholdProcessor(Configuration configuration, AdaptiveThresholdProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
-            this.pixelOpInstance = PixelOperations<TPixel>.Instance;
             this.definition = definition;
         }
 
@@ -58,9 +56,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             // Using pooled 2d buffer for integer image table and temp memory to hold Rgb24 converted pixel data.
             using (Buffer2D<ulong> intImage = this.Configuration.MemoryAllocator.Allocate2D<ulong>(width, height))
             {
-                // Defines the rectangle section of the image to work on.
-                var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
-
                 Rgba32 rgb = default;
                 for (int x = startX; x < endX; x++)
                 {
@@ -84,10 +79,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                     }
                 }
 
-                var operation = new RowOperation(workingRectangle, source, intImage, upper, lower, thresholdLimit, clusterSize, startX, endX, startY);
+                var operation = new RowOperation(intersect, source, intImage, upper, lower, thresholdLimit, clusterSize, startX, endX, startY);
                 ParallelRowIterator.IterateRows(
                     configuration,
-                    workingRectangle,
+                    intersect,
                     in operation);
             }
         }
@@ -142,10 +137,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                     TPixel pixel = pixelRow[x];
                     pixel.ToRgba32(ref rgb);
 
-                    var x1 = (ushort)Math.Max(x - this.startX - this.clusterSize + 1, 0);
-                    var x2 = (ushort)Math.Min(x - this.startX + this.clusterSize + 1, this.bounds.Width - 1);
-                    var y1 = (ushort)Math.Max(y - this.startY - this.clusterSize + 1, 0);
-                    var y2 = (ushort)Math.Min(y - this.startY + this.clusterSize + 1, this.bounds.Height - 1);
+                    var x1 = Math.Max(x - this.startX - this.clusterSize + 1, 0);
+                    var x2 = Math.Min(x - this.startX + this.clusterSize + 1, this.bounds.Width - 1);
+                    var y1 = Math.Max(y - this.startY - this.clusterSize + 1, 0);
+                    var y2 = Math.Min(y - this.startY + this.clusterSize + 1, this.bounds.Height - 1);
 
                     var count = (uint)((x2 - x1) * (y2 - y1));
                     var sum = (long)Math.Min(this.intImage[x2, y2] - this.intImage[x1, y2] - this.intImage[x2, y1] + this.intImage[x1, y1], long.MaxValue);

@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -58,20 +58,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 
             // Using pooled 2d buffer for integer image table and temp memory to hold Rgb24 converted pixel data.
             using (Buffer2D<ulong> intImage = this.Configuration.MemoryAllocator.Allocate2D<ulong>(width, height))
-            using (IMemoryOwner<Rgb24> tmpBuffer = this.Configuration.MemoryAllocator.Allocate<Rgb24>(width * height))
             {
                 // Defines the rectangle section of the image to work on.
                 var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
 
-                this.pixelOpInstance.ToRgb24(this.Configuration, source.GetPixelSpan(), tmpBuffer.GetSpan());
-
+                Rgba32 rgb = default;
                 for (ushort x = startX; x < endX; x++)
                 {
-                    Span<Rgb24> rgbSpan = tmpBuffer.GetSpan();
                     ulong sum = 0;
                     for (ushort y = startY; y < endY; y++)
                     {
-                        ref Rgb24 rgb = ref rgbSpan[(width * y) + x];
+                        Span<TPixel> row = source.GetPixelRowSpan(y);
+                        ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
+                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
+                        color.ToRgba32(ref rgb);
 
                         sum += (ulong)(rgb.R + rgb.G + rgb.G);
                         if (x - startX != 0)
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                     }
                 }
 
-                var operation = new RowOperation(workingRectangle, source, tmpBuffer, intImage, upper, lower, thresholdLimit, clusterSize, startX, endX, startY);
+                var operation = new RowOperation(workingRectangle, source, intImage, upper, lower, thresholdLimit, clusterSize, startX, endX, startY);
                 ParallelRowIterator.IterateRows(
                     configuration,
                     workingRectangle,
@@ -97,7 +97,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         {
             private readonly Rectangle bounds;
             private readonly ImageFrame<TPixel> source;
-            private readonly IMemoryOwner<Rgb24> tmpBuffer;
             private readonly Buffer2D<ulong> intImage;
             private readonly TPixel upper;
             private readonly TPixel lower;
@@ -111,7 +110,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             public RowOperation(
                 Rectangle bounds,
                 ImageFrame<TPixel> source,
-                IMemoryOwner<Rgb24> tmpBuffer,
                 Buffer2D<ulong> intImage,
                 TPixel upper,
                 TPixel lower,
@@ -123,7 +121,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             {
                 this.bounds = bounds;
                 this.source = source;
-                this.tmpBuffer = tmpBuffer;
                 this.intImage = intImage;
                 this.upper = upper;
                 this.lower = lower;
@@ -138,17 +135,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                Span<Rgb24> rgbSpan = this.tmpBuffer.GetSpan();
-                ushort x1, y1, x2, y2;
+                Rgba32 rgb = default;
 
                 for (ushort x = this.startX; x < this.endX; x++)
                 {
-                    ref Rgb24 rgb = ref rgbSpan[(this.bounds.Width * y) + x];
+                    TPixel pixel = this.source.PixelBuffer[x, y];
+                    pixel.ToRgba32(ref rgb);
 
-                    x1 = (ushort)Math.Max(x - this.startX - this.clusterSize + 1, 0);
-                    x2 = (ushort)Math.Min(x - this.startX + this.clusterSize + 1, this.bounds.Width - 1);
-                    y1 = (ushort)Math.Max(y - this.startY - this.clusterSize + 1, 0);
-                    y2 = (ushort)Math.Min(y - this.startY + this.clusterSize + 1, this.bounds.Height - 1);
+                    var x1 = (ushort)Math.Max(x - this.startX - this.clusterSize + 1, 0);
+                    var x2 = (ushort)Math.Min(x - this.startX + this.clusterSize + 1, this.bounds.Width - 1);
+                    var y1 = (ushort)Math.Max(y - this.startY - this.clusterSize + 1, 0);
+                    var y2 = (ushort)Math.Min(y - this.startY + this.clusterSize + 1, this.bounds.Height - 1);
 
                     var count = (uint)((x2 - x1) * (y2 - y1));
                     var sum = (long)Math.Min(this.intImage[x2, y2] - this.intImage[x1, y2] - this.intImage[x2, y1] + this.intImage[x1, y1], long.MaxValue);

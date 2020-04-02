@@ -1,9 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 // Uncomment this to turn unit tests into benchmarks:
-//#define BENCHMARKING
-
+// #define BENCHMARKING
 using System;
 using System.Diagnostics;
 
@@ -30,11 +29,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private bool SkipOnNonAvx2Runner()
         {
-            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            if (!SimdUtils.HasVector8)
             {
                 this.Output.WriteLine("AVX2 not supported, skipping!");
                 return true;
             }
+
             return false;
         }
 
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        var block = new Block8x8F();
+                        var block = default(Block8x8F);
 
                         for (int i = 0; i < Block8x8F.Size; i++)
                         {
@@ -102,9 +102,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        var b = new Block8x8F();
+                        var b = default(Block8x8F);
                         b.LoadFrom(data);
-                        b.CopyTo(mirror);
+                        b.ScaledCopyTo(mirror);
                     });
 
             Assert.Equal(data, mirror);
@@ -127,9 +127,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        var b = new Block8x8F();
+                        var b = default(Block8x8F);
                         Block8x8F.LoadFrom(&b, data);
-                        Block8x8F.CopyTo(&b, mirror);
+                        Block8x8F.ScaledCopyTo(&b, mirror);
                     });
 
             Assert.Equal(data, mirror);
@@ -152,9 +152,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 Times,
                 () =>
                     {
-                        var v = new Block8x8F();
+                        var v = default(Block8x8F);
                         v.LoadFrom(data);
-                        v.CopyTo(mirror);
+                        v.ScaledCopyTo(mirror);
                     });
 
             Assert.Equal(data, mirror);
@@ -168,14 +168,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             float[] expected = Create8x8FloatData();
             ReferenceImplementations.Transpose8x8(expected);
 
-            var source = new Block8x8F();
+            var source = default(Block8x8F);
             source.LoadFrom(Create8x8FloatData());
 
-            var dest = new Block8x8F();
+            var dest = default(Block8x8F);
             source.TransposeInto(ref dest);
 
             float[] actual = new float[64];
-            dest.CopyTo(actual);
+            dest.ScaledCopyTo(actual);
 
             Assert.Equal(expected, actual);
         }
@@ -186,13 +186,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void TranposeInto_Benchmark()
+        public void TransposeInto_Benchmark()
         {
             var source = new BufferHolder();
             source.Buffer.LoadFrom(Create8x8FloatData());
             var dest = new BufferHolder();
 
-            this.Output.WriteLine($"TranposeInto_PinningImpl_Benchmark X {Times} ...");
+            this.Output.WriteLine($"TransposeInto_PinningImpl_Benchmark X {Times} ...");
             var sw = Stopwatch.StartNew();
 
             for (int i = 0; i < Times; i++)
@@ -201,7 +201,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             sw.Stop();
-            this.Output.WriteLine($"TranposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
+            this.Output.WriteLine($"TransposeInto_PinningImpl_Benchmark finished in {sw.ElapsedMilliseconds} ms");
         }
 
         private static float[] Create8x8ColorCropTestData()
@@ -211,7 +211,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    result[i * 8 + j] = -300 + i * 100 + j * 10;
+                    result[(i * 8) + j] = -300 + (i * 100) + (j * 10);
                 }
             }
 
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             dest.NormalizeColorsInplace(255);
 
             float[] array = new float[64];
-            dest.CopyTo(array);
+            dest.ScaledCopyTo(array);
             this.Output.WriteLine("Result:");
             this.PrintLinearData(array);
             foreach (float val in array)
@@ -257,7 +257,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             expected.RoundInplace();
 
             Block8x8F actual = source;
-            actual.NormalizeColorsAndRoundInplaceAvx2(255);
+            actual.NormalizeColorsAndRoundInplaceVector8(255);
 
             this.Output.WriteLine(expected.ToString());
             this.Output.WriteLine(actual.ToString());
@@ -269,10 +269,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(2)]
         public unsafe void Quantize(int seed)
         {
-            var block = new Block8x8F();
+            var block = default(Block8x8F);
             block.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
-            var qt = new Block8x8F();
+            var qt = default(Block8x8F);
             qt.LoadFrom(Create8x8RoundedRandomFloatData(-2000, 2000, seed));
 
             var unzig = ZigZag.CreateUnzigTable();
@@ -426,7 +426,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                Assert.Equal((float)data[i], dest[i]);
+                Assert.Equal(data[i], dest[i]);
             }
         }
 
@@ -441,13 +441,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             short[] data = Create8x8ShortData();
 
             var source = new Block8x8(data);
-            
+
             Block8x8F dest = default;
             dest.LoadFromInt16ExtendedAvx2(ref source);
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                Assert.Equal((float)data[i], dest[i]);
+                Assert.Equal(data[i], dest[i]);
             }
         }
     }

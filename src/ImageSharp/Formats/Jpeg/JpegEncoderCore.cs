@@ -1,15 +1,15 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -192,12 +192,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="image">The image to write from.</param>
         /// <param name="stream">The stream to write to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            ushort max = JpegConstants.MaxLength;
+            const ushort max = JpegConstants.MaxLength;
             if (image.Width >= max || image.Height >= max)
             {
                 throw new ImageFormatException($"Image is too large to encode at {image.Width}x{image.Height}.");
@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             ImageMetadata metadata = image.Metadata;
 
             // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
-            int qlty = (this.quality ?? metadata.GetFormatMetadata(JpegFormat.Instance).Quality).Clamp(1, 100);
+            int qlty = (this.quality ?? metadata.GetJpegMetadata().Quality).Clamp(1, 100);
             this.subsample = this.subsample ?? (qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
 
             // Convert from a quality rating to a scaling factor.
@@ -226,7 +226,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             InitQuantizationTable(1, scale, ref this.chrominanceQuantTable);
 
             // Compute number of components based on input image type.
-            int componentCount = 3;
+            const int componentCount = 3;
 
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(metadata);
@@ -278,7 +278,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
         {
             DebugGuard.MustBeBetweenOrEqualTo(i, 0, 1, nameof(i));
-            var unscaledQuant = (i == 0) ? UnscaledQuant_Luminance : UnscaledQuant_Chrominance;
+            ReadOnlySpan<byte> unscaledQuant = (i == 0) ? UnscaledQuant_Luminance : UnscaledQuant_Chrominance;
 
             for (int j = 0; j < Block8x8F.Size; j++)
             {
@@ -394,7 +394,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode444<TPixel>(Image<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             // (Partially done with YCbCrForwardConverter<TPixel>)
@@ -410,12 +410,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
             var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
+            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
+            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
 
             for (int y = 0; y < pixels.Height; y += 8)
             {
+                var currentRows = new RowOctet<TPixel>(pixelBuffer, y);
+
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    pixelConverter.Convert(pixels.Frames.RootFrame, x, y);
+                    pixelConverter.Convert(frame, x, y, currentRows);
 
                     prevDCY = this.WriteBlock(
                         QuantIndex.Luminance,
@@ -648,46 +652,45 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </exception>
         private void WriteExifProfile(ExifProfile exifProfile)
         {
-            if (exifProfile is null)
+            if (exifProfile is null || exifProfile.Values.Count == 0)
             {
                 return;
             }
 
-            const int MaxBytesApp1 = 65533;
-            const int MaxBytesWithExifId = 65527;
+            const int MaxBytesApp1 = 65533; // 64k - 2 padding bytes
+            const int MaxBytesWithExifId = 65527; // Max - 6 bytes for EXIF header.
 
-            byte[] data = exifProfile?.ToByteArray();
+            byte[] data = exifProfile.ToByteArray();
 
-            if (data is null || data.Length == 0)
+            if (data.Length == 0)
             {
                 return;
             }
 
-            data = ProfileResolver.ExifMarker.Concat(data).ToArray();
-
-            int remaining = data.Length;
+            // We can write up to a maximum of 64 data to the initial marker so calculate boundaries.
+            int exifMarkerLength = ProfileResolver.ExifMarker.Length;
+            int remaining = exifMarkerLength + data.Length;
             int bytesToWrite = remaining > MaxBytesApp1 ? MaxBytesApp1 : remaining;
             int app1Length = bytesToWrite + 2;
 
+            // Write the app marker, EXIF marker, and data
             this.WriteApp1Header(app1Length);
-
-            // write the exif data
-            this.outputStream.Write(data, 0, bytesToWrite);
+            this.outputStream.Write(ProfileResolver.ExifMarker);
+            this.outputStream.Write(data, 0, bytesToWrite - exifMarkerLength);
             remaining -= bytesToWrite;
 
-            // if the exif data exceeds 64K, write it in multiple APP1 Markers
-            for (int idx = MaxBytesApp1; idx < data.Length; idx += MaxBytesWithExifId)
+            // If the exif data exceeds 64K, write it in multiple APP1 Markers
+            for (int idx = MaxBytesWithExifId; idx < data.Length; idx += MaxBytesWithExifId)
             {
                 bytesToWrite = remaining > MaxBytesWithExifId ? MaxBytesWithExifId : remaining;
-                app1Length = bytesToWrite + 2 + 6;
+                app1Length = bytesToWrite + 2 + exifMarkerLength;
 
                 this.WriteApp1Header(app1Length);
 
-                // write Exif00 marker
-                ProfileResolver.ExifMarker.AsSpan().CopyTo(this.buffer.AsSpan());
-                this.outputStream.Write(this.buffer, 0, 6);
+                // Write Exif00 marker
+                this.outputStream.Write(ProfileResolver.ExifMarker);
 
-                // write the exif data
+                // Write the exif data
                 this.outputStream.Write(data, idx, bytesToWrite);
 
                 remaining -= bytesToWrite;
@@ -888,7 +891,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The pixel accessor providing access to the image pixels.</param>
         private void WriteStartOfScan<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             // TODO: We should allow grayscale writing.
@@ -915,7 +918,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode420<TPixel>(Image<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default;
@@ -937,6 +940,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
+            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
 
             for (int y = 0; y < pixels.Height; y += 16)
             {
@@ -947,7 +952,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
 
-                        pixelConverter.Convert(pixels.Frames.RootFrame, x + xOff, y + yOff);
+                        // TODO: Try pushing this to the outer loop!
+                        var currentRows = new RowOctet<TPixel>(pixelBuffer, y + yOff);
+
+                        pixelConverter.Convert(frame, x + xOff, y + yOff, currentRows);
 
                         cbPtr[i] = pixelConverter.Cb;
                         crPtr[i] = pixelConverter.Cr;

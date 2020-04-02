@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -32,8 +32,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces
             var y = new HunterLab(Vector3.One);
 
             Assert.True(default(HunterLab) == default(HunterLab));
-            Assert.True(default(HunterLab) != new HunterLab(1, 0, 1));
-            Assert.False(default(HunterLab) == new HunterLab(1, 0, 1));
+            Assert.True(new HunterLab(1, 0, 1) != default(HunterLab));
+            Assert.False(new HunterLab(1, 0, 1) == default(HunterLab));
             Assert.Equal(default(HunterLab), default(HunterLab));
             Assert.Equal(new HunterLab(1, 0, 1), new HunterLab(1, 0, 1));
             Assert.Equal(new HunterLab(Vector3.One), new HunterLab(Vector3.One));

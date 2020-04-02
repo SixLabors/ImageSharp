@@ -1,25 +1,31 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
-
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     /// <summary>
-    /// Applies edge detection processing to the image using the Prewitt operator filter.
-    /// <see href="http://en.wikipedia.org/wiki/Prewitt_operator"/>
+    /// Defines edge detection using the Prewitt operator filter.
+    /// See <see href="http://en.wikipedia.org/wiki/Prewitt_operator"/>.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class PrewittProcessor<TPixel> : EdgeDetector2DProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public sealed class PrewittProcessor : EdgeDetectorProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="PrewittProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="PrewittProcessor"/> class.
         /// </summary>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
         public PrewittProcessor(bool grayscale)
-            : base(PrewittKernels.PrewittX, PrewittKernels.PrewittY, grayscale)
+            : base(grayscale)
         {
         }
+
+        /// <inheritdoc />
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            => new EdgeDetector2DProcessor<TPixel>(
+                configuration,
+                PrewittKernels.PrewittX,
+                PrewittKernels.PrewittY,
+                this.Grayscale,
+                source,
+                sourceRectangle);
     }
 }

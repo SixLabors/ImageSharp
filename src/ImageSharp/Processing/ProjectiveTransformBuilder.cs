@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
 {
@@ -24,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="fraction">The amount to taper.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder PrependTaper(TaperSide side, TaperCorner corner, float fraction)
-            => this.Prepend(size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction));
+            => this.Prepend(size => TransformUtilities.CreateTaperMatrix(size, side, corner, fraction));
 
         /// <summary>
         /// Appends a matrix that performs a tapering projective transform.
@@ -34,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="fraction">The amount to taper.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder AppendTaper(TaperSide side, TaperCorner corner, float fraction)
-            => this.Append(size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction));
+            => this.Append(size => TransformUtilities.CreateTaperMatrix(size, side, corner, fraction));
 
         /// <summary>
         /// Prepends a centered rotation matrix using the given rotation in degrees.
@@ -50,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder PrependRotationRadians(float radians)
-            => this.Prepend(size => new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, size)));
+            => this.Prepend(size => new Matrix4x4(TransformUtilities.CreateRotationMatrixRadians(radians, size)));
 
         /// <summary>
         /// Prepends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -84,7 +83,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder AppendRotationRadians(float radians)
-            => this.Append(size => new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, size)));
+            => this.Append(size => new Matrix4x4(TransformUtilities.CreateRotationMatrixRadians(radians, size)));
 
         /// <summary>
         /// Appends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -168,7 +167,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radiansY">The Y angle, in radians.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-            => this.Prepend(size => new Matrix4x4(TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size)));
+            => this.Prepend(size => new Matrix4x4(TransformUtilities.CreateSkewMatrixRadians(radiansX, radiansY, size)));
 
         /// <summary>
         /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -206,7 +205,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radiansY">The Y angle, in radians.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-            => this.Append(size => new Matrix4x4(TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size)));
+            => this.Append(size => new Matrix4x4(TransformUtilities.CreateSkewMatrixRadians(radiansX, radiansY, size)));
 
         /// <summary>
         /// Appends a skew matrix using the given angles in degrees at the given origin.

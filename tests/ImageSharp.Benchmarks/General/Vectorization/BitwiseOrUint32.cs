@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Numerics;
 
 using BenchmarkDotNet.Attributes;
@@ -24,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 
             for (int i = 0; i < this.InputSize; i++)
             {
-                this.input[i] = (uint) i;
+                this.input[i] = (uint)i;
             }
         }
 
@@ -41,11 +44,11 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         [Benchmark]
         public void Simd()
         {
-            Vector<uint> v = new Vector<uint>(this.testValue);
+            var v = new Vector<uint>(this.testValue);
 
-            for (int i = 0; i < this.input.Length; i+=Vector<uint>.Count)
+            for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
             {
-                Vector<uint> a = new Vector<uint>(this.input, i);
+                var a = new Vector<uint>(this.input, i);
                 a = Vector.BitwiseOr(a, v);
                 a.CopyTo(this.result, i);
             }

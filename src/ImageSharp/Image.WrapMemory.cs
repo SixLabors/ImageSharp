@@ -13,14 +13,14 @@ namespace SixLabors.ImageSharp
     /// <content>
     /// Adds static methods allowing wrapping an existing memory area as an image.
     /// </content>
-    public static partial class Image
+    public abstract partial class Image
     {
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
         /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="config">The <see cref="Configuration"/></param>
+        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
         /// <param name="pixelMemory">The pixel memory.</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
@@ -32,9 +32,9 @@ namespace SixLabors.ImageSharp
             int width,
             int height,
             ImageMetadata metadata)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            var memorySource = new MemorySource<TPixel>(pixelMemory);
+            var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemory);
             return new Image<TPixel>(config, memorySource, width, height, metadata);
         }
 
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp
         /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="config">The <see cref="Configuration"/></param>
+        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
         /// <param name="pixelMemory">The pixel memory.</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp
             Memory<TPixel> pixelMemory,
             int width,
             int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return WrapMemory(config, pixelMemory, width, height, new ImageMetadata());
         }
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp
             Memory<TPixel> pixelMemory,
             int width,
             int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return WrapMemory(Configuration.Default, pixelMemory, width, height);
         }
@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp
         /// It will be disposed together with the result image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="config">The <see cref="Configuration"/></param>
+        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
         /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
@@ -97,9 +97,9 @@ namespace SixLabors.ImageSharp
             int width,
             int height,
             ImageMetadata metadata)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            var memorySource = new MemorySource<TPixel>(pixelMemoryOwner, false);
+            var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
             return new Image<TPixel>(config, memorySource, width, height, metadata);
         }
 
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp
         /// It will be disposed together with the result image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
-        /// <param name="config">The <see cref="Configuration"/></param>
+        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
         /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image.</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp
             IMemoryOwner<TPixel> pixelMemoryOwner,
             int width,
             int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return WrapMemory(config, pixelMemoryOwner, width, height, new ImageMetadata());
         }
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp
             IMemoryOwner<TPixel> pixelMemoryOwner,
             int width,
             int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return WrapMemory(Configuration.Default, pixelMemoryOwner, width, height);
         }

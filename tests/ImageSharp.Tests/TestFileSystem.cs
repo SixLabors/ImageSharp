@@ -12,29 +12,24 @@ namespace SixLabors.ImageSharp.Tests
     /// </summary>
     public class TestFileSystem : ImageSharp.IO.IFileSystem
     {
-
-        public static TestFileSystem Global { get; } = new TestFileSystem();
-
-        public static void RegisterGlobalTestFormat()
-        {
-            Configuration.Default.FileSystem = Global;
-        }
-
-        Dictionary<string, Stream> fileSystem = new Dictionary<string, Stream>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, Stream> fileSystem = new Dictionary<string, Stream>(StringComparer.OrdinalIgnoreCase);
 
         public void AddFile(string path, Stream data)
         {
-            fileSystem.Add(path, data);
+            lock (this.fileSystem)
+            {
+                this.fileSystem.Add(path, data);
+            }
         }
 
         public Stream Create(string path)
         {
             // if we have injected a fake file use it instead
-            lock (fileSystem)
+            lock (this.fileSystem)
             {
-                if (fileSystem.ContainsKey(path))
+                if (this.fileSystem.ContainsKey(path))
                 {
-                    Stream stream = fileSystem[path];
+                    Stream stream = this.fileSystem[path];
                     stream.Position = 0;
                     return stream;
                 }
@@ -43,15 +38,14 @@ namespace SixLabors.ImageSharp.Tests
             return File.Create(path);
         }
 
-
         public Stream OpenRead(string path)
         {
             // if we have injected a fake file use it instead
-            lock (fileSystem)
+            lock (this.fileSystem)
             {
-                if (fileSystem.ContainsKey(path))
+                if (this.fileSystem.ContainsKey(path))
                 {
-                    Stream stream = fileSystem[path];
+                    Stream stream = this.fileSystem[path];
                     stream.Position = 0;
                     return stream;
                 }
@@ -61,4 +55,3 @@ namespace SixLabors.ImageSharp.Tests
         }
     }
 }
-

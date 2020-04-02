@@ -1,8 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -141,9 +142,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             this.crc ^= CrcSeed;
 
+            ref uint crcTableRef = ref MemoryMarshal.GetReference(CrcTable.AsSpan());
             for (int i = 0; i < data.Length; i++)
             {
-                this.crc = CrcTable[(this.crc ^ data[i]) & 0xFF] ^ (this.crc >> 8);
+                this.crc = Unsafe.Add(ref crcTableRef, (int)((this.crc ^ data[i]) & 0xFF)) ^ (this.crc >> 8);
             }
 
             this.crc ^= CrcSeed;

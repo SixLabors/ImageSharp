@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             }
         }
 
-        [Benchmark(Baseline = true)]
+        [Benchmark]
         public void Scalar()
         {
             var values = new JpegColorConverter.ComponentValues(this.input, 0);
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             JpegColorConverter.FromYCbCrBasic.ConvertCore(values, this.output, 255F, 128F);
         }
 
-        [Benchmark]
+        [Benchmark(Baseline = true)]
         public void SimdVector4()
         {
             var values = new JpegColorConverter.ComponentValues(this.input, 0);
@@ -53,11 +53,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark]
-        public void SimdAvx2()
+        public void SimdVector8()
         {
             var values = new JpegColorConverter.ComponentValues(this.input, 0);
 
-            JpegColorConverter.FromYCbCrSimdAvx2.ConvertCore(values, this.output, 255F, 128F);
+            JpegColorConverter.FromYCbCrSimdVector8.ConvertCore(values, this.output, 255F, 128F);
         }
 
         private static Buffer2D<float>[] CreateRandomValues(
@@ -67,14 +67,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             float maxVal = 255f)
         {
             var rnd = new Random(42);
-            Buffer2D<float>[] buffers = new Buffer2D<float>[componentCount];
+            var buffers = new Buffer2D<float>[componentCount];
             for (int i = 0; i < componentCount; i++)
             {
-                float[] values = new float[inputBufferLength];
+                var values = new float[inputBufferLength];
 
                 for (int j = 0; j < inputBufferLength; j++)
                 {
-                    values[j] = (float)rnd.NextDouble() * (maxVal - minVal) + minVal;
+                    values[j] = ((float)rnd.NextDouble() * (maxVal - minVal)) + minVal;
                 }
 
                 // no need to dispose when buffer is not array owner

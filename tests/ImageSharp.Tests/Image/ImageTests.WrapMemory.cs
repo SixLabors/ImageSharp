@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,10 +9,9 @@ using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Shapes;
-using SixLabors.ImageSharp.Processing;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -26,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests
             /// A <see cref="MemoryManager{T}"/> exposing the locked pixel memory of a <see cref="Bitmap"/> instance.
             /// TODO: This should be an example in https://github.com/SixLabors/Samples
             /// </summary>
-            class BitmapMemoryManager : MemoryManager<Bgra32>
+            public class BitmapMemoryManager : MemoryManager<Bgra32>
             {
                 private readonly Bitmap bitmap;
 
@@ -42,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
                     }
 
                     this.bitmap = bitmap;
-                    var rectangle = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+                    var rectangle = new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height);
                     this.bmpData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, bitmap.PixelFormat);
                     this.length = bitmap.Width * bitmap.Height;
                 }
@@ -60,13 +59,13 @@ namespace SixLabors.ImageSharp.Tests
                     {
                         this.bitmap.UnlockBits(this.bmpData);
                     }
-                    
+
                     this.IsDisposed = true;
                 }
 
                 public override unsafe Span<Bgra32> GetSpan()
                 {
-                    void* ptr = (void*) this.bmpData.Scan0;
+                    void* ptr = (void*)this.bmpData.Scan0;
                     return new Span<Bgra32>(ptr, this.length);
                 }
 
@@ -113,13 +112,17 @@ namespace SixLabors.ImageSharp.Tests
                     using (var memoryManager = new BitmapMemoryManager(bmp))
                     {
                         Memory<Bgra32> memory = memoryManager.Memory;
-                        Bgra32 bg = NamedColors<Bgra32>.Red;
-                        Bgra32 fg = NamedColors<Bgra32>.Green;
+                        Bgra32 bg = Color.Red;
+                        Bgra32 fg = Color.Green;
 
                         using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                         {
-                            Assert.Equal(memory, image.GetPixelMemory());
-                            image.Mutate(c => c.Fill(bg).Fill(fg, new RectangularPolygon(10, 10, 10, 10)));
+                            Assert.Equal(memory, image.GetRootFramePixelBuffer().GetSingleMemory());
+                            image.GetPixelSpan().Fill(bg);
+                            for (var i = 10; i < 20; i++)
+                            {
+                                image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
+                            }
                         }
 
                         Assert.False(memoryManager.IsDisposed);
@@ -144,13 +147,18 @@ namespace SixLabors.ImageSharp.Tests
                 using (var bmp = new Bitmap(51, 23))
                 {
                     var memoryManager = new BitmapMemoryManager(bmp);
-                    Bgra32 bg = NamedColors<Bgra32>.Red;
-                    Bgra32 fg = NamedColors<Bgra32>.Green;
+                    Bgra32 bg = Color.Red;
+                    Bgra32 fg = Color.Green;
 
                     using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                     {
-                        Assert.Equal(memoryManager.Memory, image.GetPixelMemory());
-                        image.Mutate(c => c.Fill(bg).Fill(fg, new RectangularPolygon(10, 10, 10, 10)));
+                        Assert.Equal(memoryManager.Memory, image.GetRootFramePixelBuffer().GetSingleMemory());
+
+                        image.GetPixelSpan().Fill(bg);
+                        for (var i = 10; i < 20; i++)
+                        {
+                            image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
+                        }
                     }
 
                     Assert.True(memoryManager.IsDisposed);
@@ -164,7 +172,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             private static bool ShouldSkipBitmapTest =>
-                !TestEnvironment.Is64BitProcess || TestHelpers.ImageSharpBuiltAgainst != "netcoreapp2.1";
+                !TestEnvironment.Is64BitProcess || (TestHelpers.ImageSharpBuiltAgainst != "netcoreapp3.1" && TestHelpers.ImageSharpBuiltAgainst != "netcoreapp2.1");
         }
     }
 }

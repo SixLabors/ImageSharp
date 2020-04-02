@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Numerics;
 
 using BenchmarkDotNet.Attributes;
@@ -45,7 +48,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 
             for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
             {
-                Vector<uint> a = new Vector<uint>(this.input, i);
+                var a = new Vector<uint>(this.input, i);
                 a = a * v;
                 a.CopyTo(this.result, i);
             }

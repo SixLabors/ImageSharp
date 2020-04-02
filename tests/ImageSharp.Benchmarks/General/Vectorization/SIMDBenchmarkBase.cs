@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -16,13 +19,13 @@ namespace ImageSharp.Benchmarks.General.Vectorization
 
         protected Vector<T> testVector;
 
-        protected virtual T GetTestValue() => default(T);
+        protected virtual T GetTestValue() => default;
 
         protected virtual Vector<T> GetTestVector() => new Vector<T>(this.GetTestValue());
 
         [Params(32)]
         public int InputSize { get; set; }
-        
+
         [GlobalSetup]
         public virtual void Setup()
         {
@@ -63,7 +66,5 @@ namespace ImageSharp.Benchmarks.General.Vectorization
                 }
             }
         }
-
-        
     }
 }

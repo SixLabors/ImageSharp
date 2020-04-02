@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 using System;
 using System.Buffers.Binary;
@@ -52,9 +52,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public const int SizeV4 = 108;
 
         /// <summary>
+        /// Defines the size of the BITMAPINFOHEADER (BMP Version 5) data structure in the bitmap file.
+        /// </summary>
+        public const int SizeV5 = 124;
+
+        /// <summary>
         /// Defines the size of the biggest supported header data structure in the bitmap file.
         /// </summary>
-        public const int MaxHeaderSize = SizeV4;
+        public const int MaxHeaderSize = SizeV5;
 
         /// <summary>
         /// Defines the size of the <see cref="HeaderSize"/> field.
@@ -272,7 +277,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Parses the BITMAPCOREHEADER (BMP Version 2) consisting of the headerSize, width, height, planes, and bitsPerPixel fields (12 bytes).
         /// </summary>
         /// <param name="data">The data to parse.</param>
-        /// <returns>Parsed header</returns>
+        /// <returns>The parsed header.</returns>
         /// <seealso href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd183372.aspx"/>
         public static BmpInfoHeader ParseCore(ReadOnlySpan<byte> data)
         {
@@ -289,7 +294,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// are 4 bytes instead of 2, resulting in 16 bytes total.
         /// </summary>
         /// <param name="data">The data to parse.</param>
-        /// <returns>Parsed header</returns>
+        /// <returns>The parsed header.</returns>
         /// <seealso href="https://www.fileformat.info/format/os2bmp/egff.htm"/>
         public static BmpInfoHeader ParseOs22Short(ReadOnlySpan<byte> data)
         {
@@ -383,8 +388,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 case 2:
                     infoHeader.Compression = BmpCompression.RLE4;
                     break;
+                case 4:
+                    infoHeader.Compression = BmpCompression.RLE24;
+                    break;
                 default:
-                    BmpThrowHelper.ThrowImageFormatException($"Compression type is not supported. ImageSharp only supports uncompressed, RLE4 and RLE8.");
+                    // Compression type 3 (1DHuffman) is not supported.
+                    BmpThrowHelper.ThrowImageFormatException("Compression type is not supported. ImageSharp only supports uncompressed, RLE4, RLE8 and RLE24.");
                     break;
             }
 
@@ -406,7 +415,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <seealso href="http://www.fileformat.info/format/bmp/egff.htm"/>
         public static BmpInfoHeader ParseV4(ReadOnlySpan<byte> data)
         {
-            if (data.Length != SizeV4)
+            if (data.Length < SizeV4)
             {
                 throw new ArgumentException(nameof(data), $"Must be {SizeV4} bytes. Was {data.Length} bytes.");
             }
@@ -438,7 +447,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// Writes a complete Bitmap V4 header to a buffer.
         /// </summary>
         /// <param name="buffer">The buffer to write to.</param>
-        public unsafe void WriteV4Header(Span<byte> buffer)
+        public void WriteV4Header(Span<byte> buffer)
         {
             ref BmpInfoHeader dest = ref Unsafe.As<byte, BmpInfoHeader>(ref MemoryMarshal.GetReference(buffer));
 

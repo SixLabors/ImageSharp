@@ -1,11 +1,12 @@
-﻿using SixLabors.ImageSharp.PixelFormats;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using SixLabors.ImageSharp.Processing.Processors.Binarization;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// Extensions to perform AdaptiveThreshold through Mutator
+    /// Extensions to perform AdaptiveThreshold through Mutator.
     /// </summary>
     public static class AdaptiveThresholdExtensions
     {
@@ -13,47 +14,39 @@ namespace SixLabors.ImageSharp.Processing
         /// Applies Bradley Adaptive Threshold to the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> AdaptiveThreshold<TPixel>(this IImageProcessingContext<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new AdaptiveThresholdProcessor<TPixel>());
+        public static IImageProcessingContext AdaptiveThreshold(this IImageProcessingContext source)
+            => source.ApplyProcessor(new AdaptiveThresholdProcessor());
 
         /// <summary>
         /// Applies Bradley Adaptive Threshold to the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="thresholdLimit">Threshold limit (0.0-1.0) to consider for binarization.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> AdaptiveThreshold<TPixel>(this IImageProcessingContext<TPixel> source, float thresholdLimit)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new AdaptiveThresholdProcessor<TPixel>(thresholdLimit));
+        public static IImageProcessingContext AdaptiveThreshold(this IImageProcessingContext source, float thresholdLimit)
+            => source.ApplyProcessor(new AdaptiveThresholdProcessor(thresholdLimit));
 
         /// <summary>
         /// Applies Bradley Adaptive Threshold to the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="upper">Upper (white) color for thresholding.</param>
-        /// <param name="lower">Lower (black) color for thresholding</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="lower">Lower (black) color for thresholding.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> AdaptiveThreshold<TPixel>(this IImageProcessingContext<TPixel> source, TPixel upper, TPixel lower)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new AdaptiveThresholdProcessor<TPixel>(upper, lower));
+        public static IImageProcessingContext AdaptiveThreshold(this IImageProcessingContext source, Color upper, Color lower)
+            => source.ApplyProcessor(new AdaptiveThresholdProcessor(upper, lower));
 
         /// <summary>
         /// Applies Bradley Adaptive Threshold to the image.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="upper">Upper (white) color for thresholding.</param>
-        /// <param name="lower">Lower (black) color for thresholding</param>
+        /// <param name="lower">Lower (black) color for thresholding.</param>
         /// <param name="thresholdLimit">Threshold limit (0.0-1.0) to consider for binarization.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> AdaptiveThreshold<TPixel>(this IImageProcessingContext<TPixel> source, TPixel upper, TPixel lower, float thresholdLimit)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new AdaptiveThresholdProcessor<TPixel>(upper, lower, thresholdLimit));
+        public static IImageProcessingContext AdaptiveThreshold(this IImageProcessingContext source, Color upper, Color lower, float thresholdLimit)
+            => source.ApplyProcessor(new AdaptiveThresholdProcessor(upper, lower, thresholdLimit));
 
         /// <summary>
         /// Applies Bradley Adaptive Threshold to the image.
@@ -62,11 +55,9 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="upper">Upper (white) color for thresholding.</param>
         /// <param name="lower">Lower (black) color for thresholding</param>
         /// <param name="rectangle">Rectangle region to apply the processor on.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> AdaptiveThreshold<TPixel>(this IImageProcessingContext<TPixel> source, TPixel upper, TPixel lower, Rectangle rectangle)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new AdaptiveThresholdProcessor<TPixel>(upper, lower), rectangle);
+        public static IImageProcessingContext AdaptiveThreshold(this IImageProcessingContext source, Color upper, Color lower, Rectangle rectangle)
+            => source.ApplyProcessor(new AdaptiveThresholdProcessor(upper, lower), rectangle);
 
         /// <summary>
         /// Applies Bradley Adaptive Threshold to the image.
@@ -76,10 +67,8 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="lower">Lower (black) color for thresholding</param>
         /// <param name="thresholdLimit">Threshold limit (0.0-1.0) to consider for binarization.</param>
         /// <param name="rectangle">Rectangle region to apply the processor on.</param>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        public static IImageProcessingContext<TPixel> AdaptiveThreshold<TPixel>(this IImageProcessingContext<TPixel> source, TPixel upper, TPixel lower, float thresholdLimit, Rectangle rectangle)
-            where TPixel : struct, IPixel<TPixel>
-            => source.ApplyProcessor(new AdaptiveThresholdProcessor<TPixel>(upper, lower, thresholdLimit), rectangle);
+        public static IImageProcessingContext AdaptiveThreshold(this IImageProcessingContext source, Color upper, Color lower, float thresholdLimit, Rectangle rectangle)
+            => source.ApplyProcessor(new AdaptiveThresholdProcessor(upper, lower, thresholdLimit), rectangle);
     }
 }

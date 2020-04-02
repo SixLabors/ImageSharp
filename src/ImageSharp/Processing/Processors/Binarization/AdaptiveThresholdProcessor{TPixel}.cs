@@ -44,14 +44,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             TPixel lower = this.definition.Lower.ToPixel<TPixel>();
             float thresholdLimit = this.definition.ThresholdLimit;
 
-            // Used ushort because the values should never exceed max ushort value.
-            ushort startY = (ushort)intersect.Y;
-            ushort endY = (ushort)intersect.Bottom;
-            ushort startX = (ushort)intersect.X;
-            ushort endX = (ushort)intersect.Right;
+            int startY = intersect.Y;
+            int endY = intersect.Bottom;
+            int startX = intersect.X;
+            int endX = intersect.Right;
 
-            ushort width = (ushort)intersect.Width;
-            ushort height = (ushort)intersect.Height;
+            int width = intersect.Width;
+            int height = intersect.Height;
 
             // ClusterSize defines the size of cluster to used to check for average. Tweaked to support up to 4k wide pixels and not more. 4096 / 16 is 256 thus the '-1'
             byte clusterSize = (byte)Math.Truncate((width / 16f) - 1);
@@ -63,10 +62,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 var workingRectangle = Rectangle.FromLTRB(startX, startY, endX, endY);
 
                 Rgba32 rgb = default;
-                for (ushort x = startX; x < endX; x++)
+                for (int x = startX; x < endX; x++)
                 {
                     ulong sum = 0;
-                    for (ushort y = startY; y < endY; y++)
+                    for (int y = startY; y < endY; y++)
                     {
                         Span<TPixel> row = source.GetPixelRowSpan(y);
                         ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
@@ -101,9 +100,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             private readonly TPixel upper;
             private readonly TPixel lower;
             private readonly float thresholdLimit;
-            private readonly ushort startX;
-            private readonly ushort endX;
-            private readonly ushort startY;
+            private readonly int startX;
+            private readonly int endX;
+            private readonly int startY;
             private readonly byte clusterSize;
 
             [MethodImpl(InliningOptions.ShortMethod)]
@@ -115,9 +114,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 TPixel lower,
                 float thresholdLimit,
                 byte clusterSize,
-                ushort startX,
-                ushort endX,
-                ushort startY)
+                int startX,
+                int endX,
+                int startY)
             {
                 this.bounds = bounds;
                 this.source = source;
@@ -137,7 +136,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             {
                 Rgba32 rgb = default;
 
-                for (ushort x = this.startX; x < this.endX; x++)
+                for (int x = this.startX; x < this.endX; x++)
                 {
                     TPixel pixel = this.source.PixelBuffer[x, y];
                     pixel.ToRgba32(ref rgb);

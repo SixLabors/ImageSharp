@@ -83,6 +83,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Ducky = "Png/ducky.png";
             public const string Rainbow = "Png/rainbow.png";
 
+            public const string Bradley01 = "Png/Bradley01.png";
+            public const string Bradley02 = "Png/Bradley02.png";
+
             // Issue 1014: https://github.com/SixLabors/ImageSharp/issues/1014
             public const string Issue1014_1 = "Png/issues/Issue_1014_1.png";
             public const string Issue1014_2 = "Png/issues/Issue_1014_2.png";

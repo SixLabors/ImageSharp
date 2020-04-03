@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="upper">Upper (white) color for thresholding.</param>
-        /// <param name="lower">Lower (black) color for thresholding</param>
+        /// <param name="lower">Lower (black) color for thresholding.</param>
         /// <param name="rectangle">Rectangle region to apply the processor on.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         public static IImageProcessingContext AdaptiveThreshold(this IImageProcessingContext source, Color upper, Color lower, Rectangle rectangle)
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="upper">Upper (white) color for thresholding.</param>
-        /// <param name="lower">Lower (black) color for thresholding</param>
+        /// <param name="lower">Lower (black) color for thresholding.</param>
         /// <param name="thresholdLimit">Threshold limit (0.0-1.0) to consider for binarization.</param>
         /// <param name="rectangle">Rectangle region to apply the processor on.</param>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>

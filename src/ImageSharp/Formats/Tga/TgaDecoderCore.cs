@@ -252,14 +252,14 @@ namespace SixLabors.ImageSharp.Formats.Tga
                         {
                             for (int x = width - 1; x >= 0; x--)
                             {
-                                this.ReadPalettedBgr16Pixel(palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                                this.ReadPalettedBgra16Pixel(palette, colorMapPixelSizeInBytes, x, color, pixelRow);
                             }
                         }
                         else
                         {
                             for (int x = 0; x < width; x++)
                             {
-                                this.ReadPalettedBgr16Pixel(palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                                this.ReadPalettedBgra16Pixel(palette, colorMapPixelSizeInBytes, x, color, pixelRow);
                             }
                         }
 
@@ -338,11 +338,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                                 color.FromL8(Unsafe.As<byte, L8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                                 break;
                             case 2:
-                                Bgra5551 bgra = Unsafe.As<byte, Bgra5551>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]);
-
-                                // Set alpha value to 1, to treat it as opaque for Bgra5551.
-                                bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
-                                color.FromBgra5551(bgra);
+                                this.ReadPalettedBgra16Pixel(palette, bufferSpan[idx], colorMapPixelSizeInBytes, ref color);
                                 break;
                             case 3:
                                 color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
@@ -723,20 +719,29 @@ namespace SixLabors.ImageSharp.Formats.Tga
             PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
         }
 
-        private void ReadPalettedBgr16Pixel<TPixel>(byte[] palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadPalettedBgra16Pixel<TPixel>(byte[] palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorIndex = this.currentStream.ReadByte();
+            this.ReadPalettedBgra16Pixel(palette, colorIndex, colorMapPixelSizeInBytes, ref color);
+            pixelRow[x] = color;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReadPalettedBgra16Pixel<TPixel>(byte[] palette, int index, int colorMapPixelSizeInBytes, ref TPixel color)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
             Bgra5551 bgra = default;
-            bgra.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
+            bgra.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref palette[index * colorMapPixelSizeInBytes]));
+
             if (!this.hasAlpha)
             {
-                // Set alpha value to 1, to treat it as opaque for Bgra5551.
+                // Set alpha value to 1, to treat it as opaque.
                 bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
             }
 
             color.FromBgra5551(bgra);
-            pixelRow[x] = color;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

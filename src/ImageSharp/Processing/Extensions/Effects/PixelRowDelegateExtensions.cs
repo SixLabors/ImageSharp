@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PixelRowOperation rowOperation, PixelConversionModifiers modifiers)
-            => source.ApplyProcessor(new PixelRowDelegateProcessor(rowOperation, modifiers));
+            => source.ApplyProcessor(new PixelRowDelegateProcessor<PixelRowDelegate>(new PixelRowDelegate(rowOperation), modifiers));
 
         /// <summary>
         /// Applies a user defined processing delegate to the image.
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext ProcessPixelRowsAsVector4(this IImageProcessingContext source, PixelRowOperation rowOperation, Rectangle rectangle, PixelConversionModifiers modifiers)
-            => source.ApplyProcessor(new PixelRowDelegateProcessor(rowOperation, modifiers), rectangle);
+            => source.ApplyProcessor(new PixelRowDelegateProcessor<PixelRowDelegate>(new PixelRowDelegate(rowOperation), modifiers), rectangle);
 
         /// <summary>
         /// Applies a user defined processing delegate to the image.

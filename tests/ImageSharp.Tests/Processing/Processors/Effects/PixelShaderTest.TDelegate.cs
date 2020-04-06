@@ -11,7 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 {
-    public partial class ProcessPixelRowsAsVector4Test
+    public partial class PixelShaderTest
     {
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]

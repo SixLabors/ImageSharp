@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8FilterInfo"/> class.
         /// </summary>
-        /// <param name="other">The filter info to create an instance from.</param>
+        /// <param name="other">The filter info to create a copy from.</param>
         public Vp8FilterInfo(Vp8FilterInfo other)
         {
             this.Limit = other.Limit;

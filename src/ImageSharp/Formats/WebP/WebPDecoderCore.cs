@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.currentStream = stream;
 
             uint fileSize = this.ReadImageHeader();
-            using var imageInfo = this.ReadVp8Info();
+            using WebPImageInfo imageInfo = this.ReadVp8Info();
             if (imageInfo.Features != null && imageInfo.Features.Animation)
             {
                 WebPThrowHelper.ThrowNotSupportedException("Animations are not supported");
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             var image = new Image<TPixel>(this.configuration, (int)imageInfo.Width, (int)imageInfo.Height, this.Metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
-            if (imageInfo.IsLossLess)
+            if (imageInfo.IsLossless)
             {
                 var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
                 losslessDecoder.Decode(pixels, image.Width, image.Height);
@@ -159,11 +159,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     return this.ReadVp8LHeader();
                 case WebPChunkType.Vp8X:
                     return this.ReadVp8XHeader();
+                default:
+                    WebPThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
+                    return new WebPImageInfo(); // this return will never be reached, because throw helper will throw an exception.
             }
-
-            WebPThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
-
-            return new WebPImageInfo();
         }
 
         /// <summary>
@@ -275,8 +274,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.currentStream.Read(this.buffer, 0, 3);
             uint frameTag = (uint)(this.buffer[0] | (this.buffer[1] << 8) | (this.buffer[2] << 16));
             remaining -= 3;
-            bool isKeyFrame = (frameTag & 0x1) is 0;
-            if (!isKeyFrame)
+            bool isNoKeyFrame = (frameTag & 0x1) == 1;
+            if (isNoKeyFrame)
             {
                 WebPThrowHelper.ThrowImageFormatException("VP8 header indicates the image is not a key frame");
             }
@@ -287,8 +286,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPThrowHelper.ThrowImageFormatException($"VP8 header indicates unknown profile {version}");
             }
 
-            bool showFrame = ((frameTag >> 4) & 0x1) is 1;
-            if (!showFrame)
+            bool invisibleFrame = ((frameTag >> 4) & 0x1) == 0;
+            if (invisibleFrame)
             {
                 WebPThrowHelper.ThrowImageFormatException("VP8 header indicates that the first frame is invisible");
             }
@@ -314,7 +313,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             uint height = tmp & 0x3fff;
             sbyte yScale = (sbyte)(tmp >> 6);
             remaining -= 7;
-            if (width is 0 || height is 0)
+            if (width == 0 || height == 0)
             {
                 WebPThrowHelper.ThrowImageFormatException("width or height can not be zero");
             }
@@ -344,8 +343,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        Height = height,
                        XScale = xScale,
                        YScale = yScale,
-                       BitsPerPixel = features?.Alpha is true ? WebPBitsPerPixel.Pixel32 : WebPBitsPerPixel.Pixel24,
-                       IsLossLess = false,
+                       BitsPerPixel = features?.Alpha == true ? WebPBitsPerPixel.Pixel32 : WebPBitsPerPixel.Pixel24,
+                       IsLossless = false,
                        Features = features,
                        Vp8Profile = (sbyte)version,
                        Vp8FrameHeader = vp8FrameHeader,
@@ -377,9 +376,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // The first 28 bits of the bitstream specify the width and height of the image.
             uint width = bitReader.ReadValue(WebPConstants.Vp8LImageSizeBits) + 1;
             uint height = bitReader.ReadValue(WebPConstants.Vp8LImageSizeBits) + 1;
-            if (width is 0 || height is 0)
+            if (width == 1 || height == 1)
             {
-                WebPThrowHelper.ThrowImageFormatException("width or height can not be zero");
+                WebPThrowHelper.ThrowImageFormatException("invalid width or height read");
             }
 
             // The alphaIsUsed flag should be set to 0 when all alpha values are 255 in the picture, and 1 otherwise.
@@ -399,7 +398,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                        Width = width,
                        Height = height,
                        BitsPerPixel = WebPBitsPerPixel.Pixel32,
-                       IsLossLess = true,
+                       IsLossless = true,
                        Features = features,
                        Vp8LBitReader = bitReader
                    };
@@ -455,18 +454,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="features">The webp features.</param>
         private void ParseOptionalChunks(WebPFeatures features)
         {
-            if (this.IgnoreMetadata || (features.ExifProfile is false && features.XmpMetaData is false))
+            if (this.IgnoreMetadata || (features.ExifProfile == false && features.XmpMetaData == false))
             {
                 return;
             }
 
-            while (this.currentStream.Position < this.currentStream.Length)
+            var streamLength = this.currentStream.Length;
+            while (this.currentStream.Position < streamLength)
             {
                 // Read chunk header.
                 WebPChunkType chunkType = this.ReadChunkType();
                 uint chunkLength = this.ReadChunkSize();
 
-                if (chunkType is WebPChunkType.Exif)
+                if (chunkType == WebPChunkType.Exif)
                 {
                     var exifData = new byte[chunkLength];
                     this.currentStream.Read(exifData, 0, (int)chunkLength);
@@ -488,7 +488,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </exception>
         private WebPChunkType ReadChunkType()
         {
-            if (this.currentStream.Read(this.buffer, 0, 4) is 4)
+            if (this.currentStream.Read(this.buffer, 0, 4) == 4)
             {
                 var chunkType = (WebPChunkType)BinaryPrimitives.ReadUInt32BigEndian(this.buffer);
                 this.webpMetadata.ChunkTypes.Enqueue(chunkType);
@@ -505,10 +505,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <returns>The chunk size in bytes.</returns>
         private uint ReadChunkSize()
         {
-            if (this.currentStream.Read(this.buffer, 0, 4) is 4)
+            if (this.currentStream.Read(this.buffer, 0, 4) == 4)
             {
                 uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
-                return (chunkSize % 2 is 0) ? chunkSize : chunkSize + 1;
+                return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
             }
 
             throw new ImageFormatException("Invalid WebP data.");

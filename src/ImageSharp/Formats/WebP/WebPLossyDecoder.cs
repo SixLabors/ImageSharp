@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 // Decode image data.
                 this.ParseFrame(decoder, io);
 
-                if (info.Features?.Alpha is true)
+                if (info.Features?.Alpha == true)
                 {
                     using (var alphaDecoder = new AlphaDecoder(
                         width,
@@ -112,41 +112,42 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
-        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> pixels, IMemoryOwner<byte> alpha = null)
+        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> pixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (alpha != null)
-            {
-                TPixel color = default;
-                Span<byte> alphaSpan = alpha.Memory.Span;
-                for (int y = 0; y < height; y++)
-                {
-                    Span<TPixel> pixelRow = pixels.GetRowSpan(y);
-                    for (int x = 0; x < width; x++)
-                    {
-                        int offset = (y * width) + x;
-                        int idxBgr = offset * 3;
-                        byte b = pixelData[idxBgr];
-                        byte g = pixelData[idxBgr + 1];
-                        byte r = pixelData[idxBgr + 2];
-                        byte a = alphaSpan[offset];
-                        color.FromBgra32(new Bgra32(r, g, b, a));
-                        pixelRow[x] = color;
-                    }
-                }
-
-                return;
-            }
-
+            int widthMul3 = width * 3;
             for (int y = 0; y < height; y++)
             {
-                Span<byte> row = pixelData.Slice(y * width * 3, width * 3);
+                Span<byte> row = pixelData.Slice(y * widthMul3, widthMul3);
                 Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromBgr24Bytes(
                     this.configuration,
                     row,
                     pixelSpan,
                     width);
+            }
+        }
+
+        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> pixels, IMemoryOwner<byte> alpha)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            TPixel color = default;
+            Span<byte> alphaSpan = alpha.Memory.Span;
+            for (int y = 0; y < height; y++)
+            {
+                int yMulWidth = y * width;
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                for (int x = 0; x < width; x++)
+                {
+                    int offset = yMulWidth + x;
+                    int idxBgr = offset * 3;
+                    byte b = pixelData[idxBgr];
+                    byte g = pixelData[idxBgr + 1];
+                    byte r = pixelData[idxBgr + 2];
+                    byte a = alphaSpan[offset];
+                    color.FromBgra32(new Bgra32(r, g, b, a));
+                    pixelRow[x] = color;
+                }
             }
         }
 
@@ -186,7 +187,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (dec.SegmentHeader.UpdateMap)
             {
                 // Hardcoded tree parsing.
-                block.Segment = this.bitReader.GetBit((int)dec.Probabilities.Segments[0]) is 0
+                block.Segment = this.bitReader.GetBit((int)dec.Probabilities.Segments[0]) == 0
                                     ? (byte)this.bitReader.GetBit((int)dec.Probabilities.Segments[1])
                                     : (byte)(this.bitReader.GetBit((int)dec.Probabilities.Segments[2]) + 2);
             }
@@ -198,10 +199,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             if (dec.UseSkipProbability)
             {
-                block.Skip = this.bitReader.GetBit(dec.SkipProbability) is 1;
+                block.Skip = this.bitReader.GetBit(dec.SkipProbability) == 1;
             }
 
-            block.IsI4x4 = this.bitReader.GetBit(145) is 0;
+            block.IsI4x4 = this.bitReader.GetBit(145) == 0;
             if (!block.IsI4x4)
             {
                 // Hardcoded 16x16 intra-mode decision tree.
@@ -241,8 +242,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             // Hardcoded UVMode decision tree.
-            block.UvMode = (byte)(this.bitReader.GetBit(142) is 0 ? 0 :
-                           this.bitReader.GetBit(114) is 0 ? 2 :
+            block.UvMode = (byte)(this.bitReader.GetBit(142) == 0 ? 0 :
+                           this.bitReader.GetBit(114) == 0 ? 2 :
                            this.bitReader.GetBit(183) != 0 ? 1 : 3);
         }
 
@@ -268,9 +269,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void ReconstructRow(Vp8Decoder dec)
         {
             int mby = dec.MbY;
-            int yOff = (WebPConstants.Bps * 1) + 8;
-            int uOff = yOff + (WebPConstants.Bps * 16) + WebPConstants.Bps;
-            int vOff = uOff + 16;
+            const int yOff = (WebPConstants.Bps * 1) + 8;
+            const int uOff = yOff + (WebPConstants.Bps * 16) + WebPConstants.Bps;
+            const int vOff = uOff + 16;
 
             Span<byte> yuv = dec.YuvBuffer.Memory.Span;
             Span<byte> yDst = yuv.Slice(yOff);
@@ -278,15 +279,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Span<byte> vDst = yuv.Slice(vOff);
 
             // Initialize left-most block.
-            for (int i = 0; i < 16; ++i)
+            var end = 16 * WebPConstants.Bps;
+            for (int i = 0; i < end; i += WebPConstants.Bps)
             {
-                yuv[(i * WebPConstants.Bps) - 1 + yOff] = 129;
+                yuv[i - 1 + yOff] = 129;
             }
 
-            for (int i = 0; i < 8; ++i)
+            end = 8 * WebPConstants.Bps;
+            for (int i = 0; i < end; i += WebPConstants.Bps)
             {
-                yuv[(i * WebPConstants.Bps) - 1 + uOff] = 129;
-                yuv[(i * WebPConstants.Bps) - 1 + vOff] = 129;
+                yuv[i - 1 + uOff] = 129;
+                yuv[i - 1 + vOff] = 129;
             }
 
             // Init top-left sample on left column too.
@@ -364,10 +367,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         if (mbx >= dec.MbWidth - 1)
                         {
                             // On rightmost border.
-                            topRight[0] = topYuv.Y[15];
-                            topRight[1] = topYuv.Y[15];
-                            topRight[2] = topYuv.Y[15];
-                            topRight[3] = topYuv.Y[15];
+                            var topYuv15 = topYuv.Y[15];
+                            topRight[0] = topYuv15;
+                            topRight[1] = topYuv15;
+                            topRight[2] = topYuv15;
+                            topRight[3] = topYuv15;
                         }
                         else
                         {
@@ -517,8 +521,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 for (int j = 0; j < 8; ++j)
                 {
-                    uDst.Slice(j * WebPConstants.Bps, Math.Min(8, uOut.Length)).CopyTo(uOut.Slice(j * dec.CacheUvStride));
-                    vDst.Slice(j * WebPConstants.Bps, Math.Min(8, vOut.Length)).CopyTo(vOut.Slice(j * dec.CacheUvStride));
+                    int jUvStride = j * dec.CacheUvStride;
+                    uDst.Slice(j * WebPConstants.Bps, Math.Min(8, uOut.Length)).CopyTo(uOut.Slice(jUvStride));
+                    vDst.Slice(j * WebPConstants.Bps, Math.Min(8, vOut.Length)).CopyTo(vOut.Slice(jUvStride));
                 }
             }
         }
@@ -539,12 +544,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int iLevel = filterInfo.InnerLevel;
             int limit = filterInfo.Limit;
 
-            if (limit is 0)
+            if (limit == 0)
             {
                 return;
             }
 
-            if (dec.Filter is LoopFilter.Simple)
+            if (dec.Filter == LoopFilter.Simple)
             {
                 int offset = dec.CacheYOffset + (mbx * 16);
                 if (mbx > 0)
@@ -567,7 +572,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     LossyUtils.SimpleVFilter16i(dec.CacheY.Memory.Span, offset, yBps, limit);
                 }
             }
-            else if (dec.Filter is LoopFilter.Complex)
+            else if (dec.Filter == LoopFilter.Complex)
             {
                 int uvBps = dec.CacheUvStride;
                 int yOffset = dec.CacheYOffset + (mbx * 16);
@@ -608,7 +613,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Span<byte> uDst = dec.CacheU.Memory.Span;
             Span<byte> vDst = dec.CacheV.Memory.Span;
             int mby = dec.MbY;
-            bool isFirstRow = mby is 0;
+            bool isFirstRow = mby == 0;
             bool isLastRow = mby >= dec.BottomRightMbY - 1;
             bool filterRow = (dec.Filter != LoopFilter.None) &&
                              (dec.MbY >= dec.TopLeftMbY) && (dec.MbY <= dec.BottomRightMbY);
@@ -682,7 +687,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int uvw = (mbw + 1) / 2;
             int y = io.MbY;
 
-            if (y is 0)
+            if (y == 0)
             {
                 // First line is special cased. We mirror the u/v samples at boundary.
                 this.UpSample(curY, null, curU, curV, curU, curV, dst, null, mbw);
@@ -721,7 +726,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             else
             {
                 // Process the very last row of even-sized picture.
-                if ((yEnd & 1) is 0)
+                if ((yEnd & 1) == 0)
                 {
                     this.UpSample(curY, null, curU, curV, curU, curV, dst.Slice(bufferStride), null, mbw);
                 }
@@ -756,22 +761,23 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 uint diag03 = (avg + (2 * (tluv + uv))) >> 3;
                 uv0 = (diag12 + tluv) >> 1;
                 uint uv1 = (diag03 + tuv) >> 1;
-                LossyUtils.YuvToBgr(topY[(2 * x) - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice(((2 * x) - 1) * xStep));
-                LossyUtils.YuvToBgr(topY[(2 * x) - 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), topDst.Slice(((2 * x) - 0) * xStep));
+                int xMul2 = x * 2;
+                LossyUtils.YuvToBgr(topY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((xMul2 - 1) * xStep));
+                LossyUtils.YuvToBgr(topY[xMul2 - 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), topDst.Slice((xMul2 - 0) * xStep));
 
                 if (bottomY != null)
                 {
                     uv0 = (diag03 + luv) >> 1;
                     uv1 = (diag12 + uv) >> 1;
-                    LossyUtils.YuvToBgr(bottomY[(2 * x) - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice(((2 * x) - 1) * xStep));
-                    LossyUtils.YuvToBgr(bottomY[(2 * x) + 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), bottomDst.Slice(((2 * x) + 0) * xStep));
+                    LossyUtils.YuvToBgr(bottomY[xMul2 - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), bottomDst.Slice((xMul2 - 1) * xStep));
+                    LossyUtils.YuvToBgr(bottomY[xMul2 + 0], (int)(uv1 & 0xff), (int)(uv1 >> 16), bottomDst.Slice((xMul2 + 0) * xStep));
                 }
 
                 tluv = tuv;
                 luv = uv;
             }
 
-            if ((len & 1) is 0)
+            if ((len & 1) == 0)
             {
                 uv0 = ((3 * tluv) + luv + 0x00020002u) >> 2;
                 LossyUtils.YuvToBgr(topY[len - 1], (int)(uv0 & 0xff), (int)(uv0 >> 16), topDst.Slice((len - 1) * xStep));
@@ -788,7 +794,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             switch (bits >> 30)
             {
                 case 3:
-                    LossyUtils.Transform(src, dst, false);
+                    LossyUtils.TransformOne(src, dst);
                     break;
                 case 2:
                     LossyUtils.TransformAc3(src, dst);
@@ -823,7 +829,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             Vp8MacroBlock left = dec.LeftMacroBlock;
             Vp8MacroBlock macroBlock = dec.CurrentMacroBlock;
             Vp8MacroBlockData blockData = dec.CurrentBlockData;
-            bool skip = dec.UseSkipProbability ? blockData.Skip : false;
+            bool skip = dec.UseSkipProbability && blockData.Skip;
 
             if (!skip)
             {
@@ -867,7 +873,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 dst[i] = 0;
             }
 
-            if (!block.IsI4x4)
+            if (block.IsI4x4)
+            {
+                first = 0;
+                acProba = GetBandsRow(bands, 3);
+            }
+            else
             {
                 // Parse DC
                 var dc = new short[16];
@@ -891,11 +902,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 first = 1;
                 acProba = GetBandsRow(bands, 0);
-            }
-            else
-            {
-                first = 0;
-                acProba = GetBandsRow(bands, 3);
             }
 
             byte tnz = (byte)(mb.NoneZeroAcDcCoeffs & 0x0f);
@@ -926,8 +932,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             for (int ch = 0; ch < 4; ch += 2)
             {
                 uint nzCoeffs = 0;
-                tnz = (byte)(mb.NoneZeroAcDcCoeffs >> (4 + ch));
-                lnz = (byte)(leftMb.NoneZeroAcDcCoeffs >> (4 + ch));
+                var chPlus4 = 4 + ch;
+                tnz = (byte)(mb.NoneZeroAcDcCoeffs >> chPlus4);
+                lnz = (byte)(leftMb.NoneZeroAcDcCoeffs >> chPlus4);
                 for (int y = 0; y < 2; ++y)
                 {
                     int l = lnz & 1;
@@ -957,26 +964,26 @@ namespace SixLabors.ImageSharp.Formats.WebP
             block.NonZeroY = nonZeroY;
             block.NonZeroUv = nonZeroUv;
 
-            return (nonZeroY | nonZeroUv) is 0;
+            return (nonZeroY | nonZeroUv) == 0;
         }
 
         private int GetCoeffs(Vp8BitReader br, Vp8BandProbas[] prob, int ctx, int[] dq, int n, Span<short> coeffs)
         {
-            // Returns the position of the last non - zero coeff plus one.
+            // Returns the position of the last non-zero coeff plus one.
             Vp8ProbaArray p = prob[n].Probabilities[ctx];
             for (; n < 16; ++n)
             {
-                if (br.GetBit(p.Probabilities[0]) is 0)
+                if (br.GetBit(p.Probabilities[0]) == 0)
                 {
-                    // Previous coeff was last non - zero coeff.
+                    // Previous coeff was last non-zero coeff.
                     return n;
                 }
 
                 // Sequence of zero coeffs.
-                while (br.GetBit(p.Probabilities[1]) is 0)
+                while (br.GetBit(p.Probabilities[1]) == 0)
                 {
                     p = prob[++n].Probabilities[0];
-                    if (n is 16)
+                    if (n == 16)
                     {
                         return 16;
                     }
@@ -984,7 +991,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 // Non zero coeffs.
                 int v;
-                if (br.GetBit(p.Probabilities[2]) is 0)
+                if (br.GetBit(p.Probabilities[2]) == 0)
                 {
                     v = 1;
                     p = prob[n + 1].Probabilities[1];
@@ -1006,9 +1013,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             // See section 13 - 2: http://tools.ietf.org/html/rfc6386#section-13.2
             int v;
-            if (br.GetBit(p[3]) is 0)
+            if (br.GetBit(p[3]) == 0)
             {
-                if (br.GetBit(p[4]) is 0)
+                if (br.GetBit(p[4]) == 0)
                 {
                     v = 2;
                 }
@@ -1019,9 +1026,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
             else
             {
-                if (br.GetBit(p[6]) is 0)
+                if (br.GetBit(p[6]) == 0)
                 {
-                    if (br.GetBit(p[7]) is 0)
+                    if (br.GetBit(p[7]) == 0)
                     {
                         v = 5 + br.GetBit(159);
                     }
@@ -1077,24 +1084,28 @@ namespace SixLabors.ImageSharp.Formats.WebP
             var tmp = new int[16];
             for (int i = 0; i < 4; ++i)
             {
-                int a0 = input[0 + i] + input[12 + i];
-                int a1 = input[4 + i] + input[8 + i];
-                int a2 = input[4 + i] - input[8 + i];
-                int a3 = input[0 + i] - input[12 + i];
-                tmp[0 + i] = a0 + a1;
-                tmp[8 + i] = a0 - a1;
-                tmp[4 + i] = a3 + a2;
-                tmp[12 + i] = a3 - a2;
+                int iPlus4 = 4 + i;
+                int iPlus8 = 8 + i;
+                int iPlus12 = 12 + i;
+                int a0 = input[i] + input[iPlus12];
+                int a1 = input[iPlus4] + input[iPlus8];
+                int a2 = input[iPlus4] - input[iPlus8];
+                int a3 = input[i] - input[iPlus12];
+                tmp[i] = a0 + a1;
+                tmp[iPlus8] = a0 - a1;
+                tmp[iPlus4] = a3 + a2;
+                tmp[iPlus12] = a3 - a2;
             }
 
             int outputOffset = 0;
             for (int i = 0; i < 4; ++i)
             {
-                int dc = tmp[0 + (i * 4)] + 3;
-                int a0 = dc + tmp[3 + (i * 4)];
-                int a1 = tmp[1 + (i * 4)] + tmp[2 + (i * 4)];
-                int a2 = tmp[1 + (i * 4)] - tmp[2 + (i * 4)];
-                int a3 = dc - tmp[3 + (i * 4)];
+                int imul4 = i * 4;
+                int dc = tmp[0 + imul4] + 3;
+                int a0 = dc + tmp[3 + imul4];
+                int a1 = tmp[1 + imul4] + tmp[2 + imul4];
+                int a2 = tmp[1 + imul4] - tmp[2 + imul4];
+                int a3 = dc - tmp[3 + imul4];
                 output[outputOffset + 0] = (short)((a0 + a1) >> 3);
                 output[outputOffset + 16] = (short)((a3 + a2) >> 3);
                 output[outputOffset + 32] = (short)((a0 - a1) >> 3);
@@ -1120,15 +1131,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     for (int i = 0; i < vp8SegmentHeader.Quantizer.Length; i++)
                     {
                         hasValue = this.bitReader.ReadBool();
-                        int quantizeValue = hasValue ? this.bitReader.ReadSignedValue(7) : 0;
-                        vp8SegmentHeader.Quantizer[i] = (byte)quantizeValue;
+                        byte quantizeValue = (byte)(hasValue ? this.bitReader.ReadSignedValue(7) : 0);
+                        vp8SegmentHeader.Quantizer[i] = quantizeValue;
                     }
 
                     for (int i = 0; i < vp8SegmentHeader.FilterStrength.Length; i++)
                     {
                         hasValue = this.bitReader.ReadBool();
-                        int filterStrengthValue = hasValue ? this.bitReader.ReadSignedValue(6) : 0;
-                        vp8SegmentHeader.FilterStrength[i] = (byte)filterStrengthValue;
+                        byte filterStrengthValue = (byte)(hasValue ? this.bitReader.ReadSignedValue(6) : 0);
+                        vp8SegmentHeader.FilterStrength[i] = filterStrengthValue;
                     }
 
                     if (vp8SegmentHeader.UpdateMap)
@@ -1157,7 +1168,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             vp8FilterHeader.Sharpness = (int)this.bitReader.ReadValue(3);
             vp8FilterHeader.UseLfDelta = this.bitReader.ReadBool();
 
-            dec.Filter = (vp8FilterHeader.Level is 0) ? LoopFilter.None : vp8FilterHeader.LoopFilter;
+            dec.Filter = (vp8FilterHeader.Level == 0) ? LoopFilter.None : vp8FilterHeader.LoopFilter;
             if (vp8FilterHeader.UseLfDelta)
             {
                 // Update lf-delta?
@@ -1200,8 +1211,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             dec.NumPartsMinusOne = (1 << (int)this.bitReader.ReadValue(2)) - 1;
             int lastPart = dec.NumPartsMinusOne;
 
-            int partStart = startIdx + (lastPart * 3);
-            sizeLeft -= lastPart * 3;
+            int lastPartMul3 = lastPart * 3;
+            int partStart = startIdx + lastPartMul3;
+            sizeLeft -= lastPartMul3;
             for (int p = 0; p < lastPart; ++p)
             {
                 int pSize = sz[0] | (sz[1] << 8) | (sz[2] << 16);
@@ -1292,10 +1304,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         for (int p = 0; p < WebPConstants.NumProbas; ++p)
                         {
                             byte prob = WebPLookupTables.CoeffsUpdateProba[t, b, c, p];
-                            int v = this.bitReader.GetBit(prob) != 0
-                                        ? (int)this.bitReader.ReadValue(8)
-                                        : WebPLookupTables.DefaultCoeffsProba[t, b, c, p];
-                            proba.Bands[t, b].Probabilities[c].Probabilities[p] = (byte)v;
+                            byte v = (byte)(this.bitReader.GetBit(prob) != 0
+                                        ? this.bitReader.ReadValue(8)
+                                        : WebPLookupTables.DefaultCoeffsProba[t, b, c, p]);
+                            proba.Bands[t, b].Probabilities[c].Probabilities[p] = v;
                         }
                     }
                 }
@@ -1323,14 +1335,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
             io.ScaledHeight = io.ScaledHeight;
             io.MbW = io.Width;
             io.MbH = io.Height;
-            io.YStride = (int)(16 * ((pictureHeader.Width + 15) >> 4));
-            io.UvStride = (int)(8 * ((pictureHeader.Width + 15) >> 4));
+            uint strideLength = (pictureHeader.Width + 15) >> 4;
+            io.YStride = (int)(16 * strideLength);
+            io.UvStride = (int)(8 * strideLength);
 
             int intraPredModeSize = 4 * dec.MbWidth;
             dec.IntraT = new byte[intraPredModeSize];
 
             int extraPixels = WebPConstants.FilterExtraRows[(int)dec.Filter];
-            if (dec.Filter is LoopFilter.Complex)
+            if (dec.Filter == LoopFilter.Complex)
             {
                 // For complex filter, we need to preserve the dependency chain.
                 dec.TopLeftMbX = 0;
@@ -1340,8 +1353,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 // For simple filter, we include 'extraPixels' on the other side of the boundary,
                 // since vertical or horizontal filtering of the previous macroblock can modify some abutting pixels.
-                dec.TopLeftMbX = (-extraPixels) >> 4;
-                dec.TopLeftMbY = (-extraPixels) >> 4;
+                var extraShift4 = (-extraPixels) >> 4;
+                dec.TopLeftMbX = extraShift4;
+                dec.TopLeftMbY = extraShift4;
                 if (dec.TopLeftMbX < 0)
                 {
                     dec.TopLeftMbX = 0;
@@ -1388,16 +1402,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static int CheckMode(int mbx, int mby, int mode)
         {
             // B_DC_PRED
-            if (mode is 0)
+            if (mode == 0)
             {
-                if (mbx is 0)
+                if (mbx == 0)
                 {
-                    return (mby is 0)
+                    return (mby == 0)
                                ? 6 // B_DC_PRED_NOTOPLEFT
                                : 5; // B_DC_PRED_NOLEFT
                 }
 
-                return (mby is 0)
+                return (mby == 0)
                            ? 4 // B_DC_PRED_NOTOP
                            : 0; // B_DC_PRED
             }

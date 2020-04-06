@@ -67,8 +67,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int extraUv = (extraRows / 2) * this.CacheUvStride;
             this.YuvBuffer = memoryAllocator.Allocate<byte>((WebPConstants.Bps * 17) + (WebPConstants.Bps * 9) + extraY);
             this.CacheY = memoryAllocator.Allocate<byte>((16 * this.CacheYStride) + extraY);
-            this.CacheU = memoryAllocator.Allocate<byte>((16 * this.CacheUvStride) + extraUv);
-            this.CacheV = memoryAllocator.Allocate<byte>((16 * this.CacheUvStride) + extraUv);
+            int cacheUvSize = (16 * this.CacheUvStride) + extraUv;
+            this.CacheU = memoryAllocator.Allocate<byte>(cacheUvSize);
+            this.CacheV = memoryAllocator.Allocate<byte>(cacheUvSize);
             this.TmpYBuffer = memoryAllocator.Allocate<byte>((int)width);
             this.TmpUBuffer = memoryAllocator.Allocate<byte>((int)width);
             this.TmpVBuffer = memoryAllocator.Allocate<byte>((int)width);
@@ -199,7 +200,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public LoopFilter Filter { get; set; }
 
         /// <summary>
-        /// Gets the filter strengths.
+        /// Gets the pre-calculated per-segment filter strengths.
         /// </summary>
         public Vp8FilterInfo[,] FilterStrength { get; }
 
@@ -233,7 +234,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public IMemoryOwner<byte> Pixels { get; }
 
         /// <summary>
-        /// Gets or sets filter strength info.
+        /// Gets or sets filter info.
         /// </summary>
         public Vp8FilterInfo[] FilterInfo { get; set; }
 
@@ -249,7 +250,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             get
             {
-                if (this.leftMacroBlock is null)
+                if (this.leftMacroBlock == null)
                 {
                     this.leftMacroBlock = new Vp8MacroBlock();
                 }
@@ -268,7 +269,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public void PrecomputeFilterStrengths()
         {
-            if (this.Filter is LoopFilter.None)
+            if (this.Filter == LoopFilter.None)
             {
                 return;
             }
@@ -320,9 +321,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                                 iLevel >>= 1;
                             }
 
-                            if (iLevel > 9 - hdr.Sharpness)
+                            int iLevelCap = 9 - hdr.Sharpness;
+                            if (iLevel > iLevelCap)
                             {
-                                iLevel = 9 - hdr.Sharpness;
+                                iLevel = iLevelCap;
                             }
                         }
 
@@ -340,7 +342,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         info.Limit = 0;  // no filtering.
                     }
 
-                    info.UseInnerFiltering = i4x4 is 1;
+                    info.UseInnerFiltering = i4x4 == 1;
                 }
             }
         }

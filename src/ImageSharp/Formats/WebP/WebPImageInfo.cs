@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets or sets a value indicating whether this image uses lossless compression.
         /// </summary>
-        public bool IsLossLess { get; set; }
+        public bool IsLossless { get; set; }
 
         /// <summary>
         /// Gets or sets additional features present in a VP8X image.
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Vp8FrameHeader Vp8FrameHeader { get; set; }
 
         /// <summary>
-        /// Gets or sets the VP8L bitreader. Will be null, if its not lossless image.
+        /// Gets or sets the VP8L bitreader. Will be null, if its not a lossless image.
         /// </summary>
         public Vp8LBitReader Vp8LBitReader { get; set; } = null;
 

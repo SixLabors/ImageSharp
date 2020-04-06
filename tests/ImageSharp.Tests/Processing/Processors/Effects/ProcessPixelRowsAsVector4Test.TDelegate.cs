@@ -44,5 +44,48 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                 }
             }
         }
+
+        [Theory]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
+        public void PositionAwareFullImageWithValueDelegate<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.RunValidatingProcessorTest(
+                c => c.ProcessPositionAwarePixelRowsAsVector4<TrigonometryProcessor>(),
+                appendPixelTypeToFileName: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
+        public void PositionAwareInBoxWithValueDelegate<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (c, rect) => c.ProcessPositionAwarePixelRowsAsVector4<TrigonometryProcessor>(rect));
+        }
+
+        private readonly struct TrigonometryProcessor : IPixelRowDelegate<Point>
+        {
+            public void Invoke(Span<Vector4> span, Point value)
+            {
+                int y = value.Y;
+                int x = value.X;
+                for (int i = 0; i < span.Length; i++)
+                {
+                    float
+                        sine = MathF.Sin(y),
+                        cosine = MathF.Cos(x + i),
+                        sum = sine + cosine,
+                        abs = MathF.Abs(sum),
+                        a = 0.5f + (abs / 2);
+
+                    Vector4 v4 = span[i];
+                    float avg = (v4.X + v4.Y + v4.Z) / 3f;
+                    var gray = new Vector4(avg, avg, avg, a);
+
+                    span[i] = Vector4.Clamp(gray, Vector4.Zero, Vector4.One);
+                }
+            }
+        }
     }
 }

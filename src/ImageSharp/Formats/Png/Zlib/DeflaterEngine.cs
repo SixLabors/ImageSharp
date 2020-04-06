@@ -525,15 +525,12 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
 
                     case 2:
-                        if ((short*)pinnedWindow[++scan] == (short*)pinnedWindow[++match])
+                        if (pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match])
                         {
-                            ++scan;
-                            ++match;
                             break;
                         }
 
-                        ++scan;
-                        ++match;
                         break;
 
                     case 3:
@@ -547,15 +544,14 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                         break;
 
                     case 4:
-                        if ((int*)pinnedWindow[++scan] == (int*)pinnedWindow[++match])
+                        if (pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match]
+                            && pinnedWindow[++scan] == pinnedWindow[++match])
                         {
-                            scan += 3;
-                            match += 3;
                             break;
                         }
 
-                        scan += 3;
-                        match += 3;
                         break;
 
                     case 5:

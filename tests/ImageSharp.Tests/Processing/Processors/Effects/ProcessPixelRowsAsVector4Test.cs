@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(
-                c => c.ProcessPixelRowsAsVector4(
+                c => c.ProcessPositionAwarePixelRowsAsVector4(
                     (span, offset) =>
                     {
                         int y = offset.Y;
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunRectangleConstrainedValidatingProcessorTest(
-                (c, rect) => c.ProcessPixelRowsAsVector4(
+                (c, rect) => c.ProcessPositionAwarePixelRowsAsVector4(
                     (span, offset) =>
                     {
                         int y = offset.Y;

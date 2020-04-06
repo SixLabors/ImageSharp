@@ -27,6 +27,18 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             provider.RunValidatingProcessorTest(
                 x => x.ProcessPixelRowsAsVector4<PixelAverageProcessor>(),
                 appendPixelTypeToFileName: false);
+
+            provider.RunValidatingProcessorTest(
+                x => x.ProcessPixelRowsAsVector4<PixelAverageProcessor>(PixelConversionModifiers.None),
+                appendPixelTypeToFileName: false);
+
+            provider.RunValidatingProcessorTest(
+                x => x.ProcessPixelRowsAsVector4(default(PixelAverageProcessor)),
+                appendPixelTypeToFileName: false);
+
+            provider.RunValidatingProcessorTest(
+                x => x.ProcessPixelRowsAsVector4(default(PixelAverageProcessor), PixelConversionModifiers.None),
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -40,6 +52,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 
             provider.RunRectangleConstrainedValidatingProcessorTest(
                 (x, rect) => x.ProcessPixelRowsAsVector4<PixelAverageProcessor>(rect));
+
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (x, rect) => x.ProcessPixelRowsAsVector4<PixelAverageProcessor>(rect, PixelConversionModifiers.None));
+
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (x, rect) => x.ProcessPixelRowsAsVector4(default(PixelAverageProcessor), rect));
+
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (x, rect) => x.ProcessPixelRowsAsVector4(default(PixelAverageProcessor), rect, PixelConversionModifiers.None));
         }
 
         private readonly struct PixelAverageProcessor : IPixelRowDelegate
@@ -68,6 +89,18 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             provider.RunValidatingProcessorTest(
                 c => c.ProcessPositionAwarePixelRowsAsVector4<TrigonometryProcessor>(),
                 appendPixelTypeToFileName: false);
+
+            provider.RunValidatingProcessorTest(
+                c => c.ProcessPositionAwarePixelRowsAsVector4<TrigonometryProcessor>(PixelConversionModifiers.None),
+                appendPixelTypeToFileName: false);
+
+            provider.RunValidatingProcessorTest(
+                c => c.ProcessPositionAwarePixelRowsAsVector4(default(TrigonometryProcessor)),
+                appendPixelTypeToFileName: false);
+
+            provider.RunValidatingProcessorTest(
+                c => c.ProcessPositionAwarePixelRowsAsVector4(default(TrigonometryProcessor), PixelConversionModifiers.None),
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -81,6 +114,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
 
             provider.RunRectangleConstrainedValidatingProcessorTest(
                 (c, rect) => c.ProcessPositionAwarePixelRowsAsVector4<TrigonometryProcessor>(rect));
+
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (c, rect) => c.ProcessPositionAwarePixelRowsAsVector4<TrigonometryProcessor>(rect, PixelConversionModifiers.None));
+
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (c, rect) => c.ProcessPositionAwarePixelRowsAsVector4(default(TrigonometryProcessor), rect));
+
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (c, rect) => c.ProcessPositionAwarePixelRowsAsVector4(default(TrigonometryProcessor), rect, PixelConversionModifiers.None));
         }
 
         private readonly struct TrigonometryProcessor : IPixelRowDelegate<Point>

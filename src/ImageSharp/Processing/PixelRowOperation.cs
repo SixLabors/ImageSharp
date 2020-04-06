@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     /// <typeparam name="T">
     /// The type of the parameter of the method that this delegate encapsulates.
-    /// This type parameter is contravariant.That is, you can use either the type you specified or any type that is less derived.
+    /// This type parameter is contravariant. That is, you can use either the type you specified or any type that is less derived.
     /// </typeparam>
     /// <param name="span">The target row of <see cref="Vector4"/> pixels to process.</param>
     /// <param name="value">The parameter of the method that this delegate encapsulates.</param>

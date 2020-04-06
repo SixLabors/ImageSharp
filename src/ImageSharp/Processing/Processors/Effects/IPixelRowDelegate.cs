@@ -15,8 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// Applies the current pixel row delegate to a target row of preprocessed pixels.
         /// </summary>
         /// <param name="span">The target row of <see cref="Vector4"/> pixels to process.</param>
-        /// <param name="offset">The initial horizontal and vertical offset for the input pixels to process.</param>
         /// <remarks>The <see cref="Vector4.X"/>, <see cref="Vector4.Y"/>, <see cref="Vector4.Z"/>, and <see cref="Vector4.W"/> fields map the RGBA channels respectively.</remarks>
-        void Invoke(Span<Vector4> span, Point offset);
+        void Invoke(Span<Vector4> span);
     }
 }

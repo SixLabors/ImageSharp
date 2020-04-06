@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            return new PixelRowDelegateProcessor<TPixel, PixelRowDelegate>(
+            return new PositionAwarePixelRowDelegateProcessor<TPixel, PixelRowDelegate>(
                 new PixelRowDelegate(this.PixelRowOperation),
                 configuration,
                 this.Modifiers,
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         /// <summary>
         /// A <see langword="struct"/> implementing the row processing logic for <see cref="PositionAwarePixelRowDelegateProcessor"/>.
         /// </summary>
-        public readonly struct PixelRowDelegate : IPixelRowDelegate
+        public readonly struct PixelRowDelegate : IPixelRowDelegate<Point>
         {
             private readonly PixelRowOperation<Point> pixelRowOperation;
 

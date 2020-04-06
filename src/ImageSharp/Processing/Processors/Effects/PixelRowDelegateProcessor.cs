@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(Span<Vector4> span, Point offset) => this.pixelRowOperation(span);
+            public void Invoke(Span<Vector4> span) => this.pixelRowOperation(span);
         }
     }
 }

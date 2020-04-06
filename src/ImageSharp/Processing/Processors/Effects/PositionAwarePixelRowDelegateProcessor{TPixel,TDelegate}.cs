@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <typeparam name="TDelegate">The row processor type.</typeparam>
-    internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProcessor<TPixel>
+    internal sealed class PositionAwarePixelRowDelegateProcessor<TPixel, TDelegate> : ImageProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
-        where TDelegate : struct, IPixelRowDelegate
+        where TDelegate : struct, IPixelRowDelegate<Point>
     {
         private readonly TDelegate rowDelegate;
 
@@ -26,14 +26,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
         private readonly PixelConversionModifiers modifiers;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PixelRowDelegateProcessor{TPixel,TDelegate}"/> class.
+        /// Initializes a new instance of the <see cref="PositionAwarePixelRowDelegateProcessor{TPixel,TDelegate}"/> class.
         /// </summary>
         /// <param name="rowDelegate">The row processor to use to process each pixel row</param>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the pixel conversions.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public PixelRowDelegateProcessor(
+        public PositionAwarePixelRowDelegateProcessor(
             in TDelegate rowDelegate,
             Configuration configuration,
             PixelConversionModifiers modifiers,
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, this.modifiers);
 
                 // Run the user defined pixel shader to the current row of pixels
-                Unsafe.AsRef(this.rowProcessor).Invoke(span);
+                Unsafe.AsRef(this.rowProcessor).Invoke(span, new Point(this.startX, y));
 
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, this.modifiers);
             }

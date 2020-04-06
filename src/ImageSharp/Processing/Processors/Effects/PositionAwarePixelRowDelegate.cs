@@ -8,20 +8,20 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.Processing.Processors.Effects
 {
     /// <summary>
-    /// A <see langword="struct"/> implementing the row processing logic for <see cref="PixelRowDelegateProcessor{TDelegate}"/>.
+    /// A <see langword="struct"/> implementing the row processing logic for <see cref="PositionAwarePixelRowDelegateProcessor{TDelegate}"/>.
     /// </summary>
-    internal readonly struct PixelRowDelegate : IPixelRowDelegate
+    internal readonly struct PositionAwarePixelRowDelegate : IPixelRowDelegate<Point>
     {
-        private readonly PixelRowOperation pixelRowOperation;
+        private readonly PixelRowOperation<Point> pixelRowOperation;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public PixelRowDelegate(PixelRowOperation pixelRowOperation)
+        public PositionAwarePixelRowDelegate(PixelRowOperation<Point> pixelRowOperation)
         {
             this.pixelRowOperation = pixelRowOperation;
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(Span<Vector4> span) => this.pixelRowOperation(span);
+        public void Invoke(Span<Vector4> span, Point offset) => this.pixelRowOperation(span, offset);
     }
 }

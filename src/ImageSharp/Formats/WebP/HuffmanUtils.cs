@@ -29,8 +29,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int totalSize = 1 << rootBits; // total size root table + 2nd level table.
             int len; // current code length.
             int symbol; // symbol index in original or sorted table.
-            var count = new int[WebPConstants.MaxAllowedCodeLength + 1]; // number of codes of each length.
-            var offset = new int[WebPConstants.MaxAllowedCodeLength + 1]; // offsets in sorted table for each length.
+            var counts = new int[WebPConstants.MaxAllowedCodeLength + 1]; // number of codes of each length.
+            var offsets = new int[WebPConstants.MaxAllowedCodeLength + 1]; // offsets in sorted table for each length.
 
             // Build histogram of code lengths.
             for (symbol = 0; symbol < codeLengthsSize; ++symbol)
@@ -41,26 +41,26 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     return 0;
                 }
 
-                count[codeLengthOfSymbol]++;
+                counts[codeLengthOfSymbol]++;
             }
 
             // Error, all code lengths are zeros.
-            if (count[0] == codeLengthsSize)
+            if (counts[0] == codeLengthsSize)
             {
                 return 0;
             }
 
             // Generate offsets into sorted symbol table by code length.
-            offset[1] = 0;
+            offsets[1] = 0;
             for (len = 1; len < WebPConstants.MaxAllowedCodeLength; ++len)
             {
-                int codesOfLength = count[len];
+                int codesOfLength = counts[len];
                 if (codesOfLength > (1 << len))
                 {
                     return 0;
                 }
 
-                offset[len + 1] = offset[len] + codesOfLength;
+                offsets[len + 1] = offsets[len] + codesOfLength;
             }
 
             // Sort symbols by length, by symbol order within each length.
@@ -69,12 +69,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 int symbolCodeLength = codeLengths[symbol];
                 if (symbolCodeLength > 0)
                 {
-                    sorted[offset[symbolCodeLength]++] = symbol;
+                    sorted[offsets[symbolCodeLength]++] = symbol;
                 }
             }
 
             // Special case code with only one value.
-            if (offset[WebPConstants.MaxAllowedCodeLength] is 1)
+            if (offsets[WebPConstants.MaxAllowedCodeLength] == 1)
             {
                 var huffmanCode = new HuffmanCode()
                 {
@@ -98,15 +98,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Fill in root table.
             for (len = 1, step = 2; len <= rootBits; ++len, step <<= 1)
             {
+                var countsLen = counts[len];
                 numOpen <<= 1;
                 numNodes += numOpen;
-                numOpen -= count[len];
+                numOpen -= counts[len];
                 if (numOpen < 0)
                 {
                     return 0;
                 }
 
-                for (; count[len] > 0; --count[len])
+                for (; countsLen > 0; countsLen--)
                 {
                     var huffmanCode = new HuffmanCode()
                     {
@@ -116,6 +117,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     ReplicateValue(table.Slice(key), step, tableSize, huffmanCode);
                     key = GetNextKey(key, len);
                 }
+
+                counts[len] = countsLen;
             }
 
             // Fill in 2nd level tables and add pointers to root table.
@@ -125,19 +128,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 numOpen <<= 1;
                 numNodes += numOpen;
-                numOpen -= count[len];
+                numOpen -= counts[len];
                 if (numOpen < 0)
                 {
                     return 0;
                 }
 
-                for (; count[len] > 0; --count[len])
+                for (; counts[len] > 0; --counts[len])
                 {
                     if ((key & mask) != low)
                     {
                         tableSpan = tableSpan.Slice(tableSize);
                         tablePos += tableSize;
-                        tableBits = NextTableBitSize(count, len, rootBits);
+                        tableBits = NextTableBitSize(counts, len, rootBits);
                         tableSize = 1 << tableBits;
                         totalSize += tableSize;
                         low = key & mask;
@@ -185,7 +188,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <summary>
-        /// Stores code in table[0], table[step], table[2*step], ..., table[end].
+        /// Stores code in table[0], table[step], table[2*step], ..., table[end-step].
         /// Assumes that end is an integer multiple of step.
         /// </summary>
         private static void ReplicateValue(Span<HuffmanCode> table, int step, int end, HuffmanCode code)

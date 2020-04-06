@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPThrowHelper.ThrowImageFormatException($"unexpected alpha compression method {compression} found");
             }
 
-            this.Compressed = compression is AlphaCompressionMethod.WebPLosslessCompression;
+            this.Compressed = compression == AlphaCompressionMethod.WebPLosslessCompression;
 
             // The filtering method used. Only values between 0 and 3 are valid.
             int filter = (alphaChunkHeader >> 2) & 0x03;
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         public void Decode()
         {
-            if (this.Compressed is false)
+            if (this.Compressed == false)
             {
                 Span<byte> dataSpan = this.Data.Memory.Span;
                 var pixelCount = this.Width * this.Height;
@@ -135,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 Span<byte> alphaSpan = this.Alpha.Memory.Span;
-                if (this.AlphaFilterType is WebPAlphaFilterType.None)
+                if (this.AlphaFilterType == WebPAlphaFilterType.None)
                 {
                     dataSpan.Slice(0, pixelCount).CopyTo(alphaSpan);
                     return;
@@ -187,13 +187,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="stride">The stride to use.</param>
         public void AlphaApplyFilter(int firstRow, int lastRow, Span<byte> dst, int stride)
         {
-            if (this.AlphaFilterType is WebPAlphaFilterType.None)
+            if (this.AlphaFilterType == WebPAlphaFilterType.None)
             {
                 return;
             }
 
             Span<byte> alphaSpan = this.Alpha.Memory.Span;
-            Span<byte> prev = this.PrevRow is 0 ? null : alphaSpan.Slice(this.Width * this.PrevRow);
+            Span<byte> prev = this.PrevRow == 0 ? null : alphaSpan.Slice(this.Width * this.PrevRow);
             for (int y = firstRow; y < lastRow; ++y)
             {
                 switch (this.AlphaFilterType)
@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             // For vertical and gradient filtering, we need to decode the part above the
             // cropTop row, in order to have the correct spatial predictors.
-            int topRow = (this.AlphaFilterType is WebPAlphaFilterType.None || this.AlphaFilterType is WebPAlphaFilterType.Horizontal) ? 0 : this.LastRow;
+            int topRow = (this.AlphaFilterType == WebPAlphaFilterType.None || this.AlphaFilterType == WebPAlphaFilterType.Horizontal) ? 0 : this.LastRow;
             int firstRow = (this.LastRow < topRow) ? topRow : this.LastRow;
             if (lastRow > firstRow)
             {
@@ -231,7 +231,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 Span<byte> dst = output.Slice(this.Width * firstRow);
                 Span<byte> input = pixelDataAsBytes.Slice(this.Vp8LDec.Width * firstRow);
 
-                if (this.Vp8LDec.Transforms.Count is 0 || this.Vp8LDec.Transforms[0].TransformType != Vp8LTransformType.ColorIndexingTransform)
+                if (this.Vp8LDec.Transforms.Count == 0 || this.Vp8LDec.Transforms[0].TransformType != Vp8LTransformType.ColorIndexingTransform)
                 {
                     WebPThrowHelper.ThrowImageFormatException("error while decoding alpha channel, expected color index transform data is missing");
                 }
@@ -285,7 +285,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     int packedPixels = 0;
                     for (int x = 0; x < width; ++x)
                     {
-                        if ((x & countMask) is 0)
+                        if ((x & countMask) == 0)
                         {
                             packedPixels = src[srcOffset];
                             srcOffset++;
@@ -364,8 +364,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 return false;
             }
 
-            // When the Huffman tree contains only one symbol, we can skip the
-            // call to ReadSymbol() for red/blue/alpha channels.
             for (int i = 0; i < hdr.NumHTreeGroups; ++i)
             {
                 List<HuffmanCode[]> htrees = hdr.HTreeGroups[i].HTrees;
@@ -411,7 +409,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static int GradientPredictor(byte a, byte b, byte c)
         {
             int g = a + b - c;
-            return ((g & ~0xff) is 0) ? g : (g < 0) ? 0 : 255;  // clip to 8bit
+            return ((g & ~0xff) == 0) ? g : (g < 0) ? 0 : 255;  // clip to 8bit
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

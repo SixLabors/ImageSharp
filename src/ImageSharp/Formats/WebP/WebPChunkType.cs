@@ -6,15 +6,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// <summary>
     /// Contains a list of different webp chunk types.
     /// </summary>
+    /// <remarks>See WebP Container Specification for more details: https://developers.google.com/speed/webp/docs/riff_container </remarks>
     public enum WebPChunkType : uint
     {
         /// <summary>
-        /// Header signaling the use of VP8 format.
+        /// Header signaling the use of the VP8 format.
         /// </summary>
         Vp8 = 0x56503820U,
 
         /// <summary>
-        /// Header for a extended-VP8 chunk.
+        /// Header signaling the image uses lossless encoding.
         /// </summary>
         Vp8L = 0x5650384CU,
 
@@ -52,10 +53,5 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// For animated images, this chunk contains information about a single frame. If the Animation flag is not set, then this chunk SHOULD NOT be present.
         /// </summary>
         Animation = 0x414E4D46,
-
-        /// <summary>
-        /// TODO: not sure what this is for yet.
-        /// </summary>
-        FRGM = 0x4652474D,
     }
 }

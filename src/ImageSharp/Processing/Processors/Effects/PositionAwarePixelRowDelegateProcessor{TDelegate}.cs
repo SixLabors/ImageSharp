@@ -8,6 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
     /// <summary>
     /// Applies a user defined, position aware, row processing delegate to the image.
     /// </summary>
+    /// <typeparam name="TDelegate">The type of user defined, row processing delegate to use.</typeparam>
     internal sealed class PositionAwarePixelRowDelegateProcessor<TDelegate> : IImageProcessor
         where TDelegate : struct, IPixelRowDelegate<Point>
     {

@@ -105,9 +105,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public static readonly int[] AlphabetSize =
         {
-                                                         NumLiteralCodes + NumLengthCodes,
-                                                         NumLiteralCodes, NumLiteralCodes, NumLiteralCodes,
-                                                         NumDistanceCodes
+            NumLiteralCodes + NumLengthCodes,
+            NumLiteralCodes, NumLiteralCodes, NumLiteralCodes,
+            NumDistanceCodes
         };
 
         // VP8 constants from here on:

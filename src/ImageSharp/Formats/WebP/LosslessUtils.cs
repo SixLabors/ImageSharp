@@ -14,6 +14,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal static class LosslessUtils
     {
+        private const uint Predictor0 = WebPConstants.ArgbBlack;
+
         /// <summary>
         /// Add green to blue and red channels (i.e. perform the inverse transform of 'subtract green').
         /// </summary>
@@ -61,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         // 'pixelsPerByte' increments of x. Fortunately, pixelsPerByte
                         // is a power of 2, so we can just use a mask for that, instead of
                         // decrementing a counter.
-                        if ((x & countMask) is 0)
+                        if ((x & countMask) == 0)
                         {
                             packedPixels = GetArgbIndex(pixelData[pixelDataPos++]);
                         }
@@ -72,17 +74,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 decodedPixelData.AsSpan().CopyTo(pixelData);
-
-                return;
             }
-
-            for (int y = 0; y < height; ++y)
+            else
             {
-                for (int x = 0; x < width; ++x)
+                for (int y = 0; y < height; ++y)
                 {
-                    uint colorMapIndex = GetArgbIndex(pixelData[decodedPixels]);
-                    pixelData[decodedPixels] = colorMap[(int)colorMapIndex];
-                    decodedPixels++;
+                    for (int x = 0; x < width; ++x)
+                    {
+                        uint colorMapIndex = GetArgbIndex(pixelData[decodedPixels]);
+                        pixelData[decodedPixels] = colorMap[(int)colorMapIndex];
+                        decodedPixels++;
+                    }
                 }
             }
         }
@@ -130,7 +132,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 ++y;
-                if ((y & mask) is 0)
+                if ((y & mask) == 0)
                 {
                     predRowIdxStart += tilesPerRow;
                 }
@@ -154,9 +156,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 uint red = argb >> 16;
                 int newRed = (int)(red & 0xff);
                 int newBlue = (int)argb & 0xff;
-                newRed += ColorTransformDelta((sbyte)m.GreenToRed, (sbyte)green);
+                newRed += ColorTransformDelta((sbyte)m.GreenToRed, green);
                 newRed &= 0xff;
-                newBlue += ColorTransformDelta((sbyte)m.GreenToBlue, (sbyte)green);
+                newBlue += ColorTransformDelta((sbyte)m.GreenToBlue, green);
                 newBlue += ColorTransformDelta((sbyte)m.RedToBlue, (sbyte)newRed);
                 newBlue &= 0xff;
 
@@ -176,7 +178,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public static void PredictorInverseTransform(Vp8LTransform transform, Span<uint> pixelData, Span<uint> output)
         {
             int processedPixels = 0;
-            int yStart = 0;
             int width = transform.XSize;
             Span<uint> transformData = transform.Data.GetSpan();
 
@@ -184,9 +185,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             PredictorAdd0(pixelData, processedPixels, 1, output);
             PredictorAdd1(pixelData, 1, width - 1, output);
             processedPixels += width;
-            yStart++;
 
-            int y = yStart;
+            int y = 1;
             int yEnd = transform.YSize;
             int tileWidth = 1 << transform.Bits;
             int mask = tileWidth - 1;
@@ -264,7 +264,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 processedPixels += width;
                 ++y;
-                if ((y & mask) is 0)
+                if ((y & mask) == 0)
                 {
                     // Use the same mask, since tiles are squares.
                     predictorModeIdxBase += tilesPerRow;
@@ -295,9 +295,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd0(Span<uint> input, int startIdx, int numberOfPixels, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
+            uint pred = Predictor0;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor0();
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -315,10 +315,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd2(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor2(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor2(output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -326,10 +326,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd3(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor3(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor3(output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -337,10 +337,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd4(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor4(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor4(output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -348,10 +348,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd5(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor5(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor5(output[x - 1], output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -359,10 +359,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd6(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor6(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor6(output[x - 1], output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -370,10 +370,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd7(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor7(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor7(output[x - 1], output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -381,10 +381,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd8(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor8(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor8(output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -392,10 +392,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd9(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor9(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor9(output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -403,10 +403,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd10(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor10(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor10(output[x - 1], output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -414,10 +414,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd11(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor11(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor11(output[x - 1], output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -425,10 +425,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd12(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor12(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor12(output[x - 1], output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
@@ -436,40 +436,28 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private static void PredictorAdd13(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
-            int offset = 0;
+            int offset = startIdx - width;
             for (int x = startIdx; x < endIdx; ++x)
             {
-                uint pred = Predictor13(output[x - 1], output, startIdx - width + offset++);
+                uint pred = Predictor13(output[x - 1], output, offset++);
                 output[x] = AddPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor0()
-        {
-            return WebPConstants.ArgbBlack;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor1(uint left, Span<uint> top)
-        {
-            return left;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor2(uint left, Span<uint> top, int idx)
+        private static uint Predictor2(Span<uint> top, int idx)
         {
             return top[idx];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor3(uint left, Span<uint> top, int idx)
+        private static uint Predictor3(Span<uint> top, int idx)
         {
             return top[idx + 1];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor4(uint left, Span<uint> top, int idx)
+        private static uint Predictor4(Span<uint> top, int idx)
         {
             return top[idx - 1];
         }
@@ -496,14 +484,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor8(uint left, Span<uint> top, int idx)
+        private static uint Predictor8(Span<uint> top, int idx)
         {
             uint pred = Average2(top[idx - 1], top[idx]);
             return pred;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor9(uint left, Span<uint> top, int idx)
+        private static uint Predictor9(Span<uint> top, int idx)
         {
             uint pred = Average2(top[idx], top[idx + 1]);
             return pred;
@@ -539,7 +527,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private static uint ClampedAddSubtractFull(uint c0, uint c1, uint c2)
         {
-            int a = AddSubtractComponentFull((int)(c0 >> 24), (int)(c1 >> 24), (int)(c2 >> 24));
+            int a = AddSubtractComponentFull(
+                (int)(c0 >> 24),
+                (int)(c1 >> 24),
+                (int)(c2 >> 24));
             int r = AddSubtractComponentFull(
                 (int)((c0 >> 16) & 0xff),
                 (int)((c1 >> 16) & 0xff),
@@ -577,12 +568,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Clip255(uint a)
         {
-            if (a < 256)
-            {
-                return a;
-            }
-
-            return ~a >> 24;
+            return a < 256 ? a : ~a >> 24;
         }
 
         private static uint Select(uint a, uint b, uint c)

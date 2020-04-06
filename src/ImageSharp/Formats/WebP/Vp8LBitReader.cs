@@ -132,8 +132,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (!this.Eos && nBits <= Vp8LMaxNumBitRead)
             {
                 ulong val = this.PrefetchBits() & this.bitMask[nBits];
-                int newBits = this.bitPos + nBits;
-                this.bitPos = newBits;
+                this.bitPos += nBits;
                 this.ShiftBytes();
                 return (uint)val;
             }
@@ -193,6 +192,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return this.Eos || ((this.pos == this.len) && (this.bitPos > Lbits));
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void DoFillBitWindow()
         {
             this.ShiftBytes();

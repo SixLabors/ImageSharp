@@ -12,12 +12,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
     internal class WebPFeatures : IDisposable
     {
         /// <summary>
-        /// Gets or sets a value indicating whether this image has a ICC Profile.
+        /// Gets or sets a value indicating whether this image has an ICC Profile.
         /// </summary>
         public bool IccProfile { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this image has a alpha channel.
+        /// Gets or sets a value indicating whether this image has an alpha channel.
         /// </summary>
         public bool Alpha { get; set; }
 
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public byte AlphaChunkHeader { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this image has a EXIF Profile.
+        /// Gets or sets a value indicating whether this image has an EXIF Profile.
         /// </summary>
         public bool ExifProfile { get; set; }
 
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public bool XmpMetaData { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this image is a animation.
+        /// Gets or sets a value indicating whether this image is an animation.
         /// </summary>
         public bool Animation { get; set; }
 

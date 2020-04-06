@@ -58,6 +58,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="startPos">Start index in the data array. Defaults to 0.</param>
         public Vp8BitReader(Stream inputStream, uint imageDataSize, MemoryAllocator memoryAllocator, uint partitionLength, int startPos = 0)
         {
+            Guard.MustBeLessThan(imageDataSize, int.MaxValue, nameof(imageDataSize));
+
             this.ImageDataSize = imageDataSize;
             this.PartitionLength = partitionLength;
             this.ReadImageDataFromStream(inputStream, (int)imageDataSize, memoryAllocator);
@@ -133,8 +135,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             ulong value = this.value >> pos;
             ulong mask = (split - value) >> 31;  // -1 or 0
             this.bits -= 1;
-            this.range += (uint)mask;
-            this.range |= 1;
+            this.range = (this.range + (uint)mask) | 1;
             this.value -= ((split + 1) & mask) << pos;
 
             return (v ^ (int)mask) - (int)mask;
@@ -149,6 +150,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public uint ReadValue(int nBits)
         {
             Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
+            Guard.MustBeLessThanOrEqualTo(nBits, 32, nameof(nBits));
 
             uint v = 0;
             while (nBits-- > 0)
@@ -162,6 +164,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public int ReadSignedValue(int nBits)
         {
             Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
+            Guard.MustBeLessThanOrEqualTo(nBits, 32, nameof(nBits));
 
             int value = (int)this.ReadValue(nBits);
             return this.ReadValue(1) != 0 ? -value : value;
@@ -169,13 +172,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void InitBitreader(uint size, int pos = 0)
         {
+            var posPlusSize = pos + size;
             this.range = 255 - 1;
             this.value = 0;
             this.bits = -8; // to load the very first 8 bits.
             this.eof = false;
             this.pos = pos;
-            this.bufferEnd = (uint)(pos + size);
-            this.bufferMax = (uint)(size > 8 ? pos + size - 8 + 1 : pos);
+            this.bufferEnd = (uint)posPlusSize;
+            this.bufferMax = (uint)(size > 8 ? posPlusSize - 8 + 1 : pos);
 
             this.LoadNewBytes();
         }

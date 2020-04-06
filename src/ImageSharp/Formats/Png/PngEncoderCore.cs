@@ -5,10 +5,8 @@ using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
@@ -16,7 +14,6 @@ using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
@@ -633,10 +630,21 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void WriteTextChunks(Stream stream, PngMetadata meta)
         {
             const int MaxLatinCode = 255;
-            foreach (PngTextData textData in meta.TextData)
+            for (int i = 0; i < meta.TextData.Count; i++)
             {
-                bool hasUnicodeCharacters = textData.Value.Any(c => c > MaxLatinCode);
-                if (hasUnicodeCharacters || (!string.IsNullOrWhiteSpace(textData.LanguageTag) || !string.IsNullOrWhiteSpace(textData.TranslatedKeyword)))
+                PngTextData textData = meta.TextData[i];
+                bool hasUnicodeCharacters = false;
+                foreach (var c in textData.Value)
+                {
+                    if (c > MaxLatinCode)
+                    {
+                        hasUnicodeCharacters = true;
+                        break;
+                    }
+                }
+
+                if (hasUnicodeCharacters || (!string.IsNullOrWhiteSpace(textData.LanguageTag) ||
+                                             !string.IsNullOrWhiteSpace(textData.TranslatedKeyword)))
                 {
                     // Write iTXt chunk.
                     byte[] keywordBytes = PngConstants.Encoding.GetBytes(textData.Keyword);
@@ -647,7 +655,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                     byte[] translatedKeyword = PngConstants.TranslatedEncoding.GetBytes(textData.TranslatedKeyword);
                     byte[] languageTag = PngConstants.LanguageEncoding.GetBytes(textData.LanguageTag);
 
-                    Span<byte> outputBytes = new byte[keywordBytes.Length + textBytes.Length + translatedKeyword.Length + languageTag.Length + 5];
+                    Span<byte> outputBytes = new byte[keywordBytes.Length + textBytes.Length +
+                                                      translatedKeyword.Length + languageTag.Length + 5];
                     keywordBytes.CopyTo(outputBytes);
                     if (textData.Value.Length > this.options.TextCompressionThreshold)
                     {
@@ -667,7 +676,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                     if (textData.Value.Length > this.options.TextCompressionThreshold)
                     {
                         // Write zTXt chunk.
-                        byte[] compressedData = this.GetCompressedTextBytes(PngConstants.Encoding.GetBytes(textData.Value));
+                        byte[] compressedData =
+                            this.GetCompressedTextBytes(PngConstants.Encoding.GetBytes(textData.Value));
                         Span<byte> outputBytes = new byte[textData.Keyword.Length + compressedData.Length + 2];
                         PngConstants.Encoding.GetBytes(textData.Keyword).CopyTo(outputBytes);
                         compressedData.CopyTo(outputBytes.Slice(textData.Keyword.Length + 2));
@@ -678,7 +688,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                         // Write tEXt chunk.
                         Span<byte> outputBytes = new byte[textData.Keyword.Length + textData.Value.Length + 1];
                         PngConstants.Encoding.GetBytes(textData.Keyword).CopyTo(outputBytes);
-                        PngConstants.Encoding.GetBytes(textData.Value).CopyTo(outputBytes.Slice(textData.Keyword.Length + 1));
+                        PngConstants.Encoding.GetBytes(textData.Value)
+                            .CopyTo(outputBytes.Slice(textData.Keyword.Length + 1));
                         this.WriteChunk(stream, PngChunkType.Text, outputBytes.ToArray());
                     }
                 }

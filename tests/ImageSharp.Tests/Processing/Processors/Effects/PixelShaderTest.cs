@@ -23,6 +23,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                 x => x.ProcessPixelRowsAsVector4(
                 span => default(PixelAverageProcessor).Invoke(span)),
                 appendPixelTypeToFileName: false);
+
+            provider.RunValidatingProcessorTest(
+                x => x.ProcessPixelRowsAsVector4<PixelAverageProcessor>(),
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -33,6 +37,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             provider.RunRectangleConstrainedValidatingProcessorTest(
                 (x, rect) => x.ProcessPixelRowsAsVector4(
                     span => default(PixelAverageProcessor).Invoke(span), rect));
+
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (x, rect) => x.ProcessPixelRowsAsVector4<PixelAverageProcessor>(rect));
         }
 
         private readonly struct PixelAverageProcessor : IPixelRowDelegate
@@ -57,6 +64,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                 c => c.ProcessPositionAwarePixelRowsAsVector4(
                     (span, offset) => default(TrigonometryProcessor).Invoke(span, offset)),
                 appendPixelTypeToFileName: false);
+
+            provider.RunValidatingProcessorTest(
+                c => c.ProcessPositionAwarePixelRowsAsVector4<TrigonometryProcessor>(),
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -67,6 +78,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
             provider.RunRectangleConstrainedValidatingProcessorTest(
                 (c, rect) => c.ProcessPositionAwarePixelRowsAsVector4(
                     (span, offset) => default(TrigonometryProcessor).Invoke(span, offset), rect));
+
+            provider.RunRectangleConstrainedValidatingProcessorTest(
+                (c, rect) => c.ProcessPositionAwarePixelRowsAsVector4<TrigonometryProcessor>(rect));
         }
 
         private readonly struct TrigonometryProcessor : IPixelRowDelegate<Point>

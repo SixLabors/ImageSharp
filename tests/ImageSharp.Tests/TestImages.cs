@@ -406,7 +406,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 public const string Earth = "WebP/earth_lossless.webp";
                 public const string WithExif = "WebP/exif_lossless.webp";
-                public const string WithIccp = "WebP/iccp_lossless.webp";
+                public const string WithIccp = "WebP/lossless_with_iccp.webp";
                 public const string NoTransform1 = "WebP/lossless_vec_1_0.webp";
                 public const string NoTransform2 = "WebP/lossless_vec_2_0.webp";
                 public const string GreenTransform1 = "WebP/lossless1.webp";
@@ -457,7 +457,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 public const string Earth = "WebP/earth_lossy.webp";
                 public const string WithExif = "WebP/exif_lossy.webp";
-                public const string WithIccp = "WebP/iccp_lossy.webp";
+                public const string WithIccp = "WebP/lossy_with_iccp.webp";
 
                 // Lossy images without macroblock filtering.
                 public const string Bike = "WebP/bike_lossy.webp";
@@ -476,7 +476,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string SimpleFilter05 = "WebP/test-nostrong.webp";
 
                 // Lossy images with a complex filter.
-                public const string IccpComplexFilter = "WebP/iccp_lossy.webp";
+                public const string IccpComplexFilter = WithIccp;
                 public const string VeryShort = "WebP/very_short.webp";
                 public const string BikeComplexFilter = "WebP/bike_lossy_complex_filter.webp";
                 public const string ComplexFilter01 = "WebP/vp80-02-inter-1418.webp";

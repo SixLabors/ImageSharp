@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         internal void ConvertFromRgbaScaledVector4(Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, Vector4.One) * Max;
             this.L = ImageMaths.Get16BitBT709Luminance(
                 vector.X,
                 vector.Y,

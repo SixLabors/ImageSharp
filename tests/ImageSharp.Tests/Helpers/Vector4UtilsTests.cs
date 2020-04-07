@@ -23,11 +23,11 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
             Vector4[] expected = source.Select(v =>
             {
-                Vector4Utils.Premultiply(ref v);
+                Vector4Utilities.Premultiply(ref v);
                 return v;
             }).ToArray();
 
-            Vector4Utils.Premultiply(source);
+            Vector4Utilities.Premultiply(source);
 
             Assert.Equal(expected, source, this.approximateFloatComparer);
         }
@@ -42,11 +42,11 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
             Vector4[] expected = source.Select(v =>
             {
-                Vector4Utils.UnPremultiply(ref v);
+                Vector4Utilities.UnPremultiply(ref v);
                 return v;
             }).ToArray();
 
-            Vector4Utils.UnPremultiply(source);
+            Vector4Utilities.UnPremultiply(source);
 
             Assert.Equal(expected, source, this.approximateFloatComparer);
         }

@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     /// <summary>
     /// Strategies for deflater
     /// </summary>
-    public enum DeflateStrategy
+    internal enum DeflateStrategy
     {
         /// <summary>
         /// The default strategy

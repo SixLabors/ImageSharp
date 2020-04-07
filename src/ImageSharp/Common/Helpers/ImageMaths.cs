@@ -359,7 +359,7 @@ namespace SixLabors.ImageSharp
                     }
                 }
 
-                return height;
+                return width;
             }
 
             topLeft.Y = GetMinY(bitmap);

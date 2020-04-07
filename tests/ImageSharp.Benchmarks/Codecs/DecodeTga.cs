@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         private byte[] data;
 
-        [Params(TestImages.Tga.Bit24)]
+        [Params(TestImages.Tga.Bit24BottomLeft)]
         public string TestImage { get; set; }
 
         [GlobalSetup]

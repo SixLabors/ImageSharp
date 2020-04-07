@@ -44,6 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         {
             using (var magickImage = new MagickImage(fileInfo))
             {
+                magickImage.AutoOrient();
                 var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
                 Span<TPixel> resultPixels = result.GetPixelSpan();
 

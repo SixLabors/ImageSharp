@@ -68,21 +68,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)
             {
-                ReadOnlySpan<byte> quantizedPixelSpan = this.quantized.GetPixelBufferSpan();
                 ReadOnlySpan<TPixel> paletteSpan = this.quantized.Palette.Span;
                 int offsetY = this.bounds.Top;
                 int offsetX = this.bounds.Left;
-                int width = this.bounds.Width;
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<TPixel> row = this.source.GetPixelRowSpan(y);
-                    int rowStart = (y - offsetY) * width;
+                    ReadOnlySpan<byte> quantizedRow = this.quantized.GetPixelRowSpan(y - offsetY);
 
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        int i = rowStart + x - offsetX;
-                        row[x] = paletteSpan[quantizedPixelSpan[i]];
+                        row[x] = paletteSpan[quantizedRow[x - offsetX]];
                     }
                 }
             }

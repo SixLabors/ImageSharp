@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
-        [Params(TestImages.Tga.Bit24)]
+        [Params(TestImages.Tga.Bit24BottomLeft)]
         public string TestImage { get; set; }
 
         [GlobalSetup]

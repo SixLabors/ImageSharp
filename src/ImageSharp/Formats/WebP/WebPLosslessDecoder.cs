@@ -602,7 +602,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     int repeat = (int)(this.bitReader.ReadValue(extraBits) + repeatOffset);
                     if (symbol + repeat > numSymbols)
                     {
-                        // TODO: not sure, if this should be treated as an error here
                         return;
                     }
 

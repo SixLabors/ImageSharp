@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             get => this.dither;
             set
             {
-                Guard.MustBeBetweenOrEqualTo(value, 0, 255, nameof(this.dither));
+                Guard.MustBeBetweenOrEqualTo(value, 0, 255, nameof(this.Dither));
                 this.dither = value;
             }
         }

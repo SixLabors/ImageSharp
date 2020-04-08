@@ -285,12 +285,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     baseLevel = this.SegmentHeader.FilterStrength[s];
                     if (!this.SegmentHeader.Delta)
                     {
-                        baseLevel += hdr.Level;
+                        baseLevel += hdr.FilterLevel;
                     }
                 }
                 else
                 {
-                    baseLevel = hdr.Level;
+                    baseLevel = hdr.FilterLevel;
                 }
 
                 for (int i4x4 = 0; i4x4 <= 1; ++i4x4)

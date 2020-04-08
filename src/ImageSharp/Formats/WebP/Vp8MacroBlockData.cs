@@ -37,8 +37,26 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         public byte UvMode { get; set; }
 
+        /// <summary>
+        /// Gets or sets bit-wise info about the content of each sub-4x4 blocks (in decoding order).
+        /// Each of the 4x4 blocks for y/u/v is associated with a 2b code according to:
+        ///   code=0 -> no coefficient
+        ///   code=1 -> only DC
+        ///   code=2 -> first three coefficients are non-zero
+        ///   code=3 -> more than three coefficients are non-zero
+        /// This allows to call specialized transform functions.
+        /// </summary>
         public uint NonZeroY { get; set; }
 
+        /// <summary>
+        /// Gets or sets bit-wise info about the content of each sub-4x4 blocks (in decoding order).
+        /// Each of the 4x4 blocks for y/u/v is associated with a 2b code according to:
+        ///   code=0 -> no coefficient
+        ///   code=1 -> only DC
+        ///   code=2 -> first three coefficients are non-zero
+        ///   code=3 -> more than three coefficients are non-zero
+        /// This allows to call specialized transform functions.
+        /// </summary>
         public uint NonZeroUv { get; set; }
 
         public bool Skip { get; set; }

@@ -8,6 +8,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class Vp8FilterInfo : IDeepCloneable
     {
+        private byte limit;
+
+        private byte innerLevel;
+
+        private byte highEdgeVarianceThreshold;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8FilterInfo"/> class.
         /// </summary>
@@ -30,12 +36,28 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets or sets the filter limit in [3..189], or 0 if no filtering.
         /// </summary>
-        public byte Limit { get; set; }
+        public byte Limit
+        {
+            get => this.limit;
+            set
+            {
+                Guard.MustBeBetweenOrEqualTo(value, (byte)0, (byte)189, nameof(this.Limit));
+                this.limit = value;
+            }
+        }
 
         /// <summary>
-        /// Gets or sets the inner limit in [1..63].
+        /// Gets or sets the inner limit in [1..63], or 0 if no filtering.
         /// </summary>
-        public byte InnerLevel { get; set; }
+        public byte InnerLevel
+        {
+            get => this.innerLevel;
+            set
+            {
+                Guard.MustBeBetweenOrEqualTo(value, (byte)0, (byte)63, nameof(this.InnerLevel));
+                this.innerLevel = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets a value indicating whether to do inner filtering.
@@ -45,7 +67,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets or sets the high edge variance threshold in [0..2].
         /// </summary>
-        public byte HighEdgeVarianceThreshold { get; set; }
+        public byte HighEdgeVarianceThreshold
+        {
+            get => this.highEdgeVarianceThreshold;
+            set
+            {
+                Guard.MustBeBetweenOrEqualTo(value, (byte)0, (byte)2, nameof(this.HighEdgeVarianceThreshold));
+                this.highEdgeVarianceThreshold = value;
+            }
+        }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new Vp8FilterInfo(this);

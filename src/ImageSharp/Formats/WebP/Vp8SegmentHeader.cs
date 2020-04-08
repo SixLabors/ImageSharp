@@ -32,11 +32,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Gets quantization changes.
         /// </summary>
-        public byte[] Quantizer { get; private set; }
+        public byte[] Quantizer { get; }
 
         /// <summary>
         /// Gets the filter strength for segments.
         /// </summary>
-        public byte[] FilterStrength { get; private set; }
+        public byte[] FilterStrength { get; }
     }
 }

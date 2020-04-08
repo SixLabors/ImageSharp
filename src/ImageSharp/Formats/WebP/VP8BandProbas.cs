@@ -8,6 +8,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     internal class Vp8BandProbas
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8BandProbas"/> class.
+        /// </summary>
         public Vp8BandProbas()
         {
             this.Probabilities = new Vp8ProbaArray[WebPConstants.NumCtx];
@@ -17,6 +20,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        /// <summary>
+        /// Gets the Probabilities.
+        /// </summary>
         public Vp8ProbaArray[] Probabilities { get; }
     }
 }

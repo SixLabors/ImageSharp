@@ -10,11 +10,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
     {
         private const int MbFeatureTreeProbs = 3;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8Proba"/> class.
+        /// </summary>
         public Vp8Proba()
         {
             this.Segments = new uint[MbFeatureTreeProbs];
             this.Bands = new Vp8BandProbas[WebPConstants.NumTypes, WebPConstants.NumBands];
-            this.BandsPtr = new Vp8BandProbas[WebPConstants.NumTypes, 16 + 1];
+            this.BandsPtr = new Vp8BandProbas[WebPConstants.NumTypes][];
 
             for (int i = 0; i < WebPConstants.NumTypes; i++)
             {
@@ -26,10 +29,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             for (int i = 0; i < WebPConstants.NumTypes; i++)
             {
-                for (int j = 0; j < 17; j++)
-                {
-                    this.BandsPtr[i, j] = new Vp8BandProbas();
-                }
+                this.BandsPtr[i] = new Vp8BandProbas[16 + 1];
             }
         }
 
@@ -37,6 +37,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public Vp8BandProbas[,] Bands { get; }
 
-        public Vp8BandProbas[,] BandsPtr { get; }
+        public Vp8BandProbas[][] BandsPtr { get; }
     }
 }

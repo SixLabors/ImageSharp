@@ -74,9 +74,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.pinnedLiteralBuffer = (short*)this.literalBufferHandle.Pointer;
         }
 
+#pragma warning disable SA1201 // Elements should appear in the correct order
+
         // See RFC 1951 3.2.6
         // Literal codes
-        private static short[] StaticLCodes => new short[]
+        private static readonly short[] StaticLCodes = new short[]
         {
             12, 140, 76, 204, 44, 172, 108, 236, 28, 156, 92, 220, 60, 188, 124, 252,
             2, 130, 66, 194, 34, 162, 98, 226, 18, 146, 82, 210, 50, 178, 114, 242,
@@ -121,7 +123,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         };
 
         // Distance codes and lengths.
-        private static short[] StaticDCodes => new short[]
+        private static readonly short[] StaticDCodes = new short[]
         {
             0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14,
             30, 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23
@@ -132,6 +134,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
             5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5
         };
+#pragma warning restore SA1201 // Elements should appear in the correct order
 
         /// <summary>
         /// Gets the lengths of the bit length codes are sent in order of decreasing probability, to avoid transmitting the lengths for unused bit length codes.

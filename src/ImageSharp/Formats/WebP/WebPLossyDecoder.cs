@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -207,8 +206,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 // Hardcoded 16x16 intra-mode decision tree.
                 int yMode = this.bitReader.GetBit(156) != 0 ?
-                                this.bitReader.GetBit(128) != 0 ? WebPConstants.TmPred : WebPConstants.HPred :
-                                this.bitReader.GetBit(163) != 0 ? WebPConstants.VPred : WebPConstants.DcPred;
+                                this.bitReader.GetBit(128) != 0 ? (int)IntraPredictionMode.TrueMotion : (int)IntraPredictionMode.HPrediction :
+                                this.bitReader.GetBit(163) != 0 ? (int)IntraPredictionMode.VPrediction : (int)IntraPredictionMode.DcPrediction;
                 block.Modes[0] = (byte)yMode;
                 for (int i = 0; i < left.Length; i++)
                 {
@@ -864,7 +863,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int dstOffset = 0;
             Vp8MacroBlockData block = dec.CurrentBlockData;
             Vp8QuantMatrix q = dec.DeQuantMatrices[block.Segment];
-            Vp8BandProbas[,] bands = dec.Probabilities.BandsPtr;
+            Vp8BandProbas[][] bands = dec.Probabilities.BandsPtr;
             Vp8BandProbas[] acProba;
             Vp8MacroBlock leftMb = dec.LeftMacroBlock;
             short[] dst = block.Coeffs;
@@ -876,14 +875,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             if (block.IsI4x4)
             {
                 first = 0;
-                acProba = GetBandsRow(bands, 3);
+                acProba = bands[3];
             }
             else
             {
                 // Parse DC
                 var dc = new short[16];
                 int ctx = (int)(mb.NoneZeroDcCoeffs + leftMb.NoneZeroDcCoeffs);
-                int nz = this.GetCoeffs(br, GetBandsRow(bands, 1), ctx, q.Y2Mat, 0, dc);
+                int nz = this.GetCoeffs(br, bands[1], ctx, q.Y2Mat, 0, dc);
                 mb.NoneZeroDcCoeffs = leftMb.NoneZeroDcCoeffs = (uint)(nz > 0 ? 1 : 0);
                 if (nz > 1)
                 {
@@ -901,7 +900,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 first = 1;
-                acProba = GetBandsRow(bands, 0);
+                acProba = bands[0];
             }
 
             byte tnz = (byte)(mb.NoneZeroAcDcCoeffs & 0x0f);
@@ -941,7 +940,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     for (int x = 0; x < 2; ++x)
                     {
                         int ctx = l + (tnz & 1);
-                        int nz = this.GetCoeffs(br, GetBandsRow(bands, 2), ctx, q.UvMat, 0, dst.AsSpan(dstOffset));
+                        int nz = this.GetCoeffs(br, bands[2], ctx, q.UvMat, 0, dst.AsSpan(dstOffset));
                         l = (nz > 0) ? 1 : 0;
                         tnz = (byte)((tnz >> 1) | (l << 3));
                         nzCoeffs = NzCodeBits(nzCoeffs, nz, dst[dstOffset] != 0 ? 1 : 0);
@@ -1164,11 +1163,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             Vp8FilterHeader vp8FilterHeader = dec.FilterHeader;
             vp8FilterHeader.LoopFilter = this.bitReader.ReadBool() ? LoopFilter.Simple : LoopFilter.Complex;
-            vp8FilterHeader.Level = (int)this.bitReader.ReadValue(6);
+            vp8FilterHeader.FilterLevel = (int)this.bitReader.ReadValue(6);
             vp8FilterHeader.Sharpness = (int)this.bitReader.ReadValue(3);
             vp8FilterHeader.UseLfDelta = this.bitReader.ReadBool();
 
-            dec.Filter = (vp8FilterHeader.Level == 0) ? LoopFilter.None : vp8FilterHeader.LoopFilter;
+            dec.Filter = (vp8FilterHeader.FilterLevel == 0) ? LoopFilter.None : vp8FilterHeader.LoopFilter;
             if (vp8FilterHeader.UseLfDelta)
             {
                 // Update lf-delta?
@@ -1314,7 +1313,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
                 for (int b = 0; b < 16 + 1; ++b)
                 {
-                    proba.BandsPtr[t, b] = proba.Bands[t, WebPConstants.Bands[b]];
+                    proba.BandsPtr[t][b] = proba.Bands[t, WebPConstants.Bands[b]];
                 }
             }
 
@@ -1389,13 +1388,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             nzCoeffs <<= 2;
             nzCoeffs |= (uint)((nz > 3) ? 3 : (nz > 1) ? 2 : dcNz);
             return nzCoeffs;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static Vp8BandProbas[] GetBandsRow(Vp8BandProbas[,] bands, int rowIdx)
-        {
-            Vp8BandProbas[] bandsRow = Enumerable.Range(0, bands.GetLength(1)).Select(x => bands[rowIdx, x]).ToArray();
-            return bandsRow;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

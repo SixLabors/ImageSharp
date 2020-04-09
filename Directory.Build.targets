@@ -18,7 +18,7 @@
   <!-- Package versions for package references across all projects -->
   <ItemGroup>
     <!--Global Dependencies-->
-    <PackageReference Update="Microsoft.Net.Compilers.Toolset" Version="3.3.1" />
+    <PackageReference Update="Microsoft.Net.Compilers.Toolset" PrivateAssets="All" Version="3.3.1" />
     <PackageReference Update="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="All" Version="1.0.0" />
     <PackageReference Update="StyleCop.Analyzers" PrivateAssets="All" Version="1.1.118" />
     

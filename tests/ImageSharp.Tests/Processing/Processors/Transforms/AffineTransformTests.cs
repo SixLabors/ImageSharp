@@ -241,7 +241,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         private static void VerifyAllPixelsAreWhiteOrTransparent<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Span<TPixel> data = image.Frames.RootFrame.GetPixelSpan();
+            Assert.True(image.Frames.RootFrame.TryGetSinglePixelSpan(out Span<TPixel> data));
             var white = new Rgb24(255, 255, 255);
             foreach (TPixel pixel in data)
             {

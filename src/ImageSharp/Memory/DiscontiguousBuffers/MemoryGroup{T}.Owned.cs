@@ -9,10 +9,12 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
-    // Analogous to the "owned" variant of MemorySource
     internal abstract partial class MemoryGroup<T>
     {
-        private sealed class Owned : MemoryGroup<T>
+        /// <summary>
+        /// A <see cref="MemoryGroup{T}"/> implementation that owns the underlying memory buffers.
+        /// </summary>
+        public sealed class Owned : MemoryGroup<T>, IEnumerable<Memory<T>>
         {
             private IMemoryOwner<T>[] memoryOwners;
 
@@ -30,6 +32,7 @@ namespace SixLabors.ImageSharp.Memory
 
             public override int Count
             {
+                [MethodImpl(InliningOptions.ShortMethod)]
                 get
                 {
                     this.EnsureNotDisposed();
@@ -46,7 +49,15 @@ namespace SixLabors.ImageSharp.Memory
                 }
             }
 
-            public override IEnumerator<Memory<T>> GetEnumerator()
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public override MemoryGroupEnumerator<T> GetEnumerator()
+            {
+                return new MemoryGroupEnumerator<T>(this);
+            }
+
+            /// <inheritdoc/>
+            IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
             {
                 this.EnsureNotDisposed();
                 return this.memoryOwners.Select(mo => mo.Memory).GetEnumerator();
@@ -70,7 +81,7 @@ namespace SixLabors.ImageSharp.Memory
                 this.IsValid = false;
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(InliningOptions.ShortMethod)]
             private void EnsureNotDisposed()
             {
                 if (this.memoryOwners is null)

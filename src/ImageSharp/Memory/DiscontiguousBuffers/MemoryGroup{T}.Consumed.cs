@@ -26,10 +26,13 @@ namespace SixLabors.ImageSharp.Memory
 
             public override IEnumerator<Memory<T>> GetEnumerator()
             {
-                for (int i = 0; i < this.source.Length; i++)
-                {
-                    yield return this.source[i];
-                }
+                /* The runtime sees the Array class as if it implemented the
+                 * type-generic collection interfaces explicitly, so here we
+                 * can just cast the source array to IList<Memory<T>> (or to
+                 * an equivalent type), and invoke the generic GetEnumerator
+                 * method directly from that interface reference. This saves
+                 * having to create our own iterator block here. */
+                return ((IList<Memory<T>>)this.source).GetEnumerator();
             }
 
             public override void Dispose()

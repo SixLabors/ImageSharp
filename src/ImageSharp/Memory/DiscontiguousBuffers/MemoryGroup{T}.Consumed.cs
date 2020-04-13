@@ -3,13 +3,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
     internal abstract partial class MemoryGroup<T>
     {
-        // Analogous to the "consumed" variant of MemorySource
-        private sealed class Consumed : MemoryGroup<T>
+        /// <summary>
+        /// A <see cref="MemoryGroup{T}"/> implementation that consumes the underlying memory buffers.
+        /// </summary>
+        public sealed class Consumed : MemoryGroup<T>, IEnumerable<Memory<T>>
         {
             private readonly Memory<T>[] source;
 
@@ -20,11 +23,23 @@ namespace SixLabors.ImageSharp.Memory
                 this.View = new MemoryGroupView<T>(this);
             }
 
-            public override int Count => this.source.Length;
+            public override int Count
+            {
+                [MethodImpl(InliningOptions.ShortMethod)]
+                get => this.source.Length;
+            }
 
             public override Memory<T> this[int index] => this.source[index];
 
-            public override IEnumerator<Memory<T>> GetEnumerator()
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public override MemoryGroupEnumerator<T> GetEnumerator()
+            {
+                return new MemoryGroupEnumerator<T>(this);
+            }
+
+            /// <inheritdoc/>
+            IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
             {
                 /* The runtime sees the Array class as if it implemented the
                  * type-generic collection interfaces explicitly, so here we

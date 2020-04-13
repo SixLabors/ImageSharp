@@ -2,18 +2,20 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Memory.DiscontiguousBuffers
+namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
     /// A value-type enumerator for <see cref="MemoryGroup{T}"/> instances.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public ref struct MemoryGroupEnumerator<T>
         where T : struct
     {
-        private readonly MemoryGroup<T> memoryGroup;
+        private readonly IMemoryGroup<T> memoryGroup;
         private readonly int count;
         private int index;
 
@@ -27,6 +29,14 @@ namespace SixLabors.ImageSharp.Memory.DiscontiguousBuffers
 
         [MethodImpl(InliningOptions.ShortMethod)]
         internal MemoryGroupEnumerator(MemoryGroup<T>.Consumed memoryGroup)
+        {
+            this.memoryGroup = memoryGroup;
+            this.count = memoryGroup.Count;
+            this.index = -1;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal MemoryGroupEnumerator(MemoryGroupView<T> memoryGroup)
         {
             this.memoryGroup = memoryGroup;
             this.count = memoryGroup.Count;

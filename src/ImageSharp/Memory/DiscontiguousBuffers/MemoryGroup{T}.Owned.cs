@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -69,12 +70,19 @@ namespace SixLabors.ImageSharp.Memory
                 this.IsValid = false;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private void EnsureNotDisposed()
             {
-                if (this.memoryOwners == null)
+                if (this.memoryOwners is null)
                 {
-                    throw new ObjectDisposedException(nameof(MemoryGroup<T>));
+                    ThrowObjectDisposedException();
                 }
+            }
+
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            private static void ThrowObjectDisposedException()
+            {
+                throw new ObjectDisposedException(nameof(MemoryGroup<T>));
             }
 
             internal static void SwapContents(Owned a, Owned b)

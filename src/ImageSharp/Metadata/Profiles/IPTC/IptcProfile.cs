@@ -15,16 +15,15 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
     /// <remarks>This source code is from the Magick.Net project:
     /// https://github.com/dlemstra/Magick.NET/tree/master/src/Magick.NET/Shared/Profiles/Iptc/IptcProfile.cs
     /// </remarks>
-    public sealed class IptcProfile
+    public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     {
         private Collection<IptcValue> values;
-
-        private byte[] data;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IptcProfile"/> class.
         /// </summary>
         public IptcProfile()
+            : this((byte[])null)
         {
         }
 
@@ -34,8 +33,34 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         /// <param name="data">The byte array to read the iptc profile from.</param>
         public IptcProfile(byte[] data)
         {
-            this.data = data;
+            this.Data = data;
         }
+
+        private IptcProfile(IptcProfile other)
+        {
+            Guard.NotNull(other, nameof(other));
+
+            if (other.values != null)
+            {
+                this.values = new Collection<IptcValue>();
+
+                foreach (IptcValue value in other.Values)
+                {
+                    this.values.Add(value.DeepClone());
+                }
+            }
+
+            if (other.Data != null)
+            {
+                this.Data = new byte[other.Data.Length];
+                other.Data.AsSpan().CopyTo(this.Data);
+            }
+        }
+
+        /// <summary>
+        /// Gets the byte data of the IPTC profile.
+        /// </summary>
+        public byte[] Data { get; private set; }
 
         /// <summary>
         /// Gets the values of this iptc profile.
@@ -48,6 +73,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 return this.values;
             }
         }
+
+        /// <inheritdoc/>
+        public IptcProfile DeepClone() => new IptcProfile(this);
 
         /// <summary>
         /// Returns the value with the specified tag.
@@ -143,19 +171,19 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 length += value.Length + 5;
             }
 
-            this.data = new byte[length];
+            this.Data = new byte[length];
 
             int i = 0;
             foreach (IptcValue value in this.Values)
             {
-                this.data[i++] = 28;
-                this.data[i++] = 2;
-                this.data[i++] = (byte)value.Tag;
-                this.data[i++] = (byte)(value.Length >> 8);
-                this.data[i++] = (byte)value.Length;
+                this.Data[i++] = 28;
+                this.Data[i++] = 2;
+                this.Data[i++] = (byte)value.Tag;
+                this.Data[i++] = (byte)(value.Length >> 8);
+                this.Data[i++] = (byte)value.Length;
                 if (value.Length > 0)
                 {
-                    Buffer.BlockCopy(value.ToByteArray(), 0, this.data, i, value.Length);
+                    Buffer.BlockCopy(value.ToByteArray(), 0, this.Data, i, value.Length);
                     i += value.Length;
                 }
             }
@@ -170,30 +198,30 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
             this.values = new Collection<IptcValue>();
 
-            if (this.data == null || this.data[0] != 0x1c)
+            if (this.Data == null || this.Data[0] != 0x1c)
             {
                 return;
             }
 
             int i = 0;
-            while (i + 4 < this.data.Length)
+            while (i + 4 < this.Data.Length)
             {
-                if (this.data[i++] != 28)
+                if (this.Data[i++] != 28)
                 {
                     continue;
                 }
 
                 i++;
 
-                var tag = (IptcTag)this.data[i++];
+                var tag = (IptcTag)this.Data[i++];
 
-                int count = BinaryPrimitives.ReadInt16BigEndian(this.data.AsSpan(i, 2));
+                int count = BinaryPrimitives.ReadInt16BigEndian(this.Data.AsSpan(i, 2));
                 i += 2;
 
                 var iptcData = new byte[count];
-                if ((count > 0) && (i + count <= this.data.Length))
+                if ((count > 0) && (i + count <= this.Data.Length))
                 {
-                    Buffer.BlockCopy(this.data, i, iptcData, 0, count);
+                    Buffer.BlockCopy(this.Data, i, iptcData, 0, count);
                     this.values.Add(new IptcValue(tag, iptcData));
                 }
 

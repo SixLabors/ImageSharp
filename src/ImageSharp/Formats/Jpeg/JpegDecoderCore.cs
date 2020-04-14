@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -46,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private readonly byte[] markerBuffer = new byte[2];
 
         /// <summary>
-        /// The DC Huffman tables
+        /// The DC Huffman tables.
         /// </summary>
         private HuffmanTable[] dcHuffmanTables;
 
@@ -56,37 +57,47 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private HuffmanTable[] acHuffmanTables;
 
         /// <summary>
-        /// The reset interval determined by RST markers
+        /// The reset interval determined by RST markers.
         /// </summary>
         private ushort resetInterval;
 
         /// <summary>
-        /// Whether the image has an EXIF marker
+        /// Whether the image has an EXIF marker.
         /// </summary>
         private bool isExif;
 
         /// <summary>
-        /// Contains exif data
+        /// Contains exif data.
         /// </summary>
         private byte[] exifData;
 
         /// <summary>
-        /// Whether the image has an ICC marker
+        /// Whether the image has an ICC marker.
         /// </summary>
         private bool isIcc;
 
         /// <summary>
-        /// Contains ICC data
+        /// Contains ICC data.
         /// </summary>
         private byte[] iccData;
 
         /// <summary>
-        /// Contains information about the JFIF marker
+        /// Whether the image has a IPTC data.
+        /// </summary>
+        private bool isIptc;
+
+        /// <summary>
+        /// Contains IPTC data.
+        /// </summary>
+        private byte[] iptcData;
+
+        /// <summary>
+        /// Contains information about the JFIF marker.
         /// </summary>
         private JFifMarker jFif;
 
         /// <summary>
-        /// Contains information about the Adobe marker
+        /// Contains information about the Adobe marker.
         /// </summary>
         private AdobeMarker adobe;
 
@@ -213,6 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.ParseStream(stream);
             this.InitExifProfile();
             this.InitIccProfile();
+            this.InitIptcProfile();
             this.InitDerivedMetadataProperties();
             return this.PostProcessIntoImage<TPixel>();
         }
@@ -226,6 +238,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.ParseStream(stream, true);
             this.InitExifProfile();
             this.InitIccProfile();
+            this.InitIptcProfile();
             this.InitDerivedMetadataProperties();
 
             return new ImageInfo(new PixelTypeInfo(this.BitsPerPixel), this.ImageWidth, this.ImageHeight, this.Metadata);
@@ -344,8 +357,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.APP10:
                         case JpegConstants.Markers.APP11:
                         case JpegConstants.Markers.APP12:
-                        case JpegConstants.Markers.APP13:
                             this.InputStream.Skip(remaining);
+                            break;
+
+                        case JpegConstants.Markers.APP13:
+                            this.ProcessApp13Marker(remaining);
                             break;
 
                         case JpegConstants.Markers.APP14:
@@ -434,6 +450,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 {
                     this.Metadata.IccProfile = profile;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Initializes the IPTC profile.
+        /// </summary>
+        private void InitIptcProfile()
+        {
+            if (this.isIptc)
+            {
+                var profile = new IptcProfile(this.iptcData);
+                this.Metadata.IptcProfile = profile;
             }
         }
 
@@ -580,6 +608,80 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 // Not an ICC profile we can handle. Skip the remaining bytes so we can carry on and ignore this.
                 this.InputStream.Skip(remaining);
             }
+        }
+
+        /// <summary>
+        /// Processes a App13 marker, which contains IPTC data stored with Adobe Photoshop.
+        /// The content of an APP13 segment is formed by an identifier string followed by a sequence of resource data blocks.
+        /// </summary>
+        /// <param name="remaining">The remaining bytes in the segment block.</param>
+        private void ProcessApp13Marker(int remaining)
+        {
+            if (remaining < ProfileResolver.AdobePhotoshopApp13Marker.Length || this.IgnoreMetadata)
+            {
+                this.InputStream.Skip(remaining);
+                return;
+            }
+
+            var identifier = new byte[ProfileResolver.AdobePhotoshopApp13Marker.Length];
+            this.InputStream.Read(identifier, 0, identifier.Length);
+            remaining -= identifier.Length;
+            if (ProfileResolver.IsProfile(identifier, ProfileResolver.AdobePhotoshopApp13Marker))
+            {
+                var resourceBlockData = new byte[remaining];
+                this.InputStream.Read(resourceBlockData, 0, remaining);
+                Span<byte> blockDataSpan = resourceBlockData.AsSpan();
+
+                while (blockDataSpan.Length > 10)
+                 {
+                    if (!ProfileResolver.IsProfile(blockDataSpan.Slice(0, 4), ProfileResolver.AdobeImageResourceBlockMarker))
+                    {
+                        return;
+                    }
+
+                    blockDataSpan = blockDataSpan.Slice(4);
+                    Span<byte> imageResourceBlockId = blockDataSpan.Slice(0, 2);
+                    if (ProfileResolver.IsProfile(imageResourceBlockId, ProfileResolver.AdobeIptcMarker))
+                    {
+                        var resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
+                        var resourceDataSize = ReadResourceDataLength(blockDataSpan, resourceBlockNameLength);
+                        this.isIptc = true;
+                        this.iptcData = blockDataSpan.Slice(2 + resourceBlockNameLength + 4, resourceDataSize).ToArray();
+                        break;
+                    }
+                    else
+                    {
+                        var resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
+                        var resourceDataSize = ReadResourceDataLength(blockDataSpan, resourceBlockNameLength);
+                        blockDataSpan = blockDataSpan.Slice(2 + resourceBlockNameLength + 4 + resourceDataSize);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reads the adobe image resource block name: a Pascal string (padded to make size even).
+        /// </summary>
+        /// <param name="blockDataSpan">The span holding the block resource data.</param>
+        /// <returns>The length of the name.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int ReadImageResourceNameLength(Span<byte> blockDataSpan)
+        {
+            byte nameLength = blockDataSpan[2];
+            var nameDataSize = nameLength == 0 ? 2 : nameLength;
+            return nameDataSize;
+        }
+
+        /// <summary>
+        /// Reads the length of a adobe image resource data block.
+        /// </summary>
+        /// <param name="blockDataSpan">The span holding the block resource data.</param>
+        /// <param name="resourceBlockNameLength">The length of the block name.</param>
+        /// <returns>The block length.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int ReadResourceDataLength(Span<byte> blockDataSpan, int resourceBlockNameLength)
+        {
+            return BinaryPrimitives.ReadInt32BigEndian(blockDataSpan.Slice(2 + resourceBlockNameLength, 4));
         }
 
         /// <summary>

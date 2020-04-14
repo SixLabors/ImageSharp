@@ -9,10 +9,26 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
     /// <summary>
     /// A value of the iptc profile.
     /// </summary>
-    public sealed class IptcValue
+    public sealed class IptcValue : IDeepCloneable<IptcValue>
     {
         private byte[] data;
         private Encoding encoding;
+
+        internal IptcValue(IptcValue other)
+        {
+            if (other.data != null)
+            {
+                this.data = new byte[other.data.Length];
+                other.data.AsSpan().CopyTo(this.data);
+            }
+
+            if (other.Encoding != null)
+            {
+                this.Encoding = (Encoding)other.Encoding.Clone();
+            }
+
+            this.Tag = other.Tag;
+        }
 
         internal IptcValue(IptcTag tag, byte[] value)
         {
@@ -73,6 +89,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         /// Gets the length of the value.
         /// </summary>
         public int Length => this.data.Length;
+
+        /// <inheritdoc/>
+        public IptcValue DeepClone() => new IptcValue(this);
 
         /// <summary>
         /// Determines whether the specified object is equal to the current <see cref="IptcValue"/>.

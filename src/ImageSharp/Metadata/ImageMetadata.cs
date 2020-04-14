@@ -66,6 +66,7 @@ namespace SixLabors.ImageSharp.Metadata
 
             this.ExifProfile = other.ExifProfile?.DeepClone();
             this.IccProfile = other.IccProfile?.DeepClone();
+            this.IptcProfile = other.IptcProfile?.DeepClone();
         }
 
         /// <summary>

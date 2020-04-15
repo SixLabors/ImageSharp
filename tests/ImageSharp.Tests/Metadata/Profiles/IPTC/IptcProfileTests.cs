@@ -45,6 +45,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             }
         }
 
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.App13WithEmptyIptc, PixelTypes.Rgba32)]
+        public void ReadApp13_WithEmptyIptc_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            Assert.Null(image.Metadata.IptcProfile);
+        }
+
         [Fact]
         public void IptcProfile_ToAndFromByteArray_Works()
         {

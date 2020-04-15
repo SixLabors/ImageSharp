@@ -163,6 +163,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string Testorig12bit = "Jpg/baseline/testorig12.jpg";
                 public const string YcckSubsample1222 = "Jpg/baseline/ycck-subsample-1222.jpg";
                 public const string Iptc = "Jpg/baseline/iptc.jpg";
+                public const string App13WithEmptyIptc = "Jpg/baseline/iptc-psAPP13-wIPTCempty.jpg";
 
                 public static readonly string[] All =
                 {

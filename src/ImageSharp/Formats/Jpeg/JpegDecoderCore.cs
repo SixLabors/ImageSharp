@@ -623,17 +623,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
-            var identifier = new byte[ProfileResolver.AdobePhotoshopApp13Marker.Length];
-            this.InputStream.Read(identifier, 0, identifier.Length);
-            remaining -= identifier.Length;
-            if (ProfileResolver.IsProfile(identifier, ProfileResolver.AdobePhotoshopApp13Marker))
+            this.InputStream.Read(this.temp, 0, ProfileResolver.AdobePhotoshopApp13Marker.Length);
+            remaining -= ProfileResolver.AdobePhotoshopApp13Marker.Length;
+            if (ProfileResolver.IsProfile(this.temp, ProfileResolver.AdobePhotoshopApp13Marker))
             {
                 var resourceBlockData = new byte[remaining];
                 this.InputStream.Read(resourceBlockData, 0, remaining);
                 Span<byte> blockDataSpan = resourceBlockData.AsSpan();
 
-                while (blockDataSpan.Length > 10)
-                 {
+                while (blockDataSpan.Length > 12)
+                {
                     if (!ProfileResolver.IsProfile(blockDataSpan.Slice(0, 4), ProfileResolver.AdobeImageResourceBlockMarker))
                     {
                         return;

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
@@ -16,13 +17,13 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
 
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Iptc, PixelTypes.Rgba32)]
-        public void ReadIptcProfile<TPixel>(TestImageProvider<TPixel> provider)
+        public void ReadIptcMetadata_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(JpegDecoder))
             {
                 Assert.NotNull(image.Metadata.IptcProfile);
-                IEnumerable<IptcValue> iptcValues = image.Metadata.IptcProfile.Values;
+                var iptcValues = image.Metadata.IptcProfile.Values.ToList();
                 ContainsIptcValue(iptcValues, IptcTag.Caption, "description");
                 ContainsIptcValue(iptcValues, IptcTag.CaptionWriter, "description writer");
                 ContainsIptcValue(iptcValues, IptcTag.Headline, "headline");
@@ -42,6 +43,27 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
                 ContainsIptcValue(iptcValues, IptcTag.Keyword, "keywords");
                 ContainsIptcValue(iptcValues, IptcTag.CopyrightNotice, "copyright");
             }
+        }
+
+        [Fact]
+        public void IptcProfile_ToAndFromByteArray_Works()
+        {
+            // arrange
+            var profile = new IptcProfile();
+            var expectedCaptionWriter = "unittest";
+            var expectedCaption = "test";
+            profile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
+            profile.SetValue(IptcTag.Caption, expectedCaption);
+
+            // act
+            profile.UpdateData();
+            byte[] profileBytes = profile.Data;
+            var profileFromBytes = new IptcProfile(profileBytes);
+
+            // assert
+            var iptcValues = profileFromBytes.Values.ToList();
+            ContainsIptcValue(iptcValues, IptcTag.CaptionWriter, expectedCaptionWriter);
+            ContainsIptcValue(iptcValues, IptcTag.Caption, expectedCaption);
         }
 
         [Fact]
@@ -79,10 +101,44 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             Assert.NotEqual(iptcValue.Value, clone.Value);
         }
 
+        [Fact]
+        public void WritingImage_PreservesIptcProfile()
+        {
+            // arrange
+            var image = new Image<Rgba32>(1, 1);
+            image.Metadata.IptcProfile = new IptcProfile();
+            var expectedCaptionWriter = "unittest";
+            var expectedCaption = "test";
+            image.Metadata.IptcProfile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
+            image.Metadata.IptcProfile.SetValue(IptcTag.Caption, expectedCaption);
+
+            // act
+            Image<Rgba32> reloadedImage = WriteAndReadJpeg(image);
+
+            // assert
+            IptcProfile actual = reloadedImage.Metadata.IptcProfile;
+            Assert.NotNull(actual);
+            var iptcValues = actual.Values.ToList();
+            ContainsIptcValue(iptcValues, IptcTag.CaptionWriter, expectedCaptionWriter);
+            ContainsIptcValue(iptcValues, IptcTag.Caption, expectedCaption);
+        }
+
         private static void ContainsIptcValue(IEnumerable<IptcValue> values, IptcTag tag, string value)
         {
             Assert.True(values.Any(val => val.Tag == tag), $"Missing iptc tag {tag}");
             Assert.True(values.Contains(new IptcValue(tag, System.Text.Encoding.UTF8.GetBytes(value))), $"expected iptc value '{value}' was not found for tag '{tag}'");
+        }
+
+        private static Image<Rgba32> WriteAndReadJpeg(Image<Rgba32> image)
+        {
+            using (var memStream = new MemoryStream())
+            {
+                image.SaveAsJpeg(memStream);
+                image.Dispose();
+
+                memStream.Position = 0;
+                return Image.Load<Rgba32>(memStream);
+            }
         }
     }
 }

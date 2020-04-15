@@ -233,7 +233,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(metadata);
 
-            // Write Exif and ICC profiles
+            // Write Exif, ICC and IPTC profiles
             this.WriteProfiles(metadata);
 
             // Write the quantization tables.
@@ -708,18 +708,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             iptcProfile.UpdateData();
-            var data = iptcProfile.Data;
+            byte[] data = iptcProfile.Data;
             if (data.Length == 0)
             {
                 return;
             }
 
-            var app13length = data.Length + ProfileResolver.AdobeImageResourceBlockMarker.Length + ProfileResolver.AdobeIptcMarker.Length + 2 + 4;
-            this.WriteAppHeader(app13length, JpegConstants.Markers.APP13);
-            this.outputStream.Write(this.buffer, 0, 4);
+            var app13Length = 2 + ProfileResolver.AdobePhotoshopApp13Marker.Length +
+                              ProfileResolver.AdobeImageResourceBlockMarker.Length +
+                              ProfileResolver.AdobeIptcMarker.Length +
+                              2 + 4 + data.Length;
+            this.WriteAppHeader(app13Length, JpegConstants.Markers.APP13);
+            this.outputStream.Write(ProfileResolver.AdobePhotoshopApp13Marker);
             this.outputStream.Write(ProfileResolver.AdobeImageResourceBlockMarker);
             this.outputStream.Write(ProfileResolver.AdobeIptcMarker);
-            this.outputStream.WriteByte(0); // a null name consists of two bytes of 0.
+            this.outputStream.WriteByte(0); // a empty pascal string (padded to make size even)
             this.outputStream.WriteByte(0);
             BinaryPrimitives.WriteInt32BigEndian(this.buffer, data.Length);
             this.outputStream.Write(this.buffer, 0, 4);

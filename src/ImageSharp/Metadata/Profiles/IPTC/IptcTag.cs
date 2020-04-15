@@ -9,242 +9,247 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
     public enum IptcTag
     {
         /// <summary>
-        /// Unknown
+        /// Unknown.
         /// </summary>
         Unknown = -1,
 
         /// <summary>
-        /// Record version
+        /// Record version, not repeatable.
         /// </summary>
         RecordVersion = 0,
 
         /// <summary>
-        /// Object type
+        /// Object type, not repeatable.
         /// </summary>
         ObjectType = 3,
 
         /// <summary>
-        /// Object attribute
+        /// Object attribute.
         /// </summary>
         ObjectAttribute = 4,
 
         /// <summary>
-        /// Title
+        /// Object Name, not repeatable.
         /// </summary>
-        Title = 5,
+        Name = 5,
 
         /// <summary>
-        /// Edit status
+        /// Edit status, not repeatable.
         /// </summary>
         EditStatus = 7,
 
         /// <summary>
-        /// Editorial update
+        /// Editorial update, not repeatable.
         /// </summary>
         EditorialUpdate = 8,
 
         /// <summary>
-        /// Priority
+        /// Urgency, not repeatable.
         /// </summary>
-        Priority = 10,
+        Urgency = 10,
 
         /// <summary>
-        /// Category
+        /// Subject Reference.
+        /// </summary>
+        SubjectReference = 12,
+
+        /// <summary>
+        /// Category, not repeatable.
         /// </summary>
         Category = 15,
 
         /// <summary>
-        /// Supplemental categories
+        /// Supplemental categories.
         /// </summary>
         SupplementalCategories = 20,
 
         /// <summary>
-        /// Fixture identifier
+        /// Fixture identifier, not repeatable.
         /// </summary>
         FixtureIdentifier = 22,
 
         /// <summary>
-        /// Keyword
+        /// Keywords.
         /// </summary>
-        Keyword = 25,
+        Keywords = 25,
 
         /// <summary>
-        /// Location code
+        /// Location code.
         /// </summary>
         LocationCode = 26,
 
         /// <summary>
-        /// Location name
+        /// Location name.
         /// </summary>
         LocationName = 27,
 
         /// <summary>
-        /// Release date
+        /// Release date, not repeatable.
         /// </summary>
         ReleaseDate = 30,
 
         /// <summary>
-        /// Release time
+        /// Release time, not repeatable.
         /// </summary>
         ReleaseTime = 35,
 
         /// <summary>
-        /// Expiration date
+        /// Expiration date, not repeatable.
         /// </summary>
         ExpirationDate = 37,
 
         /// <summary>
-        /// Expiration time
+        /// Expiration time, not repeatable.
         /// </summary>
         ExpirationTime = 38,
 
         /// <summary>
-        /// Special instructions
+        /// Special instructions, not repeatable.
         /// </summary>
         SpecialInstructions = 40,
 
         /// <summary>
-        /// Action advised
+        /// Action advised, not repeatable.
         /// </summary>
         ActionAdvised = 42,
 
         /// <summary>
-        /// Reference service
+        /// Reference service.
         /// </summary>
         ReferenceService = 45,
 
         /// <summary>
-        /// Reference date
+        /// Reference date.
         /// </summary>
         ReferenceDate = 47,
 
         /// <summary>
-        /// ReferenceNumber
+        /// ReferenceNumber.
         /// </summary>
         ReferenceNumber = 50,
 
         /// <summary>
-        /// Created date
+        /// Created date, not repeatable.
         /// </summary>
         CreatedDate = 55,
 
         /// <summary>
-        /// Created time
+        /// Created time, not repeatable.
         /// </summary>
         CreatedTime = 60,
 
         /// <summary>
-        /// Digital creation date
+        /// Digital creation date, not repeatable.
         /// </summary>
         DigitalCreationDate = 62,
 
         /// <summary>
-        /// Digital creation time
+        /// Digital creation time, not repeatable.
         /// </summary>
         DigitalCreationTime = 63,
 
         /// <summary>
-        /// Originating program
+        /// Originating program, not repeatable.
         /// </summary>
         OriginatingProgram = 65,
 
         /// <summary>
-        /// Program version
+        /// Program version, not repeatable.
         /// </summary>
         ProgramVersion = 70,
 
         /// <summary>
-        /// Object cycle
+        /// Object cycle, not repeatable.
         /// </summary>
         ObjectCycle = 75,
 
         /// <summary>
-        /// Byline
+        /// Byline.
         /// </summary>
         Byline = 80,
 
         /// <summary>
-        /// Byline title
+        /// Byline title.
         /// </summary>
         BylineTitle = 85,
 
         /// <summary>
-        /// City
+        /// City, not repeatable.
         /// </summary>
         City = 90,
 
         /// <summary>
-        /// Sub location
+        /// Sub location, not repeatable.
         /// </summary>
         SubLocation = 92,
 
         /// <summary>
-        /// Province/State
+        /// Province/State, not repeatable.
         /// </summary>
         ProvinceState = 95,
 
         /// <summary>
-        /// Country code
+        /// Country code, not repeatable.
         /// </summary>
         CountryCode = 100,
 
         /// <summary>
-        /// Country
+        /// Country, not repeatable.
         /// </summary>
         Country = 101,
 
         /// <summary>
-        /// Original transmission reference
+        /// Original transmission reference, not repeatable.
         /// </summary>
         OriginalTransmissionReference = 103,
 
         /// <summary>
-        /// Headline
+        /// Headline, not repeatable.
         /// </summary>
         Headline = 105,
 
         /// <summary>
-        /// Credit
+        /// Credit, not repeatable.
         /// </summary>
         Credit = 110,
 
         /// <summary>
-        /// Source
+        /// Source, not repeatable.
         /// </summary>
         Source = 115,
 
         /// <summary>
-        /// Copyright notice
+        /// Copyright notice, not repeatable.
         /// </summary>
         CopyrightNotice = 116,
 
         /// <summary>
-        /// Contact
+        /// Contact.
         /// </summary>
         Contact = 118,
 
         /// <summary>
-        /// Caption
+        /// Caption, not repeatable.
         /// </summary>
         Caption = 120,
 
         /// <summary>
-        /// Local caption
+        /// Local caption.
         /// </summary>
         LocalCaption = 121,
 
         /// <summary>
-        /// Caption writer
+        /// Caption writer.
         /// </summary>
         CaptionWriter = 122,
 
         /// <summary>
-        /// Image type
+        /// Image type, not repeatable.
         /// </summary>
         ImageType = 130,
 
         /// <summary>
-        /// Image orientation
+        /// Image orientation, not repeatable.
         /// </summary>
         ImageOrientation = 131,
 

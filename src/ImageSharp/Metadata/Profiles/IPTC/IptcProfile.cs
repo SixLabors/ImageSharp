@@ -34,6 +34,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         public IptcProfile(byte[] data)
         {
             this.Data = data;
+            this.Initialize();
         }
 
         private IptcProfile(IptcProfile other)
@@ -99,7 +100,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         /// Removes the value with the specified tag.
         /// </summary>
         /// <param name="tag">The tag of the iptc value.</param>
-        /// <returns>True when the value was fount and removed.</returns>
+        /// <returns>True when the value was found and removed.</returns>
         public bool RemoveValue(IptcTag tag)
         {
             this.Initialize();
@@ -140,13 +141,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         {
             Guard.NotNull(encoding, nameof(encoding));
 
-            foreach (IptcValue iptcValue in this.Values)
+            if (!this.IsRepeatable(tag))
             {
-                if (iptcValue.Tag == tag)
+                foreach (IptcValue iptcValue in this.Values)
                 {
-                    iptcValue.Encoding = encoding;
-                    iptcValue.Value = value;
-                    return;
+                    if (iptcValue.Tag == tag)
+                    {
+                        iptcValue.Encoding = encoding;
+                        iptcValue.Value = value;
+                        return;
+                    }
                 }
             }
 
@@ -226,6 +230,51 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 }
 
                 i += count;
+            }
+        }
+
+        private bool IsRepeatable(IptcTag tag)
+        {
+            switch (tag)
+            {
+                case IptcTag.RecordVersion:
+                case IptcTag.ObjectType:
+                case IptcTag.Name:
+                case IptcTag.EditStatus:
+                case IptcTag.EditorialUpdate:
+                case IptcTag.Urgency:
+                case IptcTag.Category:
+                case IptcTag.FixtureIdentifier:
+                case IptcTag.ReleaseDate:
+                case IptcTag.ReleaseTime:
+                case IptcTag.ExpirationDate:
+                case IptcTag.ExpirationTime:
+                case IptcTag.SpecialInstructions:
+                case IptcTag.ActionAdvised:
+                case IptcTag.CreatedDate:
+                case IptcTag.CreatedTime:
+                case IptcTag.DigitalCreationDate:
+                case IptcTag.DigitalCreationTime:
+                case IptcTag.OriginatingProgram:
+                case IptcTag.ProgramVersion:
+                case IptcTag.ObjectCycle:
+                case IptcTag.City:
+                case IptcTag.SubLocation:
+                case IptcTag.ProvinceState:
+                case IptcTag.CountryCode:
+                case IptcTag.Country:
+                case IptcTag.OriginalTransmissionReference:
+                case IptcTag.Headline:
+                case IptcTag.Credit:
+                case IptcTag.Source:
+                case IptcTag.CopyrightNotice:
+                case IptcTag.Caption:
+                case IptcTag.ImageType:
+                case IptcTag.ImageOrientation:
+                    return false;
+
+                default:
+                    return true;
             }
         }
     }

@@ -668,6 +668,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             byte nameLength = blockDataSpan[2];
             var nameDataSize = nameLength == 0 ? 2 : nameLength;
+            if (nameDataSize % 2 != 0)
+            {
+                nameDataSize++;
+            }
+
             return nameDataSize;
         }
 

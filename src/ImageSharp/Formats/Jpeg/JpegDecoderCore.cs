@@ -644,9 +644,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     {
                         var resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
                         var resourceDataSize = ReadResourceDataLength(blockDataSpan, resourceBlockNameLength);
-                        this.isIptc = true;
-                        this.iptcData = blockDataSpan.Slice(2 + resourceBlockNameLength + 4, resourceDataSize).ToArray();
-                        break;
+                        if (resourceDataSize > 0)
+                        {
+                            this.isIptc = true;
+                            this.iptcData = blockDataSpan.Slice(2 + resourceBlockNameLength + 4, resourceDataSize).ToArray();
+                            break;
+                        }
                     }
                     else
                     {

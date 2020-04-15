@@ -32,15 +32,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
                 ContainsIptcValue(iptcValues, IptcTag.BylineTitle, "author title");
                 ContainsIptcValue(iptcValues, IptcTag.Credit, "credits");
                 ContainsIptcValue(iptcValues, IptcTag.Source, "source");
-                ContainsIptcValue(iptcValues, IptcTag.Title, "title");
+                ContainsIptcValue(iptcValues, IptcTag.Name, "title");
                 ContainsIptcValue(iptcValues, IptcTag.CreatedDate, "20200414");
                 ContainsIptcValue(iptcValues, IptcTag.City, "city");
                 ContainsIptcValue(iptcValues, IptcTag.SubLocation, "sublocation");
                 ContainsIptcValue(iptcValues, IptcTag.ProvinceState, "province-state");
                 ContainsIptcValue(iptcValues, IptcTag.Country, "country");
                 ContainsIptcValue(iptcValues, IptcTag.Category, "category");
-                ContainsIptcValue(iptcValues, IptcTag.Priority, "1");
-                ContainsIptcValue(iptcValues, IptcTag.Keyword, "keywords");
+                ContainsIptcValue(iptcValues, IptcTag.Urgency, "1");
+                ContainsIptcValue(iptcValues, IptcTag.Keywords, "keywords");
                 ContainsIptcValue(iptcValues, IptcTag.CopyrightNotice, "copyright");
             }
         }
@@ -130,6 +130,89 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             var iptcValues = actual.Values.ToList();
             ContainsIptcValue(iptcValues, IptcTag.CaptionWriter, expectedCaptionWriter);
             ContainsIptcValue(iptcValues, IptcTag.Caption, expectedCaption);
+        }
+
+        [Theory]
+        [InlineData(IptcTag.ObjectAttribute)]
+        [InlineData(IptcTag.SubjectReference)]
+        [InlineData(IptcTag.SupplementalCategories)]
+        [InlineData(IptcTag.Keywords)]
+        [InlineData(IptcTag.LocationCode)]
+        [InlineData(IptcTag.LocationName)]
+        [InlineData(IptcTag.ReferenceService)]
+        [InlineData(IptcTag.ReferenceDate)]
+        [InlineData(IptcTag.ReferenceNumber)]
+        [InlineData(IptcTag.Byline)]
+        [InlineData(IptcTag.BylineTitle)]
+        [InlineData(IptcTag.Contact)]
+        [InlineData(IptcTag.LocalCaption)]
+        [InlineData(IptcTag.CaptionWriter)]
+        public void IptcProfile_AddRepeatable_Works(IptcTag tag)
+        {
+            // arrange
+            var profile = new IptcProfile();
+            var expectedValue1 = "test";
+            var expectedValue2 = "another one";
+            profile.SetValue(tag, expectedValue1);
+
+            // act
+            profile.SetValue(tag, expectedValue2);
+
+            // assert
+            var values = profile.Values.ToList();
+            Assert.Equal(2, values.Count);
+            ContainsIptcValue(values, tag, expectedValue1);
+            ContainsIptcValue(values, tag, expectedValue2);
+        }
+
+        [Theory]
+        [InlineData(IptcTag.RecordVersion)]
+        [InlineData(IptcTag.ObjectType)]
+        [InlineData(IptcTag.Name)]
+        [InlineData(IptcTag.EditStatus)]
+        [InlineData(IptcTag.EditorialUpdate)]
+        [InlineData(IptcTag.Urgency)]
+        [InlineData(IptcTag.Category)]
+        [InlineData(IptcTag.FixtureIdentifier)]
+        [InlineData(IptcTag.ReleaseDate)]
+        [InlineData(IptcTag.ReleaseTime)]
+        [InlineData(IptcTag.ExpirationDate)]
+        [InlineData(IptcTag.ExpirationTime)]
+        [InlineData(IptcTag.SpecialInstructions)]
+        [InlineData(IptcTag.ActionAdvised)]
+        [InlineData(IptcTag.CreatedDate)]
+        [InlineData(IptcTag.CreatedTime)]
+        [InlineData(IptcTag.DigitalCreationDate)]
+        [InlineData(IptcTag.DigitalCreationTime)]
+        [InlineData(IptcTag.OriginatingProgram)]
+        [InlineData(IptcTag.ProgramVersion)]
+        [InlineData(IptcTag.ObjectCycle)]
+        [InlineData(IptcTag.City)]
+        [InlineData(IptcTag.SubLocation)]
+        [InlineData(IptcTag.ProvinceState)]
+        [InlineData(IptcTag.CountryCode)]
+        [InlineData(IptcTag.Country)]
+        [InlineData(IptcTag.OriginalTransmissionReference)]
+        [InlineData(IptcTag.Headline)]
+        [InlineData(IptcTag.Credit)]
+        [InlineData(IptcTag.CopyrightNotice)]
+        [InlineData(IptcTag.Caption)]
+        [InlineData(IptcTag.ImageType)]
+        [InlineData(IptcTag.ImageOrientation)]
+        public void IptcProfile_AddNoneRepeatable_DoesOverrideOldValue(IptcTag tag)
+        {
+            // arrange
+            var profile = new IptcProfile();
+            var expectedValue = "another one";
+            profile.SetValue(tag, "test");
+
+            // act
+            profile.SetValue(tag, expectedValue);
+
+            // assert
+            var values = profile.Values.ToList();
+            Assert.Equal(1, values.Count);
+            ContainsIptcValue(values, tag, expectedValue);
         }
 
         private static void ContainsIptcValue(IEnumerable<IptcValue> values, IptcTag tag, string value)

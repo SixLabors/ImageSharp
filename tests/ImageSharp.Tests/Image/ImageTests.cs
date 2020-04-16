@@ -27,7 +27,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     Assert.Equal(11, image.Width);
                     Assert.Equal(23, image.Height);
-                    Assert.Equal(11 * 23, image.GetPixelSpan().Length);
+                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
+                    Assert.Equal(11 * 23, imageSpan.Length);
                     image.ComparePixelBufferTo(default(Rgba32));
 
                     Assert.Equal(Configuration.Default, image.GetConfiguration());
@@ -43,7 +44,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     Assert.Equal(11, image.Width);
                     Assert.Equal(23, image.Height);
-                    Assert.Equal(11 * 23, image.GetPixelSpan().Length);
+                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
+                    Assert.Equal(11 * 23, imageSpan.Length);
                     image.ComparePixelBufferTo(default(Rgba32));
 
                     Assert.Equal(configuration, image.GetConfiguration());
@@ -60,7 +62,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     Assert.Equal(11, image.Width);
                     Assert.Equal(23, image.Height);
-                    Assert.Equal(11 * 23, image.GetPixelSpan().Length);
+                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
+                    Assert.Equal(11 * 23, imageSpan.Length);
                     image.ComparePixelBufferTo(color);
 
                     Assert.Equal(configuration, image.GetConfiguration());

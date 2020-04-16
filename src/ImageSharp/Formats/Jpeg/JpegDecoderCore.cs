@@ -644,10 +644,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     {
                         var resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
                         var resourceDataSize = ReadResourceDataLength(blockDataSpan, resourceBlockNameLength);
-                        if (resourceDataSize > 0)
+                        int dataStartIdx = 2 + resourceBlockNameLength + 4;
+                        if (resourceDataSize > 0 && blockDataSpan.Length >= dataStartIdx + resourceDataSize)
                         {
                             this.isIptc = true;
-                            this.iptcData = blockDataSpan.Slice(2 + resourceBlockNameLength + 4, resourceDataSize).ToArray();
+                            this.iptcData = blockDataSpan.Slice(dataStartIdx, resourceDataSize).ToArray();
                             break;
                         }
                     }
@@ -655,7 +656,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     {
                         var resourceBlockNameLength = ReadImageResourceNameLength(blockDataSpan);
                         var resourceDataSize = ReadResourceDataLength(blockDataSpan, resourceBlockNameLength);
-                        blockDataSpan = blockDataSpan.Slice(2 + resourceBlockNameLength + 4 + resourceDataSize);
+                        int dataStartIdx = 2 + resourceBlockNameLength + 4;
+                        if (blockDataSpan.Length < dataStartIdx + resourceDataSize)
+                        {
+                            // Not enough data or the resource data size is wrong.
+                            break;
+                        }
+
+                        blockDataSpan = blockDataSpan.Slice(dataStartIdx + resourceDataSize);
                     }
                 }
             }

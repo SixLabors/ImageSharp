@@ -700,8 +700,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Writes the IPTC metadata.
         /// </summary>
         /// <param name="iptcProfile">The iptc metadata to write.</param>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the IPTC profile size exceeds the limit of 65533 bytes.
+        /// </exception>
         private void WriteIptcProfile(IptcProfile iptcProfile)
         {
+            const int Max = 65533;
             if (iptcProfile is null || !iptcProfile.Values.Any())
             {
                 return;
@@ -712,6 +716,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             if (data.Length == 0)
             {
                 return;
+            }
+
+            if (data.Length > Max)
+            {
+                throw new ImageFormatException($"Iptc profile size exceeds limit of {Max} bytes");
             }
 
             var app13Length = 2 + ProfileResolver.AdobePhotoshopApp13Marker.Length +

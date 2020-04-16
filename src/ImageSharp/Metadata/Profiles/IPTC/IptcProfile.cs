@@ -79,42 +79,67 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         public IptcProfile DeepClone() => new IptcProfile(this);
 
         /// <summary>
-        /// Returns the value with the specified tag.
+        /// Returns all value with the specified tag.
         /// </summary>
         /// <param name="tag">The tag of the iptc value.</param>
-        /// <returns>The value with the specified tag.</returns>
-        public IptcValue GetValue(IptcTag tag)
+        /// <returns>The values found with the specified tag.</returns>
+        public List<IptcValue> GetValues(IptcTag tag)
         {
+            var values = new List<IptcValue>();
             foreach (IptcValue iptcValue in this.Values)
             {
                 if (iptcValue.Tag == tag)
                 {
-                    return iptcValue;
+                    values.Add(iptcValue);
                 }
             }
 
-            return null;
+            return values;
         }
 
         /// <summary>
-        /// Removes the value with the specified tag.
+        /// Removes all values with the specified tag.
         /// </summary>
-        /// <param name="tag">The tag of the iptc value.</param>
+        /// <param name="tag">The tag of the iptc value to remove.</param>
         /// <returns>True when the value was found and removed.</returns>
         public bool RemoveValue(IptcTag tag)
         {
             this.Initialize();
 
-            for (int i = 0; i < this.values.Count; i++)
+            bool removed = false;
+            for (int i = this.values.Count - 1; i >= 0; i--)
             {
                 if (this.values[i].Tag == tag)
                 {
                     this.values.RemoveAt(i);
-                    return true;
+                    removed = true;
                 }
             }
 
-            return false;
+            return removed;
+        }
+
+        /// <summary>
+        /// Removes values with the specified tag and value.
+        /// </summary>
+        /// <param name="tag">The tag of the iptc value to remove.</param>
+        /// <param name="value">The value of the iptc item to remove.</param>
+        /// <returns>True when the value was found and removed.</returns>
+        public bool RemoveValue(IptcTag tag, string value)
+        {
+            this.Initialize();
+
+            bool removed = false;
+            for (int i = this.values.Count - 1; i >= 0; i--)
+            {
+                if (this.values[i].Tag == tag && this.values[i].Value.Equals(value))
+                {
+                    this.values.RemoveAt(i);
+                    removed = true;
+                }
+            }
+
+            return removed;
         }
 
         /// <summary>

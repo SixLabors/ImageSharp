@@ -215,6 +215,55 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             ContainsIptcValue(values, tag, expectedValue);
         }
 
+        [Fact]
+        public void IptcProfile_RemoveByTag_RemovesAllEntrys()
+        {
+            // arange
+            var profile = new IptcProfile();
+            profile.SetValue(IptcTag.Byline, "test");
+            profile.SetValue(IptcTag.Byline, "test2");
+
+            // act
+            var result = profile.RemoveValue(IptcTag.Byline);
+
+            // assert
+            Assert.True(result, "removed result should be true");
+            Assert.Empty(profile.Values);
+        }
+
+        [Fact]
+        public void IptcProfile_RemoveByTagAndValue_Works()
+        {
+            // arange
+            var profile = new IptcProfile();
+            profile.SetValue(IptcTag.Byline, "test");
+            profile.SetValue(IptcTag.Byline, "test2");
+
+            // act
+            var result = profile.RemoveValue(IptcTag.Byline, "test2");
+
+            // assert
+            Assert.True(result, "removed result should be true");
+            ContainsIptcValue(profile.Values, IptcTag.Byline, "test");
+        }
+
+        [Fact]
+        public void IptcProfile_GetValue_RetrievesAllEntrys()
+        {
+            // arange
+            var profile = new IptcProfile();
+            profile.SetValue(IptcTag.Byline, "test");
+            profile.SetValue(IptcTag.Byline, "test2");
+            profile.SetValue(IptcTag.Caption, "test");
+
+            // act
+            List<IptcValue> result = profile.GetValues(IptcTag.Byline);
+
+            // assert
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+        }
+
         private static void ContainsIptcValue(IEnumerable<IptcValue> values, IptcTag tag, string value)
         {
             Assert.True(values.Any(val => val.Tag == tag), $"Missing iptc tag {tag}");

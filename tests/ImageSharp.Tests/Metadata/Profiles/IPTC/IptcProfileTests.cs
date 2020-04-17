@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,6 +15,31 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
     public class IptcProfileTests
     {
         private static JpegDecoder JpegDecoder => new JpegDecoder() { IgnoreMetadata = false };
+
+        public static IEnumerable<object[]> allIptcTags()
+        {
+            foreach (object tag in Enum.GetValues(typeof(IptcTag)))
+            {
+                yield return new object[] { tag };
+            }
+        }
+
+        [Theory]
+        [MemberData("allIptcTags")]
+        public void IptcProfile_SetValue_WithStrictOption_Works(IptcTag tag)
+        {
+            // arrange
+            var profile = new IptcProfile();
+            var value = new string('s', tag.MaxLength() + 1);
+            var expectedLength = tag.MaxLength();
+
+            // act
+            profile.SetValue(tag, value);
+
+            // assert
+            IptcValue actual = profile.GetValues(tag).First();
+            Assert.Equal(expectedLength, actual.Value.Length);
+        }
 
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Iptc, PixelTypes.Rgba32)]
@@ -91,16 +117,17 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
 
             // assert
             Assert.Equal(2, clone.Values.Count());
-            ContainsIptcValue(clone.Values, IptcTag.CaptionWriter, captionWriter);
-            ContainsIptcValue(clone.Values, IptcTag.Caption, "changed");
-            ContainsIptcValue(profile.Values, IptcTag.Caption, caption);
+            var cloneValues = clone.Values.ToList();
+            ContainsIptcValue(cloneValues, IptcTag.CaptionWriter, captionWriter);
+            ContainsIptcValue(cloneValues, IptcTag.Caption, "changed");
+            ContainsIptcValue(profile.Values.ToList(), IptcTag.Caption, caption);
         }
 
         [Fact]
         public void IptcValue_CloneIsDeep()
         {
             // arrange
-            var iptcValue = new IptcValue(IptcTag.Caption, System.Text.Encoding.UTF8, "test");
+            var iptcValue = new IptcValue(IptcTag.Caption, System.Text.Encoding.UTF8, "test", true);
 
             // act
             IptcValue clone = iptcValue.DeepClone();
@@ -132,6 +159,13 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             ContainsIptcValue(iptcValues, IptcTag.Caption, expectedCaption);
         }
 
+        [Fact]
+        public void IptcProfile_SetNewValue_RespectsMaxLength()
+        {
+            // arrange
+            var profile = new IptcProfile();
+        }
+
         [Theory]
         [InlineData(IptcTag.ObjectAttribute)]
         [InlineData(IptcTag.SubjectReference)]
@@ -153,10 +187,10 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             var profile = new IptcProfile();
             var expectedValue1 = "test";
             var expectedValue2 = "another one";
-            profile.SetValue(tag, expectedValue1);
+            profile.SetValue(tag, expectedValue1, false);
 
             // act
-            profile.SetValue(tag, expectedValue2);
+            profile.SetValue(tag, expectedValue2, false);
 
             // assert
             var values = profile.Values.ToList();
@@ -204,10 +238,10 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             // arrange
             var profile = new IptcProfile();
             var expectedValue = "another one";
-            profile.SetValue(tag, "test");
+            profile.SetValue(tag, "test", false);
 
             // act
-            profile.SetValue(tag, expectedValue);
+            profile.SetValue(tag, expectedValue, false);
 
             // assert
             var values = profile.Values.ToList();
@@ -244,7 +278,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
 
             // assert
             Assert.True(result, "removed result should be true");
-            ContainsIptcValue(profile.Values, IptcTag.Byline, "test");
+            ContainsIptcValue(profile.Values.ToList(), IptcTag.Byline, "test");
         }
 
         [Fact]
@@ -264,10 +298,10 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             Assert.Equal(2, result.Count);
         }
 
-        private static void ContainsIptcValue(IEnumerable<IptcValue> values, IptcTag tag, string value)
+        private static void ContainsIptcValue(List<IptcValue> values, IptcTag tag, string value)
         {
             Assert.True(values.Any(val => val.Tag == tag), $"Missing iptc tag {tag}");
-            Assert.True(values.Contains(new IptcValue(tag, System.Text.Encoding.UTF8.GetBytes(value))), $"expected iptc value '{value}' was not found for tag '{tag}'");
+            Assert.True(values.Contains(new IptcValue(tag, System.Text.Encoding.UTF8.GetBytes(value), false)), $"expected iptc value '{value}' was not found for tag '{tag}'");
         }
 
         private static Image<Rgba32> WriteAndReadJpeg(Image<Rgba32> image)

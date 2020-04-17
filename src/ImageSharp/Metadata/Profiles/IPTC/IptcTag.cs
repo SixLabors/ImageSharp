@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 {
     /// <summary>
-    /// All iptc tags.
+    /// All iptc tags relevant for images.
     /// </summary>
     public enum IptcTag
     {
@@ -14,222 +14,245 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         Unknown = -1,
 
         /// <summary>
-        /// Record version, not repeatable.
+        /// Record version identifying the version of the Information Interchange Model.
+        /// Not repeatable. Max length is 2.
         /// </summary>
         RecordVersion = 0,
 
         /// <summary>
-        /// Object type, not repeatable.
+        /// Object type, not repeatable. Max Length is 67.
         /// </summary>
         ObjectType = 3,
 
         /// <summary>
-        /// Object attribute.
+        /// Object attribute. Max length is 68.
         /// </summary>
         ObjectAttribute = 4,
 
         /// <summary>
-        /// Object Name, not repeatable.
+        /// Object Name, not repeatable. Max length is 64.
         /// </summary>
         Name = 5,
 
         /// <summary>
-        /// Edit status, not repeatable.
+        /// Edit status, not repeatable. Max length is 64.
         /// </summary>
         EditStatus = 7,
 
         /// <summary>
-        /// Editorial update, not repeatable.
+        /// Editorial update, not repeatable. Max length is 2.
         /// </summary>
         EditorialUpdate = 8,
 
         /// <summary>
-        /// Urgency, not repeatable.
+        /// Urgency, not repeatable. Max length is 2.
         /// </summary>
         Urgency = 10,
 
         /// <summary>
-        /// Subject Reference.
+        /// Subject Reference. Max length is 236.
         /// </summary>
         SubjectReference = 12,
 
         /// <summary>
-        /// Category, not repeatable.
+        /// Category, not repeatable. Max length is 3.
         /// </summary>
         Category = 15,
 
         /// <summary>
-        /// Supplemental categories.
+        /// Supplemental categories. Max length is 32.
         /// </summary>
         SupplementalCategories = 20,
 
         /// <summary>
-        /// Fixture identifier, not repeatable.
+        /// Fixture identifier, not repeatable. Max length is 32.
         /// </summary>
         FixtureIdentifier = 22,
 
         /// <summary>
-        /// Keywords.
+        /// Keywords. Max length is 64.
         /// </summary>
         Keywords = 25,
 
         /// <summary>
-        /// Location code.
+        /// Location code. Max length is 3.
         /// </summary>
         LocationCode = 26,
 
         /// <summary>
-        /// Location name.
+        /// Location name. Max length is 64.
         /// </summary>
         LocationName = 27,
 
         /// <summary>
-        /// Release date, not repeatable.
+        /// Release date. Format should be CCYYMMDD,
+        /// e.g. "19890317" indicates data for release on 17 March 1989.
+        /// Not repeatable, max length is 8.
         /// </summary>
         ReleaseDate = 30,
 
         /// <summary>
-        /// Release time, not repeatable.
+        /// Release time. Format should be HHMMSS±HHMM,
+        /// e.g. "090000-0500" indicates object for use after 0900 in
+        /// New York (five hours behind UTC)
+        /// Not repeatable, max length is 11.
         /// </summary>
         ReleaseTime = 35,
 
         /// <summary>
-        /// Expiration date, not repeatable.
+        /// Expiration date. Format should be CCYYMMDD,
+        /// e.g. "19890317" indicates data for release on 17 March 1989.
+        /// Not repeatable, max length is 8.
         /// </summary>
         ExpirationDate = 37,
 
         /// <summary>
-        /// Expiration time, not repeatable.
+        /// Expiration time. Format should be HHMMSS±HHMM,
+        /// e.g. "090000-0500" indicates object for use after 0900 in
+        /// New York (five hours behind UTC)
+        /// Not repeatable, max length is 11.
         /// </summary>
         ExpirationTime = 38,
 
         /// <summary>
-        /// Special instructions, not repeatable.
+        /// Special instructions, not repeatable. Max length is 256.
         /// </summary>
         SpecialInstructions = 40,
 
         /// <summary>
-        /// Action advised, not repeatable.
+        /// Action advised, not repeatable. Max length is 2.
         /// </summary>
         ActionAdvised = 42,
 
         /// <summary>
-        /// Reference service.
+        /// Reference service. Max length is 10.
         /// </summary>
         ReferenceService = 45,
 
         /// <summary>
-        /// Reference date.
+        /// Reference date. Format should be CCYYMMDD,
+        /// e.g. "19890317" indicates data for release on 17 March 1989.
+        /// Not repeatable, max length is 8.
         /// </summary>
         ReferenceDate = 47,
 
         /// <summary>
-        /// ReferenceNumber.
+        /// ReferenceNumber. Max length is 8.
         /// </summary>
         ReferenceNumber = 50,
 
         /// <summary>
-        /// Created date, not repeatable.
+        /// Created date. Format should be CCYYMMDD,
+        /// e.g. "19890317" indicates data for release on 17 March 1989.
+        /// Not repeatable, max length is 8.
         /// </summary>
         CreatedDate = 55,
 
         /// <summary>
-        /// Created time, not repeatable.
+        /// Created time. Format should be HHMMSS±HHMM,
+        /// e.g. "090000-0500" indicates object for use after 0900 in
+        /// New York (five hours behind UTC)
+        /// Not repeatable, max length is 11.
         /// </summary>
         CreatedTime = 60,
 
         /// <summary>
-        /// Digital creation date, not repeatable.
+        /// Digital creation date. Format should be CCYYMMDD,
+        /// e.g. "19890317" indicates data for release on 17 March 1989.
+        /// Not repeatable, max length is 8.
         /// </summary>
         DigitalCreationDate = 62,
 
         /// <summary>
-        /// Digital creation time, not repeatable.
+        /// Digital creation time. Format should be HHMMSS±HHMM,
+        /// e.g. "090000-0500" indicates object for use after 0900 in
+        /// New York (five hours behind UTC)
+        /// Not repeatable, max length is 11.
         /// </summary>
         DigitalCreationTime = 63,
 
         /// <summary>
-        /// Originating program, not repeatable.
+        /// Originating program, not repeatable. Max length is 32.
         /// </summary>
         OriginatingProgram = 65,
 
         /// <summary>
-        /// Program version, not repeatable.
+        /// Program version, not repeatable. Max length is 10.
         /// </summary>
         ProgramVersion = 70,
 
         /// <summary>
-        /// Object cycle, not repeatable.
+        /// Object cycle, not repeatable. Max length is 1.
         /// </summary>
         ObjectCycle = 75,
 
         /// <summary>
-        /// Byline.
+        /// Byline. Max length is 32.
         /// </summary>
         Byline = 80,
 
         /// <summary>
-        /// Byline title.
+        /// Byline title. Max length is 32.
         /// </summary>
         BylineTitle = 85,
 
         /// <summary>
-        /// City, not repeatable.
+        /// City, not repeatable. Max length is 32.
         /// </summary>
         City = 90,
 
         /// <summary>
-        /// Sub location, not repeatable.
+        /// Sub location, not repeatable. Max length is 32.
         /// </summary>
         SubLocation = 92,
 
         /// <summary>
-        /// Province/State, not repeatable.
+        /// Province/State, not repeatable. Max length is 32.
         /// </summary>
         ProvinceState = 95,
 
         /// <summary>
-        /// Country code, not repeatable.
+        /// Country code, not repeatable. Max length is 3.
         /// </summary>
         CountryCode = 100,
 
         /// <summary>
-        /// Country, not repeatable.
+        /// Country, not repeatable. Max length is 64.
         /// </summary>
         Country = 101,
 
         /// <summary>
-        /// Original transmission reference, not repeatable.
+        /// Original transmission reference, not repeatable. Max length is 32.
         /// </summary>
         OriginalTransmissionReference = 103,
 
         /// <summary>
-        /// Headline, not repeatable.
+        /// Headline, not repeatable. Max length is 256.
         /// </summary>
         Headline = 105,
 
         /// <summary>
-        /// Credit, not repeatable.
+        /// Credit, not repeatable. Max length is 32.
         /// </summary>
         Credit = 110,
 
         /// <summary>
-        /// Source, not repeatable.
+        /// Source, not repeatable. Max length is 32.
         /// </summary>
         Source = 115,
 
         /// <summary>
-        /// Copyright notice, not repeatable.
+        /// Copyright notice, not repeatable. Max length is 128.
         /// </summary>
         CopyrightNotice = 116,
 
         /// <summary>
-        /// Contact.
+        /// Contact. Max length 128.
         /// </summary>
         Contact = 118,
 
         /// <summary>
-        /// Caption, not repeatable.
+        /// Caption, not repeatable. Max length is 2000.
         /// </summary>
         Caption = 120,
 
@@ -239,17 +262,17 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         LocalCaption = 121,
 
         /// <summary>
-        /// Caption writer.
+        /// Caption writer. Max length is 32.
         /// </summary>
         CaptionWriter = 122,
 
         /// <summary>
-        /// Image type, not repeatable.
+        /// Image type, not repeatable. Max length is 2.
         /// </summary>
         ImageType = 130,
 
         /// <summary>
-        /// Image orientation, not repeatable.
+        /// Image orientation, not repeatable. Max length is 1.
         /// </summary>
         ImageOrientation = 131,
 

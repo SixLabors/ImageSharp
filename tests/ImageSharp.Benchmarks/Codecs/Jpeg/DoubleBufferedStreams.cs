@@ -19,8 +19,16 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         private MemoryStream stream2;
         private MemoryStream stream3;
         private MemoryStream stream4;
+        private MemoryStream stream5;
+        private MemoryStream stream6;
+        private MemoryStream stream7;
+        private MemoryStream stream8;
         private DoubleBufferedStreamReader reader1;
         private DoubleBufferedStreamReader reader2;
+        private BufferedReadStream bufferedStream1;
+        private BufferedReadStream bufferedStream2;
+        private BufferedReadStream2 bufferedStream3;
+        private BufferedReadStream2 bufferedStream4;
 
         [GlobalSetup]
         public void CreateStreams()
@@ -29,8 +37,16 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             this.stream2 = new MemoryStream(this.buffer);
             this.stream3 = new MemoryStream(this.buffer);
             this.stream4 = new MemoryStream(this.buffer);
+            this.stream5 = new MemoryStream(this.buffer);
+            this.stream6 = new MemoryStream(this.buffer);
+            this.stream7 = new MemoryStream(this.buffer);
+            this.stream8 = new MemoryStream(this.buffer);
             this.reader1 = new DoubleBufferedStreamReader(Configuration.Default.MemoryAllocator, this.stream2);
             this.reader2 = new DoubleBufferedStreamReader(Configuration.Default.MemoryAllocator, this.stream2);
+            this.bufferedStream1 = new BufferedReadStream(this.stream5);
+            this.bufferedStream2 = new BufferedReadStream(this.stream6);
+            this.bufferedStream3 = new BufferedReadStream2(this.stream7);
+            this.bufferedStream4 = new BufferedReadStream2(this.stream8);
         }
 
         [GlobalCleanup]
@@ -40,22 +56,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             this.stream2?.Dispose();
             this.stream3?.Dispose();
             this.stream4?.Dispose();
+            this.stream5?.Dispose();
+            this.stream6?.Dispose();
             this.reader1?.Dispose();
             this.reader2?.Dispose();
-        }
-
-        [Benchmark(Baseline = true)]
-        public int StandardStreamReadByte()
-        {
-            int r = 0;
-            Stream stream = this.stream1;
-
-            for (int i = 0; i < stream.Length; i++)
-            {
-                r += stream.ReadByte();
-            }
-
-            return r;
+            this.bufferedStream1?.Dispose();
+            this.bufferedStream2?.Dispose();
+            this.bufferedStream3?.Dispose();
+            this.bufferedStream4?.Dispose();
         }
 
         [Benchmark]
@@ -68,20 +76,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             for (int i = 0; i < stream.Length / 2; i++)
             {
                 r += stream.Read(b, 0, 2);
-            }
-
-            return r;
-        }
-
-        [Benchmark]
-        public int DoubleBufferedStreamReadByte()
-        {
-            int r = 0;
-            DoubleBufferedStreamReader reader = this.reader1;
-
-            for (int i = 0; i < reader.Length; i++)
-            {
-                r += reader.ReadByte();
             }
 
             return r;
@@ -103,7 +97,93 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark]
-        public int SimpleReadByte()
+        public int BufferedStreamRead()
+        {
+            int r = 0;
+            BufferedReadStream reader = this.bufferedStream2;
+            byte[] b = this.chunk2;
+
+            for (int i = 0; i < reader.Length / 2; i++)
+            {
+                r += reader.Read(b, 0, 2);
+            }
+
+            return r;
+        }
+
+        [Benchmark]
+        public int BufferedStreamWrapRead()
+        {
+            int r = 0;
+            BufferedReadStream2 reader = this.bufferedStream3;
+            byte[] b = this.chunk2;
+
+            for (int i = 0; i < reader.Length / 2; i++)
+            {
+                r += reader.Read(b, 0, 2);
+            }
+
+            return r;
+        }
+
+        [Benchmark(Baseline = true)]
+        public int StandardStreamReadByte()
+        {
+            int r = 0;
+            Stream stream = this.stream1;
+
+            for (int i = 0; i < stream.Length; i++)
+            {
+                r += stream.ReadByte();
+            }
+
+            return r;
+        }
+
+        [Benchmark]
+        public int DoubleBufferedStreamReadByte()
+        {
+            int r = 0;
+            DoubleBufferedStreamReader reader = this.reader1;
+
+            for (int i = 0; i < reader.Length; i++)
+            {
+                r += reader.ReadByte();
+            }
+
+            return r;
+        }
+
+        [Benchmark]
+        public int BufferedStreamReadByte()
+        {
+            int r = 0;
+            BufferedReadStream reader = this.bufferedStream2;
+
+            for (int i = 0; i < reader.Length; i++)
+            {
+                r += reader.ReadByte();
+            }
+
+            return r;
+        }
+
+        [Benchmark]
+        public int BufferedStreamWrapReadByte()
+        {
+            int r = 0;
+            BufferedReadStream2 reader = this.bufferedStream4;
+
+            for (int i = 0; i < reader.Length; i++)
+            {
+                r += reader.ReadByte();
+            }
+
+            return r;
+        }
+
+        [Benchmark]
+        public int ArrayReadByte()
         {
             byte[] b = this.buffer;
             int r = 0;

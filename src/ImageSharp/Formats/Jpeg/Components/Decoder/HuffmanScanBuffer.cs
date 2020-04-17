@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.IO;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </summary>
     internal struct HuffmanScanBuffer
     {
-        private readonly DoubleBufferedStreamReader stream;
+        private readonly Stream stream;
 
         // The entropy encoded code buffer.
         private ulong data;
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // Whether there is no more good data to pull from the stream for the current mcu.
         private bool badData;
 
-        public HuffmanScanBuffer(DoubleBufferedStreamReader stream)
+        public HuffmanScanBuffer(Stream stream)
         {
             this.stream = stream;
             this.data = 0ul;

@@ -2,11 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using SixLabors.ImageSharp.Memory;
-#if !SUPPORTS_SPAN_STREAM
-using System.Buffers;
-#endif
 
 namespace SixLabors.ImageSharp
 {
@@ -40,7 +38,7 @@ namespace SixLabors.ImageSharp
         /// Skips the number of bytes in the given stream.
         /// </summary>
         /// <param name="stream">The stream.</param>
-        /// <param name="count">The count.</param>
+        /// <param name="count">A byte offset relative to the origin parameter.</param>
         public static void Skip(this Stream stream, int count)
         {
             if (count < 1)
@@ -51,21 +49,22 @@ namespace SixLabors.ImageSharp
             if (stream.CanSeek)
             {
                 stream.Seek(count, SeekOrigin.Current); // Position += count;
+                return;
             }
-            else
-            {
-                var foo = new byte[count];
-                while (count > 0)
-                {
-                    int bytesRead = stream.Read(foo, 0, count);
-                    if (bytesRead == 0)
-                    {
-                        break;
-                    }
 
-                    count -= bytesRead;
+            var buffer = ArrayPool<byte>.Shared.Rent(count);
+            while (count > 0)
+            {
+                int bytesRead = stream.Read(buffer, 0, count);
+                if (bytesRead == 0)
+                {
+                    break;
                 }
+
+                count -= bytesRead;
             }
+
+            ArrayPool<byte>.Shared.Return(buffer);
         }
 
         public static void Read(this Stream stream, IManagedByteBuffer buffer)

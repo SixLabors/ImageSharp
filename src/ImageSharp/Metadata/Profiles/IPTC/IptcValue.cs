@@ -28,21 +28,32 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             }
 
             this.Tag = other.Tag;
+            this.Strict = other.Strict;
         }
 
-        internal IptcValue(IptcTag tag, byte[] value)
+        internal IptcValue(IptcTag tag, byte[] value, bool strict)
         {
             Guard.NotNull(value, nameof(value));
 
+            this.Strict = strict;
             this.Tag = tag;
             this.data = value;
             this.encoding = Encoding.UTF8;
         }
 
-        internal IptcValue(IptcTag tag, Encoding encoding, string value)
+        internal IptcValue(IptcTag tag, Encoding encoding, string value, bool strict)
         {
+            this.Strict = strict;
             this.Tag = tag;
             this.encoding = encoding;
+            this.Value = value;
+        }
+
+        internal IptcValue(IptcTag tag, string value, bool strict)
+        {
+            this.Strict = strict;
+            this.Tag = tag;
+            this.encoding = Encoding.UTF8;
             this.Value = value;
         }
 
@@ -67,6 +78,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         public IptcTag Tag { get; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to be enforce value length restrictions according
+        /// to the specification.
+        /// </summary>
+        public bool Strict { get; set; }
+
+        /// <summary>
         /// Gets or sets the value.
         /// </summary>
         public string Value
@@ -76,11 +93,23 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             {
                 if (string.IsNullOrEmpty(value))
                 {
-                    this.data = new byte[0];
+                    this.data = Array.Empty<byte>();
                 }
                 else
                 {
-                    this.data = this.encoding.GetBytes(value);
+                    int maxLength = this.Tag.MaxLength();
+                    byte[] valueBytes;
+                    if (this.Strict && value.Length > maxLength)
+                    {
+                        var cappedValue = value.Substring(0, maxLength);
+                        valueBytes = this.encoding.GetBytes(cappedValue);
+                    }
+                    else
+                    {
+                        valueBytes = this.encoding.GetBytes(value);
+                    }
+
+                    this.data = valueBytes;
                 }
             }
         }

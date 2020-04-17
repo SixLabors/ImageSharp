@@ -37,6 +37,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             this.Initialize();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IptcProfile"/> class
+        /// by making a copy from another IPTC profile.
+        /// </summary>
+        /// <param name="other">The other IPTC profile, from which the clone should be made from.</param>
         private IptcProfile(IptcProfile other)
         {
             Guard.NotNull(other, nameof(other));
@@ -85,16 +90,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         /// <returns>The values found with the specified tag.</returns>
         public List<IptcValue> GetValues(IptcTag tag)
         {
-            var values = new List<IptcValue>();
+            var iptcValues = new List<IptcValue>();
             foreach (IptcValue iptcValue in this.Values)
             {
                 if (iptcValue.Tag == tag)
                 {
-                    values.Add(iptcValue);
+                    iptcValues.Add(iptcValue);
                 }
             }
 
-            return values;
+            return iptcValues;
         }
 
         /// <summary>
@@ -157,21 +162,26 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         }
 
         /// <summary>
-        /// Sets the value of the specified tag.
+        /// Sets the value for the specified tag.
         /// </summary>
         /// <param name="tag">The tag of the iptc value.</param>
         /// <param name="encoding">The encoding to use when storing the bytes.</param>
         /// <param name="value">The value.</param>
-        public void SetValue(IptcTag tag, Encoding encoding, string value)
+        /// <param name="strict">
+        /// Indicates if length restrictions from the specification should be followed strictly.
+        /// Defaults to true.
+        /// </param>
+        public void SetValue(IptcTag tag, Encoding encoding, string value, bool strict = true)
         {
             Guard.NotNull(encoding, nameof(encoding));
 
-            if (!this.IsRepeatable(tag))
+            if (!tag.IsRepeatable())
             {
                 foreach (IptcValue iptcValue in this.Values)
                 {
                     if (iptcValue.Tag == tag)
                     {
+                        iptcValue.Strict = strict;
                         iptcValue.Encoding = encoding;
                         iptcValue.Value = value;
                         return;
@@ -179,7 +189,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 }
             }
 
-            this.values.Add(new IptcValue(tag, encoding, value));
+            this.values.Add(new IptcValue(tag, encoding, value, strict));
         }
 
         /// <summary>
@@ -187,7 +197,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         /// </summary>
         /// <param name="tag">The tag of the iptc value.</param>
         /// <param name="value">The value.</param>
-        public void SetValue(IptcTag tag, string value) => this.SetValue(tag, Encoding.UTF8, value);
+        /// <param name="strict">
+        /// Indicates if length restrictions from the specification should be followed strictly.
+        /// Defaults to true.
+        /// </param>
+        public void SetValue(IptcTag tag, string value, bool strict = true) => this.SetValue(tag, Encoding.UTF8, value, strict);
 
         /// <summary>
         /// Updates the data of the profile.
@@ -251,55 +265,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 if ((count > 0) && (i + count <= this.Data.Length))
                 {
                     Buffer.BlockCopy(this.Data, i, iptcData, 0, count);
-                    this.values.Add(new IptcValue(tag, iptcData));
+                    this.values.Add(new IptcValue(tag, iptcData, false));
                 }
 
                 i += count;
-            }
-        }
-
-        private bool IsRepeatable(IptcTag tag)
-        {
-            switch (tag)
-            {
-                case IptcTag.RecordVersion:
-                case IptcTag.ObjectType:
-                case IptcTag.Name:
-                case IptcTag.EditStatus:
-                case IptcTag.EditorialUpdate:
-                case IptcTag.Urgency:
-                case IptcTag.Category:
-                case IptcTag.FixtureIdentifier:
-                case IptcTag.ReleaseDate:
-                case IptcTag.ReleaseTime:
-                case IptcTag.ExpirationDate:
-                case IptcTag.ExpirationTime:
-                case IptcTag.SpecialInstructions:
-                case IptcTag.ActionAdvised:
-                case IptcTag.CreatedDate:
-                case IptcTag.CreatedTime:
-                case IptcTag.DigitalCreationDate:
-                case IptcTag.DigitalCreationTime:
-                case IptcTag.OriginatingProgram:
-                case IptcTag.ProgramVersion:
-                case IptcTag.ObjectCycle:
-                case IptcTag.City:
-                case IptcTag.SubLocation:
-                case IptcTag.ProvinceState:
-                case IptcTag.CountryCode:
-                case IptcTag.Country:
-                case IptcTag.OriginalTransmissionReference:
-                case IptcTag.Headline:
-                case IptcTag.Credit:
-                case IptcTag.Source:
-                case IptcTag.CopyrightNotice:
-                case IptcTag.Caption:
-                case IptcTag.ImageType:
-                case IptcTag.ImageOrientation:
-                    return false;
-
-                default:
-                    return true;
             }
         }
     }

@@ -92,6 +92,7 @@ namespace SixLabors.ImageSharp.IO
                 }
                 else
                 {
+                    // TODO: Throw.
                     this.readerPosition = v;
                     this.stream.Seek(value, SeekOrigin.Begin);
                     this.readBufferIndex = BufferLength;
@@ -166,13 +167,19 @@ namespace SixLabors.ImageSharp.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override long Seek(long offset, SeekOrigin origin)
         {
-            if (origin == SeekOrigin.Begin)
+            switch (origin)
             {
-                this.Position = offset;
-            }
-            else
-            {
-                this.Position += offset;
+                case SeekOrigin.Begin:
+                    this.Position = offset;
+                    break;
+
+                case SeekOrigin.Current:
+                    this.Position += offset;
+                    break;
+
+                case SeekOrigin.End:
+                    this.Position = this.Length - offset;
+                    break;
             }
 
             return this.readerPosition;

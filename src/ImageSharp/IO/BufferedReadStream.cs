@@ -23,8 +23,6 @@ namespace SixLabors.ImageSharp.IO
 
         private readonly Stream stream;
 
-        private readonly int streamLength;
-
         private readonly byte[] readBuffer;
 
         private MemoryHandle readBufferHandle;
@@ -35,7 +33,7 @@ namespace SixLabors.ImageSharp.IO
         private int readBufferIndex;
 
         // Matches what the stream position would be without buffering
-        private int readerPosition;
+        private long readerPosition;
 
         private bool isDisposed;
 
@@ -58,7 +56,7 @@ namespace SixLabors.ImageSharp.IO
 
             this.stream = stream;
             this.Position = (int)stream.Position;
-            this.streamLength = (int)stream.Length;
+            this.Length = stream.Length;
 
             this.readBuffer = ArrayPool<byte>.Shared.Rent(BufferLength);
             this.readBufferHandle = new Memory<byte>(this.readBuffer).Pin();
@@ -71,30 +69,31 @@ namespace SixLabors.ImageSharp.IO
         /// <summary>
         /// Gets the length, in bytes, of the stream.
         /// </summary>
-        public override long Length => this.streamLength;
+        public override long Length { get; }
 
         /// <summary>
         /// Gets or sets the current position within the stream.
         /// </summary>
         public override long Position
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => this.readerPosition;
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 // Only reset readBufferIndex if we are out of bounds of our working buffer
                 // otherwise we should simply move the value by the diff.
-                int v = (int)value;
-                if (this.IsInReadBuffer(v, out int index))
+                if (this.IsInReadBuffer(value, out long index))
                 {
-                    this.readBufferIndex = index;
-                    this.readerPosition = v;
+                    this.readBufferIndex = (int)index;
+                    this.readerPosition = value;
                 }
                 else
                 {
-                    // TODO: Throw.
-                    this.readerPosition = v;
+                    // Base stream seek will throw for us if invalid.
                     this.stream.Seek(value, SeekOrigin.Begin);
+                    this.readerPosition = value;
                     this.readBufferIndex = BufferLength;
                 }
             }
@@ -113,7 +112,7 @@ namespace SixLabors.ImageSharp.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int ReadByte()
         {
-            if (this.readerPosition >= this.streamLength)
+            if (this.readerPosition >= this.Length)
             {
                 return -1;
             }
@@ -210,12 +209,9 @@ namespace SixLabors.ImageSharp.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int GetPositionDifference(int p) => p - this.readerPosition;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool IsInReadBuffer(int p, out int index)
+        private bool IsInReadBuffer(long newPosition, out long index)
         {
-            index = this.GetPositionDifference(p) + this.readBufferIndex;
+            index = newPosition - this.readerPosition + this.readBufferIndex;
             return index > -1 && index < BufferLength;
         }
 
@@ -270,18 +266,18 @@ namespace SixLabors.ImageSharp.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int GetCopyCount(int count)
         {
-            int n = this.streamLength - this.readerPosition;
+            long n = this.Length - this.readerPosition;
             if (n > count)
             {
-                n = count;
+                return count;
             }
 
             if (n < 0)
             {
-                n = 0;
+                return 0;
             }
 
-            return n;
+            return (int)n;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

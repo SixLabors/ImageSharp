@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp
@@ -43,7 +44,9 @@ namespace SixLabors.ImageSharp
             }
 
             var configOptions = context.Configuration.GetDefaultGraphicsOptions();
-            context.Properties[typeof(GraphicsOptions)] = configOptions;
+
+            // do not cache the fall back to config into the the processing context
+            // in case someone want to change the value on the config and expects it re trflow thru
             return configOptions;
         }
 
@@ -60,6 +63,8 @@ namespace SixLabors.ImageSharp
             }
 
             var configOptions = new GraphicsOptions();
+
+            // capture the fallback so the same instance will always be returned in case its mutated
             context.Properties[typeof(GraphicsOptions)] = configOptions;
             return configOptions;
         }

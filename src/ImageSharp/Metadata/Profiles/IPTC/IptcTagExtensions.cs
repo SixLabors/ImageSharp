@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
@@ -115,6 +115,47 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
                 default:
                     return true;
+            }
+        }
+
+        /// <summary>
+        /// Determines if the tag is a datetime tag which needs to be formatted as CCYYMMDD.
+        /// </summary>
+        /// <param name="tag">The tag to check.</param>
+        /// <returns>True, if its a datetime tag.</returns>
+        public static bool IsDate(this IptcTag tag)
+        {
+            switch (tag)
+            {
+                case IptcTag.CreatedDate:
+                case IptcTag.DigitalCreationDate:
+                case IptcTag.ExpirationDate:
+                case IptcTag.ReferenceDate:
+                case IptcTag.ReleaseDate:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Determines if the tag is a time tag which need to be formatted as HHMMSS±HHMM.
+        /// </summary>
+        /// <param name="tag">The tag to check.</param>
+        /// <returns>True, if its a time tag.</returns>
+        public static bool IsTime(this IptcTag tag)
+        {
+            switch (tag)
+            {
+                case IptcTag.CreatedTime:
+                case IptcTag.DigitalCreationTime:
+                case IptcTag.ExpirationTime:
+                case IptcTag.ReleaseTime:
+                    return true;
+
+                default:
+                    return false;
             }
         }
     }

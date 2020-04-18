@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
     {
         private static JpegDecoder JpegDecoder => new JpegDecoder() { IgnoreMetadata = false };
 
-        public static IEnumerable<object[]> allIptcTags()
+        public static IEnumerable<object[]> AllIptcTags()
         {
             foreach (object tag in Enum.GetValues(typeof(IptcTag)))
             {
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         }
 
         [Theory]
-        [MemberData("allIptcTags")]
+        [MemberData("AllIptcTags")]
         public void IptcProfile_SetValue_WithStrictOption_Works(IptcTag tag)
         {
             // arrange
@@ -39,6 +39,45 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             // assert
             IptcValue actual = profile.GetValues(tag).First();
             Assert.Equal(expectedLength, actual.Value.Length);
+        }
+
+        [Theory]
+        [InlineData(IptcTag.DigitalCreationDate)]
+        [InlineData(IptcTag.ExpirationDate)]
+        [InlineData(IptcTag.CreatedDate)]
+        [InlineData(IptcTag.ReferenceDate)]
+        [InlineData(IptcTag.ReleaseDate)]
+        public void IptcProfile_SetDateValue_Works(IptcTag tag)
+        {
+            // arrange
+            var profile = new IptcProfile();
+            var datetime = new DateTime(1994, 3, 17);
+
+            // act
+            profile.SetDateTimeValue(tag, datetime);
+
+            // assert
+            IptcValue actual = profile.GetValues(tag).First();
+            Assert.Equal("19940317", actual.Value);
+        }
+
+        [Theory]
+        [InlineData(IptcTag.CreatedTime)]
+        [InlineData(IptcTag.DigitalCreationTime)]
+        [InlineData(IptcTag.ExpirationTime)]
+        [InlineData(IptcTag.ReleaseTime)]
+        public void IptcProfile_SetTimeValue_Works(IptcTag tag)
+        {
+            // arrange
+            var profile = new IptcProfile();
+            DateTime datetime = new DateTimeOffset(new DateTime(1994, 3, 17, 14, 15, 16), new TimeSpan(1, 0, 0)).DateTime;
+
+            // act
+            profile.SetDateTimeValue(tag, datetime);
+
+            // assert
+            IptcValue actual = profile.GetValues(tag).First();
+            Assert.Equal("141516+0100", actual.Value);
         }
 
         [Theory]

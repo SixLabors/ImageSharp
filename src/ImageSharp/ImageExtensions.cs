@@ -103,14 +103,18 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Returns a Base64 encoded string from the given image.
+        /// The result is prepended with a Data URI <see href="https://en.wikipedia.org/wiki/Data_URI_scheme"/>
+        /// <para>
+        /// <example>
+        /// For example:
+        /// <see href="data:image/gif;base64,R0lGODlhAQABAIABAEdJRgAAACwAAAAAAQABAAACAkQBAA=="/>
+        /// </example>
+        /// </para>
         /// </summary>
-        /// <example><see href="data:image/gif;base64,R0lGODlhAQABAIABAEdJRgAAACwAAAAAAQABAAACAkQBAA=="/></example>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="source">The source image</param>
         /// <param name="format">The format.</param>
         /// <returns>The <see cref="string"/></returns>
-        public static string ToBase64String<TPixel>(this Image<TPixel> source, IImageFormat format)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public static string ToBase64String(this Image source, IImageFormat format)
         {
             using var stream = new MemoryStream();
             source.Save(stream, format);

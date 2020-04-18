@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
@@ -24,14 +25,57 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Fact]
+        public void UpdateDefaultOptionsOnProcessingContext_AlwaysNewInstance()
+        {
+            var option = new GraphicsOptions()
+            {
+                BlendPercentage = 0.9f
+            };
+            var config = new Configuration();
+            var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
+            context.SetDefaultOptions(option);
+
+            context.SetDefaultOptions(o =>
+            {
+                Assert.Equal(0.9f, o.BlendPercentage); // has origional values
+                o.BlendPercentage = 0.4f;
+            });
+
+            var returnedOption = context.GetDefaultGraphicsOptions();
+            Assert.Equal(0.4f, returnedOption.BlendPercentage);
+            Assert.Equal(0.9f, option.BlendPercentage); // hasn't been mutated
+        }
+
+        [Fact]
         public void SetDefaultOptionsOnConfiguration()
         {
             var option = new GraphicsOptions();
             var config = new Configuration();
 
-            config.SetDefaultOptions(option);
+            config.SetDefaultGraphicsOptions(option);
 
             Assert.Equal(option, config.Properties[typeof(GraphicsOptions)]);
+        }
+
+        [Fact]
+        public void UpdateDefaultOptionsOnConfiguration_AlwaysNewInstance()
+        {
+            var option = new GraphicsOptions()
+            {
+                BlendPercentage = 0.9f
+            };
+            var config = new Configuration();
+            config.SetDefaultGraphicsOptions(option);
+
+            config.SetDefaultGraphicsOptions(o =>
+            {
+                Assert.Equal(0.9f, o.BlendPercentage); // has origional values
+                o.BlendPercentage = 0.4f;
+            });
+
+            var returnedOption = config.GetDefaultGraphicsOptions();
+            Assert.Equal(0.4f, returnedOption.BlendPercentage);
+            Assert.Equal(0.9f, option.BlendPercentage); // hasn't been mutated
         }
 
         [Fact]
@@ -41,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests
 
             var options = config.GetDefaultGraphicsOptions();
             Assert.NotNull(options);
-            config.SetDefaultOptions((GraphicsOptions)null);
+            config.SetDefaultGraphicsOptions((GraphicsOptions)null);
 
             var options2 = config.GetDefaultGraphicsOptions();
             Assert.NotNull(options2);
@@ -107,7 +151,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             var option = new GraphicsOptions();
             var config = new Configuration();
-            config.SetDefaultOptions(option);
+            config.SetDefaultGraphicsOptions(option);
             var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
             var ctxOptions = context.GetDefaultGraphicsOptions();

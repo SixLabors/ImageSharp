@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -26,6 +27,8 @@ namespace SixLabors.ImageSharp
         private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(CreateDefaultInstance);
 
         private int maxDegreeOfParallelism = Environment.ProcessorCount;
+
+        private Dictionary<object, object> properties = new Dictionary<object, object>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
@@ -72,6 +75,12 @@ namespace SixLabors.ImageSharp
                 this.maxDegreeOfParallelism = value;
             }
         }
+
+        /// <summary>
+        /// Gets a set of properties for the Congiguration.
+        /// </summary>
+        /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
+        public IDictionary<object, object> Properties => this.properties;
 
         /// <summary>
         /// Gets the currently registered <see cref="IImageFormat"/>s.

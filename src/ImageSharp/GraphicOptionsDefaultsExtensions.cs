@@ -15,6 +15,30 @@ namespace SixLabors.ImageSharp
         /// Sets the default options against the image processing context.
         /// </summary>
         /// <param name="context">The image processing context to store default against.</param>
+        /// <param name="optionsBuilder">The action to update instance of the default options used.</param>
+        public static void SetDefaultOptions(this IImageProcessingContext context, Action<GraphicsOptions> optionsBuilder)
+        {
+            var cloned = context.GetDefaultGraphicsOptions().DeepClone();
+            optionsBuilder(cloned);
+            context.Properties[typeof(GraphicsOptions)] = cloned;
+        }
+
+        /// <summary>
+        /// Sets the default options against the configuration.
+        /// </summary>
+        /// <param name="context">The image processing context to store default against.</param>
+        /// <param name="optionsBuilder">The default options to use.</param>
+        public static void SetDefaultGraphicsOptions(this Configuration context, Action<GraphicsOptions> optionsBuilder)
+        {
+            var cloned = context.GetDefaultGraphicsOptions().DeepClone();
+            optionsBuilder(cloned);
+            context.Properties[typeof(GraphicsOptions)] = cloned;
+        }
+
+        /// <summary>
+        /// Sets the default options against the image processing context.
+        /// </summary>
+        /// <param name="context">The image processing context to store default against.</param>
         /// <param name="options">The default options to use.</param>
         public static void SetDefaultOptions(this IImageProcessingContext context, GraphicsOptions options)
         {
@@ -26,7 +50,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="context">The image processing context to store default against.</param>
         /// <param name="options">The default options to use.</param>
-        public static void SetDefaultOptions(this Configuration context, GraphicsOptions options)
+        public static void SetDefaultGraphicsOptions(this Configuration context, GraphicsOptions options)
         {
             context.Properties[typeof(GraphicsOptions)] = options;
         }

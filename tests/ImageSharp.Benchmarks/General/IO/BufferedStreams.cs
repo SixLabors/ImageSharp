@@ -6,10 +6,10 @@ using System.IO;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.IO;
 
-namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
+namespace SixLabors.ImageSharp.Benchmarks.IO
 {
     [Config(typeof(Config.ShortClr))]
-    public class DoubleBufferedStreams
+    public class BufferedStreams
     {
         private readonly byte[] buffer = CreateTestBytes();
         private readonly byte[] chunk1 = new byte[2];
@@ -21,14 +21,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         private MemoryStream stream4;
         private MemoryStream stream5;
         private MemoryStream stream6;
-        private MemoryStream stream7;
-        private MemoryStream stream8;
-        private DoubleBufferedStreamReader reader1;
-        private DoubleBufferedStreamReader reader2;
         private BufferedReadStream bufferedStream1;
         private BufferedReadStream bufferedStream2;
-        private BufferedReadStream2 bufferedStream3;
-        private BufferedReadStream2 bufferedStream4;
+        private BufferedReadStreamWrapper bufferedStreamWrap1;
+        private BufferedReadStreamWrapper bufferedStreamWrap2;
 
         [GlobalSetup]
         public void CreateStreams()
@@ -39,31 +35,25 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             this.stream4 = new MemoryStream(this.buffer);
             this.stream5 = new MemoryStream(this.buffer);
             this.stream6 = new MemoryStream(this.buffer);
-            this.stream7 = new MemoryStream(this.buffer);
-            this.stream8 = new MemoryStream(this.buffer);
-            this.reader1 = new DoubleBufferedStreamReader(Configuration.Default.MemoryAllocator, this.stream2);
-            this.reader2 = new DoubleBufferedStreamReader(Configuration.Default.MemoryAllocator, this.stream2);
-            this.bufferedStream1 = new BufferedReadStream(this.stream5);
-            this.bufferedStream2 = new BufferedReadStream(this.stream6);
-            this.bufferedStream3 = new BufferedReadStream2(this.stream7);
-            this.bufferedStream4 = new BufferedReadStream2(this.stream8);
+            this.bufferedStream1 = new BufferedReadStream(this.stream3);
+            this.bufferedStream2 = new BufferedReadStream(this.stream4);
+            this.bufferedStreamWrap1 = new BufferedReadStreamWrapper(this.stream5);
+            this.bufferedStreamWrap2 = new BufferedReadStreamWrapper(this.stream6);
         }
 
         [GlobalCleanup]
         public void DestroyStreams()
         {
+            this.bufferedStream1?.Dispose();
+            this.bufferedStream2?.Dispose();
+            this.bufferedStreamWrap1?.Dispose();
+            this.bufferedStreamWrap2?.Dispose();
             this.stream1?.Dispose();
             this.stream2?.Dispose();
             this.stream3?.Dispose();
             this.stream4?.Dispose();
             this.stream5?.Dispose();
             this.stream6?.Dispose();
-            this.reader1?.Dispose();
-            this.reader2?.Dispose();
-            this.bufferedStream1?.Dispose();
-            this.bufferedStream2?.Dispose();
-            this.bufferedStream3?.Dispose();
-            this.bufferedStream4?.Dispose();
         }
 
         [Benchmark]
@@ -82,10 +72,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark]
-        public int DoubleBufferedStreamRead()
+        public int BufferedReadStreamRead()
         {
             int r = 0;
-            DoubleBufferedStreamReader reader = this.reader2;
+            BufferedReadStream reader = this.bufferedStream1;
             byte[] b = this.chunk2;
 
             for (int i = 0; i < reader.Length / 2; i++)
@@ -97,25 +87,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark]
-        public int BufferedStreamRead()
+        public int BufferedReadStreamWrapRead()
         {
             int r = 0;
-            BufferedReadStream reader = this.bufferedStream2;
-            byte[] b = this.chunk2;
-
-            for (int i = 0; i < reader.Length / 2; i++)
-            {
-                r += reader.Read(b, 0, 2);
-            }
-
-            return r;
-        }
-
-        [Benchmark]
-        public int BufferedStreamWrapRead()
-        {
-            int r = 0;
-            BufferedReadStream2 reader = this.bufferedStream3;
+            BufferedReadStreamWrapper reader = this.bufferedStreamWrap1;
             byte[] b = this.chunk2;
 
             for (int i = 0; i < reader.Length / 2; i++)
@@ -130,7 +105,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         public int StandardStreamReadByte()
         {
             int r = 0;
-            Stream stream = this.stream1;
+            Stream stream = this.stream2;
 
             for (int i = 0; i < stream.Length; i++)
             {
@@ -141,21 +116,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark]
-        public int DoubleBufferedStreamReadByte()
-        {
-            int r = 0;
-            DoubleBufferedStreamReader reader = this.reader1;
-
-            for (int i = 0; i < reader.Length; i++)
-            {
-                r += reader.ReadByte();
-            }
-
-            return r;
-        }
-
-        [Benchmark]
-        public int BufferedStreamReadByte()
+        public int BufferedReadStreamReadByte()
         {
             int r = 0;
             BufferedReadStream reader = this.bufferedStream2;
@@ -169,10 +130,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark]
-        public int BufferedStreamWrapReadByte()
+        public int BufferedReadStreamWrapReadByte()
         {
             int r = 0;
-            BufferedReadStream2 reader = this.bufferedStream4;
+            BufferedReadStreamWrapper reader = this.bufferedStreamWrap2;
 
             for (int i = 0; i < reader.Length; i++)
             {
@@ -197,7 +158,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
         private static byte[] CreateTestBytes()
         {
-            var buffer = new byte[DoubleBufferedStreamReader.ChunkLength * 3];
+            var buffer = new byte[BufferedReadStream.BufferLength * 3];
             var random = new Random();
             random.NextBytes(buffer);
 

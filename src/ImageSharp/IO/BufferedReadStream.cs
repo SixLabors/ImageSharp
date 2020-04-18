@@ -66,20 +66,16 @@ namespace SixLabors.ImageSharp.IO
             this.readBufferIndex = BufferLength;
         }
 
-        /// <summary>
-        /// Gets the length, in bytes, of the stream.
-        /// </summary>
+        /// <inheritdoc/>
         public override long Length { get; }
 
-        /// <summary>
-        /// Gets or sets the current position within the stream.
-        /// </summary>
+        /// <inheritdoc/>
         public override long Position
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => this.readerPosition;
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(MethodImplOptions.NoInlining)]
             set
             {
                 // Only reset readBufferIndex if we are out of bounds of our working buffer
@@ -185,12 +181,16 @@ namespace SixLabors.ImageSharp.IO
         }
 
         /// <inheritdoc/>
-        /// <exception cref="NotSupportedException">This operation is not supported in <see cref="BufferedReadStream"/>.</exception>
+        /// <exception cref="NotSupportedException">
+        /// This operation is not supported in <see cref="BufferedReadStream"/>.
+        /// </exception>
         public override void SetLength(long value)
             => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        /// <exception cref="NotSupportedException">This operation is not supported in <see cref="BufferedReadStream"/>.</exception>
+        /// <exception cref="NotSupportedException">
+        /// This operation is not supported in <see cref="BufferedReadStream"/>.
+        /// </exception>
         public override void Write(byte[] buffer, int offset, int count)
             => throw new NotSupportedException();
 
@@ -239,7 +239,7 @@ namespace SixLabors.ImageSharp.IO
             return n;
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ReadToBufferViaCopySlow(byte[] buffer, int offset, int count)
         {
             // Refill our buffer then copy.

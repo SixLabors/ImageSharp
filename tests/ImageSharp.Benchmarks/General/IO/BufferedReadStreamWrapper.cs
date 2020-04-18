@@ -6,13 +6,13 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.IO
+namespace SixLabors.ImageSharp.Benchmarks.IO
 {
     /// <summary>
-    /// A readonly stream that add a secondary level buffer in addition to native stream
+    /// A readonly stream wrapper that add a secondary level buffer in addition to native stream
     /// buffered reading to reduce the overhead of small incremental reads.
     /// </summary>
-    internal sealed unsafe class BufferedReadStream2 : IDisposable
+    internal sealed unsafe class BufferedReadStreamWrapper : IDisposable
     {
         /// <summary>
         /// The length, in bytes, of the underlying buffer.
@@ -29,19 +29,19 @@ namespace SixLabors.ImageSharp.IO
 
         private readonly byte* pinnedReadBuffer;
 
+        // Index within our buffer, not reader position.
         private int readBufferIndex;
 
-        private readonly int length;
-
-        private int position;
+        // Matches what the stream position would be without buffering
+        private long readerPosition;
 
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BufferedReadStream2"/> class.
+        /// Initializes a new instance of the <see cref="BufferedReadStreamWrapper"/> class.
         /// </summary>
         /// <param name="stream">The input stream.</param>
-        public BufferedReadStream2(Stream stream)
+        public BufferedReadStreamWrapper(Stream stream)
         {
             Guard.IsTrue(stream.CanRead, nameof(stream), "Stream must be readable.");
             Guard.IsTrue(stream.CanSeek, nameof(stream), "Stream must be seekable.");
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.IO
 
             this.stream = stream;
             this.Position = (int)stream.Position;
-            this.length = (int)stream.Length;
+            this.Length = stream.Length;
 
             this.readBuffer = ArrayPool<byte>.Shared.Rent(BufferLength);
             this.readBufferHandle = new Memory<byte>(this.readBuffer).Pin();
@@ -69,113 +69,109 @@ namespace SixLabors.ImageSharp.IO
         /// <summary>
         /// Gets the length, in bytes, of the stream.
         /// </summary>
-        public long Length => this.length;
+        public long Length { get; }
 
         /// <summary>
         /// Gets or sets the current position within the stream.
         /// </summary>
         public long Position
         {
-            get => this.position;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => this.readerPosition;
 
+            [MethodImpl(MethodImplOptions.NoInlining)]
             set
             {
-                // Only reset readIndex if we are out of bounds of our working buffer
+                // Only reset readBufferIndex if we are out of bounds of our working buffer
                 // otherwise we should simply move the value by the diff.
-                int v = (int)value;
-                if (this.IsInReadBuffer(v, out int index))
+                if (this.IsInReadBuffer(value, out long index))
                 {
-                    this.readBufferIndex = index;
-                    this.position = v;
+                    this.readBufferIndex = (int)index;
+                    this.readerPosition = value;
                 }
                 else
                 {
-                    this.position = v;
+                    // Base stream seek will throw for us if invalid.
                     this.stream.Seek(value, SeekOrigin.Begin);
+                    this.readerPosition = value;
                     this.readBufferIndex = BufferLength;
                 }
             }
         }
 
-        public bool CanRead { get; } = true;
-
-        public bool CanSeek { get; } = true;
-
-        public bool CanWrite { get; } = false;
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int ReadByte()
         {
-            if (this.position >= this.length)
+            if (this.readerPosition >= this.Length)
             {
                 return -1;
             }
 
+            // Our buffer has been read.
+            // We need to refill and start again.
             if (this.readBufferIndex > MaxBufferIndex)
             {
                 this.FillReadBuffer();
             }
 
-            this.position++;
+            this.readerPosition++;
             return this.pinnedReadBuffer[this.readBufferIndex++];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int Read(byte[] buffer, int offset, int count)
         {
+            // Too big for our buffer. Read directly from the stream.
             if (count > BufferLength)
             {
                 return this.ReadToBufferDirectSlow(buffer, offset, count);
             }
 
+            // Too big for remaining buffer but less than entire buffer length
+            // Copy to buffer then read from there.
             if (count + this.readBufferIndex > BufferLength)
             {
                 return this.ReadToBufferViaCopySlow(buffer, offset, count);
             }
 
-            // return this.ReadToBufferViaCopyFast(buffer, offset, count);
-            int n = this.GetCopyCount(count);
-            this.CopyBytes(buffer, offset, n);
-
-            this.position += n;
-            this.readBufferIndex += n;
-
-            return n;
+            return this.ReadToBufferViaCopyFast(buffer, offset, count);
         }
 
         public void Flush()
         {
-            // Reset the stream position.
-            if (this.position != this.stream.Position)
+            // Reset the stream position to match reader position.
+            if (this.readerPosition != this.stream.Position)
             {
-                this.stream.Seek(this.position, SeekOrigin.Begin);
-                this.position = (int)this.stream.Position;
+                this.stream.Seek(this.readerPosition, SeekOrigin.Begin);
+                this.readerPosition = (int)this.stream.Position;
             }
 
+            // Reset to trigger full read on next attempt.
             this.readBufferIndex = BufferLength;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public long Seek(long offset, SeekOrigin origin)
         {
-            if (origin == SeekOrigin.Begin)
+            switch (origin)
             {
-                this.Position = offset;
-            }
-            else
-            {
-                this.Position += offset;
+                case SeekOrigin.Begin:
+                    this.Position = offset;
+                    break;
+
+                case SeekOrigin.Current:
+                    this.Position += offset;
+                    break;
+
+                case SeekOrigin.End:
+                    this.Position = this.Length - offset;
+                    break;
             }
 
-            return this.position;
+            return this.readerPosition;
         }
 
-        public void SetLength(long value)
-            => throw new NotSupportedException();
-
-        public void Write(byte[] buffer, int offset, int count)
-            => throw new NotSupportedException();
-
+        /// <inheritdoc/>
         public void Dispose()
         {
             if (!this.isDisposed)
@@ -188,21 +184,18 @@ namespace SixLabors.ImageSharp.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int GetPositionDifference(int p) => p - this.position;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool IsInReadBuffer(int p, out int index)
+        private bool IsInReadBuffer(long newPosition, out long index)
         {
-            index = this.GetPositionDifference(p) + this.readBufferIndex;
+            index = newPosition - this.readerPosition + this.readBufferIndex;
             return index > -1 && index < BufferLength;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void FillReadBuffer()
         {
-            if (this.position != this.stream.Position)
+            if (this.readerPosition != this.stream.Position)
             {
-                this.stream.Seek(this.position, SeekOrigin.Begin);
+                this.stream.Seek(this.readerPosition, SeekOrigin.Begin);
             }
 
             this.stream.Read(this.readBuffer, 0, BufferLength);
@@ -215,35 +208,28 @@ namespace SixLabors.ImageSharp.IO
             int n = this.GetCopyCount(count);
             this.CopyBytes(buffer, offset, n);
 
-            this.position += n;
+            this.readerPosition += n;
             this.readBufferIndex += n;
 
             return n;
         }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ReadToBufferViaCopySlow(byte[] buffer, int offset, int count)
         {
             // Refill our buffer then copy.
             this.FillReadBuffer();
 
-            // return this.ReadToBufferViaCopyFast(buffer, offset, count);
-            int n = this.GetCopyCount(count);
-            this.CopyBytes(buffer, offset, n);
-
-            this.position += n;
-            this.readBufferIndex += n;
-
-            return n;
+            return this.ReadToBufferViaCopyFast(buffer, offset, count);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private int ReadToBufferDirectSlow(byte[] buffer, int offset, int count)
         {
             // Read to target but don't copy to our read buffer.
-            if (this.position != this.stream.Position)
+            if (this.readerPosition != this.stream.Position)
             {
-                this.stream.Seek(this.position, SeekOrigin.Begin);
+                this.stream.Seek(this.readerPosition, SeekOrigin.Begin);
             }
 
             int n = this.stream.Read(buffer, offset, count);
@@ -255,18 +241,18 @@ namespace SixLabors.ImageSharp.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int GetCopyCount(int count)
         {
-            int n = this.length - this.position;
+            long n = this.Length - this.readerPosition;
             if (n > count)
             {
-                n = count;
+                return count;
             }
 
             if (n < 0)
             {
-                n = 0;
+                return 0;
             }
 
-            return n;
+            return (int)n;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

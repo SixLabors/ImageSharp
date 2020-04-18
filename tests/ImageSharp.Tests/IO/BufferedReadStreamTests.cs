@@ -199,6 +199,22 @@ namespace SixLabors.ImageSharp.Tests.IO
             }
         }
 
+        [Fact]
+        public void BufferedStreamReadsCanReadAllAsSingleByteFromOrigin()
+        {
+            using (MemoryStream stream = this.CreateTestStream())
+            {
+                byte[] expected = stream.ToArray();
+                using (var reader = new BufferedReadStream(stream))
+                {
+                    for (int i = 0; i < expected.Length; i++)
+                    {
+                        Assert.Equal(expected[i], reader.ReadByte());
+                    }
+                }
+            }
+        }
+
         private MemoryStream CreateTestStream(int length = BufferedReadStream.BufferLength * 3)
         {
             var buffer = new byte[length];

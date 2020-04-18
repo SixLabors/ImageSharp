@@ -103,6 +103,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                     {
                         var cappedValue = value.Substring(0, maxLength);
                         valueBytes = this.encoding.GetBytes(cappedValue);
+
+                        // It is still possible that the bytes of the string exceed the limit.
+                        if (valueBytes.Length > maxLength)
+                        {
+                            throw new ArgumentException($"The iptc value exceeds the limit of {maxLength} bytes for the tag {this.Tag}");
+                        }
                     }
                     else
                     {

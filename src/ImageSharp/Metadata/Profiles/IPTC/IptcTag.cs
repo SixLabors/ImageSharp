@@ -86,30 +86,28 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
         /// <summary>
         /// Release date. Format should be CCYYMMDD,
-        /// e.g. "19890317" indicates data for release on 17 March 1989.
+        /// e.g. "19890317" for the 17 March 1989.
         /// Not repeatable, max length is 8.
         /// </summary>
         ReleaseDate = 30,
 
         /// <summary>
         /// Release time. Format should be HHMMSS±HHMM,
-        /// e.g. "090000-0500" indicates object for use after 0900 in
-        /// New York (five hours behind UTC)
+        /// e.g. "090000-0500" for 9 o'clock New York time (five hours behind UTC).
         /// Not repeatable, max length is 11.
         /// </summary>
         ReleaseTime = 35,
 
         /// <summary>
         /// Expiration date. Format should be CCYYMMDD,
-        /// e.g. "19890317" indicates data for release on 17 March 1989.
+        /// e.g. "19890317" for the 17 March 1989.
         /// Not repeatable, max length is 8.
         /// </summary>
         ExpirationDate = 37,
 
         /// <summary>
         /// Expiration time. Format should be HHMMSS±HHMM,
-        /// e.g. "090000-0500" indicates object for use after 0900 in
-        /// New York (five hours behind UTC)
+        /// e.g. "090000-0500" for 9 o'clock New York time (five hours behind UTC).
         /// Not repeatable, max length is 11.
         /// </summary>
         ExpirationTime = 38,
@@ -131,7 +129,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
         /// <summary>
         /// Reference date. Format should be CCYYMMDD,
-        /// e.g. "19890317" indicates data for release on 17 March 1989.
+        /// e.g. "19890317" for the 17 March 1989.
         /// Not repeatable, max length is 8.
         /// </summary>
         ReferenceDate = 47,
@@ -143,30 +141,28 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
         /// <summary>
         /// Created date. Format should be CCYYMMDD,
-        /// e.g. "19890317" indicates data for release on 17 March 1989.
+        /// e.g. "19890317" for the 17 March 1989.
         /// Not repeatable, max length is 8.
         /// </summary>
         CreatedDate = 55,
 
         /// <summary>
         /// Created time. Format should be HHMMSS±HHMM,
-        /// e.g. "090000-0500" indicates object for use after 0900 in
-        /// New York (five hours behind UTC)
+        /// e.g. "090000-0500" for 9 o'clock New York time (five hours behind UTC).
         /// Not repeatable, max length is 11.
         /// </summary>
         CreatedTime = 60,
 
         /// <summary>
         /// Digital creation date. Format should be CCYYMMDD,
-        /// e.g. "19890317" indicates data for release on 17 March 1989.
+        /// e.g. "19890317" for the 17 March 1989.
         /// Not repeatable, max length is 8.
         /// </summary>
         DigitalCreationDate = 62,
 
         /// <summary>
         /// Digital creation time. Format should be HHMMSS±HHMM,
-        /// e.g. "090000-0500" indicates object for use after 0900 in
-        /// New York (five hours behind UTC)
+        /// e.g. "090000-0500" for 9 o'clock New York time (five hours behind UTC).
         /// Not repeatable, max length is 11.
         /// </summary>
         DigitalCreationTime = 63,

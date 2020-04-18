@@ -174,6 +174,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         public void SetValue(IptcTag tag, Encoding encoding, string value, bool strict = true)
         {
             Guard.NotNull(encoding, nameof(encoding));
+            Guard.NotNull(value, nameof(value));
 
             if (!tag.IsRepeatable())
             {
@@ -190,6 +191,27 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             }
 
             this.values.Add(new IptcValue(tag, encoding, value, strict));
+        }
+
+        /// <summary>
+        /// Makes sure the datetime is formatted according to the iptc specification.
+        /// A date will be formatted as CCYYMMDD.
+        /// A time value will be formatted as HHMMSS±HHMM.
+        /// </summary>
+        /// <param name="tag">The tag of the iptc value.</param>
+        /// <param name="dateTime">The datetime.</param>
+        public void SetDateTimeValue(IptcTag tag, DateTime dateTime)
+        {
+            if (!tag.IsDate() && !tag.IsTime())
+            {
+                throw new ArgumentException("iptc tag is not a time or date type");
+            }
+
+            var formattedDate = tag.IsDate()
+                ? dateTime.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture)
+                : dateTime.ToString("HHmmsszzzz", System.Globalization.CultureInfo.InvariantCulture).Replace(":", string.Empty);
+
+            this.SetValue(tag, Encoding.UTF8, formattedDate);
         }
 
         /// <summary>

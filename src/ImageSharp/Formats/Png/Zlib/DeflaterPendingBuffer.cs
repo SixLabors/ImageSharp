@@ -172,8 +172,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 this.bufferMemoryOwner = null;
                 this.isDisposed = true;
             }
-
-            GC.SuppressFinalize(this);
         }
     }
 }

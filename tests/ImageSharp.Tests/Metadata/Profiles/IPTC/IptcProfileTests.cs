@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         {
             // arrange
             var profile = new IptcProfile();
-            var datetime = new DateTime(1994, 3, 17);
+            var datetime = new DateTimeOffset(new DateTime(1994, 3, 17));
 
             // act
             profile.SetDateTimeValue(tag, datetime);
@@ -70,14 +70,15 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         {
             // arrange
             var profile = new IptcProfile();
-            DateTime datetime = new DateTimeOffset(new DateTime(1994, 3, 17, 14, 15, 16), new TimeSpan(1, 0, 0)).DateTime;
+            var dateTimeUtc = new DateTime(1994, 3, 17, 14, 15, 16, DateTimeKind.Utc);
+            DateTimeOffset dateTimeOffset = new DateTimeOffset(dateTimeUtc).ToOffset(TimeSpan.FromHours(2));
 
             // act
-            profile.SetDateTimeValue(tag, datetime);
+            profile.SetDateTimeValue(tag, dateTimeOffset);
 
             // assert
             IptcValue actual = profile.GetValues(tag).First();
-            Assert.Equal("141516+0100", actual.Value);
+            Assert.Equal("161516+0200", actual.Value);
         }
 
         [Theory]

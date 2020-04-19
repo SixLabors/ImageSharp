@@ -199,8 +199,8 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         /// A time value will be formatted as HHMMSS±HHMM.
         /// </summary>
         /// <param name="tag">The tag of the iptc value.</param>
-        /// <param name="dateTime">The datetime.</param>
-        public void SetDateTimeValue(IptcTag tag, DateTime dateTime)
+        /// <param name="dateTimeOffset">The datetime.</param>
+        public void SetDateTimeValue(IptcTag tag, DateTimeOffset dateTimeOffset)
         {
             if (!tag.IsDate() && !tag.IsTime())
             {
@@ -208,8 +208,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
             }
 
             var formattedDate = tag.IsDate()
-                ? dateTime.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture)
-                : dateTime.ToString("HHmmsszzzz", System.Globalization.CultureInfo.InvariantCulture).Replace(":", string.Empty);
+                ? dateTimeOffset.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture)
+                : dateTimeOffset.ToString("HHmmsszzzz", System.Globalization.CultureInfo.InvariantCulture)
+                    .Replace(":", string.Empty);
 
             this.SetValue(tag, Encoding.UTF8, formattedDate);
         }

@@ -10,11 +10,8 @@ using System.Text;
 namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 {
     /// <summary>
-    /// Class that can be used to access an Iptc profile.
+    /// Represents an IPTC profile providing access to the collection of values.
     /// </summary>
-    /// <remarks>This source code is from the Magick.Net project:
-    /// https://github.com/dlemstra/Magick.NET/tree/master/src/Magick.NET/Shared/Profiles/Iptc/IptcProfile.cs
-    /// </remarks>
     public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     {
         private Collection<IptcValue> values;

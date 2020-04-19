@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 {
     /// <summary>
-    /// All iptc tags relevant for images.
+    /// Provides enumeration of all IPTC tags relevant for images.
     /// </summary>
     public enum IptcTag
     {

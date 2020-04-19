@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing
             Image image,
             float opacity)
         {
-            var options = source.GetDefaultGraphicsOptions();
+            var options = source.GetGraphicsOptions();
             return source.ApplyProcessor(
                 new DrawImageProcessor(
                 image,
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing
                     image,
                     Point.Empty,
                     colorBlending,
-                    source.GetDefaultGraphicsOptions().AlphaCompositionMode,
+                    source.GetGraphicsOptions().AlphaCompositionMode,
                     opacity));
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Processing
             Point location,
             float opacity)
         {
-            var options = source.GetDefaultGraphicsOptions();
+            var options = source.GetGraphicsOptions();
             return source.ApplyProcessor(
                 new DrawImageProcessor(
                 image,
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Processing
                     image,
                     location,
                     colorBlending,
-                    source.GetDefaultGraphicsOptions().AlphaCompositionMode,
+                    source.GetGraphicsOptions().AlphaCompositionMode,
                     opacity));
 
         /// <summary>

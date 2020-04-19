@@ -85,30 +85,40 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         LocationName = 27,
 
         /// <summary>
-        /// Release date. Format should be CCYYMMDD,
-        /// e.g. "19890317" for the 17 March 1989.
+        /// Release date. Format should be CCYYMMDD.
         /// Not repeatable, max length is 8.
+        /// <example>
+        /// A date will be formatted as CCYYMMDD, e.g. "19890317" for 17 March 1989.
+        /// </example>
         /// </summary>
         ReleaseDate = 30,
 
         /// <summary>
-        /// Release time. Format should be HHMMSS±HHMM,
-        /// e.g. "090000-0500" for 9 o'clock New York time (five hours behind UTC).
+        /// Release time. Format should be HHMMSS±HHMM.
         /// Not repeatable, max length is 11.
+        /// <example>
+        /// A time value will be formatted as HHMMSS±HHMM, e.g. "090000+0200" for 9 o'clock Berlin time,
+        /// two hours ahead of UTC.
+        /// </example>
         /// </summary>
         ReleaseTime = 35,
 
         /// <summary>
-        /// Expiration date. Format should be CCYYMMDD,
-        /// e.g. "19890317" for the 17 March 1989.
+        /// Expiration date. Format should be CCYYMMDD.
         /// Not repeatable, max length is 8.
+        /// <example>
+        /// A date will be formatted as CCYYMMDD, e.g. "19890317" for 17 March 1989.
+        /// </example>
         /// </summary>
         ExpirationDate = 37,
 
         /// <summary>
-        /// Expiration time. Format should be HHMMSS±HHMM,
-        /// e.g. "090000-0500" for 9 o'clock New York time (five hours behind UTC).
+        /// Expiration time. Format should be HHMMSS±HHMM.
         /// Not repeatable, max length is 11.
+        /// <example>
+        /// A time value will be formatted as HHMMSS±HHMM, e.g. "090000+0200" for 9 o'clock Berlin time,
+        /// two hours ahead of UTC.
+        /// </example>
         /// </summary>
         ExpirationTime = 38,
 
@@ -128,9 +138,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         ReferenceService = 45,
 
         /// <summary>
-        /// Reference date. Format should be CCYYMMDD,
-        /// e.g. "19890317" for the 17 March 1989.
+        /// Reference date. Format should be CCYYMMDD.
         /// Not repeatable, max length is 8.
+        /// <example>
+        /// A date will be formatted as CCYYMMDD, e.g. "19890317" for 17 March 1989.
+        /// </example>
         /// </summary>
         ReferenceDate = 47,
 
@@ -140,30 +152,40 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         ReferenceNumber = 50,
 
         /// <summary>
-        /// Created date. Format should be CCYYMMDD,
-        /// e.g. "19890317" for the 17 March 1989.
+        /// Created date. Format should be CCYYMMDD.
         /// Not repeatable, max length is 8.
+        /// <example>
+        /// A date will be formatted as CCYYMMDD, e.g. "19890317" for 17 March 1989.
+        /// </example>
         /// </summary>
         CreatedDate = 55,
 
         /// <summary>
-        /// Created time. Format should be HHMMSS±HHMM,
-        /// e.g. "090000-0500" for 9 o'clock New York time (five hours behind UTC).
+        /// Created time. Format should be HHMMSS±HHMM.
         /// Not repeatable, max length is 11.
+        /// <example>
+        /// A time value will be formatted as HHMMSS±HHMM, e.g. "090000+0200" for 9 o'clock Berlin time,
+        /// two hours ahead of UTC.
+        /// </example>
         /// </summary>
         CreatedTime = 60,
 
         /// <summary>
-        /// Digital creation date. Format should be CCYYMMDD,
-        /// e.g. "19890317" for the 17 March 1989.
+        /// Digital creation date. Format should be CCYYMMDD.
         /// Not repeatable, max length is 8.
+        /// <example>
+        /// A date will be formatted as CCYYMMDD, e.g. "19890317" for 17 March 1989.
+        /// </example>
         /// </summary>
         DigitalCreationDate = 62,
 
         /// <summary>
-        /// Digital creation time. Format should be HHMMSS±HHMM,
-        /// e.g. "090000-0500" for 9 o'clock New York time (five hours behind UTC).
+        /// Digital creation time. Format should be HHMMSS±HHMM.
         /// Not repeatable, max length is 11.
+        /// <example>
+        /// A time value will be formatted as HHMMSS±HHMM, e.g. "090000+0200" for 9 o'clock Berlin time,
+        /// two hours ahead of UTC.
+        /// </example>
         /// </summary>
         DigitalCreationTime = 63,
 

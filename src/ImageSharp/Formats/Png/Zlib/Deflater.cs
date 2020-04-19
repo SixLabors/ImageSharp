@@ -288,8 +288,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 this.engine = null;
                 this.isDisposed = true;
             }
-
-            GC.SuppressFinalize(this);
         }
     }
 }

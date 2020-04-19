@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Lomograph(this IImageProcessingContext source)
-            => source.ApplyProcessor(new LomographProcessor(source.GetDefaultGraphicsOptions()));
+            => source.ApplyProcessor(new LomographProcessor(source.GetGraphicsOptions()));
 
         /// <summary>
         /// Alters the colors of the image recreating an old Lomograph camera effect.
@@ -28,6 +28,6 @@ namespace SixLabors.ImageSharp.Processing
         /// </param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Lomograph(this IImageProcessingContext source, Rectangle rectangle)
-            => source.ApplyProcessor(new LomographProcessor(source.GetDefaultGraphicsOptions()), rectangle);
+            => source.ApplyProcessor(new LomographProcessor(source.GetGraphicsOptions()), rectangle);
     }
 }

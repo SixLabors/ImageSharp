@@ -195,8 +195,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 
         /// <summary>
         /// Makes sure the datetime is formatted according to the iptc specification.
-        /// A date will be formatted as CCYYMMDD.
-        /// A time value will be formatted as HHMMSS±HHMM.
+        /// <example>
+        /// A date will be formatted as CCYYMMDD, e.g. "19890317" for 17 March 1989.
+        /// A time value will be formatted as HHMMSS±HHMM, e.g. "090000+0200" for 9 o'clock Berlin time,
+        /// two hours ahead of UTC.
+        /// </example>
         /// </summary>
         /// <param name="tag">The tag of the iptc value.</param>
         /// <param name="dateTimeOffset">The datetime.</param>

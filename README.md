@@ -27,28 +27,28 @@ ImageSharp is designed from the ground up to be flexible and extensible. The lib
 Built against [.NET Standard 1.3](https://docs.microsoft.com/en-us/dotnet/standard/net-standard), ImageSharp can be used in device, cloud, and embedded/IoT scenarios.
 
 
-### License
+## License
   
 - ImageSharp is licensed under the [GNU Affero General Public License v3](https://www.gnu.org/licenses/agpl-3.0)  
 - In addition to this license, ImageSharp is offered under a commercial license.
 Please visit https://sixlabors.com/pricing for details.
 - Open Source projects who whave taken a dependency on ImageSharp prior to adoption of the AGPLv3 license are permitted to use ImageSharp (including all future versions) under the previous [Apache 2.0 License](https://opensource.org/licenses/Apache-2.0).
 
-### Documentation
+## Documentation
 
 - [Detailed documentation](https://sixlabors.github.io/docs/) for the ImageSharp API is available. This includes additional conceptual documentation to help you get started.
 - Our [Samples Repository](https://github.com/SixLabors/Samples/tree/master/ImageSharp) is also available containing buildable code samples demonstrating commmon activities.
 
-### Questions?
+## Questions?
 
 - Do you have questions? We are happy to help! Please [join our Gitter channel](https://gitter.im/ImageSharp/General), or ask them on [Stack Overflow](https://stackoverflow.com) using the `ImageSharp` tag. Please do not open issues for questions.
 - Please read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/master/.github/CONTRIBUTING.md) before opening issues or pull requests!
 
-### Code of Conduct  
+## Code of Conduct  
 This project has adopted the code of conduct defined by the [Contributor Covenant](https://contributor-covenant.org/) to clarify expected behavior in our community.
 For more information, see the [.NET Foundation Code of Conduct](https://dotnetfoundation.org/code-of-conduct).
 
-### Installation 
+## Installation 
 
 Install stable releases via Nuget; development releases are available via MyGet.
 
@@ -56,7 +56,7 @@ Install stable releases via Nuget; development releases are available via MyGet.
 |--------------------------------|-----------------|-----------------|
 | `SixLabors.ImageSharp`         | [![NuGet](https://img.shields.io/nuget/v/SixLabors.ImageSharp.svg)](https://www.nuget.org/packages/SixLabors.ImageSharp/) | [![MyGet](https://img.shields.io/myget/sixlabors/v/SixLabors.ImageSharp.svg)](https://www.myget.org/feed/sixlabors/package/nuget/SixLabors.ImageSharp) |
 
-### Manual build
+## Manual build
 
 If you prefer, you can compile ImageSharp yourself (please do and help!)
 
@@ -87,16 +87,13 @@ This repository contains [git submodules](https://blog.github.com/2016-02-01-wor
 git submodule update --init --recursive
 ```
 
-### How can you help?
+## How can you help?
 
 Please... Spread the word, contribute algorithms, submit performance improvements, unit tests, no input is too little. Make sure to read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/master/.github/CONTRIBUTING.md) before opening a PR.
 
-### The ImageSharp Team
+## The ImageSharp Team
 
-Project Owner
 - [James Jackson-South](https://github.com/jimbobsquarepants)
-
-Core Team
 - [Dirk Lemstra](https://github.com/dlemstra)
 - [Anton Firsov](https://github.com/antonfirsov)
 - [Scott Williams](https://github.com/tocsoft)

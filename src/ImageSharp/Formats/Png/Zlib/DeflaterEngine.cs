@@ -362,7 +362,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                     more = this.inputEnd - this.inputOff;
                 }
 
-                Array.Copy(this.inputBuf, this.inputOff, this.window, this.strstart + this.lookahead, more);
+                Buffer.BlockCopy(this.inputBuf, this.inputOff, this.window, this.strstart + this.lookahead, more);
 
                 this.inputOff += more;
                 this.lookahead += more;
@@ -397,8 +397,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
                 this.isDisposed = true;
             }
-
-            GC.SuppressFinalize(this);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -464,6 +462,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// </summary>
         /// <param name="curMatch">The current match.</param>
         /// <returns>True if a match greater than the minimum length is found</returns>
+        [MethodImpl(InliningOptions.HotPath)]
         private bool FindLongestMatch(int curMatch)
         {
             int match;

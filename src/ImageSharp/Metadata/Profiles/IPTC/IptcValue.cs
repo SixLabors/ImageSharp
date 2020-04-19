@@ -7,11 +7,11 @@ using System.Text;
 namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
 {
     /// <summary>
-    /// A value of the iptc profile.
+    /// Represents a single value of the IPTC profile.
     /// </summary>
     public sealed class IptcValue : IDeepCloneable<IptcValue>
     {
-        private byte[] data;
+        private byte[] data = Array.Empty<byte>();
         private Encoding encoding;
 
         internal IptcValue(IptcValue other)
@@ -165,16 +165,14 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
                 return false;
             }
 
-            byte[] data = other.ToByteArray();
-
-            if (this.data.Length != data.Length)
+            if (this.data.Length != other.data.Length)
             {
                 return false;
             }
 
             for (int i = 0; i < this.data.Length; i++)
             {
-                if (this.data[i] != data[i])
+                if (this.data[i] != other.data[i])
                 {
                     return false;
                 }
@@ -209,13 +207,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         /// <summary>
         /// Returns a string that represents the current value with the specified encoding.
         /// </summary>
-        /// <param name="enc">The encoding to use.</param>
+        /// <param name="encoding">The encoding to use.</param>
         /// <returns>A string that represents the current value with the specified encoding.</returns>
-        public string ToString(Encoding enc)
+        public string ToString(Encoding encoding)
         {
-            Guard.NotNull(enc, nameof(enc));
+            Guard.NotNull(encoding, nameof(encoding));
 
-            return enc.GetString(this.data);
+            return encoding.GetString(this.data);
         }
     }
 }

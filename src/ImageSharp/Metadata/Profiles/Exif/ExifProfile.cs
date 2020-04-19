@@ -57,8 +57,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// by making a copy from another EXIF profile.
         /// </summary>
         /// <param name="other">The other EXIF profile, where the clone should be made from.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>>
         private ExifProfile(ExifProfile other)
         {
+            Guard.NotNull(other, nameof(other));
+
             this.Parts = other.Parts;
             this.thumbnailLength = other.thumbnailLength;
             this.thumbnailOffset = other.thumbnailOffset;

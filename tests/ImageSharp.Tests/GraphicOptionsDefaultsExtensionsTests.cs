@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests
             var config = new Configuration();
             var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
-            context.SetDefaultOptions(option);
+            context.SetGraphicsOptions(option);
 
             // sets the prop on the processing context not on the configuration
             Assert.Equal(option, context.Properties[typeof(GraphicsOptions)]);
@@ -33,15 +33,15 @@ namespace SixLabors.ImageSharp.Tests
             };
             var config = new Configuration();
             var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
-            context.SetDefaultOptions(option);
+            context.SetGraphicsOptions(option);
 
-            context.SetDefaultOptions(o =>
+            context.SetGraphicsOptions(o =>
             {
                 Assert.Equal(0.9f, o.BlendPercentage); // has origional values
                 o.BlendPercentage = 0.4f;
             });
 
-            var returnedOption = context.GetDefaultGraphicsOptions();
+            var returnedOption = context.GetGraphicsOptions();
             Assert.Equal(0.4f, returnedOption.BlendPercentage);
             Assert.Equal(0.9f, option.BlendPercentage); // hasn't been mutated
         }
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests
             var option = new GraphicsOptions();
             var config = new Configuration();
 
-            config.SetDefaultGraphicsOptions(option);
+            config.SetGraphicsOptions(option);
 
             Assert.Equal(option, config.Properties[typeof(GraphicsOptions)]);
         }
@@ -65,15 +65,15 @@ namespace SixLabors.ImageSharp.Tests
                 BlendPercentage = 0.9f
             };
             var config = new Configuration();
-            config.SetDefaultGraphicsOptions(option);
+            config.SetGraphicsOptions(option);
 
-            config.SetDefaultGraphicsOptions(o =>
+            config.SetGraphicsOptions(o =>
             {
                 Assert.Equal(0.9f, o.BlendPercentage); // has origional values
                 o.BlendPercentage = 0.4f;
             });
 
-            var returnedOption = config.GetDefaultGraphicsOptions();
+            var returnedOption = config.GetGraphicsOptions();
             Assert.Equal(0.4f, returnedOption.BlendPercentage);
             Assert.Equal(0.9f, option.BlendPercentage); // hasn't been mutated
         }
@@ -83,11 +83,11 @@ namespace SixLabors.ImageSharp.Tests
         {
             var config = new Configuration();
 
-            var options = config.GetDefaultGraphicsOptions();
+            var options = config.GetGraphicsOptions();
             Assert.NotNull(options);
-            config.SetDefaultGraphicsOptions((GraphicsOptions)null);
+            config.SetGraphicsOptions((GraphicsOptions)null);
 
-            var options2 = config.GetDefaultGraphicsOptions();
+            var options2 = config.GetGraphicsOptions();
             Assert.NotNull(options2);
 
             // we set it to null should now be a new instance
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests
             var config = new Configuration();
 
             config.Properties[typeof(GraphicsOptions)] = "wronge type";
-            var options = config.GetDefaultGraphicsOptions();
+            var options = config.GetGraphicsOptions();
             Assert.NotNull(options);
             Assert.IsType<GraphicsOptions>(options);
         }
@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Tests
             var config = new Configuration();
 
             Assert.DoesNotContain(typeof(GraphicsOptions), config.Properties.Keys);
-            var options = config.GetDefaultGraphicsOptions();
+            var options = config.GetGraphicsOptions();
             Assert.NotNull(options);
         }
 
@@ -120,8 +120,8 @@ namespace SixLabors.ImageSharp.Tests
         {
             var config = new Configuration();
 
-            var options = config.GetDefaultGraphicsOptions();
-            var options2 = config.GetDefaultGraphicsOptions();
+            var options = config.GetGraphicsOptions();
+            var options2 = config.GetGraphicsOptions();
             Assert.Equal(options, options2);
         }
 
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests
             var config = new Configuration();
             var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
-            var ctxOptions = context.GetDefaultGraphicsOptions();
+            var ctxOptions = context.GetGraphicsOptions();
             Assert.NotNull(ctxOptions);
         }
 
@@ -141,8 +141,8 @@ namespace SixLabors.ImageSharp.Tests
             var config = new Configuration();
             var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
-            context.SetDefaultOptions((GraphicsOptions)null);
-            var ctxOptions = context.GetDefaultGraphicsOptions();
+            context.SetGraphicsOptions((GraphicsOptions)null);
+            var ctxOptions = context.GetGraphicsOptions();
             Assert.NotNull(ctxOptions);
         }
 
@@ -151,10 +151,10 @@ namespace SixLabors.ImageSharp.Tests
         {
             var option = new GraphicsOptions();
             var config = new Configuration();
-            config.SetDefaultGraphicsOptions(option);
+            config.SetGraphicsOptions(option);
             var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
-            var ctxOptions = context.GetDefaultGraphicsOptions();
+            var ctxOptions = context.GetGraphicsOptions();
             Assert.Equal(option, ctxOptions);
         }
 
@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Tests
             var config = new Configuration();
             var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
             context.Properties[typeof(GraphicsOptions)] = "wronge type";
-            var options = context.GetDefaultGraphicsOptions();
+            var options = context.GetGraphicsOptions();
             Assert.NotNull(options);
             Assert.IsType<GraphicsOptions>(options);
         }

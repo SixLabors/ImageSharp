@@ -16,11 +16,13 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="context">The image processing context to store default against.</param>
         /// <param name="optionsBuilder">The action to update instance of the default options used.</param>
-        public static void SetDefaultOptions(this IImageProcessingContext context, Action<GraphicsOptions> optionsBuilder)
+        /// <returns>The passed in <paramref name="context"/> to allow chaining.</returns>
+        public static IImageProcessingContext SetGraphicsOptions(this IImageProcessingContext context, Action<GraphicsOptions> optionsBuilder)
         {
-            var cloned = context.GetDefaultGraphicsOptions().DeepClone();
+            var cloned = context.GetGraphicsOptions().DeepClone();
             optionsBuilder(cloned);
             context.Properties[typeof(GraphicsOptions)] = cloned;
+            return context;
         }
 
         /// <summary>
@@ -28,9 +30,9 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="context">The image processing context to store default against.</param>
         /// <param name="optionsBuilder">The default options to use.</param>
-        public static void SetDefaultGraphicsOptions(this Configuration context, Action<GraphicsOptions> optionsBuilder)
+        public static void SetGraphicsOptions(this Configuration context, Action<GraphicsOptions> optionsBuilder)
         {
-            var cloned = context.GetDefaultGraphicsOptions().DeepClone();
+            var cloned = context.GetGraphicsOptions().DeepClone();
             optionsBuilder(cloned);
             context.Properties[typeof(GraphicsOptions)] = cloned;
         }
@@ -40,9 +42,11 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="context">The image processing context to store default against.</param>
         /// <param name="options">The default options to use.</param>
-        public static void SetDefaultOptions(this IImageProcessingContext context, GraphicsOptions options)
+        /// <returns>The passed in <paramref name="context"/> to allow chaining.</returns>
+        public static IImageProcessingContext SetGraphicsOptions(this IImageProcessingContext context, GraphicsOptions options)
         {
             context.Properties[typeof(GraphicsOptions)] = options;
+            return context;
         }
 
         /// <summary>
@@ -50,7 +54,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="context">The image processing context to store default against.</param>
         /// <param name="options">The default options to use.</param>
-        public static void SetDefaultGraphicsOptions(this Configuration context, GraphicsOptions options)
+        public static void SetGraphicsOptions(this Configuration context, GraphicsOptions options)
         {
             context.Properties[typeof(GraphicsOptions)] = options;
         }
@@ -60,14 +64,14 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="context">The image processing context to retrieve defaults from.</param>
         /// <returns>The globaly configued default options.</returns>
-        public static GraphicsOptions GetDefaultGraphicsOptions(this IImageProcessingContext context)
+        public static GraphicsOptions GetGraphicsOptions(this IImageProcessingContext context)
         {
             if (context.Properties.TryGetValue(typeof(GraphicsOptions), out var options) && options is GraphicsOptions go)
             {
                 return go;
             }
 
-            var configOptions = context.Configuration.GetDefaultGraphicsOptions();
+            var configOptions = context.Configuration.GetGraphicsOptions();
 
             // do not cache the fall back to config into the the processing context
             // in case someone want to change the value on the config and expects it re trflow thru
@@ -79,7 +83,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="context">The image processing context to retrieve defaults from.</param>
         /// <returns>The globaly configued default options.</returns>
-        public static GraphicsOptions GetDefaultGraphicsOptions(this Configuration context)
+        public static GraphicsOptions GetGraphicsOptions(this Configuration context)
         {
             if (context.Properties.TryGetValue(typeof(GraphicsOptions), out var options) && options is GraphicsOptions go)
             {

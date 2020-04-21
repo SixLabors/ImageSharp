@@ -1141,11 +1141,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="chunk">The <see cref="PngChunk"/>.</param>
         private void ValidateChunk(in PngChunk chunk)
         {
-            if (!chunk.IsCritical)
-            {
-                return;
-            }
-
             Span<byte> chunkType = stackalloc byte[4];
 
             BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
@@ -1155,7 +1150,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.crc.Update(chunk.Data.GetSpan());
 
             uint crc = this.ReadChunkCrc();
-            if (this.crc.Value != crc)
+            if (this.crc.Value != crc && chunk.IsCritical)
             {
                 string chunkTypeName = Encoding.ASCII.GetString(chunkType);
                 PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);

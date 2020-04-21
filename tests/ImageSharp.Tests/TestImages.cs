@@ -95,6 +95,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string Issue1014_6 = "Png/issues/Issue_1014_6.png";
             public const string Issue1127 = "Png/issues/Issue_1127.png";
 
+            // Issue 1177: https://github.com/SixLabors/ImageSharp/issues/1177
+            public const string Issue1177_1 = "Png/issues/Issue_1177_1.png";
+            public const string Issue1177_2 = "Png/issues/Issue_1177_2.png";
+
             public static class Bad
             {
                 // Odd chunk lengths

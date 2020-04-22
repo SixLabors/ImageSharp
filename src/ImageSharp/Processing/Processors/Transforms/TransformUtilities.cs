@@ -13,6 +13,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal static class TransformUtilities
     {
         /// <summary>
+        /// Returns a value that indicates whether the specified matrix is degenerate
+        /// containing one or more values equivalent to <see cref="float.NaN"/> or a
+        /// zero determinant and therefore cannot be used for linear transforms.
+        /// </summary>
+        /// <param name="matrix">The transform matrix.</param>
+        public static bool IsDegenerate(Matrix3x2 matrix)
+            => IsNaN(matrix) || IsZero(matrix.GetDeterminant());
+
+        /// <summary>
+        /// Returns a value that indicates whether the specified matrix is degenerate
+        /// containing one or more values equivalent to <see cref="float.NaN"/> or a
+        /// zero determinant and therefore cannot be used for linear transforms.
+        /// </summary>
+        /// <param name="matrix">The transform matrix.</param>
+        public static bool IsDegenerate(Matrix4x4 matrix)
+            => IsNaN(matrix) || IsZero(matrix.GetDeterminant());
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static bool IsZero(float a)
+            => a > -Constants.EpsilonSquared && a < Constants.EpsilonSquared;
+
+        /// <summary>
         /// Returns a value that indicates whether the specified matrix contains any values
         /// that are not a number <see cref="float.NaN"/>.
         /// </summary>

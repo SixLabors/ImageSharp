@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Processing
@@ -263,29 +264,50 @@ namespace SixLabors.ImageSharp.Processing
         /// Prepends a raw matrix.
         /// </summary>
         /// <param name="matrix">The matrix to prepend.</param>
+        /// <exception cref="DegenerateTransformException">
+        /// The resultant matrix is degenerate containing one or more values equivalent
+        /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+        /// for linear transforms.
+        /// </exception>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
-        public ProjectiveTransformBuilder PrependMatrix(Matrix4x4 matrix) => this.Prepend(_ => matrix);
+        public ProjectiveTransformBuilder PrependMatrix(Matrix4x4 matrix)
+        {
+            CheckDegenerate(matrix);
+            return this.Prepend(_ => matrix);
+        }
 
         /// <summary>
         /// Appends a raw matrix.
         /// </summary>
         /// <param name="matrix">The matrix to append.</param>
+        /// <exception cref="DegenerateTransformException">
+        /// The resultant matrix is degenerate containing one or more values equivalent
+        /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+        /// for linear transforms.
+        /// </exception>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
-        public ProjectiveTransformBuilder AppendMatrix(Matrix4x4 matrix) => this.Append(_ => matrix);
+        public ProjectiveTransformBuilder AppendMatrix(Matrix4x4 matrix)
+        {
+            CheckDegenerate(matrix);
+            return this.Append(_ => matrix);
+        }
 
         /// <summary>
         /// Returns the combined matrix for a given source size.
         /// </summary>
         /// <param name="sourceSize">The source image size.</param>
         /// <returns>The <see cref="Matrix4x4"/>.</returns>
-        public Matrix4x4 BuildMatrix(Size sourceSize) => this.BuildMatrix(new Rectangle(Point.Empty, sourceSize));
+        public Matrix4x4 BuildMatrix(Size sourceSize)
+            => this.BuildMatrix(new Rectangle(Point.Empty, sourceSize));
 
         /// <summary>
         /// Returns the combined matrix for a given source rectangle.
         /// </summary>
         /// <param name="sourceRectangle">The rectangle in the source image.</param>
         /// <exception cref="DegenerateTransformException">
-        /// The resultant matrix contains one or more values equivalent to <see cref="float.NaN"/>.
+        /// The resultant matrix is degenerate containing one or more values equivalent
+        /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+        /// for linear transforms.
         /// </exception>
         /// <returns>The <see cref="Matrix4x4"/>.</returns>
         public Matrix4x4 BuildMatrix(Rectangle sourceRectangle)
@@ -303,12 +325,17 @@ namespace SixLabors.ImageSharp.Processing
                 matrix *= factory(size);
             }
 
-            if (TransformUtilities.IsNaN(matrix) || matrix.GetDeterminant() == 0)
+            CheckDegenerate(matrix);
+
+            return matrix;
+        }
+
+        private static void CheckDegenerate(Matrix4x4 matrix)
+        {
+            if (TransformUtilities.IsDegenerate(matrix))
             {
                 throw new DegenerateTransformException("Matrix is degenerate. Check input values.");
             }
-
-            return matrix;
         }
 
         private ProjectiveTransformBuilder Prepend(Func<Size, Matrix4x4> factory)

@@ -28,8 +28,6 @@ namespace SixLabors.ImageSharp
 
         private int maxDegreeOfParallelism = Environment.ProcessorCount;
 
-        private Dictionary<object, object> properties = new Dictionary<object, object>();
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration" /> class.
         /// </summary>
@@ -80,7 +78,7 @@ namespace SixLabors.ImageSharp
         /// Gets a set of properties for the Congiguration.
         /// </summary>
         /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
-        public IDictionary<object, object> Properties => this.properties;
+        public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
 
         /// <summary>
         /// Gets the currently registered <see cref="IImageFormat"/>s.

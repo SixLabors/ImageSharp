@@ -114,12 +114,12 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 {
                     if (this.fileHeader.CMapLength <= 0)
                     {
-                        TgaThrowHelper.ThrowImageFormatException("Missing tga color map length");
+                        TgaThrowHelper.ThrowInvalidImageContentException("Missing tga color map length");
                     }
 
                     if (this.fileHeader.CMapDepth <= 0)
                     {
-                        TgaThrowHelper.ThrowImageFormatException("Missing tga color map depth");
+                        TgaThrowHelper.ThrowInvalidImageContentException("Missing tga color map depth");
                     }
 
                     int colorMapPixelSizeInBytes = this.fileHeader.CMapDepth / 8;
@@ -898,7 +898,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             var alphaBits = this.fileHeader.ImageDescriptor & 0xf;
             if (alphaBits != 0 && alphaBits != 1 && alphaBits != 8)
             {
-                TgaThrowHelper.ThrowImageFormatException("Invalid alpha channel bits");
+                TgaThrowHelper.ThrowInvalidImageContentException("Invalid alpha channel bits");
             }
 
             this.tgaMetadata.AlphaChannelBits = (byte)alphaBits;

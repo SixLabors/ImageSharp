@@ -259,7 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             var fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
             if (fileMarker.Marker != JpegConstants.Markers.SOI)
             {
-                JpegThrowHelper.ThrowImageFormatException("Missing SOI marker.");
+                JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
             }
 
             this.InputStream.Read(this.markerBuffer, 0, 2);
@@ -423,7 +423,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     : JpegColorSpace.Cmyk;
             }
 
-            JpegThrowHelper.ThrowImageFormatException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {this.ComponentCount}");
+            JpegThrowHelper.ThrowInvalidImageContentException($"Unsupported color mode. Supported component counts 1, 3, and 4; found {this.ComponentCount}");
             return default;
         }
 
@@ -821,7 +821,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.Frame != null)
             {
-                JpegThrowHelper.ThrowImageFormatException("Multiple SOF markers. Only single frame jpegs supported.");
+                JpegThrowHelper.ThrowInvalidImageContentException("Multiple SOF markers. Only single frame jpegs supported.");
             }
 
             // Read initial marker definitions.
@@ -831,7 +831,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // We only support 8-bit and 12-bit precision.
             if (Array.IndexOf(this.supportedPrecisions, this.temp[0]) == -1)
             {
-                JpegThrowHelper.ThrowImageFormatException("Only 8-Bit and 12-Bit precision supported.");
+                JpegThrowHelper.ThrowInvalidImageContentException("Only 8-Bit and 12-Bit precision supported.");
             }
 
             this.Precision = this.temp[0];
@@ -928,13 +928,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     // Types 0..1 DC..AC
                     if (tableType > 1)
                     {
-                        JpegThrowHelper.ThrowImageFormatException("Bad Huffman Table type.");
+                        JpegThrowHelper.ThrowInvalidImageContentException("Bad Huffman Table type.");
                     }
 
                     // Max tables of each type
                     if (tableIndex > 3)
                     {
-                        JpegThrowHelper.ThrowImageFormatException("Bad Huffman Table index.");
+                        JpegThrowHelper.ThrowInvalidImageContentException("Bad Huffman Table index.");
                     }
 
                     this.InputStream.Read(huffmanData.Array, 0, 16);
@@ -953,7 +953,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                         if (codeLengthSum > 256 || codeLengthSum > length)
                         {
-                            JpegThrowHelper.ThrowImageFormatException("Huffman table has excessive length.");
+                            JpegThrowHelper.ThrowInvalidImageContentException("Huffman table has excessive length.");
                         }
 
                         using (IManagedByteBuffer huffmanValues = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
@@ -995,7 +995,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.Frame is null)
             {
-                JpegThrowHelper.ThrowImageFormatException("No readable SOFn (Start Of Frame) marker found.");
+                JpegThrowHelper.ThrowInvalidImageContentException("No readable SOFn (Start Of Frame) marker found.");
             }
 
             int selectorsCount = this.InputStream.ReadByte();
@@ -1016,7 +1016,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                 if (componentIndex < 0)
                 {
-                    JpegThrowHelper.ThrowImageFormatException($"Unknown component selector {componentIndex}.");
+                    JpegThrowHelper.ThrowInvalidImageContentException($"Unknown component selector {componentIndex}.");
                 }
 
                 ref JpegComponent component = ref this.Frame.Components[componentIndex];

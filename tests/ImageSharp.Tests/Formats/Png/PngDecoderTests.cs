@@ -89,6 +89,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             TestImages.Png.Issue1014_5, TestImages.Png.Issue1014_6
         };
 
+        public static readonly string[] TestImagesIssue1177 =
+        {
+            TestImages.Png.Issue1177_1,
+            TestImages.Png.Issue1177_2
+        };
+
         [Theory]
         [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
@@ -229,6 +235,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFileCollection(nameof(TestImagesIssue1014), PixelTypes.Rgba32)]
         public void Issue1014<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            System.Exception ex = Record.Exception(
+                () =>
+                {
+                    using (Image<TPixel> image = provider.GetImage(PngDecoder))
+                    {
+                        image.DebugSave(provider);
+                        image.CompareToOriginal(provider, ImageComparer.Exact);
+                    }
+                });
+            Assert.Null(ex);
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(TestImagesIssue1177), PixelTypes.Rgba32)]
+        public void Issue1177<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             System.Exception ex = Record.Exception(

@@ -152,6 +152,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 
         public static TheoryData<long, int, long, int> GetBoundedSlice_ErrorData = new TheoryData<long, int, long, int>()
         {
+            { 300, 100, -1, 91 },
             { 300, 100, 110, 91 },
             { 42, 7, 0, 8 },
             { 42, 7, 1, 7 },

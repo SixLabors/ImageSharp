@@ -394,10 +394,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
         [Theory]
         [WithFile(InvalidPaletteSize, PixelTypes.Rgba32)]
-        public void BmpDecoder_ThrowsImageFormatException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
+        public void BmpDecoder_ThrowsInvalidImageContentException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Assert.Throws<ImageFormatException>(() =>
+            Assert.Throws<InvalidImageContentException>(() =>
             {
                 using (provider.GetImage(BmpDecoder))
                 {

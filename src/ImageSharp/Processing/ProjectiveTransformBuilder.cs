@@ -284,6 +284,9 @@ namespace SixLabors.ImageSharp.Processing
         /// Returns the combined matrix for a given source rectangle.
         /// </summary>
         /// <param name="sourceRectangle">The rectangle in the source image.</param>
+        /// <exception cref="DegenerateTransformException">
+        /// The resultant matrix contains one or more values equivalent to <see cref="float.NaN"/>.
+        /// </exception>
         /// <returns>The <see cref="Matrix4x4"/>.</returns>
         public Matrix4x4 BuildMatrix(Rectangle sourceRectangle)
         {

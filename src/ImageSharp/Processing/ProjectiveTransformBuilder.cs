@@ -303,9 +303,9 @@ namespace SixLabors.ImageSharp.Processing
                 matrix *= factory(size);
             }
 
-            if (TransformUtilities.IsNaN(matrix))
+            if (TransformUtilities.IsNaN(matrix) || matrix.GetDeterminant() == 0)
             {
-                throw new DegenerateTransformException("Matrix is NaN. Check input values.");
+                throw new DegenerateTransformException("Matrix is degenerate. Check input values.");
             }
 
             return matrix;

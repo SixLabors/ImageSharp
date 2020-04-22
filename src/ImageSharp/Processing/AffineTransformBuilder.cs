@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -282,6 +282,11 @@ namespace SixLabors.ImageSharp.Processing
             foreach (Func<Size, Matrix3x2> factory in this.matrixFactories)
             {
                 matrix *= factory(size);
+            }
+
+            if (TransformUtilities.IsNaN(matrix))
+            {
+                throw new DegenerateTransformException("Matrix is NaN. Check input values.");
             }
 
             return matrix;

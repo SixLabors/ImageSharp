@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,8 +8,15 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// The exception that is thrown when an error occurs when applying a process to an image.
     /// </summary>
-    public sealed class ImageProcessingException : Exception
+    public class ImageProcessingException : Exception
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ImageProcessingException"/> class.
+        /// </summary>
+        public ImageProcessingException()
+        {
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageProcessingException"/> class with the name of the
         /// parameter that causes this exception.

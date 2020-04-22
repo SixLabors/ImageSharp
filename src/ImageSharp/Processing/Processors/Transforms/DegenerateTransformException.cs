@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Represents an error that occurs during a transform operation.
     /// </summary>
-    public sealed class DegenerateTransformException : ImageProcessingException
+    public sealed class DegenerateTransformException : Exception
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DegenerateTransformException"/> class.

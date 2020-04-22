@@ -11,15 +11,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
 {
     public class GlowTest : BaseImageOperationsExtensionTest
     {
-        private static readonly GraphicsOptionsComparer GraphicsOptionsComparer = new GraphicsOptionsComparer();
-
         [Fact]
         public void Glow_GlowProcessorWithDefaultValues()
         {
             this.operations.Glow();
             GlowProcessor p = this.Verify<GlowProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
+            Assert.Equal(this.options, p.GraphicsOptions);
             Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
@@ -30,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Glow(Color.Aquamarine);
             GlowProcessor p = this.Verify<GlowProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
+            Assert.Equal(this.options, p.GraphicsOptions);
             Assert.Equal(Color.Aquamarine, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
@@ -41,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Glow(3.5f);
             GlowProcessor p = this.Verify<GlowProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
+            Assert.Equal(this.options, p.GraphicsOptions);
             Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.Absolute(3.5f), p.Radius);
         }
@@ -53,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Glow(rect);
             GlowProcessor p = this.Verify<GlowProcessor>(rect);
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, GraphicsOptionsComparer);
+            Assert.Equal(this.options, p.GraphicsOptions);
             Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }

@@ -12,21 +12,21 @@ namespace SixLabors.ImageSharp.Formats.Png
     internal static class PngThrowHelper
     {
         [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowNoHeader() => throw new ImageFormatException("PNG Image does not contain a header chunk");
+        public static void ThrowNoHeader() => throw new InvalidImageContentException("PNG Image does not contain a header chunk");
 
         [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowNoData() => throw new ImageFormatException("PNG Image does not contain a data chunk");
+        public static void ThrowNoData() => throw new InvalidImageContentException("PNG Image does not contain a data chunk");
 
         [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowInvalidChunkType() => throw new ImageFormatException("Invalid PNG data.");
+        public static void ThrowInvalidChunkType() => throw new InvalidImageContentException("Invalid PNG data.");
 
         [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowInvalidChunkCrc(string chunkTypeName) => throw new ImageFormatException($"CRC Error. PNG {chunkTypeName} chunk is corrupt!");
+        public static void ThrowInvalidChunkCrc(string chunkTypeName) => throw new InvalidImageContentException($"CRC Error. PNG {chunkTypeName} chunk is corrupt!");
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowNotSupportedColor() => new NotSupportedException("Unsupported PNG color type");
 
         [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowUnknownFilter() => throw new ImageFormatException("Unknown filter type.");
+        public static void ThrowUnknownFilter() => throw new InvalidImageContentException("Unknown filter type.");
     }
 }

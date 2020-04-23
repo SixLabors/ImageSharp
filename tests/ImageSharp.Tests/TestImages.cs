@@ -95,6 +95,10 @@ namespace SixLabors.ImageSharp.Tests
             public const string Issue1014_6 = "Png/issues/Issue_1014_6.png";
             public const string Issue1127 = "Png/issues/Issue_1127.png";
 
+            // Issue 1177: https://github.com/SixLabors/ImageSharp/issues/1177
+            public const string Issue1177_1 = "Png/issues/Issue_1177_1.png";
+            public const string Issue1177_2 = "Png/issues/Issue_1177_2.png";
+
             public static class Bad
             {
                 // Odd chunk lengths
@@ -162,6 +166,8 @@ namespace SixLabors.ImageSharp.Tests
                 public const string LowContrast = "Jpg/baseline/AsianCarvingLowContrast.jpg";
                 public const string Testorig12bit = "Jpg/baseline/testorig12.jpg";
                 public const string YcckSubsample1222 = "Jpg/baseline/ycck-subsample-1222.jpg";
+                public const string Iptc = "Jpg/baseline/iptc.jpg";
+                public const string App13WithEmptyIptc = "Jpg/baseline/iptc-psAPP13-wIPTCempty.jpg";
 
                 public static readonly string[] All =
                 {

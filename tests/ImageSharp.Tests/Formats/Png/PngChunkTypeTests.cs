@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             Assert.Equal(PngChunkType.SignificantBits, GetType("sBIT"));
             Assert.Equal(PngChunkType.Histogram, GetType("hIST"));
             Assert.Equal(PngChunkType.SuggestedPalette, GetType("sPLT"));
-            Assert.Equal(PngChunkType.MalformedApple, GetType("CgBI"));
+            Assert.Equal(PngChunkType.ProprietaryApple, GetType("CgBI"));
         }
 
         private static PngChunkType GetType(string text)

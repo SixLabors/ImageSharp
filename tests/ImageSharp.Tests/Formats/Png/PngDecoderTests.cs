@@ -387,7 +387,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     }
                 });
             Assert.NotNull(ex);
-            Assert.Contains("Malformed Apple PNG detected!", ex.Message);
+            Assert.Contains("Proprietary Apple PNG detected!", ex.Message);
         }
 
         [Theory]

@@ -125,6 +125,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Malformed chunk named CgBI produced by apple, which is not conform to the specification.
         /// Related issue is here https://github.com/SixLabors/ImageSharp/issues/410
         /// </summary>
-        MalformedApple = 0x43674249
+        ProprietaryApple = 0x43674249
     }
 }

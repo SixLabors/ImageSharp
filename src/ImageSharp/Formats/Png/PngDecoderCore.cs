@@ -215,8 +215,8 @@ namespace SixLabors.ImageSharp.Formats.Png
                             case PngChunkType.End:
                                 this.isEndChunkReached = true;
                                 break;
-                            case PngChunkType.MalformedApple:
-                                PngThrowHelper.ThrowInvalidChunkType("Malformed Apple PNG detected! This PNG file is not conform to the specification and cannot be decoded.");
+                            case PngChunkType.ProprietaryApple:
+                                PngThrowHelper.ThrowInvalidChunkType("Proprietary Apple PNG detected! This PNG file is not conform to the specification and cannot be decoded.");
                                 break;
                         }
                     }

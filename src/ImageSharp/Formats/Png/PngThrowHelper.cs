@@ -21,10 +21,13 @@ namespace SixLabors.ImageSharp.Formats.Png
         public static void ThrowInvalidChunkType() => throw new InvalidImageContentException("Invalid PNG data.");
 
         [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowInvalidChunkType(string message) => throw new InvalidImageContentException(message);
+
+        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowInvalidChunkCrc(string chunkTypeName) => throw new InvalidImageContentException($"CRC Error. PNG {chunkTypeName} chunk is corrupt!");
 
         [MethodImpl(InliningOptions.ColdPath)]
-        public static void ThrowNotSupportedColor() => new NotSupportedException("Unsupported PNG color type");
+        public static void ThrowNotSupportedColor() => throw new NotSupportedException("Unsupported PNG color type");
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowUnknownFilter() => throw new InvalidImageContentException("Unknown filter type.");

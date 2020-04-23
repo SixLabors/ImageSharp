@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc
         public IptcProfile DeepClone() => new IptcProfile(this);
 
         /// <summary>
-        /// Returns all value with the specified tag.
+        /// Returns all values with the specified tag.
         /// </summary>
         /// <param name="tag">The tag of the iptc value.</param>
         /// <returns>The values found with the specified tag.</returns>

@@ -380,7 +380,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void InitializeImage<TPixel>(ImageMetadata metadata, out Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
+            image = Image.CreateUninitialized<TPixel>(
+                this.configuration,
+                this.header.Width,
+                this.header.Height,
+                metadata);
+
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
             this.bytesPerSample = 1;
@@ -1136,24 +1141,22 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="chunk">The <see cref="PngChunk"/>.</param>
         private void ValidateChunk(in PngChunk chunk)
         {
-            if (!chunk.IsCritical)
-            {
-                return;
-            }
-
-            Span<byte> chunkType = stackalloc byte[4];
-
-            BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
-
-            this.crc.Reset();
-            this.crc.Update(chunkType);
-            this.crc.Update(chunk.Data.GetSpan());
-
             uint crc = this.ReadChunkCrc();
-            if (this.crc.Value != crc)
+
+            if (chunk.IsCritical)
             {
-                string chunkTypeName = Encoding.ASCII.GetString(chunkType);
-                PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);
+                Span<byte> chunkType = stackalloc byte[4];
+                BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
+
+                this.crc.Reset();
+                this.crc.Update(chunkType);
+                this.crc.Update(chunk.Data.GetSpan());
+
+                if (this.crc.Value != crc)
+                {
+                    string chunkTypeName = Encoding.ASCII.GetString(chunkType);
+                    PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);
+                }
             }
         }
 

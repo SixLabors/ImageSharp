@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
@@ -76,6 +77,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
                 Assert.Equal($"CRC Error. PNG {chunkName} chunk is corrupt!", exception.Message);
             }
+        }
+
+        [Fact]
+        public void CalculateCrc_Works()
+        {
+            // arrange
+            var data = new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+            var crc = new Crc32();
+
+            // act
+            crc.Update(data);
+
+            // assert
+            Assert.Equal(0x88AA689F, crc.Value);
         }
 
         private static string GetChunkTypeName(uint value)

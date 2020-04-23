@@ -65,6 +65,12 @@ namespace SixLabors.ImageSharp.Tests
             public const string Filter3 = "Png/filter3.png";
             public const string Filter4 = "Png/filter4.png";
 
+            // Paletted images also from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
+            public const string PalettedTwoColor = "Png/basn3p01.png";
+            public const string PalettedFourColor = "Png/basn3p02.png";
+            public const string PalettedSixteenColor = "Png/basn3p04.png";
+            public const string Paletted256Colors = "Png/basn3p08.png";
+
             // Filter changing per scanline
             public const string FilterVar = "Png/filterVar.png";
 
@@ -93,6 +99,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string Issue1014_4 = "Png/issues/Issue_1014_4.png";
             public const string Issue1014_5 = "Png/issues/Issue_1014_5.png";
             public const string Issue1014_6 = "Png/issues/Issue_1014_6.png";
+
+            // Issue 1127: https://github.com/SixLabors/ImageSharp/issues/1127
             public const string Issue1127 = "Png/issues/Issue_1127.png";
 
             // Issue 1177: https://github.com/SixLabors/ImageSharp/issues/1177
@@ -101,14 +109,31 @@ namespace SixLabors.ImageSharp.Tests
 
             public static class Bad
             {
-                // Odd chunk lengths
-                public const string ChunkLength1 = "Png/chunklength1.png";
-                public const string ChunkLength2 = "Png/chunklength2.png";
+                public const string MissingDataChunk = "Png/xdtn0g01.png";
                 public const string CorruptedChunk = "Png/big-corrupted-chunk.png";
+
+                // Zlib errors.
                 public const string ZlibOverflow = "Png/zlib-overflow.png";
                 public const string ZlibOverflow2 = "Png/zlib-overflow2.png";
                 public const string ZlibZtxtBadHeader = "Png/zlib-ztxt-bad-header.png";
+
+                // Odd chunk lengths
+                public const string ChunkLength1 = "Png/chunklength1.png";
+                public const string ChunkLength2 = "Png/chunklength2.png";
+
+                // Issue 1047: https://github.com/SixLabors/ImageSharp/issues/1047
                 public const string Issue1047_BadEndChunk = "Png/issues/Issue_1047.png";
+
+                // Issue 410: https://github.com/SixLabors/ImageSharp/issues/410
+                public const string Issue410_MalformedApplePng = "Png/issues/Issue_410.png";
+
+                // Bad bit depth.
+                public const string BitDepthZero = "Png/xd0n2c08.png";
+                public const string BitDepthThree = "Png/xd3n2c08.png";
+
+                // Invalid color type.
+                public const string ColorTypeOne = "Png/xc1n0g08.png";
+                public const string ColorTypeNine = "Png/xc9n2c08.png";
             }
 
             public static readonly string[] All =

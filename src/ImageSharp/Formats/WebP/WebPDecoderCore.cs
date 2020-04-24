@@ -5,6 +5,9 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 
+using SixLabors.ImageSharp.Formats.WebP.BitReader;
+using SixLabors.ImageSharp.Formats.WebP.Lossless;
+using SixLabors.ImageSharp.Formats.WebP.Lossy;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;

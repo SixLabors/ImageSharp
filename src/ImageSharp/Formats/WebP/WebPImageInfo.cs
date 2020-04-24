@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Formats.WebP.BitReader;
+using SixLabors.ImageSharp.Formats.WebP.Lossy;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {

@@ -235,7 +235,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 return new WebPImageInfo() { Width = width, Height = height, Features = features };
             }
 
-            // TODO: check if VP8 or VP8L info about the dimensions match VP8X info
             switch (chunkType)
             {
                 case WebPChunkType.Vp8:
@@ -415,7 +414,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 case WebPChunkType.Iccp:
                     uint iccpChunkSize = this.ReadChunkSize();
-                    if (!this.IgnoreMetadata)
+                    if (this.IgnoreMetadata)
+                    {
+                        this.currentStream.Skip((int)iccpChunkSize);
+                    }
+                    else
                     {
                         var iccpData = new byte[iccpChunkSize];
                         this.currentStream.Read(iccpData, 0, (int)iccpChunkSize);
@@ -424,10 +427,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                         {
                             this.Metadata.IccProfile = profile;
                         }
-                    }
-                    else
-                    {
-                        this.currentStream.Skip((int)iccpChunkSize);
                     }
 
                     break;

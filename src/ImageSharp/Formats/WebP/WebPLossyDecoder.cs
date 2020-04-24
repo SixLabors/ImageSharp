@@ -699,15 +699,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             // Loop over each output pairs of row.
+            var bufferStride2 = 2 * bufferStride;
+            var ioStride2 = 2 * io.YStride;
             for (; y + 2 < yEnd; y += 2)
             {
                 topU = curU;
                 topV = curV;
                 curU = curU.Slice(io.UvStride);
                 curV = curV.Slice(io.UvStride);
-                this.UpSample(curY.Slice(io.YStride), curY.Slice(2 * io.YStride), topU, topV, curU, curV, dst.Slice(bufferStride), dst.Slice(2 * bufferStride), mbw);
-                curY = curY.Slice(2 * io.YStride);
-                dst = dst.Slice(2 * bufferStride);
+                this.UpSample(curY.Slice(io.YStride), curY.Slice(ioStride2), topU, topV, curU, curV, dst.Slice(bufferStride), dst.Slice(bufferStride2), mbw);
+                curY = curY.Slice(ioStride2);
+                dst = dst.Slice(bufferStride2);
             }
 
             // Move to last row.

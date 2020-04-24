@@ -929,9 +929,17 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return (dist >= 1) ? dist : 1;
         }
 
+        /// <summary>
+        /// Copies pixels when a backward reference is used.
+        /// Copy 'length' number of pixels (in scan-line order) from the sequence of pixels prior to them by 'dist' pixels.
+        /// </summary>
+        /// <param name="pixelData">The pixel data.</param>
+        /// <param name="decodedPixels">The number of so far decoded pixels.</param>
+        /// <param name="dist">The backward reference distance prior to the current decoded pixel.</param>
+        /// <param name="length">The number of pixels to copy.</param>
         private static void CopyBlock(Span<uint> pixelData, int decodedPixels, int dist, int length)
         {
-            if (dist >= length)
+            if (dist >= length) // no overlap.
             {
                 Span<uint> src = pixelData.Slice(decodedPixels - dist, length);
                 Span<uint> dest = pixelData.Slice(decodedPixels);
@@ -939,18 +947,27 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
             else
             {
+                // There is overlap between the backward reference distance and the pixels to copy.
                 Span<uint> src = pixelData.Slice(decodedPixels - dist);
                 Span<uint> dest = pixelData.Slice(decodedPixels);
-                for (int i = 0; i < length; ++i)
+                for (int i = 0; i < length; i++)
                 {
                     dest[i] = src[i];
                 }
             }
         }
 
+        /// <summary>
+        /// Copies alpha values when a backward reference is used.
+        /// Copy 'length' number of alpha values from the sequence of alpha values prior to them by 'dist'.
+        /// </summary>
+        /// <param name="data">The alpha values.</param>
+        /// <param name="pos">The position of the so far decoded pixels.</param>
+        /// <param name="dist">The backward reference distance prior to the current decoded pixel.</param>
+        /// <param name="length">The number of pixels to copy.</param>
         private static void CopyBlock8B(Span<byte> data, int pos, int dist, int length)
         {
-            if (dist >= length)
+            if (dist >= length) // no overlap.
             {
                 data.Slice(pos - dist, length).CopyTo(data.Slice(pos));
             }

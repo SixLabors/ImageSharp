@@ -15,6 +15,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
     public class DecodeWebp : BenchmarkBase
     {
         private byte[] webpLossyBytes;
+
         private byte[] webpLosslessBytes;
 
         private string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImageLossy);
@@ -30,59 +31,40 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [GlobalSetup]
         public void ReadImages()
         {
-            if (this.webpLossyBytes is null)
-            {
-                this.webpLossyBytes = File.ReadAllBytes(this.TestImageLossyFullPath);
-            }
-
-            if (this.webpLosslessBytes is null)
-            {
-                this.webpLosslessBytes = File.ReadAllBytes(this.TestImageLosslessFullPath);
-            }
+            this.webpLossyBytes ??= File.ReadAllBytes(this.TestImageLossyFullPath);
+            this.webpLosslessBytes ??= File.ReadAllBytes(this.TestImageLosslessFullPath);
         }
 
         [Benchmark(Description = "Magick Lossy WebP")]
         public int WebpLossyMagick()
         {
             var settings = new MagickReadSettings { Format = MagickFormat.WebP };
-            using (var image = new MagickImage(new MemoryStream(this.webpLossyBytes), settings))
-            {
-                return image.Width;
-            }
+            using var image = new MagickImage(new MemoryStream(this.webpLossyBytes), settings);
+            return image.Width;
         }
 
         [Benchmark(Description = "ImageSharp Lossy Webp")]
         public int WebpLossy()
         {
-            using (var memoryStream = new MemoryStream(this.webpLossyBytes))
-            {
-                using (var image = Image.Load<Rgba32>(memoryStream))
-                {
-                    return image.Height;
-                }
-            }
+            using var memoryStream = new MemoryStream(this.webpLossyBytes);
+            using var image = Image.Load<Rgba32>(memoryStream);
+            return image.Height;
         }
 
         [Benchmark(Description = "Magick Lossless WebP")]
         public int WebpLosslessMagick()
         {
             var settings = new MagickReadSettings { Format = MagickFormat.WebP };
-            using (var image = new MagickImage(new MemoryStream(this.webpLosslessBytes), settings))
-            {
-                return image.Width;
-            }
+            using var image = new MagickImage(new MemoryStream(this.webpLosslessBytes), settings);
+            return image.Width;
         }
 
         [Benchmark(Description = "ImageSharp Lossless Webp")]
         public int WebpLossless()
         {
-            using (var memoryStream = new MemoryStream(this.webpLosslessBytes))
-            {
-                using (var image = Image.Load<Rgba32>(memoryStream))
-                {
-                    return image.Height;
-                }
-            }
+            using var memoryStream = new MemoryStream(this.webpLosslessBytes);
+            using var image = Image.Load<Rgba32>(memoryStream);
+            return image.Height;
         }
 
         /* Results 18.03.2020

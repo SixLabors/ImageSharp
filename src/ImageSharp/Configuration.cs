@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -73,6 +74,12 @@ namespace SixLabors.ImageSharp
                 this.maxDegreeOfParallelism = value;
             }
         }
+
+        /// <summary>
+        /// Gets a set of properties for the Congiguration.
+        /// </summary>
+        /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
+        public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
 
         /// <summary>
         /// Gets the currently registered <see cref="IImageFormat"/>s.

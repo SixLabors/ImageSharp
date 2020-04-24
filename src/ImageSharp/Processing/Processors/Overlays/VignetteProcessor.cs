@@ -13,15 +13,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// <summary>
         /// Initializes a new instance of the <see cref="VignetteProcessor" /> class.
         /// </summary>
-        /// <param name="color">The color of the vignette.</param>
-        public VignetteProcessor(Color color)
-            : this(new GraphicsOptions(), color)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="VignetteProcessor" /> class.
-        /// </summary>
         /// <param name="options">The options effecting blending and composition.</param>
         /// <param name="color">The color of the vignette.</param>
         public VignetteProcessor(GraphicsOptions options, Color color)

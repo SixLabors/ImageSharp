@@ -56,6 +56,8 @@ namespace SixLabors.ImageSharp.Tests.Processing
 
             public Configuration Configuration { get; }
 
+            public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
+
             public Image<TPixel> GetResultImage()
             {
                 return this.Source;

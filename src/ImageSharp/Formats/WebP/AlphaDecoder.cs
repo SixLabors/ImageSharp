@@ -273,10 +273,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int bitsPerPixel = 8 >> transform.Bits;
             int width = transform.XSize;
             Span<uint> colorMap = transform.Data.Memory.Span;
-            int srcOffset = 0;
-            int dstOffset = 0;
             if (bitsPerPixel < 8)
             {
+                int srcOffset = 0;
+                int dstOffset = 0;
                 int pixelsPerByte = 1 << transform.Bits;
                 int countMask = pixelsPerByte - 1;
                 int bitMask = (1 << bitsPerPixel) - 1;

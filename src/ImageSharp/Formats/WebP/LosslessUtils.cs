@@ -279,14 +279,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
             newColorMap[0] = transformData[0];
             Span<byte> data = MemoryMarshal.Cast<uint, byte>(transformData);
             Span<byte> newData = MemoryMarshal.Cast<uint, byte>(newColorMap);
+            int numColorsX4 = 4 * numColors;
             int i;
-            for (i = 4; i < 4 * numColors; ++i)
+            for (i = 4; i < numColorsX4; i++)
             {
                 // Equivalent to AddPixelEq(), on a byte-basis.
                 newData[i] = (byte)((data[i] + newData[i - 4]) & 0xff);
             }
 
-            for (; i < 4 * newColorMap.Length; ++i)
+            int colorMapLength4 = 4 * newColorMap.Length;
+            for (; i < colorMapLength4; i++)
             {
                 newData[i] = 0;  // black tail.
             }

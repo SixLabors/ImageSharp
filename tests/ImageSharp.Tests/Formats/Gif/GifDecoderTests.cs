@@ -164,7 +164,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 {
                     ImageFrame<Rgba32> first = kumin1.Frames[i];
                     ImageFrame<Rgba32> second = kumin2.Frames[i];
-                    first.ComparePixelBufferTo(second.GetPixelSpan());
+
+                    Assert.True(second.TryGetSinglePixelSpan(out Span<Rgba32> secondSpan));
+
+                    first.ComparePixelBufferTo(secondSpan);
                 }
             }
         }

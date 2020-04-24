@@ -1,17 +1,10 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Linq;
-using Moq;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Drawing;
 using SixLabors.ImageSharp.Tests.Processing;
-using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
 
@@ -19,7 +12,6 @@ namespace SixLabors.ImageSharp.Tests.Drawing
 {
     public class DrawImageExtensionsTests : BaseImageOperationsExtensionTest
     {
-
         [Fact]
         public void DrawImage_OpacityOnly_VerifyGraphicOptionsTakenFromContext()
         {
@@ -28,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             this.options.ColorBlendingMode = PixelColorBlendingMode.Screen;
 
             this.operations.DrawImage(null, 0.5f);
-            var dip = this.Verify<DrawImageProcessor>();
+            DrawImageProcessor dip = this.Verify<DrawImageProcessor>();
 
             Assert.Equal(0.5, dip.Opacity);
             Assert.Equal(this.options.AlphaCompositionMode, dip.AlphaCompositionMode);
@@ -43,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             this.options.ColorBlendingMode = PixelColorBlendingMode.Screen;
 
             this.operations.DrawImage(null, PixelColorBlendingMode.Multiply, 0.5f);
-            var dip = this.Verify<DrawImageProcessor>();
+            DrawImageProcessor dip = this.Verify<DrawImageProcessor>();
 
             Assert.Equal(0.5, dip.Opacity);
             Assert.Equal(this.options.AlphaCompositionMode, dip.AlphaCompositionMode);
@@ -58,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             this.options.ColorBlendingMode = PixelColorBlendingMode.Screen;
 
             this.operations.DrawImage(null, Point.Empty, 0.5f);
-            var dip = this.Verify<DrawImageProcessor>();
+            DrawImageProcessor dip = this.Verify<DrawImageProcessor>();
 
             Assert.Equal(0.5, dip.Opacity);
             Assert.Equal(this.options.AlphaCompositionMode, dip.AlphaCompositionMode);
@@ -73,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             this.options.ColorBlendingMode = PixelColorBlendingMode.Screen;
 
             this.operations.DrawImage(null, Point.Empty, PixelColorBlendingMode.Multiply, 0.5f);
-            var dip = this.Verify<DrawImageProcessor>();
+            DrawImageProcessor dip = this.Verify<DrawImageProcessor>();
 
             Assert.Equal(0.5, dip.Opacity);
             Assert.Equal(this.options.AlphaCompositionMode, dip.AlphaCompositionMode);

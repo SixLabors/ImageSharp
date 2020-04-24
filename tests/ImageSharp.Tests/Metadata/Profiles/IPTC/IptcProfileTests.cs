@@ -25,8 +25,8 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         }
 
         [Theory]
-        [MemberData("AllIptcTags")]
-        public void IptcProfile_SetValue_WithStrictOption_Works(IptcTag tag)
+        [MemberData(nameof(AllIptcTags))]
+        public void IptcProfile_SetValue_WithStrictEnabled_Works(IptcTag tag)
         {
             // arrange
             var profile = new IptcProfile();
@@ -35,6 +35,23 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
 
             // act
             profile.SetValue(tag, value);
+
+            // assert
+            IptcValue actual = profile.GetValues(tag).First();
+            Assert.Equal(expectedLength, actual.Value.Length);
+        }
+
+        [Theory]
+        [MemberData(nameof(AllIptcTags))]
+        public void IptcProfile_SetValue_WithStrictDisabled_Works(IptcTag tag)
+        {
+            // arrange
+            var profile = new IptcProfile();
+            var value = new string('s', tag.MaxLength() + 1);
+            var expectedLength = value.Length;
+
+            // act
+            profile.SetValue(tag, value, false);
 
             // assert
             IptcValue actual = profile.GetValues(tag).First();
@@ -199,13 +216,6 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
             ContainsIptcValue(iptcValues, IptcTag.Caption, expectedCaption);
         }
 
-        [Fact]
-        public void IptcProfile_SetNewValue_RespectsMaxLength()
-        {
-            // arrange
-            var profile = new IptcProfile();
-        }
-
         [Theory]
         [InlineData(IptcTag.ObjectAttribute)]
         [InlineData(IptcTag.SubjectReference)]
@@ -292,7 +302,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         [Fact]
         public void IptcProfile_RemoveByTag_RemovesAllEntrys()
         {
-            // arange
+            // arrange
             var profile = new IptcProfile();
             profile.SetValue(IptcTag.Byline, "test");
             profile.SetValue(IptcTag.Byline, "test2");
@@ -308,7 +318,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         [Fact]
         public void IptcProfile_RemoveByTagAndValue_Works()
         {
-            // arange
+            // arrange
             var profile = new IptcProfile();
             profile.SetValue(IptcTag.Byline, "test");
             profile.SetValue(IptcTag.Byline, "test2");
@@ -322,9 +332,9 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.IPTC
         }
 
         [Fact]
-        public void IptcProfile_GetValue_RetrievesAllEntrys()
+        public void IptcProfile_GetValue_RetrievesAllEntries()
         {
-            // arange
+            // arrange
             var profile = new IptcProfile();
             profile.SetValue(IptcTag.Byline, "test");
             profile.SetValue(IptcTag.Byline, "test2");

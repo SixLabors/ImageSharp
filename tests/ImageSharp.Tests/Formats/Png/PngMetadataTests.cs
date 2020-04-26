@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -129,6 +130,40 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             }
         }
 
+        [Theory]
+        [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
+        public void Decode_ReadsExifData<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var decoder = new PngDecoder
+            {
+                IgnoreMetadata = false
+            };
+
+            using (Image<TPixel> image = provider.GetImage(decoder))
+            {
+                Assert.NotNull(image.Metadata.ExifProfile);
+                ExifProfile exif = image.Metadata.ExifProfile;
+                VerifyExifDataIsPresent(exif);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
+        public void Decode_IgnoresExifData_WhenIgnoreMetadataIsTrue<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var decoder = new PngDecoder
+            {
+                IgnoreMetadata = true
+            };
+
+            using (Image<TPixel> image = provider.GetImage(decoder))
+            {
+                Assert.Null(image.Metadata.ExifProfile);
+            }
+        }
+
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_TextChunkIsRead()
         {
@@ -213,6 +248,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 PngMetadata meta = imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance);
                 VerifyTextDataIsPresent(meta);
             }
+        }
+
+        [Theory]
+        [InlineData(TestImages.Png.PngWithMetadata)]
+        public void Identify_ReadsExifData(string imagePath)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                IImageInfo imageInfo = Image.Identify(stream);
+                Assert.NotNull(imageInfo);
+                Assert.NotNull(imageInfo.Metadata.ExifProfile);
+                ExifProfile exif = imageInfo.Metadata.ExifProfile;
+                VerifyExifDataIsPresent(exif);
+            }
+        }
+
+        private static void VerifyExifDataIsPresent(ExifProfile exif)
+        {
+            Assert.Equal(1, exif.Values.Count);
+            IExifValue<string> software = exif.GetValue(ExifTag.Software);
+            Assert.NotNull(software);
+            Assert.Equal("ImageSharp", software.Value);
         }
 
         private static void VerifyTextDataIsPresent(PngMetadata meta)

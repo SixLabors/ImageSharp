@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
+
+using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 
@@ -18,6 +21,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     public class PngEncoderTests
     {
+        private static PngEncoder PngEncoder => new PngEncoder();
+
         public static readonly TheoryData<string, PngBitDepth> PngBitDepthFiles =
         new TheoryData<string, PngBitDepth>
         {
@@ -234,8 +239,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         {
             using (Stream stream = new MemoryStream())
             {
-                var encoder = new PngEncoder();
-                encoder.Encode(provider.GetImage(), stream);
+                PngEncoder.Encode(provider.GetImage(), stream);
 
                 stream.Seek(0, SeekOrigin.Begin);
 
@@ -281,7 +285,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (Image<TPixel> image = provider.GetImage())
             using (var ms = new MemoryStream())
             {
-                image.Save(ms, new PngEncoder());
+                image.Save(ms, PngEncoder);
 
                 byte[] data = ms.ToArray().Take(8).ToArray();
                 byte[] expected =
@@ -304,14 +308,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [MemberData(nameof(RatioFiles))]
         public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
         {
-            var options = new PngEncoder();
-
             var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
-                    input.Save(memStream, options);
+                    input.Save(memStream, PngEncoder);
 
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
@@ -329,14 +331,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [MemberData(nameof(PngBitDepthFiles))]
         public void Encode_PreserveBits(string imagePath, PngBitDepth pngBitDepth)
         {
-            var options = new PngEncoder();
-
             var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
                 using (var memStream = new MemoryStream())
                 {
-                    input.Save(memStream, options);
+                    input.Save(memStream, PngEncoder);
 
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
@@ -353,8 +353,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [MemberData(nameof(PngTrnsFiles))]
         public void Encode_PreserveTrns(string imagePath, PngBitDepth pngBitDepth, PngColorType pngColorType)
         {
-            var options = new PngEncoder();
-
             var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
@@ -363,7 +361,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
                 using (var memStream = new MemoryStream())
                 {
-                    input.Save(memStream, options);
+                    input.Save(memStream, PngEncoder);
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
@@ -401,6 +399,126 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                         }
                     }
                 }
+            }
+        }
+
+        [Fact]
+        public void HeaderChunk_ComesFirst()
+        {
+            var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, PngEncoder);
+            memStream.Position = 0;
+
+            // Skip header.
+            Span<byte> bytesSpan = memStream.ToArray().AsSpan(8);
+            BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
+            var type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+            Assert.Equal(PngChunkType.Header, type);
+        }
+
+        [Fact]
+        public void EndChunk_IsLast()
+        {
+            var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, PngEncoder);
+            memStream.Position = 0;
+
+            // Skip header.
+            Span<byte> bytesSpan = memStream.ToArray().AsSpan(8);
+
+            bool endChunkFound = false;
+            while (bytesSpan.Length > 0)
+            {
+                int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
+                var type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+                Assert.False(endChunkFound);
+                if (type == PngChunkType.End)
+                {
+                    endChunkFound = true;
+                }
+
+                bytesSpan = bytesSpan.Slice(4 + 4 + length + 4);
+            }
+        }
+
+        [Theory]
+        [InlineData(PngChunkType.Gamma)]
+        [InlineData(PngChunkType.Chroma)]
+        [InlineData(PngChunkType.EmbeddedColorProfile)]
+        [InlineData(PngChunkType.SignificantBits)]
+        [InlineData(PngChunkType.StandardRgbColourSpace)]
+        public void Chunk_ComesBeforePlteAndIDat(object chunkTypeObj)
+        {
+            var chunkType = (PngChunkType)chunkTypeObj;
+            var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, PngEncoder);
+            memStream.Position = 0;
+
+            // Skip header.
+            Span<byte> bytesSpan = memStream.ToArray().AsSpan(8);
+
+            bool palFound = false;
+            bool dataFound = false;
+            while (bytesSpan.Length > 0)
+            {
+                int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
+                var type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+                if (chunkType == type)
+                {
+                    Assert.False(palFound || dataFound, $"{chunkType} chunk should come before data and palette chunk");
+                }
+
+                switch (type)
+                {
+                    case PngChunkType.Data:
+                        dataFound = true;
+                        break;
+                    case PngChunkType.Palette:
+                        palFound = true;
+                        break;
+                }
+
+                bytesSpan = bytesSpan.Slice(4 + 4 + length + 4);
+            }
+        }
+
+        [Theory]
+        [InlineData(PngChunkType.Physical)]
+        [InlineData(PngChunkType.SuggestedPalette)]
+        public void Chunk_ComesBeforeIDat(object chunkTypeObj)
+        {
+            var chunkType = (PngChunkType)chunkTypeObj;
+            var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            input.Save(memStream, PngEncoder);
+            memStream.Position = 0;
+
+            // Skip header.
+            Span<byte> bytesSpan = memStream.ToArray().AsSpan(8);
+
+            bool dataFound = false;
+            while (bytesSpan.Length > 0)
+            {
+                int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
+                var type = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+                if (chunkType == type)
+                {
+                    Assert.False(dataFound, $"{chunkType} chunk should come before data chunk");
+                }
+
+                if (type == PngChunkType.Data)
+                {
+                    dataFound = true;
+                }
+
+                bytesSpan = bytesSpan.Slice(4 + 4 + length + 4);
             }
         }
 

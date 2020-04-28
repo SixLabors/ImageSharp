@@ -179,7 +179,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
-            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(GifDecoder));
+            InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(GifDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 

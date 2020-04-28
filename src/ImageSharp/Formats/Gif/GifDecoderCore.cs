@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Decodes the stream to the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">The stream containing image data. </param>
+        /// <param name="stream">The stream containing image data.</param>
         /// <returns>The decoded image</returns>
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>

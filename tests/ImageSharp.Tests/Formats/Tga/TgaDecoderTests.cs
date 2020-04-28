@@ -740,7 +740,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
-            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(TgaDecoder));
+            InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(TgaDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 

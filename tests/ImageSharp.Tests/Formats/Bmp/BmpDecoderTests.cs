@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
-            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(BmpDecoder));
+            InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(BmpDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 

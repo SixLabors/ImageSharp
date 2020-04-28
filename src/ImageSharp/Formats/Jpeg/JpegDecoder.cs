@@ -32,7 +32,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 (int w, int h) = (decoder.ImageWidth, decoder.ImageHeight);
 
-                throw new InvalidImageContentException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {w}x{h}.", ex);
+                JpegThrowHelper.ThrowInvalidImageContentException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {w}x{h}.", ex);
+
+                // Not reachable, as the previous statement will throw a exception.
+                return null;
             }
         }
 

@@ -397,6 +397,13 @@ namespace SixLabors.ImageSharp.Tests
             public const string Ratio1x4 = "Gif/base_1x4.gif";
             public const string LargeComment = "Gif/large_comment.gif";
 
+            // Test images from https://github.com/robert-ancell/pygif/tree/master/test-suite
+            public const string ZeroSize = "Gif/image-zero-size.gif";
+            public const string ZeroHeight = "Gif/image-zero-height.gif";
+            public const string ZeroWidth = "Gif/image-zero-width.gif";
+            public const string MaxWidth = "Gif/max-width.gif";
+            public const string MaxHeight = "Gif/max-height.gif";
+
             public static class Issues
             {
                 public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";

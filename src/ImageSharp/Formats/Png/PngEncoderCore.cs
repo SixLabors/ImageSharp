@@ -7,7 +7,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
+
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
             PngEncoderOptionsHelpers.AdjustOptions<TPixel>(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
             IndexedImageFrame<TPixel> quantized;
-            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.MakeTransparentBlack) == PngChunkFilter.MakeTransparentBlack)
+            if (this.options.MakeTransparentBlack)
             {
                 using (Image<TPixel> tempImage = image.Clone())
                 {

@@ -12,6 +12,10 @@ namespace SixLabors.ImageSharp.Formats.Png
     internal static class PngThrowHelper
     {
         [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowInvalidImageContentException(string errorMessage, Exception innerException)
+            => throw new InvalidImageContentException(errorMessage, innerException);
+
+        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowNoHeader() => throw new InvalidImageContentException("PNG Image does not contain a header chunk");
 
         [MethodImpl(InliningOptions.ColdPath)]

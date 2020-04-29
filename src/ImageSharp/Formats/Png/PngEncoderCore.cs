@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
             PngEncoderOptionsHelpers.AdjustOptions<TPixel>(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
             IndexedImageFrame<TPixel> quantized;
-            if (((this.options.OptimizeMethod ?? PngChunkFilter.None) & PngChunkFilter.MakeTransparentBlack) == PngChunkFilter.MakeTransparentBlack)
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.MakeTransparentBlack) == PngChunkFilter.MakeTransparentBlack)
             {
                 using (Image<TPixel> tempImage = image.Clone())
                 {
@@ -182,7 +182,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             this.WriteHeaderChunk(stream);
 
-            if (((this.options.OptimizeMethod ?? PngChunkFilter.None) & PngChunkFilter.ExcludeGammaChunk) != PngChunkFilter.ExcludeGammaChunk)
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeGammaChunk) != PngChunkFilter.ExcludeGammaChunk)
             {
                 this.WriteGammaChunk(stream);
             }
@@ -190,17 +190,17 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WritePaletteChunk(stream, quantized);
             this.WriteTransparencyChunk(stream, pngMetadata);
 
-            if (((this.options.OptimizeMethod ?? PngChunkFilter.None) & PngChunkFilter.ExcludePhysicalChunk) != PngChunkFilter.ExcludePhysicalChunk)
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludePhysicalChunk) != PngChunkFilter.ExcludePhysicalChunk)
             {
                 this.WritePhysicalChunk(stream, metadata);
             }
 
-            if (((this.options.OptimizeMethod ?? PngChunkFilter.None) & PngChunkFilter.ExcludeExifChunk) != PngChunkFilter.ExcludeExifChunk)
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeExifChunk) != PngChunkFilter.ExcludeExifChunk)
             {
                 this.WriteExifChunk(stream, metadata);
             }
 
-            if (((this.options.OptimizeMethod ?? PngChunkFilter.None) & PngChunkFilter.ExcludeTextChunks) != PngChunkFilter.ExcludeTextChunks)
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeTextChunks) != PngChunkFilter.ExcludeTextChunks)
             {
                 this.WriteTextChunks(stream, pngMetadata);
             }

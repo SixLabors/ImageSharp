@@ -30,6 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.Threshold = source.Threshold;
             this.InterlaceMethod = source.InterlaceMethod;
             this.ChunkFilter = source.ChunkFilter;
+            this.MakeTransparentBlack = source.MakeTransparentBlack;
         }
 
         /// <summary>
@@ -84,5 +85,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets or sets a the optimize method.
         /// </summary>
         public PngChunkFilter? ChunkFilter { get; set; }
+
+        /// <inheritdoc/>
+        public bool MakeTransparentBlack { get; set; }
     }
 }

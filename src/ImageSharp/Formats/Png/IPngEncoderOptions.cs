@@ -62,5 +62,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets the optimize method.
         /// </summary>
         PngChunkFilter? ChunkFilter { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether fully transparent pixels should be converted to black pixels.
+        /// </summary>
+        bool MakeTransparentBlack { get; }
     }
 }

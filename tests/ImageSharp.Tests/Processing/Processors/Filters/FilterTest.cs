@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -7,7 +7,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
-    using SixLabors.ImageSharp.Primitives;
+    using SixLabors.ImageSharp;
     using SixLabors.ImageSharp.Processing;
 
     [GroupOutput("Filters")]
@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         [Theory]
         [WithTestPatternImages(48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void ApplyFilter<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ColorMatrix m = CreateCombinedTestFilterMatrix();
 
@@ -30,11 +30,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         [Theory]
         [WithTestPatternImages(48, 48, PixelTypes.Rgba32)]
         public void ApplyFilterInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ColorMatrix m = CreateCombinedTestFilterMatrix();
 
             provider.RunRectangleConstrainedValidatingProcessorTest((x, b) => x.Filter(m, b), comparer: ValidatorComparer);
+        }
+
+        [Theory]
+        [WithTestPatternImages(70, 120, PixelTypes.Rgba32)]
+        public void FilterProcessor_WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            ColorMatrix m = CreateCombinedTestFilterMatrix();
+
+            provider.RunBufferCapacityLimitProcessorTest(37, c => c.Filter(m));
         }
 
         private static ColorMatrix CreateCombinedTestFilterMatrix()
@@ -44,6 +54,5 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
             ColorMatrix saturation = KnownFilterMatrices.CreateSaturateFilter(1.5F);
             return brightness * hue * saturation;
         }
-
     }
 }

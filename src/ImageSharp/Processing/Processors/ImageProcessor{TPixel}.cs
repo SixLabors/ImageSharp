@@ -2,9 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors
 {
@@ -14,18 +12,19 @@ namespace SixLabors.ImageSharp.Processing.Processors
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public abstract class ImageProcessor<TPixel> : IImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        protected ImageProcessor(Image<TPixel> source, Rectangle sourceRectangle)
+        protected ImageProcessor(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
         {
+            this.Configuration = configuration;
             this.Source = source;
             this.SourceRectangle = sourceRectangle;
-            this.Configuration = this.Source.GetConfiguration();
         }
 
         /// <summary>
@@ -94,7 +93,7 @@ namespace SixLabors.ImageSharp.Processing.Processors
         }
 
         /// <inheritdoc/>
-        public virtual void Dispose()
+        public void Dispose()
         {
             this.Dispose(true);
             GC.SuppressFinalize(this);

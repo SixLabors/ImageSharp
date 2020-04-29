@@ -3,52 +3,50 @@
 
 using System.Collections.Generic;
 using System.Linq;
-
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests.Processing
 {
     internal class FakeImageOperationsProvider : IImageProcessingContextFactory
     {
-        private List<object> ImageOperators = new List<object>();
+        private readonly List<object> imageOperators = new List<object>();
 
         public bool HasCreated<TPixel>(Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return this.Created(source).Any();
         }
-        public IEnumerable<FakeImageOperations<TPixel>> Created<TPixel>(Image<TPixel> source) where TPixel : struct, IPixel<TPixel>
+
+        public IEnumerable<FakeImageOperations<TPixel>> Created<TPixel>(Image<TPixel> source)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            return this.ImageOperators.OfType<FakeImageOperations<TPixel>>()
+            return this.imageOperators.OfType<FakeImageOperations<TPixel>>()
                 .Where(x => x.Source == source);
         }
 
-        public IEnumerable<FakeImageOperations<TPixel>.AppliedOperation> AppliedOperations<TPixel>(Image<TPixel> source) where TPixel : struct, IPixel<TPixel>
+        public IEnumerable<FakeImageOperations<TPixel>.AppliedOperation> AppliedOperations<TPixel>(Image<TPixel> source)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return this.Created(source)
                 .SelectMany(x => x.Applied);
         }
 
-        public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Image<TPixel> source, bool mutate) where TPixel : struct, IPixel<TPixel>
+        public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Configuration configuration, Image<TPixel> source, bool mutate)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            var op = new FakeImageOperations<TPixel>(source, mutate);
-            this.ImageOperators.Add(op);
+            var op = new FakeImageOperations<TPixel>(configuration, source, mutate);
+            this.imageOperators.Add(op);
             return op;
         }
 
         public class FakeImageOperations<TPixel> : IInternalImageProcessingContext<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            private bool mutate;
-
-            public FakeImageOperations(Image<TPixel> source, bool mutate)
+            public FakeImageOperations(Configuration configuration, Image<TPixel> source, bool mutate)
             {
-                this.mutate = mutate;
+                this.Configuration = configuration;
                 this.Source = mutate ? source : source?.Clone();
             }
 
@@ -56,7 +54,9 @@ namespace SixLabors.ImageSharp.Tests.Processing
 
             public List<AppliedOperation> Applied { get; } = new List<AppliedOperation>();
 
-            public MemoryAllocator MemoryAllocator => this.Source.GetConfiguration().MemoryAllocator;
+            public Configuration Configuration { get; }
+
+            public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
 
             public Image<TPixel> GetResultImage()
             {
@@ -71,25 +71,26 @@ namespace SixLabors.ImageSharp.Tests.Processing
             public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
             {
                 this.Applied.Add(new AppliedOperation
-                                     {
-                                         Rectangle = rectangle,
-                                         NonGenericProcessor = processor
-                                     });
+                {
+                    Rectangle = rectangle,
+                    NonGenericProcessor = processor
+                });
                 return this;
             }
 
             public IImageProcessingContext ApplyProcessor(IImageProcessor processor)
             {
                 this.Applied.Add(new AppliedOperation
-                                     {
-                                         NonGenericProcessor = processor
-                                     });
+                {
+                    NonGenericProcessor = processor
+                });
                 return this;
             }
 
             public struct AppliedOperation
             {
                 public Rectangle? Rectangle { get; set; }
+
                 public IImageProcessor<TPixel> GenericProcessor { get; set; }
 
                 public IImageProcessor NonGenericProcessor { get; set; }

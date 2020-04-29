@@ -95,19 +95,100 @@ namespace SixLabors.ImageSharp
         public static Color FromRgb(byte r, byte g, byte b) => new Color(r, g, b);
 
         /// <summary>
-        /// Creates a new <see cref="Color"/> instance from the string representing a color in hexadecimal form.
+        /// Creates a new instance of the <see cref="Color"/> struct
+        /// from the given hexadecimal string.
         /// </summary>
         /// <param name="hex">
         /// The hexadecimal representation of the combined color components arranged
         /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
         /// </param>
-        /// <returns>Returns a <see cref="Color"/> that represents the color defined by the provided RGBA hex string.</returns>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Color FromHex(string hex)
+        public static Color ParseHex(string hex)
         {
-            Rgba32 rgba = Rgba32.FromHex(hex);
+            var rgba = Rgba32.ParseHex(hex);
 
             return new Color(rgba);
+        }
+
+        /// <summary>
+        /// Attempts to creates a new instance of the <see cref="Color"/> struct
+        /// from the given hexadecimal string.
+        /// </summary>
+        /// <param name="hex">
+        /// The hexadecimal representation of the combined color components arranged
+        /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
+        /// </param>
+        /// <param name="result">When this method returns, contains the <see cref="Color"/> equivalent of the hexadecimal input.</param>
+        /// <returns>
+        /// The <see cref="bool"/>.
+        /// </returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool TryParseHex(string hex, out Color result)
+        {
+            result = default;
+
+            if (Rgba32.TryParseHex(hex, out Rgba32 rgba))
+            {
+                result = new Color(rgba);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="Color"/> struct
+        /// from the given input string.
+        /// </summary>
+        /// <param name="input">
+        /// The name of the color or the hexadecimal representation of the combined color components arranged
+        /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
+        /// </param>
+        /// <returns>
+        /// The <see cref="Color"/>.
+        /// </returns>
+        public static Color Parse(string input)
+        {
+            Guard.NotNull(input, nameof(input));
+
+            if (!TryParse(input, out Color color))
+            {
+                throw new ArgumentException("Input string is not in the correct format.", nameof(input));
+            }
+
+            return color;
+        }
+
+        /// <summary>
+        /// Attempts to creates a new instance of the <see cref="Color"/> struct
+        /// from the given input string.
+        /// </summary>
+        /// <param name="input">
+        /// The name of the color or the hexadecimal representation of the combined color components arranged
+        /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
+        /// </param>
+        /// <param name="result">When this method returns, contains the <see cref="Color"/> equivalent of the hexadecimal input.</param>
+        /// <returns>
+        /// The <see cref="bool"/>.
+        /// </returns>
+        public static bool TryParse(string input, out Color result)
+        {
+            result = default;
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return false;
+            }
+
+            if (NamedColorsLookupLazy.Value.TryGetValue(input, out result))
+            {
+                return true;
+            }
+
+            return TryParseHex(input, out result);
         }
 
         /// <summary>
@@ -117,7 +198,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The color having it's alpha channel altered.</returns>
         public Color WithAlpha(float alpha)
         {
-            Vector4 v = (Vector4)this;
+            var v = (Vector4)this;
             v.W = alpha;
             return new Color(v);
         }
@@ -133,18 +214,35 @@ namespace SixLabors.ImageSharp
         public override string ToString() => this.ToHex();
 
         /// <summary>
-        /// Converts the color instance to an <see cref="IPixel{TSelf}"/>
-        /// implementation defined by <typeparamref name="TPixel"/>.
+        /// Converts the color instance to a specified <see cref="IPixel{TSelf}"/> type.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
         /// <returns>The pixel value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public TPixel ToPixel<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             pixel.FromRgba64(this.data);
             return pixel;
+        }
+
+        /// <summary>
+        /// Bulk converts a span of <see cref="Color"/> to a span of a specified <see cref="IPixel{TSelf}"/> type.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="source">The source color span.</param>
+        /// <param name="destination">The destination pixel span.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void ToPixel<TPixel>(
+            Configuration configuration,
+            ReadOnlySpan<Color> source,
+            Span<TPixel> destination)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            ReadOnlySpan<Rgba64> rgba64Span = MemoryMarshal.Cast<Color, Rgba64>(source);
+            PixelOperations<TPixel>.Instance.FromRgba64(configuration, rgba64Span, destination);
         }
 
         /// <inheritdoc />
@@ -165,20 +263,6 @@ namespace SixLabors.ImageSharp
         public override int GetHashCode()
         {
             return this.data.PackedValue.GetHashCode();
-        }
-
-        /// <summary>
-        /// Bulk convert a span of <see cref="Color"/> to a span of a specified pixel type.
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void ToPixel<TPixel>(
-            Configuration configuration,
-            ReadOnlySpan<Color> source,
-            Span<TPixel> destination)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            ReadOnlySpan<Rgba64> rgba64Span = MemoryMarshal.Cast<Color, Rgba64>(source);
-            PixelOperations<TPixel>.Instance.FromRgba64(Configuration.Default, rgba64Span, destination);
         }
     }
 }

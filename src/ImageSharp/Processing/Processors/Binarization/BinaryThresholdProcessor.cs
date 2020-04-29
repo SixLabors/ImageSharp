@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 {
@@ -50,8 +49,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         public Color LowerColor { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : struct, IPixel<TPixel>
-            => new BinaryThresholdProcessor<TPixel>(this, source, sourceRectangle);
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => new BinaryThresholdProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

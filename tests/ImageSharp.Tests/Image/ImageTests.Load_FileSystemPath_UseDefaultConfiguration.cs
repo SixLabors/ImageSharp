@@ -1,12 +1,11 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 using Xunit;
 
@@ -17,12 +16,12 @@ namespace SixLabors.ImageSharp.Tests
         public class Load_FileSystemPath_UseDefaultConfiguration
         {
             private string Path { get; } = TestFile.GetInputFileFullPath(TestImages.Bmp.Bit8);
-            
+
             private static void VerifyDecodedImage(Image img)
             {
                 Assert.Equal(new Size(127, 64), img.Size());
             }
-            
+
             [Fact]
             public void Path_Specific()
             {
@@ -31,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests
                     VerifyDecodedImage(img);
                 }
             }
-            
+
             [Fact]
             public void Path_Agnostic()
             {
@@ -40,8 +39,7 @@ namespace SixLabors.ImageSharp.Tests
                     VerifyDecodedImage(img);
                 }
             }
-            
-            
+
             [Fact]
             public void Path_Decoder_Specific()
             {
@@ -50,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests
                     VerifyDecodedImage(img);
                 }
             }
-            
+
             [Fact]
             public void Path_Decoder_Agnostic()
             {
@@ -59,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests
                     VerifyDecodedImage(img);
                 }
             }
-            
+
             [Fact]
             public void Path_OutFormat_Specific()
             {
@@ -79,6 +77,7 @@ namespace SixLabors.ImageSharp.Tests
                     Assert.IsType<BmpFormat>(format);
                 }
             }
+
             [Fact]
             public void WhenFileNotFound_Throws()
             {

@@ -1,12 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
@@ -15,87 +12,59 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal sealed class PaletteFrameQuantizer<TPixel> : FrameQuantizer<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    internal struct PaletteFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        /// <summary>
-        /// The reduced image palette.
-        /// </summary>
-        private readonly ReadOnlyMemory<TPixel> palette;
+        private readonly EuclideanPixelMap<TPixel> pixelMap;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="PaletteFrameQuantizer{TPixel}"/> struct.
         /// </summary>
-        /// <param name="diffuser">The palette quantizer.</param>
-        /// <param name="colors">An array of all colors in the palette.</param>
-        public PaletteFrameQuantizer(IErrorDiffuser diffuser, ReadOnlyMemory<TPixel> colors)
-            : base(diffuser, true) => this.palette = colors;
-
-        /// <inheritdoc/>
-        protected override void SecondPass(
-            ImageFrame<TPixel> source,
-            Span<byte> output,
-            ReadOnlySpan<TPixel> palette,
-            int width,
-            int height)
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="options">The quantizer options defining quantization rules.</param>
+        /// <param name="pixelMap">The pixel map for looking up color matches from a predefined palette.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public PaletteFrameQuantizer(
+            Configuration configuration,
+            QuantizerOptions options,
+            EuclideanPixelMap<TPixel> pixelMap)
         {
-            // Load up the values for the first pixel. We can use these to speed up the second
-            // pass of the algorithm by avoiding transforming rows of identical color.
-            TPixel sourcePixel = source[0, 0];
-            TPixel previousPixel = sourcePixel;
-            byte pixelValue = this.QuantizePixel(ref sourcePixel);
-            ref TPixel paletteRef = ref MemoryMarshal.GetReference(palette);
-            TPixel transformedPixel = Unsafe.Add(ref paletteRef, pixelValue);
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(options, nameof(options));
 
-            for (int y = 0; y < height; y++)
-            {
-                ref TPixel rowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
-
-                // And loop through each column
-                for (int x = 0; x < width; x++)
-                {
-                    // Get the pixel.
-                    sourcePixel = Unsafe.Add(ref rowRef, x);
-
-                    // Check if this is the same as the last pixel. If so use that value
-                    // rather than calculating it again. This is an inexpensive optimization.
-                    if (!previousPixel.Equals(sourcePixel))
-                    {
-                        // Quantize the pixel
-                        pixelValue = this.QuantizePixel(ref sourcePixel);
-
-                        // And setup the previous pointer
-                        previousPixel = sourcePixel;
-
-                        if (this.Dither)
-                        {
-                            transformedPixel = Unsafe.Add(ref paletteRef, pixelValue);
-                        }
-                    }
-
-                    if (this.Dither)
-                    {
-                        // Apply the dithering matrix. We have to reapply the value now as the original has changed.
-                        this.Diffuser.Dither(source, sourcePixel, transformedPixel, x, y, 0, 0, width, height);
-                    }
-
-                    output[(y * source.Width) + x] = pixelValue;
-                }
-            }
+            this.Configuration = configuration;
+            this.Options = options;
+            this.pixelMap = pixelMap;
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected override ReadOnlyMemory<TPixel> GetPalette() => this.palette;
+        public Configuration Configuration { get; }
 
-        /// <summary>
-        /// Process the pixel in the second pass of the algorithm
-        /// </summary>
-        /// <param name="pixel">The pixel to quantize</param>
-        /// <returns>
-        /// The quantized value
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte QuantizePixel(ref TPixel pixel) => this.GetClosestPixel(ref pixel);
+        /// <inheritdoc/>
+        public QuantizerOptions Options { get; }
+
+        /// <inheritdoc/>
+        public ReadOnlyMemory<TPixel> Palette => this.pixelMap.Palette;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+            => FrameQuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
+        {
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
+            => (byte)this.pixelMap.GetClosestColor(color, out match);
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+        }
     }
 }

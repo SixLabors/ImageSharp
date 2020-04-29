@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -43,9 +43,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void NormalizedByte4_PackedValues()
         {
             Assert.Equal(0xA740DA0D, new NormalizedByte4(0.1f, -0.3f, 0.5f, -0.7f).PackedValue);
-            Assert.Equal((uint)958796544, new NormalizedByte4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
-            Assert.Equal((uint)0x0, new NormalizedByte4(Vector4.Zero).PackedValue);
-            Assert.Equal((uint)0x7F7F7F7F, new NormalizedByte4(Vector4.One).PackedValue);
+            Assert.Equal(958796544U, new NormalizedByte4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
+            Assert.Equal(0x0U, new NormalizedByte4(Vector4.Zero).PackedValue);
+            Assert.Equal(0x7F7F7F7FU, new NormalizedByte4(Vector4.One).PackedValue);
             Assert.Equal(0x81818181, new NormalizedByte4(-Vector4.One).PackedValue);
         }
 
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 scaled = new NormalizedByte4(-Vector4.One).ToScaledVector4();
             uint expected = 0x81818181;
 
-            // act 
+            // act
             pixel.FromScaledVector4(scaled);
             uint actual = pixel.PackedValue;
 
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 expected = Vector4.One;
 
             // act
-            byte4.FromGray8(new Gray8(byte.MaxValue));
+            byte4.FromL8(new L8(byte.MaxValue));
 
             // assert
             Assert.Equal(expected, byte4.ToScaledVector4());
@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 expected = Vector4.One;
 
             // act
-            byte4.FromGray16(new Gray16(ushort.MaxValue));
+            byte4.FromL16(new L16(ushort.MaxValue));
 
             // assert
             Assert.Equal(expected, byte4.ToScaledVector4());

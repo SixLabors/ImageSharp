@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -90,21 +90,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     if (Vector<float>.Count == 4)
                     {
                         // TODO: Find a way to properly run & test this path on AVX2 PC-s! (Have I already mentioned that Vector<T> is terrible?)
-                        r.RoundAndDownscalePreAvx2(maxValue);
-                        g.RoundAndDownscalePreAvx2(maxValue);
-                        b.RoundAndDownscalePreAvx2(maxValue);
+                        r.RoundAndDownscalePreVector8(maxValue);
+                        g.RoundAndDownscalePreVector8(maxValue);
+                        b.RoundAndDownscalePreVector8(maxValue);
                     }
-                    else if (SimdUtils.IsAvx2CompatibleArchitecture)
+                    else if (SimdUtils.HasVector8)
                     {
-                        r.RoundAndDownscaleAvx2(maxValue);
-                        g.RoundAndDownscaleAvx2(maxValue);
-                        b.RoundAndDownscaleAvx2(maxValue);
+                        r.RoundAndDownscaleVector8(maxValue);
+                        g.RoundAndDownscaleVector8(maxValue);
+                        b.RoundAndDownscaleVector8(maxValue);
                     }
                     else
                     {
                         // TODO: Run fallback scalar code here
                         // However, no issues expected before someone implements this: https://github.com/dotnet/coreclr/issues/12007
-                        throw new NotImplementedException("Your CPU architecture is too modern!");
+                        JpegThrowHelper.ThrowNotImplementedException("Your CPU architecture is too modern!");
                     }
 
                     // Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order:

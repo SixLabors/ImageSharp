@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -20,11 +21,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The file version.
         /// </summary>
         public const string FileVersion = "89a";
-
-        /// <summary>
-        /// The ASCII encoded bytes used to identify the GIF file.
-        /// </summary>
-        internal static readonly byte[] MagicNumber = Encoding.ASCII.GetBytes(FileType + FileVersion);
 
         /// <summary>
         /// The extension block introducer <value>!</value>.
@@ -50,11 +46,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The application identification.
         /// </summary>
         public const string NetscapeApplicationIdentification = "NETSCAPE2.0";
-
-        /// <summary>
-        /// The ASCII encoded application identification bytes.
-        /// </summary>
-        internal static readonly byte[] NetscapeApplicationIdentificationBytes = Encoding.ASCII.GetBytes(NetscapeApplicationIdentification);
 
         /// <summary>
         /// The Netscape looping application sub block size.
@@ -110,5 +101,25 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The collection of file extensions that equate to a Gif.
         /// </summary>
         public static readonly IEnumerable<string> FileExtensions = new[] { "gif" };
+
+        /// <summary>
+        /// Gets the ASCII encoded bytes used to identify the GIF file (combining <see cref="FileType"/> and <see cref="FileVersion"/>).
+        /// </summary>
+        internal static ReadOnlySpan<byte> MagicNumber => new[]
+        {
+            (byte)'G', (byte)'I', (byte)'F',
+            (byte)'8', (byte)'9', (byte)'a'
+        };
+
+        /// <summary>
+        /// Gets the ASCII encoded application identification bytes (representing <see cref="NetscapeApplicationIdentification"/>).
+        /// </summary>
+        internal static ReadOnlySpan<byte> NetscapeApplicationIdentificationBytes => new[]
+        {
+            (byte)'N', (byte)'E', (byte)'T',
+            (byte)'S', (byte)'C', (byte)'A',
+            (byte)'P', (byte)'E',
+            (byte)'2', (byte)'.', (byte)'0'
+        };
     }
 }

@@ -37,11 +37,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         ExcludeTextChunks = 1 << 3,
 
         /// <summary>
-        /// Make fully transparent pixels black.
-        /// </summary>
-        MakeTransparentBlack = 16,
-
-        /// <summary>
         /// All possible optimizations.
         /// </summary>
         ExcludeAll = ExcludePhysicalChunk | ExcludeGammaChunk | ExcludeExifChunk | ExcludeTextChunks

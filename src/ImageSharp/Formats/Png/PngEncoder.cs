@@ -68,6 +68,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngChunkFilter? ChunkFilter { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether fully transparent pixels should be converted to black pixels.
+        /// </summary>
+        public bool MakeTransparentBlack { get; set; }
+
+        /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>

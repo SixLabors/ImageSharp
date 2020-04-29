@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.Quantizer = source.Quantizer;
             this.Threshold = source.Threshold;
             this.InterlaceMethod = source.InterlaceMethod;
-            this.OptimizeMethod = source.OptimizeMethod;
+            this.ChunkFilter = source.ChunkFilter;
         }
 
         /// <summary>
@@ -83,6 +83,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Gets or sets a the optimize method.
         /// </summary>
-        public PngChunkFilter? OptimizeMethod { get; set; }
+        public PngChunkFilter? ChunkFilter { get; set; }
     }
 }

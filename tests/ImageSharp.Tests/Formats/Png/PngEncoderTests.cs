@@ -381,6 +381,68 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         }
 
         [Theory]
+        [InlineData(PngColorType.Palette)]
+        [InlineData(PngColorType.Rgb)]
+        [InlineData(PngColorType.RgbWithAlpha)]
+        [InlineData(PngColorType.Grayscale)]
+        [InlineData(PngColorType.GrayscaleWithAlpha)]
+        public void Encode_WithMakeTransparentBlackOption_Works(PngColorType colorType)
+        {
+            // arrange
+            var image = new Image<Rgba32>(50, 50);
+            var encoder = new PngEncoder()
+            {
+                MakeTransparentBlack = true,
+                ColorType = colorType
+            };
+            Rgba32 rgba32 = Color.Blue;
+            for (int y = 0; y < image.Height; y++)
+            {
+                System.Span<Rgba32> rowSpan = image.GetPixelRowSpan(y);
+
+                // Half of the test image should be transparent.
+                if (y > 25)
+                {
+                    rgba32.A = 0;
+                }
+
+                for (int x = 0; x < image.Width; x++)
+                {
+                    rowSpan[x].FromRgba32(rgba32);
+                }
+            }
+
+            // act
+            using var memStream = new MemoryStream();
+            image.Save(memStream, encoder);
+
+            // assert
+            memStream.Position = 0;
+            using var actual = Image.Load<Rgba32>(memStream);
+            Rgba32 expectedColor = Color.Blue;
+            if (colorType == PngColorType.Grayscale || colorType == PngColorType.GrayscaleWithAlpha)
+            {
+                var luminance = ImageMaths.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
+                expectedColor = new Rgba32(luminance, luminance, luminance);
+            }
+
+            for (int y = 0; y < actual.Height; y++)
+            {
+                System.Span<Rgba32> rowSpan = actual.GetPixelRowSpan(y);
+
+                if (y > 25)
+                {
+                    expectedColor = Color.Black;
+                }
+
+                for (int x = 0; x < actual.Width; x++)
+                {
+                    Assert.Equal(expectedColor, rowSpan[x]);
+                }
+            }
+        }
+
+        [Theory]
         [MemberData(nameof(PngTrnsFiles))]
         public void Encode_PreserveTrns(string imagePath, PngBitDepth pngBitDepth, PngColorType pngColorType)
         {

@@ -2,11 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 {
@@ -15,18 +14,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly BinaryThresholdProcessor definition;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BinaryThresholdProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="definition">The <see cref="BinaryThresholdProcessor"/> defining the processor parameters.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        public BinaryThresholdProcessor(BinaryThresholdProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public BinaryThresholdProcessor(Configuration configuration, BinaryThresholdProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
         }
@@ -42,36 +42,64 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             Configuration configuration = this.Configuration;
 
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-            int startY = interest.Y;
-            int endY = interest.Bottom;
-            int startX = interest.X;
-            int endX = interest.Right;
+            bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
-            bool isAlphaOnly = typeof(TPixel) == typeof(Alpha8);
-
-            var workingRect = Rectangle.FromLTRB(startX, startY, endX, endY);
-
-            ParallelHelper.IterateRows(
-                workingRect,
+            var operation = new RowOperation(interest, source, upper, lower, threshold, isAlphaOnly);
+            ParallelRowIterator.IterateRows(
                 configuration,
-                rows =>
-                    {
-                        Rgba32 rgba = default;
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<TPixel> row = source.GetPixelRowSpan(y);
+                interest,
+                in operation);
+        }
 
-                            for (int x = startX; x < endX; x++)
-                            {
-                                ref TPixel color = ref row[x];
-                                color.ToRgba32(ref rgba);
+        /// <summary>
+        /// A <see langword="struct"/> implementing the clone logic for <see cref="BinaryThresholdProcessor{TPixel}"/>.
+        /// </summary>
+        private readonly struct RowOperation : IRowOperation
+        {
+            private readonly ImageFrame<TPixel> source;
+            private readonly TPixel upper;
+            private readonly TPixel lower;
+            private readonly byte threshold;
+            private readonly int minX;
+            private readonly int maxX;
+            private readonly bool isAlphaOnly;
 
-                                // Convert to grayscale using ITU-R Recommendation BT.709 if required
-                                byte luminance = isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
-                                color = luminance >= threshold ? upper : lower;
-                            }
-                        }
-                    });
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowOperation(
+                Rectangle bounds,
+                ImageFrame<TPixel> source,
+                TPixel upper,
+                TPixel lower,
+                byte threshold,
+                bool isAlphaOnly)
+            {
+                this.source = source;
+                this.upper = upper;
+                this.lower = lower;
+                this.threshold = threshold;
+                this.minX = bounds.X;
+                this.maxX = bounds.Right;
+                this.isAlphaOnly = isAlphaOnly;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(int y)
+            {
+                Rgba32 rgba = default;
+                Span<TPixel> row = this.source.GetPixelRowSpan(y);
+                ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
+
+                for (int x = this.minX; x < this.maxX; x++)
+                {
+                    ref TPixel color = ref Unsafe.Add(ref rowRef, x);
+                    color.ToRgba32(ref rgba);
+
+                    // Convert to grayscale using ITU-R Recommendation BT.709 if required
+                    byte luminance = this.isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                    color = luminance >= this.threshold ? this.upper : this.lower;
+                }
+            }
         }
     }
 }

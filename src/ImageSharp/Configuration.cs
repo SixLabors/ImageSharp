@@ -3,19 +3,21 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Provides configuration code which allows altering default behaviour or extending the library.
+    /// Provides configuration which allows altering default behaviour or extending the library.
     /// </summary>
     public sealed class Configuration
     {
@@ -63,7 +65,7 @@ namespace SixLabors.ImageSharp
             get => this.maxDegreeOfParallelism;
             set
             {
-                if (value <= 0)
+                if (value == 0 || value < -1)
                 {
                     throw new ArgumentOutOfRangeException(nameof(this.MaxDegreeOfParallelism));
                 }
@@ -71,6 +73,12 @@ namespace SixLabors.ImageSharp
                 this.maxDegreeOfParallelism = value;
             }
         }
+
+        /// <summary>
+        /// Gets a set of properties for the Congiguration.
+        /// </summary>
+        /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
+        public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
 
         /// <summary>
         /// Gets the currently registered <see cref="IImageFormat"/>s.
@@ -107,7 +115,8 @@ namespace SixLabors.ImageSharp
         /// The default value is 1MB.
         /// </summary>
         /// <remarks>
-        /// Currently only used by Resize.
+        /// Currently only used by Resize. If the working buffer is expected to be discontiguous,
+        /// min(WorkingBufferSizeHintInBytes, BufferCapacityInBytes) should be used.
         /// </remarks>
         internal int WorkingBufferSizeHintInBytes { get; set; } = 1 * 1024 * 1024;
 
@@ -150,6 +159,7 @@ namespace SixLabors.ImageSharp
         /// <see cref="JpegConfigurationModule"/>
         /// <see cref="GifConfigurationModule"/>
         /// <see cref="BmpConfigurationModule"/>.
+        /// <see cref="TgaConfigurationModule"/>.
         /// </summary>
         /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
         internal static Configuration CreateDefaultInstance()
@@ -158,7 +168,8 @@ namespace SixLabors.ImageSharp
                 new PngConfigurationModule(),
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
-                new BmpConfigurationModule());
+                new BmpConfigurationModule(),
+                new TgaConfigurationModule());
         }
     }
 }

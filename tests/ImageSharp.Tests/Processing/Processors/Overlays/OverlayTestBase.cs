@@ -4,7 +4,6 @@
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.Primitives;
 
 using Xunit;
 
@@ -22,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
         [Theory]
         [WithFileCollection(nameof(InputImages), nameof(ColorNames), PixelTypes.Rgba32)]
         public void FullImage_ApplyColor<TPixel>(TestImageProvider<TPixel> provider, string colorName)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.Utility.TestGroupName = this.GetType().Name;
             Color color = TestUtils.GetColorByName(colorName);
@@ -33,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
         [Theory]
         [WithFileCollection(nameof(InputImages), PixelTypes.Rgba32)]
         public void FullImage_ApplyRadius<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.Utility.TestGroupName = this.GetType().Name;
             provider.RunValidatingProcessorTest(
@@ -49,10 +48,18 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays
         [Theory]
         [WithFileCollection(nameof(InputImages), PixelTypes.Rgba32)]
         public void InBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.Utility.TestGroupName = this.GetType().Name;
             provider.RunRectangleConstrainedValidatingProcessorTest(this.Apply);
+        }
+
+        [Theory]
+        [WithTestPatternImages(70, 120, PixelTypes.Rgba32)]
+        public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.RunBufferCapacityLimitProcessorTest(37, c => this.Apply(c, Color.DarkRed));
         }
 
         protected abstract void Apply(IImageProcessingContext ctx, Color color);

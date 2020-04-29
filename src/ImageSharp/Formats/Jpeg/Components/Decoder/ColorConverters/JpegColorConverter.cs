@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// <summary>
         /// Returns the <see cref="JpegColorConverter"/> corresponding to the given <see cref="JpegColorSpace"/>
         /// </summary>
-        public static JpegColorConverter GetConverter(JpegColorSpace colorSpace, float precision)
+        public static JpegColorConverter GetConverter(JpegColorSpace colorSpace, int precision)
         {
             JpegColorConverter converter = Array.Find(Converters, c => c.ColorSpace == colorSpace
                                                                     && c.Precision == precision);
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// Returns the <see cref="JpegColorConverter"/> for the YCbCr colorspace that matches the current CPU architecture.
         /// </summary>
         private static JpegColorConverter GetYCbCrConverter(int precision) =>
-            FromYCbCrSimdAvx2.IsAvailable ? (JpegColorConverter)new FromYCbCrSimdAvx2(precision) : new FromYCbCrSimd(precision);
+            FromYCbCrSimdVector8.IsAvailable ? (JpegColorConverter)new FromYCbCrSimdVector8(precision) : new FromYCbCrSimd(precision);
 
         /// <summary>
         /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.

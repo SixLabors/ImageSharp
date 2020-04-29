@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumerable<ImageFrame<TPixel>>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly IList<ImageFrame<TPixel>> frames = new List<ImageFrame<TPixel>>();
         private readonly Image<TPixel> parent;
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp
             this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, backgroundColor));
         }
 
-        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, MemorySource<TPixel> memorySource)
+        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, MemoryGroup<TPixel> memorySource)
         {
             this.parent = parent ?? throw new ArgumentNullException(nameof(parent));
 
@@ -351,7 +351,7 @@ namespace SixLabors.ImageSharp
                 this.parent.GetConfiguration(),
                 source.Size(),
                 source.Metadata.DeepClone());
-            source.CopyPixelsTo(result.PixelBuffer.Span);
+            source.CopyPixelsTo(result.PixelBuffer.FastMemoryGroup);
             return result;
         }
     }

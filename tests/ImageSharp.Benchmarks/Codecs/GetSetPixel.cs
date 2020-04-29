@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing;
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         {
             using (var image = new Image<Rgba32>(400, 400))
             {
-                image[200, 200] = Rgba32.White;
+                image[200, 200] = Color.White;
                 return image[200, 200];
             }
         }

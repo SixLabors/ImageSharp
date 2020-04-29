@@ -3,9 +3,7 @@
 
 using System;
 using System.Linq;
-
 using SixLabors.ImageSharp.PixelFormats;
-
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
@@ -15,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void WithAlpha()
         {
-            Color c1 = Color.FromRgba(111, 222, 55, 255);
+            var c1 = Color.FromRgba(111, 222, 55, 255);
             Color c2 = c1.WithAlpha(0.5f);
 
             var expected = new Rgba32(111, 222, 55, 128);
@@ -56,7 +54,7 @@ namespace SixLabors.ImageSharp.Tests
         public void ToHex()
         {
             string expected = "ABCD1234";
-            Color color = Color.FromHex(expected);
+            var color = Color.ParseHex(expected);
             string actual = color.ToHex();
 
             Assert.Equal(expected, actual);
@@ -66,14 +64,22 @@ namespace SixLabors.ImageSharp.Tests
         public void WebSafePalette_IsCorrect()
         {
             Rgba32[] actualPalette = Color.WebSafePalette.ToArray().Select(c => (Rgba32)c).ToArray();
-            Assert.Equal(ReferencePalette.WebSafeColors, actualPalette);
+
+            for (int i = 0; i < ReferencePalette.WebSafeColors.Length; i++)
+            {
+                Assert.Equal((Rgba32)ReferencePalette.WebSafeColors[i], actualPalette[i]);
+            }
         }
 
         [Fact]
         public void WernerPalette_IsCorrect()
         {
             Rgba32[] actualPalette = Color.WernerPalette.ToArray().Select(c => (Rgba32)c).ToArray();
-            Assert.Equal(ReferencePalette.WernerColors, actualPalette);
+
+            for (int i = 0; i < ReferencePalette.WernerColors.Length; i++)
+            {
+                Assert.Equal((Rgba32)ReferencePalette.WernerColors[i], actualPalette[i]);
+            }
         }
 
         public class FromHex
@@ -81,28 +87,134 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void ShortHex()
             {
-                Assert.Equal(new Rgb24(255, 255, 255), (Rgb24) Color.FromHex("#fff"));
-                Assert.Equal(new Rgb24(255, 255, 255), (Rgb24) Color.FromHex("fff"));
-                Assert.Equal(new Rgba32(0, 0, 0, 255), (Rgba32) Color.FromHex("000f"));
+                Assert.Equal(new Rgb24(255, 255, 255), (Rgb24)Color.ParseHex("#fff"));
+                Assert.Equal(new Rgb24(255, 255, 255), (Rgb24)Color.ParseHex("fff"));
+                Assert.Equal(new Rgba32(0, 0, 0, 255), (Rgba32)Color.ParseHex("000f"));
+            }
+
+            [Fact]
+            public void TryShortHex()
+            {
+                Assert.True(Color.TryParseHex("#fff", out Color actual));
+                Assert.Equal(new Rgb24(255, 255, 255), (Rgb24)actual);
+
+                Assert.True(Color.TryParseHex("fff", out actual));
+                Assert.Equal(new Rgb24(255, 255, 255), (Rgb24)actual);
+
+                Assert.True(Color.TryParseHex("000f", out actual));
+                Assert.Equal(new Rgba32(0, 0, 0, 255), (Rgba32)actual);
             }
 
             [Fact]
             public void LeadingPoundIsOptional()
             {
-                Assert.Equal(new Rgb24(0, 128, 128), (Rgb24) Color.FromHex("#008080"));
-                Assert.Equal(new Rgb24(0, 128, 128), (Rgb24) Color.FromHex("008080"));
+                Assert.Equal(new Rgb24(0, 128, 128), (Rgb24)Color.ParseHex("#008080"));
+                Assert.Equal(new Rgb24(0, 128, 128), (Rgb24)Color.ParseHex("008080"));
             }
 
             [Fact]
             public void ThrowsOnEmpty()
             {
-                Assert.Throws<ArgumentException>(() => Color.FromHex(""));
+                Assert.Throws<ArgumentException>(() => Color.ParseHex(string.Empty));
+            }
+
+            [Fact]
+            public void ThrowsOnInvalid()
+            {
+                Assert.Throws<ArgumentException>(() => Color.ParseHex("!"));
             }
 
             [Fact]
             public void ThrowsOnNull()
             {
-                Assert.Throws<ArgumentNullException>(() => Color.FromHex(null));
+                Assert.Throws<ArgumentNullException>(() => Color.ParseHex(null));
+            }
+
+            [Fact]
+            public void FalseOnEmpty()
+            {
+                Assert.False(Color.TryParseHex(string.Empty, out Color _));
+            }
+
+            [Fact]
+            public void FalseOnInvalid()
+            {
+                Assert.False(Color.TryParseHex("!", out Color _));
+            }
+
+            [Fact]
+            public void FalseOnNull()
+            {
+                Assert.False(Color.TryParseHex(null, out Color _));
+            }
+        }
+
+        public class FromString
+        {
+            [Fact]
+            public void ColorNames()
+            {
+                foreach (string name in ReferencePalette.ColorNames.Keys)
+                {
+                    Rgba32 expected = ReferencePalette.ColorNames[name];
+                    Assert.Equal(expected, (Rgba32)Color.Parse(name));
+                    Assert.Equal(expected, (Rgba32)Color.Parse(name.ToLowerInvariant()));
+                    Assert.Equal(expected, (Rgba32)Color.Parse(expected.ToHex()));
+                }
+            }
+
+            [Fact]
+            public void TryColorNames()
+            {
+                foreach (string name in ReferencePalette.ColorNames.Keys)
+                {
+                    Rgba32 expected = ReferencePalette.ColorNames[name];
+
+                    Assert.True(Color.TryParse(name, out Color actual));
+                    Assert.Equal(expected, (Rgba32)actual);
+
+                    Assert.True(Color.TryParse(name.ToLowerInvariant(), out actual));
+                    Assert.Equal(expected, (Rgba32)actual);
+
+                    Assert.True(Color.TryParse(expected.ToHex(), out actual));
+                    Assert.Equal(expected, (Rgba32)actual);
+                }
+            }
+
+            [Fact]
+            public void ThrowsOnEmpty()
+            {
+                Assert.Throws<ArgumentException>(() => Color.Parse(string.Empty));
+            }
+
+            [Fact]
+            public void ThrowsOnInvalid()
+            {
+                Assert.Throws<ArgumentException>(() => Color.Parse("!"));
+            }
+
+            [Fact]
+            public void ThrowsOnNull()
+            {
+                Assert.Throws<ArgumentNullException>(() => Color.Parse(null));
+            }
+
+            [Fact]
+            public void FalseOnEmpty()
+            {
+                Assert.False(Color.TryParse(string.Empty, out Color _));
+            }
+
+            [Fact]
+            public void FalseOnInvalid()
+            {
+                Assert.False(Color.TryParse("!", out Color _));
+            }
+
+            [Fact]
+            public void FalseOnNull()
+            {
+                Assert.False(Color.TryParse(null, out Color _));
             }
         }
     }

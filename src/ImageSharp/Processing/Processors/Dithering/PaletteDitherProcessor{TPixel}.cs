@@ -2,120 +2,104 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using System.Numerics;
+using System.Buffers;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
     /// <summary>
-    /// The base class for dither and diffusion processors that consume a palette.
+    /// Allows the consumption a palette to dither an image.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly Dictionary<TPixel, PixelPair<TPixel>> cache = new Dictionary<TPixel, PixelPair<TPixel>>();
-
-        private TPixel[] palette;
-
-        /// <summary>
-        /// The vector representation of the image palette.
-        /// </summary>
-        private Vector4[] paletteVector;
+        private readonly DitherProcessor ditherProcessor;
+        private readonly IDither dither;
+        private IMemoryOwner<TPixel> paletteOwner;
+        private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteDitherProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="definition">The <see cref="PaletteDitherProcessor"/> defining the processor parameters.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        protected PaletteDitherProcessor(PaletteDitherProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
-            : base(source, sourceRectangle)
+        public PaletteDitherProcessor(Configuration configuration, PaletteDitherProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
-            this.Definition = definition;
+            this.dither = definition.Dither;
+
+            ReadOnlySpan<Color> sourcePalette = definition.Palette.Span;
+            this.paletteOwner = this.Configuration.MemoryAllocator.Allocate<TPixel>(sourcePalette.Length);
+            Color.ToPixel(this.Configuration, sourcePalette, this.paletteOwner.Memory.Span);
+
+            this.ditherProcessor = new DitherProcessor(
+                this.Configuration,
+                this.paletteOwner.Memory,
+                definition.DitherScale);
         }
 
-        protected PaletteDitherProcessor Definition { get; }
+        /// <inheritdoc/>
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
+        {
+            var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+            this.dither.ApplyPaletteDither(in this.ditherProcessor, source, interest);
+        }
 
         /// <inheritdoc/>
-        protected override void BeforeFrameApply(ImageFrame<TPixel> source)
+        protected override void Dispose(bool disposing)
         {
-            // Lazy init palette:
-            if (this.palette is null)
+            if (this.isDisposed)
             {
-                ReadOnlySpan<Color> sourcePalette = this.Definition.Palette.Span;
-                this.palette = new TPixel[sourcePalette.Length];
-                Color.ToPixel<TPixel>(this.Configuration, sourcePalette, this.palette);
+                return;
             }
 
-            // Lazy init paletteVector:
-            if (this.paletteVector is null)
+            this.isDisposed = true;
+            if (disposing)
             {
-                this.paletteVector = new Vector4[this.palette.Length];
-                PixelOperations<TPixel>.Instance.ToVector4(
-                    this.Configuration,
-                    (ReadOnlySpan<TPixel>)this.palette,
-                    (Span<Vector4>)this.paletteVector,
-                    PixelConversionModifiers.Scale);
+                this.paletteOwner.Dispose();
             }
 
-            base.BeforeFrameApply(source);
+            this.paletteOwner = null;
+            base.Dispose(disposing);
         }
 
         /// <summary>
-        /// Returns the two closest colors from the palette calculated via Euclidean distance in the Rgba space.
+        /// Used to allow inlining of calls to
+        /// <see cref="IPaletteDitherImageProcessor{TPixel}.GetPaletteColor(TPixel)"/>.
         /// </summary>
-        /// <param name="pixel">The source color to match.</param>
-        /// <returns>The <see cref="PixelPair{TPixel}"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected PixelPair<TPixel> GetClosestPixelPair(ref TPixel pixel)
+        private readonly struct DitherProcessor : IPaletteDitherImageProcessor<TPixel>
         {
-            // Check if the color is in the lookup table
-            if (this.cache.TryGetValue(pixel, out PixelPair<TPixel> value))
+            private readonly EuclideanPixelMap<TPixel> pixelMap;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public DitherProcessor(
+                Configuration configuration,
+                ReadOnlyMemory<TPixel> palette,
+                float ditherScale)
             {
-                return value;
+                this.Configuration = configuration;
+                this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
+                this.Palette = palette;
+                this.DitherScale = ditherScale;
             }
 
-            return this.GetClosestPixelPairSlow(ref pixel);
-        }
+            public Configuration Configuration { get; }
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private PixelPair<TPixel> GetClosestPixelPairSlow(ref TPixel pixel)
-        {
-            // Not found - loop through the palette and find the nearest match.
-            float leastDistance = float.MaxValue;
-            float secondLeastDistance = float.MaxValue;
-            var vector = pixel.ToVector4();
+            public ReadOnlyMemory<TPixel> Palette { get; }
 
-            TPixel closest = default;
-            TPixel secondClosest = default;
-            for (int index = 0; index < this.paletteVector.Length; index++)
+            public float DitherScale { get; }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public TPixel GetPaletteColor(TPixel color)
             {
-                ref Vector4 candidate = ref this.paletteVector[index];
-                float distance = Vector4.DistanceSquared(vector, candidate);
-
-                if (distance < leastDistance)
-                {
-                    leastDistance = distance;
-                    secondClosest = closest;
-                    closest = this.palette[index];
-                }
-                else if (distance < secondLeastDistance)
-                {
-                    secondLeastDistance = distance;
-                    secondClosest = this.palette[index];
-                }
+                this.pixelMap.GetClosestColor(color, out TPixel match);
+                return match;
             }
-
-            // Pop it into the cache for next time
-            var pair = new PixelPair<TPixel>(closest, secondClosest);
-            this.cache.Add(pixel, pair);
-
-            return pair;
         }
     }
 }

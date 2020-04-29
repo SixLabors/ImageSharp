@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
     /// <summary>
@@ -13,13 +11,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         /// <summary>
         /// Initializes a new instance of the <see cref="LomographProcessor" /> class.
         /// </summary>
-        public LomographProcessor()
+        /// <param name="graphicsOptions">Graphics options to use within the processor.</param>
+        public LomographProcessor(GraphicsOptions graphicsOptions)
             : base(KnownFilterMatrices.LomographFilter)
         {
+            this.GraphicsOptions = graphicsOptions;
         }
 
+        /// <summary>
+        /// Gets the options effecting blending and composition
+        /// </summary>
+        public GraphicsOptions GraphicsOptions { get; }
+
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Image<TPixel> source, Rectangle sourceRectangle) =>
-            new LomographProcessor<TPixel>(this, source, sourceRectangle);
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle) =>
+            new LomographProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

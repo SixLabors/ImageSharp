@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgb24 left, Rgb24 right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();
+        public readonly PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4() => this.ToVector4();
+        public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4() => new Rgba32(this.R, this.G, this.B, byte.MaxValue).ToVector4();
+        public readonly Vector4 ToVector4() => new Rgba32(this.R, this.G, this.B, byte.MaxValue).ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source)
+        public void FromL8(L8 source)
         {
             this.R = source.PackedValue;
             this.G = source.PackedValue;
@@ -164,9 +164,28 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source)
+        public void FromL16(L16 source)
         {
             byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
+            this.R = rgb;
+            this.G = rgb;
+            this.B = rgb;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source)
+        {
+            this.R = source.L;
+            this.G = source.L;
+            this.B = source.L;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source)
+        {
+            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.L);
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
@@ -213,18 +232,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is Rgb24 other && this.Equals(other);
+        public override readonly bool Equals(object obj) => obj is Rgb24 other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Rgb24 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
+        public readonly bool Equals(Rgb24 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => HashCode.Combine(this.R, this.B, this.G);
+        public override readonly int GetHashCode() => HashCode.Combine(this.R, this.B, this.G);
 
         /// <inheritdoc/>
-        public override string ToString() => $"Rgb24({this.R}, {this.G}, {this.B})";
+        public override readonly string ToString() => $"Rgb24({this.R}, {this.G}, {this.B})";
 
         /// <summary>
         /// Packs a <see cref="Vector4"/> into a color.
@@ -235,7 +254,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector *= MaxBytes;
             vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, MaxBytes);
 
             this.R = (byte)vector.X;
             this.G = (byte)vector.Y;

@@ -4,7 +4,6 @@
 using System;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
@@ -69,11 +68,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// - Copy the resulting color values into 'destArea' scaling up the block by amount defined in <see cref="subSamplingDivisors"/>.
         /// </summary>
         /// <param name="sourceBlock">The source block.</param>
-        /// <param name="destArea">The destination buffer area.</param>
+        /// <param name="destAreaOrigin">Reference to the origin of the destination pixel area.</param>
+        /// <param name="destAreaStride">The width of the destination pixel buffer.</param>
         /// <param name="maximumValue">The maximum value derived from the bitdepth.</param>
         public void ProcessBlockColorsInto(
             ref Block8x8 sourceBlock,
-            in BufferArea<float> destArea,
+            ref float destAreaOrigin,
+            int destAreaStride,
             float maximumValue)
         {
             ref Block8x8F b = ref this.SourceBlock;
@@ -89,7 +90,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // To be "more accurate", we need to emulate this by rounding!
             this.WorkspaceBlock1.NormalizeColorsAndRoundInplace(maximumValue);
 
-            this.WorkspaceBlock1.CopyTo(destArea, this.subSamplingDivisors.Width, this.subSamplingDivisors.Height);
+            this.WorkspaceBlock1.ScaledCopyTo(
+                ref destAreaOrigin,
+                destAreaStride,
+                this.subSamplingDivisors.Width,
+                this.subSamplingDivisors.Height);
         }
     }
 }

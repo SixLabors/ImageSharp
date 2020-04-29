@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 
 using BenchmarkDotNet.Attributes;
 
@@ -8,7 +11,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
     {
         [Params(-1.333F, 1.333F)]
         public float X { get; set; }
-
 
         [Benchmark(Baseline = true, Description = "Math.Pow 2")]
         public float MathPow()

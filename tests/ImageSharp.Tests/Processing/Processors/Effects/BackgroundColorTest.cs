@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -16,19 +16,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
                 TestImages.Png.Splash,
                 TestImages.Png.Ducky
             };
-        
+
         [Theory]
         [WithFileCollection(nameof(InputImages), PixelTypes.Rgba32)]
         public void FullImage<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            provider.RunValidatingProcessorTest(x =>  x.BackgroundColor(Color.HotPink));
+            provider.RunValidatingProcessorTest(x => x.BackgroundColor(Color.HotPink));
         }
 
         [Theory]
         [WithFileCollection(nameof(InputImages), PixelTypes.Rgba32)]
         public void InBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunRectangleConstrainedValidatingProcessorTest(
                 (x, rect) => x.BackgroundColor(Color.HotPink, rect));

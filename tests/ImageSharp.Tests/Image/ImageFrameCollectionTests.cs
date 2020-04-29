@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -7,6 +10,7 @@ namespace SixLabors.ImageSharp.Tests
     public abstract partial class ImageFrameCollectionTests : IDisposable
     {
         protected Image<Rgba32> Image { get; }
+
         protected ImageFrameCollection<Rgba32> Collection { get; }
 
         public ImageFrameCollectionTests()

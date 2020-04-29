@@ -1,11 +1,5 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
-
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
-
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -53,7 +47,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                 Configuration configuration,
                 ReadOnlySpan<TSourcePixel> sourcePixels,
                 Span<TDestinationPixel> destinationPixels)
-                where TSourcePixel : struct, IPixel<TSourcePixel> where TDestinationPixel : struct, IPixel<TDestinationPixel>
+                where TSourcePixel : unmanaged, IPixel<TSourcePixel>
+                where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
@@ -69,32 +64,31 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
                     return;
                 }
 
-                // Gray8 and Gray16 are special implementations of IPixel in that they do not conform to the
+                // L8 and L16 are special implementations of IPixel in that they do not conform to the
                 // standard RGBA colorspace format and must be converted from RGBA using the special ITU BT709 algorithm.
                 // One of the requirements of FromScaledVector4/ToScaledVector4 is that it unaware of this and
                 // packs/unpacks the pixel without and conversion so we employ custom methods do do this.
-                if (typeof(TDestinationPixel) == typeof(Gray16))
+                if (typeof(TDestinationPixel) == typeof(L16))
                 {
-                    ref Gray16 gray16Ref = ref MemoryMarshal.GetReference(
-                                               MemoryMarshal.Cast<TDestinationPixel, Gray16>(destinationPixels));
+                    ref L16 l16Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TDestinationPixel, L16>(destinationPixels));
                     for (int i = 0; i < count; i++)
                     {
                         ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
-                        ref Gray16 dp = ref Unsafe.Add(ref gray16Ref, i);
+                        ref L16 dp = ref Unsafe.Add(ref l16Ref, i);
                         dp.ConvertFromRgbaScaledVector4(sp.ToScaledVector4());
                     }
 
                     return;
                 }
 
-                if (typeof(TDestinationPixel) == typeof(Gray8))
+                if (typeof(TDestinationPixel) == typeof(L8))
                 {
-                    ref Gray8 gray8Ref = ref MemoryMarshal.GetReference(
-                                             MemoryMarshal.Cast<TDestinationPixel, Gray8>(destinationPixels));
+                    ref L8 l8Ref = ref MemoryMarshal.GetReference(
+                                             MemoryMarshal.Cast<TDestinationPixel, L8>(destinationPixels));
                     for (int i = 0; i < count; i++)
                     {
                         ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
-                        ref Gray8 dp = ref Unsafe.Add(ref gray8Ref, i);
+                        ref L8 dp = ref Unsafe.Add(ref l8Ref, i);
                         dp.ConvertFromRgbaScaledVector4(sp.ToScaledVector4());
                     }
 

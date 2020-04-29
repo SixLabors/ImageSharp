@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using SixLabors.ImageSharp.IO;
-using SixLabors.Memory;
+using SixLabors.ImageSharp.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.IO
@@ -108,7 +108,6 @@ namespace SixLabors.ImageSharp.Tests.IO
 
                 for (int i = 0, o = 0; i < expected.Length / 2; i++, o += 2)
                 {
-
                     Assert.Equal(2, reader.Read(buffer, 0, 2));
                     Assert.Equal(expected[o], buffer[0]);
                     Assert.Equal(expected[o + 1], buffer[1]);

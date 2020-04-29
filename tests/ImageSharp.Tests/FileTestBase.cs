@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -71,22 +71,23 @@ namespace SixLabors.ImageSharp.Tests
         /// </summary>
         protected static readonly List<TestFile> Files = new List<TestFile>
         {
-               TestFile.Create(TestImages.Jpeg.Baseline.Calliphora),
-             //TestFile.Create(TestImages.Jpeg.Baseline.Turtle), // Perf: Enable for local testing only
-             //TestFile.Create(TestImages.Jpeg.Baseline.Ycck), // Perf: Enable for local testing only
-             //TestFile.Create(TestImages.Jpeg.Baseline.Cmyk), // Perf: Enable for local testing only
-             //TestFile.Create(TestImages.Jpeg.Baseline.Floorplan), // Perf: Enable for local testing only
-             //TestFile.Create(TestImages.Jpeg.Progressive.Festzug), // Perf: Enable for local testing only
-             //TestFile.Create(TestImages.Jpeg.Baseline.Bad.BadEOF), // Perf: Enable for local testing only
-             //TestFile.Create(TestImages.Jpeg.Baseline.Bad.ExifUndefType), // Perf: Enable for local testing only
-             //TestFile.Create(TestImages.Jpeg.Progressive.Fb), // Perf: Enable for local testing only
-             //TestFile.Create(TestImages.Jpeg.Progressive.Progress), // Perf: Enable for local testing only
-             //TestFile.Create(TestImages.Jpeg.Baseline.GammaDalaiLamaGray), // Perf: Enable for local testing only
-             //TestFile.Create(TestImages.Jpeg.Progressive.Bad.BadEOF), // Perf: Enable for local testing only
-               TestFile.Create(TestImages.Bmp.Car),
+#pragma warning disable SA1515 // Single-line comment should be preceded by blank line
+            TestFile.Create(TestImages.Jpeg.Baseline.Calliphora),
+            // TestFile.Create(TestImages.Jpeg.Baseline.Turtle), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Baseline.Ycck), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Baseline.Cmyk), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Baseline.Floorplan), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Progressive.Festzug), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Baseline.Bad.BadEOF), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Baseline.Bad.ExifUndefType), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Progressive.Fb), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Progressive.Progress), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Baseline.GammaDalaiLamaGray), // Perf: Enable for local testing only
+            // TestFile.Create(TestImages.Jpeg.Progressive.Bad.BadEOF), // Perf: Enable for local testing only
+            TestFile.Create(TestImages.Bmp.Car),
             // TestFile.Create(TestImages.Bmp.NegHeight), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Bmp.CoreHeader), // Perf: Enable for local testing only
-               TestFile.Create(TestImages.Png.Splash),
+            TestFile.Create(TestImages.Png.Splash),
             // TestFile.Create(TestImages.Png.SnakeGame),
             // TestFile.Create(TestImages.Png.Cross), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Bad.ChunkLength1), // Perf: Enable for local testing only
@@ -104,10 +105,11 @@ namespace SixLabors.ImageSharp.Tests
             // TestFile.Create(TestImages.Png.FilterVar), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.P1), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Png.Pd), // Perf: Enable for local testing only
-               TestFile.Create(TestImages.Gif.Rings),
+            TestFile.Create(TestImages.Gif.Rings),
             // TestFile.Create(TestImages.Gif.Trans), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Gif.Cheers), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Gif.Giphy) // Perf: Enable for local testing only
         };
+#pragma warning restore SA1515 // Single-line comment should be preceded by blank line
     }
 }

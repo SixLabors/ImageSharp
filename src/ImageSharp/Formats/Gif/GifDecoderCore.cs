@@ -6,7 +6,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using SixLabors.ImageSharp.Advanced;
+
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Decodes the stream to the image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">The stream containing image data. </param>
+        /// <param name="stream">The stream containing image data.</param>
         /// <returns>The decoded image</returns>
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -241,6 +241,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.stream.Read(this.buffer, 0, 9);
 
             this.imageDescriptor = GifImageDescriptor.Parse(this.buffer);
+            if (this.imageDescriptor.Height == 0 || this.imageDescriptor.Width == 0)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Width or height should not be 0");
+            }
         }
 
         /// <summary>

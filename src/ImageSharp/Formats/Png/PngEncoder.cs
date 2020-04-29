@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Gets or sets the optimize method.
         /// </summary>
-        public PngOptimizeMethod? OptimizeMethod { get; set; }
+        public PngChunkFilter? OptimizeMethod { get; set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.

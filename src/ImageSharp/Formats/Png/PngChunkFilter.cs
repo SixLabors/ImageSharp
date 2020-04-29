@@ -9,41 +9,41 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// Provides enumeration of available PNG optimization methods.
     /// </summary>
     [Flags]
-    public enum PngOptimizeMethod
+    public enum PngChunkFilter
     {
         /// <summary>
-        /// With the None filter, the scanline is transmitted unmodified.
+        /// With the None filter, all chunks will be written.
         /// </summary>
         None = 0,
 
         /// <summary>
-        /// Suppress the physical dimension information chunk.
+        /// Excludes the physical dimension information chunk from encoding.
         /// </summary>
-        SuppressPhysicalChunk = 1,
+        ExcludePhysicalChunk = 1 << 0,
 
         /// <summary>
-        /// Suppress the gamma information chunk.
+        /// Excludes the gamma information chunk from encoding.
         /// </summary>
-        SuppressGammaChunk = 2,
+        ExcludeGammaChunk = 1 << 1,
 
         /// <summary>
-        /// Suppress the eXIf chunk.
+        /// Excludes the eXIf chunk from encoding.
         /// </summary>
-        SuppressExifChunk = 4,
+        ExcludeExifChunk = 1 << 2,
 
         /// <summary>
-        /// Suppress the tTXt, iTXt or zTXt chunk.
+        /// Excludes the tTXt, iTXt or zTXt chunk from encoding.
         /// </summary>
-        SuppressTextChunks = 8,
+        ExcludeTextChunks = 1 << 3,
 
         /// <summary>
-        /// Make funlly transparent pixels black.
+        /// Make fully transparent pixels black.
         /// </summary>
         MakeTransparentBlack = 16,
 
         /// <summary>
         /// All possible optimizations.
         /// </summary>
-        All = 31,
+        ExcludeAll = ExcludePhysicalChunk | ExcludeGammaChunk | ExcludeExifChunk | ExcludeTextChunks
     }
 }

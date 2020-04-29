@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 appendPngColorType: true,
                 appendPixelType: true,
                 appendPngBitDepth: true,
-                optimizeMethod: PngOptimizeMethod.All);
+                optimizeMethod: PngChunkFilter.ExcludeAll);
             }
         }
 
@@ -589,7 +589,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             bool appendCompressionLevel = false,
             bool appendPaletteSize = false,
             bool appendPngBitDepth = false,
-            PngOptimizeMethod optimizeMethod = PngOptimizeMethod.None)
+            PngChunkFilter optimizeMethod = PngChunkFilter.None)
                 where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())

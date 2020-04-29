@@ -63,9 +63,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         /// <summary>
         /// All types except Palette
         /// </summary>
-        public static readonly TheoryData<int> CompressionLevels = new TheoryData<int>
+        public static readonly TheoryData<PngCompressionLevel> CompressionLevels
+        = new TheoryData<PngCompressionLevel>
         {
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+            PngCompressionLevel.Level0,
+            PngCompressionLevel.Level1,
+            PngCompressionLevel.Level2,
+            PngCompressionLevel.Level3,
+            PngCompressionLevel.Level4,
+            PngCompressionLevel.Level5,
+            PngCompressionLevel.Level6,
+            PngCompressionLevel.Level7,
+            PngCompressionLevel.Level8,
+            PngCompressionLevel.Level9,
         };
 
         public static readonly TheoryData<int> PaletteSizes = new TheoryData<int>
@@ -148,7 +158,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         [Theory]
         [WithTestPatternImages(nameof(CompressionLevels), 24, 24, PixelTypes.Rgba32)]
-        public void WorksWithAllCompressionLevels<TPixel>(TestImageProvider<TPixel> provider, int compressionLevel)
+        public void WorksWithAllCompressionLevels<TPixel>(TestImageProvider<TPixel> provider, PngCompressionLevel compressionLevel)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
@@ -521,7 +531,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             PngFilterMethod pngFilterMethod,
             PngBitDepth bitDepth,
             PngInterlaceMode interlaceMode,
-            int compressionLevel = 6,
+            PngCompressionLevel compressionLevel = PngCompressionLevel.DefaultCompression,
             int paletteSize = 255,
             bool appendPngColorType = false,
             bool appendPngFilterMethod = false,

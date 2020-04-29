@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -130,6 +131,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
                 Assert.True(fileInfoGlobal.Length < fileInfoLocal.Length);
             }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.GlobalQuantizationTest, PixelTypes.Rgba32)]
+        public void Encode_GlobalPalette_QuantizeMultipleFrames<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            var encoder = new GifEncoder()
+            {
+                ColorTableMode = GifColorTableMode.Global
+            };
+
+            string testOutputFile = provider.Utility.SaveTestOutputFile(
+                image,
+                "gif",
+                encoder,
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
+
+            IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(testOutputFile);
+            using var encoded = Image.Load<TPixel>(testOutputFile, referenceDecoder);
+            ValidatorComparer.VerifySimilarity(image, encoded);
         }
 
         [Fact]

@@ -54,9 +54,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 Size dims = decoder.Dimensions;
 
-                // TODO: use InvalidImageContentException here, if we decide to define it
-                // https://github.com/SixLabors/ImageSharp/issues/1110
-                throw new ImageFormatException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
+                PngThrowHelper.ThrowInvalidImageContentException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
+
+                // Not reachable, as the previous statement will throw a exception.
+                return null;
             }
         }
 

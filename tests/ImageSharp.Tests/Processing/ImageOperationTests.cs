@@ -32,12 +32,14 @@ namespace SixLabors.ImageSharp.Tests.Processing
             var processorMock = new Mock<IImageProcessor>();
             this.processorDefinition = processorMock.Object;
 
-            this.image = new Image<Rgba32>(new Configuration
-            {
-                ImageOperationsProvider = this.provider
-            }, 1, 1);
+            this.image = new Image<Rgba32>(
+                new Configuration
+                {
+                    ImageOperationsProvider = this.provider
+                },
+                1,
+                1);
         }
-
 
         [Fact]
         public void MutateCallsImageOperationsProvider_Func_OriginalImage()
@@ -106,7 +108,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
         [Fact]
         public void ApplyProcessors_ListOfProcessors_AppliesAllProcessorsToOperation()
         {
-            var operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(null, false);
+            var operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(Configuration.Default, null, false);
             operations.ApplyProcessors(this.processorDefinition);
             Assert.Contains(this.processorDefinition, operations.Applied.Select(x => x.NonGenericProcessor));
         }

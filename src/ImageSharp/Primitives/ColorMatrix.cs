@@ -6,7 +6,7 @@ using System;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Primitives
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// A structure encapsulating a 5x4 matrix used for transforming the color and alpha components of an image.
@@ -204,7 +204,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>The resulting matrix.</returns>
         public static ColorMatrix operator +(ColorMatrix value1, ColorMatrix value2)
         {
-            ColorMatrix m;
+            var m = default(ColorMatrix);
 
             m.M11 = value1.M11 + value2.M11;
             m.M12 = value1.M12 + value2.M12;
@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>The result of the subtraction.</returns>
         public static ColorMatrix operator -(ColorMatrix value1, ColorMatrix value2)
         {
-            ColorMatrix m;
+            var m = default(ColorMatrix);
 
             m.M11 = value1.M11 - value2.M11;
             m.M12 = value1.M12 - value2.M12;
@@ -271,7 +271,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>The negated matrix.</returns>
         public static ColorMatrix operator -(ColorMatrix value)
         {
-            ColorMatrix m;
+            var m = default(ColorMatrix);
 
             m.M11 = -value.M11;
             m.M12 = -value.M12;
@@ -305,7 +305,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>The result of the multiplication.</returns>
         public static ColorMatrix operator *(ColorMatrix value1, ColorMatrix value2)
         {
-            ColorMatrix m;
+            var m = default(ColorMatrix);
 
             // First row
             m.M11 = (value1.M11 * value2.M11) + (value1.M12 * value2.M21) + (value1.M13 * value2.M31) + (value1.M14 * value2.M41);
@@ -348,7 +348,7 @@ namespace SixLabors.ImageSharp.Primitives
         /// <returns>The scaled matrix.</returns>
         public static ColorMatrix operator *(ColorMatrix value1, float value2)
         {
-            ColorMatrix m;
+            var m = default(ColorMatrix);
 
             m.M11 = value1.M11 * value2;
             m.M12 = value1.M12 * value2;

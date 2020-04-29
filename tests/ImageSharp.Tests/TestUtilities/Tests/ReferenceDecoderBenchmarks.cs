@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [Theory(Skip = SkipBenchmarks)]
         [WithFile(TestImages.Png.Kaboom, PixelTypes.Rgba32)]
         public void BenchmarkMagickPngDecoder<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.BenchmarkDecoderImpl(PngBenchmarkFiles, new MagickReferenceDecoder(), "Magick Decode Png");
         }
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [Theory(Skip = SkipBenchmarks)]
         [WithFile(TestImages.Png.Kaboom, PixelTypes.Rgba32)]
         public void BenchmarkSystemDrawingPngDecoder<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.BenchmarkDecoderImpl(PngBenchmarkFiles, new SystemDrawingReferenceDecoder(), "System.Drawing Decode Png");
         }
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [Theory(Skip = SkipBenchmarks)]
         [WithFile(TestImages.Png.Kaboom, PixelTypes.Rgba32)]
         public void BenchmarkMagickBmpDecoder<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.BenchmarkDecoderImpl(BmpBenchmarkFiles, new MagickReferenceDecoder(), "Magick Decode Bmp");
         }
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [Theory(Skip = SkipBenchmarks)]
         [WithFile(TestImages.Png.Kaboom, PixelTypes.Rgba32)]
         public void BenchmarkSystemDrawingBmpDecoder<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.BenchmarkDecoderImpl(BmpBenchmarkFiles, new SystemDrawingReferenceDecoder(), "System.Drawing Decode Bmp");
         }
@@ -81,7 +81,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         private void BenchmarkDecoderImpl(IEnumerable<string> testFiles, IImageDecoder decoder, string info, int times = DefaultExecutionCount)
         {
             var measure = new MeasureFixture(this.Output);
-            measure.Measure(times,
+            measure.Measure(
+                times,
                 () =>
                     {
                         foreach (string testFile in testFiles)

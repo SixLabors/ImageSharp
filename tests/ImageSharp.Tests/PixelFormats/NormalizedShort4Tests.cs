@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -43,9 +43,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void NormalizedShort4_PackedValues()
         {
             Assert.Equal(0xa6674000d99a0ccd, new NormalizedShort4(0.1f, -0.3f, 0.5f, -0.7f).PackedValue);
-            Assert.Equal((ulong)4150390751449251866, new NormalizedShort4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
-            Assert.Equal((ulong)0x0, new NormalizedShort4(Vector4.Zero).PackedValue);
-            Assert.Equal((ulong)0x7FFF7FFF7FFF7FFF, new NormalizedShort4(Vector4.One).PackedValue);
+            Assert.Equal(4150390751449251866UL, new NormalizedShort4(0.0008f, 0.15f, 0.30f, 0.45f).PackedValue);
+            Assert.Equal(0x0UL, new NormalizedShort4(Vector4.Zero).PackedValue);
+            Assert.Equal(0x7FFF7FFF7FFF7FFFUL, new NormalizedShort4(Vector4.One).PackedValue);
             Assert.Equal(0x8001800180018001, new NormalizedShort4(-Vector4.One).PackedValue);
         }
 
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 scaled = new NormalizedShort4(Vector4.One).ToScaledVector4();
             ulong expected = 0x7FFF7FFF7FFF7FFF;
 
-            // act 
+            // act
             pixel.FromScaledVector4(scaled);
             ulong actual = pixel.PackedValue;
 
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 expected = Vector4.One;
 
             // act
-            byte4.FromGray8(new Gray8(byte.MaxValue));
+            byte4.FromL8(new L8(byte.MaxValue));
 
             // assert
             Assert.Equal(expected, byte4.ToScaledVector4());
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 expected = Vector4.One;
 
             // act
-            byte4.FromGray16(new Gray16(ushort.MaxValue));
+            byte4.FromL16(new L16(ushort.MaxValue));
 
             // assert
             Assert.Equal(expected, byte4.ToScaledVector4());

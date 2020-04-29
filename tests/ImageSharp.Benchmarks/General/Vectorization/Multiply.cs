@@ -1,9 +1,14 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
 
 namespace ImageSharp.Benchmarks.General.Vectorization
 {
+#pragma warning disable SA1649 // File name should match first type name
     public class MulUInt32 : SIMDBenchmarkBase<uint>.Multiply
+#pragma warning restore SA1649 // File name should match first type name
     {
         protected override uint GetTestValue() => 42u;
 

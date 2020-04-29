@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
@@ -18,8 +17,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             this.operations.Resize(width, height);
             ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
-            Assert.Equal(width, resizeProcessor.TargetWidth);
-            Assert.Equal(height, resizeProcessor.TargetHeight);
+            Assert.Equal(width, resizeProcessor.DestinationWidth);
+            Assert.Equal(height, resizeProcessor.DestinationHeight);
         }
 
         [Fact]
@@ -31,8 +30,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             this.operations.Resize(width, height, sampler);
             ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
-            Assert.Equal(width, resizeProcessor.TargetWidth);
-            Assert.Equal(height, resizeProcessor.TargetHeight);
+            Assert.Equal(width, resizeProcessor.DestinationWidth);
+            Assert.Equal(height, resizeProcessor.DestinationHeight);
             Assert.Equal(sampler, resizeProcessor.Sampler);
         }
 
@@ -48,8 +47,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             this.operations.Resize(width, height, sampler, compand);
             ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
-            Assert.Equal(width, resizeProcessor.TargetWidth);
-            Assert.Equal(height, resizeProcessor.TargetHeight);
+            Assert.Equal(width, resizeProcessor.DestinationWidth);
+            Assert.Equal(height, resizeProcessor.DestinationHeight);
             Assert.Equal(sampler, resizeProcessor.Sampler);
             Assert.Equal(compand, resizeProcessor.Compand);
         }
@@ -74,8 +73,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             this.operations.Resize(resizeOptions);
             ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
-            Assert.Equal(width, resizeProcessor.TargetWidth);
-            Assert.Equal(height, resizeProcessor.TargetHeight);
+            Assert.Equal(width, resizeProcessor.DestinationWidth);
+            Assert.Equal(height, resizeProcessor.DestinationHeight);
             Assert.Equal(sampler, resizeProcessor.Sampler);
             Assert.Equal(compand, resizeProcessor.Compand);
 

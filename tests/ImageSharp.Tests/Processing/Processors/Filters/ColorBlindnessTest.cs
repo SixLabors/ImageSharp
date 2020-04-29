@@ -31,6 +31,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
         [Theory]
         [WithTestPatternImages(nameof(ColorBlindnessFilters), 48, 48, PixelTypes.Rgba32)]
         public void ApplyColorBlindnessFilter<TPixel>(TestImageProvider<TPixel> provider, ColorBlindnessMode colorBlindness)
-            where TPixel : struct, IPixel<TPixel> => provider.RunValidatingProcessorTest(x => x.ColorBlindness(colorBlindness), colorBlindness.ToString(), this.imageComparer);
+            where TPixel : unmanaged, IPixel<TPixel> => provider.RunValidatingProcessorTest(x => x.ColorBlindness(colorBlindness), colorBlindness.ToString(), this.imageComparer);
     }
 }

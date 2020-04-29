@@ -1,13 +1,13 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {
@@ -32,11 +32,11 @@ namespace SixLabors.ImageSharp
             int width,
             int height,
             ImageMetadata metadata)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Buffer2D<TPixel> uninitializedMemoryBuffer =
                 configuration.MemoryAllocator.Allocate2D<TPixel>(width, height);
-            return new Image<TPixel>(configuration, uninitializedMemoryBuffer.MemorySource, width, height, metadata);
+            return new Image<TPixel>(configuration, uninitializedMemoryBuffer.FastMemoryGroup, width, height, metadata);
         }
 
         /// <summary>
@@ -47,19 +47,26 @@ namespace SixLabors.ImageSharp
         /// <returns>The mime type or null if none found.</returns>
         private static IImageFormat InternalDetectFormat(Stream stream, Configuration config)
         {
-            // This is probably a candidate for making into a public API in the future!
-            int maxHeaderSize = config.MaxHeaderSize;
-            if (maxHeaderSize <= 0)
+            // We take a minimum of the stream length vs the max header size and always check below
+            // to ensure that only formats that headers fit within the given buffer length are tested.
+            int headerSize = (int)Math.Min(config.MaxHeaderSize, stream.Length);
+            if (headerSize <= 0)
             {
                 return null;
             }
 
-            using (IManagedByteBuffer buffer = config.MemoryAllocator.AllocateManagedByteBuffer(maxHeaderSize, AllocationOptions.Clean))
+            using (IManagedByteBuffer buffer = config.MemoryAllocator.AllocateManagedByteBuffer(headerSize, AllocationOptions.Clean))
             {
                 long startPosition = stream.Position;
-                stream.Read(buffer.Array, 0, maxHeaderSize);
+                stream.Read(buffer.Array, 0, headerSize);
                 stream.Position = startPosition;
-                return config.ImageFormatsManager.FormatDetectors.Select(x => x.DetectFormat(buffer.GetSpan())).LastOrDefault(x => x != null);
+
+                // Does the given stream contain enough data to fit in the header for the format
+                // and does that data match the format specification?
+                // Individual formats should still check since they are public.
+                return config.ImageFormatsManager.FormatDetectors
+                    .Where(x => x.HeaderSize <= headerSize)
+                    .Select(x => x.DetectFormat(buffer.GetSpan())).LastOrDefault(x => x != null);
             }
         }
 
@@ -91,7 +98,7 @@ namespace SixLabors.ImageSharp
         /// </returns>
         private static (Image<TPixel> img, IImageFormat format) Decode<TPixel>(Stream stream, Configuration config)
 #pragma warning restore SA1008 // Opening parenthesis must be spaced correctly
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
             if (decoder is null)
@@ -123,10 +130,14 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
         /// </returns>
-        private static IImageInfo InternalIdentity(Stream stream, Configuration config)
+        private static (IImageInfo info, IImageFormat format) InternalIdentity(Stream stream, Configuration config)
         {
-            var detector = DiscoverDecoder(stream, config, out IImageFormat _) as IImageInfoDetector;
-            return detector?.Identify(config, stream);
+            if (!(DiscoverDecoder(stream, config, out IImageFormat format) is IImageInfoDetector detector))
+            {
+                return (null, null);
+            }
+
+            return (detector?.Identify(config, stream), format);
         }
     }
 }

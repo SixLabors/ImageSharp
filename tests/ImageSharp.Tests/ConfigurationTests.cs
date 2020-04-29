@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,8 +8,8 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.IO;
 
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
     /// <summary>
@@ -18,7 +18,10 @@ namespace SixLabors.ImageSharp.Tests
     public class ConfigurationTests
     {
         public Configuration ConfigurationEmpty { get; }
+
         public Configuration DefaultConfiguration { get; }
+
+        private readonly int expectedDefaultConfigurationCount = 5;
 
         public ConfigurationTests()
         {
@@ -61,14 +64,29 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(-42)]
-        public void Set_MaxDegreeOfParallelism_ToNonPositiveValue_Throws(int value)
+        [InlineData(-3, true)]
+        [InlineData(-2, true)]
+        [InlineData(-1, false)]
+        [InlineData(0, true)]
+        [InlineData(1, false)]
+        [InlineData(5, false)]
+        public void MaxDegreeOfParallelism_CompatibleWith_ParallelOptions(int maxDegreeOfParallelism, bool throws)
         {
             var cfg = new Configuration();
-            Assert.Throws<ArgumentOutOfRangeException>(() => cfg.MaxDegreeOfParallelism = value);
+            if (throws)
+            {
+                Assert.Throws<ArgumentOutOfRangeException>(
+                    () =>
+                    {
+                        cfg.MaxDegreeOfParallelism = maxDegreeOfParallelism;
+                    });
+            }
+            else
+            {
+                cfg.MaxDegreeOfParallelism = maxDegreeOfParallelism;
+                Assert.Equal(maxDegreeOfParallelism, cfg.MaxDegreeOfParallelism);
+            }
         }
-
 
         [Fact]
         public void ConstructorCallConfigureOnFormatProvider()
@@ -92,14 +110,13 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConfigurationCannotAddDuplicates()
         {
-            const int count = 4;
             Configuration config = this.DefaultConfiguration;
 
-            Assert.Equal(count, config.ImageFormats.Count());
+            Assert.Equal(this.expectedDefaultConfigurationCount, config.ImageFormats.Count());
 
             config.ImageFormatsManager.AddImageFormat(BmpFormat.Instance);
 
-            Assert.Equal(count, config.ImageFormats.Count());
+            Assert.Equal(this.expectedDefaultConfigurationCount, config.ImageFormats.Count());
         }
 
         [Fact]
@@ -107,14 +124,14 @@ namespace SixLabors.ImageSharp.Tests
         {
             Configuration config = Configuration.CreateDefaultInstance();
 
-            Assert.Equal(4, config.ImageFormats.Count());
+            Assert.Equal(this.expectedDefaultConfigurationCount, config.ImageFormats.Count());
         }
 
         [Fact]
         public void WorkingBufferSizeHint_DefaultIsCorrect()
         {
             Configuration config = this.DefaultConfiguration;
-            Assert.True(config.WorkingBufferSizeHintInBytes  > 1024);
+            Assert.True(config.WorkingBufferSizeHintInBytes > 1024);
         }
     }
 }

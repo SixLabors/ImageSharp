@@ -144,7 +144,14 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
             PngEncoderOptionsHelpers.AdjustOptions<TPixel>(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
-            IndexedImageFrame<TPixel> quantized = this.CreateQuantizedImage(image);
+            Image<TPixel> clonedImage = null;
+            if (this.options.MakeTransparentBlack)
+            {
+                clonedImage = image.Clone();
+                MakeTransparentPixelsBlack(clonedImage);
+            }
+
+            IndexedImageFrame<TPixel> quantized = this.CreateQuantizedImage(image, clonedImage);
 
             stream.Write(PngConstants.HeaderBytes);
 
@@ -155,58 +162,13 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WritePhysicalChunk(stream, metadata);
             this.WriteExifChunk(stream, metadata);
             this.WriteTextChunks(stream, pngMetadata);
-            this.WriteDataChunks(image.Frames.RootFrame, quantized, stream);
+            this.WriteDataChunks(this.options.MakeTransparentBlack ? clonedImage : image, quantized, stream);
             this.WriteEndChunk(stream);
 
             stream.Flush();
 
             quantized?.Dispose();
-        }
-
-        /// <summary>
-        /// Creates the quantized image and sets calculates and sets the bit depth.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="image">The image to quantize.</param>
-        /// <returns>The quantized image.</returns>
-        private IndexedImageFrame<TPixel> CreateQuantizedImage<TPixel>(Image<TPixel> image)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            IndexedImageFrame<TPixel> quantized;
-            if (this.options.MakeTransparentBlack)
-            {
-                using (Image<TPixel> tempImage = image.Clone())
-                {
-                    for (int y = 0; y < image.Height; y++)
-                    {
-                        Span<TPixel> span = tempImage.GetPixelRowSpan(y);
-                        for (int x = 0; x < image.Width; x++)
-                        {
-                            Rgba32 rgba32 = default;
-                            span[x].ToRgba32(ref rgba32);
-
-                            if (rgba32.A == 0)
-                            {
-                                rgba32.R = 0;
-                                rgba32.G = 0;
-                                rgba32.B = 0;
-                            }
-
-                            span[x].FromRgba32(rgba32);
-                        }
-                    }
-
-                    quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, tempImage);
-                    this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, tempImage, quantized);
-                }
-            }
-            else
-            {
-                quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, image);
-                this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, image, quantized);
-            }
-
-            return quantized;
+            clonedImage?.Dispose();
         }
 
         /// <inheritdoc />
@@ -225,6 +187,55 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.averageFilter = null;
             this.paethFilter = null;
             this.filterBuffer = null;
+        }
+
+        /// <summary>
+        /// Makes transparent pixels black.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="image">The cloned image where the transparent pixels will be changed.</param>
+        private static void MakeTransparentPixelsBlack<TPixel>(Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Rgba32 rgba32 = default;
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> span = image.GetPixelRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    span[x].ToRgba32(ref rgba32);
+
+                    if (rgba32.A == 0)
+                    {
+                        span[x].FromRgba32(Color.Black);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates the quantized image and sets calculates and sets the bit depth.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="image">The image to quantize.</param>
+        /// <param name="clonedImage">Cloned image with transparent pixels are changed to black.</param>
+        /// <returns>The quantized image.</returns>
+        private IndexedImageFrame<TPixel> CreateQuantizedImage<TPixel>(Image<TPixel> image, Image<TPixel> clonedImage)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            IndexedImageFrame<TPixel> quantized;
+            if (this.options.MakeTransparentBlack)
+            {
+                quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, clonedImage);
+                this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, clonedImage, quantized);
+            }
+            else
+            {
+                quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, image);
+                this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, image, quantized);
+            }
+
+            return quantized;
         }
 
         /// <summary>Collects a row of grayscale pixels.</summary>
@@ -859,7 +870,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pixels">The image.</param>
         /// <param name="quantized">The quantized pixel data. Can be null.</param>
         /// <param name="stream">The stream.</param>
-        private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel> quantized, Stream stream)
+        private void WriteDataChunks<TPixel>(Image<TPixel> pixels, IndexedImageFrame<TPixel> quantized, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             byte[] buffer;
@@ -957,8 +968,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pixels">The pixels.</param>
         /// <param name="quantized">The quantized pixels span.</param>
         /// <param name="deflateStream">The deflate stream.</param>
-        private void EncodePixels<TPixel>(ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
-        where TPixel : unmanaged, IPixel<TPixel>
+        private void EncodePixels<TPixel>(Image<TPixel> pixels, IndexedImageFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int bytesPerScanline = this.CalculateScanlineLength(this.width);
             int resultLength = bytesPerScanline + 1;
@@ -981,7 +992,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="pixels">The pixels.</param>
         /// <param name="deflateStream">The deflate stream.</param>
-        private void EncodeAdam7Pixels<TPixel>(ImageFrame<TPixel> pixels, ZlibDeflateStream deflateStream)
+        private void EncodeAdam7Pixels<TPixel>(Image<TPixel> pixels, ZlibDeflateStream deflateStream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int width = pixels.Width;

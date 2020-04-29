@@ -63,9 +63,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngInterlaceMode? InterlaceMethod { get; set; }
 
         /// <summary>
-        /// Gets or sets the optimize method.
+        /// Gets or sets the chunk filter. This can be used to exclude some ancillary chunks from being written.
         /// </summary>
-        public PngChunkFilter? OptimizeMethod { get; set; }
+        public PngChunkFilter? ChunkFilter { get; set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.

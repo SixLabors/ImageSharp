@@ -144,6 +144,34 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
             PngEncoderOptionsHelpers.AdjustOptions<TPixel>(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
+            IndexedImageFrame<TPixel> quantized = this.CreateQuantizedImage(image);
+
+            stream.Write(PngConstants.HeaderBytes);
+
+            this.WriteHeaderChunk(stream);
+            this.WriteGammaChunk(stream);
+            this.WritePaletteChunk(stream, quantized);
+            this.WriteTransparencyChunk(stream, pngMetadata);
+            this.WritePhysicalChunk(stream, metadata);
+            this.WriteExifChunk(stream, metadata);
+            this.WriteTextChunks(stream, pngMetadata);
+            this.WriteDataChunks(image.Frames.RootFrame, quantized, stream);
+            this.WriteEndChunk(stream);
+
+            stream.Flush();
+
+            quantized?.Dispose();
+        }
+
+        /// <summary>
+        /// Creates the quantized image and sets calculates and sets the bit depth.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="image">The image to quantize.</param>
+        /// <returns>The quantized image.</returns>
+        private IndexedImageFrame<TPixel> CreateQuantizedImage<TPixel>(Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
             IndexedImageFrame<TPixel> quantized;
             if (this.options.MakeTransparentBlack)
             {
@@ -178,38 +206,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, image, quantized);
             }
 
-            stream.Write(PngConstants.HeaderBytes);
-
-            this.WriteHeaderChunk(stream);
-
-            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeGammaChunk) != PngChunkFilter.ExcludeGammaChunk)
-            {
-                this.WriteGammaChunk(stream);
-            }
-
-            this.WritePaletteChunk(stream, quantized);
-            this.WriteTransparencyChunk(stream, pngMetadata);
-
-            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludePhysicalChunk) != PngChunkFilter.ExcludePhysicalChunk)
-            {
-                this.WritePhysicalChunk(stream, metadata);
-            }
-
-            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeExifChunk) != PngChunkFilter.ExcludeExifChunk)
-            {
-                this.WriteExifChunk(stream, metadata);
-            }
-
-            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeTextChunks) != PngChunkFilter.ExcludeTextChunks)
-            {
-                this.WriteTextChunks(stream, pngMetadata);
-            }
-
-            this.WriteDataChunks(image.Frames.RootFrame, quantized, stream);
-            this.WriteEndChunk(stream);
-            stream.Flush();
-
-            quantized?.Dispose();
+            return quantized;
         }
 
         /// <inheritdoc />
@@ -652,6 +649,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="meta">The image metadata.</param>
         private void WritePhysicalChunk(Stream stream, ImageMetadata meta)
         {
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludePhysicalChunk) == PngChunkFilter.ExcludePhysicalChunk)
+            {
+                return;
+            }
+
             PhysicalChunkData.FromMetadata(meta).WriteTo(this.chunkDataBuffer);
 
             this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, PhysicalChunkData.Size);
@@ -664,6 +666,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="meta">The image metadata.</param>
         private void WriteExifChunk(Stream stream, ImageMetadata meta)
         {
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeExifChunk) == PngChunkFilter.ExcludeExifChunk)
+            {
+                return;
+            }
+
             if (meta.ExifProfile is null || meta.ExifProfile.Values.Count == 0)
             {
                 return;
@@ -681,6 +688,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="meta">The image metadata.</param>
         private void WriteTextChunks(Stream stream, PngMetadata meta)
         {
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeTextChunks) == PngChunkFilter.ExcludeTextChunks)
+            {
+                return;
+            }
+
             const int MaxLatinCode = 255;
             for (int i = 0; i < meta.TextData.Count; i++)
             {
@@ -773,6 +785,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         private void WriteGammaChunk(Stream stream)
         {
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeGammaChunk) == PngChunkFilter.ExcludeGammaChunk)
+            {
+                return;
+            }
+
             if (this.options.Gamma > 0)
             {
                 // 4-byte unsigned integer of gamma * 100,000.

@@ -83,6 +83,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// Gets or sets a the optimize method.
         /// </summary>
-        public PngOptimizeMethod? OptimizeMethod { get; set; }
+        public PngChunkFilter? OptimizeMethod { get; set; }
     }
 }

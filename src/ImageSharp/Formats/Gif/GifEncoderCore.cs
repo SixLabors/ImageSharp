@@ -50,6 +50,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private int bitDepth;
 
         /// <summary>
+        /// The pixel sampling strategy for global quantization.
+        /// </summary>
+        private IPixelSamplingStrategy pixelSamplingStrategy;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="GifEncoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
@@ -60,6 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.memoryAllocator = configuration.MemoryAllocator;
             this.quantizer = options.Quantizer;
             this.colorTableMode = options.ColorTableMode;
+            this.pixelSamplingStrategy = options.GlobalPixelSamplingStrategy;
         }
 
         /// <summary>
@@ -81,9 +87,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             // Quantize the image returning a palette.
             IndexedImageFrame<TPixel> quantized;
-            using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration))
+
+            using (IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration))
             {
-                quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
+                if (useGlobalTable)
+                {
+                    frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
+                    quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
+                }
+                else
+                {
+                    quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image.Frames.RootFrame, image.Bounds());
+                }
             }
 
             // Get the number of bits.
@@ -154,7 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         pixelMap = new EuclideanPixelMap<TPixel>(this.configuration, quantized.Palette);
                     }
 
-                    using var paletteFrameQuantizer = new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Options, pixelMap);
+                    using var paletteFrameQuantizer = new PaletteQuantizer<TPixel>(this.configuration, this.quantizer.Options, pixelMap);
                     using IndexedImageFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds());
                     this.WriteImageData(paletteQuantized, stream);
                 }
@@ -184,13 +199,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
                             MaxColors = frameMetadata.ColorTableLength
                         };
 
-                        using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, options);
-                        quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
+                        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, options);
+                        quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds());
                     }
                     else
                     {
-                        using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration);
-                        quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
+                        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
+                        quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds());
                     }
                 }
 

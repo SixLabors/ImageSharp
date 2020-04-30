@@ -25,6 +25,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         public GifColorTableMode? ColorTableMode { get; set; }
 
+        internal IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; set; }
+
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>

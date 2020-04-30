@@ -6,45 +6,48 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.Memory
 {
     /// <summary>
-    /// Represents a rectangular area inside a 2D memory buffer (<see cref="Buffer2D{T}"/>).
-    /// This type is kind-of 2D Span, but it can live on heap.
+    /// Represents a rectangular region inside a 2D memory buffer (<see cref="Buffer2D{T}"/>).
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    internal readonly struct BufferArea<T>
-        where T : struct
+    public readonly struct BufferRegion<T>
+        where T : unmanaged
     {
         /// <summary>
-        /// The rectangle specifying the boundaries of the area in <see cref="DestinationBuffer"/>.
+        /// Initializes a new instance of the <see cref="BufferRegion{T}"/> struct.
         /// </summary>
-        public readonly Rectangle Rectangle;
-
+        /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
+        /// <param name="rectangle">The <see cref="Rectangle"/> defining a rectangular area within the buffer.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferArea(Buffer2D<T> destinationBuffer, Rectangle rectangle)
+        public BufferRegion(Buffer2D<T> buffer, Rectangle rectangle)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(rectangle.X, 0, nameof(rectangle));
             DebugGuard.MustBeGreaterThanOrEqualTo(rectangle.Y, 0, nameof(rectangle));
-            DebugGuard.MustBeLessThanOrEqualTo(rectangle.Width, destinationBuffer.Width, nameof(rectangle));
-            DebugGuard.MustBeLessThanOrEqualTo(rectangle.Height, destinationBuffer.Height, nameof(rectangle));
+            DebugGuard.MustBeLessThanOrEqualTo(rectangle.Width, buffer.Width, nameof(rectangle));
+            DebugGuard.MustBeLessThanOrEqualTo(rectangle.Height, buffer.Height, nameof(rectangle));
 
-            this.DestinationBuffer = destinationBuffer;
+            this.Buffer = buffer;
             this.Rectangle = rectangle;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BufferRegion{T}"/> struct.
+        /// </summary>
+        /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferArea(Buffer2D<T> destinationBuffer)
-            : this(destinationBuffer, destinationBuffer.FullRectangle())
+        public BufferRegion(Buffer2D<T> buffer)
+            : this(buffer, buffer.FullRectangle())
         {
         }
+
+        /// <summary>
+        /// Gets the rectangle specifying the boundaries of the area in <see cref="Buffer"/>.
+        /// </summary>
+        public Rectangle Rectangle { get; }
 
         /// <summary>
         /// Gets the <see cref="Buffer2D{T}"/> being pointed by this instance.
         /// </summary>
-        public Buffer2D<T> DestinationBuffer { get; }
-
-        /// <summary>
-        /// Gets the size of the area.
-        /// </summary>
-        public Size Size => this.Rectangle.Size;
+        public Buffer2D<T> Buffer { get; }
 
         /// <summary>
         /// Gets the width
@@ -57,14 +60,19 @@ namespace SixLabors.ImageSharp.Memory
         public int Height => this.Rectangle.Height;
 
         /// <summary>
-        /// Gets the pixel stride which is equal to the width of <see cref="DestinationBuffer"/>.
+        /// Gets the pixel stride which is equal to the width of <see cref="Buffer"/>.
         /// </summary>
-        public int Stride => this.DestinationBuffer.Width;
+        public int Stride => this.Buffer.Width;
 
         /// <summary>
-        /// Gets a value indicating whether the area refers to the entire <see cref="DestinationBuffer"/>
+        /// Gets the size of the area.
         /// </summary>
-        public bool IsFullBufferArea => this.Size == this.DestinationBuffer.Size();
+        internal Size Size => this.Rectangle.Size;
+
+        /// <summary>
+        /// Gets a value indicating whether the area refers to the entire <see cref="Buffer"/>
+        /// </summary>
+        internal bool IsFullBufferArea => this.Size == this.Buffer.Size();
 
         /// <summary>
         /// Gets or sets a value at the given index.
@@ -72,19 +80,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="x">The position inside a row</param>
         /// <param name="y">The row index</param>
         /// <returns>The reference to the value</returns>
-        public ref T this[int x, int y] => ref this.DestinationBuffer[x + this.Rectangle.X, y + this.Rectangle.Y];
-
-        /// <summary>
-        /// Gets a reference to the [0,0] element.
-        /// </summary>
-        /// <returns>The reference to the [0,0] element</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T GetReferenceToOrigin()
-        {
-            int y = this.Rectangle.Y;
-            int x = this.Rectangle.X;
-            return ref this.DestinationBuffer.GetRowSpan(y)[x];
-        }
+        internal ref T this[int x, int y] => ref this.Buffer[x + this.Rectangle.X, y + this.Rectangle.Y];
 
         /// <summary>
         /// Gets a span to row 'y' inside this area.
@@ -98,11 +94,11 @@ namespace SixLabors.ImageSharp.Memory
             int xx = this.Rectangle.X;
             int width = this.Rectangle.Width;
 
-            return this.DestinationBuffer.GetRowSpan(yy).Slice(xx, width);
+            return this.Buffer.GetRowSpan(yy).Slice(xx, width);
         }
 
         /// <summary>
-        /// Returns a sub-area as <see cref="BufferArea{T}"/>. (Similar to <see cref="Span{T}.Slice(int, int)"/>.)
+        /// Returns a sub-area as <see cref="BufferRegion{T}"/>. (Similar to <see cref="Span{T}.Slice(int, int)"/>.)
         /// </summary>
         /// <param name="x">The x index at the subarea origin.</param>
         /// <param name="y">The y index at the subarea origin.</param>
@@ -110,19 +106,19 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="height">The desired height of the subarea.</param>
         /// <returns>The subarea</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferArea<T> GetSubArea(int x, int y, int width, int height)
+        public BufferRegion<T> GetSubArea(int x, int y, int width, int height)
         {
             var rectangle = new Rectangle(x, y, width, height);
             return this.GetSubArea(rectangle);
         }
 
         /// <summary>
-        /// Returns a sub-area as <see cref="BufferArea{T}"/>. (Similar to <see cref="Span{T}.Slice(int, int)"/>.)
+        /// Returns a sub-area as <see cref="BufferRegion{T}"/>. (Similar to <see cref="Span{T}.Slice(int, int)"/>.)
         /// </summary>
         /// <param name="rectangle">The <see cref="Rectangle"/> specifying the boundaries of the subarea</param>
         /// <returns>The subarea</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferArea<T> GetSubArea(Rectangle rectangle)
+        public BufferRegion<T> GetSubArea(Rectangle rectangle)
         {
             DebugGuard.MustBeLessThanOrEqualTo(rectangle.Width, this.Rectangle.Width, nameof(rectangle));
             DebugGuard.MustBeLessThanOrEqualTo(rectangle.Height, this.Rectangle.Height, nameof(rectangle));
@@ -130,15 +126,27 @@ namespace SixLabors.ImageSharp.Memory
             int x = this.Rectangle.X + rectangle.X;
             int y = this.Rectangle.Y + rectangle.Y;
             rectangle = new Rectangle(x, y, rectangle.Width, rectangle.Height);
-            return new BufferArea<T>(this.DestinationBuffer, rectangle);
+            return new BufferRegion<T>(this.Buffer, rectangle);
         }
 
-        public void Clear()
+        /// <summary>
+        /// Gets a reference to the [0,0] element.
+        /// </summary>
+        /// <returns>The reference to the [0,0] element</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal ref T GetReferenceToOrigin()
+        {
+            int y = this.Rectangle.Y;
+            int x = this.Rectangle.X;
+            return ref this.Buffer.GetRowSpan(y)[x];
+        }
+
+        internal void Clear()
         {
             // Optimization for when the size of the area is the same as the buffer size.
             if (this.IsFullBufferArea)
             {
-                this.DestinationBuffer.FastMemoryGroup.Clear();
+                this.Buffer.FastMemoryGroup.Clear();
                 return;
             }
 

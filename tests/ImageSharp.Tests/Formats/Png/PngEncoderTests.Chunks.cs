@@ -158,22 +158,41 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using Image<Rgba32> input = testFile.CreateRgba32Image();
             using var memStream = new MemoryStream();
             var encoder = new PngEncoder() { ChunkFilter = chunkFilter, TextCompressionThreshold = 8 };
+            var expectedChunkTypes = new Dictionary<PngChunkType, bool>()
+            {
+                { PngChunkType.Header, false },
+                { PngChunkType.Gamma, false },
+                { PngChunkType.Palette, false },
+                { PngChunkType.InternationalText, false },
+                { PngChunkType.Text, false },
+                { PngChunkType.CompressedText, false },
+                { PngChunkType.Exif, false },
+                { PngChunkType.Physical, false },
+                { PngChunkType.Data, false },
+                { PngChunkType.End, false }
+            };
             var excludedChunkTypes = new List<PngChunkType>();
             switch (chunkFilter)
             {
                 case PngChunkFilter.ExcludeGammaChunk:
                     excludedChunkTypes.Add(PngChunkType.Gamma);
+                    expectedChunkTypes.Remove(PngChunkType.Gamma);
                     break;
                 case PngChunkFilter.ExcludeExifChunk:
                     excludedChunkTypes.Add(PngChunkType.Exif);
+                    expectedChunkTypes.Remove(PngChunkType.Exif);
                     break;
                 case PngChunkFilter.ExcludePhysicalChunk:
                     excludedChunkTypes.Add(PngChunkType.Physical);
+                    expectedChunkTypes.Remove(PngChunkType.Physical);
                     break;
                 case PngChunkFilter.ExcludeTextChunks:
                     excludedChunkTypes.Add(PngChunkType.Text);
                     excludedChunkTypes.Add(PngChunkType.InternationalText);
                     excludedChunkTypes.Add(PngChunkType.CompressedText);
+                    expectedChunkTypes.Remove(PngChunkType.Text);
+                    expectedChunkTypes.Remove(PngChunkType.InternationalText);
+                    expectedChunkTypes.Remove(PngChunkType.CompressedText);
                     break;
                 case PngChunkFilter.ExcludeAll:
                     excludedChunkTypes.Add(PngChunkType.Gamma);
@@ -182,6 +201,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     excludedChunkTypes.Add(PngChunkType.Text);
                     excludedChunkTypes.Add(PngChunkType.InternationalText);
                     excludedChunkTypes.Add(PngChunkType.CompressedText);
+                    expectedChunkTypes.Remove(PngChunkType.Gamma);
+                    expectedChunkTypes.Remove(PngChunkType.Exif);
+                    expectedChunkTypes.Remove(PngChunkType.Physical);
+                    expectedChunkTypes.Remove(PngChunkType.Text);
+                    expectedChunkTypes.Remove(PngChunkType.InternationalText);
+                    expectedChunkTypes.Remove(PngChunkType.CompressedText);
                     break;
             }
 
@@ -197,8 +222,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
                 var chunkType = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
                 Assert.False(excludedChunkTypes.Contains(chunkType), $"{chunkType} chunk should have been excluded");
+                if (expectedChunkTypes.ContainsKey(chunkType))
+                {
+                    expectedChunkTypes[chunkType] = true;
+                }
 
                 bytesSpan = bytesSpan.Slice(4 + 4 + length + 4);
+            }
+
+            // all expected chunk types should have been seen at least once.
+            foreach (PngChunkType chunkType in expectedChunkTypes.Keys)
+            {
+                Assert.True(expectedChunkTypes[chunkType], $"We expect {chunkType} chunk to be present at least once");
             }
         }
 
@@ -215,7 +250,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 PngChunkType.Header,
                 PngChunkType.Gamma,
                 PngChunkType.Palette,
-                PngChunkType.Transparency,
                 PngChunkType.InternationalText,
                 PngChunkType.Text,
                 PngChunkType.CompressedText,

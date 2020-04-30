@@ -15,14 +15,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public class DefaultPixelSamplingStrategy : IPixelSamplingStrategy
     {
         // TODO: This value shall be determined by benchmarking.
-        // (Maximum quality while decoding time is still tolerable.)
-        private const int DefaultMaximumPixels = 8192 * 8192;
+        // A smaller value should likely work well, providing better perf.
+        private const int DefaultMaximumPixels = 4096 * 4096;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DefaultPixelSamplingStrategy"/> class.
         /// </summary>
         public DefaultPixelSamplingStrategy()
-            : this(DefaultMaximumPixels)
+            : this(DefaultMaximumPixels, 0.1)
         {
         }
 
@@ -30,10 +30,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Initializes a new instance of the <see cref="DefaultPixelSamplingStrategy"/> class.
         /// </summary>
         /// <param name="maximumPixels">The maximum number of pixels to process.</param>
-        public DefaultPixelSamplingStrategy(int maximumPixels)
+        /// <param name="minimumScanRatio">always scan at least this portion of total pixels within the image.</param>
+        public DefaultPixelSamplingStrategy(int maximumPixels, double minimumScanRatio)
         {
             Guard.MustBeGreaterThan(maximumPixels, 0, nameof(maximumPixels));
             this.MaximumPixels = maximumPixels;
+            this.MinimumScanRatio = minimumScanRatio;
         }
 
         /// <summary>
@@ -41,11 +43,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         public long MaximumPixels { get; }
 
+        /// <summary>
+        /// Gets a value indicating: always scan at least this portion of total pixels within the image.
+        /// The default is 0.1 (10%).
+        /// </summary>
+        public double MinimumScanRatio { get; }
+
         /// <inheritdoc />
         public IEnumerable<BufferRegion<TPixel>> EnumeratePixelRegions<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            long maximumPixels = Math.Min(MaximumPixels, (long)image.Width * image.Height * image.Frames.Count);
+            long maximumPixels = Math.Min(this.MaximumPixels, (long)image.Width * image.Height * image.Frames.Count);
             long maxNumberOfRows = maximumPixels / image.Width;
             long totalNumberOfRows = (long)image.Height * image.Frames.Count;
 
@@ -61,8 +69,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             {
                 double r = maxNumberOfRows / (double)totalNumberOfRows;
 
-                r = Math.Round(r, 1); // Use a rough approximation to make sure we don't leave out large contiguous regions:
-                r = Math.Max(0.1, r); // always visit at least 10% of the image
+                // Use a rough approximation to make sure we don't leave out large contiguous regions:
+                if (maxNumberOfRows > 200)
+                {
+                    r = Math.Round(r, 2);
+                }
+                else
+                {
+                    r = Math.Round(r, 1);
+                }
+
+                r = Math.Max(this.MinimumScanRatio, r); // always visit the minimum defined portion of the image.
 
                 var ratio = new Rational(r);
 

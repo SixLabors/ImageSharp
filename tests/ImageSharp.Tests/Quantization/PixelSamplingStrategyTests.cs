@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
         {
             using Image<L8> image = CreateTestImage(width, height, noOfFrames);
 
-            var strategy = new DefaultPixelSamplingStrategy(maximumNumberOfPixels);
+            var strategy = new DefaultPixelSamplingStrategy(maximumNumberOfPixels, 0.1);
 
             long visitedPixels = 0;
             foreach (BufferRegion<L8> region in strategy.EnumeratePixelRegions(image))

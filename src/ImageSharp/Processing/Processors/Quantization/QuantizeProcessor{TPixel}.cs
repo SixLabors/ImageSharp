@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             Configuration configuration = this.Configuration;
             using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration);
-            using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source, interest);
+            using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(source, interest);
 
             var operation = new RowIntervalOperation(this.SourceRectangle, source, quantized);
             ParallelRowIterator.IterateRowIntervals(

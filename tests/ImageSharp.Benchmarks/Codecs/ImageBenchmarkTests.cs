@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 // This file contains small, cheap and "unit test" benchmarks to test MultiImageBenchmarkBase.
 // Need this because there are no real test cases for the common benchmark utility stuff.

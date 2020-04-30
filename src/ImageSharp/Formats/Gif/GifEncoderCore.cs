@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             // Quantize the image returning a palette.
             IndexedImageFrame<TPixel> quantized;
-            using (IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration))
+            using (IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration))
             {
                 quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds());
             }
@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                         pixelMap = new EuclideanPixelMap<TPixel>(this.configuration, quantized.Palette);
                     }
 
-                    using var paletteFrameQuantizer = new PaletteFrameQuantizer<TPixel>(this.configuration, this.quantizer.Options, pixelMap);
+                    using var paletteFrameQuantizer = new PaletteQuantizer<TPixel>(this.configuration, this.quantizer.Options, pixelMap);
                     using IndexedImageFrame<TPixel> paletteQuantized = paletteFrameQuantizer.QuantizeFrame(frame, frame.Bounds());
                     this.WriteImageData(paletteQuantized, stream);
                 }
@@ -184,12 +184,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
                             MaxColors = frameMetadata.ColorTableLength
                         };
 
-                        using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration, options);
+                        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, options);
                         quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
                     }
                     else
                     {
-                        using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration);
+                        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
                         quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
                     }
                 }

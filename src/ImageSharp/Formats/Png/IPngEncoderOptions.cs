@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         PngInterlaceMode? InterlaceMethod { get; }
 
         /// <summary>
-        /// Gets the optimize method.
+        /// Gets chunk filter method.
         /// </summary>
         PngChunkFilter? ChunkFilter { get; }
 

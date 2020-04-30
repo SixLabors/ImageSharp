@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             var interest = Rectangle.Intersect(source.Bounds(), this.SourceRectangle);
 
             Configuration configuration = this.Configuration;
-            using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(configuration);
+            using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration);
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source, interest);
 
             var operation = new RowIntervalOperation(this.SourceRectangle, source, quantized);

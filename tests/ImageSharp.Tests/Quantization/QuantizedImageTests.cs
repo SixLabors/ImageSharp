@@ -27,22 +27,22 @@ namespace SixLabors.ImageSharp.Tests
             Assert.NotNull(octree.Options.Dither);
             Assert.NotNull(wu.Options.Dither);
 
-            using (IFrameQuantizer<Rgba32> quantizer = werner.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            using (IQuantizer<Rgba32> quantizer = werner.CreatePixelSpecificQuantizer<Rgba32>(this.Configuration))
             {
                 Assert.NotNull(quantizer.Options.Dither);
             }
 
-            using (IFrameQuantizer<Rgba32> quantizer = webSafe.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            using (IQuantizer<Rgba32> quantizer = webSafe.CreatePixelSpecificQuantizer<Rgba32>(this.Configuration))
             {
                 Assert.NotNull(quantizer.Options.Dither);
             }
 
-            using (IFrameQuantizer<Rgba32> quantizer = octree.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            using (IQuantizer<Rgba32> quantizer = octree.CreatePixelSpecificQuantizer<Rgba32>(this.Configuration))
             {
                 Assert.NotNull(quantizer.Options.Dither);
             }
 
-            using (IFrameQuantizer<Rgba32> quantizer = wu.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            using (IQuantizer<Rgba32> quantizer = wu.CreatePixelSpecificQuantizer<Rgba32>(this.Configuration))
             {
                 Assert.NotNull(quantizer.Options.Dither);
             }
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    using (IFrameQuantizer<TPixel> frameQuantizer = quantizer.CreateFrameQuantizer<TPixel>(this.Configuration))
+                    using (IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.Configuration))
                     using (IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
                     {
                         int index = this.GetTransparentIndex(quantized);
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    using (IFrameQuantizer<TPixel> frameQuantizer = quantizer.CreateFrameQuantizer<TPixel>(this.Configuration))
+                    using (IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.Configuration))
                     using (IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
                     {
                         int index = this.GetTransparentIndex(quantized);

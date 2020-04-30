@@ -336,7 +336,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write8BitColor<TPixel>(Stream stream, ImageFrame<TPixel> image, Span<byte> colorPalette)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(this.configuration);
+            using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image, image.Bounds());
 
             ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;

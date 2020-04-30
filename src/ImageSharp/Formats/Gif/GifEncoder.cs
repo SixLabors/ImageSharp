@@ -25,6 +25,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         public GifColorTableMode? ColorTableMode { get; set; }
 
+        /// <summary>
+        /// Gets or sets the <see cref="IPixelSamplingStrategy"/> used for quantization
+        /// when building a global color table in case of <see cref="GifColorTableMode.Global"/>.
+        /// </summary>
+        public IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; set; } = new DefaultPixelSamplingStrategy();
+
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>

@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 using (Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(20, 20, AllocationOptions.Clean))
                 {
-                    BufferRegion<float> region = buffer.GetRegion(5, 10, 8, 8);
+                    Buffer2DRegion<float> region = buffer.GetRegion(5, 10, 8, 8);
                     block.Copy1x1Scale(ref region.GetReferenceToOrigin(), region.Stride);
 
                     Assert.Equal(block[0, 0], buffer[5, 10]);
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 using (Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(100, 100, AllocationOptions.Clean))
                 {
-                    BufferRegion<float> region = buffer.GetRegion(start.X, start.Y, 8 * horizontalFactor, 8 * verticalFactor);
+                    Buffer2DRegion<float> region = buffer.GetRegion(start.X, start.Y, 8 * horizontalFactor, 8 * verticalFactor);
                     block.ScaledCopyTo(region, horizontalFactor, verticalFactor);
 
                     for (int y = 0; y < 8 * verticalFactor; y++)

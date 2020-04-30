@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </para>
     /// </remarks>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal struct WuFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
+    internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly MemoryAllocator memoryAllocator;
@@ -77,12 +77,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WuFrameQuantizer{TPixel}"/> struct.
+        /// Initializes a new instance of the <see cref="WuQuantizer{TPixel}"/> struct.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="options">The quantizer options defining quantization rules.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public WuFrameQuantizer(Configuration configuration, QuantizerOptions options)
+        public WuQuantizer(Configuration configuration, QuantizerOptions options)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(options, nameof(options));
@@ -112,14 +112,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             get
             {
-                FrameQuantizerUtilities.CheckPaletteState(in this.palette);
+                QuantizerUtilities.CheckPaletteState(in this.palette);
                 return this.palette;
             }
         }
 
         /// <inheritdoc/>
-        public void BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
+        public void AddPaletteColors(BufferRegion<TPixel> pixelRegion)
         {
+            Rectangle bounds = pixelRegion.Rectangle;
+            Buffer2D<TPixel> source = pixelRegion.Buffer;
+
             this.Build3DHistogram(source, bounds);
             this.Get3DMoments(this.memoryAllocator);
             this.BuildCube();
@@ -147,7 +150,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => FrameQuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+            => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
 
         /// <inheritdoc/>
         public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
@@ -360,7 +363,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="source">The source data.</param>
         /// <param name="bounds">The bounds within the source image to quantize.</param>
-        private void Build3DHistogram(ImageFrame<TPixel> source, Rectangle bounds)
+        private void Build3DHistogram(Buffer2D<TPixel> source, Rectangle bounds)
         {
             Span<Moment> momentSpan = this.momentsOwner.GetSpan();
 
@@ -370,7 +373,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y).Slice(bounds.Left, bounds.Width);
+                Span<TPixel> row = source.GetRowSpan(y).Slice(bounds.Left, bounds.Width);
                 PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
                 for (int x = 0; x < bufferSpan.Length; x++)

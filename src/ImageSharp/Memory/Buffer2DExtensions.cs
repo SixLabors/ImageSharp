@@ -80,29 +80,29 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Return a <see cref="BufferArea{T}"/> to the subarea represented by 'rectangle'
+        /// Return a <see cref="BufferRegion{T}"/> to the subarea represented by 'rectangle'
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
         /// <param name="rectangle">The rectangle subarea</param>
-        /// <returns>The <see cref="BufferArea{T}"/></returns>
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer, in Rectangle rectangle)
-            where T : struct =>
-            new BufferArea<T>(buffer, rectangle);
+        /// <returns>The <see cref="BufferRegion{T}"/></returns>
+        internal static BufferRegion<T> GetRegion<T>(this Buffer2D<T> buffer, in Rectangle rectangle)
+            where T : unmanaged =>
+            new BufferRegion<T>(buffer, rectangle);
 
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
-            where T : struct =>
-            new BufferArea<T>(buffer, new Rectangle(x, y, width, height));
+        internal static BufferRegion<T> GetRegion<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
+            where T : unmanaged =>
+            new BufferRegion<T>(buffer, new Rectangle(x, y, width, height));
 
         /// <summary>
-        /// Return a <see cref="BufferArea{T}"/> to the whole area of 'buffer'
+        /// Return a <see cref="BufferRegion{T}"/> to the whole area of 'buffer'
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
-        /// <returns>The <see cref="BufferArea{T}"/></returns>
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer)
-            where T : struct =>
-            new BufferArea<T>(buffer);
+        /// <returns>The <see cref="BufferRegion{T}"/></returns>
+        internal static BufferRegion<T> GetRegion<T>(this Buffer2D<T> buffer)
+            where T : unmanaged =>
+            new BufferRegion<T>(buffer);
 
         /// <summary>
         /// Returns the size of the buffer.

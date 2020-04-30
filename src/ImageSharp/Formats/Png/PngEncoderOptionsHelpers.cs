@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             using (IQuantizer<TPixel> frameQuantizer = options.Quantizer.CreatePixelSpecificQuantizer<TPixel>(image.GetConfiguration()))
             {
                 ImageFrame<TPixel> frame = image.Frames.RootFrame;
-                return frameQuantizer.QuantizeFrame(frame, frame.Bounds());
+                return frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds());
             }
         }
 

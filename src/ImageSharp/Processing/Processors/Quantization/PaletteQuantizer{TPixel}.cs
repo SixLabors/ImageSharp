@@ -50,11 +50,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => FrameQuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+            => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void CollectPaletteColors(BufferRegion<TPixel> pixelRegion)
+        public void AddPaletteColors(BufferRegion<TPixel> pixelRegion)
         {
         }
 

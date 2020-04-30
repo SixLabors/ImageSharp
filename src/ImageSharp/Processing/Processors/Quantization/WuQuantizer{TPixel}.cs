@@ -112,13 +112,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             get
             {
-                FrameQuantizerUtilities.CheckPaletteState(in this.palette);
+                QuantizerUtilities.CheckPaletteState(in this.palette);
                 return this.palette;
             }
         }
 
         /// <inheritdoc/>
-        public void CollectPaletteColors(BufferRegion<TPixel> pixelRegion)
+        public void AddPaletteColors(BufferRegion<TPixel> pixelRegion)
         {
             Rectangle bounds = pixelRegion.Rectangle;
             Buffer2D<TPixel> source = pixelRegion.Buffer;
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => FrameQuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+            => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
 
         /// <inheritdoc/>
         public readonly byte GetQuantizedColor(TPixel color, out TPixel match)

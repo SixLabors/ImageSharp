@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
                     using (IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.Configuration))
-                    using (IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
+                    using (IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds()))
                     {
                         int index = this.GetTransparentIndex(quantized);
                         Assert.Equal(index, quantized.GetPixelRowSpan(0)[0]);
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
                     using (IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.Configuration))
-                    using (IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
+                    using (IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds()))
                     {
                         int index = this.GetTransparentIndex(quantized);
                         Assert.Equal(index, quantized.GetPixelRowSpan(0)[0]);

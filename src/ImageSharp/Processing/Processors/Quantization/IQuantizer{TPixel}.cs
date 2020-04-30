@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Gets the quantized color palette.
         /// </summary>
         /// <exception cref="InvalidOperationException">
-        /// The palette has not been built via <see cref="CollectPaletteColors"/>.
+        /// The palette has not been built via <see cref="AddPaletteColors"/>.
         /// </exception>
         ReadOnlyMemory<TPixel> Palette { get; }
 
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Adds colors to the quantized palette from the given pixel source.
         /// </summary>
         /// <param name="pixelRegion">The <see cref="BufferRegion{T}"/> of source pixels to register.</param>
-        void CollectPaletteColors(BufferRegion<TPixel> pixelRegion);
+        void AddPaletteColors(BufferRegion<TPixel> pixelRegion);
 
         /// <summary>
         /// Quantizes an image frame and return the resulting output pixels.
@@ -46,6 +46,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>
         /// A <see cref="IndexedImageFrame{TPixel}"/> representing a quantized version of the source frame pixels.
         /// </returns>
+        /// <remarks>
+        /// Only executes the second (quantization) step. The palette has to be built by calling <see cref="AddPaletteColors"/>.
+        /// To run both steps, use <see cref="QuantizerUtilities.BuildPaletteAndQuantizeFrame{TPixel}"/>.
+        /// </remarks>
         IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds);
 
         /// <summary>

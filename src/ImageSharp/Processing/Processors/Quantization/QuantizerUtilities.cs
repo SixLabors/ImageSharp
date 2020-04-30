@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <summary>
     /// Contains utility methods for <see cref="IQuantizer{TPixel}"/> instances.
     /// </summary>
-    public static class FrameQuantizerUtilities
+    public static class QuantizerUtilities
     {
         /// <summary>
         /// Helper method for throwing an exception when a frame quantizer palette has
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="palette">The frame quantizer palette.</param>
         /// <exception cref="InvalidOperationException">
-        /// The palette has not been built via <see cref="IQuantizer{TPixel}.CollectPaletteColors"/>
+        /// The palette has not been built via <see cref="IQuantizer{TPixel}.AddPaletteColors"/>
         /// </exception>
         public static void CheckPaletteState<TPixel>(in ReadOnlyMemory<TPixel> palette)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -34,11 +34,38 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <summary>
+        /// Execute both steps of the quantization.
+        /// </summary>
+        /// <param name="quantizer">The pixel specific quantizer.</param>
+        /// <param name="source">The source image frame to quantize.</param>
+        /// <param name="bounds">The bounds within the frame to quantize.</param>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <returns>
+        /// A <see cref="IndexedImageFrame{TPixel}"/> representing a quantized version of the source frame pixels.
+        /// </returns>
+        public static IndexedImageFrame<TPixel> BuildPaletteAndQuantizeFrame<TPixel>(
+            this IQuantizer<TPixel> quantizer,
+            ImageFrame<TPixel> source,
+            Rectangle bounds)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(quantizer, nameof(quantizer));
+            Guard.NotNull(source, nameof(source));
+
+            var interest = Rectangle.Intersect(source.Bounds(), bounds);
+            BufferRegion<TPixel> region = source.PixelBuffer.GetRegion(interest);
+
+            // Collect the palette. Required before the second pass runs.
+            quantizer.AddPaletteColors(region);
+            return quantizer.QuantizeFrame(source, bounds);
+        }
+
+        /// <summary>
         /// Quantizes an image frame and return the resulting output pixels.
         /// </summary>
         /// <typeparam name="TFrameQuantizer">The type of frame quantizer.</typeparam>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="quantizer">The frame quantizer.</param>
+        /// <param name="quantizer">The pixel specific quantizer.</param>
         /// <param name="source">The source image frame to quantize.</param>
         /// <param name="bounds">The bounds within the frame to quantize.</param>
         /// <returns>
@@ -53,10 +80,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             Guard.NotNull(source, nameof(source));
             var interest = Rectangle.Intersect(source.Bounds(), bounds);
-            BufferRegion<TPixel> region = source.PixelBuffer.GetRegion(interest);
-
-            // Collect the palette. Required before the second pass runs.
-            quantizer.CollectPaletteColors(region);
 
             var destination = new IndexedImageFrame<TPixel>(
                 quantizer.Configuration,
@@ -76,6 +99,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             return destination;
+        }
+
+        internal static void BuildPalette<TPixel>(
+            this IQuantizer<TPixel> quantizer,
+            IPixelSamplingStrategy pixelSamplingStrategy,
+            Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            foreach (BufferRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(image))
+            {
+                quantizer.AddPaletteColors(region);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

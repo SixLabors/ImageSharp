@@ -172,13 +172,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             PixelConversionModifiers conversionModifiers =
                 PixelConversionModifiers.Premultiply.ApplyCompanding(compand);
 
-            BufferArea<TPixel> sourceArea = source.PixelBuffer.GetArea(sourceRectangle);
+            BufferRegion<TPixel> sourceRegion = source.PixelBuffer.GetRegion(sourceRectangle);
 
             // To reintroduce parallel processing, we would launch multiple workers
             // for different row intervals of the image.
             using (var worker = new ResizeWorker<TPixel>(
                 configuration,
-                sourceArea,
+                sourceRegion,
                 conversionModifiers,
                 horizontalKernelMap,
                 verticalKernelMap,

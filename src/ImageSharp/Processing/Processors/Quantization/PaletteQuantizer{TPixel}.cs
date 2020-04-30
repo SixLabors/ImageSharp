@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void AddPaletteColors(BufferRegion<TPixel> pixelRegion)
+        public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
         {
         }
 

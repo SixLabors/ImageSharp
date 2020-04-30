@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
         {
             using Buffer2D<int> buffer = this.memoryAllocator.Allocate2D<int>(10, 20);
             var rectangle = new Rectangle(3, 2, 5, 6);
-            var area = new BufferRegion<int>(buffer, rectangle);
+            var area = new Buffer2DRegion<int>(buffer, rectangle);
 
             Assert.Equal(buffer, area.Buffer);
             Assert.Equal(rectangle, area.Rectangle);
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             using Buffer2D<int> buffer = this.CreateTestBuffer(20, 30);
             var r = new Rectangle(rx, ry, 5, 6);
 
-            BufferRegion<int> region = buffer.GetRegion(r);
+            Buffer2DRegion<int> region = buffer.GetRegion(r);
 
             int value = region[x, y];
             int expected = ((ry + y) * 100) + rx + x;
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             using Buffer2D<int> buffer = this.CreateTestBuffer(20, 30);
             var r = new Rectangle(rx, ry, w, h);
 
-            BufferRegion<int> region = buffer.GetRegion(r);
+            Buffer2DRegion<int> region = buffer.GetRegion(r);
 
             Span<int> span = region.GetRowSpan(y);
 
@@ -85,9 +85,9 @@ namespace SixLabors.ImageSharp.Tests.Memory
         public void GetSubArea()
         {
             using Buffer2D<int> buffer = this.CreateTestBuffer(20, 30);
-            BufferRegion<int> area0 = buffer.GetRegion(6, 8, 10, 10);
+            Buffer2DRegion<int> area0 = buffer.GetRegion(6, 8, 10, 10);
 
-            BufferRegion<int> area1 = area0.GetSubArea(4, 4, 5, 5);
+            Buffer2DRegion<int> area1 = area0.GetSubRegion(4, 4, 5, 5);
 
             var expectedRect = new Rectangle(10, 12, 5, 5);
 
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             this.memoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
 
             using Buffer2D<int> buffer = this.CreateTestBuffer(20, 30);
-            BufferRegion<int> area0 = buffer.GetRegion(6, 8, 10, 10);
+            Buffer2DRegion<int> area0 = buffer.GetRegion(6, 8, 10, 10);
 
             ref int r = ref area0.GetReferenceToOrigin();
 
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
             this.memoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
 
             using Buffer2D<int> buffer = this.CreateTestBuffer(20, 30);
-            BufferRegion<int> region = buffer.GetRegion(5, 5, 10, 10);
+            Buffer2DRegion<int> region = buffer.GetRegion(5, 5, 10, 10);
             region.Clear();
 
             Assert.NotEqual(0, buffer[4, 4]);

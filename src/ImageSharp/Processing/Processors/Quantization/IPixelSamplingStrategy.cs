@@ -13,12 +13,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public interface IPixelSamplingStrategy
     {
         /// <summary>
-        /// Enumerates pixel regions within the image as <see cref="BufferRegion{T}"/>.
+        /// Enumerates pixel regions within the image as <see cref="Buffer2DRegion{T}"/>.
         /// </summary>
         /// <param name="image">The image.</param>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <returns>An enumeration of pixel regions.</returns>
-        IEnumerable<BufferRegion<TPixel>> EnumeratePixelRegions<TPixel>(Image<TPixel> image)
+        IEnumerable<Buffer2DRegion<TPixel>> EnumeratePixelRegions<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>;
     }
 }

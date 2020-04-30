@@ -543,7 +543,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            BufferRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(this.restoreArea.Value);
+            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(this.restoreArea.Value);
             pixelRegion.Clear();
 
             this.restoreArea = null;

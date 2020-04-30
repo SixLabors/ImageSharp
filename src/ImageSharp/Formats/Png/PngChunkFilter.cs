@@ -39,6 +39,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// All possible optimizations.
         /// </summary>
-        ExcludeAll = ExcludePhysicalChunk | ExcludeGammaChunk | ExcludeExifChunk | ExcludeTextChunks
+        ExcludeAll = ~None
     }
 }

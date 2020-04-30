@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
 
         private Buffer2D<float> buffer;
 
-        private BufferRegion<float> destRegion;
+        private Buffer2DRegion<float> destRegion;
 
         [GlobalSetup]
         public void Setup()

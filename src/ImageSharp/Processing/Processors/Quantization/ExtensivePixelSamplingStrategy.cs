@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public class ExtensivePixelSamplingStrategy : IPixelSamplingStrategy
     {
         /// <inheritdoc />
-        public IEnumerable<BufferRegion<TPixel>> EnumeratePixelRegions<TPixel>(Image<TPixel> image)
+        public IEnumerable<Buffer2DRegion<TPixel>> EnumeratePixelRegions<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (ImageFrame<TPixel> frame in image.Frames)

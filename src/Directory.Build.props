@@ -12,7 +12,7 @@
 
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileDirectory)..\Directory.Build.props</MSBuildAllProjects>
-    <ImageSharpProjectCategory>src</ImageSharpProjectCategory>
+    <SixLaborsProjectCategory>src</SixLaborsProjectCategory>
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" />

@@ -22,5 +22,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets the color table mode: Global or local.
         /// </summary>
         GifColorTableMode? ColorTableMode { get; }
+
+        /// <summary>
+        /// Gets the <see cref="IPixelSamplingStrategy"/> used for quantization when building a global color table.
+        /// </summary>
+        IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; }
     }
 }

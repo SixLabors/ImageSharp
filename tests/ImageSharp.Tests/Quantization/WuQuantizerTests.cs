@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             using var image = new Image<Rgba32>(config, 1, 1, Color.Black);
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
-            using IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(config);
+            using IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(config);
             using IndexedImageFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
 
             Assert.Equal(1, result.Palette.Length);
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             using var image = new Image<Rgba32>(config, 1, 1, default(Rgba32));
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
-            using IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(config);
+            using IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(config);
             using IndexedImageFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
 
             Assert.Equal(1, result.Palette.Length);
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
 
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
-            using IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(config);
+            using IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(config);
             using IndexedImageFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
 
             Assert.Equal(256, result.Palette.Length);
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
                 var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
                 ImageFrame<TPixel> frame = image.Frames.RootFrame;
 
-                using IFrameQuantizer<TPixel> frameQuantizer = quantizer.CreateFrameQuantizer<TPixel>(config);
+                using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(config);
                 using IndexedImageFrame<TPixel> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
 
                 Assert.Equal(48, result.Palette.Length);
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
                 var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
 
                 ImageFrame<Rgba32> frame = image.Frames.RootFrame;
-                using (IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(config))
+                using (IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(config))
                 using (IndexedImageFrame<Rgba32> result = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
                 {
                     Assert.Equal(4 * 8, result.Palette.Length);

@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Guard.NotNull(source, nameof(source));
 
             var interest = Rectangle.Intersect(source.Bounds(), bounds);
-            BufferRegion<TPixel> region = source.PixelBuffer.GetRegion(interest);
+            Buffer2DRegion<TPixel> region = source.PixelBuffer.GetRegion(interest);
 
             // Collect the palette. Required before the second pass runs.
             quantizer.AddPaletteColors(region);
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            foreach (BufferRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(image))
+            foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(image))
             {
                 quantizer.AddPaletteColors(region);
             }

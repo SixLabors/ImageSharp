@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly ResizeKernelMap horizontalKernelMap;
 
-        private readonly BufferRegion<TPixel> source;
+        private readonly Buffer2DRegion<TPixel> source;
 
         private readonly Rectangle sourceRectangle;
 
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         public ResizeWorker(
             Configuration configuration,
-            BufferRegion<TPixel> source,
+            Buffer2DRegion<TPixel> source,
             PixelConversionModifiers conversionModifiers,
             ResizeKernelMap horizontalKernelMap,
             ResizeKernelMap verticalKernelMap,

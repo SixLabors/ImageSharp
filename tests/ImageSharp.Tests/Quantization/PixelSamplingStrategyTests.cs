@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             Assert.True(visitRatio <= 1.1, $"{visitedPixels}>{maximumPixels}");
         }
 
-        static void PaintWhite(BufferRegion<L8> region)
+        private static void PaintWhite(BufferRegion<L8> region)
         {
             var white = new L8(255);
             for (int y = 0; y < region.Height; y++)
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             }
         }
 
-        private Image<L8> CreateTestImage(int width, int height, int noOfFrames, bool paintWhite = false)
+        private static Image<L8> CreateTestImage(int width, int height, int noOfFrames, bool paintWhite = false)
         {
             L8 bg = paintWhite ? new L8(255) : default;
             var image = new Image<L8>(width, height, bg);

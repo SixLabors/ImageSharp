@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public double MinimumScanRatio { get; }
 
         /// <inheritdoc />
-        public IEnumerable<BufferRegion<TPixel>> EnumeratePixelRegions<TPixel>(Image<TPixel> image)
+        public IEnumerable<Buffer2DRegion<TPixel>> EnumeratePixelRegions<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             long maximumPixels = Math.Min(this.MaximumPixels, (long)image.Width * image.Height * image.Frames.Count);
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
                     }
                 }
 
-                BufferRegion<TPixel> GetRow(int pos)
+                Buffer2DRegion<TPixel> GetRow(int pos)
                 {
                     int frameIdx = pos / image.Height;
                     int y = pos % image.Height;

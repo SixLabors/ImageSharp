@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             using Image<L8> image = CreateTestImage(100, 100, 100);
             var strategy = new ExtensivePixelSamplingStrategy();
 
-            foreach (BufferRegion<L8> region in strategy.EnumeratePixelRegions(image))
+            foreach (Buffer2DRegion<L8> region in strategy.EnumeratePixelRegions(image))
             {
                 PaintWhite(region);
             }
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             var strategy = new DefaultPixelSamplingStrategy(maximumNumberOfPixels, 0.1);
 
             long visitedPixels = 0;
-            foreach (BufferRegion<L8> region in strategy.EnumeratePixelRegions(image))
+            foreach (Buffer2DRegion<L8> region in strategy.EnumeratePixelRegions(image))
             {
                 PaintWhite(region);
                 visitedPixels += region.Width * region.Height;
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.Quantization
             Assert.True(visitRatio <= 1.1, $"{visitedPixels}>{maximumPixels}");
         }
 
-        private static void PaintWhite(BufferRegion<L8> region)
+        private static void PaintWhite(Buffer2DRegion<L8> region)
         {
             var white = new L8(255);
             for (int y = 0; y < region.Height; y++)

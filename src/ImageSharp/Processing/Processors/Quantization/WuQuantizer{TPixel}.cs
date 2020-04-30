@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         }
 
         /// <inheritdoc/>
-        public void AddPaletteColors(BufferRegion<TPixel> pixelRegion)
+        public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
         {
             Rectangle bounds = pixelRegion.Rectangle;
             Buffer2D<TPixel> source = pixelRegion.Buffer;

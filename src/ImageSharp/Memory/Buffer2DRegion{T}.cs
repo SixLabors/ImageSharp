@@ -9,16 +9,16 @@ namespace SixLabors.ImageSharp.Memory
     /// Represents a rectangular region inside a 2D memory buffer (<see cref="Buffer2D{T}"/>).
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    public readonly struct BufferRegion<T>
+    public readonly struct Buffer2DRegion<T>
         where T : unmanaged
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BufferRegion{T}"/> struct.
+        /// Initializes a new instance of the <see cref="Buffer2DRegion{T}"/> struct.
         /// </summary>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
         /// <param name="rectangle">The <see cref="Rectangle"/> defining a rectangular area within the buffer.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferRegion(Buffer2D<T> buffer, Rectangle rectangle)
+        public Buffer2DRegion(Buffer2D<T> buffer, Rectangle rectangle)
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(rectangle.X, 0, nameof(rectangle));
             DebugGuard.MustBeGreaterThanOrEqualTo(rectangle.Y, 0, nameof(rectangle));
@@ -30,11 +30,11 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BufferRegion{T}"/> struct.
+        /// Initializes a new instance of the <see cref="Buffer2DRegion{T}"/> struct.
         /// </summary>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferRegion(Buffer2D<T> buffer)
+        public Buffer2DRegion(Buffer2D<T> buffer)
             : this(buffer, buffer.FullRectangle())
         {
         }
@@ -98,27 +98,27 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Returns a sub-area as <see cref="BufferRegion{T}"/>. (Similar to <see cref="Span{T}.Slice(int, int)"/>.)
+        /// Returns a subregion as <see cref="Buffer2DRegion{T}"/>. (Similar to <see cref="Span{T}.Slice(int, int)"/>.)
         /// </summary>
-        /// <param name="x">The x index at the subarea origin.</param>
-        /// <param name="y">The y index at the subarea origin.</param>
-        /// <param name="width">The desired width of the subarea.</param>
-        /// <param name="height">The desired height of the subarea.</param>
-        /// <returns>The subarea</returns>
+        /// <param name="x">The x index at the subregion origin.</param>
+        /// <param name="y">The y index at the subregion origin.</param>
+        /// <param name="width">The desired width of the subregion.</param>
+        /// <param name="height">The desired height of the subregion.</param>
+        /// <returns>The subregion</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferRegion<T> GetSubArea(int x, int y, int width, int height)
+        public Buffer2DRegion<T> GetSubRegion(int x, int y, int width, int height)
         {
             var rectangle = new Rectangle(x, y, width, height);
-            return this.GetSubArea(rectangle);
+            return this.GetSubRegion(rectangle);
         }
 
         /// <summary>
-        /// Returns a sub-area as <see cref="BufferRegion{T}"/>. (Similar to <see cref="Span{T}.Slice(int, int)"/>.)
+        /// Returns a subregion as <see cref="Buffer2DRegion{T}"/>. (Similar to <see cref="Span{T}.Slice(int, int)"/>.)
         /// </summary>
-        /// <param name="rectangle">The <see cref="Rectangle"/> specifying the boundaries of the subarea</param>
-        /// <returns>The subarea</returns>
+        /// <param name="rectangle">The <see cref="Rectangle"/> specifying the boundaries of the subregion</param>
+        /// <returns>The subregion</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BufferRegion<T> GetSubArea(Rectangle rectangle)
+        public Buffer2DRegion<T> GetSubRegion(Rectangle rectangle)
         {
             DebugGuard.MustBeLessThanOrEqualTo(rectangle.Width, this.Rectangle.Width, nameof(rectangle));
             DebugGuard.MustBeLessThanOrEqualTo(rectangle.Height, this.Rectangle.Height, nameof(rectangle));
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Memory
             int x = this.Rectangle.X + rectangle.X;
             int y = this.Rectangle.Y + rectangle.Y;
             rectangle = new Rectangle(x, y, rectangle.Width, rectangle.Height);
-            return new BufferRegion<T>(this.Buffer, rectangle);
+            return new Buffer2DRegion<T>(this.Buffer, rectangle);
         }
 
         /// <summary>

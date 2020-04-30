@@ -35,8 +35,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// Adds colors to the quantized palette from the given pixel source.
         /// </summary>
-        /// <param name="pixelRegion">The <see cref="BufferRegion{T}"/> of source pixels to register.</param>
-        void AddPaletteColors(BufferRegion<TPixel> pixelRegion);
+        /// <param name="pixelRegion">The <see cref="Buffer2DRegion{T}"/> of source pixels to register.</param>
+        void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion);
 
         /// <summary>
         /// Quantizes an image frame and return the resulting output pixels.

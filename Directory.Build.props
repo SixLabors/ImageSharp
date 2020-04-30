@@ -126,7 +126,7 @@
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)shared-infrastructure\stylecop.json" />
     <!--NuGet package icon source-->
     <None Include="$(MSBuildThisFileDirectory)shared-infrastructure\branding\icons\imagesharp\sixlabors.imagesharp.128.png" Pack="true" PackagePath="" />
-    <None Include="$(MSBuildThisFileDirectory)shared-infrastructure\LICENSE.md" Pack="true" PackagePath="" />
+    <None Include="$(MSBuildThisFileDirectory)shared-infrastructure\NUGETLICENSE.md" Pack="true" PackagePath="LICENSE.md" />
   </ItemGroup>
 
 </Project>

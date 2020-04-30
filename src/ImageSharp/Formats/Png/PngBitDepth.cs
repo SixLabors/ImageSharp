@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 // Note the value assignment, This will allow us to add 1, 2, and 4 bit encoding when we support it.
 namespace SixLabors.ImageSharp.Formats.Png

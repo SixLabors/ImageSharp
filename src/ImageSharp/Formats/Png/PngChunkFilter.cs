@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         ExcludeTextChunks = 1 << 3,
 
         /// <summary>
-        /// All possible optimizations.
+        /// All ancillary chunks will be excluded.
         /// </summary>
         ExcludeAll = ~None
     }

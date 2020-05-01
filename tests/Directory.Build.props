@@ -12,7 +12,7 @@
 
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileDirectory)..\Directory.Build.props</MSBuildAllProjects>
-    <ImageSharpProjectCategory>tests</ImageSharpProjectCategory>
+    <SixLaborsProjectCategory>tests</SixLaborsProjectCategory>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

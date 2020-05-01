@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.IO;
@@ -543,8 +543,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            BufferArea<TPixel> pixelArea = frame.PixelBuffer.GetArea(this.restoreArea.Value);
-            pixelArea.Clear();
+            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(this.restoreArea.Value);
+            pixelRegion.Clear();
 
             this.restoreArea = null;
         }

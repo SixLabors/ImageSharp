@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers;
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public struct OctreeFrameQuantizer<TPixel> : IFrameQuantizer<TPixel>
+    public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly int maxColors;
@@ -29,12 +29,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         private bool isDisposed;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OctreeFrameQuantizer{TPixel}"/> struct.
+        /// Initializes a new instance of the <see cref="OctreeQuantizer{TPixel}"/> struct.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="options">The quantizer options defining quantization rules.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public OctreeFrameQuantizer(Configuration configuration, QuantizerOptions options)
+        public OctreeQuantizer(Configuration configuration, QuantizerOptions options)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(options, nameof(options));
@@ -62,22 +62,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             get
             {
-                FrameQuantizerUtilities.CheckPaletteState(in this.palette);
+                QuantizerUtilities.CheckPaletteState(in this.palette);
                 return this.palette;
             }
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void BuildPalette(ImageFrame<TPixel> source, Rectangle bounds)
+        public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
         {
+            Rectangle bounds = pixelRegion.Rectangle;
+            Buffer2D<TPixel> source = pixelRegion.Buffer;
             using IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(bounds.Width);
             Span<Rgba32> bufferSpan = buffer.GetSpan();
 
             // Loop through each row
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y).Slice(bounds.Left, bounds.Width);
+                Span<TPixel> row = source.GetRowSpan(y).Slice(bounds.Left, bounds.Width);
                 PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
                 for (int x = 0; x < bufferSpan.Length; x++)
@@ -103,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-            => FrameQuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+            => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

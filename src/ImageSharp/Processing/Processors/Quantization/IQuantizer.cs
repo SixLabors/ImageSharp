@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -20,8 +20,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// </summary>
         /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>The <see cref="IFrameQuantizer{TPixel}"/>.</returns>
-        IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
+        /// <returns>The <see cref="IQuantizer{TPixel}"/>.</returns>
+        IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration)
             where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
@@ -30,8 +30,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
         /// <param name="options">The options to create the quantizer with.</param>
-        /// <returns>The <see cref="IFrameQuantizer{TPixel}"/>.</returns>
-        IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
+        /// <returns>The <see cref="IQuantizer{TPixel}"/>.</returns>
+        IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
             where TPixel : unmanaged, IPixel<TPixel>;
     }
 }

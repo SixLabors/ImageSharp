@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.InterlaceMethod = source.InterlaceMethod;
             this.ChunkFilter = source.ChunkFilter;
             this.IgnoreMetadata = source.IgnoreMetadata;
-            this.TransparentColorBehavior = source.TransparentColorBehavior;
+            this.TransparentColorMode = source.TransparentColorMode;
         }
 
         /// <inheritdoc/>
@@ -68,6 +68,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         public bool IgnoreMetadata { get; set; }
 
         /// <inheritdoc/>
-        public PngTransparentColorBehavior TransparentColorBehavior { get; set; }
+        public PngTransparentColorMode TransparentColorMode { get; set; }
     }
 }

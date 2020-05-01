@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public bool IgnoreMetadata { get; set; }
 
         /// <inheritdoc/>
-        public bool MakeTransparentBlack { get; set; }
+        public PngTransparentColorBehavior TransparentColorBehavior { get; set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.

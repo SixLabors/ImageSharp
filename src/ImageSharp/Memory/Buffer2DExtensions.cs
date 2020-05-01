@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Diagnostics;
@@ -80,29 +80,29 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Return a <see cref="BufferArea{T}"/> to the subarea represented by 'rectangle'
+        /// Return a <see cref="Buffer2DRegion{T}"/> to the subregion represented by 'rectangle'
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
-        /// <param name="rectangle">The rectangle subarea</param>
-        /// <returns>The <see cref="BufferArea{T}"/></returns>
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer, in Rectangle rectangle)
-            where T : struct =>
-            new BufferArea<T>(buffer, rectangle);
+        /// <param name="rectangle">The rectangle subregion</param>
+        /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
+        internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, Rectangle rectangle)
+            where T : unmanaged =>
+            new Buffer2DRegion<T>(buffer, rectangle);
 
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
-            where T : struct =>
-            new BufferArea<T>(buffer, new Rectangle(x, y, width, height));
+        internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
+            where T : unmanaged =>
+            new Buffer2DRegion<T>(buffer, new Rectangle(x, y, width, height));
 
         /// <summary>
-        /// Return a <see cref="BufferArea{T}"/> to the whole area of 'buffer'
+        /// Return a <see cref="Buffer2DRegion{T}"/> to the whole area of 'buffer'
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
-        /// <returns>The <see cref="BufferArea{T}"/></returns>
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer)
-            where T : struct =>
-            new BufferArea<T>(buffer);
+        /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
+        internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer)
+            where T : unmanaged =>
+            new Buffer2DRegion<T>(buffer);
 
         /// <summary>
         /// Returns the size of the buffer.

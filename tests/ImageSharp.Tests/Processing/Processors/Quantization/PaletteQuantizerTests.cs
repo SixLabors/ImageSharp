@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
         public void PaletteQuantizerCanCreateFrameQuantizer()
         {
             var quantizer = new PaletteQuantizer(Palette);
-            IFrameQuantizer<Rgba32> frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
+            IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(Configuration.Default);
 
             Assert.NotNull(frameQuantizer);
             Assert.NotNull(frameQuantizer.Options);
@@ -49,14 +49,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
             frameQuantizer.Dispose();
 
             quantizer = new PaletteQuantizer(Palette, new QuantizerOptions { Dither = null });
-            frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
+            frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(Configuration.Default);
 
             Assert.NotNull(frameQuantizer);
             Assert.Null(frameQuantizer.Options.Dither);
             frameQuantizer.Dispose();
 
             quantizer = new PaletteQuantizer(Palette, new QuantizerOptions { Dither = KnownDitherings.Atkinson });
-            frameQuantizer = quantizer.CreateFrameQuantizer<Rgba32>(Configuration.Default);
+            frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(Configuration.Default);
             Assert.NotNull(frameQuantizer);
             Assert.Equal(KnownDitherings.Atkinson, frameQuantizer.Options.Dither);
             frameQuantizer.Dispose();

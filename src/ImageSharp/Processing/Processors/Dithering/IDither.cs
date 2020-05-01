@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             ImageFrame<TPixel> source,
             IndexedImageFrame<TPixel> destination,
             Rectangle bounds)
-            where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
+            where TFrameQuantizer : struct, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>

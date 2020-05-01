@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 // Uncomment this to turn unit tests into benchmarks:
 // #define BENCHMARKING
@@ -43,8 +43,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 using (Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(20, 20, AllocationOptions.Clean))
                 {
-                    BufferArea<float> area = buffer.GetArea(5, 10, 8, 8);
-                    block.Copy1x1Scale(ref area.GetReferenceToOrigin(), area.Stride);
+                    Buffer2DRegion<float> region = buffer.GetRegion(5, 10, 8, 8);
+                    block.Copy1x1Scale(ref region.GetReferenceToOrigin(), region.Stride);
 
                     Assert.Equal(block[0, 0], buffer[5, 10]);
                     Assert.Equal(block[1, 0], buffer[6, 10]);
@@ -71,8 +71,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 using (Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(100, 100, AllocationOptions.Clean))
                 {
-                    BufferArea<float> area = buffer.GetArea(start.X, start.Y, 8 * horizontalFactor, 8 * verticalFactor);
-                    block.ScaledCopyTo(area, horizontalFactor, verticalFactor);
+                    Buffer2DRegion<float> region = buffer.GetRegion(start.X, start.Y, 8 * horizontalFactor, 8 * verticalFactor);
+                    block.ScaledCopyTo(region, horizontalFactor, verticalFactor);
 
                     for (int y = 0; y < 8 * verticalFactor; y++)
                     {
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                             int xx = x / horizontalFactor;
 
                             float expected = block[xx, yy];
-                            float actual = area[x, y];
+                            float actual = region[x, y];
 
                             Assert.Equal(expected, actual);
                         }

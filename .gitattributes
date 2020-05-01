@@ -107,6 +107,7 @@
 *.tga               binary
 *.ttc               binary
 *.ttf               binary
+*.webp              binary
 *.woff              binary
 *.woff2             binary
 *.xls               binary

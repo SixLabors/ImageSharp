@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -36,13 +36,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public QuantizerOptions Options { get; }
 
         /// <inheritdoc />
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
+        public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration)
             where TPixel : unmanaged, IPixel<TPixel>
-            => this.CreateFrameQuantizer<TPixel>(configuration, this.Options);
+            => this.CreatePixelSpecificQuantizer<TPixel>(configuration, this.Options);
 
         /// <inheritdoc />
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
+        public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
             where TPixel : unmanaged, IPixel<TPixel>
-            => new OctreeFrameQuantizer<TPixel>(configuration, options);
+            => new OctreeQuantizer<TPixel>(configuration, options);
     }
 }

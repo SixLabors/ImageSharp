@@ -73,6 +73,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets a value indicating whether fully transparent pixels that may contain R, G, B values which are not 0,
         /// should be converted to transparent black, which can yield in better compression in some cases.
         /// </summary>
-        PngTransparentColorBehavior TransparentColorBehavior { get; }
+        PngTransparentColorMode TransparentColorMode { get; }
     }
 }

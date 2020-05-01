@@ -400,7 +400,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var image = new Image<Rgba32>(50, 50);
             var encoder = new PngEncoder()
             {
-                TransparentColorBehavior = PngTransparentColorBehavior.Clear,
+                TransparentColorMode = PngTransparentColorMode.Clear,
                 ColorType = colorType
             };
             Rgba32 rgba32 = Color.Blue;

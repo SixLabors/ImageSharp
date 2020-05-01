@@ -227,12 +227,12 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (this.options.MakeTransparentBlack)
             {
                 quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, clonedImage);
-                this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, clonedImage, quantized);
+                this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, quantized);
             }
             else
             {
                 quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, image);
-                this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, image, quantized);
+                this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, quantized);
             }
 
             return quantized;

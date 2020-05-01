@@ -34,22 +34,19 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <inheritdoc/>
         public IQuantizer Quantizer { get; set; }
 
-        /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
+        /// <inheritdoc/>
         public byte Threshold { get; set; } = byte.MaxValue;
 
         /// <inheritdoc/>
         public PngInterlaceMode? InterlaceMethod { get; set; }
 
-        /// <summary>
-        /// Gets or sets the chunk filter. This can be used to exclude some ancillary chunks from being written.
-        /// </summary>
+        /// <inheritdoc/>
         public PngChunkFilter? ChunkFilter { get; set; }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether fully transparent pixels should be converted to black pixels.
-        /// </summary>
+        /// <inheritdoc/>
+        public bool IgnoreMetadata { get; set; }
+
+        /// <inheritdoc/>
         public bool MakeTransparentBlack { get; set; }
 
         /// <summary>

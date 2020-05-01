@@ -40,6 +40,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             use16Bit = options.BitDepth == PngBitDepth.Bit16;
             bytesPerPixel = CalculateBytesPerPixel(options.ColorType, use16Bit);
 
+            if (options.IgnoreMetadata)
+            {
+                options.ChunkFilter = PngChunkFilter.ExcludeAll;
+            }
+
             // Ensure we are not allowing impossible combinations.
             if (!PngConstants.ColorTypes.ContainsKey(options.ColorType.Value))
             {

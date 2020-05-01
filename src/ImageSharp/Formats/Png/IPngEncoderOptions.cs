@@ -59,7 +59,13 @@ namespace SixLabors.ImageSharp.Formats.Png
         PngInterlaceMode? InterlaceMethod { get; }
 
         /// <summary>
-        /// Gets chunk filter method.
+        /// Gets a value indicating whether the metadata should be ignored when the image is being encoded.
+        /// When set to true, all ancillary chunks will be skipped.
+        /// </summary>
+        bool IgnoreMetadata { get; }
+
+        /// <summary>
+        /// Gets the chunk filter method. This allows to filter ancillary chunks.
         /// </summary>
         PngChunkFilter? ChunkFilter { get; }
 

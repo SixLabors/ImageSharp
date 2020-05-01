@@ -144,6 +144,58 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             }
         }
 
+        [Fact]
+        public void IgnoreMetadata_WillExcludeAllAncillaryChunks()
+        {
+            // arrange
+            var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
+            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using var memStream = new MemoryStream();
+            var encoder = new PngEncoder() { IgnoreMetadata = true, TextCompressionThreshold = 8 };
+            var expectedChunkTypes = new Dictionary<PngChunkType, bool>()
+            {
+                { PngChunkType.Header, false },
+                { PngChunkType.Palette, false },
+                { PngChunkType.Data, false },
+                { PngChunkType.End, false }
+            };
+            var excludedChunkTypes = new List<PngChunkType>()
+            {
+                PngChunkType.Gamma,
+                PngChunkType.Exif,
+                PngChunkType.Physical,
+                PngChunkType.Text,
+                PngChunkType.InternationalText,
+                PngChunkType.CompressedText,
+            };
+
+            // act
+            input.Save(memStream, encoder);
+
+            // assert
+            Assert.True(excludedChunkTypes.Count > 0);
+            memStream.Position = 0;
+            Span<byte> bytesSpan = memStream.ToArray().AsSpan(8); // Skip header.
+            while (bytesSpan.Length > 0)
+            {
+                int length = BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(0, 4));
+                var chunkType = (PngChunkType)BinaryPrimitives.ReadInt32BigEndian(bytesSpan.Slice(4, 4));
+                Assert.False(excludedChunkTypes.Contains(chunkType), $"{chunkType} chunk should have been excluded");
+                if (expectedChunkTypes.ContainsKey(chunkType))
+                {
+                    expectedChunkTypes[chunkType] = true;
+                }
+
+                bytesSpan = bytesSpan.Slice(4 + 4 + length + 4);
+            }
+
+            // all expected chunk types should have been seen at least once.
+            foreach (PngChunkType chunkType in expectedChunkTypes.Keys)
+            {
+                Assert.True(expectedChunkTypes[chunkType], $"We expect {chunkType} chunk to be present at least once");
+            }
+        }
+
         [Theory]
         [InlineData(PngChunkFilter.ExcludeGammaChunk)]
         [InlineData(PngChunkFilter.ExcludeExifChunk)]

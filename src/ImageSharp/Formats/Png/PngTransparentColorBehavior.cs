@@ -9,14 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Png
     public enum PngTransparentColorBehavior
     {
         /// <summary>
+        /// The transparency will be kept as is.
+        /// </summary>
+        Preserve = 0,
+
+        /// <summary>
         /// Converts fully transparent pixels that may contain R, G, B values which are not 0,
         /// to transparent black, which can yield in better compression in some cases.
         /// </summary>
-        Clear,
-
-        /// <summary>
-        /// The transparency will be kept as is.
-        /// </summary>
-        Preserve
+        Clear = 1,
     }
 }

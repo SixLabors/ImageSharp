@@ -70,8 +70,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         PngChunkFilter? ChunkFilter { get; }
 
         /// <summary>
-        /// Gets a value indicating whether fully transparent pixels should be converted to black pixels.
+        /// Gets a value indicating whether fully transparent pixels that may contain R, G, B values which are not 0,
+        /// should be converted to transparent black, which can yield in better compression in some cases.
         /// </summary>
-        bool MakeTransparentBlack { get; }
+        PngTransparentColorBehavior TransparentColorBehavior { get; }
     }
 }

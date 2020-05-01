@@ -145,10 +145,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
             PngEncoderOptionsHelpers.AdjustOptions<TPixel>(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
             Image<TPixel> clonedImage = null;
-            if (this.options.MakeTransparentBlack)
+            bool clearTransparency = this.options.TransparentColorBehavior == PngTransparentColorBehavior.Clear;
+            if (clearTransparency)
             {
                 clonedImage = image.Clone();
-                MakeTransparentPixelsBlack(clonedImage);
+                ClearTransparentPixels(clonedImage);
             }
 
             IndexedImageFrame<TPixel> quantized = this.CreateQuantizedImage(image, clonedImage);
@@ -162,7 +163,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WritePhysicalChunk(stream, metadata);
             this.WriteExifChunk(stream, metadata);
             this.WriteTextChunks(stream, pngMetadata);
-            this.WriteDataChunks(this.options.MakeTransparentBlack ? clonedImage : image, quantized, stream);
+            this.WriteDataChunks(clearTransparency ? clonedImage : image, quantized, stream);
             this.WriteEndChunk(stream);
 
             stream.Flush();
@@ -190,11 +191,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <summary>
-        /// Makes transparent pixels black.
+        /// Convert transparent pixels, to transparent black pixels, which can yield to better compression in some cases.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="image">The cloned image where the transparent pixels will be changed.</param>
-        private static void MakeTransparentPixelsBlack<TPixel>(Image<TPixel> image)
+        private static void ClearTransparentPixels<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Rgba32 rgba32 = default;
@@ -207,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                     if (rgba32.A == 0)
                     {
-                        span[x].FromRgba32(Color.Black);
+                        span[x].FromRgba32(Color.Transparent);
                     }
                 }
             }
@@ -224,7 +225,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             IndexedImageFrame<TPixel> quantized;
-            if (this.options.MakeTransparentBlack)
+            if (this.options.TransparentColorBehavior == PngTransparentColorBehavior.Clear)
             {
                 quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, clonedImage);
                 this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, quantized);

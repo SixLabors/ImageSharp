@@ -392,17 +392,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         [Theory]
         [InlineData(PngColorType.Palette)]
-        [InlineData(PngColorType.Rgb)]
         [InlineData(PngColorType.RgbWithAlpha)]
-        [InlineData(PngColorType.Grayscale)]
         [InlineData(PngColorType.GrayscaleWithAlpha)]
-        public void Encode_WithMakeTransparentBlackOption_Works(PngColorType colorType)
+        public void Encode_WithPngTransparentColorBehaviorClear_Works(PngColorType colorType)
         {
             // arrange
             var image = new Image<Rgba32>(50, 50);
             var encoder = new PngEncoder()
             {
-                MakeTransparentBlack = true,
+                TransparentColorBehavior = PngTransparentColorBehavior.Clear,
                 ColorType = colorType
             };
             Rgba32 rgba32 = Color.Blue;
@@ -442,7 +440,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
                 if (y > 25)
                 {
-                    expectedColor = Color.Black;
+                    expectedColor = Color.Transparent;
                 }
 
                 for (int x = 0; x < actual.Width; x++)

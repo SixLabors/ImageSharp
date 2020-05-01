@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers;
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly ResizeKernelMap horizontalKernelMap;
 
-        private readonly BufferArea<TPixel> source;
+        private readonly Buffer2DRegion<TPixel> source;
 
         private readonly Rectangle sourceRectangle;
 
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         public ResizeWorker(
             Configuration configuration,
-            BufferArea<TPixel> source,
+            Buffer2DRegion<TPixel> source,
             PixelConversionModifiers conversionModifiers,
             ResizeKernelMap horizontalKernelMap,
             ResizeKernelMap verticalKernelMap,

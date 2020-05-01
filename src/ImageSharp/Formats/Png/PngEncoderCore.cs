@@ -145,7 +145,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
             PngEncoderOptionsHelpers.AdjustOptions<TPixel>(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
             Image<TPixel> clonedImage = null;
-            bool clearTransparency = this.options.TransparentColorBehavior == PngTransparentColorBehavior.Clear;
+            bool clearTransparency = this.options.TransparentColorMode == PngTransparentColorMode.Clear;
             if (clearTransparency)
             {
                 clonedImage = image.Clone();
@@ -225,7 +225,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             IndexedImageFrame<TPixel> quantized;
-            if (this.options.TransparentColorBehavior == PngTransparentColorBehavior.Clear)
+            if (this.options.TransparentColorMode == PngTransparentColorMode.Clear)
             {
                 quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, clonedImage);
                 this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, quantized);

@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <summary>
     /// Enum indicating how the transparency should be handled on encoding.
     /// </summary>
-    public enum PngTransparentColorBehavior
+    public enum PngTransparentColorMode
     {
         /// <summary>
         /// The transparency will be kept as is.

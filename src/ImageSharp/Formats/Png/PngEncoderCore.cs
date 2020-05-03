@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers;
@@ -149,10 +149,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             stream.Write(PngConstants.HeaderBytes);
 
             this.WriteHeaderChunk(stream);
+            this.WriteGammaChunk(stream);
             this.WritePaletteChunk(stream, quantized);
             this.WriteTransparencyChunk(stream, pngMetadata);
             this.WritePhysicalChunk(stream, metadata);
-            this.WriteGammaChunk(stream);
             this.WriteExifChunk(stream, metadata);
             this.WriteTextChunks(stream, pngMetadata);
             this.WriteDataChunks(image.Frames.RootFrame, quantized, stream);
@@ -538,6 +538,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         /// <summary>
         /// Writes the palette chunk to the stream.
+        /// Should be written before the first IDAT chunk.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
@@ -595,6 +596,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         /// <summary>
         /// Writes the physical dimension information to the stream.
+        /// Should be written before IDAT chunk.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="meta">The image metadata.</param>
@@ -716,6 +718,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         /// <summary>
         /// Writes the gamma information to the stream.
+        /// Should be written before PLTE and IDAT chunk.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         private void WriteGammaChunk(Stream stream)
@@ -733,6 +736,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         /// <summary>
         /// Writes the transparency chunk to the stream.
+        /// Should be written after PLTE and before IDAT.
         /// </summary>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="pngMetadata">The image metadata.</param>

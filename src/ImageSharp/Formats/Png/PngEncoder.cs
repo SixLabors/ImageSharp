@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.IO;
 using SixLabors.ImageSharp.Advanced;
@@ -13,43 +13,25 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     public sealed class PngEncoder : IImageEncoder, IPngEncoderOptions
     {
-        /// <summary>
-        /// Gets or sets the number of bits per sample or per palette index (not per pixel).
-        /// Not all values are allowed for all <see cref="ColorType"/> values.
-        /// </summary>
+        /// <inheritdoc/>
         public PngBitDepth? BitDepth { get; set; }
 
-        /// <summary>
-        /// Gets or sets the color type.
-        /// </summary>
+        /// <inheritdoc/>
         public PngColorType? ColorType { get; set; }
 
-        /// <summary>
-        /// Gets or sets the filter method.
-        /// </summary>
+        /// <inheritdoc/>
         public PngFilterMethod? FilterMethod { get; set; }
 
-        /// <summary>
-        /// Gets or sets the compression level 1-9.
-        /// <remarks>Defaults to 6.</remarks>
-        /// </summary>
-        public int CompressionLevel { get; set; } = 6;
+        /// <inheritdoc/>
+        public PngCompressionLevel CompressionLevel { get; set; } = PngCompressionLevel.DefaultCompression;
 
-        /// <summary>
-        /// Gets or sets the threshold of characters in text metadata, when compression should be used.
-        /// Defaults to 1024.
-        /// </summary>
+        /// <inheritdoc/>
         public int TextCompressionThreshold { get; set; } = 1024;
 
-        /// <summary>
-        /// Gets or sets the gamma value, that will be written the image.
-        /// </summary>
+        /// <inheritdoc/>
         public float? Gamma { get; set; }
 
-        /// <summary>
-        /// Gets or sets quantizer for reducing the color count.
-        /// Defaults to the <see cref="WuQuantizer"/>.
-        /// </summary>
+        /// <inheritdoc/>
         public IQuantizer Quantizer { get; set; }
 
         /// <summary>
@@ -57,9 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         public byte Threshold { get; set; } = byte.MaxValue;
 
-        /// <summary>
-        /// Gets or sets a value indicating whether this instance should write an Adam7 interlaced image.
-        /// </summary>
+        /// <inheritdoc/>
         public PngInterlaceMode? InterlaceMethod { get; set; }
 
         /// <summary>

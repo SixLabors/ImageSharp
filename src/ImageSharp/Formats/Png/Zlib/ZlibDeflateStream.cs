@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.IO;
@@ -46,9 +46,10 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// </summary>
         /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
         /// <param name="stream">The stream to compress.</param>
-        /// <param name="compressionLevel">The compression level.</param>
-        public ZlibDeflateStream(MemoryAllocator memoryAllocator, Stream stream, int compressionLevel)
+        /// <param name="level">The compression level.</param>
+        public ZlibDeflateStream(MemoryAllocator memoryAllocator, Stream stream, PngCompressionLevel level)
         {
+            int compressionLevel = (int)level;
             this.rawStream = stream;
 
             // Write the zlib header : http://tools.ietf.org/html/rfc1950

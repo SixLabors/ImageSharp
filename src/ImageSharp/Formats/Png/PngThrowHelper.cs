@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -11,6 +11,10 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal static class PngThrowHelper
     {
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowInvalidImageContentException(string errorMessage, Exception innerException)
+            => throw new InvalidImageContentException(errorMessage, innerException);
+
         [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowNoHeader() => throw new InvalidImageContentException("PNG Image does not contain a header chunk");
 

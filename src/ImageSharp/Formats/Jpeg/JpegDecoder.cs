@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.IO;
 using SixLabors.ImageSharp.Memory;
@@ -32,9 +32,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             {
                 (int w, int h) = (decoder.ImageWidth, decoder.ImageHeight);
 
-                // TODO: use InvalidImageContentException here, if we decide to define it
-                // https://github.com/SixLabors/ImageSharp/issues/1110
-                throw new ImageFormatException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {w}x{h}.", ex);
+                JpegThrowHelper.ThrowInvalidImageContentException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {w}x{h}.", ex);
+
+                // Not reachable, as the previous statement will throw a exception.
+                return null;
             }
         }
 

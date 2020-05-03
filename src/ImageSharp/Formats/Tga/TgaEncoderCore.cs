@@ -5,7 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -53,6 +53,23 @@ namespace SixLabors.ImageSharp.Formats.Tga
             this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
             this.compression = options.Compression;
+        }
+
+        /// <summary>
+        /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+                where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (var ms = new MemoryStream())
+            {
+                this.Encode(image, ms);
+                ms.Position = 0;
+                await ms.CopyToAsync(stream).ConfigureAwait(false);
+            }
         }
 
         /// <summary>

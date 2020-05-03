@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -218,8 +219,25 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream, where the image should be.</param>
         /// <returns>The decoded image.</returns>
-        public Image<TPixel> Decode<TPixel>(Stream stream)
+        public async Task<Image<TPixel>> DecodeAsync<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (var ms = new MemoryStream())
+            {
+                await stream.CopyToAsync(ms).ConfigureAwait(false);
+                ms.Position = 0;
+                return this.Decode<TPixel>(ms);
+            }
+        }
+
+        /// <summary>
+        /// Decodes the image from the specified <see cref="Stream"/>  and sets the data to image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The stream, where the image should be.</param>
+        /// <returns>The decoded image.</returns>
+        public Image<TPixel> Decode<TPixel>(Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             this.ParseStream(stream);
             this.InitExifProfile();
@@ -227,6 +245,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitIptcProfile();
             this.InitDerivedMetadataProperties();
             return this.PostProcessIntoImage<TPixel>();
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        public async Task<IImageInfo> IdentifyAsync(Stream stream)
+        {
+            using (var ms = new MemoryStream())
+            {
+                await stream.CopyToAsync(ms).ConfigureAwait(false);
+                ms.Position = 0;
+                return this.Identify(ms);
+            }
         }
 
         /// <summary>

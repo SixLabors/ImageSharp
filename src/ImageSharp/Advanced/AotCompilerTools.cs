@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileOctreeQuantizer<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var test = new OctreeFrameQuantizer<TPixel>(Configuration.Default, new OctreeQuantizer().Options))
+            using (var test = new OctreeQuantizer<TPixel>(Configuration.Default, new OctreeQuantizer().Options))
             {
                 var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
                 test.QuantizeFrame(frame, frame.Bounds());
@@ -126,7 +126,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileWuQuantizer<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var test = new WuFrameQuantizer<TPixel>(Configuration.Default, new WuQuantizer().Options))
+            using (var test = new WuQuantizer<TPixel>(Configuration.Default, new WuQuantizer().Options))
             {
                 var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
                 test.QuantizeFrame(frame, frame.Bounds());
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompilePaletteQuantizer<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var test = (PaletteFrameQuantizer<TPixel>)new PaletteQuantizer(Array.Empty<Color>()).CreateFrameQuantizer<TPixel>(Configuration.Default))
+            using (var test = (PaletteQuantizer<TPixel>)new PaletteQuantizer(Array.Empty<Color>()).CreatePixelSpecificQuantizer<TPixel>(Configuration.Default))
             {
                 var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
                 test.QuantizeFrame(frame, frame.Bounds());

@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -15,10 +15,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Copy block data into the destination color buffer pixel area with the provided horizontal and vertical scale factors.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ScaledCopyTo(in BufferArea<float> area, int horizontalScale, int verticalScale)
+        public void ScaledCopyTo(in Buffer2DRegion<float> region, int horizontalScale, int verticalScale)
         {
-            ref float areaOrigin = ref area.GetReferenceToOrigin();
-            this.ScaledCopyTo(ref areaOrigin, area.Stride, horizontalScale, verticalScale);
+            ref float areaOrigin = ref region.GetReferenceToOrigin();
+            this.ScaledCopyTo(ref areaOrigin, region.Stride, horizontalScale, verticalScale);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

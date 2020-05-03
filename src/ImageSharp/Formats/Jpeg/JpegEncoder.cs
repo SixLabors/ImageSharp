@@ -48,12 +48,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             var encoder = new JpegEncoderCore(this);
 
-            // this hack has to be be here because JpegEncoderCore is unsafe
-            using (var ms = new MemoryStream())
+            if (stream.CanSeek)
             {
-                encoder.Encode(image, ms);
-                ms.Position = 0;
-                await ms.CopyToAsync(stream).ConfigureAwait(false);
+                encoder.Encode(image, stream);
+            }
+            else
+            {
+                // this hack has to be be here because JpegEncoderCore is unsafe
+                using (var ms = new MemoryStream())
+                {
+                    encoder.Encode(image, ms);
+                    ms.Position = 0;
+                    await ms.CopyToAsync(stream).ConfigureAwait(false);
+                }
             }
         }
     }

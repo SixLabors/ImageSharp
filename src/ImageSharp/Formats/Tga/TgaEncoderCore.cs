@@ -64,11 +64,18 @@ namespace SixLabors.ImageSharp.Formats.Tga
         public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
                 where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var ms = new MemoryStream())
+            if (stream.CanSeek)
             {
-                this.Encode(image, ms);
-                ms.Position = 0;
-                await ms.CopyToAsync(stream).ConfigureAwait(false);
+                this.Encode(image, stream);
+            }
+            else
+            {
+                using (var ms = new MemoryStream())
+                {
+                    this.Encode(image, ms);
+                    ms.Position = 0;
+                    await ms.CopyToAsync(stream).ConfigureAwait(false);
+                }
             }
         }
 

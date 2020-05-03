@@ -222,11 +222,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public async Task<Image<TPixel>> DecodeAsync<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var ms = new MemoryStream())
+            if (stream.CanSeek)
             {
-                await stream.CopyToAsync(ms).ConfigureAwait(false);
-                ms.Position = 0;
-                return this.Decode<TPixel>(ms);
+                return this.Decode<TPixel>(stream);
+            }
+            else
+            {
+                using (var ms = new MemoryStream())
+                {
+                    await stream.CopyToAsync(ms).ConfigureAwait(false);
+                    ms.Position = 0;
+                    return this.Decode<TPixel>(ms);
+                }
             }
         }
 
@@ -253,11 +260,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         public async Task<IImageInfo> IdentifyAsync(Stream stream)
         {
-            using (var ms = new MemoryStream())
+            if (stream.CanSeek)
             {
-                await stream.CopyToAsync(ms).ConfigureAwait(false);
-                ms.Position = 0;
-                return this.Identify(ms);
+                return this.Identify(stream);
+            }
+            else
+            {
+                using (var ms = new MemoryStream())
+                {
+                    await stream.CopyToAsync(ms).ConfigureAwait(false);
+                    ms.Position = 0;
+                    return this.Identify(ms);
+                }
             }
         }
 

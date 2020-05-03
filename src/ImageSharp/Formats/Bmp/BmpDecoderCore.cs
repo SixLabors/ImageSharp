@@ -134,13 +134,21 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public async Task<Image<TPixel>> DecodeAsync<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // cheat for now do async copy of the stream into memory stream and use the sync version
-            // we should use an array pool backed memorystream implementation
-            using (var ms = new MemoryStream())
+            // if we can seek then we arn't in a context that errors on async operations
+            if (stream.CanSeek)
             {
-                await stream.CopyToAsync(ms).ConfigureAwait(false);
-                ms.Position = 0;
-                return this.Decode<TPixel>(ms);
+                return this.Decode<TPixel>(stream);
+            }
+            else
+            {
+                // cheat for now do async copy of the stream into memory stream and use the sync version
+                // we should use an array pool backed memorystream implementation
+                using (var ms = new MemoryStream())
+                {
+                    await stream.CopyToAsync(ms).ConfigureAwait(false);
+                    ms.Position = 0;
+                    return this.Decode<TPixel>(ms);
+                }
             }
         }
 

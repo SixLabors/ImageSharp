@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -31,52 +31,31 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.InterlaceMethod = source.InterlaceMethod;
         }
 
-        /// <summary>
-        /// Gets or sets the number of bits per sample or per palette index (not per pixel).
-        /// Not all values are allowed for all <see cref="P:SixLabors.ImageSharp.Formats.Png.IPngEncoderOptions.ColorType" /> values.
-        /// </summary>
+        /// <inheritdoc/>
         public PngBitDepth? BitDepth { get; set; }
 
-        /// <summary>
-        /// Gets or sets the color type.
-        /// </summary>
+        /// <inheritdoc/>
         public PngColorType? ColorType { get; set; }
 
-        /// <summary>
-        /// Gets the filter method.
-        /// </summary>
+        /// <inheritdoc/>
         public PngFilterMethod? FilterMethod { get; }
 
-        /// <summary>
-        /// Gets the compression level 1-9.
-        /// <remarks>Defaults to 6.</remarks>
-        /// </summary>
-        public int CompressionLevel { get; }
+        /// <inheritdoc/>
+        public PngCompressionLevel CompressionLevel { get; } = PngCompressionLevel.DefaultCompression;
 
         /// <inheritdoc/>
         public int TextCompressionThreshold { get; }
 
-        /// <summary>
-        /// Gets or sets the gamma value, that will be written the image.
-        /// </summary>
-        /// <value>
-        /// The gamma value of the image.
-        /// </value>
+        /// <inheritdoc/>
         public float? Gamma { get; set; }
 
-        /// <summary>
-        /// Gets or sets the quantizer for reducing the color count.
-        /// </summary>
+        /// <inheritdoc/>
         public IQuantizer Quantizer { get; set; }
 
-        /// <summary>
-        /// Gets the transparency threshold.
-        /// </summary>
+        /// <inheritdoc/>
         public byte Threshold { get; }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether this instance should write an Adam7 interlaced image.
-        /// </summary>
+        /// <inheritdoc/>
         public PngInterlaceMode? InterlaceMethod { get; set; }
     }
 }

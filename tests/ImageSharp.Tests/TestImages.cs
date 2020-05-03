@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.Linq;
 
@@ -396,6 +396,14 @@ namespace SixLabors.ImageSharp.Tests
             public const string Ratio4x1 = "Gif/base_4x1.gif";
             public const string Ratio1x4 = "Gif/base_1x4.gif";
             public const string LargeComment = "Gif/large_comment.gif";
+            public const string GlobalQuantizationTest = "Gif/GlobalQuantizationTest.gif";
+
+            // Test images from https://github.com/robert-ancell/pygif/tree/master/test-suite
+            public const string ZeroSize = "Gif/image-zero-size.gif";
+            public const string ZeroHeight = "Gif/image-zero-height.gif";
+            public const string ZeroWidth = "Gif/image-zero-width.gif";
+            public const string MaxWidth = "Gif/max-width.gif";
+            public const string MaxHeight = "Gif/max-height.gif";
 
             public static class Issues
             {

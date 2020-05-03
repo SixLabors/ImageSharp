@@ -9,7 +9,7 @@ using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -149,8 +149,31 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Thrown if the image is larger than the maximum allowable size.
         /// </exception>
         /// <returns>The decoded image.</returns>
-        public Image<TPixel> Decode<TPixel>(Stream stream)
+        public async Task<Image<TPixel>> DecodeAsync<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (var ms = new MemoryStream())
+            {
+                await stream.CopyToAsync(ms).ConfigureAwait(false);
+                ms.Position = 0;
+                return this.Decode<TPixel>(ms);
+            }
+        }
+
+        /// <summary>
+        /// Decodes the stream to the image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The stream containing image data.</param>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the stream does not contain and end chunk.
+        /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if the image is larger than the maximum allowable size.
+        /// </exception>
+        /// <returns>The decoded image.</returns>
+        public Image<TPixel> Decode<TPixel>(Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             var metadata = new ImageMetadata();
             PngMetadata pngMetadata = metadata.GetPngMetadata();
@@ -237,6 +260,20 @@ namespace SixLabors.ImageSharp.Formats.Png
             {
                 this.scanline?.Dispose();
                 this.previousScanline?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        public async Task<IImageInfo> IdentifyAsync(Stream stream)
+        {
+            using (var ms = new MemoryStream())
+            {
+                await stream.CopyToAsync(ms).ConfigureAwait(false);
+                ms.Position = 0;
+                return this.Identify(ms);
             }
         }
 

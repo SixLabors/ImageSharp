@@ -6,7 +6,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -103,8 +103,25 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream containing image data.</param>
         /// <returns>The decoded image</returns>
-        public Image<TPixel> Decode<TPixel>(Stream stream)
+        public async Task<Image<TPixel>> DecodeAsync<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (var ms = new MemoryStream())
+            {
+                await stream.CopyToAsync(ms).ConfigureAwait(false);
+                ms.Position = 0;
+                return this.Decode<TPixel>(ms);
+            }
+        }
+
+        /// <summary>
+        /// Decodes the stream to the image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The stream containing image data.</param>
+        /// <returns>The decoded image</returns>
+        public Image<TPixel> Decode<TPixel>(Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             Image<TPixel> image = null;
             ImageFrame<TPixel> previousFrame = null;
@@ -161,6 +178,20 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             return image;
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        public async Task<IImageInfo> IdentifyAsync(Stream stream)
+        {
+            using (var ms = new MemoryStream())
+            {
+                await stream.CopyToAsync(ms).ConfigureAwait(false);
+                ms.Position = 0;
+                return this.Identify(ms);
+            }
         }
 
         /// <summary>

@@ -75,6 +75,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <param name="source">The source.</param>
         /// <param name="visitor">The visitor.</param>
+        /// <returns>A  <see cref="Task"/> representing the asynchronous operation.</returns>
         public static Task AcceptVisitorAsync(this Image source, IImageVisitorAsync visitor)
             => source.AcceptAsync(visitor);
 

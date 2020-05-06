@@ -2,8 +2,9 @@
 // Licensed under the GNU Affero General Public License, Version 3.
 
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
-
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
@@ -78,6 +79,17 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public void FromStream_GlobalConfiguration_NoFormat()
+            {
+                using (var stream = new MemoryStream(this.ActualImageBytes))
+                {
+                    IImageInfo info = Image.Identify(stream);
+
+                    Assert.NotNull(info);
+                }
+            }
+
+            [Fact]
             public void FromStream_CustomConfiguration()
             {
                 IImageInfo info = Image.Identify(this.LocalConfiguration, this.DataStream, out IImageFormat type);
@@ -87,12 +99,64 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public void FromStream_CustomConfiguration_NoFormat()
+            {
+                IImageInfo info = Image.Identify(this.LocalConfiguration, this.DataStream);
+
+                Assert.Equal(this.LocalImageInfo, info);
+            }
+
+            [Fact]
             public void WhenNoMatchingFormatFound_ReturnsNull()
             {
                 IImageInfo info = Image.Identify(new Configuration(), this.DataStream, out IImageFormat type);
 
                 Assert.Null(info);
                 Assert.Null(type);
+            }
+
+            [Fact]
+            public async Task FromStreamAsync_GlobalConfiguration_NoFormat()
+            {
+                using (var stream = new MemoryStream(this.ActualImageBytes))
+                {
+                    var asyncStream = new AsyncStreamWrapper(stream, () => false);
+                    IImageInfo info = await Image.IdentifyAsync(asyncStream);
+
+                    Assert.NotNull(info);
+                }
+            }
+
+            [Fact]
+            public async Task FromStreamAsync_GlobalConfiguration()
+            {
+                using (var stream = new MemoryStream(this.ActualImageBytes))
+                {
+                    var asyncStream = new AsyncStreamWrapper(stream, () => false);
+                    FormattedImageInfo info = await Image.IdentifyWithFormatAsync(asyncStream);
+
+                    Assert.NotNull(info.ImageInfo);
+                    Assert.Equal(ExpectedGlobalFormat, info.Format);
+                }
+            }
+
+            [Fact]
+            public async Task FromStreamAsync_CustomConfiguration()
+            {
+                var asyncStream = new AsyncStreamWrapper(this.DataStream, () => false);
+                FormattedImageInfo info = await Image.IdentifyWithFormatAsync(this.LocalConfiguration, asyncStream);
+
+                Assert.Equal(this.LocalImageInfo, info.ImageInfo);
+                Assert.Equal(this.LocalImageFormat, info.Format);
+            }
+
+            [Fact]
+            public async Task WhenNoMatchingFormatFoundAsync_ReturnsNull()
+            {
+                var asyncStream = new AsyncStreamWrapper(this.DataStream, () => false);
+                FormattedImageInfo info = await Image.IdentifyWithFormatAsync(new Configuration(), asyncStream);
+
+                Assert.Null(info.ImageInfo);
             }
         }
     }

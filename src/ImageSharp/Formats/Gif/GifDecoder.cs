@@ -76,7 +76,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             return decoder.Identify(stream);
         }
 
-
         /// <inheritdoc/>
         public async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
         {

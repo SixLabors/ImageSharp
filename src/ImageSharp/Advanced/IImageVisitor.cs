@@ -32,6 +32,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <param name="image">The image.</param>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task VisitAsync<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>;
     }

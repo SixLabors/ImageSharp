@@ -31,6 +31,7 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The source image.</param>
         /// <param name="path">The file path to save the image to.</param>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static Task SaveAsync(this Image source, string path)
             => source.SaveAsync(path, source.FindEncoded(path));
 
@@ -52,7 +53,6 @@ namespace SixLabors.ImageSharp
             }
         }
 
-
         /// <summary>
         /// Writes the image to the given stream using the currently loaded image format.
         /// </summary>
@@ -61,6 +61,7 @@ namespace SixLabors.ImageSharp
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The encoder is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static async Task SaveAsync(this Image source, string path, IImageEncoder encoder)
         {
             Guard.NotNull(path, nameof(path));

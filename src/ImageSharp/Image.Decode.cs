@@ -76,6 +76,20 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <param name="config">The configuration.</param>
+        /// <returns>The mime type or null if none found.</returns>
+        private static Task<IImageFormat> InternalDetectFormatAsync(Stream stream, Configuration config)
+        {
+            // we are going to cheat here because we know that by this point we have been wrapped in a
+            // seekable stream then we are free to use sync APIs this is potentially brittle and may
+            // need a better fix in the future.
+            return Task.FromResult(InternalDetectFormat(stream, config));
+        }
+
+        /// <summary>
+        /// By reading the header on the provided stream this calculates the images format.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <param name="config">The configuration.</param>
         /// <param name="format">The IImageFormat.</param>
         /// <returns>The image format or null if none found.</returns>
         private static IImageDecoder DiscoverDecoder(Stream stream, Configuration config, out IImageFormat format)
@@ -163,14 +177,34 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
         /// </returns>
-        private static (IImageInfo info, IImageFormat format) InternalIdentity(Stream stream, Configuration config)
+        private static FormattedImageInfo InternalIdentity(Stream stream, Configuration config)
         {
             if (!(DiscoverDecoder(stream, config, out IImageFormat format) is IImageInfoDetector detector))
             {
                 return (null, null);
             }
 
-            return (detector?.Identify(config, stream), format);
+            var info = detector?.Identify(config, stream);
+            return new FormattedImageInfo(info, format);
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="config">the configuration.</param>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        private static async Task<FormattedImageInfo> InternalIdentityAsync(Stream stream, Configuration config)
+        {
+            if (!(DiscoverDecoder(stream, config, out IImageFormat format) is IImageInfoDetector detector))
+            {
+                return (null, null);
+            }
+
+            var info = await detector?.IdentifyAsync(config, stream);
+            return new FormattedImageInfo(info, format);
         }
     }
 }

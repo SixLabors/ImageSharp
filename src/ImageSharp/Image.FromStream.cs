@@ -39,6 +39,28 @@ namespace SixLabors.ImageSharp
             => WithSeekableStream(configuration, stream, s => InternalDetectFormat(s, configuration));
 
         /// <summary>
+        /// By reading the header on the provided stream this calculates the images format type.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <returns>The format type or null if none found.</returns>
+        public static Task<IImageFormat> DetectFormatAsync(Stream stream)
+            => DetectFormatAsync(Configuration.Default, stream);
+
+        /// <summary>
+        /// By reading the header on the provided stream this calculates the images format type.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <returns>The format type or null if none found.</returns>
+        public static Task<IImageFormat> DetectFormatAsync(Configuration configuration, Stream stream)
+            => WithSeekableStreamAsync(configuration, stream, s => InternalDetectFormatAsync(s, configuration));
+
+        /// <summary>
         /// Reads the raw image information from the specified stream without fully decoding it.
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
@@ -50,6 +72,19 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public static IImageInfo Identify(Stream stream)
             => Identify(stream, out IImageFormat _);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// </returns>
+        public static Task<IImageInfo> IdentifyAsync(Stream stream)
+            => IdentifyAsync(Configuration.Default, stream);
 
         /// <summary>
         /// Reads the raw image information from the specified stream without fully decoding it.
@@ -70,6 +105,39 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="stream">The image stream to read the information from.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// </returns>
+        public static IImageInfo Identify(Configuration configuration, Stream stream)
+            => Identify(configuration, stream, out _);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="stream">The image stream to read the information from.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <returns>
+        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// </returns>
+        public static async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+        {
+            FormattedImageInfo res = await IdentifyWithFormatAsync(configuration, stream);
+            return res.ImageInfo;
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="stream">The image stream to read the information from.</param>
         /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
@@ -80,11 +148,40 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public static IImageInfo Identify(Configuration configuration, Stream stream, out IImageFormat format)
         {
-            (IImageInfo info, IImageFormat format) data = WithSeekableStream(configuration, stream, s => InternalIdentity(s, configuration ?? Configuration.Default));
+            FormattedImageInfo data = WithSeekableStream(configuration, stream, s => InternalIdentity(s, configuration ?? Configuration.Default));
 
-            format = data.format;
-            return data.info;
+            format = data.Format;
+            return data.ImageInfo;
         }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="stream">The image stream to read the information from.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <returns>
+        /// The <see cref="FormattedImageInfo"/> with <see cref="FormattedImageInfo.ImageInfo"/> set to null if suitable info detector is not found.
+        /// </returns>
+        public static Task<FormattedImageInfo> IdentifyWithFormatAsync(Stream stream)
+            => IdentifyWithFormatAsync(Configuration.Default, stream);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="stream">The image stream to read the information from.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <returns>
+        /// The <see cref="FormattedImageInfo"/> with <see cref="FormattedImageInfo.ImageInfo"/> set to null if suitable info detector is not found.
+        /// </returns>
+        public static Task<FormattedImageInfo> IdentifyWithFormatAsync(Configuration configuration, Stream stream)
+            => WithSeekableStreamAsync(configuration, stream, s => InternalIdentityAsync(s, configuration ?? Configuration.Default));
 
         /// <summary>
         /// Decode a new instance of the <see cref="Image"/> class from the given stream.
@@ -100,18 +197,16 @@ namespace SixLabors.ImageSharp
         public static Image Load(Stream stream, out IImageFormat format)
             => Load(Configuration.Default, stream, out format);
 
-
         /// <summary>
         /// Decode a new instance of the <see cref="Image"/> class from the given stream.
         /// The pixel format is selected by the decoder.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
-        /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>A <see cref="Task{FormattedImage}"/> representing the asynchronous operation.</returns>
         public static Task<FormattedImage> LoadWithFormatAsync(Stream stream)
             => LoadWithFormatAsync(Configuration.Default, stream);
 
@@ -282,18 +377,16 @@ namespace SixLabors.ImageSharp
             where TPixel : unmanaged, IPixel<TPixel>
             => Load<TPixel>(Configuration.Default, stream, out format);
 
-
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
-        /// <param name="format">The format type of the decoded image.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static Task<FormattedImage<TPixel>> LoadWithFormatAsync<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
             => LoadWithFormatAsync<TPixel>(Configuration.Default, stream);
@@ -592,90 +685,6 @@ namespace SixLabors.ImageSharp
 
                 return await action(memoryStream);
             }
-        }
-    }
-
-    public readonly struct FormattedImage<TPixel> where TPixel : unmanaged, IPixel<TPixel>
-    {
-        public FormattedImage(Image<TPixel> image, IImageFormat format)
-        {
-            this.Image = image;
-            this.Format = format;
-        }
-
-        public readonly Image<TPixel> Image { get; }
-
-        public readonly IImageFormat Format { get; }
-
-
-        public static implicit operator (Image<TPixel> image, IImageFormat format)(FormattedImage<TPixel> value)
-        {
-            return (value.Image, value.Format);
-        }
-
-        public static implicit operator FormattedImage<TPixel>((Image<TPixel> image, IImageFormat format) value)
-        {
-            return new FormattedImage<TPixel>(value.image, value.format);
-        }
-
-        public override bool Equals(object obj)
-        {
-            return obj is FormattedImage<TPixel> other &&
-                   EqualityComparer<Image<TPixel>>.Default.Equals(this.Image, other.Image) &&
-                   EqualityComparer<IImageFormat>.Default.Equals(this.Format, other.Format);
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(this.Image, this.Format);
-        }
-
-        public void Deconstruct(out Image<TPixel> image, out IImageFormat format)
-        {
-            image = this.Image;
-            format = this.Format;
-        }
-    }
-
-    public readonly struct FormattedImage
-    {
-        public FormattedImage(Image image, IImageFormat format)
-        {
-            this.Image = image;
-            this.Format = format;
-        }
-
-        public readonly Image Image { get; }
-
-        public readonly IImageFormat Format { get; }
-
-
-        public static implicit operator (Image image, IImageFormat format)(FormattedImage value)
-        {
-            return (value.Image, value.Format);
-        }
-
-        public static implicit operator FormattedImage((Image image, IImageFormat format) value)
-        {
-            return new FormattedImage(value.image, value.format);
-        }
-
-        public override bool Equals(object obj)
-        {
-            return obj is FormattedImage other &&
-                   EqualityComparer<Image>.Default.Equals(this.Image, other.Image) &&
-                   EqualityComparer<IImageFormat>.Default.Equals(this.Format, other.Format);
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(this.Image, this.Format);
-        }
-
-        public void Deconstruct(out Image image, out IImageFormat format)
-        {
-            image = this.Image;
-            format = this.Format;
         }
     }
 }

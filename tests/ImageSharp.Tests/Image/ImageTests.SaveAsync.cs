@@ -23,7 +23,6 @@ namespace SixLabors.ImageSharp.Tests
     {
         public class SaveAsync
         {
-
             [Fact]
             public async Task DetectedEncoding()
             {

@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -86,7 +87,6 @@ namespace SixLabors.ImageSharp
                 : null;
         }
 
-#pragma warning disable SA1008 // Opening parenthesis must be spaced correctly
         /// <summary>
         /// Decodes the image stream to the current image.
         /// </summary>
@@ -96,8 +96,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        private static (Image<TPixel> img, IImageFormat format) Decode<TPixel>(Stream stream, Configuration config)
-#pragma warning restore SA1008 // Opening parenthesis must be spaced correctly
+        private static FormattedImage<TPixel> Decode<TPixel>(Stream stream, Configuration config)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
@@ -107,10 +106,32 @@ namespace SixLabors.ImageSharp
             }
 
             Image<TPixel> img = decoder.Decode<TPixel>(config, stream);
-            return (img, format);
+            return new FormattedImage<TPixel>(img, format);
         }
 
-        private static (Image img, IImageFormat format) Decode(Stream stream, Configuration config)
+        /// <summary>
+        /// Decodes the image stream to the current image.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="config">the configuration.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>
+        /// A new <see cref="Image{TPixel}"/>.
+        /// </returns>
+        private static async Task<FormattedImage<TPixel>> DecodeAsync<TPixel>(Stream stream, Configuration config)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            if (decoder is null)
+            {
+                return (null, null);
+            }
+
+            Image<TPixel> img = await decoder.DecodeAsync<TPixel>(config, stream);
+            return new FormattedImage<TPixel>(img, format);
+        }
+
+        private static FormattedImage Decode(Stream stream, Configuration config)
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
             if (decoder is null)
@@ -119,7 +140,19 @@ namespace SixLabors.ImageSharp
             }
 
             Image img = decoder.Decode(config, stream);
-            return (img, format);
+            return new FormattedImage(img, format);
+        }
+
+        private static async Task<FormattedImage> DecodeAsync(Stream stream, Configuration config)
+        {
+            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            if (decoder is null)
+            {
+                return (null, null);
+            }
+
+            Image img = await decoder.DecodeAsync(config, stream);
+            return new FormattedImage(img, format);
         }
 
         /// <summary>

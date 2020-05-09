@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 // case ResizeMode.Stretch:
                 default:
-                    return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(0, 0, width, height));
+                    return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(0, 0, Sanitize(width), Sanitize(height)));
             }
         }
 
@@ -424,9 +424,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private static void ThrowInvalid(string message) => throw new InvalidOperationException(message);
 
-        private static int Sanitize(int input)
-        {
-            return Math.Max(1, input);
-        }
+        private static int Sanitize(int input) => Math.Max(1, input);
     }
 }

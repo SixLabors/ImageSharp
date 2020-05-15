@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public void Configure(Configuration configuration)
         {
             configuration.ImageFormatsManager.SetDecoder(WebPFormat.Instance, new WebPDecoder());
+            configuration.ImageFormatsManager.SetEncoder(WebPFormat.Instance, new WebPEncoder());
             configuration.ImageFormatsManager.AddImageFormatDetector(new WebPImageFormatDetector());
         }
     }

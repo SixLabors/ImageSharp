@@ -127,6 +127,11 @@ namespace SixLabors.ImageSharp.Tests.Formats
                     {
                         image.SaveAsTga(output);
                     }
+
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.webp")))
+                    {
+                        image.SaveAsWebp(output);
+                    }
                 }
             }
         }
@@ -174,6 +179,8 @@ namespace SixLabors.ImageSharp.Tests.Formats
         [InlineData(100, 100, "tga")]
         [InlineData(100, 10, "tga")]
         [InlineData(10, 100, "tga")]
+        [InlineData(100, 10, "webp")]
+        [InlineData(10, 100, "webp")]
         public void CanIdentifyImageLoadedFromBytes(int width, int height, string extension)
         {
             using (var image = Image.LoadPixelData(new Rgba32[width * height], width, height))
@@ -200,7 +207,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
         [Fact]
         public void IdentifyReturnsNullWithInvalidStream()
         {
-            byte[] invalid = new byte[10];
+            var invalid = new byte[10];
 
             using (var memoryStream = new MemoryStream(invalid))
             {

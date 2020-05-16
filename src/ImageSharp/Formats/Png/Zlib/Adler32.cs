@@ -4,145 +4,278 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
     /// <summary>
-    /// Computes Adler32 checksum for a stream of data. An Adler32
-    /// checksum is not as reliable as a CRC32 checksum, but a lot faster to
-    /// compute.
+    /// Calculates the 32 bit Adler checksum of a given buffer according to
+    /// RFC 1950. ZLIB Compressed Data Format Specification version 3.3)
     /// </summary>
-    /// <remarks>
-    /// The specification for Adler32 may be found in RFC 1950.
-    /// ZLIB Compressed Data Format Specification version 3.3)
-    ///
-    ///
-    /// From that document:
-    ///
-    ///      "ADLER32 (Adler-32 checksum)
-    ///       This contains a checksum value of the uncompressed data
-    ///       (excluding any dictionary data) computed according to Adler-32
-    ///       algorithm. This algorithm is a 32-bit extension and improvement
-    ///       of the Fletcher algorithm, used in the ITU-T X.224 / ISO 8073
-    ///       standard.
-    ///
-    ///       Adler-32 is composed of two sums accumulated per byte: s1 is
-    ///       the sum of all bytes, s2 is the sum of all s1 values. Both sums
-    ///       are done modulo 65521. s1 is initialized to 1, s2 to zero.  The
-    ///       Adler-32 checksum is stored as s2*65536 + s1 in most-
-    ///       significant-byte first (network) order."
-    ///
-    ///  "8.2. The Adler-32 algorithm
-    ///
-    ///    The Adler-32 algorithm is much faster than the CRC32 algorithm yet
-    ///    still provides an extremely low probability of undetected errors.
-    ///
-    ///    The modulo on unsigned long accumulators can be delayed for 5552
-    ///    bytes, so the modulo operation time is negligible.  If the bytes
-    ///    are a, b, c, the second sum is 3a + 2b + c + 3, and so is position
-    ///    and order sensitive, unlike the first sum, which is just a
-    ///    checksum.  That 65521 is prime is important to avoid a possible
-    ///    large class of two-byte errors that leave the check unchanged.
-    ///    (The Fletcher checksum uses 255, which is not prime and which also
-    ///    makes the Fletcher check insensitive to single byte changes 0 -
-    ///    255.)
-    ///
-    ///    The sum s1 is initialized to 1 instead of zero to make the length
-    ///    of the sequence part of s2, so that the length does not have to be
-    ///    checked separately. (Any sequence of zeroes has a Fletcher
-    ///    checksum of zero.)"
-    /// </remarks>
-    /// <see cref="ZlibInflateStream"/>
-    /// <see cref="ZlibDeflateStream"/>
-    internal sealed class Adler32 : IChecksum
+    internal static class Adler32
     {
-        /// <summary>
-        /// largest prime smaller than 65536
-        /// </summary>
-        private const uint Base = 65521;
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private const int MinBufferSize = 64;
+#endif
+
+        // Largest prime smaller than 65536
+        private const uint BASE = 65521;
+
+        // NMAX is the largest n such that 255n(n+1)/2 + (n+1)(BASE-1) <= 2^32-1
+        private const uint NMAX = 5552;
 
         /// <summary>
-        /// The checksum calculated to far.
+        /// Calculates the Adler32 checksum with the bytes taken from the span.
         /// </summary>
-        private uint checksum;
+        /// <param name="buffer">The readonly span of bytes.</param>
+        /// <returns>The <see cref="uint"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint Calculate(ReadOnlySpan<byte> buffer)
+            => Calculate(1U, buffer);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Adler32"/> class.
-        /// The checksum starts off with a value of 1.
+        /// Calculates the Adler32 checksum with the bytes taken from the span and seed.
         /// </summary>
-        public Adler32()
+        /// <param name="adler">The input Adler32 value.</param>
+        /// <param name="buffer">The readonly span of bytes.</param>
+        /// <returns>The <see cref="uint"/>.</returns>
+        [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
+        public static uint Calculate(uint adler, ReadOnlySpan<byte> buffer)
         {
-            this.Reset();
-        }
-
-        /// <inheritdoc/>
-        public long Value
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => this.checksum;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Reset()
-        {
-            this.checksum = 1;
-        }
-
-        /// <summary>
-        /// Updates the checksum with a byte value.
-        /// </summary>
-        /// <param name="value">
-        /// The data value to add. The high byte of the int is ignored.
-        /// </param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(int value)
-        {
-            // We could make a length 1 byte array and call update again, but I
-            // would rather not have that overhead
-            uint s1 = this.checksum & 0xFFFF;
-            uint s2 = this.checksum >> 16;
-
-            s1 = (s1 + ((uint)value & 0xFF)) % Base;
-            s2 = (s1 + s2) % Base;
-
-            this.checksum = (s2 << 16) + s1;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ReadOnlySpan<byte> data)
-        {
-            ref byte dataRef = ref MemoryMarshal.GetReference(data);
-            uint s1 = this.checksum & 0xFFFF;
-            uint s2 = this.checksum >> 16;
-
-            int count = data.Length;
-            int offset = 0;
-
-            while (count > 0)
+            if (buffer.IsEmpty)
             {
-                // We can defer the modulo operation:
-                // s1 maximally grows from 65521 to 65521 + 255 * 3800
-                // s2 maximally grows by 3800 * median(s1) = 2090079800 < 2^31
-                int n = 3800;
-                if (n > count)
-                {
-                    n = count;
-                }
-
-                count -= n;
-                while (--n >= 0)
-                {
-                    s1 += Unsafe.Add(ref dataRef, offset++);
-                    s2 += s1;
-                }
-
-                s1 %= Base;
-                s2 %= Base;
+                return 1U;
             }
 
-            this.checksum = (s2 << 16) | s1;
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse3.IsSupported && buffer.Length >= MinBufferSize)
+            {
+                return CalculateSse(adler, buffer);
+            }
+
+            return CalculateScalar(adler, buffer);
+#else
+            return CalculateScalar(adler, buffer);
+#endif
+        }
+
+        // Based on https://github.com/chromium/chromium/blob/master/third_party/zlib/adler32_simd.c
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
+        private static unsafe uint CalculateSse(uint adler, ReadOnlySpan<byte> buffer)
+        {
+            uint s1 = adler & 0xFFFF;
+            uint s2 = (adler >> 16) & 0xFFFF;
+
+            // Process the data in blocks.
+            const int BLOCK_SIZE = 1 << 5;
+
+            uint length = (uint)buffer.Length;
+            uint blocks = length / BLOCK_SIZE;
+            length -= blocks * BLOCK_SIZE;
+
+            int index = 0;
+            fixed (byte* bufferPtr = &buffer[0])
+            {
+                index += (int)blocks * BLOCK_SIZE;
+                var localBufferPtr = bufferPtr;
+
+                // _mm_setr_epi8 on x86
+                var tap1 = Vector128.Create(32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17);
+                var tap2 = Vector128.Create(16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1);
+                Vector128<byte> zero = Vector128<byte>.Zero;
+                var ones = Vector128.Create((short)1);
+
+                while (blocks > 0)
+                {
+                    uint n = NMAX / BLOCK_SIZE;  /* The NMAX constraint. */
+                    if (n > blocks)
+                    {
+                        n = blocks;
+                    }
+
+                    blocks -= n;
+
+                    // Process n blocks of data. At most NMAX data bytes can be
+                    // processed before s2 must be reduced modulo BASE.
+                    Vector128<int> v_ps = Vector128.CreateScalar(s1 * n).AsInt32();
+                    Vector128<int> v_s2 = Vector128.CreateScalar(s2).AsInt32();
+                    Vector128<int> v_s1 = Vector128<int>.Zero;
+
+                    do
+                    {
+                        // Load 32 input bytes.
+                        Vector128<byte> bytes1 = Sse3.LoadDquVector128(localBufferPtr);
+                        Vector128<byte> bytes2 = Sse3.LoadDquVector128(localBufferPtr + 16);
+
+                        // Add previous block byte sum to v_ps.
+                        v_ps = Sse2.Add(v_ps, v_s1);
+
+                        // Horizontally add the bytes for s1, multiply-adds the
+                        // bytes by [ 32, 31, 30, ... ] for s2.
+                        v_s1 = Sse2.Add(v_s1, Sse2.SumAbsoluteDifferences(bytes1, zero).AsInt32());
+                        Vector128<short> mad1 = Ssse3.MultiplyAddAdjacent(bytes1, tap1);
+                        v_s2 = Sse2.Add(v_s2, Sse2.MultiplyAddAdjacent(mad1, ones));
+
+                        v_s1 = Sse2.Add(v_s1, Sse2.SumAbsoluteDifferences(bytes2, zero).AsInt32());
+                        Vector128<short> mad2 = Ssse3.MultiplyAddAdjacent(bytes2, tap2);
+                        v_s2 = Sse2.Add(v_s2, Sse2.MultiplyAddAdjacent(mad2, ones));
+
+                        localBufferPtr += BLOCK_SIZE;
+                    }
+                    while (--n > 0);
+
+                    v_s2 = Sse2.Add(v_s2, Sse2.ShiftLeftLogical(v_ps, 5));
+
+                    // Sum epi32 ints v_s1(s2) and accumulate in s1(s2).
+                    const byte S2301 = 0b1011_0001;  // A B C D -> B A D C
+                    const byte S1032 = 0b0100_1110;  // A B C D -> C D A B
+
+                    v_s1 = Sse2.Add(v_s1, Sse2.Shuffle(v_s1, S2301));
+                    v_s1 = Sse2.Add(v_s1, Sse2.Shuffle(v_s1, S1032));
+
+                    s1 += (uint)v_s1.ToScalar();
+
+                    v_s2 = Sse2.Add(v_s2, Sse2.Shuffle(v_s2, S2301));
+                    v_s2 = Sse2.Add(v_s2, Sse2.Shuffle(v_s2, S1032));
+
+                    s2 = (uint)v_s2.ToScalar();
+
+                    // Reduce.
+                    s1 %= BASE;
+                    s2 %= BASE;
+                }
+            }
+
+            ref byte bufferRef = ref MemoryMarshal.GetReference(buffer);
+
+            if (length > 0)
+            {
+                if (length >= 16)
+                {
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    length -= 16;
+                }
+
+                while (length-- > 0)
+                {
+                    s2 += s1 += Unsafe.Add(ref bufferRef, index++);
+                }
+
+                if (s1 >= BASE)
+                {
+                    s1 -= BASE;
+                }
+
+                s2 %= BASE;
+            }
+
+            return s1 | (s2 << 16);
+        }
+#endif
+
+        [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
+        private static uint CalculateScalar(uint adler, ReadOnlySpan<byte> buffer)
+        {
+            uint s1 = adler & 0xFFFF;
+            uint s2 = (adler >> 16) & 0xFFFF;
+            uint k;
+
+            ref byte bufferRef = ref MemoryMarshal.GetReference<byte>(buffer);
+            uint length = (uint)buffer.Length;
+            int index = 0;
+
+            while (length > 0)
+            {
+                k = length < NMAX ? length : NMAX;
+                length -= k;
+
+                while (k >= 16)
+                {
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    s1 += Unsafe.Add(ref bufferRef, index++);
+                    s2 += s1;
+                    k -= 16;
+                }
+
+                if (k != 0)
+                {
+                    do
+                    {
+                        s1 += Unsafe.Add(ref bufferRef, index++);
+                        s2 += s1;
+                    }
+                    while (--k != 0);
+                }
+
+                s1 %= BASE;
+                s2 %= BASE;
+            }
+
+            return (s2 << 16) | s1;
         }
     }
 }

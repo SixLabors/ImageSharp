@@ -48,11 +48,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly byte[] chunkDataBuffer = new byte[16];
 
         /// <summary>
-        /// Reusable CRC for validating chunks.
-        /// </summary>
-        private readonly Crc32 crc = new Crc32();
-
-        /// <summary>
         /// The encoder options
         /// </summary>
         private readonly PngEncoderOptions options;
@@ -1041,18 +1036,16 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             stream.Write(this.buffer, 0, 8);
 
-            this.crc.Reset();
-
-            this.crc.Update(this.buffer.AsSpan(4, 4)); // Write the type buffer
+            uint crc = Crc32.Calculate(this.buffer.AsSpan(4, 4)); // Write the type buffer
 
             if (data != null && length > 0)
             {
                 stream.Write(data, offset, length);
 
-                this.crc.Update(data.AsSpan(offset, length));
+                crc = Crc32.Calculate(crc, data.AsSpan(offset, length));
             }
 
-            BinaryPrimitives.WriteUInt32BigEndian(this.buffer, (uint)this.crc.Value);
+            BinaryPrimitives.WriteUInt32BigEndian(this.buffer, crc);
 
             stream.Write(this.buffer, 0, 4); // write the crc
         }

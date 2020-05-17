@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         {
             using (var encoder = new PngEncoderCore(image.GetMemoryAllocator(), image.GetConfiguration(), new PngEncoderOptions(this)))
             {
-                await encoder.EncodeAsync(image, stream);
+                await encoder.EncodeAsync(image, stream).ConfigureAwait(false);
             }
         }
     }

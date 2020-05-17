@@ -683,7 +683,7 @@ namespace SixLabors.ImageSharp
                 await stream.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
 
-                return await action(memoryStream);
+                return await action(memoryStream).ConfigureAwait(false);
             }
         }
     }

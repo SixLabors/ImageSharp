@@ -680,7 +680,7 @@ namespace SixLabors.ImageSharp
 
             using (var memoryStream = new MemoryStream()) // should really find a nice way to use a pool for these!!
             {
-                await stream.CopyToAsync(memoryStream);
+                await stream.CopyToAsync(memoryStream).ConfigureAwait(false);
                 memoryStream.Position = 0;
 
                 return await action(memoryStream).ConfigureAwait(false);

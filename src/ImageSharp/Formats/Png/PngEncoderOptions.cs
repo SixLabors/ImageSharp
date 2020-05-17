@@ -29,6 +29,9 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.Quantizer = source.Quantizer;
             this.Threshold = source.Threshold;
             this.InterlaceMethod = source.InterlaceMethod;
+            this.ChunkFilter = source.ChunkFilter;
+            this.IgnoreMetadata = source.IgnoreMetadata;
+            this.TransparentColorMode = source.TransparentColorMode;
         }
 
         /// <inheritdoc/>
@@ -57,5 +60,14 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         /// <inheritdoc/>
         public PngInterlaceMode? InterlaceMethod { get; set; }
+
+        /// <inheritdoc/>
+        public PngChunkFilter? ChunkFilter { get; set; }
+
+        /// <inheritdoc/>
+        public bool IgnoreMetadata { get; set; }
+
+        /// <inheritdoc/>
+        public PngTransparentColorMode TransparentColorMode { get; set; }
     }
 }

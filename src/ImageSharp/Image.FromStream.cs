@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public static async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
         {
-            FormattedImageInfo res = await IdentifyWithFormatAsync(configuration, stream);
+            FormattedImageInfo res = await IdentifyWithFormatAsync(configuration, stream).ConfigureAwait(false);
             return res.ImageInfo;
         }
 

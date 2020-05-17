@@ -74,11 +74,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         /// <inheritdoc/>
-        public async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return await new TgaDecoderCore(configuration, this).IdentifyAsync(stream).ConfigureAwait(false);
+            return new TgaDecoderCore(configuration, this).IdentifyAsync(stream);
         }
     }
 }

@@ -42,11 +42,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <inheritdoc/>
-        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new BmpEncoderCore(this, image.GetMemoryAllocator());
-            await encoder.EncodeAsync(image, stream).ConfigureAwait(false);
+            return encoder.EncodeAsync(image, stream);
         }
     }
 }

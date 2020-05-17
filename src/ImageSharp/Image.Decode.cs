@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp
                 return (null, null);
             }
 
-            Image<TPixel> img = await decoder.DecodeAsync<TPixel>(config, stream);
+            Image<TPixel> img = await decoder.DecodeAsync<TPixel>(config, stream).ConfigureAwait(false);
             return new FormattedImage<TPixel>(img, format);
         }
 

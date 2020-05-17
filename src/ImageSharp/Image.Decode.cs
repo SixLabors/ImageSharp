@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The mime type or null if none found.</returns>
         private static Task<IImageFormat> InternalDetectFormatAsync(Stream stream, Configuration config)
         {
-            // we are going to cheat here because we know that by this point we have been wrapped in a
+            // We are going to cheat here because we know that by this point we have been wrapped in a
             // seekable stream then we are free to use sync APIs this is potentially brittle and may
             // need a better fix in the future.
             return Task.FromResult(InternalDetectFormat(stream, config));
@@ -184,7 +184,7 @@ namespace SixLabors.ImageSharp
                 return (null, null);
             }
 
-            var info = detector?.Identify(config, stream);
+            IImageInfo info = detector?.Identify(config, stream);
             return new FormattedImageInfo(info, format);
         }
 
@@ -203,7 +203,12 @@ namespace SixLabors.ImageSharp
                 return (null, null);
             }
 
-            var info = await detector?.IdentifyAsync(config, stream);
+            if (detector is null)
+            {
+                return (null, format);
+            }
+
+            IImageInfo info = await detector.IdentifyAsync(config, stream).ConfigureAwait(false);
             return new FormattedImageInfo(info, format);
         }
     }

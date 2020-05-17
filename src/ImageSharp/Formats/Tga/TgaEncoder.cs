@@ -32,11 +32,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         /// <inheritdoc/>
-        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new TgaEncoderCore(this, image.GetMemoryAllocator());
-            return encoder.EncodeAsync(image, stream);
+            await encoder.EncodeAsync(image, stream).ConfigureAwait(false);
         }
     }
 }

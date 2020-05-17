@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp
             public Task VisitAsync<TPixel>(Image<TPixel> image)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
-                return this.encoder.EncodeAsync(image, this.stream);
+                return this.encoder.EncodeAsync(image, this.stream).ConfigureAwait(false);
             }
         }
     }

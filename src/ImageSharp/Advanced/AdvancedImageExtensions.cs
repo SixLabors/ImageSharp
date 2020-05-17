@@ -4,8 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
@@ -76,8 +74,8 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="source">The source.</param>
         /// <param name="visitor">The visitor.</param>
         /// <returns>A  <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task AcceptVisitorAsync(this Image source, IImageVisitorAsync visitor)
-            => source.AcceptAsync(visitor);
+        public static async Task AcceptVisitorAsync(this Image source, IImageVisitorAsync visitor)
+            => await source.AcceptAsync(visitor).ConfigureAwait(false);
 
         /// <summary>
         /// Gets the configuration for the image.

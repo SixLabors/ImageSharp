@@ -41,11 +41,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <inheritdoc/>
-        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new GifEncoderCore(image.GetConfiguration(), this);
-            await encoder.EncodeAsync(image, stream).ConfigureAwait(false);
+            return encoder.EncodeAsync(image, stream);
         }
     }
 }

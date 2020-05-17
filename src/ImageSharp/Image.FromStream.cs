@@ -57,12 +57,11 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <returns>The format type or null if none found.</returns>
-        public static async Task<IImageFormat> DetectFormatAsync(Configuration configuration, Stream stream)
-            => await WithSeekableStreamAsync(
+        public static Task<IImageFormat> DetectFormatAsync(Configuration configuration, Stream stream)
+            => WithSeekableStreamAsync(
                 configuration,
                 stream,
-                async s => await InternalDetectFormatAsync(s, configuration).ConfigureAwait(false))
-            .ConfigureAwait(false);
+                s => InternalDetectFormatAsync(s, configuration));
 
         /// <summary>
         /// Reads the raw image information from the specified stream without fully decoding it.
@@ -184,12 +183,11 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="FormattedImageInfo"/> with <see cref="FormattedImageInfo.ImageInfo"/> set to null if suitable info detector is not found.
         /// </returns>
-        public static async Task<FormattedImageInfo> IdentifyWithFormatAsync(Configuration configuration, Stream stream)
-            => await WithSeekableStreamAsync(
+        public static Task<FormattedImageInfo> IdentifyWithFormatAsync(Configuration configuration, Stream stream)
+            => WithSeekableStreamAsync(
                 configuration,
                 stream,
-                async s => await InternalIdentityAsync(s, configuration ?? Configuration.Default))
-            .ConfigureAwait(false);
+                s => InternalIdentityAsync(s, configuration ?? Configuration.Default));
 
         /// <summary>
         /// Decode a new instance of the <see cref="Image"/> class from the given stream.
@@ -309,7 +307,10 @@ namespace SixLabors.ImageSharp
         public static Task<Image> LoadAsync(Configuration configuration, Stream stream, IImageDecoder decoder)
         {
             Guard.NotNull(decoder, nameof(decoder));
-            return WithSeekableStreamAsync(configuration, stream, s => decoder.DecodeAsync(configuration, s));
+            return WithSeekableStreamAsync(
+                configuration,
+                stream,
+                s => decoder.DecodeAsync(configuration, s));
         }
 
         /// <summary>
@@ -425,13 +426,12 @@ namespace SixLabors.ImageSharp
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
-        public static async Task<Image<TPixel>> LoadAsync<TPixel>(Stream stream, IImageDecoder decoder)
+        public static Task<Image<TPixel>> LoadAsync<TPixel>(Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
-            => await WithSeekableStreamAsync(
+            => WithSeekableStreamAsync(
                 Configuration.Default,
                 stream,
-                async s => await decoder.DecodeAsync<TPixel>(Configuration.Default, s).ConfigureAwait(false))
-            .ConfigureAwait(false);
+                s => decoder.DecodeAsync<TPixel>(Configuration.Default, s));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -463,13 +463,12 @@ namespace SixLabors.ImageSharp
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
-        public static async Task<Image<TPixel>> LoadAsync<TPixel>(Configuration configuration, Stream stream, IImageDecoder decoder)
+        public static Task<Image<TPixel>> LoadAsync<TPixel>(Configuration configuration, Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
-            => await WithSeekableStreamAsync(
+            => WithSeekableStreamAsync(
                 configuration,
                 stream,
-                async s => await decoder.DecodeAsync<TPixel>(configuration, s).ConfigureAwait(false))
-            .ConfigureAwait(false);
+                s => decoder.DecodeAsync<TPixel>(configuration, s));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -577,8 +576,8 @@ namespace SixLabors.ImageSharp
                 await WithSeekableStreamAsync(
                     configuration,
                     stream,
-                    async s => await DecodeAsync<TPixel>(s, configuration).ConfigureAwait(false))
-                .ConfigureAwait(false);
+                    async s => await DecodeAsync<TPixel>(s, configuration)
+                    .ConfigureAwait(false));
 
             if (data.img != null)
             {

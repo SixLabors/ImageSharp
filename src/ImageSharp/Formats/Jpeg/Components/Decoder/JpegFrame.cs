@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
@@ -28,12 +28,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Gets or sets the number of scanlines within the frame.
         /// </summary>
-        public short Scanlines { get; set; }
+        public int Scanlines { get; set; }
 
         /// <summary>
         /// Gets or sets the number of samples per scanline.
         /// </summary>
-        public short SamplesPerLine { get; set; }
+        public int SamplesPerLine { get; set; }
 
         /// <summary>
         /// Gets or sets the number of components within a frame. In progressive frames this value can range from only 1 to 4.

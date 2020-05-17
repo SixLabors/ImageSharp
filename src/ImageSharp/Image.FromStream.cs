@@ -330,7 +330,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image"/>.</returns>>
         public static async Task<Image> LoadAsync(Configuration configuration, Stream stream)
         {
-            var fmt = await LoadWithFormatAsync(configuration, stream);
+            var fmt = await LoadWithFormatAsync(configuration, stream).ConfigureAwait(false);
             return fmt.Image;
         }
 

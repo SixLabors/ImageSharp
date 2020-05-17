@@ -576,8 +576,8 @@ namespace SixLabors.ImageSharp
                 await WithSeekableStreamAsync(
                     configuration,
                     stream,
-                    async s => await DecodeAsync<TPixel>(s, configuration)
-                    .ConfigureAwait(false));
+                    s => DecodeAsync<TPixel>(s, configuration))
+                .ConfigureAwait(false);
 
             if (data.img != null)
             {

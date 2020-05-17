@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp
                 return (null, null);
             }
 
-            Image img = await decoder.DecodeAsync(config, stream);
+            Image img = await decoder.DecodeAsync(config, stream).ConfigureAwait(false);
             return new FormattedImage(img, format);
         }
 

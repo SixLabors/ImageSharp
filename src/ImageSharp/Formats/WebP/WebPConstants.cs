@@ -68,6 +68,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public const int Vp8LImageSizeBits = 14;
 
         /// <summary>
+        /// The Vp8L version 0.
+        /// </summary>
+        public const int Vp8LVersion = 0;
+
+        /// <summary>
+        /// The maximum number of colors for a paletted images.
+        /// </summary>
+        public const int MaxPaletteSize = 256;
+
+        /// <summary>
         /// Maximum number of color cache bits.
         /// </summary>
         public const int MaxColorCacheBits = 11;
@@ -76,6 +86,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// The maximum number of allowed transforms in a VP8L bitstream.
         /// </summary>
         public const int MaxNumberOfTransforms = 4;
+
+        /// <summary>
+        /// The maximum allowed width or height of a webp image.
+        /// </summary>
+        public const int MaxDimension = 16383;
 
         public const int MaxAllowedCodeLength = 15;
 

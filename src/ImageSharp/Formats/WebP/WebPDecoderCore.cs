@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.Metadata = new ImageMetadata();
             this.currentStream = stream;
 
-            uint fileSize = this.ReadImageHeader();
+            this.ReadImageHeader();
             using WebPImageInfo imageInfo = this.ReadVp8Info();
             if (imageInfo.Features != null && imageInfo.Features.Animation)
             {

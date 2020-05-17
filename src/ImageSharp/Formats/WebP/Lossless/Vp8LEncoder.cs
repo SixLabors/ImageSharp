@@ -1,0 +1,36 @@
+// Copyright (c) Six Labors and contributors.
+// Licensed under the GNU Affero General Public License, Version 3.
+
+namespace SixLabors.ImageSharp.Formats.WebP.Lossless
+{
+    /// <summary>
+    /// Encoder for lossless webp images.
+    /// </summary>
+    internal class Vp8LEncoder
+    {
+        /// <summary>
+        /// Gets a value indicating whether to use the cross color transform.
+        /// </summary>
+        public bool UseCrossColorTransform { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether to use the substract green transform.
+        /// </summary>
+        public bool UseSubtractGreenTransform { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether to use the predictor transform.
+        /// </summary>
+        public bool UsePredictorTransform { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether to use color indexing transform.
+        /// </summary>
+        public bool UsePalette { get; }
+
+        /// <summary>
+        /// Gets the palette size.
+        /// </summary>
+        public int PaletteSize { get; }
+    }
+}

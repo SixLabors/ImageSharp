@@ -40,6 +40,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             use16Bit = options.BitDepth == PngBitDepth.Bit16;
             bytesPerPixel = CalculateBytesPerPixel(options.ColorType, use16Bit);
 
+            if (options.IgnoreMetadata)
+            {
+                options.ChunkFilter = PngChunkFilter.ExcludeAll;
+            }
+
             // Ensure we are not allowing impossible combinations.
             if (!PngConstants.ColorTypes.ContainsKey(options.ColorType.Value))
             {
@@ -89,11 +94,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="options">The options.</param>
-        /// <param name="image">The image.</param>
         /// <param name="quantizedFrame">The quantized frame.</param>
         public static byte CalculateBitDepth<TPixel>(
             PngEncoderOptions options,
-            Image<TPixel> image,
             IndexedImageFrame<TPixel> quantizedFrame)
             where TPixel : unmanaged, IPixel<TPixel>
         {

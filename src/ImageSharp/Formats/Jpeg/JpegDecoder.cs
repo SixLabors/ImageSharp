@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             using var decoder = new JpegDecoderCore(configuration, this);
             try
             {
-                return await decoder.DecodeAsync<TPixel>(stream);
+                return await decoder.DecodeAsync<TPixel>(stream).ConfigureAwait(false);
             }
             catch (InvalidMemoryOperationException ex)
             {

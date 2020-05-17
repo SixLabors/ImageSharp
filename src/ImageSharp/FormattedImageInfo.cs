@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// Struct to curry <see cref="IImageInfo"/> and <see cref="IImageFormat"/> for return from async overloads.
     /// </summary>
-    public readonly struct FormattedImageInfo
+    public readonly struct FormattedImageInfo : IEquatable<FormattedImageInfo>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="FormattedImageInfo"/> struct.
@@ -38,32 +38,46 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="value">The <see cref="FormattedImageInfo"/> to convert.</param>
         public static implicit operator (IImageInfo imageInfo, IImageFormat format)(FormattedImageInfo value)
-        {
-            return (value.ImageInfo, value.Format);
-        }
+            => (value.ImageInfo, value.Format);
 
         /// <summary>
         /// Converts <see cref="ValueTuple"/> to <see cref="FormattedImageInfo"/>
         /// </summary>
         /// <param name="value">The <see cref="ValueTuple"/> to convert.</param>
         public static implicit operator FormattedImageInfo((IImageInfo imageInfo, IImageFormat format) value)
-        {
-            return new FormattedImageInfo(value.imageInfo, value.format);
-        }
+            => new FormattedImageInfo(value.imageInfo, value.format);
+
+        /// <summary>
+        /// Compares two <see cref="FormattedImageInfo"/> objects for equality.
+        /// </summary>
+        /// <param name="left">The <see cref="FormattedImageInfo"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="FormattedImageInfo"/> on the right side of the operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator ==(FormattedImageInfo left, FormattedImageInfo right) => left.Equals(right);
+
+        /// <summary>
+        /// Compares two <see cref="FormattedImageInfo"/> objects for inequality.
+        /// </summary>
+        /// <param name="left">The <see cref="FormattedImageInfo"/> on the left side of the operand.</param>
+        /// <param name="right">The <see cref="FormattedImageInfo"/> on the right side of the operand.</param>
+        /// <returns>
+        /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
+        /// </returns>
+        public static bool operator !=(FormattedImageInfo left, FormattedImageInfo right) => !(left == right);
 
         /// <inheritdoc/>
         public override bool Equals(object obj)
-        {
-            return obj is FormattedImageInfo other &&
-                   EqualityComparer<IImageInfo>.Default.Equals(this.ImageInfo, other.ImageInfo) &&
-                   EqualityComparer<IImageFormat>.Default.Equals(this.Format, other.Format);
-        }
+            => obj is FormattedImageInfo info && this.Equals(info);
 
         /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(this.ImageInfo, this.Format);
-        }
+        public bool Equals(FormattedImageInfo other)
+            => EqualityComparer<IImageInfo>.Default.Equals(this.ImageInfo, other.ImageInfo)
+            && EqualityComparer<IImageFormat>.Default.Equals(this.Format, other.Format);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => HashCode.Combine(this.ImageInfo, this.Format);
 
         /// <summary>
         /// Deconstructs <see cref="FormattedImageInfo"/> into component parts.

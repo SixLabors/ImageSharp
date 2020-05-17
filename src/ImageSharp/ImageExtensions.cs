@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp
         /// <param name="path">The file path to save the image to.</param>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         public static void Save(this Image source, string path)
-            => source.Save(path, source.FindEncoded(path));
+            => source.Save(path, source.DetectEncoder(path));
 
         /// <summary>
         /// Writes the image to the given stream using the currently loaded image format.
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static Task SaveAsync(this Image source, string path)
-            => source.SaveAsync(path, source.FindEncoded(path));
+            => source.SaveAsync(path, source.DetectEncoder(path));
 
         /// <summary>
         /// Writes the image to the given stream using the currently loaded image format.

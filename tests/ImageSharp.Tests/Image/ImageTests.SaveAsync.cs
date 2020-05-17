@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (var image = new Image<Rgba32>(5, 5))
                 {
-                    IImageEncoder encoder = image.FindEncoded(filename);
+                    IImageEncoder encoder = image.DetectEncoder(filename);
                     using (var stream = new MemoryStream())
                     {
                         var asyncStream = new AsyncStreamWrapper(stream, () => false);

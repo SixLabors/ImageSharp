@@ -675,7 +675,7 @@ namespace SixLabors.ImageSharp
                     stream.Position = 0;
                 }
 
-                return await action(stream);
+                return await action(stream).ConfigureAwait(false);
             }
 
             using (var memoryStream = new MemoryStream()) // should really find a nice way to use a pool for these!!

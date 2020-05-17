@@ -586,7 +586,7 @@ namespace SixLabors.ImageSharp
         public static async Task<Image<TPixel>> LoadAsync<TPixel>(Configuration configuration, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            (Image<TPixel> img, _) = await LoadWithFormatAsync<TPixel>(configuration, stream);
+            (Image<TPixel> img, _) = await LoadWithFormatAsync<TPixel>(configuration, stream).ConfigureAwait(false);
             return img;
         }
 

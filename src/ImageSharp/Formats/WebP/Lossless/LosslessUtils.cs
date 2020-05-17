@@ -294,6 +294,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
+        /// <summary>
+        /// Difference of each component, mod 256.
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint SubPixels(uint a, uint b)
+        {
+            uint alphaAndGreen = 0x00ff00ffu + (a & 0xff00ff00u) - (b & 0xff00ff00u);
+            uint redAndBlue = 0xff00ff00u + (a & 0x00ff00ffu) - (b & 0x00ff00ffu);
+            return (alphaAndGreen & 0xff00ff00u) | (redAndBlue & 0x00ff00ffu);
+        }
+
         private static void PredictorAdd0(Span<uint> input, int startIdx, int numberOfPixels, Span<uint> output)
         {
             int endIdx = startIdx + numberOfPixels;
@@ -626,17 +637,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         {
             uint alphaAndGreen = (a & 0xff00ff00u) + (b & 0xff00ff00u);
             uint redAndBlue = (a & 0x00ff00ffu) + (b & 0x00ff00ffu);
-            return (alphaAndGreen & 0xff00ff00u) | (redAndBlue & 0x00ff00ffu);
-        }
-
-        /// <summary>
-        /// Difference of each component, mod 256.
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint SubPixels(uint a, uint b)
-        {
-            uint alphaAndGreen = 0x00ff00ffu + (a & 0xff00ff00u) - (b & 0xff00ff00u);
-            uint redAndBlue = 0xff00ff00u + (a & 0x00ff00ffu) - (b & 0x00ff00ffu);
             return (alphaAndGreen & 0xff00ff00u) | (redAndBlue & 0x00ff00ffu);
         }
 

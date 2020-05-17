@@ -13,6 +13,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
     public sealed class WebPEncoder : IImageEncoder, IWebPEncoderOptions
     {
         /// <inheritdoc/>
+        public bool Lossless { get; set; }
+
+        /// <inheritdoc/>
+        public float Quality { get; set; }
+
+        /// <inheritdoc/>
+        public bool AlphaCompression { get; set; }
+
+        /// <inheritdoc/>
+        public int EntropyPasses { get; set; }
+
+        /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {

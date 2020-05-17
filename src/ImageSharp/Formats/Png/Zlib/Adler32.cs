@@ -17,6 +17,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     /// </summary>
     internal static class Adler32
     {
+        /// <summary>
+        /// The default initial seed value of a Adler32 checksum calculation.
+        /// </summary>
+        public const uint SeedValue = 1U;
+
 #if SUPPORTS_RUNTIME_INTRINSICS
         private const int MinBufferSize = 64;
 #endif
@@ -34,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <returns>The <see cref="uint"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static uint Calculate(ReadOnlySpan<byte> buffer)
-            => Calculate(1U, buffer);
+            => Calculate(SeedValue, buffer);
 
         /// <summary>
         /// Calculates the Adler32 checksum with the bytes taken from the span and seed.
@@ -47,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             if (buffer.IsEmpty)
             {
-                return 1U;
+                return SeedValue;
             }
 
 #if SUPPORTS_RUNTIME_INTRINSICS

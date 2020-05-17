@@ -18,16 +18,16 @@ namespace SixLabors.ImageSharp.Advanced
     public static class AdvancedImageExtensions
     {
         /// <summary>
-        /// For a given path find the best encoder to use
+        /// For a given file path find the best encoder to use via its extension.
         /// </summary>
-        /// <param name="source">The source.</param>
-        /// <param name="path">The Path</param>
+        /// <param name="source">The source image.</param>
+        /// <param name="filePath">The target file path to save the image to.</param>
         /// <returns>The matching encoder.</returns>
-        public static IImageEncoder FindEncoded(this Image source, string path)
+        public static IImageEncoder DetectEncoder(this Image source, string filePath)
         {
-            Guard.NotNull(path, nameof(path));
+            Guard.NotNull(filePath, nameof(filePath));
 
-            string ext = Path.GetExtension(path);
+            string ext = Path.GetExtension(filePath);
             IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
             if (format is null)
             {
@@ -62,8 +62,8 @@ namespace SixLabors.ImageSharp.Advanced
         /// Accepts a <see cref="IImageVisitor"/> to implement a double-dispatch pattern in order to
         /// apply pixel-specific operations on non-generic <see cref="Image"/> instances
         /// </summary>
-        /// <param name="source">The source.</param>
-        /// <param name="visitor">The visitor.</param>
+        /// <param name="source">The source image.</param>
+        /// <param name="visitor">The image visitor.</param>
         public static void AcceptVisitor(this Image source, IImageVisitor visitor)
             => source.Accept(visitor);
 
@@ -71,8 +71,8 @@ namespace SixLabors.ImageSharp.Advanced
         /// Accepts a <see cref="IImageVisitor"/> to implement a double-dispatch pattern in order to
         /// apply pixel-specific operations on non-generic <see cref="Image"/> instances
         /// </summary>
-        /// <param name="source">The source.</param>
-        /// <param name="visitor">The visitor.</param>
+        /// <param name="source">The source image.</param>
+        /// <param name="visitor">The image visitor.</param>
         /// <returns>A  <see cref="Task"/> representing the asynchronous operation.</returns>
         public static async Task AcceptVisitorAsync(this Image source, IImageVisitorAsync visitor)
             => await source.AcceptAsync(visitor).ConfigureAwait(false);

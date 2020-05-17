@@ -887,8 +887,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
                 Progressive = frameMarker.Marker == JpegConstants.Markers.SOF2,
                 Precision = this.temp[0],
-                Scanlines = (short)((this.temp[1] << 8) | this.temp[2]),
-                SamplesPerLine = (short)((this.temp[3] << 8) | this.temp[4]),
+                Scanlines = (this.temp[1] << 8) | this.temp[2],
+                SamplesPerLine = (this.temp[3] << 8) | this.temp[4],
                 ComponentCount = this.temp[5]
             };
 

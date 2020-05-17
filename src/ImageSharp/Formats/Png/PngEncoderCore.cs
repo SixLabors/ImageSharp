@@ -166,10 +166,18 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.height = image.Height;
 
             ImageMetadata metadata = image.Metadata;
-            PngMetadata pngMetadata = metadata.GetPngMetadata();
+
+            PngMetadata pngMetadata = metadata.GetFormatMetadata(PngFormat.Instance);
             PngEncoderOptionsHelpers.AdjustOptions<TPixel>(this.options, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
-            IndexedImageFrame<TPixel> quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, image);
-            this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, image, quantized);
+            Image<TPixel> clonedImage = null;
+            bool clearTransparency = this.options.TransparentColorMode == PngTransparentColorMode.Clear;
+            if (clearTransparency)
+            {
+                clonedImage = image.Clone();
+                ClearTransparentPixels(clonedImage);
+            }
+
+            IndexedImageFrame<TPixel> quantized = this.CreateQuantizedImage(image, clonedImage);
 
             stream.Write(PngConstants.HeaderBytes);
 
@@ -180,11 +188,13 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.WritePhysicalChunk(stream, metadata);
             this.WriteExifChunk(stream, metadata);
             this.WriteTextChunks(stream, pngMetadata);
-            this.WriteDataChunks(image.Frames.RootFrame, quantized, stream);
+            this.WriteDataChunks(clearTransparency ? clonedImage : image, quantized, stream);
             this.WriteEndChunk(stream);
+
             stream.Flush();
 
             quantized?.Dispose();
+            clonedImage?.Dispose();
         }
 
         /// <inheritdoc />
@@ -203,6 +213,55 @@ namespace SixLabors.ImageSharp.Formats.Png
             this.averageFilter = null;
             this.paethFilter = null;
             this.filterBuffer = null;
+        }
+
+        /// <summary>
+        /// Convert transparent pixels, to transparent black pixels, which can yield to better compression in some cases.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="image">The cloned image where the transparent pixels will be changed.</param>
+        private static void ClearTransparentPixels<TPixel>(Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Rgba32 rgba32 = default;
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> span = image.GetPixelRowSpan(y);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    span[x].ToRgba32(ref rgba32);
+
+                    if (rgba32.A == 0)
+                    {
+                        span[x].FromRgba32(Color.Transparent);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates the quantized image and sets calculates and sets the bit depth.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="image">The image to quantize.</param>
+        /// <param name="clonedImage">Cloned image with transparent pixels are changed to black.</param>
+        /// <returns>The quantized image.</returns>
+        private IndexedImageFrame<TPixel> CreateQuantizedImage<TPixel>(Image<TPixel> image, Image<TPixel> clonedImage)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            IndexedImageFrame<TPixel> quantized;
+            if (this.options.TransparentColorMode == PngTransparentColorMode.Clear)
+            {
+                quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, clonedImage);
+                this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, quantized);
+            }
+            else
+            {
+                quantized = PngEncoderOptionsHelpers.CreateQuantizedFrame(this.options, image);
+                this.bitDepth = PngEncoderOptionsHelpers.CalculateBitDepth(this.options, quantized);
+            }
+
+            return quantized;
         }
 
         /// <summary>Collects a row of grayscale pixels.</summary>
@@ -627,6 +686,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="meta">The image metadata.</param>
         private void WritePhysicalChunk(Stream stream, ImageMetadata meta)
         {
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludePhysicalChunk) == PngChunkFilter.ExcludePhysicalChunk)
+            {
+                return;
+            }
+
             PhysicalChunkData.FromMetadata(meta).WriteTo(this.chunkDataBuffer);
 
             this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, PhysicalChunkData.Size);
@@ -639,6 +703,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="meta">The image metadata.</param>
         private void WriteExifChunk(Stream stream, ImageMetadata meta)
         {
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeExifChunk) == PngChunkFilter.ExcludeExifChunk)
+            {
+                return;
+            }
+
             if (meta.ExifProfile is null || meta.ExifProfile.Values.Count == 0)
             {
                 return;
@@ -656,6 +725,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="meta">The image metadata.</param>
         private void WriteTextChunks(Stream stream, PngMetadata meta)
         {
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeTextChunks) == PngChunkFilter.ExcludeTextChunks)
+            {
+                return;
+            }
+
             const int MaxLatinCode = 255;
             for (int i = 0; i < meta.TextData.Count; i++)
             {
@@ -748,6 +822,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         private void WriteGammaChunk(Stream stream)
         {
+            if (((this.options.ChunkFilter ?? PngChunkFilter.None) & PngChunkFilter.ExcludeGammaChunk) == PngChunkFilter.ExcludeGammaChunk)
+            {
+                return;
+            }
+
             if (this.options.Gamma > 0)
             {
                 // 4-byte unsigned integer of gamma * 100,000.
@@ -817,7 +896,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pixels">The image.</param>
         /// <param name="quantized">The quantized pixel data. Can be null.</param>
         /// <param name="stream">The stream.</param>
-        private void WriteDataChunks<TPixel>(ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel> quantized, Stream stream)
+        private void WriteDataChunks<TPixel>(Image<TPixel> pixels, IndexedImageFrame<TPixel> quantized, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             byte[] buffer;
@@ -915,8 +994,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="pixels">The pixels.</param>
         /// <param name="quantized">The quantized pixels span.</param>
         /// <param name="deflateStream">The deflate stream.</param>
-        private void EncodePixels<TPixel>(ImageFrame<TPixel> pixels, IndexedImageFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
-        where TPixel : unmanaged, IPixel<TPixel>
+        private void EncodePixels<TPixel>(Image<TPixel> pixels, IndexedImageFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int bytesPerScanline = this.CalculateScanlineLength(this.width);
             int resultLength = bytesPerScanline + 1;
@@ -939,7 +1018,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="pixels">The pixels.</param>
         /// <param name="deflateStream">The deflate stream.</param>
-        private void EncodeAdam7Pixels<TPixel>(ImageFrame<TPixel> pixels, ZlibDeflateStream deflateStream)
+        private void EncodeAdam7Pixels<TPixel>(Image<TPixel> pixels, ZlibDeflateStream deflateStream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int width = pixels.Width;

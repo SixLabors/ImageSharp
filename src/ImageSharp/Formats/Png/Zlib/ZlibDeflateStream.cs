@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// Computes the checksum for the data stream.
         /// </summary>
-        private uint adler = 1U;
+        private uint adler = Adler32.SeedValue;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.

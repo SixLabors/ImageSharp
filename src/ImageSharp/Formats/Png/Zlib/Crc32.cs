@@ -17,6 +17,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
     /// </summary>
     internal static partial class Crc32
     {
+        /// <summary>
+        /// The default initial seed value of a Crc32 checksum calculation.
+        /// </summary>
+        public const uint SeedValue = 0U;
+
 #if SUPPORTS_RUNTIME_INTRINSICS
         private const int MinBufferSize = 64;
         private const int ChunksizeMask = 15;
@@ -36,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <returns>The <see cref="uint"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static uint Calculate(ReadOnlySpan<byte> buffer)
-            => Calculate(0U, buffer);
+            => Calculate(SeedValue, buffer);
 
         /// <summary>
         /// Calculates the CRC checksum with the bytes taken from the span and seed.
@@ -49,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             if (buffer.IsEmpty)
             {
-                return 0U;
+                return SeedValue;
             }
 
 #if SUPPORTS_RUNTIME_INTRINSICS

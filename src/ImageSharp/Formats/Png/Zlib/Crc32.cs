@@ -12,8 +12,8 @@ using System.Runtime.Intrinsics.X86;
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
     /// <summary>
-    /// Calculates the 32 bit Cyclic Redundancy Check (CRC) checksum of a given buffer according to the
-    /// IEEE 802.3 specification.
+    /// Calculates the 32 bit Cyclic Redundancy Check (CRC) checksum of a given buffer
+    /// according to the IEEE 802.3 specification.
     /// </summary>
     internal static partial class Crc32
     {
@@ -28,10 +28,13 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
         // Definitions of the bit-reflected domain constants k1, k2, k3, etc and
         // the CRC32+Barrett polynomials given at the end of the paper.
-        private static ulong[] k1k2 = { 0x0154442bd4, 0x01c6e41596 };
-        private static ulong[] k3k4 = { 0x01751997d0, 0x00ccaa009e };
-        private static ulong[] k5k0 = { 0x0163cd6124, 0x0000000000 };
-        private static ulong[] poly = { 0x01db710641, 0x01f7011641 };
+        private static readonly ulong[] K05Poly =
+        {
+            0x0154442bd4, 0x01c6e41596, // k1, k2
+            0x01751997d0, 0x00ccaa009e, // k3, k4
+            0x0163cd6124, 0x0000000000, // k5, k0
+            0x01db710641, 0x01f7011641 // polynomial
+        };
 #endif
 
         /// <summary>
@@ -79,13 +82,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             int chunksize = buffer.Length & ~ChunksizeMask;
             int length = chunksize;
 
-            fixed (byte* bufferPtr = &buffer[0])
-            fixed (ulong* k1k2Ptr = &k1k2[0])
-            fixed (ulong* k3k4Ptr = &k3k4[0])
-            fixed (ulong* k5k0Ptr = &k5k0[0])
-            fixed (ulong* polyPtr = &poly[0])
+            fixed (byte* bufferPtr = buffer)
+            fixed (ulong* k05PolyPtr = K05Poly)
             {
                 byte* localBufferPtr = bufferPtr;
+                ulong* localK05PolyPtr = k05PolyPtr;
 
                 // There's at least one block of 64.
                 Vector128<ulong> x1 = Sse2.LoadVector128((ulong*)(localBufferPtr + 0x00));
@@ -95,7 +96,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 Vector128<ulong> x5;
 
                 x1 = Sse2.Xor(x1, Sse2.ConvertScalarToVector128UInt32(crc).AsUInt64());
-                Vector128<ulong> x0 = Sse2.LoadVector128(k1k2Ptr);
+
+                // k1, k2
+                Vector128<ulong> x0 = Sse2.LoadVector128(localK05PolyPtr + 0x0);
 
                 localBufferPtr += 64;
                 length -= 64;
@@ -133,7 +136,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 }
 
                 // Fold into 128-bits.
-                x0 = Sse2.LoadVector128(k3k4Ptr);
+                // k3, k4
+                x0 = Sse2.LoadVector128(k05PolyPtr + 0x2);
 
                 x5 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x00);
                 x1 = Pclmulqdq.CarrylessMultiply(x1, x0, 0x11);
@@ -170,7 +174,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 x1 = Sse2.ShiftRightLogical128BitLane(x1, 8);
                 x1 = Sse2.Xor(x1, x2);
 
-                x0 = Sse2.LoadScalarVector128(k5k0Ptr);
+                // k5, k0
+                x0 = Sse2.LoadScalarVector128(localK05PolyPtr + 0x4);
 
                 x2 = Sse2.ShiftRightLogical128BitLane(x1, 4);
                 x1 = Sse2.And(x1, x3);
@@ -178,7 +183,8 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 x1 = Sse2.Xor(x1, x2);
 
                 // Barret reduce to 32-bits.
-                x0 = Sse2.LoadVector128(polyPtr);
+                // polynomial
+                x0 = Sse2.LoadVector128(localK05PolyPtr + 0x6);
 
                 x2 = Sse2.And(x1, x3);
                 x2 = Pclmulqdq.CarrylessMultiply(x2, x0, 0x10);

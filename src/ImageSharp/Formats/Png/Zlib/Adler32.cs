@@ -31,6 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 #if SUPPORTS_RUNTIME_INTRINSICS
         private const int MinBufferSize = 64;
 
+        // The C# compiler emits this as a compile-time constant embedded in the PE file.
         private static ReadOnlySpan<byte> Tap1Tap2 => new byte[]
         {
             32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, // tap1

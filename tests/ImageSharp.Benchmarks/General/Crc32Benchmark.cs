@@ -41,32 +41,32 @@ namespace SixLabors.ImageSharp.Benchmarks.General
 
     // ########## 17/05/2020 ##########
     //
-    // |               Method |       Runtime | Count |         Mean |        Error |       StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-    // |--------------------- |-------------- |------ |-------------:|-------------:|-------------:|------:|--------:|------:|------:|------:|----------:|
-    // | SharpZipLibCalculate |    .NET 4.7.2 |  1024 |  3,067.24 ns |    769.25 ns |    42.165 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // |   SixLaborsCalculate |    .NET 4.7.2 |  1024 |  2,546.86 ns |  1,106.36 ns |    60.643 ns |  0.83 |    0.02 |     - |     - |     - |         - |
-    // |                      |               |       |              |              |              |       |         |       |       |       |           |
-    // | SharpZipLibCalculate | .NET Core 2.1 |  1024 |  3,377.15 ns |  3,903.41 ns |   213.959 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // |   SixLaborsCalculate | .NET Core 2.1 |  1024 |  2,524.25 ns |  2,220.97 ns |   121.739 ns |  0.75 |    0.04 |     - |     - |     - |         - |
-    // |                      |               |       |              |              |              |       |         |       |       |       |           |
-    // | SharpZipLibCalculate | .NET Core 3.1 |  1024 |  3,980.60 ns |  8,497.37 ns |   465.769 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // |   SixLaborsCalculate | .NET Core 3.1 |  1024 |     78.68 ns |     69.82 ns |     3.827 ns |  0.02 |    0.00 |     - |     - |     - |         - |
-    // |                      |               |       |              |              |              |       |         |       |       |       |           |
-    // | SharpZipLibCalculate |    .NET 4.7.2 |  2048 |  7,934.29 ns | 42,550.13 ns | 2,332.316 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // |   SixLaborsCalculate |    .NET 4.7.2 |  2048 |  5,437.81 ns | 12,760.51 ns |   699.447 ns |  0.71 |    0.10 |     - |     - |     - |         - |
-    // |                      |               |       |              |              |              |       |         |       |       |       |           |
-    // | SharpZipLibCalculate | .NET Core 2.1 |  2048 |  6,008.05 ns |    621.37 ns |    34.059 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // |   SixLaborsCalculate | .NET Core 2.1 |  2048 |  4,791.50 ns |  3,894.94 ns |   213.495 ns |  0.80 |    0.04 |     - |     - |     - |         - |
-    // |                      |               |       |              |              |              |       |         |       |       |       |           |
-    // | SharpZipLibCalculate | .NET Core 3.1 |  2048 |  5,900.06 ns |  1,344.70 ns |    73.707 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // |   SixLaborsCalculate | .NET Core 3.1 |  2048 |    103.12 ns |     15.66 ns |     0.859 ns |  0.02 |    0.00 |     - |     - |     - |         - |
-    // |                      |               |       |              |              |              |       |         |       |       |       |           |
-    // | SharpZipLibCalculate |    .NET 4.7.2 |  4096 | 12,422.59 ns |  1,308.01 ns |    71.696 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // |   SixLaborsCalculate |    .NET 4.7.2 |  4096 | 10,524.63 ns |  6,267.56 ns |   343.546 ns |  0.85 |    0.03 |     - |     - |     - |         - |
-    // |                      |               |       |              |              |              |       |         |       |       |       |           |
-    // | SharpZipLibCalculate | .NET Core 2.1 |  4096 | 11,888.00 ns |  1,059.25 ns |    58.061 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // |   SixLaborsCalculate | .NET Core 2.1 |  4096 |  9,806.24 ns |    241.91 ns |    13.260 ns |  0.82 |    0.00 |     - |     - |     - |         - |
-    // |                      |               |       |              |              |              |       |         |       |       |       |           |
-    // | SharpZipLibCalculate | .NET Core 3.1 |  4096 | 12,181.28 ns |  1,974.68 ns |   108.239 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // |   SixLaborsCalculate | .NET Core 3.1 |  4096 |    192.39 ns |     10.27 ns |     0.563 ns |  0.02 |    0.00 |     - |     - |     - |         - |
+    // |               Method |       Runtime | Count |         Mean |        Error |     StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+    // |--------------------- |-------------- |------ |-------------:|-------------:|-----------:|------:|--------:|------:|------:|------:|----------:|
+    // | SharpZipLibCalculate |    .NET 4.7.2 |  1024 |  2,797.77 ns |   278.697 ns |  15.276 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // |   SixLaborsCalculate |    .NET 4.7.2 |  1024 |  2,275.56 ns |   216.100 ns |  11.845 ns |  0.81 |    0.01 |     - |     - |     - |         - |
+    // |                      |               |       |              |              |            |       |         |       |       |       |           |
+    // | SharpZipLibCalculate | .NET Core 2.1 |  1024 |  2,923.43 ns | 2,656.882 ns | 145.633 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // |   SixLaborsCalculate | .NET Core 2.1 |  1024 |  2,257.79 ns |    75.081 ns |   4.115 ns |  0.77 |    0.04 |     - |     - |     - |         - |
+    // |                      |               |       |              |              |            |       |         |       |       |       |           |
+    // | SharpZipLibCalculate | .NET Core 3.1 |  1024 |  2,764.14 ns |    86.281 ns |   4.729 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // |   SixLaborsCalculate | .NET Core 3.1 |  1024 |     49.32 ns |     1.813 ns |   0.099 ns |  0.02 |    0.00 |     - |     - |     - |         - |
+    // |                      |               |       |              |              |            |       |         |       |       |       |           |
+    // | SharpZipLibCalculate |    .NET 4.7.2 |  2048 |  5,603.71 ns |   427.240 ns |  23.418 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // |   SixLaborsCalculate |    .NET 4.7.2 |  2048 |  4,525.02 ns |    33.931 ns |   1.860 ns |  0.81 |    0.00 |     - |     - |     - |         - |
+    // |                      |               |       |              |              |            |       |         |       |       |       |           |
+    // | SharpZipLibCalculate | .NET Core 2.1 |  2048 |  5,563.32 ns |    49.337 ns |   2.704 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // |   SixLaborsCalculate | .NET Core 2.1 |  2048 |  4,519.61 ns |    29.837 ns |   1.635 ns |  0.81 |    0.00 |     - |     - |     - |         - |
+    // |                      |               |       |              |              |            |       |         |       |       |       |           |
+    // | SharpZipLibCalculate | .NET Core 3.1 |  2048 |  5,543.37 ns |   518.551 ns |  28.424 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // |   SixLaborsCalculate | .NET Core 3.1 |  2048 |     89.07 ns |     3.312 ns |   0.182 ns |  0.02 |    0.00 |     - |     - |     - |         - |
+    // |                      |               |       |              |              |            |       |         |       |       |       |           |
+    // | SharpZipLibCalculate |    .NET 4.7.2 |  4096 | 11,396.95 ns |   373.450 ns |  20.470 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // |   SixLaborsCalculate |    .NET 4.7.2 |  4096 |  9,070.35 ns |   271.083 ns |  14.859 ns |  0.80 |    0.00 |     - |     - |     - |         - |
+    // |                      |               |       |              |              |            |       |         |       |       |       |           |
+    // | SharpZipLibCalculate | .NET Core 2.1 |  4096 | 11,127.81 ns |   239.177 ns |  13.110 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // |   SixLaborsCalculate | .NET Core 2.1 |  4096 |  9,050.46 ns |   230.916 ns |  12.657 ns |  0.81 |    0.00 |     - |     - |     - |         - |
+    // |                      |               |       |              |              |            |       |         |       |       |       |           |
+    // | SharpZipLibCalculate | .NET Core 3.1 |  4096 | 11,098.62 ns |   687.978 ns |  37.710 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // |   SixLaborsCalculate | .NET Core 3.1 |  4096 |    168.11 ns |     3.633 ns |   0.199 ns |  0.02 |    0.00 |     - |     - |     - |         - |
 }

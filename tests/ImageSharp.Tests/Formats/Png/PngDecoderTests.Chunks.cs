@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the GNU Affero General Public License, Version 3.
 
+using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Text;
@@ -16,6 +17,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     public partial class PngDecoderTests
     {
+        // Represents ASCII string of "123456789"
+        private readonly byte[] check = { 49, 50, 51, 52, 53, 54, 55, 56, 57 };
+
         // Contains the png marker, IHDR and pHYs chunks of a 1x1 pixel 32bit png 1 a single black pixel.
         private static readonly byte[] Raw1X1PngIhdrAndpHYs =
             {
@@ -77,20 +81,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
                 Assert.Equal($"CRC Error. PNG {chunkName} chunk is corrupt!", exception.Message);
             }
-        }
-
-        [Fact]
-        public void CalculateCrc_Works()
-        {
-            // arrange
-            var data = new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
-            var crc = new Crc32();
-
-            // act
-            crc.Update(data);
-
-            // assert
-            Assert.Equal(0x88AA689F, crc.Value);
         }
 
         private static string GetChunkTypeName(uint value)

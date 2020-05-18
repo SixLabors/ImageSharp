@@ -12,6 +12,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
     {
         [Theory]
         [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void ReturnsCorrectWhenEmpty(uint input)
+        {
+            Assert.Equal(input, Crc32.Calculate(input, default));
+        }
+
+        [Theory]
+        [InlineData(0)]
         [InlineData(8)]
         [InlineData(215)]
         [InlineData(1024)]

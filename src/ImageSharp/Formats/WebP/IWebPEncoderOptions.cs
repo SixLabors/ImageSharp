@@ -23,6 +23,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         float Quality { get; }
 
         /// <summary>
+        /// Gets the encoding method to use. Its a quality/speed trade-off (0=fast, 6=slower-better).
+        /// </summary>
+        int Method { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the alpha plane should be compressed with WebP lossless format.
         /// </summary>
         bool AlphaCompression { get; }

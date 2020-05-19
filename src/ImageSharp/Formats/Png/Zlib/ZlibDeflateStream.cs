@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// Computes the checksum for the data stream.
         /// </summary>
-        private readonly Adler32 adler32 = new Adler32();
+        private uint adler = Adler32.SeedValue;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -133,10 +134,11 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public override void SetLength(long value) => throw new NotSupportedException();
 
         /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override void Write(byte[] buffer, int offset, int count)
         {
             this.deflateStream.Write(buffer, offset, count);
-            this.adler32.Update(buffer.AsSpan(offset, count));
+            this.adler = Adler32.Calculate(this.adler, buffer.AsSpan(offset, count));
         }
 
         /// <inheritdoc/>
@@ -153,7 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 this.deflateStream.Dispose();
 
                 // Add the crc
-                uint crc = (uint)this.adler32.Value;
+                uint crc = this.adler;
                 this.rawStream.WriteByte((byte)((crc >> 24) & 0xFF));
                 this.rawStream.WriteByte((byte)((crc >> 16) & 0xFF));
                 this.rawStream.WriteByte((byte)((crc >> 8) & 0xFF));

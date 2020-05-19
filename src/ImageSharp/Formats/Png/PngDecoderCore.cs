@@ -31,11 +31,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         private readonly byte[] buffer = new byte[4];
 
         /// <summary>
-        /// Reusable CRC for validating chunks.
-        /// </summary>
-        private readonly Crc32 crc = new Crc32();
-
-        /// <summary>
         /// The global configuration.
         /// </summary>
         private readonly Configuration configuration;
@@ -1210,18 +1205,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="chunk">The <see cref="PngChunk"/>.</param>
         private void ValidateChunk(in PngChunk chunk)
         {
-            uint crc = this.ReadChunkCrc();
+            uint inputCrc = this.ReadChunkCrc();
 
             if (chunk.IsCritical)
             {
                 Span<byte> chunkType = stackalloc byte[4];
                 BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
 
-                this.crc.Reset();
-                this.crc.Update(chunkType);
-                this.crc.Update(chunk.Data.GetSpan());
+                uint validCrc = Crc32.Calculate(chunkType);
+                validCrc = Crc32.Calculate(validCrc, chunk.Data.GetSpan());
 
-                if (this.crc.Value != crc)
+                if (validCrc != inputCrc)
                 {
                     string chunkTypeName = Encoding.ASCII.GetString(chunkType);
                     PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);

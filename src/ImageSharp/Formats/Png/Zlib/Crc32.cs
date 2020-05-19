@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         {
             if (buffer.IsEmpty)
             {
-                return SeedValue;
+                return crc;
             }
 
 #if SUPPORTS_RUNTIME_INTRINSICS

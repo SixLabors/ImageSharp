@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             if (this.cur + WriterBytes > this.end)
             {
                 var extraSize = (this.end - this.cur) + MinExtraSize;
-                if (!BitWriterResize(extraSize))
+                if (!this.BitWriterResize(extraSize))
                 {
                     this.error = true;
                     return;

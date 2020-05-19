@@ -19,6 +19,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public float Quality { get; set; }
 
         /// <inheritdoc/>
+        public int Method { get; set; }
+
+        /// <inheritdoc/>
         public bool AlphaCompression { get; set; }
 
         /// <inheritdoc/>

@@ -73,6 +73,21 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public const int Vp8LVersion = 0;
 
         /// <summary>
+        /// Maximum number of histogram images (sub-blocks).
+        /// </summary>
+        public const int MaxHuffImageSize = 2600;
+
+        /// <summary>
+        /// Minimum number of Huffman bits.
+        /// </summary>
+        public const int MinHuffmanBits = 2;
+
+        /// <summary>
+        /// Maximum number of Huffman bits.
+        /// </summary>
+        public const int MaxHuffmanBits = 9;
+
+        /// <summary>
         /// The maximum number of colors for a paletted images.
         /// </summary>
         public const int MaxPaletteSize = 256;

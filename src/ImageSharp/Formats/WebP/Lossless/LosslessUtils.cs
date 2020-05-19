@@ -16,6 +16,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     {
         private const uint Predictor0 = WebPConstants.ArgbBlack;
 
+        private const int LogLookupIdxMax = 256;
+
+        private const int ApproxLogMax = 4096;
+
+        private const int ApproxLogWithCorrectionMax = 65536;
+
+        private const double Log2Reciprocal = 1.44269504088896338700465094007086;
+
         /// <summary>
         /// Add green to blue and red channels (i.e. perform the inverse transform of 'subtract green').
         /// </summary>
@@ -303,6 +311,89 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             uint alphaAndGreen = 0x00ff00ffu + (a & 0xff00ff00u) - (b & 0xff00ff00u);
             uint redAndBlue = 0xff00ff00u + (a & 0x00ff00ffu) - (b & 0x00ff00ffu);
             return (alphaAndGreen & 0xff00ff00u) | (redAndBlue & 0x00ff00ffu);
+        }
+
+        /// <summary>
+        /// Fast calculation of log2(v) for integer input.
+        /// </summary>
+        public static float FastLog2(uint v)
+        {
+            return (v < LogLookupIdxMax) ? WebPLookupTables.Log2Table[v] : FastLog2Slow(v);
+        }
+
+        /// <summary>
+        /// Fast calculation of v * log2(v) for integer input.
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static float FastSLog2(uint v)
+        {
+            return (v < LogLookupIdxMax) ? WebPLookupTables.SLog2Table[v] : FastSLog2Slow(v);
+        }
+
+        private static float FastSLog2Slow(uint v)
+        {
+            Guard.MustBeGreaterThanOrEqualTo(v, LogLookupIdxMax, nameof(v));
+            if (v < ApproxLogWithCorrectionMax)
+            {
+                int logCnt = 0;
+                uint y = 1;
+                int correction = 0;
+                float vF = (float)v;
+                uint origV = v;
+                do
+                {
+                    ++logCnt;
+                    v = v >> 1;
+                    y = y << 1;
+                }
+                while (v >= LogLookupIdxMax);
+
+                // vf = (2^log_cnt) * Xf; where y = 2^log_cnt and Xf < 256
+                // Xf = floor(Xf) * (1 + (v % y) / v)
+                // log2(Xf) = log2(floor(Xf)) + log2(1 + (v % y) / v)
+                // The correction factor: log(1 + d) ~ d; for very small d values, so
+                // log2(1 + (v % y) / v) ~ LOG_2_RECIPROCAL * (v % y)/v
+                // LOG_2_RECIPROCAL ~ 23/16
+                correction = (int)((23 * (origV & (y - 1))) >> 4);
+                return (vF * (WebPLookupTables.Log2Table[v] + logCnt)) + correction;
+            }
+            else
+            {
+                return (float)(Log2Reciprocal * v * Math.Log(v));
+            }
+        }
+
+        private static float FastLog2Slow(uint v)
+        {
+            Guard.MustBeGreaterThanOrEqualTo(v, LogLookupIdxMax, nameof(v));
+            if (v < ApproxLogWithCorrectionMax)
+            {
+                int logCnt = 0;
+                uint y = 1;
+                uint origV = v;
+                do
+                {
+                    ++logCnt;
+                    v = v >> 1;
+                    y = y << 1;
+                }
+                while (v >= LogLookupIdxMax);
+
+                double log2 = WebPLookupTables.Log2Table[v] + logCnt;
+                if (origV >= ApproxLogMax)
+                {
+                    // Since the division is still expensive, add this correction factor only
+                    // for large values of 'v'.
+                    int correction = (int)(23 * (origV & (y - 1))) >> 4;
+                    log2 += (double)correction / origV;
+                }
+
+                return (float)log2;
+            }
+            else
+            {
+                return (float)(Log2Reciprocal * Math.Log(v));
+            }
         }
 
         private static void PredictorAdd0(Span<uint> input, int startIdx, int numberOfPixels, Span<uint> output)

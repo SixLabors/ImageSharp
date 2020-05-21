@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Linq;
@@ -77,84 +77,6 @@ namespace SixLabors.ImageSharp.Advanced
         public static IMemoryGroup<TPixel> GetPixelMemoryGroup<TPixel>(this Image<TPixel> source)
             where TPixel : unmanaged, IPixel<TPixel>
             => source?.Frames.RootFrame.GetPixelMemoryGroup() ?? throw new ArgumentNullException(nameof(source));
-
-        /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> in the source image's pixel format
-        /// stored in row major order, if the backing buffer is contiguous.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source image.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        /// <exception cref="InvalidOperationException">Thrown when the backing buffer is discontiguous.</exception>
-        [Obsolete(
-            @"GetPixelSpan might fail, because the backing buffer could be discontiguous for large images. Use GetPixelMemoryGroup or GetPixelRowSpan instead!")]
-        public static Span<TPixel> GetPixelSpan<TPixel>(this ImageFrame<TPixel> source)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(source, nameof(source));
-
-            IMemoryGroup<TPixel> mg = source.GetPixelMemoryGroup();
-            if (mg.Count > 1)
-            {
-                throw new InvalidOperationException($"GetPixelSpan is invalid, since the backing buffer of this {source.Width}x{source.Height} sized image is discontiguous!");
-            }
-
-            return mg.Single().Span;
-        }
-
-        /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory in the source image's pixel format
-        /// stored in row major order.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        /// <exception cref="InvalidOperationException">Thrown when the backing buffer is discontiguous.</exception>
-        [Obsolete(
-            @"GetPixelSpan might fail, because the backing buffer could be discontiguous for large images. Use GetPixelMemoryGroup or GetPixelRowSpan instead!")]
-        public static Span<TPixel> GetPixelSpan<TPixel>(this Image<TPixel> source)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(source, nameof(source));
-
-            return source.Frames.RootFrame.GetPixelSpan();
-        }
-
-        /// <summary>
-        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <param name="rowIndex">The row.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        public static Span<TPixel> GetPixelRowSpan<TPixel>(this ImageFrame<TPixel> source, int rowIndex)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(source, nameof(source));
-            Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
-            Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
-
-            return source.PixelBuffer.GetRowSpan(rowIndex);
-        }
-
-        /// <summary>
-        /// Gets the representation of the pixels as <see cref="Span{T}"/> of of contiguous memory
-        /// at row <paramref name="rowIndex"/> beginning from the the first pixel on that row.
-        /// </summary>
-        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <param name="rowIndex">The row.</param>
-        /// <returns>The <see cref="Span{TPixel}"/></returns>
-        public static Span<TPixel> GetPixelRowSpan<TPixel>(this Image<TPixel> source, int rowIndex)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Guard.NotNull(source, nameof(source));
-            Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
-            Guard.MustBeLessThan(rowIndex, source.Height, nameof(rowIndex));
-
-            return source.Frames.RootFrame.PixelBuffer.GetRowSpan(rowIndex);
-        }
 
         /// <summary>
         /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory

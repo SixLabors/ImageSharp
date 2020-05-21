@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 namespace SixLabors.ImageSharp.Formats.Tga
 {
@@ -28,6 +28,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// Gets or sets the number of bits per pixel.
         /// </summary>
         public TgaBitsPerPixel BitsPerPixel { get; set; } = TgaBitsPerPixel.Pixel24;
+
+        /// <summary>
+        /// Gets or sets the the number of alpha bits per pixel.
+        /// </summary>
+        public byte AlphaChannelBits { get; set; } = 0;
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new TgaMetadata(this);

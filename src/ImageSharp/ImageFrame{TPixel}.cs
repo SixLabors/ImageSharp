@@ -1,7 +1,8 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
@@ -164,6 +165,40 @@ namespace SixLabors.ImageSharp
                 this.VerifyCoords(x, y);
                 this.PixelBuffer.GetElementUnsafe(x, y) = value;
             }
+        }
+
+        /// <summary>
+        /// Gets the representation of the pixels as a <see cref="Span{T}"/> of contiguous memory
+        /// at row <paramref name="rowIndex"/> beginning from the first pixel on that row.
+        /// </summary>
+        /// <param name="rowIndex">The row.</param>
+        /// <returns>The <see cref="Span{TPixel}"/></returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when row index is out of range.</exception>
+        public Span<TPixel> GetPixelRowSpan(int rowIndex)
+        {
+            Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
+            Guard.MustBeLessThan(rowIndex, this.Height, nameof(rowIndex));
+
+            return this.PixelBuffer.GetRowSpan(rowIndex);
+        }
+
+        /// <summary>
+        /// Gets the representation of the pixels as a <see cref="Span{T}"/> in the source image's pixel format
+        /// stored in row major order, if the backing buffer is contiguous.
+        /// </summary>
+        /// <param name="span">The <see cref="Span{T}"/>.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public bool TryGetSinglePixelSpan(out Span<TPixel> span)
+        {
+            IMemoryGroup<TPixel> mg = this.GetPixelMemoryGroup();
+            if (mg.Count > 1)
+            {
+                span = default;
+                return false;
+            }
+
+            span = mg.Single().Span;
+            return true;
         }
 
         /// <summary>

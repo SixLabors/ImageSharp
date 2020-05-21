@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Pack(ref Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, MinusOne, Vector4.One) * Half;
+            vector = Vector4Utilities.FastClamp(vector, MinusOne, Vector4.One) * Half;
 
             uint byte4 = ((uint)MathF.Round(vector.X) & 0xFF) << 0;
             uint byte3 = ((uint)MathF.Round(vector.Y) & 0xFF) << 8;

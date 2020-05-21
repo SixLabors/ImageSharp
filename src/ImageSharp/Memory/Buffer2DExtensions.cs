@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Diagnostics;
@@ -25,52 +25,6 @@ namespace SixLabors.ImageSharp.Memory
         {
             Guard.NotNull(buffer, nameof(buffer));
             return buffer.FastMemoryGroup.View;
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Span{T}"/> to the backing data of <paramref name="buffer"/>
-        /// if the backing group consists of one single contiguous memory buffer.
-        /// Throws <see cref="InvalidOperationException"/> otherwise.
-        /// </summary>
-        /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
-        /// <typeparam name="T">The value type.</typeparam>
-        /// <returns>The <see cref="Span{T}"/> referencing the memory area.</returns>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown when the backing group is discontiguous.
-        /// </exception>
-        internal static Span<T> GetSingleSpan<T>(this Buffer2D<T> buffer)
-            where T : struct
-        {
-            Guard.NotNull(buffer, nameof(buffer));
-            if (buffer.FastMemoryGroup.Count > 1)
-            {
-                throw new InvalidOperationException("GetSingleSpan is only valid for a single-buffer group!");
-            }
-
-            return buffer.FastMemoryGroup.Single().Span;
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Memory{T}"/> to the backing data of <paramref name="buffer"/>
-        /// if the backing group consists of one single contiguous memory buffer.
-        /// Throws <see cref="InvalidOperationException"/> otherwise.
-        /// </summary>
-        /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
-        /// <typeparam name="T">The value type.</typeparam>
-        /// <returns>The <see cref="Memory{T}"/>.</returns>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown when the backing group is discontiguous.
-        /// </exception>
-        internal static Memory<T> GetSingleMemory<T>(this Buffer2D<T> buffer)
-            where T : struct
-        {
-            Guard.NotNull(buffer, nameof(buffer));
-            if (buffer.FastMemoryGroup.Count > 1)
-            {
-                throw new InvalidOperationException("GetSingleMemory is only valid for a single-buffer group!");
-            }
-
-            return buffer.FastMemoryGroup.Single();
         }
 
         /// <summary>
@@ -126,29 +80,29 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Return a <see cref="BufferArea{T}"/> to the subarea represented by 'rectangle'
+        /// Return a <see cref="Buffer2DRegion{T}"/> to the subregion represented by 'rectangle'
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
-        /// <param name="rectangle">The rectangle subarea</param>
-        /// <returns>The <see cref="BufferArea{T}"/></returns>
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer, in Rectangle rectangle)
-            where T : struct =>
-            new BufferArea<T>(buffer, rectangle);
+        /// <param name="rectangle">The rectangle subregion</param>
+        /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
+        internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, Rectangle rectangle)
+            where T : unmanaged =>
+            new Buffer2DRegion<T>(buffer, rectangle);
 
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
-            where T : struct =>
-            new BufferArea<T>(buffer, new Rectangle(x, y, width, height));
+        internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
+            where T : unmanaged =>
+            new Buffer2DRegion<T>(buffer, new Rectangle(x, y, width, height));
 
         /// <summary>
-        /// Return a <see cref="BufferArea{T}"/> to the whole area of 'buffer'
+        /// Return a <see cref="Buffer2DRegion{T}"/> to the whole area of 'buffer'
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
-        /// <returns>The <see cref="BufferArea{T}"/></returns>
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer)
-            where T : struct =>
-            new BufferArea<T>(buffer);
+        /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
+        internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer)
+            where T : unmanaged =>
+            new Buffer2DRegion<T>(buffer);
 
         /// <summary>
         /// Returns the size of the buffer.

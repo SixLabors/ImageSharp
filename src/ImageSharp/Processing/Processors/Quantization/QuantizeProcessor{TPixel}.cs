@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -38,8 +38,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             var interest = Rectangle.Intersect(source.Bounds(), this.SourceRectangle);
 
             Configuration configuration = this.Configuration;
-            using IFrameQuantizer<TPixel> frameQuantizer = this.quantizer.CreateFrameQuantizer<TPixel>(configuration);
-            using QuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(source, interest);
+            using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration);
+            using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(source, interest);
 
             var operation = new RowIntervalOperation(this.SourceRectangle, source, quantized);
             ParallelRowIterator.IterateRowIntervals(
@@ -52,13 +52,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         {
             private readonly Rectangle bounds;
             private readonly ImageFrame<TPixel> source;
-            private readonly QuantizedFrame<TPixel> quantized;
+            private readonly IndexedImageFrame<TPixel> quantized;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowIntervalOperation(
                 Rectangle bounds,
                 ImageFrame<TPixel> source,
-                QuantizedFrame<TPixel> quantized)
+                IndexedImageFrame<TPixel> quantized)
             {
                 this.bounds = bounds;
                 this.source = source;
@@ -68,21 +68,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows)
             {
-                ReadOnlySpan<byte> quantizedPixelSpan = this.quantized.GetPixelSpan();
                 ReadOnlySpan<TPixel> paletteSpan = this.quantized.Palette.Span;
                 int offsetY = this.bounds.Top;
                 int offsetX = this.bounds.Left;
-                int width = this.bounds.Width;
 
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<TPixel> row = this.source.GetPixelRowSpan(y);
-                    int rowStart = (y - offsetY) * width;
+                    ReadOnlySpan<byte> quantizedRow = this.quantized.GetPixelRowSpan(y - offsetY);
 
                     for (int x = this.bounds.Left; x < this.bounds.Right; x++)
                     {
-                        int i = rowStart + x - offsetX;
-                        row[x] = paletteSpan[quantizedPixelSpan[i]];
+                        row[x] = paletteSpan[quantizedRow[x - offsetX]];
                     }
                 }
             }

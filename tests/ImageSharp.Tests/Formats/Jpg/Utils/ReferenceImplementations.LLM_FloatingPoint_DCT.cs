@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             public static Block8x8F TransformIDCT(ref Block8x8F source)
             {
                 float[] s = new float[64];
-                source.CopyTo(s);
+                source.ScaledCopyTo(s);
                 float[] d = new float[64];
                 float[] temp = new float[64];
 
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             public static Block8x8F TransformFDCT_UpscaleBy8(ref Block8x8F source)
             {
                 float[] s = new float[64];
-                source.CopyTo(s);
+                source.ScaledCopyTo(s);
                 float[] d = new float[64];
                 float[] temp = new float[64];
 

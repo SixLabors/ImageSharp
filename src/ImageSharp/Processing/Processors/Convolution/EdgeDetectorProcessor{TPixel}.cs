@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
@@ -43,6 +43,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc/>
         protected override void BeforeImageApply()
         {
+            using (IImageProcessor<TPixel> opaque = new OpaqueProcessor<TPixel>(this.Configuration, this.Source, this.SourceRectangle))
+            {
+                opaque.Execute();
+            }
+
             if (this.Grayscale)
             {
                 new GrayscaleBt709Processor(1F).Execute(this.Configuration, this.Source, this.SourceRectangle);

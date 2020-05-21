@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
@@ -393,7 +393,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     break;
                 default:
                     // Compression type 3 (1DHuffman) is not supported.
-                    BmpThrowHelper.ThrowImageFormatException("Compression type is not supported. ImageSharp only supports uncompressed, RLE4, RLE8 and RLE24.");
+                    BmpThrowHelper.ThrowInvalidImageContentException("Compression type is not supported. ImageSharp only supports uncompressed, RLE4, RLE8 and RLE24.");
                     break;
             }
 

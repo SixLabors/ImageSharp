@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.IO;
 using SixLabors.ImageSharp.Memory;
@@ -43,9 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 Size dims = decoder.Dimensions;
 
-                // TODO: use InvalidImageContentException here, if we decide to define it
-                // https://github.com/SixLabors/ImageSharp/issues/1110
-                throw new ImageFormatException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}. This error can happen for very large RLE bitmaps, which are not supported.", ex);
+                throw new InvalidImageContentException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}. This error can happen for very large RLE bitmaps, which are not supported.", ex);
             }
         }
 

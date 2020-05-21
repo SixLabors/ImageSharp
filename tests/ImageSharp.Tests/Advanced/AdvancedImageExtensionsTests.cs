@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Linq;
@@ -61,7 +61,10 @@ namespace SixLabors.ImageSharp.Tests.Advanced
             {
                 using Image<TPixel> image0 = provider.GetImage();
                 var targetBuffer = new TPixel[image0.Width * image0.Height];
-                image0.GetPixelSpan().CopyTo(targetBuffer);
+
+                Assert.True(image0.TryGetSinglePixelSpan(out Span<TPixel> sourceBuffer));
+
+                sourceBuffer.CopyTo(targetBuffer);
 
                 var managerOfExternalMemory = new TestMemoryManager<TPixel>(targetBuffer);
 

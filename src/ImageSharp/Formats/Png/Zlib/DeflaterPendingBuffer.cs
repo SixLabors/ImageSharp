@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers;
@@ -172,8 +172,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 this.bufferMemoryOwner = null;
                 this.isDisposed = true;
             }
-
-            GC.SuppressFinalize(this);
         }
     }
 }

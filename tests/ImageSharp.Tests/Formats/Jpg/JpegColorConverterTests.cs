@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [MemberData(nameof(CommonConversionData))]
         public void FromYCbCrSimdAvx2(int inputBufferLength, int resultBufferLength, int seed)
         {
-            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            if (!SimdUtils.HasVector8)
             {
                 this.Output.WriteLine("No AVX2 present, skipping test!");
                 return;
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             // JpegColorConverter.FromYCbCrSimdAvx2.LogPlz = s => this.Output.WriteLine(s);
             ValidateRgbToYCbCrConversion(
-                new JpegColorConverter.FromYCbCrSimdAvx2(8),
+                new JpegColorConverter.FromYCbCrSimdVector8(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,

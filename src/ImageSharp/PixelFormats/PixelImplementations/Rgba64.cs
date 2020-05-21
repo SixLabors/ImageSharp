@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public Rgba64(Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, Vector4.One) * Max;
             this.R = (ushort)MathF.Round(vector.X);
             this.G = (ushort)MathF.Round(vector.Y);
             this.B = (ushort)MathF.Round(vector.Z);
@@ -209,7 +209,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromVector4(Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, Vector4.One) * Max;
             this.R = (ushort)MathF.Round(vector.X);
             this.G = (ushort)MathF.Round(vector.Y);
             this.B = (ushort)MathF.Round(vector.Z);

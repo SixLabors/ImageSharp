@@ -1,8 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -150,6 +152,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
 
         public static TheoryData<long, int, long, int> GetBoundedSlice_ErrorData = new TheoryData<long, int, long, int>()
         {
+            { 300, 100, -1, 91 },
             { 300, 100, 110, 91 },
             { 42, 7, 0, 8 },
             { 42, 7, 1, 7 },
@@ -165,13 +168,41 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers
         }
 
         [Fact]
-        public void Fill()
+        public void FillWithFastEnumerator()
         {
             using MemoryGroup<int> group = this.CreateTestGroup(100, 10, true);
             group.Fill(42);
 
             int[] expectedRow = Enumerable.Repeat(42, 10).ToArray();
             foreach (Memory<int> memory in group)
+            {
+                Assert.True(memory.Span.SequenceEqual(expectedRow));
+            }
+        }
+
+        [Fact]
+        public void FillWithSlowGenericEnumerator()
+        {
+            using MemoryGroup<int> group = this.CreateTestGroup(100, 10, true);
+            group.Fill(42);
+
+            int[] expectedRow = Enumerable.Repeat(42, 10).ToArray();
+            IReadOnlyList<Memory<int>> groupAsList = group;
+            foreach (Memory<int> memory in groupAsList)
+            {
+                Assert.True(memory.Span.SequenceEqual(expectedRow));
+            }
+        }
+
+        [Fact]
+        public void FillWithSlowEnumerator()
+        {
+            using MemoryGroup<int> group = this.CreateTestGroup(100, 10, true);
+            group.Fill(42);
+
+            int[] expectedRow = Enumerable.Repeat(42, 10).ToArray();
+            IEnumerable groupAsList = group;
+            foreach (Memory<int> memory in groupAsList)
             {
                 Assert.True(memory.Span.SequenceEqual(expectedRow));
             }

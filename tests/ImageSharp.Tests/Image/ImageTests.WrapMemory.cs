@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers;
@@ -91,7 +91,8 @@ namespace SixLabors.ImageSharp.Tests
 
                 using (var image = Image.WrapMemory(cfg, memory, 5, 5, metaData))
                 {
-                    ref Rgba32 pixel0 = ref image.GetPixelSpan()[0];
+                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
+                    ref Rgba32 pixel0 = ref imageSpan[0];
                     Assert.True(Unsafe.AreSame(ref array[0], ref pixel0));
 
                     Assert.Equal(cfg, image.GetConfiguration());
@@ -118,7 +119,8 @@ namespace SixLabors.ImageSharp.Tests
                         using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                         {
                             Assert.Equal(memory, image.GetRootFramePixelBuffer().GetSingleMemory());
-                            image.GetPixelSpan().Fill(bg);
+                            Assert.True(image.TryGetSinglePixelSpan(out Span<Bgra32> imageSpan));
+                            imageSpan.Fill(bg);
                             for (var i = 10; i < 20; i++)
                             {
                                 image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
@@ -153,8 +155,8 @@ namespace SixLabors.ImageSharp.Tests
                     using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                     {
                         Assert.Equal(memoryManager.Memory, image.GetRootFramePixelBuffer().GetSingleMemory());
-
-                        image.GetPixelSpan().Fill(bg);
+                        Assert.True(image.TryGetSinglePixelSpan(out Span<Bgra32> imageSpan));
+                        imageSpan.Fill(bg);
                         for (var i = 10; i < 20; i++)
                         {
                             image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);

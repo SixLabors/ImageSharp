@@ -1,11 +1,15 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using SixLabors.ImageSharp.Tests.Formats.Jpg;
 using SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 using SixLabors.ImageSharp.Tests.ProfilingBenchmarks;
 using Xunit.Abstractions;
+
+// in this file, comments are used for disabling stuff for local execution
+#pragma warning disable SA1515
+#pragma warning disable SA1512
 
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 {
@@ -28,10 +32,9 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         public static void Main(string[] args)
         {
             // RunJpegColorProfilingTests();
-
-            // RunDecodeJpegProfilingTests();
+            RunDecodeJpegProfilingTests();
             // RunToVector4ProfilingTest();
-            RunResizeProfilingTest();
+            // RunResizeProfilingTest();
 
             Console.ReadLine();
         }
@@ -61,8 +64,11 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
             foreach (object[] data in JpegProfilingBenchmarks.DecodeJpegData)
             {
                 string fileName = (string)data[0];
-                benchmarks.DecodeJpeg(fileName);
+                int executionCount = (int)data[1];
+                benchmarks.DecodeJpeg(fileName, executionCount);
             }
+
+            Console.WriteLine("DONE.");
         }
     }
 }

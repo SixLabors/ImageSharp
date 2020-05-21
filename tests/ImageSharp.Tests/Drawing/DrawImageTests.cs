@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using SixLabors.ImageSharp.Advanced;
@@ -128,7 +128,8 @@ namespace SixLabors.ImageSharp.Tests.Drawing
             using (Image<Rgba32> background = provider.GetImage())
             using (var overlay = new Image<Rgba32>(50, 50))
             {
-                overlay.GetPixelSpan().Fill(Color.Black);
+                Assert.True(overlay.TryGetSinglePixelSpan(out Span<Rgba32> overlaySpan));
+                overlaySpan.Fill(Color.Black);
 
                 background.Mutate(c => c.DrawImage(overlay, new Point(x, y), PixelColorBlendingMode.Normal, 1F));
 

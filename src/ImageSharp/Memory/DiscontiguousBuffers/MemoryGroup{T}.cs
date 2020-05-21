@@ -1,12 +1,11 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -48,10 +47,21 @@ namespace SixLabors.ImageSharp.Memory
         public abstract void Dispose();
 
         /// <inheritdoc />
-        public abstract IEnumerator<Memory<T>> GetEnumerator();
+        public abstract MemoryGroupEnumerator<T> GetEnumerator();
 
         /// <inheritdoc />
-        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
+        IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
+        {
+            /* This method is implemented in each derived class.
+             * Implementing the method here as non-abstract and throwing,
+             * then reimplementing it explicitly in each derived class, is
+             * a workaround for the lack of support for abstract explicit
+             * interface method implementations in C#. */
+            throw new NotImplementedException($"The type {this.GetType()} needs to override IEnumerable<Memory<T>>.GetEnumerator()");
+        }
+
+        /// <inheritdoc />
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<Memory<T>>)this).GetEnumerator();
 
         /// <summary>
         /// Creates a new memory group, allocating it's buffers with the provided allocator.

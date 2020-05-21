@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
+using System.Collections.Generic;
 using SixLabors.ImageSharp.Processing.Processors;
 
 namespace SixLabors.ImageSharp.Processing
@@ -14,6 +15,12 @@ namespace SixLabors.ImageSharp.Processing
         /// Gets the configuration which allows altering default behaviour or extending the library.
         /// </summary>
         Configuration Configuration { get; }
+
+        /// <summary>
+        /// Gets a set of properties for the Image Processing Context.
+        /// </summary>
+        /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
+        IDictionary<object, object> Properties { get; }
 
         /// <summary>
         /// Gets the image dimensions at the current point in the processing pipeline.

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
-using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -19,35 +18,31 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// <typeparam name="TFrameQuantizer">The type of frame quantizer.</typeparam>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="quantizer">The frame quantizer.</param>
-        /// <param name="palette">The quantized palette.</param>
         /// <param name="source">The source image.</param>
-        /// <param name="output">The output target</param>
+        /// <param name="destination">The destination quantized frame.</param>
         /// <param name="bounds">The region of interest bounds.</param>
         void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
             ref TFrameQuantizer quantizer,
-            ReadOnlyMemory<TPixel> palette,
             ImageFrame<TPixel> source,
-            Memory<byte> output,
+            IndexedImageFrame<TPixel> destination,
             Rectangle bounds)
-            where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
+            where TFrameQuantizer : struct, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
         /// Transforms the image frame applying a dither matrix.
         /// This method should be treated as destructive, altering the input pixels.
         /// </summary>
+        /// <typeparam name="TPaletteDitherImageProcessor">The type of palette dithering processor.</typeparam>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="palette">The quantized palette.</param>
+        /// <param name="processor">The palette dithering processor.</param>
         /// <param name="source">The source image.</param>
         /// <param name="bounds">The region of interest bounds.</param>
-        /// <param name="scale">The dithering scale used to adjust the amount of dither. Range 0..1.</param>
-        void ApplyPaletteDither<TPixel>(
-            Configuration configuration,
-            ReadOnlyMemory<TPixel> palette,
+        void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
+            in TPaletteDitherImageProcessor processor,
             ImageFrame<TPixel> source,
-            Rectangle bounds,
-            float scale)
+            Rectangle bounds)
+            where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>;
     }
 }

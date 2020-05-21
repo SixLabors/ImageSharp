@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             // These operations should be size-agnostic:
             var size = new Size(123, 321);
-            TBuilder builder = this.CreateBuilder(size);
+            TBuilder builder = this.CreateBuilder();
 
             this.AppendScale(builder, new SizeF(scale));
             this.AppendTranslation(builder, translate);
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             // Translate ans scale are size-agnostic:
             var size = new Size(456, 432);
-            TBuilder builder = this.CreateBuilder(size);
+            TBuilder builder = this.CreateBuilder();
 
             this.AppendTranslation(builder, translate);
             this.AppendScale(builder, new SizeF(scale));
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void LocationOffsetIsPrepended(int locationX, int locationY)
         {
             var rectangle = new Rectangle(locationX, locationY, 10, 10);
-            TBuilder builder = this.CreateBuilder(rectangle);
+            TBuilder builder = this.CreateBuilder();
 
             this.AppendScale(builder, new SizeF(2, 2));
 
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             float y)
         {
             var size = new Size(width, height);
-            TBuilder builder = this.CreateBuilder(size);
+            TBuilder builder = this.CreateBuilder();
 
             this.AppendRotationDegrees(builder, degrees);
 
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             float y)
         {
             var size = new Size(width, height);
-            TBuilder builder = this.CreateBuilder(size);
+            TBuilder builder = this.CreateBuilder();
 
             var centerPoint = new Vector2(cx, cy);
             this.AppendRotationDegrees(builder, degrees, centerPoint);
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             float y)
         {
             var size = new Size(width, height);
-            TBuilder builder = this.CreateBuilder(size);
+            TBuilder builder = this.CreateBuilder();
 
             this.AppendSkewDegrees(builder, degreesX, degreesY);
 
@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             float y)
         {
             var size = new Size(width, height);
-            TBuilder builder = this.CreateBuilder(size);
+            TBuilder builder = this.CreateBuilder();
 
             var centerPoint = new Vector2(cx, cy);
             this.AppendSkewDegrees(builder, degreesX, degreesY, centerPoint);
@@ -194,8 +194,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void AppendPrependOpposite()
         {
             var rectangle = new Rectangle(-1, -1, 3, 3);
-            TBuilder b1 = this.CreateBuilder(rectangle);
-            TBuilder b2 = this.CreateBuilder(rectangle);
+            TBuilder b1 = this.CreateBuilder();
+            TBuilder b2 = this.CreateBuilder();
 
             const float pi = (float)Math.PI;
 
@@ -232,14 +232,24 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             Assert.ThrowsAny<ArgumentOutOfRangeException>(
                 () =>
                     {
-                        TBuilder builder = this.CreateBuilder(size);
+                        TBuilder builder = this.CreateBuilder();
                         this.Execute(builder, new Rectangle(Point.Empty, size), Vector2.Zero);
                     });
         }
 
-        protected TBuilder CreateBuilder(Size size) => this.CreateBuilder(new Rectangle(Point.Empty, size));
+        [Fact]
+        public void ThrowsForInvalidMatrix()
+        {
+            Assert.ThrowsAny<DegenerateTransformException>(
+                () =>
+                {
+                    TBuilder builder = this.CreateBuilder();
+                    this.AppendSkewDegrees(builder, 45, 45);
+                    this.Execute(builder, new Rectangle(0, 0, 150, 150), Vector2.Zero);
+                });
+        }
 
-        protected abstract TBuilder CreateBuilder(Rectangle rectangle);
+        protected abstract TBuilder CreateBuilder();
 
         protected abstract void AppendRotationDegrees(TBuilder builder, float degrees);
 

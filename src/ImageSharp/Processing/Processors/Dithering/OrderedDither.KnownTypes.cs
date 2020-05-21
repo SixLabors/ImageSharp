@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
     /// <content>
     /// An ordered dithering matrix with equal sides of arbitrary length
     /// </content>
-    public readonly partial struct OrderedDither : IDither
+    public readonly partial struct OrderedDither
     {
         /// <summary>
         /// Applies order dithering using the 2x2 Bayer dithering matrix.

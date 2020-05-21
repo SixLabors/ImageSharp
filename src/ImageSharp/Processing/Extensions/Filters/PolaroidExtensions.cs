@@ -1,5 +1,5 @@
-﻿// Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.Processing.Processors.Filters;
 
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Polaroid(this IImageProcessingContext source)
-            => source.ApplyProcessor(new PolaroidProcessor());
+            => source.ApplyProcessor(new PolaroidProcessor(source.GetGraphicsOptions()));
 
         /// <summary>
         /// Alters the colors of the image recreating an old Polaroid camera effect.
@@ -28,6 +28,6 @@ namespace SixLabors.ImageSharp.Processing
         /// </param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Polaroid(this IImageProcessingContext source, Rectangle rectangle)
-            => source.ApplyProcessor(new PolaroidProcessor(), rectangle);
+            => source.ApplyProcessor(new PolaroidProcessor(source.GetGraphicsOptions()), rectangle);
     }
 }

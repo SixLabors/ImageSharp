@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
     /// <summary>
     /// Matrices used for transformation from <see cref="CieXyz"/> to <see cref="Lms"/>, defining the cone response domain.

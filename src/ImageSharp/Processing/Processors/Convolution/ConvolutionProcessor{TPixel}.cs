@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
@@ -58,9 +58,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
             var operation = new RowOperation(interest, targetPixels, source.PixelBuffer, this.KernelXY, this.Configuration, this.PreserveAlpha);
             ParallelRowIterator.IterateRows<RowOperation, Vector4>(
-                this.Configuration,
-                interest,
-                in operation);
+               this.Configuration,
+               interest,
+               in operation);
 
             Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
         }

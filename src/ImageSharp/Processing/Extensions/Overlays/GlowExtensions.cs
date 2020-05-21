@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.Processing.Processors.Overlays;
 
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Glow(this IImageProcessingContext source) =>
-            Glow(source, new GraphicsOptions());
+            Glow(source, source.GetGraphicsOptions());
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Glow(this IImageProcessingContext source, Color color)
         {
-            return Glow(source, new GraphicsOptions(), color);
+            return Glow(source, source.GetGraphicsOptions(), color);
         }
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radius">The the radius.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Glow(this IImageProcessingContext source, float radius) =>
-            Glow(source, new GraphicsOptions(), radius);
+            Glow(source, source.GetGraphicsOptions(), radius);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Glow(this IImageProcessingContext source, Rectangle rectangle) =>
-            source.Glow(new GraphicsOptions(), rectangle);
+            source.Glow(source.GetGraphicsOptions(), rectangle);
 
         /// <summary>
         /// Applies a radial glow effect to an image.
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Processing
             Color color,
             float radius,
             Rectangle rectangle) =>
-            source.Glow(new GraphicsOptions(), color, ValueSize.Absolute(radius), rectangle);
+            source.Glow(source.GetGraphicsOptions(), color, ValueSize.Absolute(radius), rectangle);
 
         /// <summary>
         /// Applies a radial glow effect to an image.

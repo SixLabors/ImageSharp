@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Drawing;
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing
             Image image,
             float opacity)
         {
-            var options = new GraphicsOptions();
+            var options = source.GetGraphicsOptions();
             return source.ApplyProcessor(
                 new DrawImageProcessor(
                 image,
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing
                     image,
                     Point.Empty,
                     colorBlending,
-                    new GraphicsOptions().AlphaCompositionMode,
+                    source.GetGraphicsOptions().AlphaCompositionMode,
                     opacity));
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Processing
             Point location,
             float opacity)
         {
-            var options = new GraphicsOptions();
+            var options = source.GetGraphicsOptions();
             return source.ApplyProcessor(
                 new DrawImageProcessor(
                 image,
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Processing
                     image,
                     location,
                     colorBlending,
-                    new GraphicsOptions().AlphaCompositionMode,
+                    source.GetGraphicsOptions().AlphaCompositionMode,
                     opacity));
 
         /// <summary>

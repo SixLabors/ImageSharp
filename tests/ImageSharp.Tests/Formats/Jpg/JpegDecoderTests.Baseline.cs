@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory;
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [WithFileCollection(nameof(UnrecoverableTestJpegs), PixelTypes.Rgba32)]
-        public void UnrecoverableImage_Throws_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<ImageFormatException>(provider.GetImage);
+        public void UnrecoverableImage_Throws_InvalidImageContentException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<InvalidImageContentException>(provider.GetImage);
     }
 }

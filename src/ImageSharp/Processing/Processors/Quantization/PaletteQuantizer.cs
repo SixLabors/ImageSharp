@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,12 +11,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     public class PaletteQuantizer : IQuantizer
     {
+        private static readonly QuantizerOptions DefaultOptions = new QuantizerOptions();
+        private readonly ReadOnlyMemory<Color> colorPalette;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
         /// </summary>
         /// <param name="palette">The color palette.</param>
         public PaletteQuantizer(ReadOnlyMemory<Color> palette)
-            : this(palette, new QuantizerOptions())
+            : this(palette, DefaultOptions)
         {
         }
 
@@ -30,34 +33,34 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             Guard.MustBeGreaterThan(palette.Length, 0, nameof(palette));
             Guard.NotNull(options, nameof(options));
 
-            this.Palette = palette;
+            this.colorPalette = palette;
             this.Options = options;
         }
-
-        /// <summary>
-        /// Gets the color palette.
-        /// </summary>
-        public ReadOnlyMemory<Color> Palette { get; }
 
         /// <inheritdoc />
         public QuantizerOptions Options { get; }
 
         /// <inheritdoc />
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
+        public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration)
             where TPixel : unmanaged, IPixel<TPixel>
-            => this.CreateFrameQuantizer<TPixel>(configuration, this.Options);
+            => this.CreatePixelSpecificQuantizer<TPixel>(configuration, this.Options);
 
         /// <inheritdoc />
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
+        public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(options, nameof(options));
 
-            int length = Math.Min(this.Palette.Span.Length, options.MaxColors);
+            // The palette quantizer can reuse the same pixel map across multiple frames
+            // since the palette is unchanging. This allows a reduction of memory usage across
+            // multi frame gifs using a global palette.
+            int length = Math.Min(this.colorPalette.Length, options.MaxColors);
             var palette = new TPixel[length];
 
-            Color.ToPixel(configuration, this.Palette.Span, palette.AsSpan());
-            return new PaletteFrameQuantizer<TPixel>(configuration, options, palette);
+            Color.ToPixel(configuration, this.colorPalette.Span, palette.AsSpan());
+
+            var pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
+            return new PaletteQuantizer<TPixel>(configuration, options, pixelMap);
         }
     }
 }

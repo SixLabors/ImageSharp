@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using SixLabors.ImageSharp.Advanced;
@@ -40,6 +40,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             use16Bit = options.BitDepth == PngBitDepth.Bit16;
             bytesPerPixel = CalculateBytesPerPixel(options.ColorType, use16Bit);
 
+            if (options.IgnoreMetadata)
+            {
+                options.ChunkFilter = PngChunkFilter.ExcludeAll;
+            }
+
             // Ensure we are not allowing impossible combinations.
             if (!PngConstants.ColorTypes.ContainsKey(options.ColorType.Value))
             {
@@ -53,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="options">The options.</param>
         /// <param name="image">The image.</param>
-        public static QuantizedFrame<TPixel> CreateQuantizedFrame<TPixel>(
+        public static IndexedImageFrame<TPixel> CreateQuantizedFrame<TPixel>(
             PngEncoderOptions options,
             Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -77,10 +82,10 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             // Create quantized frame returning the palette and set the bit depth.
-            using (IFrameQuantizer<TPixel> frameQuantizer = options.Quantizer.CreateFrameQuantizer<TPixel>(image.GetConfiguration()))
+            using (IQuantizer<TPixel> frameQuantizer = options.Quantizer.CreatePixelSpecificQuantizer<TPixel>(image.GetConfiguration()))
             {
                 ImageFrame<TPixel> frame = image.Frames.RootFrame;
-                return frameQuantizer.QuantizeFrame(frame, frame.Bounds());
+                return frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds());
             }
         }
 
@@ -89,12 +94,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="options">The options.</param>
-        /// <param name="image">The image.</param>
         /// <param name="quantizedFrame">The quantized frame.</param>
         public static byte CalculateBitDepth<TPixel>(
             PngEncoderOptions options,
-            Image<TPixel> image,
-            QuantizedFrame<TPixel> quantizedFrame)
+            IndexedImageFrame<TPixel> quantizedFrame)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             byte bitDepth;

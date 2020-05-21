@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
@@ -9,11 +9,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     public class WernerPaletteQuantizer : PaletteQuantizer
     {
+        private static readonly QuantizerOptions DefaultOptions = new QuantizerOptions();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WernerPaletteQuantizer" /> class.
         /// </summary>
         public WernerPaletteQuantizer()
-            : this(new QuantizerOptions())
+            : this(DefaultOptions)
         {
         }
 

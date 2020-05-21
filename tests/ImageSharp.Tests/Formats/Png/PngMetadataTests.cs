@@ -1,11 +1,12 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -56,17 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             using (Image<TPixel> image = provider.GetImage(new PngDecoder()))
             {
                 PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("Comment") && m.Value.Equals("comment"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("Author") && m.Value.Equals("ImageSharp"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("Copyright") && m.Value.Equals("ImageSharp"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("Title") && m.Value.Equals("unittest"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("Description") && m.Value.Equals("compressed-text"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'") && m.LanguageTag.Equals("x-klingon") && m.TranslatedKeyword.Equals("warning"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("International2") && m.Value.Equals("ИМАГЕШАРП") && m.LanguageTag.Equals("rus"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante") && m.LanguageTag.Equals("fra") && m.TranslatedKeyword.Equals("foobar"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗") && m.LanguageTag.Equals("chinese"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
-                Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoTranslatedKeyword") && m.Value.Equals("dieser chunk hat kein übersetztes Schlüßelwort"));
+                VerifyTextDataIsPresent(meta);
             }
         }
 
@@ -85,17 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, memoryStream))
                 {
                     PngMetadata meta = image.Metadata.GetFormatMetadata(PngFormat.Instance);
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("Comment") && m.Value.Equals("comment"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("Author") && m.Value.Equals("ImageSharp"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("Copyright") && m.Value.Equals("ImageSharp"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("Title") && m.Value.Equals("unittest"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("Description") && m.Value.Equals("compressed-text"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'") && m.LanguageTag.Equals("x-klingon") && m.TranslatedKeyword.Equals("warning"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("International2") && m.Value.Equals("ИМАГЕШАРП") && m.LanguageTag.Equals("rus"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante") && m.LanguageTag.Equals("fra") && m.TranslatedKeyword.Equals("foobar"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗") && m.LanguageTag.Equals("chinese"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
-                    Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoTranslatedKeyword") && m.Value.Equals("dieser chunk hat kein übersetztes Schlüßelwort"));
+                    VerifyTextDataIsPresent(meta);
                 }
             }
         }
@@ -149,6 +130,40 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             }
         }
 
+        [Theory]
+        [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
+        public void Decode_ReadsExifData<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var decoder = new PngDecoder
+            {
+                IgnoreMetadata = false
+            };
+
+            using (Image<TPixel> image = provider.GetImage(decoder))
+            {
+                Assert.NotNull(image.Metadata.ExifProfile);
+                ExifProfile exif = image.Metadata.ExifProfile;
+                VerifyExifDataIsPresent(exif);
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.PngWithMetadata, PixelTypes.Rgba32)]
+        public void Decode_IgnoresExifData_WhenIgnoreMetadataIsTrue<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var decoder = new PngDecoder
+            {
+                IgnoreMetadata = true
+            };
+
+            using (Image<TPixel> image = provider.GetImage(decoder))
+            {
+                Assert.Null(image.Metadata.ExifProfile);
+            }
+        }
+
         [Fact]
         public void Decode_IgnoreMetadataIsFalse_TextChunkIsRead()
         {
@@ -178,7 +193,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 IgnoreMetadata = true
             };
 
-            var testFile = TestFile.Create(TestImages.Png.Blur);
+            var testFile = TestFile.Create(TestImages.Png.PngWithMetadata);
 
             using (Image<Rgba32> image = testFile.CreateRgba32Image(options))
             {
@@ -219,6 +234,62 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 Assert.Equal(yResolution, meta.VerticalResolution);
                 Assert.Equal(resolutionUnit, meta.ResolutionUnits);
             }
+        }
+
+        [Theory]
+        [InlineData(TestImages.Png.PngWithMetadata)]
+        public void Identify_ReadsTextData(string imagePath)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                IImageInfo imageInfo = Image.Identify(stream);
+                Assert.NotNull(imageInfo);
+                PngMetadata meta = imageInfo.Metadata.GetFormatMetadata(PngFormat.Instance);
+                VerifyTextDataIsPresent(meta);
+            }
+        }
+
+        [Theory]
+        [InlineData(TestImages.Png.PngWithMetadata)]
+        public void Identify_ReadsExifData(string imagePath)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                IImageInfo imageInfo = Image.Identify(stream);
+                Assert.NotNull(imageInfo);
+                Assert.NotNull(imageInfo.Metadata.ExifProfile);
+                ExifProfile exif = imageInfo.Metadata.ExifProfile;
+                VerifyExifDataIsPresent(exif);
+            }
+        }
+
+        private static void VerifyExifDataIsPresent(ExifProfile exif)
+        {
+            Assert.Equal(1, exif.Values.Count);
+            IExifValue<string> software = exif.GetValue(ExifTag.Software);
+            Assert.NotNull(software);
+            Assert.Equal("ImageSharp", software.Value);
+        }
+
+        private static void VerifyTextDataIsPresent(PngMetadata meta)
+        {
+            Assert.NotNull(meta);
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Comment") && m.Value.Equals("comment"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Author") && m.Value.Equals("ImageSharp"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Copyright") && m.Value.Equals("ImageSharp"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Title") && m.Value.Equals("unittest"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("Description") && m.Value.Equals("compressed-text"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International") && m.Value.Equals("'e', mu'tlheghvam, ghaH yu'") &&
+                                                m.LanguageTag.Equals("x-klingon") && m.TranslatedKeyword.Equals("warning"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("International2") && m.Value.Equals("ИМАГЕШАРП") && m.LanguageTag.Equals("rus"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational") && m.Value.Equals("la plume de la mante") &&
+                                                m.LanguageTag.Equals("fra") && m.TranslatedKeyword.Equals("foobar"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("CompressedInternational2") && m.Value.Equals("這是一個考驗") &&
+                                                m.LanguageTag.Equals("chinese"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoLang") && m.Value.Equals("this text chunk is missing a language tag"));
+            Assert.Contains(meta.TextData, m => m.Keyword.Equals("NoTranslatedKeyword") && m.Value.Equals("dieser chunk hat kein übersetztes Schlüßelwort"));
         }
     }
 }

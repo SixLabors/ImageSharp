@@ -1,5 +1,5 @@
-﻿// Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers;
@@ -20,22 +20,27 @@ namespace SixLabors.ImageSharp
         /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
         /// <param name="pixelMemory">The pixel memory.</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
         /// <param name="metadata">The <see cref="ImageMetadata"/>.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The metadata is null.</exception>
         /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
-            Configuration config,
+            Configuration configuration,
             Memory<TPixel> pixelMemory,
             int width,
             int height,
             ImageMetadata metadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(metadata, nameof(metadata));
+
             var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemory);
-            return new Image<TPixel>(config, memorySource, width, height, metadata);
+            return new Image<TPixel>(configuration, memorySource, width, height, metadata);
         }
 
         /// <summary>
@@ -43,20 +48,19 @@ namespace SixLabors.ImageSharp
         /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
         /// <param name="pixelMemory">The pixel memory.</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <returns>An <see cref="Image{TPixel}"/> instance.</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
-            Configuration config,
+            Configuration configuration,
             Memory<TPixel> pixelMemory,
             int width,
             int height)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            return WrapMemory(config, pixelMemory, width, height, new ImageMetadata());
-        }
+            => WrapMemory(configuration, pixelMemory, width, height, new ImageMetadata());
 
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
@@ -73,9 +77,7 @@ namespace SixLabors.ImageSharp
             int width,
             int height)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            return WrapMemory(Configuration.Default, pixelMemory, width, height);
-        }
+            => WrapMemory(Configuration.Default, pixelMemory, width, height);
 
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
@@ -85,22 +87,27 @@ namespace SixLabors.ImageSharp
         /// It will be disposed together with the result image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
-        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
         /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
         /// <param name="metadata">The <see cref="ImageMetadata"/></param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The metadata is null.</exception>
         /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
-            Configuration config,
+            Configuration configuration,
             IMemoryOwner<TPixel> pixelMemoryOwner,
             int width,
             int height,
             ImageMetadata metadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(metadata, nameof(metadata));
+
             var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
-            return new Image<TPixel>(config, memorySource, width, height, metadata);
+            return new Image<TPixel>(configuration, memorySource, width, height, metadata);
         }
 
         /// <summary>
@@ -111,20 +118,19 @@ namespace SixLabors.ImageSharp
         /// It will be disposed together with the result image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
-        /// <param name="config">The <see cref="ImageSharp.Configuration"/></param>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
         /// <param name="pixelMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image.</param>
         /// <param name="width">The width of the memory image.</param>
         /// <param name="height">The height of the memory image.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
         public static Image<TPixel> WrapMemory<TPixel>(
-            Configuration config,
+            Configuration configuration,
             IMemoryOwner<TPixel> pixelMemoryOwner,
             int width,
             int height)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            return WrapMemory(config, pixelMemoryOwner, width, height, new ImageMetadata());
-        }
+            => WrapMemory(configuration, pixelMemoryOwner, width, height, new ImageMetadata());
 
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
@@ -143,8 +149,6 @@ namespace SixLabors.ImageSharp
             int width,
             int height)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            return WrapMemory(Configuration.Default, pixelMemoryOwner, width, height);
-        }
+            => WrapMemory(Configuration.Default, pixelMemoryOwner, width, height);
     }
 }

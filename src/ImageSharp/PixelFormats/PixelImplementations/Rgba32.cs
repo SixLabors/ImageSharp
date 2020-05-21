@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers.Binary;
@@ -452,7 +452,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector *= MaxBytes;
             vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, MaxBytes);
 
             return new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, (byte)vector.W);
         }
@@ -491,7 +491,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector *= MaxBytes;
             vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, MaxBytes);
 
             this.R = (byte)vector.X;
             this.G = (byte)vector.Y;

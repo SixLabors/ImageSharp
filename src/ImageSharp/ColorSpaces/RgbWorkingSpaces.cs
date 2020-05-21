@@ -1,8 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.ColorSpaces.Companding;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.ColorSpaces

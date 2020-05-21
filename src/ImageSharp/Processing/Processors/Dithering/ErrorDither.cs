@@ -1,9 +1,10 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -89,29 +90,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
             ref TFrameQuantizer quantizer,
-            ReadOnlyMemory<TPixel> palette,
             ImageFrame<TPixel> source,
-            Memory<byte> output,
+            IndexedImageFrame<TPixel> destination,
             Rectangle bounds)
-            where TFrameQuantizer : struct, IFrameQuantizer<TPixel>
+            where TFrameQuantizer : struct, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Span<byte> outputSpan = output.Span;
-            ReadOnlySpan<TPixel> paletteSpan = palette.Span;
-            int width = bounds.Width;
             int offsetY = bounds.Top;
             int offsetX = bounds.Left;
             float scale = quantizer.Options.DitherScale;
 
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
-                int rowStart = (y - offsetY) * width;
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
+                ref byte destinationRowRef = ref MemoryMarshal.GetReference(destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
 
                 for (int x = bounds.Left; x < bounds.Right; x++)
                 {
-                    TPixel sourcePixel = row[x];
-                    outputSpan[rowStart + x - offsetX] = quantizer.GetQuantizedColor(sourcePixel, paletteSpan, out TPixel transformed);
+                    TPixel sourcePixel = Unsafe.Add(ref sourceRowRef, x);
+                    Unsafe.Add(ref destinationRowRef, x - offsetX) = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
                     this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
                 }
             }
@@ -119,25 +116,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ApplyPaletteDither<TPixel>(
-            Configuration configuration,
-            ReadOnlyMemory<TPixel> palette,
+        public void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
+            in TPaletteDitherImageProcessor processor,
             ImageFrame<TPixel> source,
-            Rectangle bounds,
-            float scale)
+            Rectangle bounds)
+            where TPaletteDitherImageProcessor : struct, IPaletteDitherImageProcessor<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var pixelMap = new EuclideanPixelMap<TPixel>(palette);
-
+            float scale = processor.DitherScale;
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y);
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
                 for (int x = bounds.Left; x < bounds.Right; x++)
                 {
-                    TPixel sourcePixel = row[x];
-                    pixelMap.GetClosestColor(sourcePixel, out TPixel transformed);
+                    ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, x);
+                    TPixel transformed = Unsafe.AsRef(processor).GetPaletteColor(sourcePixel);
                     this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
-                    row[x] = transformed;
+                    sourcePixel = transformed;
                 }
             }
         }

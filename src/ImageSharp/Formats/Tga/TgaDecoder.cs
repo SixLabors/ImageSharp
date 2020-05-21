@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
-using System;
 using System.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -29,9 +28,10 @@ namespace SixLabors.ImageSharp.Formats.Tga
             {
                 Size dims = decoder.Dimensions;
 
-                // TODO: use InvalidImageContentException here, if we decide to define it
-                // https://github.com/SixLabors/ImageSharp/issues/1110
-                throw new ImageFormatException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
+                TgaThrowHelper.ThrowInvalidImageContentException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
+
+                // Not reachable, as the previous statement will throw a exception.
+                return null;
             }
         }
 

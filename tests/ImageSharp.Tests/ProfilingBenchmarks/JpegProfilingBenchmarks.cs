@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.IO;
@@ -13,6 +13,9 @@ using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 using Xunit.Abstractions;
 
+// in this file, comments are used for disabling stuff for local execution
+#pragma warning disable SA1515
+
 namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 {
     public class JpegProfilingBenchmarks : MeasureFixture
@@ -22,32 +25,34 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
         {
         }
 
-        public static readonly TheoryData<string> DecodeJpegData = new TheoryData<string>
+        public static readonly TheoryData<string, int> DecodeJpegData = new TheoryData<string, int>
         {
-            TestImages.Jpeg.BenchmarkSuite.Jpeg400_SmallMonochrome,
-            TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr,
-            TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
-            TestImages.Jpeg.BenchmarkSuite.MissingFF00ProgressiveBedroom159_MidSize420YCbCr,
-            TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,
-            TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr,
+            { TestImages.Jpeg.BenchmarkSuite.Jpeg400_SmallMonochrome, 20 },
+            { TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr, 20 },
+            { TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr, 40 },
+            // { TestImages.Jpeg.BenchmarkSuite.MissingFF00ProgressiveBedroom159_MidSize420YCbCr, 10 },
+            // { TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr, 5 },
+            { TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr, 5 }
         };
 
         [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
         [MemberData(nameof(DecodeJpegData))]
-        public void DecodeJpeg(string fileName)
+        public void DecodeJpeg(string fileName, int executionCount)
         {
-            this.DecodeJpegBenchmarkImpl(fileName, new JpegDecoder());
+            var decoder = new JpegDecoder()
+            {
+                IgnoreMetadata = true
+            };
+            this.DecodeJpegBenchmarkImpl(fileName, decoder, executionCount);
         }
 
-        private void DecodeJpegBenchmarkImpl(string fileName, IImageDecoder decoder)
+        private void DecodeJpegBenchmarkImpl(string fileName, IImageDecoder decoder, int executionCount)
         {
             // do not run this on CI even by accident
             if (TestEnvironment.RunsOnCI)
             {
                 return;
             }
-
-            const int ExecutionCount = 20;
 
             if (!Vector.IsHardwareAccelerated)
             {
@@ -58,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
             byte[] bytes = File.ReadAllBytes(path);
 
             this.Measure(
-                ExecutionCount,
+                executionCount,
                 () =>
                     {
                         var img = Image.Load<Rgba32>(bytes, decoder);

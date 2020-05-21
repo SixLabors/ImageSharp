@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -55,6 +55,8 @@ namespace SixLabors.ImageSharp.Tests.Processing
             public List<AppliedOperation> Applied { get; } = new List<AppliedOperation>();
 
             public Configuration Configuration { get; }
+
+            public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
 
             public Image<TPixel> GetResultImage()
             {

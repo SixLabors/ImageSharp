@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 
@@ -26,6 +26,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             (byte)'I', (byte)'C', (byte)'C', (byte)'_',
             (byte)'P', (byte)'R', (byte)'O', (byte)'F',
             (byte)'I', (byte)'L', (byte)'E', (byte)'\0'
+        };
+
+        /// <summary>
+        /// Gets the adobe photoshop APP13 marker which can contain IPTC meta data.
+        /// </summary>
+        public static ReadOnlySpan<byte> AdobePhotoshopApp13Marker => new[]
+        {
+            (byte)'P', (byte)'h', (byte)'o', (byte)'t', (byte)'o', (byte)'s', (byte)'h', (byte)'o', (byte)'p', (byte)' ', (byte)'3', (byte)'.', (byte)'0', (byte)'\0'
+        };
+
+        /// <summary>
+        /// Gets the 8BIM marker, which signals the start of a adobe specific image resource block.
+        /// </summary>
+        public static ReadOnlySpan<byte> AdobeImageResourceBlockMarker => new[]
+        {
+            (byte)'8', (byte)'B', (byte)'I', (byte)'M'
+        };
+
+        /// <summary>
+        /// Gets a IPTC Image resource ID.
+        /// </summary>
+        public static ReadOnlySpan<byte> AdobeIptcMarker => new[]
+        {
+            (byte)4, (byte)4
         };
 
         /// <summary>

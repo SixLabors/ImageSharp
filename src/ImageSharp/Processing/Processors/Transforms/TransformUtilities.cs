@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
@@ -12,6 +12,57 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </summary>
     internal static class TransformUtilities
     {
+        /// <summary>
+        /// Returns a value that indicates whether the specified matrix is degenerate
+        /// containing one or more values equivalent to <see cref="float.NaN"/> or a
+        /// zero determinant and therefore cannot be used for linear transforms.
+        /// </summary>
+        /// <param name="matrix">The transform matrix.</param>
+        public static bool IsDegenerate(Matrix3x2 matrix)
+            => IsNaN(matrix) || IsZero(matrix.GetDeterminant());
+
+        /// <summary>
+        /// Returns a value that indicates whether the specified matrix is degenerate
+        /// containing one or more values equivalent to <see cref="float.NaN"/> or a
+        /// zero determinant and therefore cannot be used for linear transforms.
+        /// </summary>
+        /// <param name="matrix">The transform matrix.</param>
+        public static bool IsDegenerate(Matrix4x4 matrix)
+            => IsNaN(matrix) || IsZero(matrix.GetDeterminant());
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static bool IsZero(float a)
+            => a > -Constants.EpsilonSquared && a < Constants.EpsilonSquared;
+
+        /// <summary>
+        /// Returns a value that indicates whether the specified matrix contains any values
+        /// that are not a number <see cref="float.NaN"/>.
+        /// </summary>
+        /// <param name="matrix">The transform matrix.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool IsNaN(Matrix3x2 matrix)
+        {
+            return float.IsNaN(matrix.M11) || float.IsNaN(matrix.M12)
+                || float.IsNaN(matrix.M21) || float.IsNaN(matrix.M22)
+                || float.IsNaN(matrix.M31) || float.IsNaN(matrix.M32);
+        }
+
+        /// <summary>
+        /// Returns a value that indicates whether the specified matrix contains any values
+        /// that are not a number <see cref="float.NaN"/>.
+        /// </summary>
+        /// <param name="matrix">The transform matrix.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool IsNaN(Matrix4x4 matrix)
+        {
+            return float.IsNaN(matrix.M11) || float.IsNaN(matrix.M12) || float.IsNaN(matrix.M13) || float.IsNaN(matrix.M14)
+                || float.IsNaN(matrix.M21) || float.IsNaN(matrix.M22) || float.IsNaN(matrix.M23) || float.IsNaN(matrix.M24)
+                || float.IsNaN(matrix.M31) || float.IsNaN(matrix.M32) || float.IsNaN(matrix.M33) || float.IsNaN(matrix.M34)
+                || float.IsNaN(matrix.M41) || float.IsNaN(matrix.M42) || float.IsNaN(matrix.M43) || float.IsNaN(matrix.M44);
+        }
+
         /// <summary>
         /// Applies the projective transform against the given coordinates flattened into the 2D space.
         /// </summary>

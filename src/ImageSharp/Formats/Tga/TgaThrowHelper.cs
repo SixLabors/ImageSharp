@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -9,23 +9,29 @@ namespace SixLabors.ImageSharp.Formats.Tga
     internal static class TgaThrowHelper
     {
         /// <summary>
-        /// Cold path optimization for throwing <see cref="ImageFormatException"/>-s
+        /// Cold path optimization for throwing <see cref="ImageFormatException"/>'s
         /// </summary>
         /// <param name="errorMessage">The error message for the exception.</param>
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void ThrowImageFormatException(string errorMessage)
-        {
-            throw new ImageFormatException(errorMessage);
-        }
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowInvalidImageContentException(string errorMessage)
+            => throw new InvalidImageContentException(errorMessage);
 
         /// <summary>
-        /// Cold path optimization for throwing <see cref="NotSupportedException"/>-s
+        /// Cold path optimization for throwing <see cref="ImageFormatException"/>'s
         /// </summary>
         /// <param name="errorMessage">The error message for the exception.</param>
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        /// <param name="innerException">The exception that is the cause of the current exception, or a null reference
+        /// if no inner exception is specified.</param>
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ThrowInvalidImageContentException(string errorMessage, Exception innerException)
+            => throw new InvalidImageContentException(errorMessage, innerException);
+
+        /// <summary>
+        /// Cold path optimization for throwing <see cref="NotSupportedException"/>'s
+        /// </summary>
+        /// <param name="errorMessage">The error message for the exception.</param>
+        [MethodImpl(InliningOptions.ColdPath)]
         public static void ThrowNotSupportedException(string errorMessage)
-        {
-            throw new NotSupportedException(errorMessage);
-        }
+            => throw new NotSupportedException(errorMessage);
     }
 }

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 MathF.Floor(maxXY.X),
                 MathF.Floor(maxXY.Y));
 
-            sourceExtents = Vector4.Clamp(sourceExtents, Vector4.Zero, maxSourceExtents);
+            sourceExtents = Vector4Utilities.FastClamp(sourceExtents, Vector4.Zero, maxSourceExtents);
 
             int left = (int)sourceExtents.X;
             int top = (int)sourceExtents.Y;
@@ -78,13 +78,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                     // Values are first premultiplied to prevent darkening of edge pixels.
                     var current = sourcePixels[x, y].ToVector4();
-                    Vector4Utils.Premultiply(ref current);
+                    Vector4Utilities.Premultiply(ref current);
                     sum += current * xWeight * yWeight;
                 }
             }
 
             // Reverse the premultiplication
-            Vector4Utils.UnPremultiply(ref sum);
+            Vector4Utilities.UnPremultiply(ref sum);
             targetRow[column] = sum;
         }
 

@@ -1,9 +1,10 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.IO;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -17,12 +18,18 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets or sets the quantizer for reducing the color count.
         /// Defaults to the <see cref="OctreeQuantizer"/>
         /// </summary>
-        public IQuantizer Quantizer { get; set; } = new OctreeQuantizer();
+        public IQuantizer Quantizer { get; set; } = KnownQuantizers.Octree;
 
         /// <summary>
         /// Gets or sets the color table mode: Global or local.
         /// </summary>
         public GifColorTableMode? ColorTableMode { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="IPixelSamplingStrategy"/> used for quantization
+        /// when building a global color table in case of <see cref="GifColorTableMode.Global"/>.
+        /// </summary>
+        public IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; set; } = new DefaultPixelSamplingStrategy();
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

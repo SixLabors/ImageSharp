@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -10,15 +10,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
     /// </summary>
     public sealed class VignetteProcessor : IImageProcessor
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="VignetteProcessor" /> class.
-        /// </summary>
-        /// <param name="color">The color of the vignette.</param>
-        public VignetteProcessor(Color color)
-            : this(new GraphicsOptions(), color)
-        {
-        }
-
         /// <summary>
         /// Initializes a new instance of the <see cref="VignetteProcessor" /> class.
         /// </summary>

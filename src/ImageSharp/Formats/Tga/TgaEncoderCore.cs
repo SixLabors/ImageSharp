@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers.Binary;
@@ -78,8 +78,24 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleBlackAndWhite : TgaImageType.BlackAndWhite;
             }
 
-            // If compression is used, set bit 5 of the image descriptor to indicate an left top origin.
-            byte imageDescriptor = (byte)(this.compression is TgaCompression.RunLength ? 32 : 0);
+            byte imageDescriptor = 0;
+            if (this.compression is TgaCompression.RunLength)
+            {
+                // If compression is used, set bit 5 of the image descriptor to indicate a left top origin.
+                imageDescriptor |= 0x20;
+            }
+
+            if (this.bitsPerPixel is TgaBitsPerPixel.Pixel32)
+            {
+                // Indicate, that 8 bit are used for the alpha channel.
+                imageDescriptor |= 0x8;
+            }
+
+            if (this.bitsPerPixel is TgaBitsPerPixel.Pixel16)
+            {
+                // Indicate, that 1 bit is used for the alpha channel.
+                imageDescriptor |= 0x1;
+            }
 
             var fileHeader = new TgaFileHeader(
                 idLength: 0,

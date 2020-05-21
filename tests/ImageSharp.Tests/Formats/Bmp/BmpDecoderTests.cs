@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.IO;
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
-            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(BmpDecoder));
+            InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(BmpDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
@@ -394,10 +394,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
         [Theory]
         [WithFile(InvalidPaletteSize, PixelTypes.Rgba32)]
-        public void BmpDecoder_ThrowsImageFormatException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
+        public void BmpDecoder_ThrowsInvalidImageContentException_OnInvalidPaletteSize<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Assert.Throws<ImageFormatException>(() =>
+            Assert.Throws<InvalidImageContentException>(() =>
             {
                 using (provider.GetImage(BmpDecoder))
                 {

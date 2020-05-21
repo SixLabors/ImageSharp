@@ -1,9 +1,10 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers.Binary;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -13,6 +14,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -231,7 +233,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // Write the Start Of Image marker.
             this.WriteApplicationHeader(metadata);
 
-            // Write Exif and ICC profiles
+            // Write Exif, ICC and IPTC profiles
             this.WriteProfiles(metadata);
 
             // Write the quantization tables.
@@ -647,9 +649,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Writes the EXIF profile.
         /// </summary>
         /// <param name="exifProfile">The exif profile.</param>
-        /// <exception cref="ImageFormatException">
-        /// Thrown if the EXIF profile size exceeds the limit
-        /// </exception>
         private void WriteExifProfile(ExifProfile exifProfile)
         {
             if (exifProfile is null || exifProfile.Values.Count == 0)
@@ -698,15 +697,67 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
+        /// Writes the IPTC metadata.
+        /// </summary>
+        /// <param name="iptcProfile">The iptc metadata to write.</param>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the IPTC profile size exceeds the limit of 65533 bytes.
+        /// </exception>
+        private void WriteIptcProfile(IptcProfile iptcProfile)
+        {
+            const int Max = 65533;
+            if (iptcProfile is null || !iptcProfile.Values.Any())
+            {
+                return;
+            }
+
+            iptcProfile.UpdateData();
+            byte[] data = iptcProfile.Data;
+            if (data.Length == 0)
+            {
+                return;
+            }
+
+            if (data.Length > Max)
+            {
+                throw new ImageFormatException($"Iptc profile size exceeds limit of {Max} bytes");
+            }
+
+            var app13Length = 2 + ProfileResolver.AdobePhotoshopApp13Marker.Length +
+                              ProfileResolver.AdobeImageResourceBlockMarker.Length +
+                              ProfileResolver.AdobeIptcMarker.Length +
+                              2 + 4 + data.Length;
+            this.WriteAppHeader(app13Length, JpegConstants.Markers.APP13);
+            this.outputStream.Write(ProfileResolver.AdobePhotoshopApp13Marker);
+            this.outputStream.Write(ProfileResolver.AdobeImageResourceBlockMarker);
+            this.outputStream.Write(ProfileResolver.AdobeIptcMarker);
+            this.outputStream.WriteByte(0); // a empty pascal string (padded to make size even)
+            this.outputStream.WriteByte(0);
+            BinaryPrimitives.WriteInt32BigEndian(this.buffer, data.Length);
+            this.outputStream.Write(this.buffer, 0, 4);
+            this.outputStream.Write(data, 0, data.Length);
+        }
+
+        /// <summary>
         /// Writes the App1 header.
         /// </summary>
-        /// <param name="app1Length">The length of the data the app1 marker contains</param>
+        /// <param name="app1Length">The length of the data the app1 marker contains.</param>
         private void WriteApp1Header(int app1Length)
         {
+            this.WriteAppHeader(app1Length, JpegConstants.Markers.APP1);
+        }
+
+        /// <summary>
+        /// Writes a AppX header.
+        /// </summary>
+        /// <param name="length">The length of the data the app marker contains.</param>
+        /// <param name="appMarker">The app marker to write.</param>
+        private void WriteAppHeader(int length, byte appMarker)
+        {
             this.buffer[0] = JpegConstants.Markers.XFF;
-            this.buffer[1] = JpegConstants.Markers.APP1; // Application Marker
-            this.buffer[2] = (byte)((app1Length >> 8) & 0xFF);
-            this.buffer[3] = (byte)(app1Length & 0xFF);
+            this.buffer[1] = appMarker;
+            this.buffer[2] = (byte)((length >> 8) & 0xFF);
+            this.buffer[3] = (byte)(length & 0xFF);
 
             this.outputStream.Write(this.buffer, 0, 4);
         }
@@ -805,6 +856,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             metadata.SyncProfiles();
             this.WriteExifProfile(metadata.ExifProfile);
             this.WriteIccProfile(metadata.IccProfile);
+            this.WriteIptcProfile(metadata.IptcProfile);
         }
 
         /// <summary>

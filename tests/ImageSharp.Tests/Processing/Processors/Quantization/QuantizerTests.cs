@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 
@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
         /// Not worth investigating for now.
         /// <see href="https://github.com/SixLabors/ImageSharp/pull/1114/checks?check_run_id=448891164#step:11:631"/>
         /// </summary>
-        private static readonly bool SkipAllQuantizerTests = TestEnvironment.RunsOnCI && TestEnvironment.IsFramework;
+        private static readonly bool SkipAllQuantizerTests = TestEnvironment.IsFramework;
 
         public static readonly string[] CommonTestImages =
         {

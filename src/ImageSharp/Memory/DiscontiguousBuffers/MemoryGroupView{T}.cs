@@ -1,10 +1,11 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -37,6 +38,7 @@ namespace SixLabors.ImageSharp.Memory
 
         public int Count
         {
+            [MethodImpl(InliningOptions.ShortMethod)]
             get
             {
                 this.EnsureIsValid();
@@ -73,7 +75,15 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        public IEnumerator<Memory<T>> GetEnumerator()
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public MemoryGroupEnumerator<T> GetEnumerator()
+        {
+            return new MemoryGroupEnumerator<T>(this);
+        }
+
+        /// <inheritdoc/>
+        IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
         {
             this.EnsureIsValid();
             for (int i = 0; i < this.Count; i++)
@@ -82,7 +92,8 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
 
-        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
+        /// <inheritdoc/>
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<Memory<T>>)this).GetEnumerator();
 
         internal void Invalidate()
         {

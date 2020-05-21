@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.Processing.Processors.Overlays;
 
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="source">The image this method extends.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Vignette(this IImageProcessingContext source) =>
-            Vignette(source, new GraphicsOptions());
+            Vignette(source, source.GetGraphicsOptions());
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="color">The color to set as the vignette.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Vignette(this IImageProcessingContext source, Color color) =>
-            Vignette(source, new GraphicsOptions(), color);
+            Vignette(source, source.GetGraphicsOptions(), color);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Processing
             this IImageProcessingContext source,
             float radiusX,
             float radiusY) =>
-            Vignette(source, new GraphicsOptions(), radiusX, radiusY);
+            Vignette(source, source.GetGraphicsOptions(), radiusX, radiusY);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing
         /// </param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext Vignette(this IImageProcessingContext source, Rectangle rectangle) =>
-            Vignette(source, new GraphicsOptions(), rectangle);
+            Vignette(source, source.GetGraphicsOptions(), rectangle);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.Processing
             float radiusX,
             float radiusY,
             Rectangle rectangle) =>
-            source.Vignette(new GraphicsOptions(), color, radiusX, radiusY, rectangle);
+            source.Vignette(source.GetGraphicsOptions(), color, radiusX, radiusY, rectangle);
 
         /// <summary>
         /// Applies a radial vignette effect to an image.

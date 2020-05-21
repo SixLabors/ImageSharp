@@ -1,10 +1,14 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
+using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -214,6 +218,71 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                     }
                 }
             }
+        }
+
+        [Fact]
+        public void Encode_PreservesIptcProfile()
+        {
+            // arrange
+            using var input = new Image<Rgba32>(1, 1);
+            input.Metadata.IptcProfile = new IptcProfile();
+            input.Metadata.IptcProfile.SetValue(IptcTag.Byline, "unit_test");
+            var encoder = new JpegEncoder();
+
+            // act
+            using var memStream = new MemoryStream();
+            input.Save(memStream, encoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            IptcProfile actual = output.Metadata.IptcProfile;
+            Assert.NotNull(actual);
+            IEnumerable<IptcValue> values = input.Metadata.IptcProfile.Values;
+            Assert.Equal(values, actual.Values);
+        }
+
+        [Fact]
+        public void Encode_PreservesExifProfile()
+        {
+            // arrange
+            using var input = new Image<Rgba32>(1, 1);
+            input.Metadata.ExifProfile = new ExifProfile();
+            input.Metadata.ExifProfile.SetValue(ExifTag.Software, "unit_test");
+            var encoder = new JpegEncoder();
+
+            // act
+            using var memStream = new MemoryStream();
+            input.Save(memStream, encoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            ExifProfile actual = output.Metadata.ExifProfile;
+            Assert.NotNull(actual);
+            IReadOnlyList<IExifValue> values = input.Metadata.ExifProfile.Values;
+            Assert.Equal(values, actual.Values);
+        }
+
+        [Fact]
+        public void Encode_PreservesIccProfile()
+        {
+            // arrange
+            using var input = new Image<Rgba32>(1, 1);
+            input.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.Profile_Random_Array);
+            var encoder = new JpegEncoder();
+
+            // act
+            using var memStream = new MemoryStream();
+            input.Save(memStream, encoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(memStream);
+            IccProfile actual = output.Metadata.IccProfile;
+            Assert.NotNull(actual);
+            IccProfile values = input.Metadata.IccProfile;
+            Assert.Equal(values.Entries, actual.Entries);
         }
     }
 }

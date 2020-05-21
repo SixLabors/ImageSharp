@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Collections.Generic;
@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -160,7 +161,7 @@ namespace SixLabors.ImageSharp.Tests
             ImageComparer comparer = null)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            comparer??= ImageComparer.Exact;
+            comparer ??= ImageComparer.Exact;
             using Image<TPixel> expected = provider.GetImage();
             int width = expected.Width;
             expected.Mutate(process);
@@ -277,7 +278,8 @@ namespace SixLabors.ImageSharp.Tests
 
             using (Image<TPixel> image0 = provider.GetImage())
             {
-                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(image0.GetPixelSpan());
+                Assert.True(image0.TryGetSinglePixelSpan(out Span<TPixel> imageSpan));
+                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(imageSpan);
 
                 using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
                 {

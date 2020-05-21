@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
                 Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span);
 
-                Vector4Utils.Transform(span, ref Unsafe.AsRef(this.matrix));
+                Vector4Utilities.Transform(span, ref Unsafe.AsRef(this.matrix));
 
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan);
             }

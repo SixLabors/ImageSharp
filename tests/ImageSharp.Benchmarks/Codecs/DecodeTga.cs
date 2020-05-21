@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.Buffers;
 using System.IO;
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         private byte[] data;
 
-        [Params(TestImages.Tga.Bit24)]
+        [Params(TestImages.Tga.Bit24BottomLeft)]
         public string TestImage { get; set; }
 
         [GlobalSetup]

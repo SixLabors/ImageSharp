@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Linq;
@@ -198,7 +198,9 @@ namespace SixLabors.ImageSharp.Tests
                     using (Image<TPixel> cloned = img.Frames.CloneFrame(0))
                     {
                         Assert.Equal(2, img.Frames.Count);
-                        cloned.ComparePixelBufferTo(img.GetPixelSpan());
+                        Assert.True(img.TryGetSinglePixelSpan(out Span<TPixel> imgSpan));
+
+                        cloned.ComparePixelBufferTo(imgSpan);
                     }
                 }
             }
@@ -210,7 +212,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<TPixel> img = provider.GetImage())
                 {
-                    var sourcePixelData = img.GetPixelSpan().ToArray();
+                    Assert.True(img.TryGetSinglePixelSpan(out Span<TPixel> imgSpan));
+                    TPixel[] sourcePixelData = imgSpan.ToArray();
 
                     img.Frames.AddFrame(new ImageFrame<TPixel>(Configuration.Default, 10, 10));
                     using (Image<TPixel> cloned = img.Frames.ExportFrame(0))
@@ -242,7 +245,8 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void AddFrameFromPixelData()
             {
-                var pixelData = this.Image.Frames.RootFrame.GetPixelSpan().ToArray();
+                Assert.True(this.Image.Frames.RootFrame.TryGetSinglePixelSpan(out Span<Rgba32> imgSpan));
+                var pixelData = imgSpan.ToArray();
                 this.Image.Frames.AddFrame(pixelData);
                 Assert.Equal(2, this.Image.Frames.Count);
             }
@@ -251,8 +255,10 @@ namespace SixLabors.ImageSharp.Tests
             public void AddFrame_clones_sourceFrame()
             {
                 var otherFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-                var addedFrame = this.Image.Frames.AddFrame(otherFrame);
-                addedFrame.ComparePixelBufferTo(otherFrame.GetPixelSpan());
+                ImageFrame<Rgba32> addedFrame = this.Image.Frames.AddFrame(otherFrame);
+
+                Assert.True(otherFrame.TryGetSinglePixelSpan(out Span<Rgba32> otherFrameSpan));
+                addedFrame.ComparePixelBufferTo(otherFrameSpan);
                 Assert.NotEqual(otherFrame, addedFrame);
             }
 
@@ -260,8 +266,10 @@ namespace SixLabors.ImageSharp.Tests
             public void InsertFrame_clones_sourceFrame()
             {
                 var otherFrame = new ImageFrame<Rgba32>(Configuration.Default, 10, 10);
-                var addedFrame = this.Image.Frames.InsertFrame(0, otherFrame);
-                addedFrame.ComparePixelBufferTo(otherFrame.GetPixelSpan());
+                ImageFrame<Rgba32> addedFrame = this.Image.Frames.InsertFrame(0, otherFrame);
+
+                Assert.True(otherFrame.TryGetSinglePixelSpan(out Span<Rgba32> otherFrameSpan));
+                addedFrame.ComparePixelBufferTo(otherFrameSpan);
                 Assert.NotEqual(otherFrame, addedFrame);
             }
 

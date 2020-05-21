@@ -1,7 +1,8 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.IO;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -130,6 +131,38 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
 
                 Assert.True(fileInfoGlobal.Length < fileInfoLocal.Length);
             }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.GlobalQuantizationTest, PixelTypes.Rgba32, 427500, 0.1)]
+        [WithFile(TestImages.Gif.GlobalQuantizationTest, PixelTypes.Rgba32, 200000, 0.1)]
+        [WithFile(TestImages.Gif.GlobalQuantizationTest, PixelTypes.Rgba32, 100000, 0.1)]
+        [WithFile(TestImages.Gif.GlobalQuantizationTest, PixelTypes.Rgba32, 50000, 0.1)]
+        [WithFile(TestImages.Gif.Cheers, PixelTypes.Rgba32, 4000000, 0.01)]
+        [WithFile(TestImages.Gif.Cheers, PixelTypes.Rgba32, 1000000, 0.01)]
+        public void Encode_GlobalPalette_DefaultPixelSamplingStrategy<TPixel>(TestImageProvider<TPixel> provider, int maxPixels, double scanRatio)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+
+            var encoder = new GifEncoder()
+            {
+                ColorTableMode = GifColorTableMode.Global,
+                GlobalPixelSamplingStrategy = new DefaultPixelSamplingStrategy(maxPixels, scanRatio)
+            };
+
+            string testOutputFile = provider.Utility.SaveTestOutputFile(
+                image,
+                "gif",
+                encoder,
+                testOutputDetails: $"{maxPixels}_{scanRatio}",
+                appendPixelTypeToFileName: false);
+
+            // TODO: For proper regression testing of gifs, use a multi-frame reference output, or find a working reference decoder.
+            // IImageDecoder referenceDecoder = TestEnvironment.Ge
+            // ReferenceDecoder(testOutputFile);
+            // using var encoded = Image.Load<TPixel>(testOutputFile, referenceDecoder);
+            // ValidatorComparer.VerifySimilarity(image, encoded);
         }
 
         [Fact]

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers;
@@ -462,7 +462,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 if (this.stream.Read(cmd, 0, cmd.Length) != 2)
                 {
-                    BmpThrowHelper.ThrowImageFormatException("Failed to read 2 bytes from the stream while uncompressing RLE4 bitmap.");
+                    BmpThrowHelper.ThrowInvalidImageContentException("Failed to read 2 bytes from the stream while uncompressing RLE4 bitmap.");
                 }
 
                 if (cmd[0] == RleCommand)
@@ -569,7 +569,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 if (this.stream.Read(cmd, 0, cmd.Length) != 2)
                 {
-                    BmpThrowHelper.ThrowImageFormatException("Failed to read 2 bytes from stream while uncompressing RLE8 bitmap.");
+                    BmpThrowHelper.ThrowInvalidImageContentException("Failed to read 2 bytes from stream while uncompressing RLE8 bitmap.");
                 }
 
                 if (cmd[0] == RleCommand)
@@ -648,7 +648,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 if (this.stream.Read(cmd, 0, cmd.Length) != 2)
                 {
-                    BmpThrowHelper.ThrowImageFormatException("Failed to read 2 bytes from stream while uncompressing RLE24 bitmap.");
+                    BmpThrowHelper.ThrowInvalidImageContentException("Failed to read 2 bytes from stream while uncompressing RLE24 bitmap.");
                 }
 
                 if (cmd[0] == RleCommand)
@@ -1431,7 +1431,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 // Make sure, that we will not read pass the bitmap offset (starting position of image data).
                 if ((this.stream.Position + colorMapSizeBytes) > this.fileHeader.Offset)
                 {
-                    BmpThrowHelper.ThrowImageFormatException(
+                    BmpThrowHelper.ThrowInvalidImageContentException(
                         $"Reading the color map would read beyond the bitmap offset. Either the color map size of '{colorMapSizeBytes}' is invalid or the bitmap offset.");
                 }
 
@@ -1445,7 +1445,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             int skipAmount = this.fileHeader.Offset - (int)this.stream.Position;
             if ((skipAmount + (int)this.stream.Position) > this.stream.Length)
             {
-                BmpThrowHelper.ThrowImageFormatException("Invalid fileheader offset found. Offset is greater than the stream length.");
+                BmpThrowHelper.ThrowInvalidImageContentException("Invalid fileheader offset found. Offset is greater than the stream length.");
             }
 
             if (skipAmount > 0)

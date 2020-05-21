@@ -1,7 +1,8 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -155,7 +156,37 @@ namespace SixLabors.ImageSharp.Memory
         {
             DebugGuard.MustBeGreaterThanOrEqualTo(y, 0, nameof(y));
             DebugGuard.MustBeLessThan(y, this.Height, nameof(y));
-            return this.FastMemoryGroup.View.GetBoundedSlice(y * this.Width, this.Width);
+            return this.FastMemoryGroup.View.GetBoundedSlice(y * (long)this.Width, this.Width);
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Span{T}"/> to the backing data if the backing group consists of a single contiguous memory buffer.
+        /// Throws <see cref="InvalidOperationException"/> otherwise.
+        /// </summary>
+        /// <returns>The <see cref="Span{T}"/> referencing the memory area.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the backing group is discontiguous.
+        /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal Span<T> GetSingleSpan()
+        {
+            // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
+            return this.cachedMemory.Length != 0 ? this.cachedMemory.Span : this.GetSingleSpanSlow();
+        }
+
+        /// <summary>
+        /// Gets a <see cref="Memory{T}"/> to the backing data of if the backing group consists of a single contiguous memory buffer.
+        /// Throws <see cref="InvalidOperationException"/> otherwise.
+        /// </summary>
+        /// <returns>The <see cref="Memory{T}"/>.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the backing group is discontiguous.
+        /// </exception>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal Memory<T> GetSingleMemory()
+        {
+            // TODO: If we need a public version of this method, we need to cache the non-fast Memory<T> of this.MemoryGroup
+            return this.cachedMemory.Length != 0 ? this.cachedMemory : this.GetSingleMemorySlow();
         }
 
         /// <summary>
@@ -169,7 +200,13 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         [MethodImpl(InliningOptions.ColdPath)]
-        private Memory<T> GetRowMemorySlow(int y) => this.FastMemoryGroup.GetBoundedSlice(y * this.Width, this.Width);
+        private Memory<T> GetRowMemorySlow(int y) => this.FastMemoryGroup.GetBoundedSlice(y * (long)this.Width, this.Width);
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private Memory<T> GetSingleMemorySlow() => this.FastMemoryGroup.Single();
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        private Span<T> GetSingleSpanSlow() => this.FastMemoryGroup.Single().Span;
 
         [MethodImpl(InliningOptions.ColdPath)]
         private ref T GetElementSlow(int x, int y)

@@ -1,5 +1,5 @@
-﻿// Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.Numerics;
 using SixLabors.ImageSharp.Processing;
@@ -8,7 +8,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 {
     public class AffineTransformBuilderTests : TransformBuilderTestBase<AffineTransformBuilder>
     {
-        protected override AffineTransformBuilder CreateBuilder(Rectangle rectangle) => new AffineTransformBuilder();
+        protected override AffineTransformBuilder CreateBuilder()
+            => new AffineTransformBuilder();
 
         protected override void AppendRotationDegrees(AffineTransformBuilder builder, float degrees)
             => builder.AppendRotationDegrees(degrees);

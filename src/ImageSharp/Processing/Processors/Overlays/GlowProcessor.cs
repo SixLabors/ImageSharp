@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -13,29 +13,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// <summary>
         /// Initializes a new instance of the <see cref="GlowProcessor" /> class.
         /// </summary>
-        /// <param name="color">The color or the glow.</param>
-        public GlowProcessor(Color color)
-            : this(color, 0)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GlowProcessor" /> class.
-        /// </summary>
         /// <param name="options">The options effecting blending and composition.</param>
         /// <param name="color">The color or the glow.</param>
         public GlowProcessor(GraphicsOptions options, Color color)
             : this(options, color, 0)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GlowProcessor" /> class.
-        /// </summary>
-        /// <param name="color">The color or the glow.</param>
-        /// <param name="radius">The radius of the glow.</param>
-        internal GlowProcessor(Color color, ValueSize radius)
-            : this(new GraphicsOptions(), color, radius)
         {
         }
 

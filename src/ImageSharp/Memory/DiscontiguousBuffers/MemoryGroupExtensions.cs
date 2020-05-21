@@ -1,5 +1,5 @@
-﻿// Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors and contributors.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 
@@ -38,6 +38,12 @@ namespace SixLabors.ImageSharp.Memory
             Guard.MustBeLessThan(start, group.TotalLength, nameof(start));
 
             int bufferIdx = (int)(start / group.BufferLength);
+
+            if (bufferIdx < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(start));
+            }
+
             if (bufferIdx >= group.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(start));

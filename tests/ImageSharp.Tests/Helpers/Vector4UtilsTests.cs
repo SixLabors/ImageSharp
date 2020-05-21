@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Linq;
@@ -23,11 +23,11 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
             Vector4[] expected = source.Select(v =>
             {
-                Vector4Utils.Premultiply(ref v);
+                Vector4Utilities.Premultiply(ref v);
                 return v;
             }).ToArray();
 
-            Vector4Utils.Premultiply(source);
+            Vector4Utilities.Premultiply(source);
 
             Assert.Equal(expected, source, this.approximateFloatComparer);
         }
@@ -42,11 +42,11 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
             Vector4[] expected = source.Select(v =>
             {
-                Vector4Utils.UnPremultiply(ref v);
+                Vector4Utilities.UnPremultiply(ref v);
                 return v;
             }).ToArray();
 
-            Vector4Utils.UnPremultiply(source);
+            Vector4Utilities.UnPremultiply(source);
 
             Assert.Equal(expected, source, this.approximateFloatComparer);
         }

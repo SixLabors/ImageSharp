@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.IO;
@@ -25,6 +25,8 @@ namespace SixLabors.ImageSharp.Tests
             protected IImageFormatDetector localMimeTypeDetector;
 
             protected Mock<IImageFormat> localImageFormatMock;
+
+            protected Mock<IImageInfo> localImageInfoMock;
 
             protected readonly string MockFilePath = Guid.NewGuid().ToString();
 
@@ -53,9 +55,12 @@ namespace SixLabors.ImageSharp.Tests
                 this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
                 this.localStreamReturnImageAgnostic = new Image<Bgra4444>(1, 1);
 
+                this.localImageInfoMock = new Mock<IImageInfo>();
                 this.localImageFormatMock = new Mock<IImageFormat>();
 
-                this.localDecoder = new Mock<IImageDecoder>();
+                var detector = new Mock<IImageInfoDetector>();
+                detector.Setup(x => x.Identify(It.IsAny<Configuration>(), It.IsAny<Stream>())).Returns(this.localImageInfoMock.Object);
+                this.localDecoder = detector.As<IImageDecoder>();
                 this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
 
                 this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>()))
@@ -80,9 +85,7 @@ namespace SixLabors.ImageSharp.Tests
                         })
                     .Returns(this.localStreamReturnImageAgnostic);
 
-                this.LocalConfiguration = new Configuration
-                                              {
-                                              };
+                this.LocalConfiguration = new Configuration();
                 this.LocalConfiguration.ImageFormatsManager.AddImageFormatDetector(this.localMimeTypeDetector);
                 this.LocalConfiguration.ImageFormatsManager.SetDecoder(this.localImageFormatMock.Object, this.localDecoder.Object);
 

@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
             Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
 
-            SimdUtils.FallbackIntrinsics128.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
+            SimdUtils.FallbackIntrinsics128.ByteToNormalizedFloat(sBytes, dFloats);
         }
 
         [Benchmark]
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
             Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
 
-            SimdUtils.BasicIntrinsics256.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
+            SimdUtils.BasicIntrinsics256.ByteToNormalizedFloat(sBytes, dFloats);
         }
 
         [Benchmark]
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
             Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
 
-            SimdUtils.ExtendedIntrinsics.BulkConvertByteToNormalizedFloat(sBytes, dFloats);
+            SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(sBytes, dFloats);
         }
 
         // [Benchmark]

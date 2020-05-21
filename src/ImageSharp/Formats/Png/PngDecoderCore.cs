@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Buffers.Binary;
@@ -9,7 +9,7 @@ using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using SixLabors.ImageSharp.Advanced;
+
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -29,11 +29,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Reusable buffer.
         /// </summary>
         private readonly byte[] buffer = new byte[4];
-
-        /// <summary>
-        /// Reusable CRC for validating chunks.
-        /// </summary>
-        private readonly Crc32 crc = new Crc32();
 
         /// <summary>
         /// The global configuration.
@@ -215,6 +210,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                             case PngChunkType.End:
                                 this.isEndChunkReached = true;
                                 break;
+                            case PngChunkType.ProprietaryApple:
+                                PngThrowHelper.ThrowInvalidChunkType("Proprietary Apple PNG detected! This PNG file is not conform to the specification and cannot be decoded.");
+                                break;
                         }
                     }
                     finally
@@ -269,6 +267,21 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 break;
                             case PngChunkType.Text:
                                 this.ReadTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                break;
+                            case PngChunkType.CompressedText:
+                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                break;
+                            case PngChunkType.InternationalText:
+                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                break;
+                            case PngChunkType.Exif:
+                                if (!this.ignoreMetadata)
+                                {
+                                    var exifData = new byte[chunk.Length];
+                                    Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
+                                    metadata.ExifProfile = new ExifProfile(exifData);
+                                }
+
                                 break;
                             case PngChunkType.End:
                                 this.isEndChunkReached = true;
@@ -380,7 +393,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         private void InitializeImage<TPixel>(ImageMetadata metadata, out Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
+            image = Image.CreateUninitialized<TPixel>(
+                this.configuration,
+                this.header.Width,
+                this.header.Height,
+                metadata);
+
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
             this.bytesPerSample = 1;
@@ -1034,7 +1052,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 var uncompressedBytes = new List<byte>();
 
-                // Note: this uses the a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
+                // Note: this uses a buffer which is only 4 bytes long to read the stream, maybe allocating a larger buffer makes sense here.
                 int bytesRead = inflateStream.CompressedStream.Read(this.buffer, 0, this.buffer.Length);
                 while (bytesRead != 0)
                 {
@@ -1136,24 +1154,21 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="chunk">The <see cref="PngChunk"/>.</param>
         private void ValidateChunk(in PngChunk chunk)
         {
-            if (!chunk.IsCritical)
+            uint inputCrc = this.ReadChunkCrc();
+
+            if (chunk.IsCritical)
             {
-                return;
-            }
+                Span<byte> chunkType = stackalloc byte[4];
+                BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
 
-            Span<byte> chunkType = stackalloc byte[4];
+                uint validCrc = Crc32.Calculate(chunkType);
+                validCrc = Crc32.Calculate(validCrc, chunk.Data.GetSpan());
 
-            BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
-
-            this.crc.Reset();
-            this.crc.Update(chunkType);
-            this.crc.Update(chunk.Data.GetSpan());
-
-            uint crc = this.ReadChunkCrc();
-            if (this.crc.Value != crc)
-            {
-                string chunkTypeName = Encoding.ASCII.GetString(chunkType);
-                PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);
+                if (validCrc != inputCrc)
+                {
+                    string chunkTypeName = Encoding.ASCII.GetString(chunkType);
+                    PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);
+                }
             }
         }
 

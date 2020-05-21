@@ -1,12 +1,10 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using Microsoft.DotNet.RemoteExecutor;
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -28,32 +26,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public static readonly string[] MultiFrameTestFiles =
         {
             TestImages.Gif.Giphy, TestImages.Gif.Kumin
-        };
-
-        public static readonly string[] BasicVerificationFiles =
-        {
-            TestImages.Gif.Cheers,
-            TestImages.Gif.Rings,
-
-            // previously DecodeBadApplicationExtensionLength:
-            TestImages.Gif.Issues.BadAppExtLength,
-            TestImages.Gif.Issues.BadAppExtLength_2,
-
-            // previously DecodeBadDescriptorDimensionsLength:
-            TestImages.Gif.Issues.BadDescriptorWidth
-        };
-
-        private static readonly Dictionary<string, int> BasicVerificationFrameCount =
-        new Dictionary<string, int>
-        {
-            [TestImages.Gif.Cheers] = 93,
-            [TestImages.Gif.Issues.BadDescriptorWidth] = 36,
-        };
-
-        public static readonly string[] BadAppExtFiles =
-        {
-            TestImages.Gif.Issues.BadAppExtLength,
-            TestImages.Gif.Issues.BadAppExtLength_2
         };
 
         [Theory]
@@ -100,15 +72,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         }
 
         [Theory]
-        [WithFileCollection(nameof(BasicVerificationFiles), PixelTypes.Rgba32)]
-        public void Decode_VerifyRootFrameAndFrameCount<TPixel>(TestImageProvider<TPixel> provider)
+        [WithFile(TestImages.Gif.Cheers, PixelTypes.Rgba32, 93)]
+        [WithFile(TestImages.Gif.Rings, PixelTypes.Rgba32, 1)]
+        [WithFile(TestImages.Gif.Issues.BadDescriptorWidth, PixelTypes.Rgba32, 36)]
+        public void Decode_VerifyRootFrameAndFrameCount<TPixel>(TestImageProvider<TPixel> provider, int expectedFrameCount)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (!BasicVerificationFrameCount.TryGetValue(provider.SourceFileOrDescription, out int expectedFrameCount))
-            {
-                expectedFrameCount = 1;
-            }
-
             using (Image<TPixel> image = provider.GetImage())
             {
                 Assert.Equal(expectedFrameCount, image.Frames.Count);
@@ -153,6 +122,35 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             }
         }
 
+        [Theory]
+        [WithFile(TestImages.Gif.ZeroSize, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Gif.ZeroWidth, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Gif.ZeroHeight, PixelTypes.Rgba32)]
+        public void Decode_WithInvalidDimensions_DoesThrowException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            System.Exception ex = Record.Exception(
+                () =>
+                {
+                    using Image<TPixel> image = provider.GetImage(GifDecoder);
+                });
+            Assert.NotNull(ex);
+            Assert.Contains("Width or height should not be 0", ex.Message);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Gif.MaxWidth, PixelTypes.Rgba32, 65535, 1)]
+        [WithFile(TestImages.Gif.MaxHeight, PixelTypes.Rgba32, 1, 65535)]
+        public void Decode_WithMaxDimensions_Works<TPixel>(TestImageProvider<TPixel> provider, int expectedWidth, int expectedHeight)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(GifDecoder))
+            {
+                Assert.Equal(expectedWidth, image.Width);
+                Assert.Equal(expectedHeight, image.Height);
+            }
+        }
+
         [Fact]
         public void CanDecodeIntermingledImages()
         {
@@ -164,8 +162,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 {
                     ImageFrame<Rgba32> first = kumin1.Frames[i];
                     ImageFrame<Rgba32> second = kumin2.Frames[i];
-                    first.ComparePixelBufferTo(second.GetPixelSpan());
+
+                    Assert.True(second.TryGetSinglePixelSpan(out Span<Rgba32> secondSpan));
+
+                    first.ComparePixelBufferTo(secondSpan);
                 }
+            }
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/405
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.BadAppExtLength, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Gif.Issues.BadAppExtLength_2, PixelTypes.Rgba32)]
+        public void Issue405_BadApplicationExtensionBlockLength<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.DebugSave(provider);
+                image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
             }
         }
 
@@ -176,7 +191,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
-            ImageFormatException ex = Assert.Throws<ImageFormatException>(() => provider.GetImage(GifDecoder));
+            InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(GifDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 

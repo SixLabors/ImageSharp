@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.Tests.Processing;
 
@@ -16,14 +16,16 @@ namespace SixLabors.ImageSharp.Tests
         public void Lomograph_amount_LomographProcessorDefaultsSet()
         {
             this.operations.Lomograph();
-            this.Verify<LomographProcessor>();
+            var processor = this.Verify<LomographProcessor>();
+            Assert.Equal(processor.GraphicsOptions, this.options);
         }
 
         [Fact]
         public void Lomograph_amount_rect_LomographProcessorDefaultsSet()
         {
             this.operations.Lomograph(this.rect);
-            this.Verify<LomographProcessor>(this.rect);
+            var processor = this.Verify<LomographProcessor>(this.rect);
+            Assert.Equal(processor.GraphicsOptions, this.options);
         }
     }
 }

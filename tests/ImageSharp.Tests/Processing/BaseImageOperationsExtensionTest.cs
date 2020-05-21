@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
+using System.ComponentModel.DataAnnotations;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -25,6 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
             this.source = new Image<Rgba32>(91 + 324, 123 + 56);
             this.rect = new Rectangle(91, 123, 324, 56); // make this random?
             this.internalOperations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(this.source.GetConfiguration(), this.source, false);
+            this.internalOperations.SetGraphicsOptions(this.options);
             this.operations = this.internalOperations;
         }
 

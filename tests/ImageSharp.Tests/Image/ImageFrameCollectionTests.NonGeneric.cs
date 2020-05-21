@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Linq;
@@ -159,7 +159,8 @@ namespace SixLabors.ImageSharp.Tests
 
                         var expectedClone = (Image<TPixel>)cloned;
 
-                        expectedClone.ComparePixelBufferTo(img.GetPixelSpan());
+                        Assert.True(img.TryGetSinglePixelSpan(out Span<TPixel> imgSpan));
+                        expectedClone.ComparePixelBufferTo(imgSpan);
                     }
                 }
             }
@@ -171,7 +172,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<TPixel> img = provider.GetImage())
                 {
-                    var sourcePixelData = img.GetPixelSpan().ToArray();
+                    Assert.True(img.TryGetSinglePixelSpan(out Span<TPixel> imgSpan));
+                    var sourcePixelData = imgSpan.ToArray();
 
                     ImageFrameCollection nonGenericFrameCollection = img.Frames;
 

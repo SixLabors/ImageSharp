@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Collections.Generic;
@@ -417,8 +417,7 @@ namespace SixLabors.ImageSharp.Tests
             Span<TPixel> expectedPixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Span<TPixel> actualPixels = image.GetPixelSpan();
-
+            Assert.True(image.TryGetSinglePixelSpan(out Span<TPixel> actualPixels));
             CompareBuffers(expectedPixels, actualPixels);
 
             return image;
@@ -478,7 +477,7 @@ namespace SixLabors.ImageSharp.Tests
         public static ImageFrame<TPixel> ComparePixelBufferTo<TPixel>(this ImageFrame<TPixel> imageFrame, TPixel expectedPixel)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Span<TPixel> actualPixels = imageFrame.GetPixelSpan();
+            Assert.True(imageFrame.TryGetSinglePixelSpan(out Span<TPixel> actualPixels));
 
             for (int i = 0; i < actualPixels.Length; i++)
             {
@@ -493,8 +492,7 @@ namespace SixLabors.ImageSharp.Tests
                     Span<TPixel> expectedPixels)
                     where TPixel : unmanaged, IPixel<TPixel>
         {
-            Span<TPixel> actual = image.GetPixelSpan();
-
+            Assert.True(image.TryGetSinglePixelSpan(out Span<TPixel> actual));
             Assert.True(expectedPixels.Length == actual.Length, "Buffer sizes are not equal!");
 
             for (int i = 0; i < expectedPixels.Length; i++)
@@ -677,8 +675,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             var image = new Image<Rgba32>(buffer.Width, buffer.Height);
 
-            Span<Rgba32> pixels = image.Frames.RootFrame.GetPixelSpan();
-
+            Assert.True(image.Frames.RootFrame.TryGetSinglePixelSpan(out Span<Rgba32> pixels));
             Span<float> bufferSpan = buffer.GetSingleSpan();
 
             for (int i = 0; i < bufferSpan.Length; i++)

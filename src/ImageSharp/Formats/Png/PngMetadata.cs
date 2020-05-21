@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.PixelFormats;
@@ -91,34 +91,12 @@ namespace SixLabors.ImageSharp.Formats.Png
         public bool HasTransparency { get; set; }
 
         /// <summary>
-        /// Gets or sets the collection of text data stored within the  iTXt, tEXt, and zTXt chunks.
+        /// Gets or sets the collection of text data stored within the iTXt, tEXt, and zTXt chunks.
         /// Used for conveying textual information associated with the image.
         /// </summary>
         public IList<PngTextData> TextData { get; set; } = new List<PngTextData>();
 
-        /// <summary>
-        /// Gets the list of png text properties for storing meta information about this image.
-        /// </summary>
-        public IList<PngTextData> PngTextProperties { get; } = new List<PngTextData>();
-
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new PngMetadata(this);
-
-        internal bool TryGetPngTextProperty(string keyword, out PngTextData result)
-        {
-            for (int i = 0; i < this.TextData.Count; i++)
-            {
-                if (this.TextData[i].Keyword == keyword)
-                {
-                    result = this.TextData[i];
-
-                    return true;
-                }
-            }
-
-            result = default;
-
-            return false;
-        }
     }
 }

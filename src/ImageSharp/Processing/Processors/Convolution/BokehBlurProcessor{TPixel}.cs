@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Collections.Generic;
@@ -304,7 +304,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 for (int x = 0; x < this.bounds.Width; x++)
                 {
                     ref Vector4 v = ref Unsafe.Add(ref sourceRef, x);
-                    var clamp = Vector4.Clamp(v, low, high);
+                    var clamp = Vector4Utilities.FastClamp(v, low, high);
                     v.X = MathF.Pow(clamp.X, this.inverseGamma);
                     v.Y = MathF.Pow(clamp.Y, this.inverseGamma);
                     v.Z = MathF.Pow(clamp.Z, this.inverseGamma);

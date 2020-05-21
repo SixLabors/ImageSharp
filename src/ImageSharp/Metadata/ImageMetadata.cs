@@ -1,10 +1,11 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 
 namespace SixLabors.ImageSharp.Metadata
 {
@@ -65,6 +66,7 @@ namespace SixLabors.ImageSharp.Metadata
 
             this.ExifProfile = other.ExifProfile?.DeepClone();
             this.IccProfile = other.IccProfile?.DeepClone();
+            this.IptcProfile = other.IptcProfile?.DeepClone();
         }
 
         /// <summary>
@@ -121,6 +123,11 @@ namespace SixLabors.ImageSharp.Metadata
         /// Gets or sets the list of ICC profiles.
         /// </summary>
         public IccProfile IccProfile { get; set; }
+
+        /// <summary>
+        /// Gets or sets the iptc profile.
+        /// </summary>
+        public IptcProfile IptcProfile { get; set; }
 
         /// <summary>
         /// Gets the metadata value associated with the specified key.

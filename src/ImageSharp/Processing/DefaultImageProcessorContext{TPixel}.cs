@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
+using System.Collections.Generic;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
 
@@ -38,6 +39,9 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <inheritdoc/>
         public Configuration Configuration { get; }
+
+        /// <inheritdoc/>
+        public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
 
         /// <inheritdoc/>
         public Image<TPixel> GetResultImage()

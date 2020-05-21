@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.IO;
@@ -9,6 +9,7 @@ using ImageMagick;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
@@ -44,8 +45,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         {
             using (var magickImage = new MagickImage(fileInfo))
             {
+                magickImage.AutoOrient();
                 var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
-                Span<TPixel> resultPixels = result.GetPixelSpan();
+
+                Assert.True(result.TryGetSinglePixelSpan(out Span<TPixel> resultPixels));
 
                 using (IPixelCollection pixels = magickImage.GetPixelsUnsafe())
                 {

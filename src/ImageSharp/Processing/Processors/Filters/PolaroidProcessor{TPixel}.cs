@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Overlays;
@@ -14,6 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     {
         private static readonly Color LightOrange = Color.FromRgba(255, 153, 102, 128);
         private static readonly Color VeryDarkOrange = Color.FromRgb(102, 34, 0);
+        private readonly PolaroidProcessor definition;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PolaroidProcessor{TPixel}"/> class.
@@ -25,13 +26,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         public PolaroidProcessor(Configuration configuration, PolaroidProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, definition, source, sourceRectangle)
         {
+            this.definition = definition;
         }
 
         /// <inheritdoc/>
         protected override void AfterImageApply()
         {
-            new VignetteProcessor(VeryDarkOrange).Execute(this.Configuration, this.Source, this.SourceRectangle);
-            new GlowProcessor(LightOrange, this.Source.Width / 4F).Execute(this.Configuration, this.Source, this.SourceRectangle);
+            new VignetteProcessor(this.definition.GraphicsOptions, VeryDarkOrange).Execute(this.Configuration, this.Source, this.SourceRectangle);
+            new GlowProcessor(this.definition.GraphicsOptions, LightOrange, this.Source.Width / 4F).Execute(this.Configuration, this.Source, this.SourceRectangle);
             base.AfterImageApply();
         }
     }

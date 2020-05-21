@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 using System.Numerics;
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
 
                 destinationVectors = destinationVectors.Slice(0, sourcePixels.Length);
-                SimdUtils.BulkConvertByteToNormalizedFloat(
+                SimdUtils.ByteToNormalizedFloat(
                     MemoryMarshal.Cast<Rgba32, byte>(sourcePixels),
                     MemoryMarshal.Cast<Vector4, float>(destinationVectors));
                 Vector4Converters.ApplyForwardConversionModifiers(destinationVectors, modifiers);
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 destinationPixels = destinationPixels.Slice(0, sourceVectors.Length);
                 Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers);
-                SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(
+                SimdUtils.NormalizedFloatToByteSaturate(
                     MemoryMarshal.Cast<Vector4, float>(sourceVectors),
                     MemoryMarshal.Cast<Rgba32, byte>(destinationPixels));
             }

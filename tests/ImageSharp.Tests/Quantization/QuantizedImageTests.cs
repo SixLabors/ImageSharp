@@ -1,5 +1,5 @@
 // Copyright (c) Six Labors and contributors.
-// Licensed under the Apache License, Version 2.0.
+// Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
 
@@ -27,22 +27,22 @@ namespace SixLabors.ImageSharp.Tests
             Assert.NotNull(octree.Options.Dither);
             Assert.NotNull(wu.Options.Dither);
 
-            using (IFrameQuantizer<Rgba32> quantizer = werner.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            using (IQuantizer<Rgba32> quantizer = werner.CreatePixelSpecificQuantizer<Rgba32>(this.Configuration))
             {
                 Assert.NotNull(quantizer.Options.Dither);
             }
 
-            using (IFrameQuantizer<Rgba32> quantizer = webSafe.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            using (IQuantizer<Rgba32> quantizer = webSafe.CreatePixelSpecificQuantizer<Rgba32>(this.Configuration))
             {
                 Assert.NotNull(quantizer.Options.Dither);
             }
 
-            using (IFrameQuantizer<Rgba32> quantizer = octree.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            using (IQuantizer<Rgba32> quantizer = octree.CreatePixelSpecificQuantizer<Rgba32>(this.Configuration))
             {
                 Assert.NotNull(quantizer.Options.Dither);
             }
 
-            using (IFrameQuantizer<Rgba32> quantizer = wu.CreateFrameQuantizer<Rgba32>(this.Configuration))
+            using (IQuantizer<Rgba32> quantizer = wu.CreatePixelSpecificQuantizer<Rgba32>(this.Configuration))
             {
                 Assert.NotNull(quantizer.Options.Dither);
             }
@@ -70,11 +70,11 @@ namespace SixLabors.ImageSharp.Tests
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    using (IFrameQuantizer<TPixel> frameQuantizer = quantizer.CreateFrameQuantizer<TPixel>(this.Configuration))
-                    using (QuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
+                    using (IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.Configuration))
+                    using (IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds()))
                     {
                         int index = this.GetTransparentIndex(quantized);
-                        Assert.Equal(index, quantized.GetPixelSpan()[0]);
+                        Assert.Equal(index, quantized.GetPixelRowSpan(0)[0]);
                     }
                 }
             }
@@ -100,28 +100,28 @@ namespace SixLabors.ImageSharp.Tests
 
                 foreach (ImageFrame<TPixel> frame in image.Frames)
                 {
-                    using (IFrameQuantizer<TPixel> frameQuantizer = quantizer.CreateFrameQuantizer<TPixel>(this.Configuration))
-                    using (QuantizedFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(frame, frame.Bounds()))
+                    using (IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.Configuration))
+                    using (IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds()))
                     {
                         int index = this.GetTransparentIndex(quantized);
-                        Assert.Equal(index, quantized.GetPixelSpan()[0]);
+                        Assert.Equal(index, quantized.GetPixelRowSpan(0)[0]);
                     }
                 }
             }
         }
 
-        private int GetTransparentIndex<TPixel>(QuantizedFrame<TPixel> quantized)
+        private int GetTransparentIndex<TPixel>(IndexedImageFrame<TPixel> quantized)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Transparent pixels are much more likely to be found at the end of a palette
             int index = -1;
-            Rgba32 trans = default;
             ReadOnlySpan<TPixel> paletteSpan = quantized.Palette.Span;
-            for (int i = paletteSpan.Length - 1; i >= 0; i--)
-            {
-                paletteSpan[i].ToRgba32(ref trans);
+            Span<Rgba32> colorSpan = stackalloc Rgba32[QuantizerConstants.MaxColors].Slice(0, paletteSpan.Length);
 
-                if (trans.Equals(default))
+            PixelOperations<TPixel>.Instance.ToRgba32(quantized.Configuration, paletteSpan, colorSpan);
+            for (int i = colorSpan.Length - 1; i >= 0; i--)
+            {
+                if (colorSpan[i].Equals(default))
                 {
                     index = i;
                 }

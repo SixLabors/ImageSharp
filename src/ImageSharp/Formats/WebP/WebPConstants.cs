@@ -103,6 +103,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public const int MaxNumberOfTransforms = 4;
 
         /// <summary>
+        /// The bit to be written when next data to be read is a transform.
+        /// </summary>
+        public const int TransformPresent = 1;
+
+        /// <summary>
         /// The maximum allowed width or height of a webp image.
         /// </summary>
         public const int MaxDimension = 16383;
@@ -122,6 +127,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public const int NumLengthCodes = 24;
 
         public const int NumDistanceCodes = 40;
+
+        public const int CodeLengthCodes = 19;
 
         public const int LengthTableBits = 7;
 

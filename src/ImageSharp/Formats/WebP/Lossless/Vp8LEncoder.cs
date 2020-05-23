@@ -12,9 +12,31 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     /// </summary>
     internal class Vp8LEncoder : IDisposable
     {
-        public Vp8LEncoder(MemoryAllocator memoryAllocator)
+        /// <summary>
+        /// Maximum number of reference blocks the image will be segmented into.
+        /// </summary>
+        private const int MaxRefsBlockPerImage = 16;
+
+        /// <summary>
+        /// Minimum block size for backward references.
+        /// </summary>
+        private const int MinBlockSize = 256;
+
+        public Vp8LEncoder(MemoryAllocator memoryAllocator, int width, int height)
         {
+            var pixelCount = width * height;
+
             this.Palette = memoryAllocator.Allocate<uint>(WebPConstants.MaxPaletteSize);
+            this.Refs = new Vp8LBackwardRefs[3];
+            this.HashChain = new Vp8LHashChain(pixelCount);
+
+            // We round the block size up, so we're guaranteed to have at most MAX_REFS_BLOCK_PER_IMAGE blocks used:
+            int refsBlockSize = ((pixelCount - 1) / MaxRefsBlockPerImage) + 1;
+            for (int i = 0; i < this.Refs.Length; ++i)
+            {
+                this.Refs[i] = new Vp8LBackwardRefs();
+                this.Refs[i].BlockSize = (refsBlockSize < MinBlockSize) ? MinBlockSize : refsBlockSize;
+            }
         }
 
         /// <summary>
@@ -28,24 +50,24 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         public int TransformBits { get; set; }
 
         /// <summary>
-        /// Gets or sets the cache bits.
+        /// Gets or sets a value indicating whether to use a color cache.
         /// </summary>
-        public bool CacheBits { get; }
+        public bool UseColorCache { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether to use the cross color transform.
+        /// Gets or sets a value indicating whether to use the cross color transform.
         /// </summary>
-        public bool UseCrossColorTransform { get; }
+        public bool UseCrossColorTransform { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether to use the substract green transform.
+        /// Gets or sets a value indicating whether to use the substract green transform.
         /// </summary>
-        public bool UseSubtractGreenTransform { get; }
+        public bool UseSubtractGreenTransform { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether to use the predictor transform.
+        /// Gets or sets a value indicating whether to use the predictor transform.
         /// </summary>
-        public bool UsePredictorTransform { get; }
+        public bool UsePredictorTransform { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to use color indexing transform.
@@ -61,6 +83,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// Gets the palette.
         /// </summary>
         public IMemoryOwner<uint> Palette { get; }
+
+        public Vp8LBackwardRefs[] Refs { get; }
+
+        public Vp8LHashChain HashChain { get; }
 
         /// <inheritdoc/>
         public void Dispose()

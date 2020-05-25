@@ -5,14 +5,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
     internal class Vp8LRefsCursor
     {
-        public Vp8LRefsCursor(Vp8LBackwardRefs[] refs)
+        public Vp8LRefsCursor(Vp8LBackwardRefs refs)
         {
             //this.Refs = refs;
-            this.CurrentPos = 0;
+            //this.CurrentPos = 0;
         }
 
-        public PixOrCopy[] Refs { get; }
+        //public PixOrCopy Refs { get; }
 
-        public int CurrentPos { get; }
+        public PixOrCopy CurrentPos { get; }
     }
 }

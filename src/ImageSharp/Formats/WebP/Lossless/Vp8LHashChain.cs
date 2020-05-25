@@ -27,5 +27,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             this.OffsetLength.AsSpan().Fill(0xcdcdcdcd);
             this.Size = size;
         }
+
+        public int FindLength(int basePosition)
+        {
+            return (int)(this.OffsetLength[basePosition] & ((1U << BackwardReferenceEncoder.MaxLengthBits) - 1));
+        }
+
+        public int FindOffset(int basePosition)
+        {
+            return (int)(this.OffsetLength[basePosition] >> BackwardReferenceEncoder.MaxLengthBits);
+        }
     }
 }

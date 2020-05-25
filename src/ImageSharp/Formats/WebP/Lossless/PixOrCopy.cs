@@ -5,11 +5,47 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
     internal class PixOrCopy
     {
-        public PixOrCopyMode Mode { get; }
+        public PixOrCopyMode Mode { get; set; }
 
-        public short Len { get; }
+        public short Len { get; set; }
 
-        public uint ArgbOrDistance { get; }
+        public uint BgraOrDistance { get; set; }
+
+        public static PixOrCopy CreateCacheIdx(int idx)
+        {
+            var retval = new PixOrCopy()
+            {
+                Mode = PixOrCopyMode.CacheIdx,
+                BgraOrDistance = (uint)idx,
+                Len = 1
+            };
+
+            return retval;
+        }
+
+        public static PixOrCopy CreateLiteral(uint bgra)
+        {
+            var retval = new PixOrCopy()
+            {
+                Mode = PixOrCopyMode.Literal,
+                BgraOrDistance = bgra,
+                Len = 1
+            };
+
+            return retval;
+        }
+
+        public static PixOrCopy CreateCopy(uint distance, short len)
+        {
+            var retval = new PixOrCopy()
+            {
+                Mode = PixOrCopyMode.Copy,
+                BgraOrDistance = distance,
+                Len = len
+            };
+
+            return retval;
+        }
 
         public bool IsLiteral()
         {

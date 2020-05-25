@@ -2,12 +2,17 @@
 // Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
-using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
     internal class BackwardReferenceEncoder
     {
+        /// <summary>
+        /// Maximum bit length.
+        /// </summary>
+        public const int MaxLengthBits = 12;
+
         private const int HashBits = 18;
 
         private const int HashSize = 1 << HashBits;
@@ -34,11 +39,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// 1M window (4M bytes) minus 120 special codes for short distances.
         /// </summary>
         private const int WindowSize = (1 << WindowSizeBits) - 120;
-
-        /// <summary>
-        /// Maximum bit length.
-        /// </summary>
-        private const int MaxLengthBits = 12;
 
         /// <summary>
         /// We want the max value to be attainable and stored in MaxLengthBits bits.
@@ -122,8 +122,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             // Find the best match interval at each pixel, defined by an offset to the
             // pixel and a length. The right-most pixel cannot match anything to the right
-            // (hence a best length of 0) and the left-most pixel nothing to the left
-            // (hence an offset of 0).
+            // (hence a best length of 0) and the left-most pixel nothing to the left (hence an offset of 0).
             p.OffsetLength[0] = p.OffsetLength[size - 1] = 0;
             for (int basePosition = size - 2; basePosition > 0;)
             {
@@ -227,8 +226,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     }
                 }
             }
-
-            int foo = 0;
         }
 
         /// <summary>
@@ -239,20 +236,20 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// The return value is the pointer to the best of the two backward refs viz,
         /// refs[0] or refs[1].
         /// </summary>
-        private static Vp8LBackwardRefs[] GetBackwardReferences(int width, int height, uint[] bgra, int quality,
-            int lz77TypesToTry, int[] cacheBits, Vp8LHashChain[] hashChain, Vp8LBackwardRefs[] best, Vp8LBackwardRefs[] worst)
+        public static Vp8LBackwardRefs GetBackwardReferences(int width, int height, Span<uint> bgra, int quality,
+            int lz77TypesToTry, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs best, Vp8LBackwardRefs worst)
         {
             var histo = new Vp8LHistogram[WebPConstants.MaxColorCacheBits];
             int lz77Type = 0;
             int lz77TypeBest = 0;
             double bitCostBest = -1;
-            int[] cacheBitsInitial = cacheBits;
-            //  TODO: var hashChainBox = new Vp8LHashChain();
+            int cacheBitsInitial = cacheBits;
+            Vp8LHashChain hashChainBox = null;
             for (lz77Type = 1; lz77TypesToTry > 0; lz77TypesToTry &= ~lz77Type, lz77Type <<= 1)
             {
                 int res = 0;
                 double bitCost;
-                int[] cacheBitsTmp = cacheBitsInitial;
+                int cacheBitsTmp = cacheBitsInitial;
                 if ((lz77TypesToTry & lz77Type) == 0)
                 {
                     continue;
@@ -264,34 +261,33 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                         BackwardReferencesRle(width, height, bgra, 0, worst);
                         break;
                     case Vp8LLz77Type.Lz77Standard:
-                        // Compute LZ77 with no cache (0 bits), as the ideal LZ77 with a color
-                        // cache is not that different in practice.
+                        // Compute LZ77 with no cache (0 bits), as the ideal LZ77 with a color cache is not that different in practice.
                         BackwardReferencesLz77(width, height, bgra, 0, hashChain, worst);
                         break;
                     case Vp8LLz77Type.Lz77Box:
-                        // TODO: HashChainInit(hashChainBox, width * height);
-                        //BackwardReferencesLz77Box(width, height, bgra, 0, hashChain, hashChainBox, worst);
+                        hashChainBox = new Vp8LHashChain(width * height);
+                        BackwardReferencesLz77Box(width, height, bgra, 0, hashChain, hashChainBox, worst);
                         break;
                 }
 
                 // Next, try with a color cache and update the references.
-                CalculateBestCacheSize(bgra, quality, worst, cacheBitsTmp);
-                if (cacheBitsTmp[0] > 0)
+                cacheBitsTmp = CalculateBestCacheSize(bgra, quality, worst, cacheBitsTmp);
+                if (cacheBitsTmp > 0)
                 {
-                    BackwardRefsWithLocalCache(bgra, cacheBitsTmp[0], worst);
+                    BackwardRefsWithLocalCache(bgra, cacheBitsTmp, worst);
                 }
 
                 // Keep the best backward references.
-                // TODO: VP8LHistogramCreate(histo, worst, cacheBitsTmp);
+                histo[0] = new Vp8LHistogram(worst, cacheBitsTmp);
                 bitCost = histo[0].EstimateBits();
 
                 if (lz77TypeBest == 0 || bitCost < bitCostBest)
                 {
-                    Vp8LBackwardRefs[] tmp = worst;
+                    Vp8LBackwardRefs tmp = worst;
                     worst = best;
                     best = tmp;
                     bitCostBest = bitCost;
-                    //*cacheBits = cacheBitsTmp;
+                    cacheBits = cacheBitsTmp;
                     lz77TypeBest = lz77Type;
                 }
             }
@@ -299,17 +295,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // Improve on simple LZ77 but only for high quality (TraceBackwards is costly).
             if ((lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard || lz77TypeBest == (int)Vp8LLz77Type.Lz77Box) && quality >= 25)
             {
-                /*HashChain[] hashChainTmp = (lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard) ? hashChain : hashChainBox;
-                if (BackwardReferencesTraceBackwards(width, height, bgra, cacheBits, hashChainTmp, best, worst))
+                Vp8LHashChain hashChainTmp = (lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard) ? hashChain : hashChainBox;
+                BackwardReferencesTraceBackwards(width, height, bgra, cacheBits, hashChainTmp, best, worst);
+                histo[0] = new Vp8LHistogram(worst, cacheBits);
+                double bitCostTrace = histo[0].EstimateBits();
+                if (bitCostTrace < bitCostBest)
                 {
-                    double bitCostTrace;
-                    //HistogramCreate(histo, worst, cacheBits);
-                    bitCostTrace = histo[0].EstimateBits();
-                    if (bitCostTrace < bitCostBest)
-                    {
-                        best = worst;
-                    }
-                }*/
+                    best = worst;
+                }
             }
 
             BackwardReferences2DLocality(width, best);
@@ -319,62 +312,60 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         /// <summary>
         /// Evaluate optimal cache bits for the local color cache.
-        /// The input *best_cache_bits sets the maximum cache bits to use (passing 0
-        /// implies disabling the local color cache). The local color cache is also
-        /// disabled for the lower (<= 25) quality.
+        /// The input *best_cache_bits sets the maximum cache bits to use (passing 0 implies disabling the local color cache).
+        /// The local color cache is also disabled for the lower (<= 25) quality.
         /// </summary>
-        private static void CalculateBestCacheSize(uint[] bgra, int quality, Vp8LBackwardRefs[] refs, int[] bestCacheBits)
+        private static int CalculateBestCacheSize(Span<uint> bgra, int quality, Vp8LBackwardRefs refs, int bestCacheBits)
         {
-            int cacheBitsMax = (quality <= 25) ? 0 : bestCacheBits[0];
+            int cacheBitsMax = (quality <= 25) ? 0 : bestCacheBits;
             double entropyMin = MaxEntropy;
+            int pos = 0;
             var ccInit = new int[WebPConstants.MaxColorCacheBits + 1];
-            var hashers = new ColorCache[WebPConstants.MaxColorCacheBits + 1];
-            var c = new Vp8LRefsCursor(refs);
+            var colorCache = new ColorCache[WebPConstants.MaxColorCacheBits + 1];
             var histos = new Vp8LHistogram[WebPConstants.MaxColorCacheBits + 1];
             if (cacheBitsMax == 0)
             {
                 // Local color cache is disabled.
-                bestCacheBits[0] = 0;
-                return;
+                return 0;
             }
 
             // Find the cache_bits giving the lowest entropy. The search is done in a
             // brute-force way as the function (entropy w.r.t cache_bits) can be anything in practice.
-            //while (VP8LRefsCursorOk(&c))
-            /*while (true)
+            using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
+            while (c.MoveNext())
             {
-                //PixOrCopy[] v = c.cur_pos;
+                PixOrCopy v = c.Current;
                 if (v.IsLiteral())
                 {
-                    uint pix = *bgra++;
+                    uint pix = bgra[pos++];
                     uint a = (pix >> 24) & 0xff;
                     uint r = (pix >> 16) & 0xff;
                     uint g = (pix >> 8) & 0xff;
                     uint b = (pix >> 0) & 0xff;
 
                     // The keys of the caches can be derived from the longest one.
-                    int key = HashPix(pix, 32 - cacheBitsMax);
+                    int key = ColorCache.HashPix(pix, 32 - cacheBitsMax);
 
                     // Do not use the color cache for cache_bits = 0.
-                    ++histos[0].blue[b];
-                    ++histos[0].literal[g];
-                    ++histos[0].red[r];
-                    ++histos[0].alpha[a];
+                    ++histos[0].Blue[b];
+                    ++histos[0].Literal[g];
+                    ++histos[0].Red[r];
+                    ++histos[0].Alpha[a];
 
                     // Deal with cache_bits > 0.
-                    for (int i = cacheBitsMax; i >= 1; --i, key >>= 1)
+                    for (int i = cacheBitsMax; i >= 1; i--, key >>= 1)
                     {
-                        if (VP8LColorCacheLookup(hashers[i], key) == pix)
+                        if (colorCache[i].Lookup(key) == pix)
                         {
-                            ++histos[i]->literal[WebPConstants.NumLiteralCodes + WebPConstants.CodeLengthCodes + key];
+                            ++histos[i].Literal[WebPConstants.NumLiteralCodes + WebPConstants.CodeLengthCodes + key];
                         }
                         else
                         {
-                            VP8LColorCacheSet(hashers[i], key, pix);
-                            ++histos[i].blue[b];
-                            ++histos[i].literal[g];
-                            ++histos[i].red[r];
-                            ++histos[i].alpha[a];
+                            colorCache[i].Set((uint)key, pix);
+                            ++histos[i].Blue[b];
+                            ++histos[i].Literal[g];
+                            ++histos[i].Red[r];
+                            ++histos[i].Alpha[a];
                         }
                     }
                 }
@@ -384,36 +375,75 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     // histograms but those are the same independently from the cache size.
                     // As those constant contributions are in the end added to the other
                     // histogram contributions, we can safely ignore them.
+                    int len = v.Len;
+                    uint bgraPrev = bgra[pos] ^ 0xffffffffu;
 
+                    // Update the color caches.
+                    do
+                    {
+                        if (bgra[pos] != bgraPrev)
+                        {
+                            // Efficiency: insert only if the color changes.
+                            int key = ColorCache.HashPix(bgra[pos], 32 - cacheBitsMax);
+                            for (int i = cacheBitsMax; i >= 1; --i, key >>= 1)
+                            {
+                                colorCache[i].Colors[key] = bgra[pos];
+                            }
+
+                            bgraPrev = bgra[pos];
+                        }
+
+                        pos++;
+                    }
+                    while (--len != 0);
                 }
-            }*/
+            }
+
+            for (int i = 0; i <= cacheBitsMax; i++)
+            {
+                double entropy = histos[i].EstimateBits();
+                if (i == 0 || entropy < entropyMin)
+                {
+                    entropyMin = entropy;
+                    bestCacheBits = i;
+                }
+            }
+
+            return bestCacheBits;
         }
 
-        private static void BackwardReferencesTraceBackwards()
+        private static void BackwardReferencesTraceBackwards(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refsSrc, Vp8LBackwardRefs refsDst)
         {
+            int distArraySize = xSize * ySize;
+            var distArray = new short[distArraySize];
+            short[] chosenPath;
+            int chosenPathSize = 0;
 
+            // TODO: 
+            // BackwardReferencesHashChainDistanceOnly(xSize, ySize, bgra, cacheBits, hashChain, refsSrc, distArray);
+            // TraceBackwards(distArray, distArraySize, chosenPath, chosenPathSize);
+            // BackwardReferencesHashChainFollowChosenPath(bgra, cacheBits, chosenPath, chosenPathSize, hashChain, refsDst);
         }
 
-        private static void BackwardReferencesLz77(int xSize, int ySize, uint[] bgra, int cacheBits, Vp8LHashChain[] hashChain, Vp8LBackwardRefs[] refs)
+        private static void BackwardReferencesLz77(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refs)
         {
             int iLastCheck = -1;
             int ccInit = 0;
             bool useColorCache = cacheBits > 0;
             int pixCount = xSize * ySize;
-            var hashers = new ColorCache();
+            var colorCache = new ColorCache();
             if (useColorCache)
             {
-                hashers.Init(cacheBits);
+                colorCache.Init(cacheBits);
             }
 
             // TODO: VP8LClearBackwardRefs(refs);
             for (int i = 0; i < pixCount;)
             {
                 // Alternative #1: Code the pixels starting at 'i' using backward reference.
-                int offset = 0;
-                int len = 0;
                 int j;
-                // TODO: VP8LHashChainFindCopy(hashChain, i, offset, ref len);
+                int offset = hashChain.FindOffset(i);
+                int len = hashChain.FindLength(i);
                 if (len >= MinLength)
                 {
                     int lenIni = len;
@@ -431,7 +461,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     // [i,j) (where j<=i+len) + [j, length of best match at j)
                     for (j = iLastCheck + 1; j <= jMax; j++)
                     {
-                        int lenJ = 0; // TODO: HashChainFindLength(hashChain, j);
+                        int lenJ = hashChain.FindLength(j);
                         int reach = j + (lenJ >= MinLength ? lenJ : 1); // 1 for single literal.
                         if (reach > maxReach)
                         {
@@ -450,22 +480,22 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
 
                 // Go with literal or backward reference.
-                /*if (len == 1)
+                if (len == 1)
                 {
-                    AddSingleLiteral(bgra[i], useColorCache, hashers, refs);
+                    AddSingleLiteral(bgra[i], useColorCache, colorCache, refs);
                 }
                 else
                 {
-                    VP8LBackwardRefsCursorAdd(refs, PixOrCopyCreateCopy(offset, len));
+                    refs.Add(PixOrCopy.CreateCopy((uint)offset, (short)len));
                     if (useColorCache)
                     {
                         for (j = i; j < i + len; ++j)
                         {
-                            VP8LColorCacheInsert(hashers, bgra[j]);
+                            colorCache.Insert(bgra[j]);
                         }
                     }
                 }
-                */
+
                 i += len;
             }
         }
@@ -474,69 +504,260 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// Compute an LZ77 by forcing matches to happen within a given distance cost.
         /// We therefore limit the algorithm to the lowest 32 values in the PlaneCode definition.
         /// </summary>
-        private static void BackwardReferencesLz77Box(int xSize, int ySize, uint[] bgra, int cacheBits, Vp8LHashChain[] hashChainBest, Vp8LHashChain[] hashChain, Vp8LBackwardRefs[] refs)
+        private static void BackwardReferencesLz77Box(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChainBest, Vp8LHashChain hashChain, Vp8LBackwardRefs refs)
         {
-            int i;
-            int pixCount = xSize * ySize;
-            short[] counts;
+            int pixelCount = xSize * ySize;
             var windowOffsets = new int[WindowOffsetsSizeMax];
             var windowOffsetsNew = new int[WindowOffsetsSizeMax];
             int windowOffsetsSize = 0;
             int windowOffsetsNewSize = 0;
-            short[] countsIni = new short[xSize * ySize];
+            var counts = new short[xSize * ySize];
             int bestOffsetPrev = -1;
             int bestLengthPrev = -1;
 
             // counts[i] counts how many times a pixel is repeated starting at position i.
-            i = pixCount - 2;
-            /*counts = countsIni + i;
-            counts[1] = 1;
-            for (; i >= 0; i--, counts--)
+            int i = pixelCount - 2;
+            int countsPos = i;
+            counts[countsPos + 1] = 1;
+            for (; i >= 0; i--, countsPos--)
             {
                 if (bgra[i] == bgra[i + 1])
                 {
                     // Max out the counts to MAX_LENGTH.
-                    counts[0] = counts[1] + (counts[1] != MaxLength);
+                    counts[countsPos] = counts[countsPos + 1]; // TODO: + (counts[1] != MaxLength);
                 }
                 else
                 {
-                    counts[0] = 1;
+                    counts[countsPos] = 1;
                 }
-            }*/
+            }
+
+            // Figure out the window offsets around a pixel. They are stored in a
+            // spiraling order around the pixel as defined by VP8LDistanceToPlaneCode.
+            for (int y = 0; y <= 6; y++)
+            {
+                for (int x = -6; x <= 6; x++)
+                {
+                    int offset = (y * xSize) + x;
+
+                    // Ignore offsets that bring us after the pixel.
+                    if (offset <= 0)
+                    {
+                        continue;
+                    }
+
+                    int planeCode = DistanceToPlaneCode(xSize, offset) - 1;
+                    if (planeCode >= WindowOffsetsSizeMax)
+                    {
+                        continue;
+                    }
+
+                    windowOffsets[planeCode] = offset;
+                }
+            }
+
+            // For narrow images, not all plane codes are reached, so remove those.
+            for (i = 0; i < WindowOffsetsSizeMax; i++)
+            {
+                if (windowOffsets[i] == 0)
+                {
+                    continue;
+                }
+
+                windowOffsets[windowOffsetsSize++] = windowOffsets[i];
+            }
+
+            // Given a pixel P, find the offsets that reach pixels unreachable from P-1
+            // with any of the offsets in windowOffsets[].
+            for (i = 0; i < windowOffsetsSize; i++)
+            {
+                bool isReachable = false;
+                for (int j = 0; j < windowOffsetsSize && !isReachable; ++j)
+                {
+                    isReachable |= windowOffsets[i] == windowOffsets[j] + 1;
+                }
+
+                if (!isReachable)
+                {
+                    windowOffsetsNew[windowOffsetsNewSize] = windowOffsets[i];
+                    windowOffsetsNewSize++;
+                }
+            }
+
+            hashChain.OffsetLength[0] = 0;
+            for (i = 1; i < pixelCount; ++i)
+            {
+                int ind;
+                int bestLength = hashChainBest.FindLength(i);
+                int bestOffset = 0;
+                bool doCompute = true;
+
+                if (bestLength >= MaxLength)
+                {
+                    // Do not recompute the best match if we already have a maximal one in the window.
+                    bestOffset = hashChainBest.FindOffset(i);
+                    for (ind = 0; ind < windowOffsetsSize; ++ind)
+                    {
+                        if (bestOffset == windowOffsets[ind])
+                        {
+                            doCompute = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (doCompute)
+                {
+                    // Figure out if we should use the offset/length from the previous pixel
+                    // as an initial guess and therefore only inspect the offsets in windowOffsetsNew[].
+                    bool usePrev = (bestLengthPrev > 1) && (bestLengthPrev < MaxLength);
+                    int numInd = usePrev ? windowOffsetsNewSize : windowOffsetsSize;
+                    bestLength = usePrev ? bestLengthPrev - 1 : 0;
+                    bestOffset = usePrev ? bestOffsetPrev : 0;
+
+                    // Find the longest match in a window around the pixel.
+                    for (ind = 0; ind < numInd; ++ind)
+                    {
+                        int currLength = 0;
+                        int j = i;
+                        int jOffset = usePrev ? i - windowOffsetsNew[ind] : i - windowOffsets[ind];
+                        if (jOffset < 0 || bgra[jOffset] != bgra[i])
+                        {
+                            continue;
+                        }
+
+                        // The longest match is the sum of how many times each pixel is repeated.
+                        do
+                        {
+                            int countsJOffset = counts[jOffset];
+                            int countsJ = counts[j];
+                            if (countsJOffset != countsJ)
+                            {
+                                currLength += (countsJOffset < countsJ) ? countsJOffset : countsJ;
+                                break;
+                            }
+
+                            // The same color is repeated counts_pos times at j_offset and j.
+                            currLength += countsJOffset;
+                            jOffset += countsJOffset;
+                            j += countsJOffset;
+                        }
+                        while (currLength <= MaxLength && j < pixelCount && bgra[jOffset] == bgra[j]);
+
+                        if (bestLength < currLength)
+                        {
+                            bestOffset = usePrev ? windowOffsetsNew[ind] : windowOffsets[ind];
+                            if (currLength >= MaxLength)
+                            {
+                                bestLength = MaxLength;
+                                break;
+                            }
+                            else
+                            {
+                                bestLength = currLength;
+                            }
+                        }
+                    }
+                }
+
+                if (bestLength <= MinLength)
+                {
+                    hashChain.OffsetLength[i] = 0;
+                    bestOffsetPrev = 0;
+                    bestLengthPrev = 0;
+                }
+                else
+                {
+                    hashChain.OffsetLength[i] = (uint)((bestOffset << MaxLengthBits) | bestLength);
+                    bestOffsetPrev = bestOffset;
+                    bestLengthPrev = bestLength;
+                }
+            }
+
+            hashChain.OffsetLength[0] = 0;
+            BackwardReferencesLz77(xSize, ySize, bgra, cacheBits, hashChain, refs);
         }
 
-        private static void BackwardReferencesRle(int xSize, int ySize, uint[] bgra, int cacheBits, Vp8LBackwardRefs[] refs)
+        private static void BackwardReferencesRle(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
         {
-            int pixCount = xSize * ySize;
-            int i, k;
+            int pixelCount = xSize * ySize;
             bool useColorCache = cacheBits > 0;
+            var colorCache = new ColorCache();
+
+            if (useColorCache)
+            {
+                colorCache.Init(cacheBits);
+            }
+
+            // VP8LClearBackwardRefs(refs);
+
+            // Add first pixel as literal.
+            AddSingleLiteral(bgra[0], useColorCache, colorCache, refs);
+            int i = 1;
+            while (i < pixelCount)
+            {
+                int maxLen = MaxFindCopyLength(pixelCount - i);
+                int rleLen = FindMatchLength(bgra.Slice(i), bgra.Slice(i - 1), 0, maxLen);
+                int prevRowLen = (i < xSize) ? 0 : FindMatchLength(bgra.Slice(i), bgra.Slice(i - xSize), 0, maxLen);
+                if (rleLen >= prevRowLen && rleLen >= MinLength)
+                {
+                    refs.Add(PixOrCopy.CreateCopy(1, (short)rleLen));
+
+                    // We don't need to update the color cache here since it is always the
+                    // same pixel being copied, and that does not change the color cache
+                    // state.
+                    i += rleLen;
+                }
+                else if (prevRowLen >= MinLength)
+                {
+                    refs.Add(PixOrCopy.CreateCopy((uint)xSize, (short)prevRowLen));
+                    if (useColorCache)
+                    {
+                        for (int k = 0; k < prevRowLen; k++)
+                        {
+                            colorCache.Insert(bgra[i + k]);
+                        }
+                    }
+
+                    i += prevRowLen;
+                }
+                else
+                {
+                    AddSingleLiteral(bgra[i], useColorCache, colorCache, refs);
+                    i++;
+                }
+            }
+
+            if (useColorCache)
+            {
+                // VP8LColorCacheClear();
+            }
         }
 
         /// <summary>
         /// Update (in-place) backward references for the specified cacheBits.
         /// </summary>
-        private static void BackwardRefsWithLocalCache(uint[] bgra, int cacheBits, Vp8LBackwardRefs[] refs)
+        private static void BackwardRefsWithLocalCache(Span<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
         {
             int pixelIndex = 0;
-            var c = new Vp8LRefsCursor(refs);
-            var hashers = new ColorCache();
-            hashers.Init(cacheBits);
-            //while (VP8LRefsCursorOk(&c))
-            /*while (true)
+            using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
+            var colorCache = new ColorCache();
+            colorCache.Init(cacheBits);
+            while (c.MoveNext())
             {
-                PixOrCopy[] v = c.curPos;
+                PixOrCopy v = c.Current;
                 if (v.IsLiteral())
                 {
                     uint bgraLiteral = v.BgraOrDistance;
-                    int ix = VP8LColorCacheContains(hashers, bgraLiteral);
+                    int ix = colorCache.Contains(bgraLiteral);
                     if (ix >= 0)
                     {
-                        // hashers contains bgraLiteral
-                        v = PixOrCopyCreateCacheIdx(ix);
+                        // color cache contains bgraLiteral
+                        v = PixOrCopy.CreateCacheIdx(ix);
                     }
                     else
                     {
-                        VP8LColorCacheInsert(hashers, bgraLiteral);
+                        colorCache.Insert(bgraLiteral);
                     }
 
                     pixelIndex++;
@@ -544,32 +765,52 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 else
                 {
                     // refs was created without local cache, so it can not have cache indexes.
-                    for (int k = 0; k < v.len; k++)
+                    for (int k = 0; k < v.Len; k++)
                     {
-                        VP8LColorCacheInsert(hashers, bgra[pixelIndex++]);
+                        colorCache.Insert(bgra[pixelIndex++]);
                     }
                 }
-
-                VP8LRefsCursorNext(c);
             }
 
-            VP8LColorCacheClear(hashers);*/
+            // VP8LColorCacheClear(colorCache);
         }
 
-        private static void BackwardReferences2DLocality(int xSize, Vp8LBackwardRefs[] refs)
+        private static void BackwardReferences2DLocality(int xSize, Vp8LBackwardRefs refs)
         {
-            var c = new Vp8LRefsCursor(refs);
-            /*while (VP8LRefsCursorOk(&c))
+            using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
+            while (c.MoveNext())
             {
-                if (c.cur_pos.IsCopy())
+                if (c.Current.IsCopy())
                 {
-                    int dist = c.curPos.ArgbOrDistance;
+                    int dist = (int)c.Current.BgraOrDistance;
                     int transformedDist = DistanceToPlaneCode(xSize, dist);
-                    c.curPos.ArgbOrDistance = transformedDist;
+                    c.Current.BgraOrDistance = (uint)transformedDist;
                 }
+            }
+        }
 
-                VP8LRefsCursorNext(&c);
-            }*/
+        private static void AddSingleLiteral(uint pixel, bool useColorCache, ColorCache colorCache, Vp8LBackwardRefs refs)
+        {
+            PixOrCopy v;
+            if (useColorCache)
+            {
+                int key = colorCache.GetIndex(pixel);
+                if (colorCache.Lookup(key) == pixel)
+                {
+                    v = PixOrCopy.CreateCacheIdx(key);
+                }
+                else
+                {
+                    v = PixOrCopy.CreateLiteral(pixel);
+                    colorCache.Set((uint)key, pixel);
+                }
+            }
+            else
+            {
+                v = PixOrCopy.CreateLiteral(pixel);
+            }
+
+            refs.Add(v);
         }
 
         private static int DistanceToPlaneCode(int xSize, int dist)

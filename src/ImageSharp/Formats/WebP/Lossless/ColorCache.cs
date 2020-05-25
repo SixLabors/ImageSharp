@@ -40,19 +40,55 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// <summary>
         /// Inserts a new color into the cache.
         /// </summary>
-        /// <param name="argb">The color to insert.</param>
-        public void Insert(uint argb)
+        /// <param name="bgra">The color to insert.</param>
+        public void Insert(uint bgra)
         {
-            int key = this.HashPix(argb, this.HashShift);
-            this.Colors[key] = argb;
+            int key = HashPix(bgra, this.HashShift);
+            this.Colors[key] = bgra;
         }
 
+        /// <summary>
+        /// Gets a color for a given key.
+        /// </summary>
+        /// <param name="key">The key to lookup.</param>
+        /// <returns>The color for the key.</returns>
         public uint Lookup(int key)
         {
             return this.Colors[key];
         }
 
-        private int HashPix(uint argb, int shift)
+        /// <summary>
+        /// Returns the index of the given color.
+        /// </summary>
+        /// <param name="bgra">The color to check.</param>
+        /// <returns>The index of the color in the cache or -1 if its not present.</returns>
+        public int Contains(uint bgra)
+        {
+            int key = HashPix(bgra, this.HashShift);
+            return (this.Colors[key] == bgra) ? key : -1;
+        }
+
+        /// <summary>
+        /// Gets the index of a color.
+        /// </summary>
+        /// <param name="bgra">The color.</param>
+        /// <returns>The index for the color.</returns>
+        public int GetIndex(uint bgra)
+        {
+            return HashPix(bgra, this.HashShift);
+        }
+
+        /// <summary>
+        /// Adds a new color to the cache.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="bgra">The color to add.</param>
+        public void Set(uint key, uint bgra)
+        {
+            this.Colors[key] = bgra;
+        }
+
+        public static int HashPix(uint argb, int shift)
         {
             return (int)((argb * HashMul) >> shift);
         }

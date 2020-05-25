@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.WebP.BitWriter;
 using SixLabors.ImageSharp.Formats.WebP.Lossless;
 using SixLabors.ImageSharp.Memory;
@@ -167,7 +168,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void EncodePalette<TPixel>(Image<TPixel> image, Span<uint> bgra, Vp8LEncoder enc)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var tmpPalette = new uint[WebPConstants.MaxPaletteSize];
+            Span<uint> tmpPalette = new uint[WebPConstants.MaxPaletteSize];
             int paletteSize = enc.PaletteSize;
             Span<uint> palette = enc.Palette.Memory.Span;
             this.bitWriter.PutBits(WebPConstants.TransformPresent, 1);
@@ -179,26 +180,29 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             tmpPalette[0] = palette[0];
-            this.EncodeImageNoHuffman(image, tmpPalette, enc);
+            this.EncodeImageNoHuffman(tmpPalette, enc.HashChain, enc.Refs[0], enc.Refs[1], width: paletteSize, height: 1, quality: 20);
         }
 
-        private void EncodeImageNoHuffman<TPixel>(Image<TPixel> image, Span<uint> bgra, Vp8LEncoder enc)
-            where TPixel : unmanaged, IPixel<TPixel>
+        private void EncodeImageNoHuffman(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, int quality)
         {
-            int width = image.Width;
-            int height = image.Height;
-            int paletteSize = enc.PaletteSize;
-            Vp8LHashChain hashChain = enc.HashChain;
             var huffmanCodes = new HuffmanTreeCode[5];
+            int cacheBits = 0;
             HuffmanTreeToken[] tokens;
             var huffTree = new HuffmanTree[3UL * WebPConstants.CodeLengthCodes];
 
-            int quality = 20; // TODO: hardcoded for now.
-
             // Calculate backward references from ARGB image.
-            BackwardReferenceEncoder.HashChainFill(hashChain, bgra, quality, paletteSize, 1);
+            BackwardReferenceEncoder.HashChainFill(hashChain, bgra, quality, width, height);
 
-            //var refs = GetBackwardReferences(width, height, argb, quality, 0, kLZ77Standard | kLZ77RLE, cacheBits, hashChain, refsTmp1, refsTmp2);
+            Vp8LBackwardRefs refs = BackwardReferenceEncoder.GetBackwardReferences(
+                width,
+                height,
+                bgra,
+                quality,
+                (int)Vp8LLz77Type.Lz77Standard | (int)Vp8LLz77Type.Lz77Rle,
+                cacheBits,
+                hashChain,
+                refsTmp1,
+                refsTmp2);
 
             // Build histogram image and symbols from backward references.
             //VP8LHistogramStoreRefs(refs, histogram_image->histograms[0]);

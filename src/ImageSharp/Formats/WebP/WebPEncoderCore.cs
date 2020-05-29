@@ -204,11 +204,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 refsTmp1,
                 refsTmp2);
 
+            var histogramImage = new List<Vp8LHistogram>()
+            {
+                new Vp8LHistogram(cacheBits)
+            };
+
             // Build histogram image and symbols from backward references.
-            //VP8LHistogramStoreRefs(refs, histogram_image->histograms[0]);
+            histogramImage[0].StoreRefs(refs);
 
             // Create Huffman bit lengths and codes for each histogram image.
-            //GetHuffBitLengthsAndCodes(histogram_image, huffman_codes)
+            GetHuffBitLengthsAndCodes(histogramImage, huffmanCodes);
 
             // No color cache, no Huffman image.
             this.bitWriter.PutBits(0, 1);
@@ -342,7 +347,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 var bitEntropy = new Vp8LBitEntropy();
                 Span<uint> curHisto = histo.Slice(j * 256, 256);
                 bitEntropy.BitsEntropyUnrefined(curHisto, 256);
-                entropyComp[j] = bitEntropy.BitsEntropyRefine(curHisto, 256);
+                entropyComp[j] = bitEntropy.BitsEntropyRefine();
             }
 
             entropy[(int)EntropyIx.Direct] = entropyComp[(int)HistoIx.HistoAlpha] +
@@ -552,9 +557,55 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
         }
 
+        private static void GetHuffBitLengthsAndCodes(List<Vp8LHistogram> histogramImage, HuffmanTreeCode[] huffmanCodes)
+        {
+            long totalLengthSize = 0;
+            int maxNumSymbols = 0;
+
+            // Iterate over all histograms and get the aggregate number of codes used.
+            for (int i = 0; i < histogramImage.Count; i++)
+            {
+                Vp8LHistogram histo = histogramImage[i];
+                int startIdx = 5 * i;
+                for (int k = 0; k < 5; k++)
+                {
+                    int numSymbols =
+                        (k == 0) ? histo.NumCodes() :
+                        (k == 4) ? WebPConstants.NumDistanceCodes : 256;
+                    huffmanCodes[startIdx + k].NumSymbols = numSymbols;
+                    totalLengthSize += numSymbols;
+                }
+            }
+
+            var end = 5 * histogramImage.Count;
+            for (int i = 0; i < end; i++)
+            {
+                int bitLength = huffmanCodes[i].NumSymbols;
+                huffmanCodes[i].Codes = new short[bitLength];
+                huffmanCodes[i].CodeLengths = new byte[bitLength];
+                if (maxNumSymbols < bitLength)
+                {
+                    maxNumSymbols = bitLength;
+                }
+            }
+
+            // Create Huffman trees.
+            bool[] bufRle = new bool[maxNumSymbols];
+            var huffTree = new HuffmanTree[3 * maxNumSymbols];
+            for (int i = 0; i < histogramImage.Count; i++)
+            {
+                int codesStartIdx = 5 * i;
+                Vp8LHistogram histo = histogramImage[i];
+                HuffmanUtils.CreateHuffmanTree(histo.Literal, 15, bufRle, huffTree, huffmanCodes[codesStartIdx]);
+                HuffmanUtils.CreateHuffmanTree(histo.Red, 15, bufRle, huffTree, huffmanCodes[codesStartIdx + 1]);
+                HuffmanUtils.CreateHuffmanTree(histo.Blue, 15, bufRle, huffTree, huffmanCodes[codesStartIdx + 2]);
+                HuffmanUtils.CreateHuffmanTree(histo.Alpha, 15, bufRle, huffTree, huffmanCodes[codesStartIdx + 3]);
+                HuffmanUtils.CreateHuffmanTree(histo.Distance, 15, bufRle, huffTree, huffmanCodes[codesStartIdx + 4]);
+            }
+        }
+
         /// <summary>
-        /// Computes a value that is related to the entropy created by the
-        /// palette entry diff.
+        /// Computes a value that is related to the entropy created by the palette entry diff.
         /// </summary>
         /// <param name="col1">First color.</param>
         /// <param name="col2">Second color.</param>

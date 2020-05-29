@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         public uint NoneZeroCode { get; set; }
 
-        public double BitsEntropyRefine(Span<uint> array, int n)
+        public double BitsEntropyRefine()
         {
             double mix;
             if (this.NoneZeros < 5)
@@ -111,6 +111,41 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             this.Entropy += LosslessUtils.FastSLog2(this.Sum);
+        }
+
+        /// <summary>
+        /// Get the entropy for the distribution 'X'.
+        /// </summary>
+        public void BitsEntropyUnrefined(uint[] x, int length, Vp8LStreaks stats)
+        {
+            int i;
+            int iPrev = 0;
+            uint xPrev = x[0];
+            for (i = 1; i < length; ++i)
+            {
+                uint xi = x[i];
+                if (xi != xPrev)
+                {
+                    this.GetEntropyUnrefined(xi, i, ref xPrev, ref iPrev, stats);
+                }
+            }
+
+            this.GetEntropyUnrefined(0, i, ref xPrev, ref iPrev, stats);
+
+            this.Entropy += LosslessUtils.FastSLog2(this.Sum);
+        }
+
+        private void GetEntropyUnrefined(uint val, int i, ref uint valPrev, ref int iPrev, Vp8LStreaks stats)
+        {
+            // Gather info for the bit entropy.
+            int streak = i - iPrev;
+
+            // Gather info for the Huffman cost.
+            stats.Counts[valPrev != 0 ? 1 : 0] += streak > 3 ? 1 : 0;
+            stats.Streaks[valPrev != 0 ? 1 : 0][streak > 3 ? 1 : 0] += streak;
+
+            valPrev = val;
+            iPrev = i;
         }
     }
 }

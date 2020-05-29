@@ -9,23 +9,39 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     internal class HuffmanTree
     {
         /// <summary>
-        /// Gets the symbol frequency.
+        /// Gets or sets the symbol frequency.
         /// </summary>
-        public int TotalCount { get; }
+        public int TotalCount { get; set; }
 
         /// <summary>
-        /// Gets the symbol value.
+        /// Gets or sets the symbol value.
         /// </summary>
-        public int Value { get; }
+        public int Value { get; set; }
 
         /// <summary>
-        /// Gets the index for the left sub-tree.
+        /// Gets or sets the index for the left sub-tree.
         /// </summary>
-        public int PoolIndexLeft { get; }
+        public int PoolIndexLeft { get; set; }
 
         /// <summary>
-        /// Gets the index for the right sub-tree.
+        /// Gets or sets the index for the right sub-tree.
         /// </summary>
-        public int PoolIndexRight { get; }
+        public int PoolIndexRight { get; set; }
+
+        public static int Compare(HuffmanTree t1, HuffmanTree t2)
+        {
+            if (t1.TotalCount > t2.TotalCount)
+            {
+                return -1;
+            }
+            else if (t1.TotalCount < t2.TotalCount)
+            {
+                return 1;
+            }
+            else
+            {
+                return (t1.Value < t2.Value) ? -1 : 1;
+            }
+        }
     }
 }

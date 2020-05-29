@@ -9,18 +9,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     internal class HuffmanTreeCode
     {
         /// <summary>
-        /// Gets the number of symbols.
+        /// Gets or sets the number of symbols.
         /// </summary>
-        public int NumSymbols { get; }
+        public int NumSymbols { get; set; }
 
         /// <summary>
-        /// Gets the code lengths of the symbols.
+        /// Gets or sets the code lengths of the symbols.
         /// </summary>
-        public byte[] CodeLengths { get; }
+        public byte[] CodeLengths { get; set; }
 
         /// <summary>
-        /// Gets the symbol Codes.
+        /// Gets or sets the symbol Codes.
         /// </summary>
-        public short[] Codes { get; }
+        public short[] Codes { get; set; }
     }
 }

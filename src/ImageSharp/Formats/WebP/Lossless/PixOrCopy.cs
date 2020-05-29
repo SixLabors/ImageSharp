@@ -47,6 +47,26 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return retval;
         }
 
+        public uint Literal(int component)
+        {
+            return (this.BgraOrDistance >> (component * 8)) & 0xff;
+        }
+
+        public uint CacheIdx()
+        {
+            return this.BgraOrDistance;
+        }
+
+        public short Length()
+        {
+            return this.Len;
+        }
+
+        public uint Distance()
+        {
+            return this.BgraOrDistance;
+        }
+
         public bool IsLiteral()
         {
             return this.Mode == PixOrCopyMode.Literal;

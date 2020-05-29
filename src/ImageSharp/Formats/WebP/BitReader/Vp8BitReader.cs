@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitReader
                 range = split + 1;
             }
 
-            int shift = 7 ^ this.BitsLog2Floor(range);
+            int shift = 7 ^ WebPCommonUtils.BitsLog2Floor(range);
             range <<= shift;
             this.bits -= shift;
 
@@ -228,20 +228,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitReader
             x = ((x & 0xffff0000ffff0000ul) >> 16) | ((x & 0x0000ffff0000fffful) << 16);
             x = ((x & 0xff00ff00ff00ff00ul) >> 8) | ((x & 0x00ff00ff00ff00fful) << 8);
             return x;
-        }
-
-        // Returns 31 ^ clz(n) = log2(n).Returns 31 ^ clz(n) = log2(n).
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private int BitsLog2Floor(uint n)
-        {
-            int logValue = 0;
-            while (n >= 256)
-            {
-                logValue += 8;
-                n >>= 8;
-            }
-
-            return logValue + WebPLookupTables.LogTable8bit[n];
         }
     }
 }

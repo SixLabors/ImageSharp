@@ -16,6 +16,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     {
         private const uint Predictor0 = WebPConstants.ArgbBlack;
 
+        private const int PrefixLookupIdxMax = 512;
+
         private const int LogLookupIdxMax = 256;
 
         private const int ApproxLogMax = 4096;
@@ -23,6 +25,20 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private const int ApproxLogWithCorrectionMax = 65536;
 
         private const double Log2Reciprocal = 1.44269504088896338700465094007086;
+
+        public static int PrefixEncodeBits(int distance, ref int extraBits)
+        {
+            if (distance < PrefixLookupIdxMax)
+            {
+                (int code, int extraBits) prefixCode = WebPLookupTables.PrefixEncodeCode[distance];
+                extraBits = prefixCode.extraBits;
+                return prefixCode.code;
+            }
+            else
+            {
+                return PrefixEncodeBitsNoLut(distance, ref extraBits);
+            }
+        }
 
         /// <summary>
         /// Add green to blue and red channels (i.e. perform the inverse transform of 'subtract green').
@@ -394,6 +410,20 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             {
                 return (float)(Log2Reciprocal * Math.Log(v));
             }
+        }
+
+        /// <summary>
+        /// Splitting of distance and length codes into prefixes and
+        /// extra bits. The prefixes are encoded with an entropy code
+        /// while the extra bits are stored just as normal bits.
+        /// </summary>
+        private static int PrefixEncodeBitsNoLut(int distance, ref int extraBits)
+        {
+            int highestBit = WebPCommonUtils.BitsLog2Floor((uint)--distance);
+            int secondHighestBit = (distance >> (highestBit - 1)) & 1;
+            extraBits = highestBit - 1;
+            var code = (2 * highestBit) + secondHighestBit;
+            return code;
         }
 
         private static void PredictorAdd0(Span<uint> input, int startIdx, int numberOfPixels, Span<uint> output)

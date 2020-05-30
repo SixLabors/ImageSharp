@@ -2,6 +2,7 @@
 // Licensed under the GNU Affero General Public License, Version 3.
 
 using System;
+using SixLabors.ImageSharp.Formats.WebP.Lossless;
 
 namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
 {
@@ -68,6 +69,20 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                 this.bits |= bits << this.used;
                 this.used += nBits;
             }
+        }
+
+        public void WriteHuffmanCode(HuffmanTreeCode code, int codeIndex)
+        {
+            int depth = code.CodeLengths[codeIndex];
+            int symbol = code.Codes[codeIndex];
+            this.PutBits((uint)symbol, depth);
+        }
+
+        public void WriteHuffmanCodeWithExtraBits(HuffmanTreeCode code, int codeIndex, int bits, int nBits)
+        {
+            int depth = code.CodeLengths[codeIndex];
+            int symbol = code.Codes[codeIndex];
+            this.PutBits((uint)((bits << depth) | symbol), depth + nBits);
         }
 
         /// <summary>

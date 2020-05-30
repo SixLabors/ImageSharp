@@ -40,6 +40,22 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
+        public static int PrefixEncode(int distance, ref int extraBits, ref int extraBitsValue)
+        {
+            if (distance < PrefixLookupIdxMax)
+            {
+                (int code, int extraBits) prefixCode = WebPLookupTables.PrefixEncodeCode[distance];
+                extraBits = prefixCode.extraBits;
+                extraBitsValue = WebPLookupTables.PrefixEncodeExtraBitsValue[distance];
+
+                return prefixCode.code;
+            }
+            else
+            {
+                return PrefixEncodeNoLUT(distance, ref extraBits, ref extraBitsValue);
+            }
+        }
+
         /// <summary>
         /// Add green to blue and red channels (i.e. perform the inverse transform of 'subtract green').
         /// </summary>
@@ -423,6 +439,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int secondHighestBit = (distance >> (highestBit - 1)) & 1;
             extraBits = highestBit - 1;
             var code = (2 * highestBit) + secondHighestBit;
+            return code;
+        }
+
+        private static int PrefixEncodeNoLUT(int distance, ref int extraBits, ref int extraBitsValue)
+        {
+            int highestBit = WebPCommonUtils.BitsLog2Floor((uint)--distance);
+            int secondHighestBit = (distance >> (highestBit - 1)) & 1;
+            extraBits = highestBit - 1;
+            extraBitsValue = distance & ((1 << extraBits) - 1);
+            int code = (2 * highestBit) + secondHighestBit;
             return code;
         }
 

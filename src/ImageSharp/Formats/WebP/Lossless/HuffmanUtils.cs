@@ -28,8 +28,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         public static void CreateHuffmanTree(uint[] histogram, int treeDepthLimit, bool[] bufRle, HuffmanTree[] huffTree, HuffmanTreeCode huffCode)
         {
             int numSymbols = huffCode.NumSymbols;
+            bufRle.AsSpan().Fill(false);
             OptimizeHuffmanForRle(numSymbols, bufRle, histogram);
-            GenerateOptimalTree(huffTree, histogram, numSymbols, huffCode.CodeLengths);
+            GenerateOptimalTree(huffTree, histogram, numSymbols, treeDepthLimit, huffCode.CodeLengths);
 
             // Create the actual bit codes for the bit lengths.
             ConvertBitDepthsToSymbols(huffCode);
@@ -42,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         public static void OptimizeHuffmanForRle(int length, bool[] goodForRle, uint[] counts)
         {
             // 1) Let's make the Huffman code more compatible with rle encoding.
-            for (; length >= 0; --length)
+            for (; length >= 0; length--)
             {
                 if (length == 0)
                 {
@@ -58,19 +59,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             // 2) Let's mark all population counts that already can be encoded with an rle code.
             // Let's not spoil any of the existing good rle codes.
-            // Mark any seq of 0's that is longer as 5 as a good_for_rle.
-            // Mark any seq of non-0's that is longer as 7 as a good_for_rle.
+            // Mark any seq of 0's that is longer as 5 as a goodForRle.
+            // Mark any seq of non-0's that is longer as 7 as a goodForRle.
             uint symbol = counts[0];
             int stride = 0;
-            for (int i = 0; i < length + 1; ++i)
+            for (int i = 0; i < length + 1; i++)
             {
                 if (i == length || counts[i] != symbol)
                 {
-                    if ((symbol == 0 && stride >= 5) ||
-                        (symbol != 0 && stride >= 7))
+                    if ((symbol == 0 && stride >= 5) || (symbol != 0 && stride >= 7))
                     {
-                        int k;
-                        for (k = 0; k < stride; ++k)
+                        for (int k = 0; k < stride; k++)
                         {
                             goodForRle[i - k - 1] = true;
                         }
@@ -84,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
                 else
                 {
-                    ++stride;
+                    stride++;
                 }
             }
 
@@ -94,9 +93,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             uint sum = 0;
             for (int i = 0; i < length + 1; i++)
             {
-                if (i == length || goodForRle[i] ||
-                    (i != 0 && goodForRle[i - 1]) ||
-                    !ValuesShouldBeCollapsedToStrideAverage(counts[i], limit))
+                var valuesShouldBeCollapsedToStrideAverage = ValuesShouldBeCollapsedToStrideAverage((int)counts[i], (int)limit);
+                if (i == length || goodForRle[i] || (i != 0 && goodForRle[i - 1]) || !valuesShouldBeCollapsedToStrideAverage)
                 {
                     if (stride >= 4 || (stride >= 3 && sum == 0))
                     {
@@ -115,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                             count = 0;
                         }
 
-                        for (k = 0; k < stride; ++k)
+                        for (k = 0; k < stride; k++)
                         {
                             // We don't want to change value at counts[i],
                             // that is already belonging to the next stride. Thus - 1.
@@ -127,8 +125,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     sum = 0;
                     if (i < length - 3)
                     {
-                        // All interesting strides have a count of at least 4,
-                        // at least when non-zeros.
+                        // All interesting strides have a count of at least 4, at least when non-zeros.
                         limit = (counts[i] + counts[i + 1] +
                                  counts[i + 2] + counts[i + 3] + 2) / 4;
                     }
@@ -142,7 +139,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     }
                 }
 
-                ++stride;
+                stride++;
                 if (i != length)
                 {
                     sum += counts[i];
@@ -156,19 +153,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         /// <summary>
         /// Create an optimal Huffman tree.
-        ///
-        /// The catch here is that the tree cannot be arbitrarily deep
-        ///
-        /// This algorithm is not of excellent performance for very long data blocks,
-        /// especially when population counts are longer than 2**tree_limit, but
-        /// we are not planning to use this with extremely long blocks.
         /// </summary>
         /// <see cref="http://en.wikipedia.org/wiki/Huffman_coding"/>
         /// <param name="tree">The huffman tree.</param>
         /// <param name="histogram">The historgram.</param>
         /// <param name="histogramSize">The size of the histogram.</param>
+        /// <param name="treeDepthLimit">The tree depth limit.</param>
         /// <param name="bitDepths">How many bits are used for the symbol.</param>
-        public static void GenerateOptimalTree(HuffmanTree[] tree, uint[] histogram, int histogramSize, byte[] bitDepths)
+        public static void GenerateOptimalTree(HuffmanTree[] tree, uint[] histogram, int histogramSize, int treeDepthLimit, byte[] bitDepths)
         {
             uint countMin;
             int treeSizeOrig = 0;
@@ -211,7 +203,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
 
                 // Build the Huffman tree.
-                Array.Sort(tree, HuffmanTree.Compare);
+                HuffmanTree[] treeCopy = tree.AsSpan().Slice(0, treeSize).ToArray();
+                Array.Sort(treeCopy, HuffmanTree.Compare);
+                treeCopy.AsSpan().CopyTo(tree);
 
                 if (treeSize > 1)
                 {
@@ -220,8 +214,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     while (treeSize > 1)
                     {
                         // Finish when we have only one root.
-                        treePool[treePoolSize++] = tree[treeSize - 1];
-                        treePool[treePoolSize++] = tree[treeSize - 2];
+                        treePool[treePoolSize++] = (HuffmanTree)tree[treeSize - 1].DeepClone();
+                        treePool[treePoolSize++] = (HuffmanTree)tree[treeSize - 2].DeepClone();
                         int count = treePool[treePoolSize - 1].TotalCount + treePool[treePoolSize - 2].TotalCount;
                         treeSize -= 2;
 
@@ -235,9 +229,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                             }
                         }
 
+                        var endIdx = k + 1;
+                        var num = treeSize - k;
+                        var startIdx = endIdx + num - 1;
+                        for (int i = startIdx; i >= endIdx; i--)
+                        {
+                            tree[i] = (HuffmanTree)tree[i - 1].DeepClone();
+                        }
+
                         tree[k].TotalCount = count;
                         tree[k].Value = -1;
-
                         tree[k].PoolIndexLeft = treePoolSize - 1;
                         tree[k].PoolIndexRight = treePoolSize - 2;
                         treeSize = treeSize + 1;
@@ -250,7 +251,57 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     // Trivial case: only one element.
                     bitDepths[tree[0].Value] = 1;
                 }
+
+                // Test if this Huffman tree satisfies our 'treeDepthLimit' criteria.
+                int maxDepth = bitDepths[0];
+                for (int j = 1; j < histogramSize; j++)
+                {
+                    if (maxDepth < bitDepths[j])
+                    {
+                        maxDepth = bitDepths[j];
+                    }
+                }
+
+                if (maxDepth <= treeDepthLimit)
+                {
+                    break;
+                }
             }
+        }
+
+        public static int CreateCompressedHuffmanTree(HuffmanTreeCode tree, HuffmanTreeToken[] tokens)
+        {
+            int depthSize = tree.NumSymbols;
+            int prevValue = 8;  // 8 is the initial value for rle.
+            int i = 0;
+            int tokenIdx = 0;
+            Span<HuffmanTreeToken> tokenSpan = tokens.AsSpan();
+            while (i < depthSize)
+            {
+                int value = tree.CodeLengths[i];
+                int k = i + 1;
+                int runs;
+                while (k < depthSize && tree.CodeLengths[k] == value)
+                {
+                    k++;
+                }
+
+                runs = k - i;
+                if (value == 0)
+                {
+                    tokenIdx += CodeRepeatedZeros(runs, tokens);
+                }
+                else
+                {
+                    tokenIdx += CodeRepeatedValues(runs, tokens, value, prevValue);
+                    prevValue = value;
+                }
+
+                tokenSpan.Slice(tokenIdx);
+                i += runs;
+            }
+
+            return tokenIdx;
         }
 
         public static int BuildHuffmanTable(Span<HuffmanCode> table, int rootBits, int[] codeLengths, int codeLengthsSize)
@@ -400,6 +451,94 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return totalSize;
         }
 
+        private static int CodeRepeatedZeros(int repetitions, Span<HuffmanTreeToken> tokens)
+        {
+            int pos = 0;
+            while (repetitions >= 1)
+            {
+                if (repetitions < 3)
+                {
+                    int i;
+                    for (i = 0; i < repetitions; ++i)
+                    {
+                        tokens[pos].Code = 0;   // 0-value
+                        tokens[pos].ExtraBits = 0;
+                        pos++;
+                    }
+
+                    break;
+                }
+                else if (repetitions < 11)
+                {
+                    tokens[pos].Code = 17;
+                    tokens[pos].ExtraBits = (byte)(repetitions - 3);
+                    pos++;
+                    break;
+                }
+                else if (repetitions < 139)
+                {
+                    tokens[pos].Code = 18;
+                    tokens[pos].ExtraBits = (byte)(repetitions - 11);
+                    pos++;
+                    break;
+                }
+                else
+                {
+                    tokens[pos].Code = 18;
+                    tokens[pos].ExtraBits = 0x7f;  // 138 repeated 0s
+                    pos++;
+                    repetitions -= 138;
+                }
+            }
+
+            return pos;
+        }
+
+        private static int CodeRepeatedValues(int repetitions, Span<HuffmanTreeToken> tokens, int value, int prevValue)
+        {
+            int pos = 0;
+
+            if (value != prevValue)
+            {
+                tokens[pos].Code = (byte)value;
+                tokens[pos].ExtraBits = 0;
+                pos++;
+                repetitions--;
+            }
+
+            while (repetitions >= 1)
+            {
+                if (repetitions < 3)
+                {
+                    int i;
+                    for (i = 0; i < repetitions; ++i)
+                    {
+                        tokens[pos].Code = (byte)value;
+                        tokens[pos].ExtraBits = 0;
+                        pos++;
+                    }
+
+                    break;
+                }
+                else if (repetitions < 7)
+                {
+                    tokens[pos].Code = 16;
+                    tokens[pos].ExtraBits = (byte)(repetitions - 3);
+                    pos++;
+                    break;
+                }
+                else
+                {
+                    tokens[pos].Code = 16;
+                    tokens[pos].ExtraBits = 3;
+                    pos++;
+                    repetitions -= 6;
+                }
+            }
+
+            return pos;
+        }
+
         /// <summary>
         /// Get the actual bit values for a tree of bit depths.
         /// </summary>
@@ -518,7 +657,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// <summary>
         /// Heuristics for selecting the stride ranges to collapse.
         /// </summary>
-        private static bool ValuesShouldBeCollapsedToStrideAverage(uint a, uint b)
+        private static bool ValuesShouldBeCollapsedToStrideAverage(int a, int b)
         {
             return Math.Abs(a - b) < 4;
         }

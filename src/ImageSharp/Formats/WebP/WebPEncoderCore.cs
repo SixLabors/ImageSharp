@@ -185,10 +185,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void EncodeImageNoHuffman(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, int quality)
         {
-            var huffmanCodes = new HuffmanTreeCode[5];
             int cacheBits = 0;
-            HuffmanTreeToken[] tokens;
+            var histogramSymbols = new short[1]; // Only one tree, one symbol.
+            var huffmanCodes = new HuffmanTreeCode[5];
+            for (int i = 0; i < huffmanCodes.Length; i++)
+            {
+                huffmanCodes[i] = new HuffmanTreeCode();
+            }
+
             var huffTree = new HuffmanTree[3UL * WebPConstants.CodeLengthCodes];
+            for (int i = 0; i < huffTree.Length; i++)
+            {
+                huffTree[i] = new HuffmanTree();
+            }
 
             // Calculate backward references from ARGB image.
             BackwardReferenceEncoder.HashChainFill(hashChain, bgra, quality, width, height);
@@ -219,30 +228,206 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.bitWriter.PutBits(0, 1);
 
             // Find maximum number of symbols for the huffman tree-set.
-            /*for (i = 0; i < 5; ++i)
+            int maxTokens = 0;
+            for (int i = 0; i < 5; i++)
             {
-                HuffmanTreeCode * const codes = &huffman_codes[i];
-                if (max_tokens < codes->num_symbols)
+                HuffmanTreeCode codes = huffmanCodes[i];
+                if (maxTokens < codes.NumSymbols)
                 {
-                    max_tokens = codes->num_symbols;
+                    maxTokens = codes.NumSymbols;
                 }
-            }*/
+            }
+
+            var tokens = new HuffmanTreeToken[maxTokens];
+            for(int i = 0; i < tokens.Length; i++)
+            {
+                tokens[i] = new HuffmanTreeToken();
+            }
 
             // Store Huffman codes.
-            /*
-            for (i = 0; i < 5; ++i)
+            for (int i = 0; i < 5; i++)
             {
-                HuffmanTreeCode * const codes = &huffman_codes[i];
-                StoreHuffmanCode(bw, huff_tree, tokens, codes);
+                HuffmanTreeCode codes = huffmanCodes[i];
+                this.StoreHuffmanCode(huffTree, tokens, codes);
                 ClearHuffmanTreeIfOnlyOneSymbol(codes);
             }
 
             // Store actual literals.
-            StoreImageToBitMask(bw, width, 0, refs, histogram_symbols, huffman_codes);
-            */
+            this.StoreImageToBitMask(width, 0, refs, histogramSymbols, huffmanCodes);
         }
 
-        private void StoreImageToBitMask(int width, int histoBits, short[] histogramSymbols, HuffmanTreeCode[] huffmanCodes)
+        private void StoreHuffmanCode(HuffmanTree[] huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode huffmanCode)
+        {
+            int count = 0;
+            int[] symbols = { 0, 0 };
+            int maxBits = 8;
+            int maxSymbol = 1 << maxBits;
+
+            // Check whether it's a small tree.
+            for (int i = 0; i < huffmanCode.NumSymbols && count < 3; ++i)
+            {
+                if (huffmanCode.CodeLengths[i] != 0)
+                {
+                    if (count < 2)
+                    {
+                        symbols[count] = i;
+                    }
+
+                    count++;
+                }
+            }
+
+            if (count == 0)
+            {
+                // emit minimal tree for empty cases
+                // bits: small tree marker: 1, count-1: 0, large 8-bit code: 0, code: 0
+                this.bitWriter.PutBits(0x01, 4);
+            }
+            else if (count <= 2 && symbols[0] < maxSymbol && symbols[1] < maxSymbol)
+            {
+                this.bitWriter.PutBits(1, 1);  // Small tree marker to encode 1 or 2 symbols.
+                this.bitWriter.PutBits((uint)(count - 1), 1);
+                if (symbols[0] <= 1)
+                {
+                    this.bitWriter.PutBits(0, 1);  // Code bit for small (1 bit) symbol value.
+                    this.bitWriter.PutBits((uint)symbols[0], 1);
+                }
+                else
+                {
+                    this.bitWriter.PutBits(1, 1);
+                    this.bitWriter.PutBits((uint)symbols[0], 8);
+                }
+
+                if (count == 2)
+                {
+                    this.bitWriter.PutBits((uint)symbols[1], 8);
+                }
+            }
+            else
+            {
+                this.StoreFullHuffmanCode(huffTree, tokens, huffmanCode);
+            }
+        }
+
+        private void StoreFullHuffmanCode(HuffmanTree[] huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode tree)
+        {
+            int numTokens;
+            int i;
+            byte[] codeLengthBitdepth = new byte[WebPConstants.CodeLengthCodes];
+            short[] codeLengthBitdepthSymbols = new short[WebPConstants.CodeLengthCodes];
+            var huffmanCode = new HuffmanTreeCode();
+            huffmanCode.NumSymbols = WebPConstants.CodeLengthCodes;
+            huffmanCode.CodeLengths = codeLengthBitdepth;
+            huffmanCode.Codes = codeLengthBitdepthSymbols;
+
+            this.bitWriter.PutBits(0, 1);
+            numTokens = HuffmanUtils.CreateCompressedHuffmanTree(tree, tokens);
+            uint[] histogram = new uint[WebPConstants.CodeLengthCodes + 1];
+            bool[] bufRle = new bool[WebPConstants.CodeLengthCodes + 1];
+            for (i = 0; i < numTokens; i++)
+            {
+                histogram[tokens[i].Code]++;
+            }
+
+            HuffmanUtils.CreateHuffmanTree(histogram, 7, bufRle, huffTree, huffmanCode);
+            this.StoreHuffmanTreeOfHuffmanTreeToBitMask(codeLengthBitdepth);
+            ClearHuffmanTreeIfOnlyOneSymbol(huffmanCode);
+
+            int trailingZeroBits = 0;
+            int trimmedLength = numTokens;
+            bool writeTrimmedLength;
+            int length;
+            i = numTokens;
+            while (i-- > 0)
+            {
+                int ix = tokens[i].Code;
+                if (ix == 0 || ix == 17 || ix == 18)
+                {
+                    trimmedLength--;   // discount trailing zeros.
+                    trailingZeroBits += codeLengthBitdepth[ix];
+                    if (ix == 17)
+                    {
+                        trailingZeroBits += 3;
+                    }
+                    else if (ix == 18)
+                    {
+                        trailingZeroBits += 7;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            writeTrimmedLength = trimmedLength > 1 && trailingZeroBits > 12;
+            length = writeTrimmedLength ? trimmedLength : numTokens;
+            this.bitWriter.PutBits((uint)(writeTrimmedLength ? 1 : 0), 1);
+            if (writeTrimmedLength)
+            {
+                if (trimmedLength == 2)
+                {
+                    this.bitWriter.PutBits(0, 3 + 2); // nbitpairs=1, trimmed_length=2
+                }
+                else
+                {
+                    int nbits = WebPCommonUtils.BitsLog2Floor((uint)trimmedLength - 2);
+                    int nbitpairs = (nbits / 2) + 1;
+                    this.bitWriter.PutBits((uint)nbitpairs - 1, 3);
+                    this.bitWriter.PutBits((uint)trimmedLength - 2, nbitpairs * 2);
+                }
+            }
+
+            this.StoreHuffmanTreeToBitMask(tokens, length, huffmanCode);
+        }
+
+        private void StoreHuffmanTreeToBitMask(HuffmanTreeToken[] tokens, int numTokens, HuffmanTreeCode huffmanCode)
+        {
+            for (int i = 0; i < numTokens; i++)
+            {
+                int ix = tokens[i].Code;
+                int extraBits = tokens[i].ExtraBits;
+                this.bitWriter.PutBits((uint)huffmanCode.Codes[ix], huffmanCode.CodeLengths[ix]);
+                switch (ix)
+                {
+                    case 16:
+                        this.bitWriter.PutBits((uint)extraBits, 2);
+                        break;
+                    case 17:
+                        this.bitWriter.PutBits((uint)extraBits, 3);
+                        break;
+                    case 18:
+                        this.bitWriter.PutBits((uint)extraBits, 7);
+                        break;
+                }
+            }
+        }
+
+        private void StoreHuffmanTreeOfHuffmanTreeToBitMask(byte[] codeLengthBitdepth)
+        {
+            // RFC 1951 will calm you down if you are worried about this funny sequence.
+            // This sequence is tuned from that, but more weighted for lower symbol count,
+            // and more spiking histograms.
+            byte[] storageOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+            // Throw away trailing zeros:
+            int codesToStore = WebPConstants.CodeLengthCodes;
+            for (; codesToStore > 4; codesToStore--)
+            {
+                if (codeLengthBitdepth[storageOrder[codesToStore - 1]] != 0)
+                {
+                    break;
+                }
+            }
+
+            this.bitWriter.PutBits((uint)codesToStore - 4, 4);
+            for (int i = 0; i < codesToStore; i++)
+            {
+                this.bitWriter.PutBits(codeLengthBitdepth[storageOrder[i]], 3);
+            }
+        }
+
+        private void StoreImageToBitMask(int width, int histoBits, Vp8LBackwardRefs backwardRefs, short[] histogramSymbols, HuffmanTreeCode[] huffmanCodes)
         {
             int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(width, histoBits) : 1;
             int tileMask = (histoBits == 0) ? 0 : -(1 << histoBits);
@@ -254,7 +439,56 @@ namespace SixLabors.ImageSharp.Formats.WebP
             int tileY = y & tileMask;
             int histogramIx = histogramSymbols[0];
             Span<HuffmanTreeCode> codes = huffmanCodes.AsSpan(5 * histogramIx);
+            using List<PixOrCopy>.Enumerator c = backwardRefs.Refs.GetEnumerator();
+            while (c.MoveNext())
+            {
+                PixOrCopy v = c.Current;
+                if ((tileX != (x & tileMask)) || (tileY != (y & tileMask)))
+                {
+                    tileX = x & tileMask;
+                    tileY = y & tileMask;
+                    histogramIx = histogramSymbols[((y >> histoBits) * histoXSize) + (x >> histoBits)];
+                    codes = huffmanCodes.AsSpan(5 * histogramIx);
+                }
 
+                if (v.IsLiteral())
+                {
+                    byte[] order = { 1, 2, 0, 3 };
+                    for (int k = 0; k < 4; k++)
+                    {
+                        int code = (int)v.Literal(order[k]);
+                        this.bitWriter.WriteHuffmanCode(codes[k], code);
+                    }
+                }
+                else if (v.IsCacheIdx())
+                {
+                    int code = (int)v.CacheIdx();
+                    int literalIx = 256 + WebPConstants.NumLengthCodes + code;
+                    this.bitWriter.WriteHuffmanCode(codes[0], literalIx);
+                }
+                else
+                {
+                    int bits = 0;
+                    int nBits = 0;
+                    int distance = (int)v.Distance();
+                    int code = LosslessUtils.PrefixEncode(v.Len, ref nBits, ref bits);
+                    this.bitWriter.WriteHuffmanCodeWithExtraBits(codes[0], 256 + code, bits, nBits);
+
+                    // Don't write the distance with the extra bits code since
+                    // the distance can be up to 18 bits of extra bits, and the prefix
+                    // 15 bits, totaling to 33, and our PutBits only supports up to 32 bits.
+                    code = LosslessUtils.PrefixEncode(distance, ref nBits, ref bits);
+                    this.bitWriter.WriteHuffmanCode(codes[4], code);
+                    this.bitWriter.PutBits((uint)bits, nBits);
+                }
+
+                x += v.Length();
+                while (x >= width)
+                {
+                    x -= width;
+                    y++;
+                }
+            }
         }
 
         /// <summary>
@@ -438,7 +672,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 return false;
             }
 
-            // TODO: figure out how the palette needs to be sorted.
             uint[] paletteArray = palette.Slice(0, enc.PaletteSize).ToArray();
             Array.Sort(paletteArray);
             paletteArray.CopyTo(palette);
@@ -464,7 +697,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             var colors = new HashSet<TPixel>();
             for (int y = 0; y < image.Height; y++)
             {
-                System.Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
+                Span<TPixel> rowSpan = image.GetPixelRowSpan(y);
                 for (int x = 0; x < rowSpan.Length; x++)
                 {
                     colors.Add(rowSpan[x]);
@@ -486,6 +719,28 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             return colors.Count;
+        }
+
+        private static void ClearHuffmanTreeIfOnlyOneSymbol(HuffmanTreeCode huffmanCode)
+        {
+            int count = 0;
+            for (int k = 0; k < huffmanCode.NumSymbols; k++)
+            {
+                if (huffmanCode.CodeLengths[k] != 0)
+                {
+                    count++;
+                    if (count > 1)
+                    {
+                        return;
+                    }
+                }
+            }
+
+            for (int k = 0; k < huffmanCode.NumSymbols; k++)
+            {
+                huffmanCode.CodeLengths[k] = 0;
+                huffmanCode.Codes[k] = 0;
+            }
         }
 
         /// <summary>
@@ -549,7 +804,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                     }
                 }
 
-                // swap color(palette[bestIdx], palette[i]);
+                // Swap color(palette[bestIdx], palette[i]);
                 uint best = palette[bestIdx];
                 palette[bestIdx] = palette[i];
                 palette[i] = best;
@@ -592,6 +847,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             // Create Huffman trees.
             bool[] bufRle = new bool[maxNumSymbols];
             var huffTree = new HuffmanTree[3 * maxNumSymbols];
+            for (int i = 0; i < huffTree.Length; i++)
+            {
+                huffTree[i] = new HuffmanTree();
+            }
+
             for (int i = 0; i < histogramImage.Count; i++)
             {
                 int codesStartIdx = 5 * i;

@@ -27,11 +27,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         public Vp8LHistogram()
         {
-            this.Red = new uint[WebPConstants.NumLiteralCodes];
-            this.Blue = new uint[WebPConstants.NumLiteralCodes];
-            this.Alpha = new uint[WebPConstants.NumLiteralCodes];
-            this.Distance = new uint[WebPConstants.NumLiteralCodes];
-            this.Literal = new uint[WebPConstants.NumLiteralCodes]; // TODO: is this enough?
+            this.Red = new uint[WebPConstants.NumLiteralCodes + 1];
+            this.Blue = new uint[WebPConstants.NumLiteralCodes + 1];
+            this.Alpha = new uint[WebPConstants.NumLiteralCodes + 1];
+            this.Distance = new uint[WebPConstants.NumDistanceCodes];
+
+            var literalSize = WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + ((this.PaletteCodeBits > 0) ? (1 << this.PaletteCodeBits) : 0);
+            this.Literal = new uint[literalSize];
 
             // 5 for literal, red, blue, alpha, distance.
             this.IsUsed = new bool[5];

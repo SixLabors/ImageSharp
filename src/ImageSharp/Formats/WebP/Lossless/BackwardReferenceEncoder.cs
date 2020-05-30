@@ -419,7 +419,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             short[] chosenPath;
             int chosenPathSize = 0;
 
-            // TODO: 
+            // TODO: implement this
             // BackwardReferencesHashChainDistanceOnly(xSize, ySize, bgra, cacheBits, hashChain, refsSrc, distArray);
             // TraceBackwards(distArray, distArraySize, chosenPath, chosenPathSize);
             // BackwardReferencesHashChainFollowChosenPath(bgra, cacheBits, chosenPath, chosenPathSize, hashChain, refsDst);
@@ -524,7 +524,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 if (bgra[i] == bgra[i + 1])
                 {
                     // Max out the counts to MAX_LENGTH.
-                    counts[countsPos] = counts[countsPos + 1]; // TODO: + (counts[1] != MaxLength);
+                    counts[countsPos] = counts[countsPos + 1];
+                    if (counts[countsPos + 1] != MaxLength)
+                    {
+                        counts[countsPos]++;
+                    }
                 }
                 else
                 {

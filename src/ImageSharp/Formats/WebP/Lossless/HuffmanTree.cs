@@ -1,13 +1,35 @@
 // Copyright (c) Six Labors and contributors.
 // Licensed under the GNU Affero General Public License, Version 3.
 
+using System.Diagnostics;
+
 namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
     /// <summary>
     /// Represents the Huffman tree.
     /// </summary>
-    internal class HuffmanTree
+    [DebuggerDisplay("TotalCount = {TotalCount}, Value = {Value}, Left = {PoolIndexLeft}, Right = {PoolIndexRight}")]
+    internal class HuffmanTree : IDeepCloneable
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HuffmanTree"/> class.
+        /// </summary>
+        public HuffmanTree()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HuffmanTree"/> class.
+        /// </summary>
+        /// <param name="other">The HuffmanTree to create an instance from.</param>
+        private HuffmanTree(HuffmanTree other)
+        {
+            this.TotalCount = other.TotalCount;
+            this.Value = other.Value;
+            this.PoolIndexLeft = other.PoolIndexLeft;
+            this.PoolIndexRight = other.PoolIndexRight;
+        }
+
         /// <summary>
         /// Gets or sets the symbol frequency.
         /// </summary>
@@ -43,5 +65,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 return (t1.Value < t2.Value) ? -1 : 1;
             }
         }
+
+        public IDeepCloneable DeepClone() => new HuffmanTree(this);
     }
 }

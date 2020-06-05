@@ -103,6 +103,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public const int MaxNumberOfTransforms = 4;
 
         /// <summary>
+        /// Maximum value of transformBits in VP8LEncoder.
+        /// </summary>
+        public const int MaxTransformBits = 6;
+
+        /// <summary>
         /// The bit to be written when next data to be read is a transform.
         /// </summary>
         public const int TransformPresent = 1;

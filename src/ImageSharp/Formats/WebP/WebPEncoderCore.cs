@@ -35,6 +35,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// </summary>
         private Vp8LBitWriter bitWriter;
 
+        private const int ApplyPaletteGreedyMax = 4;
+
+        private const int PaletteInvSizeBits = 11;
+
+        private const int PaletteInvSize = 1 << PaletteInvSizeBits;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WebPEncoderCore"/> class.
         /// </summary>
@@ -119,6 +125,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void EncoderAnalyze<TPixel>(Image<TPixel> image, Vp8LEncoder enc)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            int method = 4; // TODO: method hardcoded to 4 for now.
+            int quality = 100; // TODO: quality is hardcoded for now.
+            bool useCache = true; // TODO: useCache is hardcoded for now.
             int width = image.Width;
             int height = image.Height;
 
@@ -126,7 +135,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             var usePalette = this.AnalyzeAndCreatePalette(image, enc);
 
             // Empirical bit sizes.
-            int method = 4; // TODO: method hardcoded to 4 for now.
             enc.HistoBits = GetHistoBits(method, usePalette, width, height);
             enc.TransformBits = GetTransformBits(method, enc.HistoBits);
 
@@ -151,13 +159,42 @@ namespace SixLabors.ImageSharp.Formats.WebP
             enc.UseSubtractGreenTransform = (entropyIdx == EntropyIx.SubGreen) || (entropyIdx == EntropyIx.SpatialSubGreen);
             enc.UsePredictorTransform = (entropyIdx == EntropyIx.Spatial) || (entropyIdx == EntropyIx.SpatialSubGreen);
             enc.UseCrossColorTransform = redAndBlueAlwaysZero ? false : enc.UsePredictorTransform;
-            enc.UseColorCache = false;
+            enc.CacheBits = 0;
 
             // Encode palette.
             if (enc.UsePalette)
             {
                 this.EncodePalette(image, bgra, enc);
+                this.MapImageFromPalette(enc, width, height);
+
+                // If using a color cache, do not have it bigger than the number of
+                // colors.
+                if (useCache && enc.PaletteSize < (1 << WebPConstants.MaxColorCacheBits))
+                {
+                    enc.CacheBits = WebPCommonUtils.BitsLog2Floor((uint)enc.PaletteSize) + 1;
+                }
             }
+
+            // Apply transforms and write transform data.
+            if (enc.UseSubtractGreenTransform)
+            {
+                this.ApplySubtractGreen(enc, enc.CurrentWidth, height);
+            }
+
+            if (enc.UsePredictorTransform)
+            {
+                this.ApplyPredictFilter(enc, enc.CurrentWidth, height, quality, enc.UseSubtractGreenTransform);
+            }
+
+            if (enc.UseCrossColorTransform)
+            {
+                this.ApplyCrossColorFilter(enc, enc.CurrentWidth, height, quality);
+            }
+
+            this.bitWriter.PutBits(0, 1);  // No more transforms.
+
+            // Encode and write the transformed image.
+            //EncodeImageInternal();
         }
 
         /// <summary>
@@ -181,6 +218,51 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             tmpPalette[0] = palette[0];
             this.EncodeImageNoHuffman(tmpPalette, enc.HashChain, enc.Refs[0], enc.Refs[1], width: paletteSize, height: 1, quality: 20);
+        }
+
+        /// <summary>
+        /// Applies the substract green transformation to the pixel data of the image.
+        /// </summary>
+        /// <param name="enc">The VP8 Encoder.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        private void ApplySubtractGreen(Vp8LEncoder enc, int width, int height)
+        {
+            this.bitWriter.PutBits(WebPConstants.TransformPresent, 1);
+            this.bitWriter.PutBits((uint)Vp8LTransformType.SubtractGreen, 2);
+            LosslessUtils.SubtractGreenFromBlueAndRed(enc.Bgra.GetSpan(), width * height);
+        }
+
+        private void ApplyPredictFilter(Vp8LEncoder enc, int width, int height, int quality, bool usedSubtractGreen)
+        {
+            int nearLosslessStrength = 100; // TODO: for now always 100
+            bool exact = true; // TODO: always true for now.
+            int predBits = enc.TransformBits;
+            int transformWidth = LosslessUtils.SubSampleSize(width, predBits);
+            int transformHeight = LosslessUtils.SubSampleSize(height, predBits);
+
+            PredictorEncoder.ResidualImage(width, height, predBits, enc.Bgra.GetSpan(), enc.BgraScratch.GetSpan(), enc.TransformData.GetSpan(), nearLosslessStrength, exact, usedSubtractGreen);
+
+            this.bitWriter.PutBits(WebPConstants.TransformPresent, 1);
+            this.bitWriter.PutBits((uint)Vp8LTransformType.PredictorTransform, 2);
+            this.bitWriter.PutBits((uint)(predBits - 2), 3);
+
+            this.EncodeImageNoHuffman(enc.TransformData.GetSpan(), enc.HashChain, enc.Refs[0], enc.Refs[1], transformWidth, transformHeight, quality);
+        }
+
+        private void ApplyCrossColorFilter(Vp8LEncoder enc, int width, int height, int quality)
+        {
+            int colorTransformBits = enc.TransformBits;
+            int transformWidth = LosslessUtils.SubSampleSize(width, colorTransformBits);
+            int transformHeight = LosslessUtils.SubSampleSize(height, colorTransformBits);
+
+            PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, quality, enc.Bgra.GetSpan(), enc.TransformData.GetSpan());
+
+            this.bitWriter.PutBits(WebPConstants.TransformPresent, 1);
+            this.bitWriter.PutBits((uint)Vp8LTransformType.CrossColorTransform, 2);
+            this.bitWriter.PutBits((uint)(colorTransformBits - 2), 3);
+
+            this.EncodeImageNoHuffman(enc.TransformData.GetSpan(), enc.HashChain, enc.Refs[0], enc.Refs[1], transformWidth, transformHeight, quality);
         }
 
         private void EncodeImageNoHuffman(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, int quality)
@@ -239,7 +321,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             var tokens = new HuffmanTreeToken[maxTokens];
-            for(int i = 0; i < tokens.Length; i++)
+            for (int i = 0; i < tokens.Length; i++)
             {
                 tokens[i] = new HuffmanTreeToken();
             }
@@ -721,6 +803,208 @@ namespace SixLabors.ImageSharp.Formats.WebP
             return colors.Count;
         }
 
+        private void MapImageFromPalette(Vp8LEncoder enc, int width, int height)
+        {
+            Span<uint> src = enc.Bgra.GetSpan();
+            int srcStride = enc.CurrentWidth;
+            Span<uint> dst = enc.Bgra.GetSpan(); // Applying the palette will be done in place.
+            Span<uint> palette = enc.Palette.GetSpan();
+            int paletteSize = enc.PaletteSize;
+            int xBits;
+
+            // Replace each input pixel by corresponding palette index.
+            // This is done line by line.
+            if (paletteSize <= 4)
+            {
+                xBits = (paletteSize <= 2) ? 3 : 2;
+            }
+            else
+            {
+                xBits = (paletteSize <= 16) ? 1 : 0;
+            }
+
+            enc.AllocateTransformBuffer(LosslessUtils.SubSampleSize(width, xBits), height);
+
+            this.ApplyPalette(src, srcStride, dst, enc.CurrentWidth, palette, paletteSize, width, height, xBits);
+        }
+
+        /// <summary>
+        /// Remap argb values in src[] to packed palettes entries in dst[]
+        /// using 'row' as a temporary buffer of size 'width'.
+        /// We assume that all src[] values have a corresponding entry in the palette.
+        /// Note: src[] can be the same as dst[]
+        /// </summary>
+        private void ApplyPalette(Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<uint> palette, int paletteSize, int width, int height, int xBits)
+        {
+            using System.Buffers.IMemoryOwner<byte> tmpRowBuffer = this.memoryAllocator.Allocate<byte>(width);
+            Span<byte> tmpRow = tmpRowBuffer.GetSpan();
+
+            if (paletteSize < ApplyPaletteGreedyMax)
+            {
+                // TODO: APPLY_PALETTE_FOR(SearchColorGreedy(palette, palette_size, pix));
+            }
+            else
+            {
+                uint[] buffer = new uint[PaletteInvSize];
+
+                // Try to find a perfect hash function able to go from a color to an index
+                // within 1 << PaletteInvSize in order to build a hash map to go from color to index in palette.
+                int i;
+                for (i = 0; i < 3; i++)
+                {
+                    bool useLUT = true;
+
+                    // Set each element in buffer to max value.
+                    buffer.AsSpan().Fill(uint.MaxValue);
+
+                    for (int j = 0; j < paletteSize; j++)
+                    {
+                        uint ind = 0;
+                        switch (i)
+                        {
+                            case 0:
+                                ind = ApplyPaletteHash0(palette[j]);
+                                break;
+                            case 1:
+                                ind = ApplyPaletteHash1(palette[j]);
+                                break;
+                            case 2:
+                                ind = ApplyPaletteHash2(palette[j]);
+                                break;
+                        }
+
+                        if (buffer[ind] != uint.MaxValue)
+                        {
+                            useLUT = false;
+                            break;
+                        }
+                        else
+                        {
+                            buffer[ind] = (uint)j;
+                        }
+                    }
+
+                    if (useLUT)
+                    {
+                        break;
+                    }
+                }
+
+                if (i == 0 || i == 1 || i == 2)
+                {
+                    ApplyPaletteFor(width, height, palette, i, src, srcStride, dst, dstStride, tmpRow, buffer, xBits);
+                }
+                else
+                {
+                    uint[] idxMap = new uint[paletteSize];
+                    uint[] paletteSorted = new uint[paletteSize];
+                    PrepareMapToPalette(palette, paletteSize, paletteSorted, idxMap);
+                    ApplyPaletteForWithIdxMap(width, height, palette, src, srcStride, dst, dstStride, tmpRow, idxMap, xBits, paletteSorted, paletteSize);
+                }
+            }
+        }
+
+        private static void ApplyPaletteFor(int width, int height, Span<uint> palette, int hashIdx, Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<byte> tmpRow, uint[] buffer, int xBits)
+        {
+            uint prevPix = palette[0];
+            uint prevIdx = 0;
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    uint pix = src[x];
+                    if (pix != prevPix)
+                    {
+                        switch (hashIdx)
+                        {
+                            case 0:
+                                prevIdx = buffer[ApplyPaletteHash0(pix)];
+                                break;
+                            case 1:
+                                prevIdx = buffer[ApplyPaletteHash1(pix)];
+                                break;
+                            case 2:
+                                prevIdx = buffer[ApplyPaletteHash2(pix)];
+                                break;
+                        }
+
+                        prevPix = pix;
+                    }
+
+                    tmpRow[x] = (byte)prevIdx;
+                }
+
+                LosslessUtils.BundleColorMap(tmpRow, width, xBits, dst);
+
+                src = src.Slice((int)srcStride);
+                dst = dst.Slice((int)dstStride);
+            }
+        }
+
+        private static void ApplyPaletteForWithIdxMap(int width, int height, Span<uint> palette, Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<byte> tmpRow, uint[] idxMap, int xBits, uint[] paletteSorted, int paletteSize)
+        {
+            uint prevPix = palette[0];
+            uint prevIdx = 0;
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    uint pix = src[x];
+                    if (pix != prevPix)
+                    {
+                        prevIdx = idxMap[SearchColorNoIdx(paletteSorted, pix, paletteSize)];
+                        prevPix = pix;
+                    }
+
+                    tmpRow[x] = (byte)prevIdx;
+                }
+
+                LosslessUtils.BundleColorMap(tmpRow, width, xBits, dst);
+
+                src = src.Slice((int)srcStride);
+                dst = dst.Slice((int)dstStride);
+            }
+        }
+
+        /// <summary>
+        /// Sort palette in increasing order and prepare an inverse mapping array.
+        /// </summary>
+        private static void PrepareMapToPalette(Span<uint> palette, int numColors, uint[] sorted, uint[] idxMap)
+        {
+            palette.Slice(numColors).CopyTo(sorted);
+            Array.Sort(sorted, PaletteCompareColorsForSort);
+            for (int i = 0; i < numColors; i++)
+            {
+                idxMap[SearchColorNoIdx(sorted, palette[i], numColors)] = (uint)i;
+            }
+        }
+
+        private static int SearchColorNoIdx(uint[] sorted, uint color, int hi)
+        {
+            int low = 0;
+            if (sorted[low] == color)
+            {
+                return low;  // loop invariant: sorted[low] != color
+            }
+
+            while (true)
+            {
+                int mid = (low + hi) >> 1;
+                if (sorted[mid] == color)
+                {
+                    return mid;
+                }
+                else if (sorted[mid] < color)
+                {
+                    low = mid;
+                }
+                else
+                {
+                    hi = mid;
+                }
+            }
+        }
+
         private static void ClearHuffmanTreeIfOnlyOneSymbol(HuffmanTreeCode huffmanCode)
         {
             int count = 0;
@@ -944,11 +1228,39 @@ namespace SixLabors.ImageSharp.Formats.WebP
             b[(int)((p >> 0) - green) & 0xff]++;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static uint ApplyPaletteHash0(uint color)
+        {
+            // Focus on the green color.
+            return (color >> 8) & 0xff;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static uint ApplyPaletteHash1(uint color)
+        {
+            // Forget about alpha.
+            return ((uint)((color & 0x00ffffffu) * 4222244071ul)) >> (32 - PaletteInvSizeBits);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static uint ApplyPaletteHash2(uint color)
+        {
+            // Forget about alpha.
+            return ((uint)((color & 0x00ffffffu) * ((1ul << 31) - 1))) >> (32 - PaletteInvSizeBits);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static uint HashPix(uint pix)
         {
             // Note that masking with 0xffffffffu is for preventing an
             // 'unsigned int overflow' warning. Doesn't impact the compiled code.
             return (uint)((((long)pix + (pix >> 19)) * 0x39c5fba7L) & 0xffffffffu) >> 24;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int PaletteCompareColorsForSort(uint p1, uint p2)
+        {
+            return (p1 < p2) ? -1 : 1;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

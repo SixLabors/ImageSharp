@@ -73,6 +73,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
+        public static void SubtractGreenFromBlueAndRed(Span<uint> pixelData, int numPixels)
+        {
+            for (int i = 0; i < numPixels; i++)
+            {
+                uint argb = pixelData[i];
+                uint green = (argb >> 8) & 0xff;
+                uint newR = (((argb >> 16) & 0xff) - green) & 0xff;
+                uint newB = (((argb >> 0) & 0xff) - green) & 0xff;
+                pixelData[i] = (argb & 0xff00ff00u) | (newR << 16) | newB;
+            }
+        }
+
         /// <summary>
         /// If there are not many unique pixel values, it is more efficient to create a color index array and replace the pixel values by the array's indices.
         /// This will reverse the color index transform.
@@ -176,6 +188,24 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 {
                     predRowIdxStart += tilesPerRow;
                 }
+            }
+        }
+
+        public static void TransformColor(Vp8LMultipliers m, Span<uint> data, int numPixels)
+        {
+            for (int i = 0; i < numPixels; i++)
+            {
+                uint argb = data[i];
+                sbyte green = U32ToS8(argb >> 8);
+                sbyte red = U32ToS8(argb >> 16);
+                int newRed = red & 0xff;
+                int newBlue = (int)(argb & 0xff);
+                newRed -= ColorTransformDelta((sbyte)m.GreenToRed, green);
+                newRed &= 0xff;
+                newBlue -= ColorTransformDelta((sbyte)m.GreenToBlue, green);
+                newBlue -= ColorTransformDelta((sbyte)m.RedToBlue, red);
+                newBlue &= 0xff;
+                data[i] = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
             }
         }
 
@@ -346,6 +376,86 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         }
 
         /// <summary>
+        /// Bundles multiple (1, 2, 4 or 8) pixels into a single pixel.
+        /// </summary>
+        public static void BundleColorMap(Span<byte> row, int width, int xBits, Span<uint> dst)
+        {
+            int x;
+            if (xBits > 0)
+            {
+                int bitDepth = 1 << (3 - xBits);
+                int mask = (1 << xBits) - 1;
+                uint code = 0xff000000;
+                for (x = 0; x < width; x++)
+                {
+                    int xsub = x & mask;
+                    if (xsub == 0)
+                    {
+                        code = 0xff000000;
+                    }
+
+                    code |= (uint)(row[x] << (8 + (bitDepth * xsub)));
+                    dst[x >> xBits] = code;
+                }
+            }
+            else
+            {
+                for (x = 0; x < width; x++)
+                {
+                    dst[x] = (uint)(0xff000000 | (row[x] << 8));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Compute the combined Shanon's entropy for distribution {X} and {X+Y}.
+        /// </summary>
+        /// <returns>Shanon entropy.</returns>
+        public static float CombinedShannonEntropy(int[] x, int[] y)
+        {
+            double retVal = 0.0d;
+            uint sumX = 0, sumXY = 0;
+            for (int i = 0; i < 256; i++)
+            {
+                uint xi = (uint)x[i];
+                if (xi != 0)
+                {
+                    uint xy = xi + (uint)y[i];
+                    sumX += xi;
+                    retVal -= FastSLog2(xi);
+                    sumXY += xy;
+                    retVal -= FastSLog2(xy);
+                }
+                else if (y[i] != 0)
+                {
+                    sumXY += (uint)y[i];
+                    retVal -= FastSLog2((uint)y[i]);
+                }
+            }
+
+            retVal += FastSLog2(sumX) + FastSLog2(sumXY);
+            return (float)retVal;
+        }
+
+        public static sbyte TransformColorRed(sbyte greenToRed, uint argb)
+        {
+            sbyte green = U32ToS8(argb >> 8);
+            int newRed = (int)(argb >> 16);
+            newRed -= ColorTransformDelta(greenToRed, green);
+            return (sbyte)(newRed & 0xff);
+        }
+
+        public static sbyte TransformColorBlue(sbyte greenToBlue, sbyte redToBlue, uint argb)
+        {
+            sbyte green = U32ToS8(argb >> 8);
+            sbyte red = U32ToS8(argb >> 16);
+            int newBlue = (int)(argb & 0xff);
+            newBlue -= ColorTransformDelta(greenToBlue, green);
+            newBlue -= ColorTransformDelta(redToBlue, red);
+            return (sbyte)(newBlue & 0xff);
+        }
+
+        /// <summary>
         /// Fast calculation of log2(v) for integer input.
         /// </summary>
         public static float FastLog2(uint v)
@@ -360,6 +470,26 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         public static float FastSLog2(uint v)
         {
             return (v < LogLookupIdxMax) ? WebPLookupTables.SLog2Table[v] : FastSLog2Slow(v);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void ColorCodeToMultipliers(uint colorCode, ref Vp8LMultipliers m)
+        {
+            m.GreenToRed = (byte)(colorCode & 0xff);
+            m.GreenToBlue = (byte)((colorCode >> 8) & 0xff);
+            m.RedToBlue = (byte)((colorCode >> 16) & 0xff);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int NearLosslessBits(int nearLosslessQuality)
+        {
+            // 100 -> 0
+            // 80..99 -> 1
+            // 60..79 -> 2
+            // 40..59 -> 3
+            // 20..39 -> 4
+            //  0..19 -> 5
+            return 5 - (nearLosslessQuality / 20);
         }
 
         private static float FastSLog2Slow(uint v)
@@ -605,84 +735,222 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor2(Span<uint> top, int idx)
+        public static uint Predictor2(Span<uint> top, int idx)
         {
             return top[idx];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor3(Span<uint> top, int idx)
+        public static uint Predictor3(Span<uint> top, int idx)
         {
             return top[idx + 1];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor4(Span<uint> top, int idx)
+        public static uint Predictor4(Span<uint> top, int idx)
         {
             return top[idx - 1];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor5(uint left, Span<uint> top, int idx)
+        public static uint Predictor5(uint left, Span<uint> top, int idx)
         {
             uint pred = Average3(left, top[idx], top[idx + 1]);
             return pred;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor6(uint left, Span<uint> top, int idx)
+        public static uint Predictor6(uint left, Span<uint> top, int idx)
         {
             uint pred = Average2(left, top[idx - 1]);
             return pred;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor7(uint left, Span<uint> top, int idx)
+        public static uint Predictor7(uint left, Span<uint> top, int idx)
         {
             uint pred = Average2(left, top[idx]);
             return pred;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor8(Span<uint> top, int idx)
+        public static uint Predictor8(Span<uint> top, int idx)
         {
             uint pred = Average2(top[idx - 1], top[idx]);
             return pred;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor9(Span<uint> top, int idx)
+        public static uint Predictor9(Span<uint> top, int idx)
         {
             uint pred = Average2(top[idx], top[idx + 1]);
             return pred;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor10(uint left, Span<uint> top, int idx)
+        public static uint Predictor10(uint left, Span<uint> top, int idx)
         {
             uint pred = Average4(left, top[idx - 1], top[idx], top[idx + 1]);
             return pred;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor11(uint left, Span<uint> top, int idx)
+        public static uint Predictor11(uint left, Span<uint> top, int idx)
         {
             uint pred = Select(top[idx], left, top[idx - 1]);
             return pred;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor12(uint left, Span<uint> top, int idx)
+        public static uint Predictor12(uint left, Span<uint> top, int idx)
         {
             uint pred = ClampedAddSubtractFull(left, top[idx], top[idx - 1]);
             return pred;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Predictor13(uint left, Span<uint> top, int idx)
+        public static uint Predictor13(uint left, Span<uint> top, int idx)
         {
             uint pred = ClampedAddSubtractHalf(left, top[idx], top[idx - 1]);
             return pred;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub0(Span<uint> input, int numPixels, Span<uint> output)
+        {
+            for (int i = 0; i < numPixels; i++)
+            {
+                output[i] = SubPixels(input[i], WebPConstants.ArgbBlack);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub1(Span<uint> input, int idx, int numPixels, Span<uint> output)
+        {
+            for (int i = 0; i < numPixels; i++)
+            {
+                output[i] = SubPixels(input[idx + i], input[idx + i - 1]);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub2(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor2(upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub3(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor3(upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub4(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor4(upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub5(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor5(input[idx - 1], upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub6(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor6(input[idx - 1], upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub7(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor7(input[idx - 1], upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub8(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor8(upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub9(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor9(upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub10(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor10(input[idx - 1], upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub11(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor11(input[idx - 1], upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub12(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor12(input[idx - 1], upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub13(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        {
+            for (int x = 0; x < numPixels; x++)
+            {
+                uint pred = Predictor13(input[idx - 1], upper, x);
+                output[x] = SubPixels(input[idx + x], pred);
+            }
         }
 
         private static uint ClampedAddSubtractFull(uint c0, uint c1, uint c2)
@@ -780,7 +1048,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// Sum of each component, mod 256.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint AddPixels(uint a, uint b)
+        public static uint AddPixels(uint a, uint b)
         {
             uint alphaAndGreen = (a & 0xff00ff00u) + (b & 0xff00ff00u);
             uint redAndBlue = (a & 0x00ff00ffu) + (b & 0x00ff00ffu);
@@ -800,20 +1068,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static void ColorCodeToMultipliers(uint colorCode, ref Vp8LMultipliers m)
+        private static sbyte U32ToS8(uint v)
         {
-            m.GreenToRed = (byte)(colorCode & 0xff);
-            m.GreenToBlue = (byte)((colorCode >> 8) & 0xff);
-            m.RedToBlue = (byte)((colorCode >> 16) & 0xff);
-        }
-
-        internal struct Vp8LMultipliers
-        {
-            public byte GreenToRed;
-
-            public byte GreenToBlue;
-
-            public byte RedToBlue;
+            return (sbyte)(v & 0xff);
         }
     }
 }

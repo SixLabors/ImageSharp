@@ -237,7 +237,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         {
             foreach (var filterMethod in PngFilterMethods)
             {
-                pngColorType,
                 foreach (PngInterlaceMode interlaceMode in InterlaceMode)
                 {
                     TestPngEncoderCore(

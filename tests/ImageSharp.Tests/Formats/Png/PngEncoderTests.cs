@@ -199,17 +199,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 return;
             }
 
-            foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+            foreach (var filterMethod in PngFilterMethods)
             {
-                TestPngEncoderCore(
-                provider,
-                pngColorType,
-                PngFilterMethod.Adaptive,
-                pngBitDepth,
-                interlaceMode,
-                appendPngColorType: true,
-                appendPixelType: true,
-                appendPngBitDepth: true);
+                foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+                {
+                    TestPngEncoderCore(
+                    provider,
+                    pngColorType,
+                    (PngFilterMethod)filterMethod[0],
+                    pngBitDepth,
+                    interlaceMode,
+                    appendPngColorType: true,
+                    appendPixelType: true,
+                    appendPngBitDepth: true);
+                }
             }
         }
 
@@ -232,18 +235,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void WorksWithAllBitDepthsAndExcludeAllFilter<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
           where TPixel : unmanaged, IPixel<TPixel>
         {
-            foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+            foreach (var filterMethod in PngFilterMethods)
             {
-                TestPngEncoderCore(
-                provider,
-                pngColorType,
-                PngFilterMethod.Adaptive,
-                pngBitDepth,
-                interlaceMode,
-                appendPngColorType: true,
-                appendPixelType: true,
-                appendPngBitDepth: true,
-                optimizeMethod: PngChunkFilter.ExcludeAll);
+                foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+                {
+                    TestPngEncoderCore(
+                    provider,
+                    pngColorType,
+                    (PngFilterMethod)filterMethod[0],
+                    pngBitDepth,
+                    interlaceMode,
+                    appendPngColorType: true,
+                    appendPixelType: true,
+                    appendPngBitDepth: true,
+                    optimizeMethod: PngChunkFilter.ExcludeAll);
+                }
             }
         }
 

@@ -1,5 +1,5 @@
 ---
-name: OSS : Bug Report
+name: "OSS : Bug Report"
 about: Create a report to help us improve the project.
 labels: needs triage
 

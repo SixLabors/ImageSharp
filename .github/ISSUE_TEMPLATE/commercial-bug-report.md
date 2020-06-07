@@ -1,5 +1,5 @@
 ---
-name: Commercial License : Bug Report
+name: "Commercial License : Bug Report"
 about: |
   Create a report to help us improve the project. For Commercial License holders only.
   Please contact help@sixlabors.com for issues requiring private support. 

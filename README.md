@@ -10,7 +10,7 @@ SixLabors.ImageSharp
 
 [![Build Status](https://img.shields.io/github/workflow/status/SixLabors/ImageSharp/Build/master)](https://github.com/SixLabors/ImageSharp/actions)
 [![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/master/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)
-[![License: AGPL v3](https://img.shields.io/badge/license-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=flat&logo=twitter)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&via=sixlabors)
 
 </div>
@@ -26,10 +26,9 @@ Built against [.NET Standard 1.3](https://docs.microsoft.com/en-us/dotnet/standa
 
 ## License
   
-- ImageSharp is licensed under the [GNU Affero General Public License v3](https://www.gnu.org/licenses/agpl-3.0)  
-- An alternative Commercial License can be purchased for Closed Source projects and applications.
+- ImageSharp is licensed under the [Apache License, Version 2.0](https://opensource.org/licenses/Apache-2.0)  
+- An alternative Commercial License can be purchased for projects and applications requiring support.
 Please visit https://sixlabors.com/pricing for details.
-- Open Source projects who have taken a dependency on ImageSharp prior to adoption of the AGPL v3 license are permitted to use ImageSharp (including all future versions) under the previous [Apache 2.0 License](https://opensource.org/licenses/Apache-2.0).
 
 ## Documentation
 

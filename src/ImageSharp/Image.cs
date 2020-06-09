@@ -3,7 +3,7 @@
 
 using System;
 using System.IO;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata;
@@ -99,6 +99,22 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Saves the image to the given stream using the given image encoder.
+        /// </summary>
+        /// <param name="stream">The stream to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public async Task SaveAsync(Stream stream, IImageEncoder encoder)
+        {
+            Guard.NotNull(stream, nameof(stream));
+            Guard.NotNull(encoder, nameof(encoder));
+            this.EnsureNotDisposed();
+
+            await this.AcceptVisitorAsync(new EncodeVisitor(encoder, stream)).ConfigureAwait(false);
+        }
+
+        /// <summary>
         /// Returns a copy of the image in the given pixel format.
         /// </summary>
         /// <typeparam name="TPixel2">The pixel format.</typeparam>
@@ -140,7 +156,15 @@ namespace SixLabors.ImageSharp
         /// <param name="visitor">The visitor.</param>
         internal abstract void Accept(IImageVisitor visitor);
 
-        private class EncodeVisitor : IImageVisitor
+        /// <summary>
+        /// Accepts a <see cref="IImageVisitor"/>.
+        /// Implemented by <see cref="Image{TPixel}"/> invoking <see cref="IImageVisitor.Visit{TPixel}"/>
+        /// with the pixel type of the image.
+        /// </summary>
+        /// <param name="visitor">The visitor.</param>
+        internal abstract Task AcceptAsync(IImageVisitorAsync visitor);
+
+        private class EncodeVisitor : IImageVisitor, IImageVisitorAsync
         {
             private readonly IImageEncoder encoder;
 
@@ -153,10 +177,11 @@ namespace SixLabors.ImageSharp
             }
 
             public void Visit<TPixel>(Image<TPixel> image)
+                where TPixel : unmanaged, IPixel<TPixel> => this.encoder.Encode(image, this.stream);
+
+            public async Task VisitAsync<TPixel>(Image<TPixel> image)
                 where TPixel : unmanaged, IPixel<TPixel>
-            {
-                this.encoder.Encode(image, this.stream);
-            }
+                => await this.encoder.EncodeAsync(image, this.stream).ConfigureAwait(false);
         }
     }
 }

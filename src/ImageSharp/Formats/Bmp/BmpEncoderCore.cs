@@ -5,7 +5,7 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
@@ -97,8 +97,32 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (stream.CanSeek)
+            {
+                this.Encode(image, stream);
+            }
+            else
+            {
+                using (var ms = new MemoryStream())
+                {
+                    this.Encode(image, ms);
+                    ms.Position = 0;
+                    await ms.CopyToAsync(stream).ConfigureAwait(false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));

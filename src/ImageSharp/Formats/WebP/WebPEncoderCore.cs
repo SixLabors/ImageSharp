@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             int width = image.Width;
             int height = image.Height;
-            int initialSize = width * height;
+            int initialSize = width * height * 2;
             this.bitWriter = new Vp8LBitWriter(initialSize);
 
             // Write image size.
@@ -113,34 +113,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void EncodeStream<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new Vp8LEncoder(this.memoryAllocator, image.Width, image.Height);
-
-            // Analyze image (entropy, num_palettes etc).
-            this.EncoderAnalyze(image, encoder);
-        }
-
-        /// <summary>
-        /// Analyzes the image and decides what transforms should be used.
-        /// </summary>
-        private void EncoderAnalyze<TPixel>(Image<TPixel> image, Vp8LEncoder enc)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            int method = 4; // TODO: method hardcoded to 4 for now.
-            int quality = 100; // TODO: quality is hardcoded for now.
-            bool useCache = true; // TODO: useCache is hardcoded for now.
             int width = image.Width;
             int height = image.Height;
-
-            // Check if we only deal with a small number of colors and should use a palette.
-            var usePalette = this.AnalyzeAndCreatePalette(image, enc);
-
-            // Empirical bit sizes.
-            enc.HistoBits = GetHistoBits(method, usePalette, width, height);
-            enc.TransformBits = GetTransformBits(method, enc.HistoBits);
+            int bytePosition = this.bitWriter.NumBytes();
+            var enc = new Vp8LEncoder(this.memoryAllocator, width, height);
 
             // Convert image pixels to bgra array.
-            using System.Buffers.IMemoryOwner<uint> bgraBuffer = this.memoryAllocator.Allocate<uint>(width * height);
-            Span<uint> bgra = bgraBuffer.Memory.Span;
+            Span<uint> bgra = enc.Bgra.GetSpan();
             int idx = 0;
             for (int y = 0; y < height; y++)
             {
@@ -151,15 +130,25 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
-            // Try out multiple LZ77 on images with few colors.
-            var nlz77s = (enc.PaletteSize > 0 && enc.PaletteSize <= 16) ? 2 : 1;
-            EntropyIx entropyIdx = this.AnalyzeEntropy(image, usePalette, enc.PaletteSize, enc.TransformBits, out bool redAndBlueAlwaysZero);
+            // Analyze image (entropy, numPalettes etc).
+            this.EncoderAnalyze(image, enc, bgra);
 
-            enc.UsePalette = entropyIdx == EntropyIx.Palette;
-            enc.UseSubtractGreenTransform = (entropyIdx == EntropyIx.SubGreen) || (entropyIdx == EntropyIx.SpatialSubGreen);
-            enc.UsePredictorTransform = (entropyIdx == EntropyIx.Spatial) || (entropyIdx == EntropyIx.SpatialSubGreen);
+            var entropyIdx = 3; // TODO: hardcoded for now.
+            int quality = 75; // TODO: quality is hardcoded for now.
+            bool useCache = true; // TODO: useCache is hardcoded for now.
+            bool redAndBlueAlwaysZero = false;
+
+            enc.UsePalette = entropyIdx == (int)EntropyIx.Palette;
+            enc.UseSubtractGreenTransform = (entropyIdx == (int)EntropyIx.SubGreen) || (entropyIdx == (int)EntropyIx.SpatialSubGreen);
+            enc.UsePredictorTransform = (entropyIdx == (int)EntropyIx.Spatial) || (entropyIdx == (int)EntropyIx.SpatialSubGreen);
             enc.UseCrossColorTransform = redAndBlueAlwaysZero ? false : enc.UsePredictorTransform;
+            enc.AllocateTransformBuffer(width, height);
+
+            // Reset any parameter in the encoder that is set in the previous iteration.
             enc.CacheBits = 0;
+            enc.ClearRefs();
+
+            // TODO: Apply near-lossless preprocessing.
 
             // Encode palette.
             if (enc.UsePalette)
@@ -167,8 +156,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 this.EncodePalette(image, bgra, enc);
                 this.MapImageFromPalette(enc, width, height);
 
-                // If using a color cache, do not have it bigger than the number of
-                // colors.
+                // If using a color cache, do not have it bigger than the number of colors.
                 if (useCache && enc.PaletteSize < (1 << WebPConstants.MaxColorCacheBits))
                 {
                     enc.CacheBits = WebPCommonUtils.BitsLog2Floor((uint)enc.PaletteSize) + 1;
@@ -194,7 +182,143 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.bitWriter.PutBits(0, 1);  // No more transforms.
 
             // Encode and write the transformed image.
-            //EncodeImageInternal();
+            this.EncodeImage(bgra, enc.HashChain, enc.Refs, enc.CurrentWidth, height, quality, useCache, enc.CacheBits, enc.HistoBits, bytePosition);
+        }
+
+        /// <summary>
+        /// Analyzes the image and decides what transforms should be used.
+        /// </summary>
+        private void EncoderAnalyze<TPixel>(Image<TPixel> image, Vp8LEncoder enc, Span<uint> bgra)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int method = 4; // TODO: method hardcoded to 4 for now.
+            int width = image.Width;
+            int height = image.Height;
+
+            // Check if we only deal with a small number of colors and should use a palette.
+            var usePalette = this.AnalyzeAndCreatePalette(image, enc);
+
+            // Empirical bit sizes.
+            enc.HistoBits = GetHistoBits(method, usePalette, width, height);
+            enc.TransformBits = GetTransformBits(method, enc.HistoBits);
+
+            // Try out multiple LZ77 on images with few colors.
+            var nlz77s = (enc.PaletteSize > 0 && enc.PaletteSize <= 16) ? 2 : 1;
+            EntropyIx entropyIdx = this.AnalyzeEntropy(image, usePalette, enc.PaletteSize, enc.TransformBits, out bool redAndBlueAlwaysZero);
+
+            // TODO: Fill CrunchConfig
+        }
+
+        private void EncodeImage(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, int quality, bool useCache, int cacheBits, int histogramBits, int initBytePosition)
+        {
+            int lz77sTypesToTrySize = 1; // TODO: harcoded for now.
+            int[] lz77sTypesToTry = { 3 };
+            int histogramImageXySize = LosslessUtils.SubSampleSize(width, histogramBits) * LosslessUtils.SubSampleSize(height, histogramBits);
+            short[] histogramSymbols = new short[histogramImageXySize];
+            var huffTree = new HuffmanTree[3 * WebPConstants.CodeLengthCodes];
+
+            if (useCache)
+            {
+                if (cacheBits == 0)
+                {
+                    cacheBits = WebPConstants.MaxColorCacheBits;
+                }
+            }
+            else
+            {
+                cacheBits = 0;
+            }
+
+            // Calculate backward references from ARGB image.
+            BackwardReferenceEncoder.HashChainFill(hashChain, bgra, quality, width, height);
+            // TODO: BitWriterInit(&bw_best, 0)
+            // BitWriterClone(bw, &bw_best))
+
+            for (int lz77sIdx = 0; lz77sIdx < lz77sTypesToTrySize; lz77sIdx++)
+            {
+                Vp8LBackwardRefs refsBest = BackwardReferenceEncoder.GetBackwardReferences(width, height, bgra, quality, lz77sTypesToTry[lz77sIdx], ref cacheBits, hashChain, refsArray[0], refsArray[1]);
+
+                // Keep the best references aside and use the other element from the first
+                // two as a temporary for later usage.
+                Vp8LBackwardRefs refsTmp = refsArray[refsBest.Equals(refsArray[0]) ? 1 : 0];
+
+                var tmpHisto = new Vp8LHistogram(cacheBits);
+                var histogramImage = new List<Vp8LHistogram>(histogramImageXySize);
+                for (int i = 0; i < histogramImageXySize; i++)
+                {
+                    histogramImage.Add(new Vp8LHistogram(cacheBits));
+                }
+
+                // Build histogram image and symbols from backward references.
+                HistogramEncoder.GetHistoImageSymbols(width, height, refsBest, quality, histogramBits, cacheBits, histogramImage, tmpHisto, histogramSymbols);
+
+                // Create Huffman bit lengths and codes for each histogram image.
+                var histogramImageSize = histogramImage.Count;
+                var bitArraySize = 5 * histogramImageSize;
+                var huffmanCodes = new HuffmanTreeCode[bitArraySize];
+
+                GetHuffBitLengthsAndCodes(histogramImage, huffmanCodes);
+
+                // Color Cache parameters.
+                if (cacheBits > 0)
+                {
+                    this.bitWriter.PutBits(1, 1);
+                    this.bitWriter.PutBits((uint)cacheBits, 4);
+                }
+                else
+                {
+                    this.bitWriter.PutBits(0, 1);
+                }
+
+                // Huffman image + meta huffman.
+                bool writeHistogramImage = histogramImageSize > 1;
+                this.bitWriter.PutBits((uint)(writeHistogramImage ? 1 : 0), 1);
+                if (writeHistogramImage)
+                {
+                    using System.Buffers.IMemoryOwner<uint> histogramArgbBuffer = this.memoryAllocator.Allocate<uint>(histogramImageXySize);
+                    Span<uint> histogramArgb = histogramArgbBuffer.GetSpan();
+                    int maxIndex = 0;
+                    for (int i = 0; i < histogramImageXySize; i++)
+                    {
+                        int symbolIndex = histogramSymbols[i] & 0xffff;
+                        histogramArgb[i] = (uint)(symbolIndex << 8);
+                        if (symbolIndex >= maxIndex)
+                        {
+                            maxIndex = symbolIndex + 1;
+                        }
+                    }
+
+                    histogramImageSize = maxIndex;
+                    this.bitWriter.PutBits((uint)(histogramBits - 2), 3);
+                    this.EncodeImageNoHuffman(histogramArgb, hashChain, refsTmp, refsArray[2], LosslessUtils.SubSampleSize(width, histogramBits), LosslessUtils.SubSampleSize(height, histogramBits), quality);
+                }
+
+                // Store Huffman codes.
+                // Find maximum number of symbols for the huffman tree-set.
+                int maxTokens = 0;
+                for (int i = 0; i < 5 * histogramImageSize; i++)
+                {
+                    HuffmanTreeCode codes = huffmanCodes[i];
+                    if (maxTokens < codes.NumSymbols)
+                    {
+                        maxTokens = codes.NumSymbols;
+                    }
+                }
+
+                var tokens = new HuffmanTreeToken[maxTokens];
+                for (int i = 0; i < 5 * histogramImageSize; i++)
+                {
+                    HuffmanTreeCode codes = huffmanCodes[i];
+                    this.StoreHuffmanCode(huffTree, tokens, codes);
+                    ClearHuffmanTreeIfOnlyOneSymbol(codes);
+                }
+
+                // Store actual literals.
+                var hdrSizeTmp = (int)(this.bitWriter.NumBytes() - initBytePosition);
+                this.StoreImageToBitMask(width, histogramBits, refsBest, histogramSymbols, huffmanCodes);
+
+                // TODO: Keep track of the smallest image so far.
+            }
         }
 
         /// <summary>
@@ -236,7 +360,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private void ApplyPredictFilter(Vp8LEncoder enc, int width, int height, int quality, bool usedSubtractGreen)
         {
             int nearLosslessStrength = 100; // TODO: for now always 100
-            bool exact = true; // TODO: always true for now.
+            bool exact = false; // TODO: always false for now.
             int predBits = enc.TransformBits;
             int transformWidth = LosslessUtils.SubSampleSize(width, predBits);
             int transformHeight = LosslessUtils.SubSampleSize(height, predBits);
@@ -281,7 +405,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 huffTree[i] = new HuffmanTree();
             }
 
-            // Calculate backward references from ARGB image.
+            // Calculate backward references from the image pixels.
             BackwardReferenceEncoder.HashChainFill(hashChain, bgra, quality, width, height);
 
             Vp8LBackwardRefs refs = BackwardReferenceEncoder.GetBackwardReferences(
@@ -290,7 +414,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 bgra,
                 quality,
                 (int)Vp8LLz77Type.Lz77Standard | (int)Vp8LLz77Type.Lz77Rle,
-                cacheBits,
+                ref cacheBits,
                 hashChain,
                 refsTmp1,
                 refsTmp2);
@@ -822,8 +946,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
             {
                 xBits = (paletteSize <= 16) ? 1 : 0;
             }
-
-            enc.AllocateTransformBuffer(LosslessUtils.SubSampleSize(width, xBits), height);
 
             this.ApplyPalette(src, srcStride, dst, enc.CurrentWidth, palette, paletteSize, width, height, xBits);
         }

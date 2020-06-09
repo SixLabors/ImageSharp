@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         /// <summary>
         /// Returns best predictor and updates the accumulated histogram.
-        /// If max_quantization > 1, assumes that near lossless processing will be
+        /// If maxQuantization > 1, assumes that near lossless processing will be
         /// applied, quantizing residuals to multiples of quantization levels up to
         /// maxQuantization (the actual quantization level depends on smoothness near
         /// the given pixel).
@@ -184,10 +184,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     upperRow = currentRow;
                     currentRow = tmp;
 
-                    // Read current_row. Include a pixel to the left if it exists; include a
+                    // Read currentRow. Include a pixel to the left if it exists; include a
                     // pixel to the right in all cases except at the bottom right corner of
                     // the image (wrapping to the leftmost pixel of the next row if it does
-                    // not exist in the current row).
+                    // not exist in the currentRow).
                     Span<uint> src = argb.Slice((y * width) + contextStartX, maxX + haveLeft + ((y + 1) < height ? 1 : 0));
                     Span<uint> dst = currentRow.Slice(contextStartX);
                     src.CopyTo(dst);
@@ -476,7 +476,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 Span<uint> tmp32 = upperRow;
                 upperRow = currentRow;
                 currentRow = tmp32;
-                argb.Slice(y * width, width + y + (1 < height ? 1 : 0)).CopyTo(currentRow);
+                Span<uint> src = argb.Slice(y * width, width + ((y + 1) < height ? 1 : 0));
+                src.CopyTo(currentRow);
                 if (maxQuantization > 1)
                 {
                     // Compute max_diffs for the lower row now, because that needs the
@@ -659,7 +660,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             while (yScan-- > 0)
             {
                 LosslessUtils.TransformColor(colorTransform, argb, xScan);
-                argb = argb.Slice(xSize);
+
+                if (argb.Length > xSize)
+                {
+                    argb = argb.Slice(xSize);
+                }
             }
         }
 
@@ -820,15 +825,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         private static void CollectColorRedTransforms(Span<uint> argb, int stride, int tileWidth, int tileHeight, int greenToRed, int[] histo)
         {
-            int pos = 0;
+            int startIdx = 0;
             while (tileHeight-- > 0)
             {
                 for (int x = 0; x < tileWidth; x++)
                 {
-                    ++histo[LosslessUtils.TransformColorRed((sbyte)greenToRed, argb[pos + x])];
+                    int idx = LosslessUtils.TransformColorRed((sbyte)greenToRed, argb[startIdx + x]);
+                    ++histo[idx];
                 }
 
-                pos += stride;
+                startIdx += stride;
             }
         }
 
@@ -839,7 +845,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             {
                 for (int x = 0; x < tileWidth; x++)
                 {
-                    ++histo[LosslessUtils.TransformColorBlue((sbyte)greenToBlue, (sbyte)redToBlue, argb[pos + x])];
+                    int idx = LosslessUtils.TransformColorBlue((sbyte)greenToBlue, (sbyte)redToBlue, argb[pos + x]);
+                    ++histo[idx];
                 }
 
                 pos += stride;

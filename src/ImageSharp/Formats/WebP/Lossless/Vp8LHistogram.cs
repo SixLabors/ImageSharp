@@ -8,6 +8,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
     internal class Vp8LHistogram
     {
+        private const uint NonTrivialSym = 0xffffffff;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
+        /// </summary>
+        /// <param name="refs">The backward references to initialize the histogram with.</param>
+        /// <param name="paletteCodeBits">The palette code bits.</param>
         public Vp8LHistogram(Vp8LBackwardRefs refs, int paletteCodeBits)
             : this()
         {
@@ -19,12 +26,19 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             this.StoreRefs(refs);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
+        /// </summary>
+        /// <param name="paletteCodeBits">The palette code bits.</param>
         public Vp8LHistogram(int paletteCodeBits)
             : this()
         {
             this.PaletteCodeBits = paletteCodeBits;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
+        /// </summary>
         public Vp8LHistogram()
         {
             this.Red = new uint[WebPConstants.NumLiteralCodes + 1];
@@ -45,24 +59,24 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         public int PaletteCodeBits { get; }
 
         /// <summary>
-        /// Gets the cached value of bit cost.
+        /// Gets or sets the cached value of bit cost.
         /// </summary>
-        public double BitCost { get; }
+        public double BitCost { get; set; }
 
         /// <summary>
-        /// Gets the cached value of literal entropy costs.
+        /// Gets or sets the cached value of literal entropy costs.
         /// </summary>
-        public double LiteralCost { get; }
+        public double LiteralCost { get; set; }
 
         /// <summary>
-        /// Gets the cached value of red entropy costs.
+        /// Gets or sets the cached value of red entropy costs.
         /// </summary>
-        public double RedCost { get; }
+        public double RedCost { get; set; }
 
         /// <summary>
-        /// Gets the cached value of blue entropy costs.
+        /// Gets or sets the cached value of blue entropy costs.
         /// </summary>
-        public double BlueCost { get; }
+        public double BlueCost { get; set; }
 
         public uint[] Red { get; }
 
@@ -74,8 +88,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         public uint[] Distance { get; }
 
+        public uint TrivialSymbol { get; set; }
+
         public bool[] IsUsed { get; }
 
+        /// <summary>
+        /// Collect all the references into a histogram (without reset).
+        /// </summary>
+        /// <param name="refs">The backward references.</param>
         public void StoreRefs(Vp8LBackwardRefs refs)
         {
             using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
@@ -85,6 +105,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
+        /// <summary>
+        /// Accumulate a token 'v' into a histogram.
+        /// </summary>
+        /// <param name="v">The token to add.</param>
+        /// <param name="useDistanceModifier">Indicates whether to use the distance modifier.</param>
         public void AddSinglePixOrCopy(PixOrCopy v, bool useDistanceModifier)
         {
             if (v.IsLiteral())
@@ -122,22 +147,48 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + ((this.PaletteCodeBits > 0) ? (1 << this.PaletteCodeBits) : 0);
         }
 
+        /// <summary>
+        /// Estimate how many bits the combined entropy of literals and distance approximately maps to.
+        /// </summary>
+        /// <returns>Estimated bits.</returns>
         public double EstimateBits()
         {
+            uint notUsed = 0;
             return
-                PopulationCost(this.Literal, this.NumCodes(), ref this.IsUsed[0])
-                + PopulationCost(this.Red, WebPConstants.NumLiteralCodes, ref this.IsUsed[1])
-                + PopulationCost(this.Blue, WebPConstants.NumLiteralCodes, ref this.IsUsed[2])
-                + PopulationCost(this.Alpha, WebPConstants.NumLiteralCodes, ref this.IsUsed[3])
-                + PopulationCost(this.Distance, WebPConstants.NumDistanceCodes, ref this.IsUsed[4])
+                PopulationCost(this.Literal, this.NumCodes(), ref notUsed, ref this.IsUsed[0])
+                + PopulationCost(this.Red, WebPConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[1])
+                + PopulationCost(this.Blue, WebPConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[2])
+                + PopulationCost(this.Alpha, WebPConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[3])
+                + PopulationCost(this.Distance, WebPConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4])
                 + ExtraCost(this.Literal.AsSpan(WebPConstants.NumLiteralCodes), WebPConstants.NumLengthCodes)
                 + ExtraCost(this.Distance, WebPConstants.NumDistanceCodes);
+        }
+
+        public void UpdateHistogramCost()
+        {
+            uint alphaSym = 0, redSym = 0, blueSym = 0;
+            uint notUsed = 0;
+            double alphaCost = PopulationCost(this.Alpha, WebPConstants.NumLiteralCodes, ref alphaSym, ref this.IsUsed[3]);
+            double distanceCost = PopulationCost(this.Distance, WebPConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4]) + ExtraCost(this.Distance, WebPConstants.NumDistanceCodes);
+            int numCodes = HistogramNumCodes(this.PaletteCodeBits);
+            this.LiteralCost = PopulationCost(this.Literal, numCodes, ref notUsed, ref this.IsUsed[0]) + ExtraCost(this.Literal.AsSpan(WebPConstants.NumLiteralCodes), WebPConstants.NumLengthCodes);
+            this.RedCost = PopulationCost(this.Red, WebPConstants.NumLiteralCodes, ref redSym, ref this.IsUsed[1]);
+            this.BlueCost = PopulationCost(this.Blue, WebPConstants.NumLiteralCodes, ref blueSym, ref this.IsUsed[2]);
+            this.BitCost = this.LiteralCost + this.RedCost + this.BlueCost + alphaCost + distanceCost;
+            if ((alphaSym | redSym | blueSym) == NonTrivialSym)
+            {
+                this.TrivialSymbol = NonTrivialSym;
+            }
+            else
+            {
+                this.TrivialSymbol = ((uint)alphaSym << 24) | (redSym << 16) | (blueSym << 0);
+            }
         }
 
         /// <summary>
         /// Get the symbol entropy for the distribution 'population'.
         /// </summary>
-        private static double PopulationCost(uint[] population, int length, ref bool isUsed)
+        private static double PopulationCost(uint[] population, int length, ref uint trivialSym, ref bool isUsed)
         {
             var bitEntropy = new Vp8LBitEntropy();
             var stats = new Vp8LStreaks();
@@ -146,42 +197,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // The histogram is used if there is at least one non-zero streak.
             isUsed = stats.Streaks[1][0] != 0 || stats.Streaks[1][1] != 0;
 
-            return bitEntropy.BitsEntropyRefine() + FinalHuffmanCost(stats);
-        }
-
-        /// <summary>
-        /// Finalize the Huffman cost based on streak numbers and length type (<3 or >=3).
-        /// </summary>
-        private static double FinalHuffmanCost(Vp8LStreaks stats)
-        {
-            // The constants in this function are experimental and got rounded from
-            // their original values in 1/8 when switched to 1/1024.
-            double retval = InitialHuffmanCost();
-
-            // Second coefficient: Many zeros in the histogram are covered efficiently
-            // by a run-length encode. Originally 2/8.
-            retval += (stats.Counts[0] * 1.5625) + (0.234375 * stats.Streaks[0][1]);
-
-            // Second coefficient: Constant values are encoded less efficiently, but still
-            // RLE'ed. Originally 6/8.
-            retval += (stats.Counts[1] * 2.578125) + 0.703125 * stats.Streaks[1][1];
-
-            // 0s are usually encoded more efficiently than non-0s.
-            // Originally 15/8.
-            retval += 1.796875 * stats.Streaks[0][0];
-
-            // Originally 26/8.
-            retval += 3.28125 * stats.Streaks[1][0];
-
-            return retval;
-        }
-
-        private static double InitialHuffmanCost()
-        {
-            // Small bias because Huffman code length is typically not stored in full length.
-            int huffmanCodeOfHuffmanCodeSize = WebPConstants.CodeLengthCodes * 3;
-            double smallBias = 9.1;
-            return huffmanCodeOfHuffmanCodeSize - smallBias;
+            return bitEntropy.BitsEntropyRefine() + stats.FinalHuffmanCost();
         }
 
         private static double ExtraCost(Span<uint> population,  int length)
@@ -193,6 +209,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             return cost;
+        }
+
+        public static int HistogramNumCodes(int paletteCodeBits)
+        {
+            return WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + ((paletteCodeBits > 0) ? (1 << paletteCodeBits) : 0);
         }
     }
 }

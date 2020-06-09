@@ -52,6 +52,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         public uint NoneZeroCode { get; set; }
 
+        public void Init()
+        {
+            this.Entropy = 0.0d;
+            this.Sum = 0;
+            this.NoneZeros = 0;
+            this.MaxVal = 0;
+            this.NoneZeroCode = NonTrivialSym;
+        }
+
         public double BitsEntropyRefine()
         {
             double mix;
@@ -95,6 +104,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         public void BitsEntropyUnrefined(Span<uint> array, int n)
         {
+            this.Init();
+
             for (int i = 0; i < n; i++)
             {
                 if (array[i] != 0)
@@ -121,7 +132,54 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int i;
             int iPrev = 0;
             uint xPrev = x[0];
+
+            this.Init();
+
             for (i = 1; i < length; ++i)
+            {
+                uint xi = x[i];
+                if (xi != xPrev)
+                {
+                    this.GetEntropyUnrefined(xi, i, ref xPrev, ref iPrev, stats);
+                }
+            }
+
+            this.GetEntropyUnrefined(0, i, ref xPrev, ref iPrev, stats);
+
+            this.Entropy += LosslessUtils.FastSLog2(this.Sum);
+        }
+
+        public void GetCombinedEntropyUnrefined(uint[] x, uint[] y, int length, Vp8LStreaks stats)
+        {
+            int i;
+            int iPrev = 0;
+            uint xyPrev = x[0] + y[0];
+
+            this.Init();
+
+            for (i = 1; i < length; i++)
+            {
+                uint xy = x[i] + y[i];
+                if (xy != xyPrev)
+                {
+                    this.GetEntropyUnrefined(xy, i, ref xyPrev, ref iPrev, stats);
+                }
+            }
+
+            this.GetEntropyUnrefined(0, i, ref xyPrev, ref iPrev, stats);
+
+            this.Entropy += LosslessUtils.FastSLog2(this.Sum);
+        }
+
+        public void GetEntropyUnrefined(uint[] x, int length, Vp8LStreaks stats)
+        {
+            int i;
+            int iPrev = 0;
+            uint xPrev = x[0];
+
+            this.Init();
+
+            for (i = 1; i < length; i++)
             {
                 uint xi = x[i];
                 if (xi != xPrev)

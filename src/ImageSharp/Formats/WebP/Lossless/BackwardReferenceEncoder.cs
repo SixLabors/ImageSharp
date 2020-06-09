@@ -232,22 +232,20 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// Evaluates best possible backward references for specified quality.
         /// The input cache_bits to 'VP8LGetBackwardReferences' sets the maximum cache
         /// bits to use (passing 0 implies disabling the local color cache).
-        /// The optimal cache bits is evaluated and set for the *cache_bits parameter.
+        /// The optimal cache bits is evaluated and set for the cacheBits parameter.
         /// The return value is the pointer to the best of the two backward refs viz,
         /// refs[0] or refs[1].
         /// </summary>
         public static Vp8LBackwardRefs GetBackwardReferences(int width, int height, Span<uint> bgra, int quality,
-            int lz77TypesToTry, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs best, Vp8LBackwardRefs worst)
+            int lz77TypesToTry, ref int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs best, Vp8LBackwardRefs worst)
         {
             var histo = new Vp8LHistogram[WebPConstants.MaxColorCacheBits];
-            int lz77Type = 0;
             int lz77TypeBest = 0;
             double bitCostBest = -1;
             int cacheBitsInitial = cacheBits;
             Vp8LHashChain hashChainBox = null;
-            for (lz77Type = 1; lz77TypesToTry > 0; lz77TypesToTry &= ~lz77Type, lz77Type <<= 1)
+            for (int lz77Type = 1; lz77TypesToTry > 0; lz77TypesToTry &= ~lz77Type, lz77Type <<= 1)
             {
-                int res = 0;
                 double bitCost;
                 int cacheBitsTmp = cacheBitsInitial;
                 if ((lz77TypesToTry & lz77Type) == 0)
@@ -312,25 +310,30 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         /// <summary>
         /// Evaluate optimal cache bits for the local color cache.
-        /// The input *best_cache_bits sets the maximum cache bits to use (passing 0 implies disabling the local color cache).
-        /// The local color cache is also disabled for the lower (<= 25) quality.
+        /// The input bestCacheBits sets the maximum cache bits to use (passing 0 implies disabling the local color cache).
+        /// The local color cache is also disabled for the lower (smaller then 25) quality.
         /// </summary>
         private static int CalculateBestCacheSize(Span<uint> bgra, int quality, Vp8LBackwardRefs refs, int bestCacheBits)
         {
             int cacheBitsMax = (quality <= 25) ? 0 : bestCacheBits;
-            double entropyMin = MaxEntropy;
-            int pos = 0;
-            var ccInit = new int[WebPConstants.MaxColorCacheBits + 1];
-            var colorCache = new ColorCache[WebPConstants.MaxColorCacheBits + 1];
-            var histos = new Vp8LHistogram[WebPConstants.MaxColorCacheBits + 1];
             if (cacheBitsMax == 0)
             {
                 // Local color cache is disabled.
                 return 0;
             }
 
-            // Find the cache_bits giving the lowest entropy. The search is done in a
-            // brute-force way as the function (entropy w.r.t cache_bits) can be anything in practice.
+            double entropyMin = MaxEntropy;
+            int pos = 0;
+            var colorCache = new ColorCache[WebPConstants.MaxColorCacheBits + 1];
+            var histos = new Vp8LHistogram[WebPConstants.MaxColorCacheBits + 1];
+            for (int i = 0; i < WebPConstants.MaxColorCacheBits + 1; i++)
+            {
+                histos[i] = new Vp8LHistogram();
+                colorCache[i] = new ColorCache();
+                colorCache[i].Init(i);
+            }
+
+            // Find the cache_bits giving the lowest entropy.
             using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
             while (c.MoveNext())
             {
@@ -346,13 +349,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     // The keys of the caches can be derived from the longest one.
                     int key = ColorCache.HashPix(pix, 32 - cacheBitsMax);
 
-                    // Do not use the color cache for cache_bits = 0.
+                    // Do not use the color cache for cacheBits = 0.
                     ++histos[0].Blue[b];
                     ++histos[0].Literal[g];
                     ++histos[0].Red[r];
                     ++histos[0].Alpha[a];
 
-                    // Deal with cache_bits > 0.
+                    // Deal with cacheBits > 0.
                     for (int i = cacheBitsMax; i >= 1; i--, key >>= 1)
                     {
                         if (colorCache[i].Lookup(key) == pix)
@@ -371,7 +374,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
                 else
                 {
-                    // We should compute the contribution of the (distance,length)
+                    // We should compute the contribution of the (distance, length)
                     // histograms but those are the same independently from the cache size.
                     // As those constant contributions are in the end added to the other
                     // histogram contributions, we can safely ignore them.
@@ -437,7 +440,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 colorCache.Init(cacheBits);
             }
 
-            // TODO: VP8LClearBackwardRefs(refs);
+            refs.Refs.Clear();
             for (int i = 0; i < pixCount;)
             {
                 // Alternative #1: Code the pixels starting at 'i' using backward reference.
@@ -641,7 +644,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                                 break;
                             }
 
-                            // The same color is repeated counts_pos times at j_offset and j.
+                            // The same color is repeated counts_pos times at jOffset and j.
                             currLength += countsJOffset;
                             jOffset += countsJOffset;
                             j += countsJOffset;
@@ -693,7 +696,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 colorCache.Init(cacheBits);
             }
 
-            // VP8LClearBackwardRefs(refs);
+            refs.Refs.Clear();
 
             // Add first pixel as literal.
             AddSingleLiteral(bgra[0], useColorCache, colorCache, refs);
@@ -708,8 +711,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     refs.Add(PixOrCopy.CreateCopy(1, (short)rleLen));
 
                     // We don't need to update the color cache here since it is always the
-                    // same pixel being copied, and that does not change the color cache
-                    // state.
+                    // same pixel being copied, and that does not change the color cache state.
                     i += rleLen;
                 }
                 else if (prevRowLen >= MinLength)
@@ -734,7 +736,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             if (useColorCache)
             {
-                // VP8LColorCacheClear();
+                // TODO: VP8LColorCacheClear();
             }
         }
 
@@ -756,7 +758,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     int ix = colorCache.Contains(bgraLiteral);
                     if (ix >= 0)
                     {
-                        // color cache contains bgraLiteral
+                        // Color cache contains bgraLiteral
                         v = PixOrCopy.CreateCacheIdx(ix);
                     }
                     else
@@ -776,7 +778,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
             }
 
-            // VP8LColorCacheClear(colorCache);
+            // TODO: VP8LColorCacheClear(colorCache);
         }
 
         private static void BackwardReferences2DLocality(int xSize, Vp8LBackwardRefs refs)
@@ -835,10 +837,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         /// <summary>
         /// Returns the exact index where array1 and array2 are different. For an index
-        /// inferior or equal to best_len_match, the return value just has to be strictly
-        /// inferior to best_len_match. The current behavior is to return 0 if this index
-        /// is best_len_match, and the index itself otherwise.
-        /// If no two elements are the same, it returns max_limit.
+        /// inferior or equal to bestLenMatch, the return value just has to be strictly
+        /// inferior to best_lenMatch. The current behavior is to return 0 if this index
+        /// is bestLenMatch, and the index itself otherwise.
+        /// If no two elements are the same, it returns maxLimit.
         /// </summary>
         private static int FindMatchLength(Span<uint> array1, Span<uint> array2, int bestLenMatch, int maxLimit)
         {

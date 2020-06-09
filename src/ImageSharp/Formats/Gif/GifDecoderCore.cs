@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -199,7 +200,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
             else
             {
-                using (var ms = new MemoryStream())
+                using (var ms = new FixedCapacityPooledMemoryStream(stream.Length))
                 {
                     await stream.CopyToAsync(ms).ConfigureAwait(false);
                     ms.Position = 0;

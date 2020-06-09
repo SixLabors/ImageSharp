@@ -83,11 +83,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <inheritdoc/>
-        public async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return await new BmpDecoderCore(configuration, this).IdentifyAsync(stream).ConfigureAwait(false);
+            return new BmpDecoderCore(configuration, this).IdentifyAsync(stream);
         }
     }
 }

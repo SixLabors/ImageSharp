@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -277,7 +278,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
             else
             {
-                using (var ms = new MemoryStream())
+                using (var ms = new FixedCapacityPooledMemoryStream(stream.Length))
                 {
                     await stream.CopyToAsync(ms).ConfigureAwait(false);
                     ms.Position = 0;

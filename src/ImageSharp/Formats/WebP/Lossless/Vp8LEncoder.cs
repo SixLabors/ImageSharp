@@ -22,6 +22,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         private const int MinBlockSize = 256;
 
+        /// <summary>
+        /// The <see cref="MemoryAllocator"/> to use for buffer allocations.
+        /// </summary>
         private MemoryAllocator memoryAllocator;
 
         /// <summary>
@@ -135,6 +138,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             this.BgraScratch = this.memoryAllocator.Allocate<uint>(argbScratchSize);
             this.TransformData = this.memoryAllocator.Allocate<uint>(transformDataSize);
+            this.CurrentWidth = width;
+        }
+
+        /// <summary>
+        /// Clears the backward references.
+        /// </summary>
+        public void ClearRefs()
+        {
+            for (int i = 0; i < this.Refs.Length; i++)
+            {
+                this.Refs[i].Refs.Clear();
+            }
         }
 
         /// <inheritdoc/>

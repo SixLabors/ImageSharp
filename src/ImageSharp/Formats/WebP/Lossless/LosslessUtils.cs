@@ -437,22 +437,22 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return (float)retVal;
         }
 
-        public static sbyte TransformColorRed(sbyte greenToRed, uint argb)
+        public static byte TransformColorRed(sbyte greenToRed, uint argb)
         {
             sbyte green = U32ToS8(argb >> 8);
             int newRed = (int)(argb >> 16);
             newRed -= ColorTransformDelta(greenToRed, green);
-            return (sbyte)(newRed & 0xff);
+            return (byte)(newRed & 0xff);
         }
 
-        public static sbyte TransformColorBlue(sbyte greenToBlue, sbyte redToBlue, uint argb)
+        public static byte TransformColorBlue(sbyte greenToBlue, sbyte redToBlue, uint argb)
         {
             sbyte green = U32ToS8(argb >> 8);
             sbyte red = U32ToS8(argb >> 16);
             int newBlue = (int)(argb & 0xff);
             newBlue -= ColorTransformDelta(greenToBlue, green);
             newBlue -= ColorTransformDelta(redToBlue, red);
-            return (sbyte)(newBlue & 0xff);
+            return (byte)(newBlue & 0xff);
         }
 
         /// <summary>

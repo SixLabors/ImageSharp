@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.IO;
@@ -13,7 +13,6 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
-    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
     using SixLabors.ImageSharp.Advanced;
     using SixLabors.ImageSharp.Formats;
@@ -27,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests
             public async Task DetectedEncoding()
             {
                 string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
-                string file = System.IO.Path.Combine(dir, "DetectedEncodingAsync.png");
+                string file = Path.Combine(dir, "DetectedEncodingAsync.png");
 
                 using (var image = new Image<Rgba32>(10, 10))
                 {

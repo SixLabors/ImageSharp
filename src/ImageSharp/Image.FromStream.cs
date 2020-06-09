@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp
         /// <param name="stream">The image stream to read the header from.</param>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-        /// <returns>The format type or null if none found.</returns>
+        /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation or null if none is found.</returns>
         public static Task<IImageFormat> DetectFormatAsync(Stream stream)
             => DetectFormatAsync(Configuration.Default, stream);
 
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The stream is null.</exception>
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
-        /// <returns>The format type or null if none found.</returns>
+        /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation.</returns>
         public static Task<IImageFormat> DetectFormatAsync(Configuration configuration, Stream stream)
             => WithSeekableStreamAsync(
                 configuration,
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>
-        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
         /// </returns>
         public static IImageInfo Identify(Stream stream)
             => Identify(stream, out IImageFormat _);
@@ -84,7 +84,8 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>
-        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// A <see cref="Task{IImageInfo}"/> representing the asynchronous operation or null if
+        /// a suitable detector is not found.
         /// </returns>
         public static Task<IImageInfo> IdentifyAsync(Stream stream)
             => IdentifyAsync(Configuration.Default, stream);
@@ -98,7 +99,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>
-        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
         /// </returns>
         public static IImageInfo Identify(Stream stream, out IImageFormat format)
             => Identify(Configuration.Default, stream, out format);
@@ -113,7 +114,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>
-        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
         /// </returns>
         public static IImageInfo Identify(Configuration configuration, Stream stream)
             => Identify(configuration, stream, out _);
@@ -128,11 +129,12 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>
-        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// A <see cref="Task{IImageInfo}"/> representing the asynchronous operation or null if
+        /// a suitable detector is not found.
         /// </returns>
         public static async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
         {
-            FormattedImageInfo res = await IdentifyWithFormatAsync(configuration, stream).ConfigureAwait(false);
+            (IImageInfo ImageInfo, IImageFormat Format) res = await IdentifyWithFormatAsync(configuration, stream).ConfigureAwait(false);
             return res.ImageInfo;
         }
 
@@ -147,11 +149,11 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>
-        /// The <see cref="IImageInfo"/> or null if suitable info detector is not found.
+        /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
         /// </returns>
         public static IImageInfo Identify(Configuration configuration, Stream stream, out IImageFormat format)
         {
-            FormattedImageInfo data = WithSeekableStream(configuration, stream, s => InternalIdentity(s, configuration ?? Configuration.Default));
+            (IImageInfo ImageInfo, IImageFormat Format) data = WithSeekableStream(configuration, stream, s => InternalIdentity(s, configuration ?? Configuration.Default));
 
             format = data.Format;
             return data.ImageInfo;
@@ -166,9 +168,10 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>
-        /// The <see cref="FormattedImageInfo"/> with <see cref="FormattedImageInfo.ImageInfo"/> set to null if suitable info detector is not found.
+        /// A <see cref="Task"/> representing the asynchronous operation or null if
+        /// a suitable detector is not found.
         /// </returns>
-        public static Task<FormattedImageInfo> IdentifyWithFormatAsync(Stream stream)
+        public static Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(Stream stream)
             => IdentifyWithFormatAsync(Configuration.Default, stream);
 
         /// <summary>
@@ -181,9 +184,10 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>
-        /// The <see cref="FormattedImageInfo"/> with <see cref="FormattedImageInfo.ImageInfo"/> set to null if suitable info detector is not found.
+        /// The <see cref="Task{ValueTuple}"/> representing the asyncronous operation with the parameter type
+        /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
         /// </returns>
-        public static Task<FormattedImageInfo> IdentifyWithFormatAsync(Configuration configuration, Stream stream)
+        public static Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(Configuration configuration, Stream stream)
             => WithSeekableStreamAsync(
                 configuration,
                 stream,
@@ -212,8 +216,8 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-        /// <returns>A <see cref="Task{FormattedImage}"/> representing the asynchronous operation.</returns>
-        public static Task<FormattedImage> LoadWithFormatAsync(Stream stream)
+        /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
+        public static Task<(Image Image, IImageFormat Format)> LoadWithFormatAsync(Stream stream)
             => LoadWithFormatAsync(Configuration.Default, stream);
 
         /// <summary>
@@ -237,7 +241,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
         public static Task<Image> LoadAsync(Stream stream) => LoadAsync(Configuration.Default, stream);
 
         /// <summary>
@@ -266,7 +270,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-        /// <returns>The <see cref="Image"/>.</returns>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
         public static Task<Image> LoadAsync(Stream stream, IImageDecoder decoder)
             => LoadAsync(Configuration.Default, stream, decoder);
 
@@ -283,7 +287,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-        /// <returns>A new <see cref="Image"/>.</returns>>
+        /// <returns>A new <see cref="Image"/>.</returns>
         public static Image Load(Configuration configuration, Stream stream, IImageDecoder decoder)
         {
             Guard.NotNull(decoder, nameof(decoder));
@@ -303,7 +307,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-        /// <returns>A new <see cref="Image"/>.</returns>>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
         public static Task<Image> LoadAsync(Configuration configuration, Stream stream, IImageDecoder decoder)
         {
             Guard.NotNull(decoder, nameof(decoder));
@@ -323,7 +327,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-        /// <returns>A new <see cref="Image"/>.</returns>>
+        /// <returns>A new <see cref="Image"/>.</returns>
         public static Image Load(Configuration configuration, Stream stream) => Load(configuration, stream, out _);
 
         /// <summary>
@@ -336,10 +340,10 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-        /// <returns>A new <see cref="Image"/>.</returns>>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
         public static async Task<Image> LoadAsync(Configuration configuration, Stream stream)
         {
-            FormattedImage fmt = await LoadWithFormatAsync(configuration, stream).ConfigureAwait(false);
+            (Image Image, IImageFormat Format) fmt = await LoadWithFormatAsync(configuration, stream).ConfigureAwait(false);
             return fmt.Image;
         }
 
@@ -352,7 +356,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
             => Load<TPixel>(Configuration.Default, stream);
@@ -366,7 +370,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
         public static Task<Image<TPixel>> LoadAsync<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
             => LoadAsync<TPixel>(Configuration.Default, stream);
@@ -381,7 +385,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Stream stream, out IImageFormat format)
             where TPixel : unmanaged, IPixel<TPixel>
             => Load<TPixel>(Configuration.Default, stream, out format);
@@ -395,8 +399,8 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static async Task<FormattedImage<TPixel>> LoadWithFormatAsync<TPixel>(Stream stream)
+        /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
+        public static async Task<(Image<TPixel> Image, IImageFormat Format)> LoadWithFormatAsync<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
             => await LoadWithFormatAsync<TPixel>(Configuration.Default, stream).ConfigureAwait(false);
 
@@ -410,7 +414,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
             => WithSeekableStream(Configuration.Default, stream, s => decoder.Decode<TPixel>(Configuration.Default, s));
@@ -425,7 +429,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static Task<Image<TPixel>> LoadAsync<TPixel>(Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
             => WithSeekableStreamAsync(
@@ -445,7 +449,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration configuration, Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
             => WithSeekableStream(configuration, stream, s => decoder.Decode<TPixel>(configuration, s));
@@ -462,7 +466,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static Task<Image<TPixel>> LoadAsync<TPixel>(Configuration configuration, Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
             => WithSeekableStreamAsync(
@@ -481,7 +485,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>>
+        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration configuration, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
             => Load<TPixel>(configuration, stream, out IImageFormat _);
@@ -498,17 +502,17 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration configuration, Stream stream, out IImageFormat format)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            (Image<TPixel> img, IImageFormat format) data = WithSeekableStream(configuration, stream, s => Decode<TPixel>(s, configuration));
+            (Image<TPixel> Image, IImageFormat Format) data = WithSeekableStream(configuration, stream, s => Decode<TPixel>(s, configuration));
 
-            format = data.format;
+            format = data.Format;
 
-            if (data.img != null)
+            if (data.Image != null)
             {
-                return data.img;
+                return data.Image;
             }
 
             var sb = new StringBuilder();
@@ -532,16 +536,16 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static async Task<FormattedImage> LoadWithFormatAsync(Configuration configuration, Stream stream)
+        /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
+        public static async Task<(Image Image, IImageFormat Format)> LoadWithFormatAsync(Configuration configuration, Stream stream)
         {
-            (Image img, IImageFormat format) data = await WithSeekableStreamAsync(
+            (Image Image, IImageFormat Format) data = await WithSeekableStreamAsync(
                     configuration,
                     stream,
                     async s => await DecodeAsync(s, configuration).ConfigureAwait(false))
                 .ConfigureAwait(false);
 
-            if (data.img != null)
+            if (data.Image != null)
             {
                 return data;
             }
@@ -568,18 +572,18 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static async Task<FormattedImage<TPixel>> LoadWithFormatAsync<TPixel>(Configuration configuration, Stream stream)
+        /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
+        public static async Task<(Image<TPixel> Image, IImageFormat Format)> LoadWithFormatAsync<TPixel>(Configuration configuration, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            (Image<TPixel> img, IImageFormat format) data =
+            (Image<TPixel> Image, IImageFormat Format) data =
                 await WithSeekableStreamAsync(
                     configuration,
                     stream,
                     s => DecodeAsync<TPixel>(s, configuration))
                 .ConfigureAwait(false);
 
-            if (data.img != null)
+            if (data.Image != null)
             {
                 return data;
             }
@@ -606,7 +610,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static async Task<Image<TPixel>> LoadAsync<TPixel>(Configuration configuration, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {

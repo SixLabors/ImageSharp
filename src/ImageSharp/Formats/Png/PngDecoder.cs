@@ -9,25 +9,8 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
-    /// Encoder for generating an image out of a png encoded stream.
+    /// Decoder for generating an image out of a png encoded stream.
     /// </summary>
-    /// <remarks>
-    /// At the moment the following features are supported:
-    /// <para>
-    /// <b>Filters:</b> all filters are supported.
-    /// </para>
-    /// <para>
-    /// <b>Pixel formats:</b>
-    /// <list type="bullet">
-    ///     <item>RGBA (True color) with alpha (8 bit).</item>
-    ///     <item>RGB (True color) without alpha (8 bit).</item>
-    ///     <item>grayscale with alpha (8 bit).</item>
-    ///     <item>grayscale without alpha (8 bit).</item>
-    ///     <item>Palette Index with alpha (8 bit).</item>
-    ///     <item>Palette Index without alpha (8 bit).</item>
-    /// </list>
-    /// </para>
-    /// </remarks>
     public sealed class PngDecoder : IImageDecoder, IPngDecoderOptions, IImageInfoDetector
     {
         /// <summary>
@@ -97,10 +80,10 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <inheritdoc/>
-        public async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
         {
             var decoder = new PngDecoderCore(configuration, this);
-            return await decoder.IdentifyAsync(stream).ConfigureAwait(false);
+            return decoder.IdentifyAsync(stream);
         }
 
         /// <inheritdoc />

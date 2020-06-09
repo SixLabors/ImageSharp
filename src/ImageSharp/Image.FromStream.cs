@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -674,10 +675,7 @@ namespace SixLabors.ImageSharp
             }
 
             // We want to be able to load images from things like HttpContext.Request.Body
-            // TODO: Should really find a nice way to use a pool for these.
-            // Investigate readonly version of the linked implementation.
-            // https://github.com/mgravell/Pipelines.Sockets.Unofficial/compare/mgravell:24482d4...mgravell:6740ea4
-            using (var memoryStream = new MemoryStream())
+            using (var memoryStream = new FixedCapacityPooledMemoryStream(stream.Length))
             {
                 stream.CopyTo(memoryStream);
                 memoryStream.Position = 0;
@@ -713,8 +711,7 @@ namespace SixLabors.ImageSharp
                 return await action(stream).ConfigureAwait(false);
             }
 
-            // TODO: See above comment.
-            using (var memoryStream = new MemoryStream())
+            using (var memoryStream = new FixedCapacityPooledMemoryStream(stream.Length))
             {
                 await stream.CopyToAsync(memoryStream).ConfigureAwait(false);
                 memoryStream.Position = 0;

@@ -266,7 +266,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
             else
             {
-                using (var ms = new MemoryStream())
+                using (var ms = new FixedCapacityPooledMemoryStream(stream.Length))
                 {
                     await stream.CopyToAsync(ms).ConfigureAwait(false);
                     ms.Position = 0;

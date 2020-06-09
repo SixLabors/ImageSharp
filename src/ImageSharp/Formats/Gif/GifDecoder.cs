@@ -77,12 +77,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <inheritdoc/>
-        public async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new GifDecoderCore(configuration, this);
-            return await decoder.IdentifyAsync(stream).ConfigureAwait(false);
+            return decoder.IdentifyAsync(stream);
         }
 
         /// <inheritdoc />

@@ -9,6 +9,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -257,7 +258,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         public async Task<IImageInfo> IdentifyAsync(Stream stream)
         {
-            using (var ms = new MemoryStream())
+            using (var ms = new FixedCapacityPooledMemoryStream(stream.Length))
             {
                 await stream.CopyToAsync(ms).ConfigureAwait(false);
                 ms.Position = 0;

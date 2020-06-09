@@ -6,6 +6,7 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -689,7 +690,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
             else
             {
-                using (var ms = new MemoryStream())
+                using (var ms = new FixedCapacityPooledMemoryStream(stream.Length))
                 {
                     await stream.CopyToAsync(ms).ConfigureAwait(false);
                     ms.Position = 0;

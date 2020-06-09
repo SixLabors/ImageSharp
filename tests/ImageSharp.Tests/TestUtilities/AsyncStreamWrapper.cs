@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 
         public override bool CanWrite => this.inner.CanWrite;
 
-        public override long Length => throw new NotSupportedException("The stream is not seekable.");
+        public override long Length => this.inner.Length;
 
         public override long Position
         {

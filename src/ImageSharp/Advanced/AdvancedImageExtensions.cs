@@ -2,9 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Linq;
-using System.Runtime.InteropServices;
-
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -16,13 +18,64 @@ namespace SixLabors.ImageSharp.Advanced
     public static class AdvancedImageExtensions
     {
         /// <summary>
+        /// For a given file path find the best encoder to use via its extension.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="filePath">The target file path to save the image to.</param>
+        /// <returns>The matching encoder.</returns>
+        public static IImageEncoder DetectEncoder(this Image source, string filePath)
+        {
+            Guard.NotNull(filePath, nameof(filePath));
+
+            string ext = Path.GetExtension(filePath);
+            IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
+            if (format is null)
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine($"No encoder was found for extension '{ext}'. Registered encoders include:");
+                foreach (IImageFormat fmt in source.GetConfiguration().ImageFormats)
+                {
+                    sb.AppendFormat(" - {0} : {1}{2}", fmt.Name, string.Join(", ", fmt.FileExtensions), Environment.NewLine);
+                }
+
+                throw new NotSupportedException(sb.ToString());
+            }
+
+            IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
+
+            if (encoder is null)
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine($"No encoder was found for extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
+                foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
+                {
+                    sb.AppendFormat(" - {0} : {1}{2}", enc.Key, enc.Value.GetType().Name, Environment.NewLine);
+                }
+
+                throw new NotSupportedException(sb.ToString());
+            }
+
+            return encoder;
+        }
+
+        /// <summary>
         /// Accepts a <see cref="IImageVisitor"/> to implement a double-dispatch pattern in order to
         /// apply pixel-specific operations on non-generic <see cref="Image"/> instances
         /// </summary>
-        /// <param name="source">The source.</param>
-        /// <param name="visitor">The visitor.</param>
+        /// <param name="source">The source image.</param>
+        /// <param name="visitor">The image visitor.</param>
         public static void AcceptVisitor(this Image source, IImageVisitor visitor)
             => source.Accept(visitor);
+
+        /// <summary>
+        /// Accepts a <see cref="IImageVisitor"/> to implement a double-dispatch pattern in order to
+        /// apply pixel-specific operations on non-generic <see cref="Image"/> instances
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="visitor">The image visitor.</param>
+        /// <returns>A  <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task AcceptVisitorAsync(this Image source, IImageVisitorAsync visitor)
+            => source.AcceptAsync(visitor);
 
         /// <summary>
         /// Gets the configuration for the image.

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
@@ -286,6 +287,14 @@ namespace SixLabors.ImageSharp
             this.EnsureNotDisposed();
 
             visitor.Visit(this);
+        }
+
+        /// <inheritdoc />
+        internal override Task AcceptAsync(IImageVisitorAsync visitor)
+        {
+            this.EnsureNotDisposed();
+
+            return visitor.VisitAsync(this);
         }
 
         /// <summary>

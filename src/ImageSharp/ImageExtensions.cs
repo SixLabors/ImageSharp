@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 
@@ -22,39 +23,17 @@ namespace SixLabors.ImageSharp
         /// <param name="path">The file path to save the image to.</param>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         public static void Save(this Image source, string path)
-        {
-            Guard.NotNull(path, nameof(path));
+            => source.Save(path, source.DetectEncoder(path));
 
-            string ext = Path.GetExtension(path);
-            IImageFormat format = source.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
-            if (format is null)
-            {
-                var sb = new StringBuilder();
-                sb.AppendLine($"No encoder was found for extension '{ext}'. Registered encoders include:");
-                foreach (IImageFormat fmt in source.GetConfiguration().ImageFormats)
-                {
-                    sb.AppendFormat(" - {0} : {1}{2}", fmt.Name, string.Join(", ", fmt.FileExtensions), Environment.NewLine);
-                }
-
-                throw new NotSupportedException(sb.ToString());
-            }
-
-            IImageEncoder encoder = source.GetConfiguration().ImageFormatsManager.FindEncoder(format);
-
-            if (encoder is null)
-            {
-                var sb = new StringBuilder();
-                sb.AppendLine($"No encoder was found for extension '{ext}' using image format '{format.Name}'. Registered encoders include:");
-                foreach (KeyValuePair<IImageFormat, IImageEncoder> enc in source.GetConfiguration().ImageFormatsManager.ImageEncoders)
-                {
-                    sb.AppendFormat(" - {0} : {1}{2}", enc.Key, enc.Value.GetType().Name, Environment.NewLine);
-                }
-
-                throw new NotSupportedException(sb.ToString());
-            }
-
-            source.Save(path, encoder);
-        }
+        /// <summary>
+        /// Writes the image to the given stream using the currently loaded image format.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsync(this Image source, string path)
+            => source.SaveAsync(path, source.DetectEncoder(path));
 
         /// <summary>
         /// Writes the image to the given stream using the currently loaded image format.
@@ -71,6 +50,25 @@ namespace SixLabors.ImageSharp
             using (Stream fs = source.GetConfiguration().FileSystem.Create(path))
             {
                 source.Save(fs, encoder);
+            }
+        }
+
+        /// <summary>
+        /// Writes the image to the given stream using the currently loaded image format.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="ArgumentNullException">The encoder is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static async Task SaveAsync(this Image source, string path, IImageEncoder encoder)
+        {
+            Guard.NotNull(path, nameof(path));
+            Guard.NotNull(encoder, nameof(encoder));
+            using (Stream fs = source.GetConfiguration().FileSystem.Create(path))
+            {
+                await source.SaveAsync(fs, encoder).ConfigureAwait(false);
             }
         }
 

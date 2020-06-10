@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.IO;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.IO
 {
@@ -11,18 +12,19 @@ namespace SixLabors.ImageSharp.IO
     /// </summary>
     internal sealed class FixedCapacityPooledMemoryStream : MemoryStream
     {
-        private readonly byte[] buffer;
+        private readonly IManagedByteBuffer buffer;
         private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FixedCapacityPooledMemoryStream"/> class.
         /// </summary>
         /// <param name="length">The length of the stream buffer to rent.</param>
-        public FixedCapacityPooledMemoryStream(long length)
-            : this(RentBuffer(length)) => this.Length = length;
+        /// <param name="allocator">The allocator to rent the buffer from.</param>
+        public FixedCapacityPooledMemoryStream(long length, MemoryAllocator allocator)
+            : this(RentBuffer(length, allocator)) => this.Length = length;
 
-        private FixedCapacityPooledMemoryStream(byte[] buffer)
-            : base(buffer) => this.buffer = buffer;
+        private FixedCapacityPooledMemoryStream(IManagedByteBuffer buffer)
+            : base(buffer.Array) => this.buffer = buffer;
 
         /// <inheritdoc/>
         public override long Length { get; }
@@ -36,7 +38,7 @@ namespace SixLabors.ImageSharp.IO
 
                 if (disposing)
                 {
-                    ArrayPool<byte>.Shared.Return(this.buffer);
+                    this.buffer.Dispose();
                 }
 
                 base.Dispose(disposing);
@@ -45,6 +47,10 @@ namespace SixLabors.ImageSharp.IO
 
         // In the extrememly unlikely event someone ever gives us a stream
         // with length longer than int.MaxValue then we'll use something else.
-        private static byte[] RentBuffer(long length) => ArrayPool<byte>.Shared.Rent((int)length);
+        private static IManagedByteBuffer RentBuffer(long length, MemoryAllocator allocator)
+        {
+            Guard.MustBeBetweenOrEqualTo(length, 0, int.MaxValue, nameof(length));
+            return allocator.AllocateManagedByteBuffer((int)length);
+        }
     }
 }

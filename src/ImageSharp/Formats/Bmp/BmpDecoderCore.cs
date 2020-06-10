@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// <remarks>
     /// A useful decoding source example can be found at <see href="https://dxr.mozilla.org/mozilla-central/source/image/decoders/nsBMPDecoder.cpp"/>
     /// </remarks>
-    internal sealed class BmpDecoderCore
+    internal sealed class BmpDecoderCore : IImageDecoderInternals
     {
         /// <summary>
         /// The default mask for the red part of the color for 16 bit rgb bitmaps.
@@ -90,11 +90,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private BmpInfoHeader infoHeader;
 
         /// <summary>
-        /// The global configuration.
-        /// </summary>
-        private readonly Configuration configuration;
-
-        /// <summary>
         /// Used for allocating memory during processing operations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;
@@ -111,67 +106,28 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <param name="options">The options.</param>
         public BmpDecoderCore(Configuration configuration, IBmpDecoderOptions options)
         {
-            this.configuration = configuration;
+            this.Configuration = configuration;
             this.memoryAllocator = configuration.MemoryAllocator;
             this.options = options;
         }
+
+        /// <inheritdoc />
+        public Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the dimensions of the image.
         /// </summary>
         public Size Dimensions => new Size(this.infoHeader.Width, this.infoHeader.Height);
 
-        /// <summary>
-        /// Decodes the image from the specified this._stream and sets
-        /// the data to image.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">The stream, where the image should be
-        /// decoded from. Cannot be null (Nothing in Visual Basic).</param>
-        /// <exception cref="System.ArgumentNullException">
-        ///    <para><paramref name="stream"/> is null.</para>
-        /// </exception>
-        /// <returns>The decoded image.</returns>
-        public async Task<Image<TPixel>> DecodeAsync<TPixel>(Stream stream)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // if we can seek then we arn't in a context that errors on async operations
-            if (stream.CanSeek)
-            {
-                return this.Decode<TPixel>(stream);
-            }
-            else
-            {
-                // cheat for now do async copy of the stream into memory stream and use the sync version
-                // we should use an array pool backed memorystream implementation
-                using (var ms = new MemoryStream())
-                {
-                    await stream.CopyToAsync(ms).ConfigureAwait(false);
-                    ms.Position = 0;
-                    return this.Decode<TPixel>(ms);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Decodes the image from the specified this._stream and sets
-        /// the data to image.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">The stream, where the image should be
-        /// decoded from. Cannot be null (Nothing in Visual Basic).</param>
-        /// <exception cref="System.ArgumentNullException">
-        ///    <para><paramref name="stream"/> is null.</para>
-        /// </exception>
-        /// <returns>The decoded image.</returns>
+        /// <inheritdoc />
         public Image<TPixel> Decode<TPixel>(Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             try
             {
                 int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
-                var image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
+                var image = new Image<TPixel>(this.Configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
 
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -242,28 +198,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
         }
 
-        /// <summary>
-        /// Reads the raw image information from the specified stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <inheritdoc />
         public IImageInfo Identify(Stream stream)
         {
             this.ReadImageHeaders(stream, out _, out _);
             return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, this.metadata);
-        }
-
-        /// <summary>
-        /// Reads the raw image information from the specified stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public async Task<IImageInfo> IdentifyAsync(Stream stream)
-        {
-            using (var ms = new FixedCapacityPooledMemoryStream(stream.Length))
-            {
-                await stream.CopyToAsync(ms).ConfigureAwait(false);
-                ms.Position = 0;
-                return this.Identify(ms);
-            }
         }
 
         /// <summary>
@@ -999,7 +938,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromBgr24Bytes(
-                        this.configuration,
+                        this.Configuration,
                         row.GetSpan(),
                         pixelSpan,
                         width);
@@ -1028,7 +967,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     int newY = Invert(y, height, inverted);
                     Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
                     PixelOperations<TPixel>.Instance.FromBgra32Bytes(
-                        this.configuration,
+                        this.Configuration,
                         row.GetSpan(),
                         pixelSpan,
                         width);
@@ -1065,7 +1004,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     this.stream.Read(row);
 
                     PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
-                        this.configuration,
+                        this.Configuration,
                         row.GetSpan(),
                         bgraRowSpan,
                         width);
@@ -1101,7 +1040,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         Span<TPixel> pixelSpan = pixels.GetRowSpan(newY);
 
                         PixelOperations<TPixel>.Instance.FromBgra32Bytes(
-                            this.configuration,
+                            this.Configuration,
                             row.GetSpan(),
                             pixelSpan,
                             width);
@@ -1115,7 +1054,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 {
                     this.stream.Read(row);
                     PixelOperations<Bgra32>.Instance.FromBgra32Bytes(
-                        this.configuration,
+                        this.Configuration,
                         row.GetSpan(),
                         bgraRowSpan,
                         width);

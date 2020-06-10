@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats
                 return decoder.Identify(stream);
             }
 
-            await using MemoryStream ms = decoder.Configuration.MemoryAllocator.AllocateFixedCapacityMemoryStream(stream.Length);
+            using MemoryStream ms = decoder.Configuration.MemoryAllocator.AllocateFixedCapacityMemoryStream(stream.Length);
             await stream.CopyToAsync(ms).ConfigureAwait(false);
             ms.Position = 0;
             return decoder.Identify(ms);
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Formats
                 return decoder.Decode<TPixel>(stream);
             }
 
-            await using MemoryStream ms = decoder.Configuration.MemoryAllocator.AllocateFixedCapacityMemoryStream(stream.Length);
+            using MemoryStream ms = decoder.Configuration.MemoryAllocator.AllocateFixedCapacityMemoryStream(stream.Length);
             await stream.CopyToAsync(ms).ConfigureAwait(false);
             ms.Position = 0;
             return decoder.Decode<TPixel>(ms);

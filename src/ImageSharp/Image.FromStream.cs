@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -675,7 +676,7 @@ namespace SixLabors.ImageSharp
             }
 
             // We want to be able to load images from things like HttpContext.Request.Body
-            using (var memoryStream = new FixedCapacityPooledMemoryStream(stream.Length))
+            using (MemoryStream memoryStream = configuration.MemoryAllocator.AllocateFixedCapacityMemoryStream(stream.Length))
             {
                 stream.CopyTo(memoryStream);
                 memoryStream.Position = 0;
@@ -711,7 +712,7 @@ namespace SixLabors.ImageSharp
                 return await action(stream).ConfigureAwait(false);
             }
 
-            using (var memoryStream = new FixedCapacityPooledMemoryStream(stream.Length))
+            using (MemoryStream memoryStream = configuration.MemoryAllocator.AllocateFixedCapacityMemoryStream(stream.Length))
             {
                 await stream.CopyToAsync(memoryStream).ConfigureAwait(false);
                 memoryStream.Position = 0;

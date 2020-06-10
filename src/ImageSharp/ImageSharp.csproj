@@ -10,13 +10,15 @@
     <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
     <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
 
-    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;netstandard2.1;netstandard2.0;netstandard1.3;net472</TargetFrameworks>
+<!--    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;netstandard2.1;netstandard2.0;netstandard1.3;net472</TargetFrameworks>-->
+    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>SixLabors.ImageSharp</PackageId>
     <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Png Core</PackageTags>
     <RootNamespace>SixLabors.ImageSharp</RootNamespace>
+    <NoWarn>SA1636</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,7 +43,7 @@
     <PackageReference Include="System.ValueTuple" />
   </ItemGroup>
 
-  <ItemGroup>  
+  <ItemGroup>
     <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

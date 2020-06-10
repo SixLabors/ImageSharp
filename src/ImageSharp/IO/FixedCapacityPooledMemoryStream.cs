@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Buffers;
 using System.IO;
 using SixLabors.ImageSharp.Memory;
@@ -28,6 +29,18 @@ namespace SixLabors.ImageSharp.IO
 
         /// <inheritdoc/>
         public override long Length { get; }
+
+        /// <inheritdoc/>
+        public override bool TryGetBuffer(out ArraySegment<byte> buffer)
+        {
+            if (this.isDisposed)
+            {
+                throw new ObjectDisposedException(this.GetType().Name);
+            }
+
+            buffer = new ArraySegment<byte>(this.buffer.Array, 0, this.buffer.Length());
+            return true;
+        }
 
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)

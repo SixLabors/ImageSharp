@@ -102,7 +102,7 @@
     <NeutralLanguage>en</NeutralLanguage>
     <OverwriteReadOnlyFiles>true</OverwriteReadOnlyFiles>
     <PackageIcon>sixlabors.imagesharp.128.png</PackageIcon>
-    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
     <RepositoryType>git</RepositoryType>
@@ -126,7 +126,6 @@
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)shared-infrastructure\stylecop.json" />
     <!--NuGet package icon source-->
     <None Include="$(MSBuildThisFileDirectory)shared-infrastructure\branding\icons\imagesharp\sixlabors.imagesharp.128.png" Pack="true" PackagePath="" />
-    <None Include="$(MSBuildThisFileDirectory)shared-infrastructure\NUGETLICENSE.md" Pack="true" PackagePath="LICENSE.md" />
   </ItemGroup>
 
 </Project>

@@ -32,7 +32,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.ExifGetString750Load,
                 TestImages.Jpeg.Issues.ExifGetString750Transform,
                 TestImages.Jpeg.Issues.BadSubSampling1076,
-                TestImages.Jpeg.Issues.IdentifyMultiFrame1211,
 
                 // LibJpeg can open this despite the invalid density units.
                 TestImages.Jpeg.Issues.Fuzz.ArgumentOutOfRangeException825B,

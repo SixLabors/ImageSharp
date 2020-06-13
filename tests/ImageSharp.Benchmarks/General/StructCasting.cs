@@ -1,4 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 
 namespace SixLabors.ImageSharp.Benchmarks.General

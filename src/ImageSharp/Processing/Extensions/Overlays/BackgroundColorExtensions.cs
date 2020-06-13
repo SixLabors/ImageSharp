@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing.Processors.Overlays;
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="color">The color to set as the background.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BackgroundColor(this IImageProcessingContext source, Color color) =>
-            BackgroundColor(source, new GraphicsOptions(), color);
+            BackgroundColor(source, source.GetGraphicsOptions(), color);
 
         /// <summary>
         /// Replaces the background color of image with the given one.
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Processing
             this IImageProcessingContext source,
             Color color,
             Rectangle rectangle) =>
-            BackgroundColor(source, new GraphicsOptions(), color, rectangle);
+            BackgroundColor(source, source.GetGraphicsOptions(), color, rectangle);
 
         /// <summary>
         /// Replaces the background color of image with the given one.

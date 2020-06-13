@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing;
@@ -9,7 +9,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 {
     public class ResamplerTests
-    {   
+    {
         [Theory]
         [InlineData(-2, 0)]
         [InlineData(-1, 0)]

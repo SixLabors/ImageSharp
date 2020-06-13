@@ -1,20 +1,18 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-// ReSharper disable InconsistentNaming
-
-using System.Buffers;
 using System;
-
+using System.Buffers;
 using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     public abstract class FromRgba32Bytes<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private IMemoryOwner<TPixel> destination;
 
@@ -23,7 +21,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         private Configuration configuration;
 
         [Params(
-            128, 
+            128,
             1024,
             2048)]
         public int Count { get; set; }
@@ -43,12 +41,12 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             this.source.Dispose();
         }
 
-        //[Benchmark]
+        // [Benchmark]
         public void Naive()
         {
             Span<byte> s = this.source.GetSpan();
             Span<TPixel> d = this.destination.GetSpan();
-            
+
             for (int i = 0; i < this.Count; i++)
             {
                 int i4 = i * 4;

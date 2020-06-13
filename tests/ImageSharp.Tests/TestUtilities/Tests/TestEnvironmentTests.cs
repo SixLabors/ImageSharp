@@ -1,8 +1,9 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.IO;
+
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -12,8 +13,8 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
 using Xunit.Abstractions;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
     public class TestEnvironmentTests
@@ -66,7 +67,10 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]
         public void GetReferenceEncoder_ReturnsCorrectEncoders_Windows(string fileName, Type expectedEncoderType)
         {
-            if (TestEnvironment.IsLinux) return;
+            if (TestEnvironment.IsLinux)
+            {
+                return;
+            }
 
             IImageEncoder encoder = TestEnvironment.GetReferenceEncoder(fileName);
             Assert.IsType(expectedEncoderType, encoder);
@@ -79,7 +83,10 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Windows(string fileName, Type expectedDecoderType)
         {
-            if (TestEnvironment.IsLinux) return;
+            if (TestEnvironment.IsLinux)
+            {
+                return;
+            }
 
             IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(fileName);
             Assert.IsType(expectedDecoderType, decoder);
@@ -92,7 +99,10 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]
         public void GetReferenceEncoder_ReturnsCorrectEncoders_Linux(string fileName, Type expectedEncoderType)
         {
-            if (!TestEnvironment.IsLinux) return;
+            if (!TestEnvironment.IsLinux)
+            {
+                return;
+            }
 
             IImageEncoder encoder = TestEnvironment.GetReferenceEncoder(fileName);
             Assert.IsType(expectedEncoderType, encoder);
@@ -105,7 +115,10 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Linux(string fileName, Type expectedDecoderType)
         {
-            if (!TestEnvironment.IsLinux) return;
+            if (!TestEnvironment.IsLinux)
+            {
+                return;
+            }
 
             IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(fileName);
             Assert.IsType(expectedDecoderType, decoder);

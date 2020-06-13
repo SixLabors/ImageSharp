@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public Cmyk(Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Min, Max);
+            vector = Vector4Utilities.FastClamp(vector, Min, Max);
             this.C = vector.X;
             this.M = vector.Y;
             this.Y = vector.Z;

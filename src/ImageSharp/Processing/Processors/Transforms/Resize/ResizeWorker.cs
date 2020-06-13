@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -19,8 +18,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// When sliding the window, the contents of the bottom window band are copied to the new top band.
     /// For more details, and visual explanation, see "ResizeWorker.pptx".
     /// </summary>
-    internal class ResizeWorker<TPixel> : IDisposable
-        where TPixel : struct, IPixel<TPixel>
+    internal sealed class ResizeWorker<TPixel> : IDisposable
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly Buffer2D<Vector4> transposedFirstPassBuffer;
 
@@ -30,7 +29,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly ResizeKernelMap horizontalKernelMap;
 
-        private readonly BufferArea<TPixel> source;
+        private readonly Buffer2DRegion<TPixel> source;
 
         private readonly Rectangle sourceRectangle;
 
@@ -54,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         public ResizeWorker(
             Configuration configuration,
-            BufferArea<TPixel> source,
+            Buffer2DRegion<TPixel> source,
             PixelConversionModifiers conversionModifiers,
             ResizeKernelMap horizontalKernelMap,
             ResizeKernelMap verticalKernelMap,
@@ -74,10 +73,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             this.windowBandHeight = verticalKernelMap.MaxDiameter;
 
+            // We need to make sure the working buffer is contiguous:
+            int workingBufferLimitHintInBytes = Math.Min(
+                configuration.WorkingBufferSizeHintInBytes,
+                configuration.MemoryAllocator.GetBufferCapacityInBytes());
+
             int numberOfWindowBands = ResizeHelper.CalculateResizeWorkerHeightInWindowBands(
                 this.windowBandHeight,
                 destWidth,
-                configuration.WorkingBufferSizeHintInBytes);
+                workingBufferLimitHintInBytes);
 
             this.workerHeight = Math.Min(this.sourceRectangle.Height, numberOfWindowBands * this.windowBandHeight);
 
@@ -99,7 +103,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.tempColumnBuffer.Dispose();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public Span<Vector4> GetColumnSpan(int x, int startY)
         {
             return this.transposedFirstPassBuffer.GetRowSpan(x).Slice(startY - this.currentWindow.Min);
@@ -113,7 +117,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public void FillDestinationPixels(RowInterval rowInterval, Buffer2D<TPixel> destination)
         {
             Span<Vector4> tempColSpan = this.tempColumnBuffer.GetSpan();
-            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSpan();
+
+            // When creating transposedFirstPassBuffer, we made sure it's contiguous:
+            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSingleSpan();
 
             for (int y = rowInterval.Min; y < rowInterval.Max; y++)
             {
@@ -165,7 +171,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private void CalculateFirstPassValues(RowInterval calculationInterval)
         {
             Span<Vector4> tempRowSpan = this.tempRowBuffer.GetSpan();
-            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSpan();
+            Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.GetSingleSpan();
 
             for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
             {

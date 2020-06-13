@@ -1,8 +1,10 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Drawing;
 using System.IO;
 using BenchmarkDotNet.Attributes;
+
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Tests;
 using SDSize = System.Drawing.Size;

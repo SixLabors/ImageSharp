@@ -1,8 +1,9 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -14,62 +15,20 @@ namespace SixLabors.ImageSharp.Memory
     public static class Buffer2DExtensions
     {
         /// <summary>
-        /// Gets a <see cref="Span{T}"/> to the backing buffer of <paramref name="buffer"/>.
+        /// Gets the backing <see cref="IMemoryGroup{T}"/>.
         /// </summary>
-        /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
-        /// <typeparam name="T">The value type.</typeparam>
-        /// <returns>The <see cref="Span{T}"/> referencing the memory area.</returns>
-        public static Span<T> GetSpan<T>(this Buffer2D<T> buffer)
+        /// <param name="buffer">The buffer.</param>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <returns>The MemoryGroup.</returns>
+        public static IMemoryGroup<T> GetMemoryGroup<T>(this Buffer2D<T> buffer)
             where T : struct
         {
             Guard.NotNull(buffer, nameof(buffer));
-            return buffer.MemorySource.GetSpan();
+            return buffer.FastMemoryGroup.View;
         }
 
         /// <summary>
-        /// Gets the <see cref="Memory{T}"/> holding the backing buffer of <paramref name="buffer"/>.
-        /// </summary>
-        /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
-        /// <typeparam name="T">The value type.</typeparam>
-        /// <returns>The <see cref="Memory{T}"/>.</returns>
-        public static Memory<T> GetMemory<T>(this Buffer2D<T> buffer)
-            where T : struct
-        {
-            Guard.NotNull(buffer, nameof(buffer));
-            return buffer.MemorySource.Memory;
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Span{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
-        /// </summary>
-        /// <param name="buffer">The buffer</param>
-        /// <param name="y">The y (row) coordinate</param>
-        /// <typeparam name="T">The element type</typeparam>
-        /// <returns>The <see cref="Span{T}"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Span<T> GetRowSpan<T>(this Buffer2D<T> buffer, int y)
-            where T : struct
-        {
-            Guard.NotNull(buffer, nameof(buffer));
-            return buffer.GetSpan().Slice(y * buffer.Width, buffer.Width);
-        }
-
-        /// <summary>
-        /// Gets a <see cref="Memory{T}"/> to the row 'y' beginning from the pixel at the first pixel on that row.
-        /// </summary>
-        /// <param name="buffer">The buffer</param>
-        /// <param name="y">The y (row) coordinate</param>
-        /// <typeparam name="T">The element type</typeparam>
-        /// <returns>The <see cref="Span{T}"/></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Memory<T> GetRowMemory<T>(this Buffer2D<T> buffer, int y)
-            where T : struct
-        {
-            Guard.NotNull(buffer, nameof(buffer));
-            return buffer.MemorySource.Memory.Slice(y * buffer.Width, buffer.Width);
-        }
-
-        /// <summary>
+        /// TODO: Does not work with multi-buffer groups, should be specific to Resize.
         /// Copy <paramref name="columnCount"/> columns of <paramref name="buffer"/> inplace,
         /// from positions starting at <paramref name="sourceIndex"/> to positions at <paramref name="destIndex"/>.
         /// </summary>
@@ -91,7 +50,7 @@ namespace SixLabors.ImageSharp.Memory
             int dOffset = destIndex * elementSize;
             long count = columnCount * elementSize;
 
-            Span<byte> span = MemoryMarshal.AsBytes(buffer.GetMemory().Span);
+            Span<byte> span = MemoryMarshal.AsBytes(buffer.GetSingleMemory().Span);
 
             fixed (byte* ptr = span)
             {
@@ -121,38 +80,29 @@ namespace SixLabors.ImageSharp.Memory
         }
 
         /// <summary>
-        /// Return a <see cref="BufferArea{T}"/> to the subarea represented by 'rectangle'
+        /// Return a <see cref="Buffer2DRegion{T}"/> to the subregion represented by 'rectangle'
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
-        /// <param name="rectangle">The rectangle subarea</param>
-        /// <returns>The <see cref="BufferArea{T}"/></returns>
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer, in Rectangle rectangle)
-            where T : struct =>
-            new BufferArea<T>(buffer, rectangle);
+        /// <param name="rectangle">The rectangle subregion</param>
+        /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
+        internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, Rectangle rectangle)
+            where T : unmanaged =>
+            new Buffer2DRegion<T>(buffer, rectangle);
 
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
-            where T : struct =>
-            new BufferArea<T>(buffer, new Rectangle(x, y, width, height));
+        internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
+            where T : unmanaged =>
+            new Buffer2DRegion<T>(buffer, new Rectangle(x, y, width, height));
 
         /// <summary>
-        /// Return a <see cref="BufferArea{T}"/> to the whole area of 'buffer'
+        /// Return a <see cref="Buffer2DRegion{T}"/> to the whole area of 'buffer'
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>
         /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
-        /// <returns>The <see cref="BufferArea{T}"/></returns>
-        internal static BufferArea<T> GetArea<T>(this Buffer2D<T> buffer)
-            where T : struct =>
-            new BufferArea<T>(buffer);
-
-        /// <summary>
-        /// Gets a span for all the pixels in <paramref name="buffer"/> defined by <paramref name="rows"/>
-        /// </summary>
-        internal static Span<T> GetMultiRowSpan<T>(this Buffer2D<T> buffer, in RowInterval rows)
-            where T : struct
-        {
-            return buffer.GetSpan().Slice(rows.Min * buffer.Width, rows.Height * buffer.Width);
-        }
+        /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
+        internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer)
+            where T : unmanaged =>
+            new Buffer2DRegion<T>(buffer);
 
         /// <summary>
         /// Returns the size of the buffer.

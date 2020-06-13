@@ -14,11 +14,14 @@
 
   <ItemGroup>
     <DotNetCliToolReference Include="dotnet-xunit" />
+    <InternalsVisibleTo Include="ImageSharp.Tests.ProfilingSandbox" PublicKey="$(SixLaborsPublicKey)" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
+    <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Moq" />
+    <PackageReference Include="SharpZipLib"  />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 

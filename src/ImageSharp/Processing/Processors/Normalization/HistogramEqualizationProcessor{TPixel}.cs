@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly float luminanceLevelsFloat;
 

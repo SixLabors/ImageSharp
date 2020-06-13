@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -45,8 +45,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public ushort PackedValue
         {
-            get => Unsafe.As<La16, ushort>(ref this);
-
+            readonly get => Unsafe.As<La16, ushort>(ref Unsafe.AsRef(this));
             set => Unsafe.As<La16, ushort>(ref this) = value;
         }
 
@@ -73,21 +72,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(La16 left, La16 right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public PixelOperations<La16> CreatePixelOperations() => new PixelOperations();
+        public readonly PixelOperations<La16> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(La16 other) => this.PackedValue.Equals(other.PackedValue);
+        public readonly bool Equals(La16 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is La16 other && this.Equals(other);
+        public override readonly bool Equals(object obj) => obj is La16 other && this.Equals(other);
 
         /// <inheritdoc />
-        public override string ToString() => $"La16({this.L}, {this.A})";
+        public override readonly string ToString() => $"La16({this.L}, {this.A})";
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => this.PackedValue.GetHashCode();
+        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -204,11 +203,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4() => this.ToVector4();
+        public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4()
+        public readonly Vector4 ToVector4()
         {
             const float Max = 255F;
             float rgb = this.L / Max;
@@ -220,7 +219,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector *= MaxBytes;
             vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, MaxBytes);
             this.L = ImageMaths.Get8BitBT709Luminance((byte)vector.X, (byte)vector.Y, (byte)vector.Z);
             this.A = (byte)vector.W;
         }

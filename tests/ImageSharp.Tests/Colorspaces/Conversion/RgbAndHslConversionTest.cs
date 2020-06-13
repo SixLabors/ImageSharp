@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -71,7 +71,6 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
             // Arrange
             var input = new Rgb(r, g, b);
             var expected = new Hsl(h, s, l);
-
 
             Span<Rgb> inputSpan = new Rgb[5];
             inputSpan.Fill(input);

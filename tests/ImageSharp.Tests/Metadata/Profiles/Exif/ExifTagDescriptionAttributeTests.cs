@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -6,7 +6,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public class ExifDescriptionAttributeTests
+    public class ExifTagDescriptionAttributeTests
     {
         [Fact]
         public void TestExifTag()

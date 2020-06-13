@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.TestUtilities
 {
     public class TestPixel<TPixel> : IXunitSerializable
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         public TestPixel()
         {
@@ -25,25 +25,23 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         }
 
         public float Red { get; set; }
-        public float Green { get; set; }
-        public float Blue { get; set; }
-        public float Alpha { get; set; }
 
-        public static implicit operator TPixel(TestPixel<TPixel> d)
-        {
-            return d?.AsPixel() ?? default(TPixel);
-        }
+        public float Green { get; set; }
+
+        public float Blue { get; set; }
+
+        public float Alpha { get; set; }
 
         public TPixel AsPixel()
         {
-            TPixel pix = default(TPixel);
+            var pix = default(TPixel);
             pix.FromVector4(new System.Numerics.Vector4(this.Red, this.Green, this.Blue, this.Alpha));
             return pix;
         }
 
         internal Span<TPixel> AsSpan()
         {
-            return new Span<TPixel>(new[] { AsPixel() });
+            return new Span<TPixel>(new[] { this.AsPixel() });
         }
 
         public void Deserialize(IXunitSerializationInfo info)

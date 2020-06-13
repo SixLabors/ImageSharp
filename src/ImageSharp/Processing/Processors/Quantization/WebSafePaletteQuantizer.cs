@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
@@ -10,29 +10,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// </summary>
     public class WebSafePaletteQuantizer : PaletteQuantizer
     {
+        private static readonly QuantizerOptions DefaultOptions = new QuantizerOptions();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSafePaletteQuantizer" /> class.
         /// </summary>
         public WebSafePaletteQuantizer()
-            : this(true)
+            : this(DefaultOptions)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSafePaletteQuantizer" /> class.
         /// </summary>
-        /// <param name="dither">Whether to apply dithering to the output image</param>
-        public WebSafePaletteQuantizer(bool dither)
-            : base(Color.WebSafePalette, dither)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WebSafePaletteQuantizer" /> class.
-        /// </summary>
-        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
-        public WebSafePaletteQuantizer(IErrorDiffuser diffuser)
-            : base(Color.WebSafePalette, diffuser)
+        /// <param name="options">The quantizer options defining quantization rules.</param>
+        public WebSafePaletteQuantizer(QuantizerOptions options)
+            : base(Color.WebSafePalette, options)
         {
         }
     }

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,8 +6,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Memory
 {
-
-
     public static class TestStructs
     {
         public struct Foo : IEquatable<Foo>
@@ -29,6 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 {
                     result[i] = new Foo(i + 1, i + 1);
                 }
+
                 return result;
             }
 
@@ -39,15 +38,14 @@ namespace SixLabors.ImageSharp.Tests.Memory
             public override int GetHashCode()
             {
                 int hashCode = -1817952719;
-                hashCode = hashCode * -1521134295 + base.GetHashCode();
-                hashCode = hashCode * -1521134295 + this.A.GetHashCode();
-                hashCode = hashCode * -1521134295 + this.B.GetHashCode();
+                hashCode = (hashCode * -1521134295) + base.GetHashCode();
+                hashCode = (hashCode * -1521134295) + this.A.GetHashCode();
+                hashCode = (hashCode * -1521134295) + this.B.GetHashCode();
                 return hashCode;
             }
 
             public override string ToString() => $"({this.A},{this.B})";
         }
-
 
         /// <summary>
         /// sizeof(AlignedFoo) == sizeof(long)
@@ -80,15 +78,16 @@ namespace SixLabors.ImageSharp.Tests.Memory
                 {
                     result[i] = new AlignedFoo(i + 1, i + 1);
                 }
+
                 return result;
             }
 
             public override int GetHashCode()
             {
                 int hashCode = -1817952719;
-                hashCode = hashCode * -1521134295 + base.GetHashCode();
-                hashCode = hashCode * -1521134295 + this.A.GetHashCode();
-                hashCode = hashCode * -1521134295 + this.B.GetHashCode();
+                hashCode = (hashCode * -1521134295) + base.GetHashCode();
+                hashCode = (hashCode * -1521134295) + this.A.GetHashCode();
+                hashCode = (hashCode * -1521134295) + this.B.GetHashCode();
                 return hashCode;
             }
         }

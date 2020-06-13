@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
-
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
     using static TestImages.Bmp;

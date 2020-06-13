@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
@@ -30,13 +30,13 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         IEqualityComparer<GammaWorkingSpace>,
         IEqualityComparer<RgbWorkingSpace>
     {
-        private readonly float Epsilon;
+        private readonly float epsilon;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ApproximateColorSpaceComparer"/> class.
         /// </summary>
         /// <param name="epsilon">The comparison error difference epsilon to use.</param>
-        public ApproximateColorSpaceComparer(float epsilon = 1F) => this.Epsilon = epsilon;
+        public ApproximateColorSpaceComparer(float epsilon = 1F) => this.epsilon = epsilon;
 
         /// <inheritdoc/>
         public bool Equals(Rgb x, Rgb y)
@@ -234,7 +234,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         private bool Equals(float x, float y)
         {
             float d = x - y;
-            return d >= -this.Epsilon && d <= this.Epsilon;
+            return d >= -this.epsilon && d <= this.epsilon;
         }
     }
 }

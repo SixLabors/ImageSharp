@@ -1,5 +1,5 @@
-// // Copyright (c) Six Labors and contributors.
-// // Licensed under the Apache License, Version 2.0.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Linq;
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
 
                 Rgba32[] expectedAllBlue =
-                    Enumerable.Repeat(Rgba32.Blue, this.Image.Width * this.Image.Height).ToArray();
+                    Enumerable.Repeat((Rgba32)Color.Blue, this.Image.Width * this.Image.Height).ToArray();
 
                 Assert.Equal(2, this.Collection.Count);
                 var actualFrame = (ImageFrame<Rgba32>)this.Collection[1];
@@ -55,13 +55,12 @@ namespace SixLabors.ImageSharp.Tests
                 }
 
                 Rgba32[] expectedAllBlue =
-                    Enumerable.Repeat(Rgba32.Blue, this.Image.Width * this.Image.Height).ToArray();
+                    Enumerable.Repeat((Rgba32)Color.Blue, this.Image.Width * this.Image.Height).ToArray();
 
                 Assert.Equal(2, this.Collection.Count);
                 var actualFrame = (ImageFrame<Rgba32>)this.Collection[0];
 
                 actualFrame.ComparePixelBufferTo(expectedAllBlue);
-
             }
 
             [Fact]
@@ -91,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests
                         this.Collection.AddFrame(null);
                     });
 
-                Assert.StartsWith("Value cannot be null.", ex.Message);
+                Assert.StartsWith("Parameter \"source\" must be not null.", ex.Message);
             }
 
             [Fact]
@@ -115,14 +114,12 @@ namespace SixLabors.ImageSharp.Tests
                         this.Collection.InsertFrame(1, null);
                     });
 
-                Assert.StartsWith("Value cannot be null.", ex.Message);
+                Assert.StartsWith("Parameter \"source\" must be not null.", ex.Message);
             }
-
 
             [Fact]
             public void RemoveAtFrame_ThrowIfRemovingLastFrame()
             {
-
                 InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
                     () =>
                     {
@@ -149,7 +146,7 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [WithTestPatternImages(10, 10, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
             public void CloneFrame<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using (Image<TPixel> img = provider.GetImage())
                 {
@@ -162,7 +159,8 @@ namespace SixLabors.ImageSharp.Tests
 
                         var expectedClone = (Image<TPixel>)cloned;
 
-                        expectedClone.ComparePixelBufferTo(img.GetPixelSpan());
+                        Assert.True(img.TryGetSinglePixelSpan(out Span<TPixel> imgSpan));
+                        expectedClone.ComparePixelBufferTo(imgSpan);
                     }
                 }
             }
@@ -170,11 +168,12 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [WithTestPatternImages(10, 10, PixelTypes.Rgba32)]
             public void ExtractFrame<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using (Image<TPixel> img = provider.GetImage())
                 {
-                    var sourcePixelData = img.GetPixelSpan().ToArray();
+                    Assert.True(img.TryGetSinglePixelSpan(out Span<TPixel> imgSpan));
+                    var sourcePixelData = imgSpan.ToArray();
 
                     ImageFrameCollection nonGenericFrameCollection = img.Frames;
 
@@ -204,13 +203,13 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void CreateFrame_CustomFillColor()
             {
-                this.Image.Frames.CreateFrame(Rgba32.HotPink);
+                this.Image.Frames.CreateFrame(Color.HotPink);
 
                 Assert.Equal(2, this.Image.Frames.Count);
 
                 var frame = (ImageFrame<Rgba32>)this.Image.Frames[1];
 
-                frame.ComparePixelBufferTo(Rgba32.HotPink);
+                frame.ComparePixelBufferTo(Color.HotPink);
             }
 
             [Fact]
@@ -267,16 +266,16 @@ namespace SixLabors.ImageSharp.Tests
             /// <summary>
             /// Integration test for end-to end API validation.
             /// </summary>
+            /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
             [Theory]
             [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
             public void ConstructGif_FromDifferentPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using (Image source = provider.GetImage())
                 using (var dest = new Image<TPixel>(source.GetConfiguration(), source.Width, source.Height))
                 {
                     // Giphy.gif has 5 frames
-
                     ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 0);
                     ImportFrameAs<Argb32>(source.Frames, dest.Frames, 1);
                     ImportFrameAs<Rgba64>(source.Frames, dest.Frames, 2);
@@ -297,7 +296,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             private static void ImportFrameAs<TPixel>(ImageFrameCollection source, ImageFrameCollection destination, int index)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 using (Image temp = source.CloneFrame(index))
                 {
@@ -311,7 +310,6 @@ namespace SixLabors.ImageSharp.Tests
             private static void CompareGifMetadata(ImageFrame a, ImageFrame b)
             {
                 // TODO: all metadata classes should be equatable!
-
                 GifFrameMetadata aData = a.Metadata.GetGifMetadata();
                 GifFrameMetadata bData = b.Metadata.GetGifMetadata();
 

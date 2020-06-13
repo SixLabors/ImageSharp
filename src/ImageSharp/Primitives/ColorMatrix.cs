@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 #pragma warning disable SA1117 // Parameters should be on same line or separate lines
@@ -204,7 +204,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The resulting matrix.</returns>
         public static ColorMatrix operator +(ColorMatrix value1, ColorMatrix value2)
         {
-            ColorMatrix m;
+            var m = default(ColorMatrix);
 
             m.M11 = value1.M11 + value2.M11;
             m.M12 = value1.M12 + value2.M12;
@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The result of the subtraction.</returns>
         public static ColorMatrix operator -(ColorMatrix value1, ColorMatrix value2)
         {
-            ColorMatrix m;
+            var m = default(ColorMatrix);
 
             m.M11 = value1.M11 - value2.M11;
             m.M12 = value1.M12 - value2.M12;
@@ -271,7 +271,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The negated matrix.</returns>
         public static ColorMatrix operator -(ColorMatrix value)
         {
-            ColorMatrix m;
+            var m = default(ColorMatrix);
 
             m.M11 = -value.M11;
             m.M12 = -value.M12;
@@ -305,7 +305,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The result of the multiplication.</returns>
         public static ColorMatrix operator *(ColorMatrix value1, ColorMatrix value2)
         {
-            ColorMatrix m;
+            var m = default(ColorMatrix);
 
             // First row
             m.M11 = (value1.M11 * value2.M11) + (value1.M12 * value2.M21) + (value1.M13 * value2.M31) + (value1.M14 * value2.M41);
@@ -348,7 +348,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The scaled matrix.</returns>
         public static ColorMatrix operator *(ColorMatrix value1, float value2)
         {
-            ColorMatrix m;
+            var m = default(ColorMatrix);
 
             m.M11 = value1.M11 * value2;
             m.M12 = value1.M12 * value2;

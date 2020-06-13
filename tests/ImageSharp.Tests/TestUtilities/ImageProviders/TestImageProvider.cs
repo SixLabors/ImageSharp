@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -13,41 +13,35 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public interface ITestImageProvider
-    {
-        PixelTypes PixelType { get; }
-        ImagingTestCaseUtility Utility { get; }
-        string SourceFileOrDescription { get; }
-
-        Configuration Configuration { get; set; }
-    }
-
     /// <summary>
     /// Provides <see cref="Image{TPixel}" /> instances for parametric unit tests.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format of the image</typeparam>
-    public abstract partial class TestImageProvider<TPixel> : ITestImageProvider
-        where TPixel : struct, IPixel<TPixel>
+    /// <typeparam name="TPixel">The pixel format of the image.</typeparam>
+    public abstract partial class TestImageProvider<TPixel> : ITestImageProvider, IXunitSerializable
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         public PixelTypes PixelType { get; private set; } = typeof(TPixel).GetPixelType();
 
-        public virtual string SourceFileOrDescription => "";
+        public virtual string SourceFileOrDescription => string.Empty;
 
         public Configuration Configuration { get; set; } = Configuration.CreateDefaultInstance();
 
         /// <summary>
-        /// Utility instance to provide information about the test image & manage input/output
+        /// Gets the utility instance to provide information about the test image & manage input/output.
         /// </summary>
         public ImagingTestCaseUtility Utility { get; private set; }
 
         public string TypeName { get; private set; }
+
         public string MethodName { get; private set; }
+
         public string OutputSubfolderName { get; private set; }
 
-        public static TestImageProvider<TPixel> BasicTestPattern(int width,
-                                                                 int height,
-                                                                 MethodInfo testMethod = null,
-                                                                 PixelTypes pixelTypeOverride = PixelTypes.Undefined)
+        public static TestImageProvider<TPixel> BasicTestPattern(
+            int width,
+            int height,
+            MethodInfo testMethod = null,
+            PixelTypes pixelTypeOverride = PixelTypes.Undefined)
             => new BasicTestPatternProvider(width, height).Init(testMethod, pixelTypeOverride);
 
         public static TestImageProvider<TPixel> TestPattern(
@@ -73,10 +67,11 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         public static TestImageProvider<TPixel> Lambda(
-                Func<Image<TPixel>> factoryFunc,
+                string declaringTypeName,
+                string methodName,
                 MethodInfo testMethod = null,
                 PixelTypes pixelTypeOverride = PixelTypes.Undefined)
-            => new LambdaProvider(factoryFunc).Init(testMethod, pixelTypeOverride);
+            => new MemberMethodProvider(declaringTypeName, methodName).Init(testMethod, pixelTypeOverride);
 
         public static TestImageProvider<TPixel> Solid(
             int width,
@@ -94,6 +89,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
         /// </summary>
+        /// <returns>A test image.</returns>
         public abstract Image<TPixel> GetImage();
 
         public virtual Image<TPixel> GetImage(IImageDecoder decoder)
@@ -104,6 +100,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Returns an <see cref="Image{TPixel}"/> instance to the test case with the necessary traits.
         /// </summary>
+        /// <returns>A test image.</returns>
         public Image<TPixel> GetImage(Action<IImageProcessingContext> operationsToApply)
         {
             Image<TPixel> img = this.GetImage();
@@ -139,6 +136,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 this.PixelType = pixelTypeOverride;
             }
+
             this.TypeName = typeName;
             this.MethodName = methodName;
             this.OutputSubfolderName = outputSubfolderName;

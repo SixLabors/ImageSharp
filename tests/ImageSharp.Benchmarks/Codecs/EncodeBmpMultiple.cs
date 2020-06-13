@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -16,13 +16,21 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [Benchmark(Description = "EncodeBmpMultiple - ImageSharp")]
         public void EncodeBmpImageSharp()
         {
-            this.ForEachImageSharpImage((img, ms) => { img.Save(ms, new BmpEncoder()); return null; });
+            this.ForEachImageSharpImage((img, ms) =>
+            {
+                img.Save(ms, new BmpEncoder());
+                return null;
+            });
         }
 
         [Benchmark(Baseline = true, Description = "EncodeBmpMultiple - System.Drawing")]
         public void EncodeBmpSystemDrawing()
         {
-            this.ForEachSystemDrawingImage((img, ms) => { img.Save(ms, ImageFormat.Bmp); return null; });
+            this.ForEachSystemDrawingImage((img, ms) =>
+            {
+                img.Save(ms, ImageFormat.Bmp);
+                return null;
+            });
         }
     }
 }

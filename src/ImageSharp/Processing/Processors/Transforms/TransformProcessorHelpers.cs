@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image to update</param>
         public static void UpdateDimensionalMetadata<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ExifProfile profile = image.Metadata.ExifProfile;
             if (profile is null)

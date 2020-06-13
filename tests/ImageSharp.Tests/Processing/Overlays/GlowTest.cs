@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,15 +11,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
 {
     public class GlowTest : BaseImageOperationsExtensionTest
     {
-        private static readonly GraphicsOptionsComparer graphicsOptionsComparer = new GraphicsOptionsComparer();
-
         [Fact]
         public void Glow_GlowProcessorWithDefaultValues()
         {
             this.operations.Glow();
             GlowProcessor p = this.Verify<GlowProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(this.options, p.GraphicsOptions);
             Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
@@ -27,10 +25,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
         [Fact]
         public void Glow_Color_GlowProcessorWithDefaultValues()
         {
-            this.operations.Glow(Rgba32.Aquamarine);
+            this.operations.Glow(Color.Aquamarine);
             GlowProcessor p = this.Verify<GlowProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(this.options, p.GraphicsOptions);
             Assert.Equal(Color.Aquamarine, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }
@@ -41,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Glow(3.5f);
             GlowProcessor p = this.Verify<GlowProcessor>();
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(this.options, p.GraphicsOptions);
             Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.Absolute(3.5f), p.Radius);
         }
@@ -53,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Overlays
             this.operations.Glow(rect);
             GlowProcessor p = this.Verify<GlowProcessor>(rect);
 
-            Assert.Equal(new GraphicsOptions(), p.GraphicsOptions, graphicsOptionsComparer);
+            Assert.Equal(this.options, p.GraphicsOptions);
             Assert.Equal(Color.Black, p.GlowColor);
             Assert.Equal(ValueSize.PercentageOfWidth(.5f), p.Radius);
         }

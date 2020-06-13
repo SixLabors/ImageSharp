@@ -1,11 +1,11 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -61,8 +61,32 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+                where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (stream.CanSeek)
+            {
+                this.Encode(image, stream);
+            }
+            else
+            {
+                using (var ms = new MemoryStream())
+                {
+                    this.Encode(image, ms);
+                    ms.Position = 0;
+                    await ms.CopyToAsync(stream).ConfigureAwait(false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -78,8 +102,24 @@ namespace SixLabors.ImageSharp.Formats.Tga
                 imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleBlackAndWhite : TgaImageType.BlackAndWhite;
             }
 
-            // If compression is used, set bit 5 of the image descriptor to indicate an left top origin.
-            byte imageDescriptor = (byte)(this.compression is TgaCompression.RunLength ? 32 : 0);
+            byte imageDescriptor = 0;
+            if (this.compression is TgaCompression.RunLength)
+            {
+                // If compression is used, set bit 5 of the image descriptor to indicate a left top origin.
+                imageDescriptor |= 0x20;
+            }
+
+            if (this.bitsPerPixel is TgaBitsPerPixel.Pixel32)
+            {
+                // Indicate, that 8 bit are used for the alpha channel.
+                imageDescriptor |= 0x8;
+            }
+
+            if (this.bitsPerPixel is TgaBitsPerPixel.Pixel16)
+            {
+                // Indicate, that 1 bit is used for the alpha channel.
+                imageDescriptor |= 0x1;
+            }
 
             var fileHeader = new TgaFileHeader(
                 idLength: 0,
@@ -102,7 +142,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
             if (this.compression is TgaCompression.RunLength)
             {
-                this.WriteRunLengthEndcodedImage(stream, image.Frames.RootFrame);
+                this.WriteRunLengthEncodedImage(stream, image.Frames.RootFrame);
             }
             else
             {
@@ -121,7 +161,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
         /// </param>
         private void WriteImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Buffer2D<TPixel> pixels = image.PixelBuffer;
             switch (this.bitsPerPixel)
@@ -150,19 +190,20 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <typeparam name="TPixel">The pixel type.</typeparam>
         /// <param name="stream">The stream to write the image to.</param>
         /// <param name="image">The image to encode.</param>
-        private void WriteRunLengthEndcodedImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+        private void WriteRunLengthEncodedImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Rgba32 color = default;
             Buffer2D<TPixel> pixels = image.PixelBuffer;
-            Span<TPixel> pixelSpan = pixels.GetSpan();
             int totalPixels = image.Width * image.Height;
             int encodedPixels = 0;
             while (encodedPixels < totalPixels)
             {
-                TPixel currentPixel = pixelSpan[encodedPixels];
+                int x = encodedPixels % pixels.Width;
+                int y = encodedPixels / pixels.Width;
+                TPixel currentPixel = pixels[x, y];
                 currentPixel.ToRgba32(ref color);
-                byte equalPixelCount = this.FindEqualPixels(pixelSpan.Slice(encodedPixels));
+                byte equalPixelCount = this.FindEqualPixels(pixels, x, y);
 
                 // Write the number of equal pixels, with the high bit set, indicating ist a compressed pixel run.
                 stream.WriteByte((byte)(equalPixelCount | 128));
@@ -200,30 +241,40 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         /// <summary>
-        /// Finds consecutive pixels, which have the same value starting from the pixel span offset 0.
+        /// Finds consecutive pixels which have the same value.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
-        /// <param name="pixelSpan">The pixel span to search in.</param>
+        /// <param name="pixels">The pixels of the image.</param>
+        /// <param name="xStart">X coordinate to start searching for the same pixels.</param>
+        /// <param name="yStart">Y coordinate to start searching for the same pixels.</param>
         /// <returns>The number of equal pixels.</returns>
-        private byte FindEqualPixels<TPixel>(Span<TPixel> pixelSpan)
-            where TPixel : struct, IPixel<TPixel>
+        private byte FindEqualPixels<TPixel>(Buffer2D<TPixel> pixels, int xStart, int yStart)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            int idx = 0;
             byte equalPixelCount = 0;
-            while (equalPixelCount < 127 && idx < pixelSpan.Length - 1)
+            bool firstRow = true;
+            TPixel startPixel = pixels[xStart, yStart];
+            for (int y = yStart; y < pixels.Height; y++)
             {
-                TPixel currentPixel = pixelSpan[idx];
-                TPixel nextPixel = pixelSpan[idx + 1];
-                if (currentPixel.Equals(nextPixel))
+                for (int x = firstRow ? xStart + 1 : 0; x < pixels.Width; x++)
                 {
-                    equalPixelCount++;
-                }
-                else
-                {
-                    return equalPixelCount;
+                    TPixel nextPixel = pixels[x, y];
+                    if (startPixel.Equals(nextPixel))
+                    {
+                        equalPixelCount++;
+                    }
+                    else
+                    {
+                        return equalPixelCount;
+                    }
+
+                    if (equalPixelCount >= 127)
+                    {
+                        return equalPixelCount;
+                    }
                 }
 
-                idx++;
+                firstRow = false;
             }
 
             return equalPixelCount;
@@ -238,7 +289,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
         private void Write8Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 1))
             {
@@ -262,7 +313,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
         private void Write16Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 2))
             {
@@ -286,7 +337,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
         private void Write24Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 3))
             {
@@ -310,7 +361,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
         private void Write32Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 4))
             {
@@ -333,7 +384,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="sourcePixel">The pixel to get the luminance from.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetLuminance<TPixel>(TPixel sourcePixel)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var vector = sourcePixel.ToVector4();
             return ImageMaths.GetBT709Luminance(ref vector, 256);

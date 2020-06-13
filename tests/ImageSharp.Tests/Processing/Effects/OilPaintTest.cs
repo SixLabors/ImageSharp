@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing;
@@ -28,6 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
             Assert.Equal(10, processor.Levels);
             Assert.Equal(15, processor.BrushSize);
         }
+
         [Fact]
         public void OilPaint_Levels_Brush_OilPaintingProcessorDefaultsSet()
         {

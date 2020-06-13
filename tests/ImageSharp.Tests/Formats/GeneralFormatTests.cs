@@ -1,27 +1,28 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
+
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.Formats
 {
-    using System;
-    using System.Linq;
-    using System.Reflection;
-    using SixLabors.ImageSharp.Processing;
-    using SixLabors.ImageSharp.Processing.Processors.Quantization;
-    using SixLabors.ImageSharp.Memory;
-
     public class GeneralFormatTests : FileTestBase
     {
         [Theory]
         [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
         public void ResolutionShouldChange<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -40,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<Rgba32> image = file.CreateRgba32Image())
                 {
-                    string filename = path + "/" + file.FileNameWithoutExtension + ".txt";
+                    string filename = Path.Combine(path, $"{file.FileNameWithoutExtension}.txt");
                     File.WriteAllText(filename, image.ToBase64String(PngFormat.Instance));
                 }
             }
@@ -55,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<Rgba32> image = file.CreateRgba32Image())
                 {
-                    image.Save($"{path}/{file.FileName}");
+                    image.Save(Path.Combine(path, file.FileName));
                 }
             }
         }
@@ -73,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithFile(TestImages.Png.CalliphoraPartial, nameof(QuantizerNames), PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Bike, nameof(QuantizerNames), PixelTypes.Rgba32)]
         public void QuantizeImageShouldPreserveMaximumColorPrecision<TPixel>(TestImageProvider<TPixel> provider, string quantizerName)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
 
@@ -90,7 +91,7 @@ namespace SixLabors.ImageSharp.Tests
         private static IQuantizer GetQuantizer(string name)
         {
             PropertyInfo property = typeof(KnownQuantizers).GetTypeInfo().GetProperty(name);
-            return (IQuantizer)property.GetMethod.Invoke(null, new object[0]);
+            return (IQuantizer)property.GetMethod.Invoke(null, Array.Empty<object>());
         }
 
         [Fact]
@@ -102,24 +103,29 @@ namespace SixLabors.ImageSharp.Tests
             {
                 using (Image<Rgba32> image = file.CreateRgba32Image())
                 {
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.bmp"))
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.bmp")))
                     {
                         image.SaveAsBmp(output);
                     }
 
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.jpg"))
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.jpg")))
                     {
                         image.SaveAsJpeg(output);
                     }
 
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.png"))
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.png")))
                     {
                         image.SaveAsPng(output);
                     }
 
-                    using (FileStream output = File.OpenWrite($"{path}/{file.FileNameWithoutExtension}.gif"))
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.gif")))
                     {
                         image.SaveAsGif(output);
+                    }
+
+                    using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.tga")))
+                    {
+                        image.SaveAsTga(output);
                     }
                 }
             }

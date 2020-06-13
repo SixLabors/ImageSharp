@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -24,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests
             /// A <see cref="MemoryManager{T}"/> exposing the locked pixel memory of a <see cref="Bitmap"/> instance.
             /// TODO: This should be an example in https://github.com/SixLabors/Samples
             /// </summary>
-            class BitmapMemoryManager : MemoryManager<Bgra32>
+            public class BitmapMemoryManager : MemoryManager<Bgra32>
             {
                 private readonly Bitmap bitmap;
 
@@ -90,7 +91,8 @@ namespace SixLabors.ImageSharp.Tests
 
                 using (var image = Image.WrapMemory(cfg, memory, 5, 5, metaData))
                 {
-                    ref Rgba32 pixel0 = ref image.GetPixelSpan()[0];
+                    Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
+                    ref Rgba32 pixel0 = ref imageSpan[0];
                     Assert.True(Unsafe.AreSame(ref array[0], ref pixel0));
 
                     Assert.Equal(cfg, image.GetConfiguration());
@@ -116,8 +118,9 @@ namespace SixLabors.ImageSharp.Tests
 
                         using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                         {
-                            Assert.Equal(memory, image.GetPixelMemory());
-                            image.GetPixelSpan().Fill(bg);
+                            Assert.Equal(memory, image.GetRootFramePixelBuffer().GetSingleMemory());
+                            Assert.True(image.TryGetSinglePixelSpan(out Span<Bgra32> imageSpan));
+                            imageSpan.Fill(bg);
                             for (var i = 10; i < 20; i++)
                             {
                                 image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
@@ -151,9 +154,9 @@ namespace SixLabors.ImageSharp.Tests
 
                     using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                     {
-                        Assert.Equal(memoryManager.Memory, image.GetPixelMemory());
-
-                        image.GetPixelSpan().Fill(bg);
+                        Assert.Equal(memoryManager.Memory, image.GetRootFramePixelBuffer().GetSingleMemory());
+                        Assert.True(image.TryGetSinglePixelSpan(out Span<Bgra32> imageSpan));
+                        imageSpan.Fill(bg);
                         for (var i = 10; i < 20; i++)
                         {
                             image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image</param>
         public void PostProcess<TPixel>(ImageFrame<TPixel> destination)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.PixelRowCounter = 0;
 
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image.</param>
         public void DoPostProcessorStep<TPixel>(ImageFrame<TPixel> destination)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (JpegComponentPostProcessor cpp in this.ComponentProcessors)
             {
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image</param>
         private void ConvertColorsInto<TPixel>(ImageFrame<TPixel> destination)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int maxY = Math.Min(destination.Height, this.PixelRowCounter + PixelRowsPerStep);
 

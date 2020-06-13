@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -32,12 +32,14 @@ namespace SixLabors.ImageSharp.Tests.Processing
             var processorMock = new Mock<IImageProcessor>();
             this.processorDefinition = processorMock.Object;
 
-            this.image = new Image<Rgba32>(new Configuration
-            {
-                ImageOperationsProvider = this.provider
-            }, 1, 1);
+            this.image = new Image<Rgba32>(
+                new Configuration
+                {
+                    ImageOperationsProvider = this.provider
+                },
+                1,
+                1);
         }
-
 
         [Fact]
         public void MutateCallsImageOperationsProvider_Func_OriginalImage()

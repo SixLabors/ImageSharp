@@ -1,14 +1,15 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.IO;
 using System.Linq;
-
+using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -23,10 +24,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;
 
         private const float BaselineTolerance = 0.001F / 100;
+
         private const float ProgressiveTolerance = 0.2F / 100;
 
-        private ImageComparer GetImageComparer<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        private static ImageComparer GetImageComparer<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string file = provider.SourceFileOrDescription;
 
@@ -86,35 +88,39 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Calliphora, CommonNonDefaultPixelTypes)]
         public void JpegDecoder_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (SkipTest(provider))
-            {
-                return;
-            }
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            image.DebugSave(provider);
 
-            // For 32 bit test environments:
-            provider.Configuration.MemoryAllocator = ArrayPoolMemoryAllocator.CreateWithModeratePooling();
+            provider.Utility.TestName = DecodeBaselineJpegOutputName;
+            image.CompareToReferenceOutput(
+                ImageComparer.Tolerant(BaselineTolerance),
+                provider,
+                appendPixelTypeToFileName: false);
+        }
 
-            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
-            {
-                image.DebugSave(provider);
-
-                provider.Utility.TestName = DecodeBaselineJpegOutputName;
-                image.CompareToReferenceOutput(ImageComparer.Tolerant(BaselineTolerance), provider, appendPixelTypeToFileName: false);
-            }
-
-            provider.Configuration.MemoryAllocator.ReleaseRetainedResources();
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Progressive.Festzug, PixelTypes.Rgba32)]
+        public void DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity().InBytesSqrt(10);
+            InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(JpegDecoder));
+            this.Output.WriteLine(ex.Message);
+            Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
         // DEBUG ONLY!
         // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"
-        //[Theory]
-        //[WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, "PdfJsOriginal_progress.png")]
-        public void ValidateProgressivePdfJsOutput<TPixel>(TestImageProvider<TPixel> provider,
+        // [Theory]
+        // [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, "PdfJsOriginal_progress.png")]
+        public void ValidateProgressivePdfJsOutput<TPixel>(
+            TestImageProvider<TPixel> provider,
             string pdfJsOriginalResultImage)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm
             string pdfJsOriginalResultPath = Path.Combine(

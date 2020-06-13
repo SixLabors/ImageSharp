@@ -1,8 +1,9 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -16,7 +17,7 @@ using SixLabors.ImageSharp.Processing;
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Provides configuration code which allows altering default behaviour or extending the library.
+    /// Provides configuration which allows altering default behaviour or extending the library.
     /// </summary>
     public sealed class Configuration
     {
@@ -74,6 +75,12 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Gets a set of properties for the Congiguration.
+        /// </summary>
+        /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
+        public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
+
+        /// <summary>
         /// Gets the currently registered <see cref="IImageFormat"/>s.
         /// </summary>
         public IEnumerable<IImageFormat> ImageFormats => this.ImageFormatsManager.ImageFormats;
@@ -108,7 +115,8 @@ namespace SixLabors.ImageSharp
         /// The default value is 1MB.
         /// </summary>
         /// <remarks>
-        /// Currently only used by Resize.
+        /// Currently only used by Resize. If the working buffer is expected to be discontiguous,
+        /// min(WorkingBufferSizeHintInBytes, BufferCapacityInBytes) should be used.
         /// </remarks>
         internal int WorkingBufferSizeHintInBytes { get; set; } = 1 * 1024 * 1024;
 

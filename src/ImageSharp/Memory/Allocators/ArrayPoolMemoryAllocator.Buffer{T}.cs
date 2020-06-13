@@ -1,8 +1,9 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
@@ -46,7 +47,15 @@ namespace SixLabors.ImageSharp.Memory
             protected byte[] Data { get; private set; }
 
             /// <inheritdoc />
-            public override Span<T> GetSpan() => MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
+            public override Span<T> GetSpan()
+            {
+                if (this.Data is null)
+                {
+                    ThrowObjectDisposedException();
+                }
+
+                return MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
+            }
 
             /// <inheritdoc />
             protected override void Dispose(bool disposing)
@@ -66,6 +75,12 @@ namespace SixLabors.ImageSharp.Memory
             }
 
             protected override object GetPinnableObject() => this.Data;
+
+            [MethodImpl(InliningOptions.ColdPath)]
+            private static void ThrowObjectDisposedException()
+            {
+                throw new ObjectDisposedException("ArrayPoolMemoryAllocator.Buffer<T>");
+            }
         }
 
         /// <summary>

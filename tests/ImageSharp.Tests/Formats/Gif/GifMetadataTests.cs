@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -18,9 +18,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
             new TheoryData<string, int, int, PixelResolutionUnit>
             {
-                { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution , PixelResolutionUnit.PixelsPerInch},
-                { TestImages.Gif.Ratio1x4, 1, 4 , PixelResolutionUnit.AspectRatio},
+                { TestImages.Gif.Rings, (int)ImageMetadata.DefaultHorizontalResolution, (int)ImageMetadata.DefaultVerticalResolution, PixelResolutionUnit.PixelsPerInch },
+                { TestImages.Gif.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
                 { TestImages.Gif.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
+            };
+
+        public static readonly TheoryData<string, uint> RepeatFiles =
+            new TheoryData<string, uint>
+            {
+                { TestImages.Gif.Cheers, 0 },
+                { TestImages.Gif.Receipt, 1 },
+                { TestImages.Gif.Rings, 1 }
             };
 
         [Fact]
@@ -149,6 +157,36 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                     Assert.Equal(xResolution, meta.HorizontalResolution);
                     Assert.Equal(yResolution, meta.VerticalResolution);
                     Assert.Equal(resolutionUnit, meta.ResolutionUnits);
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(RepeatFiles))]
+        public void Identify_VerifyRepeatCount(string imagePath, uint repeatCount)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                var decoder = new GifDecoder();
+                IImageInfo image = decoder.Identify(Configuration.Default, stream);
+                GifMetadata meta = image.Metadata.GetGifMetadata();
+                Assert.Equal(repeatCount, meta.RepeatCount);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(RepeatFiles))]
+        public void Decode_VerifyRepeatCount(string imagePath, uint repeatCount)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using (var stream = new MemoryStream(testFile.Bytes, false))
+            {
+                var decoder = new GifDecoder();
+                using (Image<Rgba32> image = decoder.Decode<Rgba32>(Configuration.Default, stream))
+                {
+                    GifMetadata meta = image.Metadata.GetGifMetadata();
+                    Assert.Equal(repeatCount, meta.RepeatCount);
                 }
             }
         }

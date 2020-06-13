@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             bool hasTrans,
             L16 luminance16Trans,
             L8 luminanceTrans)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             bool hasTrans,
             L16 luminance16Trans,
             L8 luminanceTrans)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
@@ -157,7 +157,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Span<TPixel> rowSpan,
             int bytesPerPixel,
             int bytesPerSample)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
@@ -198,7 +198,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             int increment,
             int bytesPerPixel,
             int bytesPerSample)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Span<TPixel> rowSpan,
             ReadOnlySpan<byte> palette,
             byte[] paletteAlpha)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
@@ -284,7 +284,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             int increment,
             ReadOnlySpan<byte> palette,
             byte[] paletteAlpha)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
@@ -331,7 +331,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             bool hasTrans,
             Rgb48 rgb48Trans,
             Rgb24 rgb24Trans)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
@@ -404,7 +404,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             bool hasTrans,
             Rgb48 rgb48Trans,
             Rgb24 rgb24Trans)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
@@ -482,7 +482,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             Span<TPixel> rowSpan,
             int bytesPerPixel,
             int bytesPerSample)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
@@ -515,7 +515,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             int increment,
             int bytesPerPixel,
             int bytesPerSample)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel pixel = default;
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);

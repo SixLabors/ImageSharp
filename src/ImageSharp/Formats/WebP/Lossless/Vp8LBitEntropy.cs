@@ -79,9 +79,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     return (0.99 * this.Sum) + (0.01 * this.Entropy);
                 }
 
-                // No matter what the entropy says, we cannot be better than min_limit
+                // No matter what the entropy says, we cannot be better than minLimit
                 // with Huffman coding. I am mixing a bit of entropy into the
-                // min_limit since it produces much better (~0.5 %) compression results
+                // minLimit since it produces much better (~0.5 %) compression results
                 // perhaps because of better entropy clustering.
                 if (this.NoneZeros == 3)
                 {
@@ -195,8 +195,20 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         private void GetEntropyUnrefined(uint val, int i, ref uint valPrev, ref int iPrev, Vp8LStreaks stats)
         {
-            // Gather info for the bit entropy.
             int streak = i - iPrev;
+
+            // Gather info for the bit entropy.
+            if (valPrev != 0)
+            {
+                this.Sum += (uint)(valPrev * streak);
+                this.NoneZeros += streak;
+                this.NoneZeroCode = (uint)iPrev;
+                this.Entropy -= LosslessUtils.FastSLog2(valPrev) * streak;
+                if (this.MaxVal < valPrev)
+                {
+                    this.MaxVal = valPrev;
+                }
+            }
 
             // Gather info for the Huffman cost.
             stats.Counts[valPrev != 0 ? 1 : 0] += streak > 3 ? 1 : 0;

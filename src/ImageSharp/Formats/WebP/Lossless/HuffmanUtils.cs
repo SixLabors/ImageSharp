@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         /// <see cref="http://en.wikipedia.org/wiki/Huffman_coding"/>
         /// <param name="tree">The huffman tree.</param>
-        /// <param name="histogram">The historgram.</param>
+        /// <param name="histogram">The histogram.</param>
         /// <param name="histogramSize">The size of the histogram.</param>
         /// <param name="treeDepthLimit">The tree depth limit.</param>
         /// <param name="bitDepths">How many bits are used for the symbol.</param>
@@ -269,13 +269,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
-        public static int CreateCompressedHuffmanTree(HuffmanTreeCode tree, HuffmanTreeToken[] tokens)
+        public static int CreateCompressedHuffmanTree(HuffmanTreeCode tree, HuffmanTreeToken[] tokensArray)
         {
             int depthSize = tree.NumSymbols;
             int prevValue = 8;  // 8 is the initial value for rle.
             int i = 0;
-            int tokenIdx = 0;
-            Span<HuffmanTreeToken> tokenSpan = tokens.AsSpan();
+            int tokenPos = 0;
             while (i < depthSize)
             {
                 int value = tree.CodeLengths[i];
@@ -289,19 +288,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 runs = k - i;
                 if (value == 0)
                 {
-                    tokenIdx += CodeRepeatedZeros(runs, tokens);
+                    tokenPos += CodeRepeatedZeros(runs, tokensArray.AsSpan(tokenPos));
                 }
                 else
                 {
-                    tokenIdx += CodeRepeatedValues(runs, tokens, value, prevValue);
+                    tokenPos += CodeRepeatedValues(runs, tokensArray.AsSpan(tokenPos), value, prevValue);
                     prevValue = value;
                 }
 
-                tokenSpan.Slice(tokenIdx);
                 i += runs;
             }
 
-            return tokenIdx;
+            return tokenPos;
         }
 
         public static int BuildHuffmanTable(Span<HuffmanCode> table, int rootBits, int[] codeLengths, int codeLengthsSize)
@@ -458,8 +456,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             {
                 if (repetitions < 3)
                 {
-                    int i;
-                    for (i = 0; i < repetitions; ++i)
+                    for (int i = 0; i < repetitions; i++)
                     {
                         tokens[pos].Code = 0;   // 0-value
                         tokens[pos].ExtraBits = 0;

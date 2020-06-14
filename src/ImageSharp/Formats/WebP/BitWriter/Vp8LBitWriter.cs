@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                     this.PutBitsFlushBits();
                 }
 
-                this.bits |= bits << this.used;
+                this.bits |= (ulong)bits << this.used;
                 this.used += nBits;
             }
         }

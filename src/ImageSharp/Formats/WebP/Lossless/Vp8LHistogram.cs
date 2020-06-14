@@ -6,9 +6,36 @@ using System.Collections.Generic;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
-    internal class Vp8LHistogram
+    internal class Vp8LHistogram : IDeepCloneable
     {
         private const uint NonTrivialSym = 0xffffffff;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
+        /// </summary>
+        public Vp8LHistogram()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
+        /// </summary>
+        /// <param name="other">The histogram to create an instance from.</param>
+        private Vp8LHistogram(Vp8LHistogram other)
+            : this(other.PaletteCodeBits)
+        {
+            other.Red.AsSpan().CopyTo(this.Red);
+            other.Blue.AsSpan().CopyTo(this.Blue);
+            other.Alpha.AsSpan().CopyTo(this.Alpha);
+            other.Literal.AsSpan().CopyTo(this.Literal);
+            other.IsUsed.AsSpan().CopyTo(this.IsUsed);
+            this.LiteralCost = other.LiteralCost;
+            this.RedCost = other.RedCost;
+            this.BlueCost = other.BlueCost;
+            this.BitCost = other.BitCost;
+            this.TrivialSymbol = other.TrivialSymbol;
+            this.PaletteCodeBits = other.PaletteCodeBits;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
@@ -16,13 +43,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// <param name="refs">The backward references to initialize the histogram with.</param>
         /// <param name="paletteCodeBits">The palette code bits.</param>
         public Vp8LHistogram(Vp8LBackwardRefs refs, int paletteCodeBits)
-            : this()
+            : this(paletteCodeBits)
         {
-            if (paletteCodeBits >= 0)
-            {
-                this.PaletteCodeBits = paletteCodeBits;
-            }
-
             this.StoreRefs(refs);
         }
 
@@ -31,16 +53,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         /// <param name="paletteCodeBits">The palette code bits.</param>
         public Vp8LHistogram(int paletteCodeBits)
-            : this()
         {
             this.PaletteCodeBits = paletteCodeBits;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
-        /// </summary>
-        public Vp8LHistogram()
-        {
             this.Red = new uint[WebPConstants.NumLiteralCodes + 1];
             this.Blue = new uint[WebPConstants.NumLiteralCodes + 1];
             this.Alpha = new uint[WebPConstants.NumLiteralCodes + 1];
@@ -53,10 +67,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             this.IsUsed = new bool[5];
         }
 
+        /// <inheritdoc/>
+        public IDeepCloneable DeepClone() => new Vp8LHistogram(this);
+
         /// <summary>
-        /// Gets the palette code bits.
+        /// Gets or sets the palette code bits.
         /// </summary>
-        public int PaletteCodeBits { get; }
+        public int PaletteCodeBits { get; set; }
 
         /// <summary>
         /// Gets or sets the cached value of bit cost.
@@ -110,7 +127,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         /// <param name="v">The token to add.</param>
         /// <param name="useDistanceModifier">Indicates whether to use the distance modifier.</param>
-        public void AddSinglePixOrCopy(PixOrCopy v, bool useDistanceModifier)
+        /// <param name="xSize">xSize is only used when useDistanceModifier is true.</param>
+        public void AddSinglePixOrCopy(PixOrCopy v, bool useDistanceModifier, int xSize = 0)
         {
             if (v.IsLiteral())
             {
@@ -135,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
                 else
                 {
-                    // TODO: VP8LPrefixEncodeBits(distance_modifier(distance_modifier_arg0, PixOrCopyDistance(v)), &code, &extra_bits);
+                    code = LosslessUtils.PrefixEncodeBits(BackwardReferenceEncoder.DistanceToPlaneCode(xSize, (int)v.Distance()), ref extraBits);
                 }
 
                 this.Distance[code]++;
@@ -170,7 +188,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             uint notUsed = 0;
             double alphaCost = PopulationCost(this.Alpha, WebPConstants.NumLiteralCodes, ref alphaSym, ref this.IsUsed[3]);
             double distanceCost = PopulationCost(this.Distance, WebPConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4]) + ExtraCost(this.Distance, WebPConstants.NumDistanceCodes);
-            int numCodes = HistogramNumCodes(this.PaletteCodeBits);
+            int numCodes = this.NumCodes();
             this.LiteralCost = PopulationCost(this.Literal, numCodes, ref notUsed, ref this.IsUsed[0]) + ExtraCost(this.Literal.AsSpan(WebPConstants.NumLiteralCodes), WebPConstants.NumLengthCodes);
             this.RedCost = PopulationCost(this.Red, WebPConstants.NumLiteralCodes, ref redSym, ref this.IsUsed[1]);
             this.BlueCost = PopulationCost(this.Blue, WebPConstants.NumLiteralCodes, ref blueSym, ref this.IsUsed[2]);
@@ -181,8 +199,293 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
             else
             {
-                this.TrivialSymbol = ((uint)alphaSym << 24) | (redSym << 16) | (blueSym << 0);
+                this.TrivialSymbol = (alphaSym << 24) | (redSym << 16) | (blueSym << 0);
             }
+        }
+
+        /// <summary>
+        /// Performs output = a + b, computing the cost C(a+b) - C(a) - C(b) while comparing
+        /// to the threshold value 'costThreshold'. The score returned is
+        /// Score = C(a+b) - C(a) - C(b), where C(a) + C(b) is known and fixed.
+        /// Since the previous score passed is 'costThreshold', we only need to compare
+        /// the partial cost against 'costThreshold + C(a) + C(b)' to possibly bail-out early.
+        /// </summary>
+        public double AddEval(Vp8LHistogram b, double costThreshold, Vp8LHistogram output)
+        {
+            double sumCost = this.BitCost + b.BitCost;
+            costThreshold += sumCost;
+            if (this.GetCombinedHistogramEntropy(b, costThreshold, costInitial: 0, out var cost))
+            {
+                this.Add(b, output);
+                output.BitCost = cost;
+                output.PaletteCodeBits = this.PaletteCodeBits;
+            }
+
+            return cost - sumCost;
+        }
+
+        public double AddThresh(Vp8LHistogram b, double costThreshold)
+        {
+            double costInitial = -this.BitCost;
+            this.GetCombinedHistogramEntropy(b, costThreshold, costInitial, out var cost);
+            return cost;
+        }
+
+        public void Add(Vp8LHistogram b, Vp8LHistogram output)
+        {
+            int literalSize = this.NumCodes();
+
+            this.AddLiteral(b, output, literalSize);
+            this.AddRed(b, output, WebPConstants.NumLiteralCodes);
+            this.AddBlue(b, output, WebPConstants.NumLiteralCodes);
+            this.AddAlpha(b, output, WebPConstants.NumLiteralCodes);
+            this.AddDistance(b, output, WebPConstants.NumDistanceCodes);
+
+            for (int i = 0; i < 5; i++)
+            {
+                output.IsUsed[i] = this.IsUsed[i] | b.IsUsed[i];
+            }
+
+            output.TrivialSymbol = (this.TrivialSymbol == b.TrivialSymbol)
+                ? this.TrivialSymbol
+                : NonTrivialSym;
+        }
+
+        public bool GetCombinedHistogramEntropy(Vp8LHistogram b, double costThreshold, double costInitial, out double cost)
+        {
+            bool trivialAtEnd = false;
+            cost = costInitial;
+
+            cost += GetCombinedEntropy(this.Literal, b.Literal, this.NumCodes(), this.IsUsed[0], b.IsUsed[0], false);
+
+            cost += ExtraCostCombined(this.Literal.AsSpan(WebPConstants.NumLiteralCodes), b.Literal.AsSpan(WebPConstants.NumLiteralCodes), WebPConstants.NumLengthCodes);
+
+            if (cost > costThreshold)
+            {
+                return false;
+            }
+
+            if (this.TrivialSymbol != NonTrivialSym && this.TrivialSymbol == b.TrivialSymbol)
+            {
+                // A, R and B are all 0 or 0xff.
+                uint colorA = (this.TrivialSymbol >> 24) & 0xff;
+                uint colorR = (this.TrivialSymbol >> 16) & 0xff;
+                uint colorB = (this.TrivialSymbol >> 0) & 0xff;
+                if ((colorA == 0 || colorA == 0xff) &&
+                    (colorR == 0 || colorR == 0xff) &&
+                    (colorB == 0 || colorB == 0xff))
+                {
+                    trivialAtEnd = true;
+                }
+            }
+
+            cost += GetCombinedEntropy(this.Red, b.Red, WebPConstants.NumLiteralCodes, this.IsUsed[1], b.IsUsed[1], trivialAtEnd);
+            if (cost > costThreshold)
+            {
+                return false;
+            }
+
+            cost += GetCombinedEntropy(this.Blue, b.Blue, WebPConstants.NumLiteralCodes, this.IsUsed[2], b.IsUsed[2], trivialAtEnd);
+            if (cost > costThreshold)
+            {
+                return false;
+            }
+
+            cost += GetCombinedEntropy(this.Alpha, b.Alpha, WebPConstants.NumLiteralCodes, this.IsUsed[3], b.IsUsed[3], trivialAtEnd);
+            if (cost > costThreshold)
+            {
+                return false;
+            }
+
+            cost += GetCombinedEntropy(this.Distance, b.Distance, WebPConstants.NumDistanceCodes, this.IsUsed[4], b.IsUsed[4], false);
+            if (cost > costThreshold)
+            {
+                return false;
+            }
+
+            cost += ExtraCostCombined(this.Distance, b.Distance, WebPConstants.NumDistanceCodes);
+            if (cost > costThreshold)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private void AddLiteral(Vp8LHistogram b, Vp8LHistogram output, int literalSize)
+        {
+            if (this.IsUsed[0])
+            {
+                if (b.IsUsed[0])
+                {
+                    AddVector(this.Literal, b.Literal, output.Literal, literalSize);
+                }
+                else
+                {
+                    this.Literal.AsSpan(0, literalSize).CopyTo(output.Literal);
+                }
+            }
+            else if (b.IsUsed[0])
+            {
+                b.Literal.AsSpan(0, literalSize).CopyTo(output.Literal);
+            }
+            else
+            {
+                output.Literal.AsSpan(0, literalSize).Fill(0);
+            }
+        }
+
+        private void AddRed(Vp8LHistogram b, Vp8LHistogram output, int size)
+        {
+            if (this.IsUsed[1])
+            {
+                if (b.IsUsed[1])
+                {
+                    AddVector(this.Red, b.Red, output.Red, size);
+                }
+                else
+                {
+                    this.Red.AsSpan(0, size).CopyTo(output.Red);
+                }
+            }
+            else if (b.IsUsed[1])
+            {
+                b.Red.AsSpan(0, size).CopyTo(output.Red);
+            }
+            else
+            {
+                output.Red.AsSpan(0, size).Fill(0);
+            }
+        }
+
+        private void AddBlue(Vp8LHistogram b, Vp8LHistogram output, int size)
+        {
+            if (this.IsUsed[2])
+            {
+                if (b.IsUsed[2])
+                {
+                    AddVector(this.Blue, b.Blue, output.Blue, size);
+                }
+                else
+                {
+                    this.Blue.AsSpan(0, size).CopyTo(output.Blue);
+                }
+            }
+            else if (b.IsUsed[2])
+            {
+                b.Blue.AsSpan(0, size).CopyTo(output.Blue);
+            }
+            else
+            {
+                output.Blue.AsSpan(0, size).Fill(0);
+            }
+        }
+
+        private void AddAlpha(Vp8LHistogram b, Vp8LHistogram output, int size)
+        {
+            if (this.IsUsed[3])
+            {
+                if (b.IsUsed[3])
+                {
+                    AddVector(this.Alpha, b.Alpha, output.Alpha, size);
+                }
+                else
+                {
+                    this.Alpha.AsSpan(0, size).CopyTo(output.Alpha);
+                }
+            }
+            else if (b.IsUsed[3])
+            {
+                b.Alpha.AsSpan(0, size).CopyTo(output.Alpha);
+            }
+            else
+            {
+                output.Alpha.AsSpan(0, size).Fill(0);
+            }
+        }
+
+        private void AddDistance(Vp8LHistogram b, Vp8LHistogram output, int size)
+        {
+            if (this.IsUsed[4])
+            {
+                if (b.IsUsed[4])
+                {
+                    AddVector(this.Distance, b.Distance, output.Distance, size);
+                }
+                else
+                {
+                    this.Distance.AsSpan(0, size).CopyTo(output.Distance);
+                }
+            }
+            else if (b.IsUsed[4])
+            {
+                b.Distance.AsSpan(0, size).CopyTo(output.Distance);
+            }
+            else
+            {
+                output.Distance.AsSpan(0, size).Fill(0);
+            }
+        }
+
+        private static double GetCombinedEntropy(uint[] x, uint[] y, int length, bool isXUsed, bool isYUsed, bool trivialAtEnd)
+        {
+            var stats = new Vp8LStreaks();
+            if (trivialAtEnd)
+            {
+                // This configuration is due to palettization that transforms an indexed
+                // pixel into 0xff000000 | (pixel << 8) in BundleColorMap.
+                // BitsEntropyRefine is 0 for histograms with only one non-zero value.
+                // Only FinalHuffmanCost needs to be evaluated.
+
+                // Deal with the non-zero value at index 0 or length-1.
+                stats.Streaks[1][0] = 1;
+
+                // Deal with the following/previous zero streak.
+                stats.Counts[0] = 1;
+                stats.Streaks[0][1] = length - 1;
+
+                return stats.FinalHuffmanCost();
+            }
+
+            var bitEntropy = new Vp8LBitEntropy();
+            if (isXUsed)
+            {
+                if (isYUsed)
+                {
+                    bitEntropy.GetCombinedEntropyUnrefined(x, y, length, stats);
+                }
+                else
+                {
+                    bitEntropy.GetEntropyUnrefined(x, length, stats);
+                }
+            }
+            else
+            {
+                if (isYUsed)
+                {
+                    bitEntropy.GetEntropyUnrefined(y, length, stats);
+                }
+                else
+                {
+                    stats.Counts[0] = 1;
+                    stats.Streaks[0][length > 3 ? 1 : 0] = length;
+                    bitEntropy.Init();
+                }
+            }
+
+            return bitEntropy.BitsEntropyRefine() + stats.FinalHuffmanCost();
+        }
+
+        private static double ExtraCostCombined(Span<uint> x, Span<uint> y, int length)
+        {
+            double cost = 0.0d;
+            for (int i = 2; i < length - 2; i++)
+            {
+                int xy = (int)(x[i + 2] + y[i + 2]);
+                cost += (i >> 1) * xy;
+            }
+
+            return cost;
         }
 
         /// <summary>
@@ -194,13 +497,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             var stats = new Vp8LStreaks();
             bitEntropy.BitsEntropyUnrefined(population, length, stats);
 
+            trivialSym = (bitEntropy.NoneZeros == 1) ? bitEntropy.NoneZeroCode : NonTrivialSym;
+
             // The histogram is used if there is at least one non-zero streak.
             isUsed = stats.Streaks[1][0] != 0 || stats.Streaks[1][1] != 0;
 
             return bitEntropy.BitsEntropyRefine() + stats.FinalHuffmanCost();
         }
 
-        private static double ExtraCost(Span<uint> population,  int length)
+        private static double ExtraCost(Span<uint> population, int length)
         {
             double cost = 0.0d;
             for (int i = 2; i < length - 2; ++i)
@@ -211,9 +516,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return cost;
         }
 
-        public static int HistogramNumCodes(int paletteCodeBits)
+        private static void AddVector(uint[] a, uint[] b, uint[] output, int size)
         {
-            return WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + ((paletteCodeBits > 0) ? (1 << paletteCodeBits) : 0);
+            for (int i = 0; i < size; i++)
+            {
+                output[i] = a[i] + b[i];
+            }
         }
     }
 }

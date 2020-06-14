@@ -5,6 +5,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
     internal class Vp8LStreaks
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8LStreaks"/> class.
+        /// </summary>
         public Vp8LStreaks()
         {
             this.Counts = new int[2];

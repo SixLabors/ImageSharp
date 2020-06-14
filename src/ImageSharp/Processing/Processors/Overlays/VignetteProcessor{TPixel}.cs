@@ -6,10 +6,9 @@ using System.Buffers;
 using System.Numerics;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 {
@@ -24,34 +23,39 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
         private readonly VignetteProcessor definition;
 
-        public VignetteProcessor(VignetteProcessor definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VignetteProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="definition">The <see cref="VignetteProcessor"/> defining the processor parameters.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public VignetteProcessor(Configuration configuration, VignetteProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
             this.blender = PixelOperations<TPixel>.Instance.GetPixelBlender(definition.GraphicsOptions);
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            int startY = sourceRectangle.Y;
-            int endY = sourceRectangle.Bottom;
-            int startX = sourceRectangle.X;
-            int endX = sourceRectangle.Right;
+            int startY = this.SourceRectangle.Y;
+            int endY = this.SourceRectangle.Bottom;
+            int startX = this.SourceRectangle.X;
+            int endX = this.SourceRectangle.Right;
             TPixel vignetteColor = this.definition.VignetteColor.ToPixel<TPixel>();
-            Vector2 centre = Rectangle.Center(sourceRectangle);
+            Vector2 centre = Rectangle.Center(this.SourceRectangle);
 
             Size sourceSize = source.Size();
             float finalRadiusX = this.definition.RadiusX.Calculate(sourceSize);
             float finalRadiusY = this.definition.RadiusY.Calculate(sourceSize);
             float rX = finalRadiusX > 0
-                           ? MathF.Min(finalRadiusX, sourceRectangle.Width * .5F)
-                           : sourceRectangle.Width * .5F;
+                           ? MathF.Min(finalRadiusX, this.SourceRectangle.Width * .5F)
+                           : this.SourceRectangle.Width * .5F;
             float rY = finalRadiusY > 0
-                           ? MathF.Min(finalRadiusY, sourceRectangle.Height * .5F)
-                           : sourceRectangle.Height * .5F;
+                           ? MathF.Min(finalRadiusY, this.SourceRectangle.Height * .5F)
+                           : this.SourceRectangle.Height * .5F;
             float maxDistance = MathF.Sqrt((rX * rX) + (rY * rY));
 
             // Align start/end positions.
@@ -83,7 +87,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 
                 ParallelHelper.IterateRowsWithTempBuffer<float>(
                     workingRect,
-                    configuration,
+                    this.Configuration,
                     (rows, amounts) =>
                         {
                             Span<float> amountsSpan = amounts.Span;

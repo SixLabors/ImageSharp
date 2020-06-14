@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests
                 configuration.MemoryAllocator = new TestMemoryAllocator(dirtyValue);
                 var metadata = new ImageMetadata();
 
-                using (Image<Gray8> image = Image.CreateUninitialized<Gray8>(configuration, 21, 22, metadata))
+                using (Image<L8> image = Image.CreateUninitialized<L8>(configuration, 21, 22, metadata))
                 {
                     Assert.Equal(21, image.Width);
                     Assert.Equal(22, image.Height);

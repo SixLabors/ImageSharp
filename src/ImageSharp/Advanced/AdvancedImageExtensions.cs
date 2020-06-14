@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Advanced
 {
@@ -15,6 +14,15 @@ namespace SixLabors.ImageSharp.Advanced
     /// </summary>
     public static class AdvancedImageExtensions
     {
+        /// <summary>
+        /// Accepts a <see cref="IImageVisitor"/> to implement a double-dispatch pattern in order to
+        /// apply pixel-specific operations on non-generic <see cref="Image"/> instances
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="visitor">The visitor.</param>
+        public static void AcceptVisitor(this Image source, IImageVisitor visitor)
+            => source.Accept(visitor);
+
         /// <summary>
         /// Gets the configuration for the image.
         /// </summary>

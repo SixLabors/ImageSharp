@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 {
@@ -23,10 +22,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// <summary>
         /// Initializes a new instance of the <see cref="GlowProcessor" /> class.
         /// </summary>
-        /// <param name="color">The color or the glow.</param>
         /// <param name="options">The options effecting blending and composition.</param>
-        public GlowProcessor(Color color, GraphicsOptions options)
-            : this(color, 0, options)
+        /// <param name="color">The color or the glow.</param>
+        public GlowProcessor(GraphicsOptions options, Color color)
+            : this(options, color, 0)
         {
         }
 
@@ -36,17 +35,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// <param name="color">The color or the glow.</param>
         /// <param name="radius">The radius of the glow.</param>
         internal GlowProcessor(Color color, ValueSize radius)
-            : this(color, radius, GraphicsOptions.Default)
+            : this(new GraphicsOptions(), color, radius)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GlowProcessor" /> class.
         /// </summary>
+        /// <param name="options">The options effecting blending and composition.</param>
         /// <param name="color">The color or the glow.</param>
         /// <param name="radius">The radius of the glow.</param>
-        /// <param name="options">The options effecting blending and composition.</param>
-        internal GlowProcessor(Color color, ValueSize radius, GraphicsOptions options)
+        internal GlowProcessor(GraphicsOptions options, Color color, ValueSize radius)
         {
             this.GlowColor = color;
             this.Radius = radius;
@@ -66,13 +65,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// <summary>
         /// Gets the the radius.
         /// </summary>
-        internal ValueSize Radius { get;  }
+        internal ValueSize Radius { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new GlowProcessor<TPixel>(this);
-        }
+            => new GlowProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

@@ -37,10 +37,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public float Threshold { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new EntropyCropProcessor<TPixel>(this);
-        }
+            => new EntropyCropProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

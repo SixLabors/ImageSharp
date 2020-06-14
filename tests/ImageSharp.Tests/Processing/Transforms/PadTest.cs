@@ -20,8 +20,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             this.operations.Pad(width, height);
             ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
-            Assert.Equal(width, resizeProcessor.Width);
-            Assert.Equal(height, resizeProcessor.Height);
+            Assert.Equal(width, resizeProcessor.TargetWidth);
+            Assert.Equal(height, resizeProcessor.TargetHeight);
             Assert.Equal(sampler, resizeProcessor.Sampler);
         }
     }

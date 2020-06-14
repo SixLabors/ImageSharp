@@ -174,9 +174,9 @@ namespace SixLabors.ImageSharp
         public static readonly Color DarkSalmon = FromRgba(233, 150, 122, 255);
 
         /// <summary>
-        /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #8FBC8B.
+        /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #8FBC8F.
         /// </summary>
-        public static readonly Color DarkSeaGreen = FromRgba(143, 188, 139, 255);
+        public static readonly Color DarkSeaGreen = FromRgba(143, 188, 143, 255);
 
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #483D8B.

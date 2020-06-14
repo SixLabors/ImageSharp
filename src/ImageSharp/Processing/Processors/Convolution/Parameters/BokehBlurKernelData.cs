@@ -3,8 +3,6 @@
 
 using System.Numerics;
 
-using SixLabors.ImageSharp.Primitives;
-
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution.Parameters
 {
     /// <summary>

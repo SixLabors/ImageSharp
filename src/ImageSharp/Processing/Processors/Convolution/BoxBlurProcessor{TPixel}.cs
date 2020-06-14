@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
@@ -14,15 +12,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     internal class BoxBlurProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : struct, IPixel<TPixel>
     {
-        private readonly BoxBlurProcessor definition;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="BoxBlurProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="definition">The <see cref="BoxBlurProcessor"/> defining the processor parameters.</param>
-        public BoxBlurProcessor(BoxBlurProcessor definition)
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public BoxBlurProcessor(Configuration configuration, BoxBlurProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
-            this.definition = definition;
             int kernelSize = (definition.Radius * 2) + 1;
             this.KernelX = CreateBoxKernel(kernelSize);
             this.KernelY = this.KernelX.Transpose();
@@ -39,14 +38,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public DenseMatrix<float> KernelY { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(
-            ImageFrame<TPixel> source,
-            Rectangle sourceRectangle,
-            Configuration configuration) =>
-            new Convolution2PassProcessor<TPixel>(this.KernelX, this.KernelY, false).Apply(
-                source,
-                sourceRectangle,
-                configuration);
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
+        {
+            using (var processor = new Convolution2PassProcessor<TPixel>(this.Configuration, this.KernelX, this.KernelY, false, this.Source, this.SourceRectangle))
+            {
+                processor.Apply(source);
+            }
+        }
 
         /// <summary>
         /// Create a 1 dimensional Box kernel.

@@ -13,10 +13,13 @@
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileDirectory)..\Directory.Build.props</MSBuildAllProjects>
     <ImageSharpProjectCategory>tests</ImageSharpProjectCategory>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <PropertyGroup>
-    <NoWarn>CS0618;$(NoWarn)</NoWarn>
+    <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)..\shared-infrastructure\SixLabors.Tests.ruleset</CodeAnalysisRuleSet>
+    <!--TODO: We should remove all obsolete code from the solution-->
+    <NoWarn>$(NoWarn);CS0618</NoWarn>
   </PropertyGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
@@ -25,6 +28,15 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" IsImplicitlyDefined="true" />
     <PackageReference Include="xunit" IsImplicitlyDefined="true" />
     <PackageReference Include="xunit.runner.visualstudio" IsImplicitlyDefined="true" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(codecov)' == 'true' AND '$(IsTestProject)' == 'true'">
+    <PackageReference Include="coverlet.collector" IsImplicitlyDefined="true" />
+    <PackageReference Include="coverlet.msbuild" IsImplicitlyDefined="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\ImageSharp\ImageSharp.csproj" />
   </ItemGroup>
 
 </Project>

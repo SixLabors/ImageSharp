@@ -2,11 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -74,7 +72,17 @@ namespace SixLabors.ImageSharp
         public Rectangle Bounds() => new Rectangle(0, 0, this.Width, this.Height);
 
         /// <inheritdoc />
-        public abstract void Dispose();
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
+        protected abstract void Dispose(bool disposing);
 
         internal abstract void CopyPixelsTo<TDestinationPixel>(Span<TDestinationPixel> destination)
             where TDestinationPixel : struct, IPixel<TDestinationPixel>;

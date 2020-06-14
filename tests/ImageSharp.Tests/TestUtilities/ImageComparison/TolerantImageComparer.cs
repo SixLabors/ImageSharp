@@ -5,8 +5,6 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
-using SixLabors.Primitives;
-
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
     public class TolerantImageComparer : ImageComparer

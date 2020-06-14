@@ -12,7 +12,6 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -78,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.configuration = image.GetConfiguration();
 
             ImageMetadata metadata = image.Metadata;
-            GifMetadata gifMetadata = metadata.GetFormatMetadata(GifFormat.Instance);
+            GifMetadata gifMetadata = metadata.GetGifMetadata();
             this.colorTableMode = this.colorTableMode ?? gifMetadata.ColorTableMode;
             bool useGlobalTable = this.colorTableMode == GifColorTableMode.Global;
 
@@ -136,7 +135,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             {
                 ImageFrame<TPixel> frame = image.Frames[i];
                 ImageFrameMetadata metadata = frame.Metadata;
-                GifFrameMetadata frameMetadata = metadata.GetFormatMetadata(GifFormat.Instance);
+                GifFrameMetadata frameMetadata = metadata.GetGifMetadata();
                 this.WriteGraphicalControlExtension(frameMetadata, transparencyIndex, stream);
                 this.WriteImageDescriptor(frame, false, stream);
 
@@ -166,7 +165,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
                 ImageFrameMetadata metadata = frame.Metadata;
-                GifFrameMetadata frameMetadata = metadata.GetFormatMetadata(GifFormat.Instance);
+                GifFrameMetadata frameMetadata = metadata.GetGifMetadata();
                 if (quantized is null)
                 {
                     // Allow each frame to be encoded at whatever color depth the frame designates if set.

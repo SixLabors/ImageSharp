@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -65,6 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         [InlineData(1, 0, 0, 0, 1, .5F)]
         [InlineData(0, 1, 0, 120, 1, .5F)]
         [InlineData(0, 0, 1, 240, 1, .5F)]
+        [InlineData(0.7, 0.8, 0.6, 90, 0.3333, 0.7F)]
         public void Convert_Rgb_To_Hsl(float r, float g, float b, float h, float s, float l)
         {
             // Arrange

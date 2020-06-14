@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         }
 
         /// <inheritdoc />
-        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>() =>
-            new PolaroidProcessor<TPixel>(this);
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle) =>
+            new PolaroidProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

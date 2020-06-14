@@ -1,3 +1,6 @@
+Reference:
+http://bisqwit.iki.fi/jutut/kuvat/ordered_dither/error_diffusion.txt
+
 List of error diffusion schemes.
 
 Quantization error of *current* pixel is added to the pixels

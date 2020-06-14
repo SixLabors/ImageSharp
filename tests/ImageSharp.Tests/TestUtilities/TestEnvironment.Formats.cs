@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
@@ -55,6 +56,7 @@ namespace SixLabors.ImageSharp.Tests
             var cfg = new Configuration(
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
+                new TgaConfigurationModule(),
                 new TiffConfigurationModule()
             );
 

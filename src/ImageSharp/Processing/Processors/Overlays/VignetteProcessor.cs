@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Overlays
 {
@@ -16,16 +15,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// </summary>
         /// <param name="color">The color of the vignette.</param>
         public VignetteProcessor(Color color)
-            : this(color, GraphicsOptions.Default)
+            : this(new GraphicsOptions(), color)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VignetteProcessor" /> class.
         /// </summary>
-        /// <param name="color">The color of the vignette.</param>
         /// <param name="options">The options effecting blending and composition.</param>
-        public VignetteProcessor(Color color, GraphicsOptions options)
+        /// <param name="color">The color of the vignette.</param>
+        public VignetteProcessor(GraphicsOptions options, Color color)
         {
             this.VignetteColor = color;
             this.GraphicsOptions = options;
@@ -34,11 +33,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         /// <summary>
         /// Initializes a new instance of the <see cref="VignetteProcessor" /> class.
         /// </summary>
+        /// <param name="options">The options effecting blending and composition.</param>
         /// <param name="color">The color of the vignette.</param>
         /// <param name="radiusX">The x-radius.</param>
         /// <param name="radiusY">The y-radius.</param>
-        /// <param name="options">The options effecting blending and composition.</param>
-        internal VignetteProcessor(Color color, ValueSize radiusX, ValueSize radiusY, GraphicsOptions options)
+        internal VignetteProcessor(GraphicsOptions options, Color color, ValueSize radiusX, ValueSize radiusY)
         {
             this.VignetteColor = color;
             this.RadiusX = radiusX;
@@ -67,10 +66,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
         internal ValueSize RadiusY { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new VignetteProcessor<TPixel>(this);
-        }
+            => new VignetteProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

@@ -7,7 +7,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters
 {
-    using SixLabors.ImageSharp.Primitives;
+    using SixLabors.ImageSharp;
     using SixLabors.ImageSharp.Processing;
 
     [GroupOutput("Filters")]

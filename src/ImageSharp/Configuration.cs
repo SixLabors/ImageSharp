@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,10 +8,11 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {
@@ -64,7 +65,7 @@ namespace SixLabors.ImageSharp
             get => this.maxDegreeOfParallelism;
             set
             {
-                if (value <= 0)
+                if (value == 0 || value < -1)
                 {
                     throw new ArgumentOutOfRangeException(nameof(this.MaxDegreeOfParallelism));
                 }
@@ -150,8 +151,9 @@ namespace SixLabors.ImageSharp
         /// <see cref="PngConfigurationModule"/>
         /// <see cref="JpegConfigurationModule"/>
         /// <see cref="GifConfigurationModule"/>
-        /// <see cref="BmpConfigurationModule"/>.
-        /// <para><see cref="TiffConfigurationModule"/></para>
+        /// <see cref="BmpConfigurationModule"/>
+        /// <see cref="TgaConfigurationModule"/>
+        /// <see cref="TiffConfigurationModule"/>.
         /// </summary>
         /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
         internal static Configuration CreateDefaultInstance()
@@ -161,6 +163,7 @@ namespace SixLabors.ImageSharp
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
                 new BmpConfigurationModule(),
+                new TgaConfigurationModule(),
                 new TiffConfigurationModule());
         }
     }

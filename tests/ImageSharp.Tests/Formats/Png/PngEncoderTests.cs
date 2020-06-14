@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             { TestImages.Png.Gray1BitTrans, PngBitDepth.Bit1, PngColorType.Grayscale },
             { TestImages.Png.Gray2BitTrans, PngBitDepth.Bit2, PngColorType.Grayscale },
             { TestImages.Png.Gray4BitTrans, PngBitDepth.Bit4, PngColorType.Grayscale },
-            { TestImages.Png.Gray8BitTrans, PngBitDepth.Bit8, PngColorType.Grayscale },
+            { TestImages.Png.L8BitTrans, PngBitDepth.Bit8, PngColorType.Grayscale },
             { TestImages.Png.GrayTrns16BitInterlaced, PngBitDepth.Bit16, PngColorType.Grayscale },
             { TestImages.Png.Rgb24BppTrans, PngBitDepth.Bit8, PngColorType.Rgb },
             { TestImages.Png.Rgb48BppTrans, PngBitDepth.Bit16, PngColorType.Rgb }
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         /// </summary>
         public static readonly TheoryData<int> CompressionLevels = new TheoryData<int>
         {
-            1, 2, 3, 4, 5, 6, 7, 8, 9
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9
         };
 
         public static readonly TheoryData<int> PaletteSizes = new TheoryData<int>
@@ -181,6 +181,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void WorksWithAllBitDepths<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
             where TPixel : struct, IPixel<TPixel>
         {
+            // TODO: Investigate WuQuantizer to see if we can reduce memory pressure.
+            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
                 TestPngEncoderCore(
@@ -200,6 +206,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void PaletteColorType_WuQuantizer<TPixel>(TestImageProvider<TPixel> provider, int paletteSize)
             where TPixel : struct, IPixel<TPixel>
         {
+            // TODO: Investigate WuQuantizer to see if we can reduce memory pressure.
+            if (TestEnvironment.RunsOnCI && !TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
                 TestPngEncoderCore(
@@ -280,7 +292,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        PngMetadata meta = output.Metadata.GetFormatMetadata(PngFormat.Instance);
+                        PngMetadata meta = output.Metadata.GetPngMetadata();
 
                         Assert.Equal(pngBitDepth, meta.BitDepth);
                     }
@@ -297,7 +309,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             var testFile = TestFile.Create(imagePath);
             using (Image<Rgba32> input = testFile.CreateRgba32Image())
             {
-                PngMetadata inMeta = input.Metadata.GetFormatMetadata(PngFormat.Instance);
+                PngMetadata inMeta = input.Metadata.GetPngMetadata();
                 Assert.True(inMeta.HasTransparency);
 
                 using (var memStream = new MemoryStream())
@@ -306,7 +318,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     memStream.Position = 0;
                     using (var output = Image.Load<Rgba32>(memStream))
                     {
-                        PngMetadata outMeta = output.Metadata.GetFormatMetadata(PngFormat.Instance);
+                        PngMetadata outMeta = output.Metadata.GetPngMetadata();
                         Assert.True(outMeta.HasTransparency);
 
                         switch (pngColorType)
@@ -314,13 +326,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                             case PngColorType.Grayscale:
                                 if (pngBitDepth.Equals(PngBitDepth.Bit16))
                                 {
-                                    Assert.True(outMeta.TransparentGray16.HasValue);
-                                    Assert.Equal(inMeta.TransparentGray16, outMeta.TransparentGray16);
+                                    Assert.True(outMeta.TransparentL16.HasValue);
+                                    Assert.Equal(inMeta.TransparentL16, outMeta.TransparentL16);
                                 }
                                 else
                                 {
-                                    Assert.True(outMeta.TransparentGray8.HasValue);
-                                    Assert.Equal(inMeta.TransparentGray8, outMeta.TransparentGray8);
+                                    Assert.True(outMeta.TransparentL8.HasValue);
+                                    Assert.Equal(inMeta.TransparentL8, outMeta.TransparentL8);
                                 }
 
                                 break;

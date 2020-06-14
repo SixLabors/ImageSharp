@@ -5,9 +5,8 @@ using System;
 using System.Buffers;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.ParallelUtils;
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -20,22 +19,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     {
         private readonly FlipProcessor definition;
 
-        public FlipProcessor(FlipProcessor definition)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FlipProcessor{TPixel}"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+        /// <param name="definition">The <see cref="FlipProcessor"/>.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        public FlipProcessor(Configuration configuration, FlipProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.definition = definition;
         }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             switch (this.definition.FlipMode)
             {
                 // No default needed as we have already set the pixels.
                 case FlipMode.Vertical:
-                    this.FlipX(source, configuration);
+                    this.FlipX(source, this.Configuration);
                     break;
                 case FlipMode.Horizontal:
-                    this.FlipY(source, configuration);
+                    this.FlipY(source, this.Configuration);
                     break;
             }
         }

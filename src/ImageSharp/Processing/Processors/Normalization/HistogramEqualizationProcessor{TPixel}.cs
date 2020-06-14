@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -22,19 +21,29 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// <summary>
         /// Initializes a new instance of the <see cref="HistogramEqualizationProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="luminanceLevels">The number of different luminance levels. Typical values are 256 for 8-bit grayscale images
         /// or 65536 for 16-bit grayscale images.</param>
         /// <param name="clipHistogram">Indicates, if histogram bins should be clipped.</param>
-        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
-        protected HistogramEqualizationProcessor(int luminanceLevels, bool clipHistogram, float clipLimitPercentage)
+        /// <param name="clipLimit">The histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+        protected HistogramEqualizationProcessor(
+            Configuration configuration,
+            int luminanceLevels,
+            bool clipHistogram,
+            int clipLimit,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             Guard.MustBeGreaterThan(luminanceLevels, 0, nameof(luminanceLevels));
-            Guard.MustBeGreaterThan(clipLimitPercentage, 0F, nameof(clipLimitPercentage));
+            Guard.MustBeGreaterThan(clipLimit, 1, nameof(clipLimit));
 
             this.LuminanceLevels = luminanceLevels;
             this.luminanceLevelsFloat = luminanceLevels;
             this.ClipHistogramEnabled = clipHistogram;
-            this.ClipLimitPercentage = clipLimitPercentage;
+            this.ClipLimit = clipLimit;
         }
 
         /// <summary>
@@ -48,9 +57,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public bool ClipHistogramEnabled { get; }
 
         /// <summary>
-        /// Gets the histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.
+        /// Gets the histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.
         /// </summary>
-        public float ClipLimitPercentage { get; }
+        public int ClipLimit { get; }
 
         /// <summary>
         /// Calculates the cumulative distribution function.
@@ -87,11 +96,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         /// the values over the clip limit to all other bins equally.
         /// </summary>
         /// <param name="histogram">The histogram to apply the clipping.</param>
-        /// <param name="clipLimitPercentage">Histogram clip limit in percent of the total pixels in the tile. Histogram bins which exceed this limit, will be capped at this value.</param>
-        /// <param name="pixelCount">The numbers of pixels inside the tile.</param>
-        public void ClipHistogram(Span<int> histogram, float clipLimitPercentage, int pixelCount)
+        /// <param name="clipLimit">Histogram clip limit. Histogram bins which exceed this limit, will be capped at this value.</param>
+        public void ClipHistogram(Span<int> histogram, int clipLimit)
         {
-            int clipLimit = (int)MathF.Round(pixelCount * clipLimitPercentage);
             int sumOverClip = 0;
             ref int histogramBase = ref MemoryMarshal.GetReference(histogram);
 
@@ -105,12 +112,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 }
             }
 
+            // Redistribute the clipped pixels over all bins of the histogram.
             int addToEachBin = sumOverClip > 0 ? (int)MathF.Floor(sumOverClip / this.luminanceLevelsFloat) : 0;
             if (addToEachBin > 0)
             {
                 for (int i = 0; i < histogram.Length; i++)
                 {
                     Unsafe.Add(ref histogramBase, i) += addToEachBin;
+                }
+            }
+
+            int residual = sumOverClip - (addToEachBin * this.LuminanceLevels);
+            if (residual != 0)
+            {
+                int residualStep = Math.Max(this.LuminanceLevels / residual, 1);
+                for (int i = 0; i < this.LuminanceLevels && residual > 0; i += residualStep, residual--)
+                {
+                    ref int histogramLevel = ref Unsafe.Add(ref histogramBase, i);
+                    histogramLevel++;
                 }
             }
         }
@@ -124,16 +143,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public static int GetLuminance(TPixel sourcePixel, int luminanceLevels)
         {
             var vector = sourcePixel.ToVector4();
-            return GetLuminance(ref vector, luminanceLevels);
+            return ImageMaths.GetBT709Luminance(ref vector, luminanceLevels);
         }
-
-        /// <summary>
-        /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
-        /// </summary>
-        /// <param name="vector">The vector to get the luminance from</param>
-        /// <param name="luminanceLevels">The number of luminance levels (256 for 8 bit, 65536 for 16 bit grayscale images)</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int GetLuminance(ref Vector4 vector, int luminanceLevels)
-            => (int)MathF.Round(((.2126F * vector.X) + (.7152F * vector.Y) + (.0722F * vector.Y)) * (luminanceLevels - 1));
     }
 }

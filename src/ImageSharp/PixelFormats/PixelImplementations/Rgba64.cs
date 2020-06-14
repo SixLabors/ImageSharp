@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -256,7 +256,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source)
+        public void FromL8(L8 source)
         {
             ushort rgb = ImageMaths.UpscaleFrom8BitTo16Bit(source.PackedValue);
             this.R = rgb;
@@ -267,12 +267,33 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source)
+        public void FromL16(L16 source)
         {
             this.R = source.PackedValue;
             this.G = source.PackedValue;
             this.B = source.PackedValue;
             this.A = ushort.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source)
+        {
+            ushort rgb = ImageMaths.UpscaleFrom8BitTo16Bit(source.L);
+            this.R = rgb;
+            this.G = rgb;
+            this.B = rgb;
+            this.A = ImageMaths.UpscaleFrom8BitTo16Bit(source.A);
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source)
+        {
+            this.R = source.L;
+            this.G = source.L;
+            this.B = source.L;
+            this.A = source.A;
         }
 
         /// <inheritdoc />

@@ -10,8 +10,6 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -553,7 +551,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetFrameMetadata(ImageFrameMetadata meta)
         {
-            GifFrameMetadata gifMeta = meta.GetFormatMetadata(GifFormat.Instance);
+            GifFrameMetadata gifMeta = meta.GetGifMetadata();
             if (this.graphicsControlExtension.DelayTime > 0)
             {
                 gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
@@ -615,7 +613,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             this.metadata = meta;
-            this.gifMetadata = meta.GetFormatMetadata(GifFormat.Instance);
+            this.gifMetadata = meta.GetGifMetadata();
             this.gifMetadata.ColorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
             ? GifColorTableMode.Global
             : GifColorTableMode.Local;

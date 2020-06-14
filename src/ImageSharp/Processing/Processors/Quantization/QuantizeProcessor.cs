@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -25,10 +25,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public IQuantizer Quantizer { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new QuantizeProcessor<TPixel>(this.Quantizer);
-        }
+            => new QuantizeProcessor<TPixel>(configuration, this.Quantizer, source, sourceRectangle);
     }
 }

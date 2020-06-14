@@ -1,14 +1,13 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
+
+using SixLabors.ImageSharp.Advanced.ParallelUtils;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.ParallelUtils;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
@@ -22,13 +21,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// Initializes a new instance of the <see cref="Convolution2PassProcessor{TPixel}"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="kernelX">The horizontal gradient operator.</param>
         /// <param name="kernelY">The vertical gradient operator.</param>
         /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
+        /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+        /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public Convolution2PassProcessor(
+            Configuration configuration,
             in DenseMatrix<float> kernelX,
             in DenseMatrix<float> kernelY,
-            bool preserveAlpha)
+            bool preserveAlpha,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
+            : base(configuration, source, sourceRectangle)
         {
             this.KernelX = kernelX;
             this.KernelY = kernelY;
@@ -51,13 +57,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public bool PreserveAlpha { get; }
 
         /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
+        protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            using (Buffer2D<TPixel> firstPassPixels = configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
+            using (Buffer2D<TPixel> firstPassPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size()))
             {
-                var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-                this.ApplyConvolution(firstPassPixels, source.PixelBuffer, interest, this.KernelX, configuration);
-                this.ApplyConvolution(source.PixelBuffer, firstPassPixels, interest, this.KernelY, configuration);
+                var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+                this.ApplyConvolution(firstPassPixels, source.PixelBuffer, interest, this.KernelX, this.Configuration);
+                this.ApplyConvolution(source.PixelBuffer, firstPassPixels, interest, this.KernelY, this.Configuration);
             }
         }
 

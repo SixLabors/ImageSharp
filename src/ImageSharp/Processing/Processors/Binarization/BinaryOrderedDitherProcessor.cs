@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -51,10 +51,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         public Color LowerColor { get; }
 
         /// <inheritdoc />
-        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>()
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : struct, IPixel<TPixel>
-        {
-            return new BinaryOrderedDitherProcessor<TPixel>(this);
-        }
+            => new BinaryOrderedDitherProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

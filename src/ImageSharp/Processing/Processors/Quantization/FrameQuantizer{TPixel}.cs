@@ -1,11 +1,12 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
@@ -31,7 +32,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <summary>
         /// The vector representation of the image palette.
         /// </summary>
-        private Vector4[] paletteVector;
+        private IMemoryOwner<Vector4> paletteVector;
+
+        private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FrameQuantizer{TPixel}"/> class.
@@ -80,8 +83,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public bool Dither { get; }
 
         /// <inheritdoc/>
-        public virtual void Dispose()
+        public void Dispose()
         {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <inheritdoc/>
@@ -103,11 +108,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 
             // Collect the palette. Required before the second pass runs.
             ReadOnlyMemory<TPixel> palette = this.GetPalette();
-            this.paletteVector = new Vector4[palette.Length];
+            this.paletteVector = image.Configuration.MemoryAllocator.Allocate<Vector4>(palette.Length);
             PixelOperations<TPixel>.Instance.ToVector4(
                 image.Configuration,
                 palette.Span,
-                (Span<Vector4>)this.paletteVector,
+                this.paletteVector.Memory.Span,
                 PixelConversionModifiers.Scale);
 
             var quantizedFrame = new QuantizedFrame<TPixel>(image.MemoryAllocator, width, height, palette);
@@ -127,6 +132,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             }
 
             return quantizedFrame;
+        }
+
+        /// <summary>
+        /// Disposes the object and frees resources for the Garbage Collector.
+        /// </summary>
+        /// <param name="disposing">Whether to dispose managed and unmanaged objects.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this.paletteVector?.Dispose();
+            }
+
+            this.paletteVector = null;
+
+            this.isDisposed = true;
         }
 
         /// <summary>
@@ -161,7 +187,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Retrieve the palette for the quantized image.
         /// </summary>
         /// <returns>
-        /// <see cref="T:TPixel[]"/>
+        /// <see cref="ReadOnlyMemory{TPixel}"/>
         /// </returns>
         protected abstract ReadOnlyMemory<TPixel> GetPalette();
 
@@ -173,12 +199,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         protected byte GetTransparentIndex()
         {
             // Transparent pixels are much more likely to be found at the end of a palette.
-            int paletteVectorLengthMinus1 = this.paletteVector.Length - 1;
+            Span<Vector4> paletteVectorSpan = this.paletteVector.Memory.Span;
+            ref Vector4 paletteVectorSpanBase = ref MemoryMarshal.GetReference(paletteVectorSpan);
+
+            int paletteVectorLengthMinus1 = paletteVectorSpan.Length - 1;
 
             int index = paletteVectorLengthMinus1;
             for (int i = paletteVectorLengthMinus1; i >= 0; i--)
             {
-                ref Vector4 candidate = ref this.paletteVector[i];
+                ref Vector4 candidate = ref Unsafe.Add(ref paletteVectorSpanBase, i);
                 if (candidate.Equals(default))
                 {
                     index = i;
@@ -211,10 +240,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             float leastDistance = float.MaxValue;
             Vector4 vector = pixel.ToScaledVector4();
             float epsilon = Constants.EpsilonSquared;
+            Span<Vector4> paletteVectorSpan = this.paletteVector.Memory.Span;
+            ref Vector4 paletteVectorSpanBase = ref MemoryMarshal.GetReference(paletteVectorSpan);
 
-            for (int index = 0; index < this.paletteVector.Length; index++)
+            for (int index = 0; index < paletteVectorSpan.Length; index++)
             {
-                ref Vector4 candidate = ref this.paletteVector[index];
+                ref Vector4 candidate = ref Unsafe.Add(ref paletteVectorSpanBase, index);
                 float distance = Vector4.DistanceSquared(vector, candidate);
 
                 // Greater... Move on.

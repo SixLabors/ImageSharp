@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats
         public int BitsPerPixel { get; }
 
         internal static PixelTypeInfo Create<TPixel>()
-            where TPixel : struct, IPixel<TPixel> =>
+            where TPixel : unmanaged, IPixel<TPixel> =>
             new PixelTypeInfo(Unsafe.SizeOf<TPixel>() * 8);
     }
 }

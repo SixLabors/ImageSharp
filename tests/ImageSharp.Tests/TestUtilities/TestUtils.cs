@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,12 +6,15 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -52,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests
         public static bool HasFlag(this PixelTypes pixelTypes, PixelTypes flag) => (pixelTypes & flag) == flag;
 
         public static bool IsEquivalentTo<TPixel>(this Image<TPixel> a, Image<TPixel> b, bool compareAlpha = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (a.Width != b.Width || a.Height != b.Height)
             {
@@ -104,8 +107,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Returns the <see cref="PixelTypes"/> enumerations for the given type.
         /// </summary>
-        /// <param name="colorStructClrType"></param>
-        /// <returns></returns>
+        /// <returns>The pixel type.</returns>
         public static PixelTypes GetPixelType(this Type colorStructClrType) => ClrTypes2PixelTypes[colorStructClrType];
 
         public static IEnumerable<KeyValuePair<PixelTypes, Type>> ExpandAllTypes(this PixelTypes pixelTypes)
@@ -128,6 +130,7 @@ namespace SixLabors.ImageSharp.Tests
                     result[pt] = pt.GetClrType();
                 }
             }
+
             return result;
         }
 
@@ -147,8 +150,30 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         internal static TPixel GetPixelOfNamedColor<TPixel>(string colorName)
-            where TPixel : struct, IPixel<TPixel> =>
+            where TPixel : unmanaged, IPixel<TPixel> =>
             GetColorByName(colorName).ToPixel<TPixel>();
+
+        internal static void RunBufferCapacityLimitProcessorTest<TPixel>(
+            this TestImageProvider<TPixel> provider,
+            int bufferCapacityInPixelRows,
+            Action<IImageProcessingContext> process,
+            object testOutputDetails = null,
+            ImageComparer comparer = null)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            comparer ??= ImageComparer.Exact;
+            using Image<TPixel> expected = provider.GetImage();
+            int width = expected.Width;
+            expected.Mutate(process);
+
+            var allocator = ArrayPoolMemoryAllocator.CreateDefault();
+            provider.Configuration.MemoryAllocator = allocator;
+            allocator.BufferCapacityInBytes = bufferCapacityInPixelRows * width * Unsafe.SizeOf<TPixel>();
+
+            using Image<TPixel> actual = provider.GetImage();
+            actual.Mutate(process);
+            comparer.VerifySimilarity(expected, actual);
+        }
 
         /// <summary>
         /// Utility for testing image processor extension methods:
@@ -160,8 +185,8 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="process">The image processing method to test. (As a delegate)</param>
         /// <param name="testOutputDetails">The value to append to the test output.</param>
         /// <param name="comparer">The custom image comparer to use</param>
-        /// <param name="appendPixelTypeToFileName"></param>
-        /// <param name="appendSourceFileOrDescription"></param>
+        /// <param name="appendPixelTypeToFileName">If true, the pixel type will by appended to the output file.</param>
+        /// <param name="appendSourceFileOrDescription">A boolean indicating whether to append <see cref="ITestImageProvider.SourceFileOrDescription"/> to the test output file name.</param>
         internal static void RunValidatingProcessorTest<TPixel>(
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext> process,
@@ -169,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests
             ImageComparer comparer = null,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (comparer == null)
             {
@@ -205,7 +230,7 @@ namespace SixLabors.ImageSharp.Tests
             ImageComparer comparer = null,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (comparer == null)
             {
@@ -215,9 +240,7 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 FormattableString testOutputDetails = $"";
-                image.Mutate(
-                    ctx => { testOutputDetails = processAndGetTestOutputDetails(ctx); }
-                    );
+                image.Mutate(ctx => { testOutputDetails = processAndGetTestOutputDetails(ctx); });
 
                 image.DebugSave(
                     provider,
@@ -246,7 +269,7 @@ namespace SixLabors.ImageSharp.Tests
             string useReferenceOutputFrom = null,
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (comparer == null)
             {
@@ -255,7 +278,8 @@ namespace SixLabors.ImageSharp.Tests
 
             using (Image<TPixel> image0 = provider.GetImage())
             {
-                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(image0.GetPixelSpan());
+                Assert.True(image0.TryGetSinglePixelSpan(out Span<TPixel> imageSpan));
+                var mmg = TestMemoryManager<TPixel>.CreateAsCopyOf(imageSpan);
 
                 using (var image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height))
                 {
@@ -296,8 +320,9 @@ namespace SixLabors.ImageSharp.Tests
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext, Rectangle> process,
             object testOutputDetails = null,
-            ImageComparer comparer = null)
-            where TPixel : struct, IPixel<TPixel>
+            ImageComparer comparer = null,
+            bool appendPixelTypeToFileName = true)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (comparer == null)
             {
@@ -308,8 +333,8 @@ namespace SixLabors.ImageSharp.Tests
             {
                 var bounds = new Rectangle(image.Width / 4, image.Width / 4, image.Width / 2, image.Height / 2);
                 image.Mutate(x => process(x, bounds));
-                image.DebugSave(provider, testOutputDetails);
-                image.CompareToReferenceOutput(comparer, provider, testOutputDetails);
+                image.DebugSave(provider, testOutputDetails, appendPixelTypeToFileName: appendPixelTypeToFileName);
+                image.CompareToReferenceOutput(comparer, provider, testOutputDetails: testOutputDetails, appendPixelTypeToFileName: appendPixelTypeToFileName);
             }
         }
 
@@ -320,7 +345,7 @@ namespace SixLabors.ImageSharp.Tests
             this TestImageProvider<TPixel> provider,
             Action<IImageProcessingContext> process,
             object testOutputDetails = null)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -341,6 +366,18 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             return (IResampler)property.GetValue(null);
+        }
+
+        public static IDither GetDither(string name)
+        {
+            PropertyInfo property = typeof(KnownDitherings).GetTypeInfo().GetProperty(name);
+
+            if (property is null)
+            {
+                throw new Exception($"No dither named '{name}");
+            }
+
+            return (IDither)property.GetValue(null);
         }
 
         public static string[] GetAllResamplerNames(bool includeNearestNeighbour = true)

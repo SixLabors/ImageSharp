@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -13,11 +13,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Baseline.Cmyk,
                 TestImages.Jpeg.Baseline.Ycck,
                 TestImages.Jpeg.Baseline.Jpeg400,
+                TestImages.Jpeg.Baseline.Turtle420,
                 TestImages.Jpeg.Baseline.Testorig420,
 
                 // BUG: The following image has a high difference compared to the expected output: 1.0096%
-                // TestImages.Jpeg.Baseline.Jpeg420Small,
-
+                TestImages.Jpeg.Baseline.Jpeg420Small,
                 TestImages.Jpeg.Issues.Fuzz.AccessViolationException922,
                 TestImages.Jpeg.Baseline.Jpeg444,
                 TestImages.Jpeg.Baseline.Bad.BadEOF,
@@ -65,8 +65,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImages.Jpeg.Issues.OrderedInterleavedProgressive723C
             };
 
-        public static string[] UnrecoverableTestJpegs = {
-
+        public static string[] UnrecoverableTestJpegs =
+        {
             TestImages.Jpeg.Issues.CriticalEOF214,
             TestImages.Jpeg.Issues.Fuzz.NullReferenceException797,
             TestImages.Jpeg.Issues.Fuzz.AccessViolationException798,
@@ -96,8 +96,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 // Baseline:
                 [TestImages.Jpeg.Baseline.Calliphora] = 0.00002f / 100,
                 [TestImages.Jpeg.Baseline.Bad.BadEOF] = 0.38f / 100,
-                [TestImages.Jpeg.Baseline.Testorig420] = 0.38f / 100,
                 [TestImages.Jpeg.Baseline.Bad.BadRST] = 0.0589f / 100,
+
+                [TestImages.Jpeg.Baseline.Testorig420] = 0.38f / 100,
+                [TestImages.Jpeg.Baseline.Jpeg420Small] = 1.1f / 100,
+                [TestImages.Jpeg.Baseline.Turtle420] = 1.0f / 100,
 
                 // Progressive:
                 [TestImages.Jpeg.Issues.MissingFF00ProgressiveGirl159] = 0.34f / 100,

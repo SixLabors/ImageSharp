@@ -1,5 +1,11 @@
-Deflatestream implementation adapted from
+DeflateStream implementation adapted from
 
 https://github.com/icsharpcode/SharpZipLib
 
-LIcensed under MIT
+Licensed under MIT
+
+Crc32 and Adler32 SIMD implementation adapted from
+
+https://github.com/chromium/chromium
+
+Licensed under BSD 3-Clause "New" or "Revised" License

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 // Note the value assignment, This will allow us to add 1, 2, and 4 bit encoding when we support it.

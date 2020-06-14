@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -243,40 +243,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Returns the result of a B-C filter against the given value.
-        /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
-        /// </summary>
-        /// <param name="x">The value to process.</param>
-        /// <param name="b">The B-Spline curve variable.</param>
-        /// <param name="c">The Cardinal curve variable.</param>
-        /// <returns>
-        /// The <see cref="float"/>.
-        /// </returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static float GetBcValue(float x, float b, float c)
-        {
-            if (x < 0F)
-            {
-                x = -x;
-            }
-
-            float temp = x * x;
-            if (x < 1F)
-            {
-                x = ((12 - (9 * b) - (6 * c)) * (x * temp)) + ((-18 + (12 * b) + (6 * c)) * temp) + (6 - (2 * b));
-                return x / 6F;
-            }
-
-            if (x < 2F)
-            {
-                x = ((-b - (6 * c)) * (x * temp)) + (((6 * b) + (30 * c)) * temp) + (((-12 * b) - (48 * c)) * x) + ((8 * b) + (24 * c));
-                return x / 6F;
-            }
-
-            return 0F;
-        }
-
-        /// <summary>
         /// Gets the bounding <see cref="Rectangle"/> from the given points.
         /// </summary>
         /// <param name="topLeft">
@@ -303,7 +269,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="Rectangle"/>.
         /// </returns>
         public static Rectangle GetFilteredBoundingRectangle<TPixel>(ImageFrame<TPixel> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int width = bitmap.Width;
             int height = bitmap.Height;
@@ -393,7 +359,7 @@ namespace SixLabors.ImageSharp
                     }
                 }
 
-                return height;
+                return width;
             }
 
             topLeft.Y = GetMinY(bitmap);

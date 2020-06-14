@@ -1,21 +1,19 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-// ReSharper disable InconsistentNaming
-
-using System.Buffers;
 using System;
+using System.Buffers;
 using System.Numerics;
-
 using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     public abstract class ToVector4<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         protected IMemoryOwner<TPixel> source;
 
@@ -23,12 +21,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         protected Configuration Configuration => Configuration.Default;
 
-        [Params(
-            64,
-            256,
-            //512,
-            //1024,
-            2048)]
+        [Params(64, 256, 2048)] // 512, 1024
         public int Count { get; set; }
 
         [GlobalSetup]
@@ -45,7 +38,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             this.destination.Dispose();
         }
 
-        //[Benchmark]
+        // [Benchmark]
         public void Naive()
         {
             Span<TPixel> s = this.source.GetSpan();
@@ -56,7 +49,6 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
                 d[i] = s[i].ToVector4();
             }
         }
-        
 
         [Benchmark]
         public void PixelOperations_Specialized()

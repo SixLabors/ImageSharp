@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             var color1 = new Bgr24(byte.MaxValue, 0, byte.MaxValue);
             var color2 = new Bgr24(byte.MaxValue, 0, byte.MaxValue);
-            
+
             Assert.Equal(color1, color2);
         }
 
@@ -76,7 +76,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Assert.False(a.Equals(b));
             Assert.False(a.Equals((object)b));
         }
-
 
         [Fact]
         public void FromRgba32()

@@ -1,5 +1,5 @@
 <#
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 #>
 <#@ template debug="false" hostspecific="false" language="C#" #>
@@ -8,7 +8,7 @@
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 for (int j = 0; j < 2; j++)
                 {
 					char side = j == 0 ? 'L' : 'R';
-					Write($"this.V{i}{side} = Vector4.Clamp(this.V{i}{side} + COff4, CMin4, CMax4);\r\n");
+					Write($"this.V{i}{side} = Vector4Utilities.FastClamp(this.V{i}{side} + COff4, CMin4, CMax4);\r\n");
                 }
             }
 			PopIndent();
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// AVX2-only variant for executing <see cref="NormalizeColorsInplace"/> and <see cref="RoundInplace"/> in one step.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void NormalizeColorsAndRoundInplaceAvx2(float maximum)
+        public void NormalizeColorsAndRoundInplaceVector8(float maximum)
         {
             var off = new Vector<float>(MathF.Ceiling(maximum / 2));
             var max = new Vector<float>(maximum);

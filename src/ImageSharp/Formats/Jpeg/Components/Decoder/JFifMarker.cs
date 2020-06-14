@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -29,12 +29,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         {
             if (xDensity <= 0)
             {
-                JpegThrowHelper.ThrowImageFormatException($"X-Density {xDensity} must be greater than 0.");
+                JpegThrowHelper.ThrowInvalidImageContentException($"X-Density {xDensity} must be greater than 0.");
             }
 
             if (yDensity <= 0)
             {
-                JpegThrowHelper.ThrowImageFormatException($"Y-Density {yDensity} must be greater than 0.");
+                JpegThrowHelper.ThrowInvalidImageContentException($"Y-Density {yDensity} must be greater than 0.");
             }
 
             this.MajorVersion = majorVersion;

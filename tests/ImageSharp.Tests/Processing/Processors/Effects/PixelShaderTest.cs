@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -17,10 +17,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
         public void FullImage<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(
-                x => x.ApplyPixelShaderProcessor(
+                x => x.ProcessPixelRowsAsVector4(
                 span =>
                 {
                     for (int i = 0; i < span.Length; i++)
@@ -36,10 +36,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
         public void InBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunRectangleConstrainedValidatingProcessorTest(
-                (x, rect) => x.ApplyPixelShaderProcessor(
+                (x, rect) => x.ProcessPixelRowsAsVector4(
                     span =>
                     {
                         for (int i = 0; i < span.Length; i++)
@@ -54,10 +54,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
         public void PositionAwareFullImage<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(
-                c => c.ApplyPixelShaderProcessor(
+                c => c.ProcessPixelRowsAsVector4(
                     (span, offset) =>
                     {
                         int y = offset.Y;
@@ -84,10 +84,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         [Theory]
         [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgba32)]
         public void PositionAwareInBox<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunRectangleConstrainedValidatingProcessorTest(
-                (c, rect) => c.ApplyPixelShaderProcessor(
+                (c, rect) => c.ProcessPixelRowsAsVector4(
                     (span, offset) =>
                     {
                         int y = offset.Y;

@@ -1,11 +1,11 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
     /// <summary>
     /// The gamma working space.

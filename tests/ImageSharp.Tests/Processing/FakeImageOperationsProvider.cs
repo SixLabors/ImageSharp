@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -11,36 +11,38 @@ namespace SixLabors.ImageSharp.Tests.Processing
 {
     internal class FakeImageOperationsProvider : IImageProcessingContextFactory
     {
-        private List<object> ImageOperators = new List<object>();
+        private readonly List<object> imageOperators = new List<object>();
 
         public bool HasCreated<TPixel>(Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return this.Created(source).Any();
         }
-        public IEnumerable<FakeImageOperations<TPixel>> Created<TPixel>(Image<TPixel> source) where TPixel : struct, IPixel<TPixel>
+
+        public IEnumerable<FakeImageOperations<TPixel>> Created<TPixel>(Image<TPixel> source)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            return this.ImageOperators.OfType<FakeImageOperations<TPixel>>()
+            return this.imageOperators.OfType<FakeImageOperations<TPixel>>()
                 .Where(x => x.Source == source);
         }
 
         public IEnumerable<FakeImageOperations<TPixel>.AppliedOperation> AppliedOperations<TPixel>(Image<TPixel> source)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return this.Created(source)
                 .SelectMany(x => x.Applied);
         }
 
         public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Configuration configuration, Image<TPixel> source, bool mutate)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var op = new FakeImageOperations<TPixel>(configuration, source, mutate);
-            this.ImageOperators.Add(op);
+            this.imageOperators.Add(op);
             return op;
         }
 
         public class FakeImageOperations<TPixel> : IInternalImageProcessingContext<TPixel>
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             public FakeImageOperations(Configuration configuration, Image<TPixel> source, bool mutate)
             {
@@ -53,6 +55,8 @@ namespace SixLabors.ImageSharp.Tests.Processing
             public List<AppliedOperation> Applied { get; } = new List<AppliedOperation>();
 
             public Configuration Configuration { get; }
+
+            public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
 
             public Image<TPixel> GetResultImage()
             {
@@ -86,6 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Processing
             public struct AppliedOperation
             {
                 public Rectangle? Rectangle { get; set; }
+
                 public IImageProcessor<TPixel> GenericProcessor { get; set; }
 
                 public IImageProcessor NonGenericProcessor { get; set; }

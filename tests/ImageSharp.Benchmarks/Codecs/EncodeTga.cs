@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
-        [Params(TestImages.Tga.Bit24)]
+        [Params(TestImages.Tga.Bit24BottomLeft)]
         public string TestImage { get; set; }
 
         [GlobalSetup]
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         {
             if (this.tgaCore == null)
             {
-                this.tgaCore = Image.Load<Rgba32>(TestImageFullPath);
+                this.tgaCore = Image.Load<Rgba32>(this.TestImageFullPath);
                 this.tgaMagick = new MagickImage(this.TestImageFullPath);
             }
         }

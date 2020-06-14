@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -15,9 +15,10 @@ namespace SixLabors.ImageSharp
     internal static partial class SimdUtils
     {
         /// <summary>
-        /// Gets a value indicating whether the code is being executed on AVX2 CPU where both float and integer registers are of size 256 byte.
+        /// Gets a value indicating whether <see cref="Vector{T}"/> code is being JIT-ed to AVX2 instructions
+        /// where both float and integer registers are of size 256 byte.
         /// </summary>
-        public static bool IsAvx2CompatibleArchitecture { get; } =
+        public static bool HasVector8 { get; } =
             Vector.IsHardwareAccelerated && Vector<float>.Count == 8 && Vector<int>.Count == 8;
 
         /// <summary>
@@ -27,7 +28,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector4 PseudoRound(this Vector4 v)
         {
-            var sign = Vector4.Clamp(v, new Vector4(-1), new Vector4(1));
+            var sign = Vector4Utilities.FastClamp(v, new Vector4(-1), new Vector4(1));
 
             return v + (sign * 0.5f);
         }
@@ -60,16 +61,18 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The source span of bytes</param>
         /// <param name="dest">The destination span of floats</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
+        internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
 #if SUPPORTS_EXTENDED_INTRINSICS
-            ExtendedIntrinsics.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
+            ExtendedIntrinsics.ByteToNormalizedFloatReduce(ref source, ref dest);
 #else
-            BasicIntrinsics256.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
+            BasicIntrinsics256.ByteToNormalizedFloatReduce(ref source, ref dest);
 #endif
-            FallbackIntrinsics128.BulkConvertByteToNormalizedFloatReduce(ref source, ref dest);
+
+            // Also deals with the remainder from previous conversions:
+            FallbackIntrinsics128.ByteToNormalizedFloatReduce(ref source, ref dest);
 
             // Deal with the remainder:
             if (source.Length > 0)
@@ -87,16 +90,20 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The source span of floats</param>
         /// <param name="dest">The destination span of bytes</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
+        internal static void NormalizedFloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> dest)
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
-#if SUPPORTS_EXTENDED_INTRINSICS
-            ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
+#if SUPPORTS_RUNTIME_INTRINSICS
+            Avx2Intrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
+#elif SUPPORTS_EXTENDED_INTRINSICS
+            ExtendedIntrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
 #else
-            BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
+            BasicIntrinsics256.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
 #endif
-            FallbackIntrinsics128.BulkConvertNormalizedFloatToByteClampOverflowsReduce(ref source, ref dest);
+
+            // Also deals with the remainder from previous conversions:
+            FallbackIntrinsics128.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
 
             // Deal with the remainder:
             if (source.Length > 0)
@@ -151,9 +158,9 @@ namespace SixLabors.ImageSharp
         private static byte ConvertToByte(float f) => (byte)ComparableExtensions.Clamp((f * 255f) + 0.5f, 0, 255f);
 
         [Conditional("DEBUG")]
-        private static void VerifyIsAvx2Compatible(string operation)
+        private static void VerifyHasVector8(string operation)
         {
-            if (!IsAvx2CompatibleArchitecture)
+            if (!HasVector8)
             {
                 throw new NotSupportedException($"{operation} is supported only on AVX2 CPU!");
             }

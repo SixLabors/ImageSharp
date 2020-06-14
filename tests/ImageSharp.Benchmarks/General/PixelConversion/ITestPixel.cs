@@ -1,10 +1,13 @@
-﻿using System.Numerics;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
 
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {
-    interface ITestPixel<T>
+    public interface ITestPixel<T>
         where T : struct, ITestPixel<T>
     {
         void FromRgba32(Rgba32 source);

@@ -1,9 +1,10 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -32,11 +33,11 @@ namespace SixLabors.ImageSharp
             int width,
             int height,
             ImageMetadata metadata)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Buffer2D<TPixel> uninitializedMemoryBuffer =
                 configuration.MemoryAllocator.Allocate2D<TPixel>(width, height);
-            return new Image<TPixel>(configuration, uninitializedMemoryBuffer.MemorySource, width, height, metadata);
+            return new Image<TPixel>(configuration, uninitializedMemoryBuffer.FastMemoryGroup, width, height, metadata);
         }
 
         /// <summary>
@@ -75,6 +76,20 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <param name="config">The configuration.</param>
+        /// <returns>The mime type or null if none found.</returns>
+        private static Task<IImageFormat> InternalDetectFormatAsync(Stream stream, Configuration config)
+        {
+            // We are going to cheat here because we know that by this point we have been wrapped in a
+            // seekable stream then we are free to use sync APIs this is potentially brittle and may
+            // need a better fix in the future.
+            return Task.FromResult(InternalDetectFormat(stream, config));
+        }
+
+        /// <summary>
+        /// By reading the header on the provided stream this calculates the images format.
+        /// </summary>
+        /// <param name="stream">The image stream to read the header from.</param>
+        /// <param name="config">The configuration.</param>
         /// <param name="format">The IImageFormat.</param>
         /// <returns>The image format or null if none found.</returns>
         private static IImageDecoder DiscoverDecoder(Stream stream, Configuration config, out IImageFormat format)
@@ -86,7 +101,6 @@ namespace SixLabors.ImageSharp
                 : null;
         }
 
-#pragma warning disable SA1008 // Opening parenthesis must be spaced correctly
         /// <summary>
         /// Decodes the image stream to the current image.
         /// </summary>
@@ -96,9 +110,8 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// A new <see cref="Image{TPixel}"/>.
         /// </returns>
-        private static (Image<TPixel> img, IImageFormat format) Decode<TPixel>(Stream stream, Configuration config)
-#pragma warning restore SA1008 // Opening parenthesis must be spaced correctly
-            where TPixel : struct, IPixel<TPixel>
+        private static (Image<TPixel> Image, IImageFormat Format) Decode<TPixel>(Stream stream, Configuration config)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
             if (decoder is null)
@@ -110,7 +123,27 @@ namespace SixLabors.ImageSharp
             return (img, format);
         }
 
-        private static (Image img, IImageFormat format) Decode(Stream stream, Configuration config)
+        /// <summary>
+        /// Decodes the image stream to the current image.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="config">the configuration.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
+        private static async Task<(Image<TPixel> Image, IImageFormat Format)> DecodeAsync<TPixel>(Stream stream, Configuration config)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            if (decoder is null)
+            {
+                return (null, null);
+            }
+
+            Image<TPixel> img = await decoder.DecodeAsync<TPixel>(config, stream).ConfigureAwait(false);
+            return (img, format);
+        }
+
+        private static (Image Image, IImageFormat Format) Decode(Stream stream, Configuration config)
         {
             IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
             if (decoder is null)
@@ -122,22 +155,60 @@ namespace SixLabors.ImageSharp
             return (img, format);
         }
 
+        private static async Task<(Image Image, IImageFormat Format)> DecodeAsync(Stream stream, Configuration config)
+        {
+            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            if (decoder is null)
+            {
+                return (null, null);
+            }
+
+            Image img = await decoder.DecodeAsync(config, stream).ConfigureAwait(false);
+            return (img, format);
+        }
+
         /// <summary>
         /// Reads the raw image information from the specified stream.
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="config">the configuration.</param>
         /// <returns>
-        /// The <see cref="IImageInfo"/> or null if suitable info detector not found.
+        /// The <see cref="IImageInfo"/> or null if a suitable info detector is not found.
         /// </returns>
-        private static (IImageInfo info, IImageFormat format) InternalIdentity(Stream stream, Configuration config)
+        private static (IImageInfo ImageInfo, IImageFormat Format) InternalIdentity(Stream stream, Configuration config)
         {
             if (!(DiscoverDecoder(stream, config, out IImageFormat format) is IImageInfoDetector detector))
             {
                 return (null, null);
             }
 
-            return (detector?.Identify(config, stream), format);
+            IImageInfo info = detector?.Identify(config, stream);
+            return (info, format);
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="config">the configuration.</param>
+        /// <returns>
+        /// A <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the
+        /// <see cref="IImageInfo"/> property of the returned type set to null if a suitable detector
+        /// is not found.</returns>
+        private static async Task<(IImageInfo ImageInfo, IImageFormat Format)> InternalIdentityAsync(Stream stream, Configuration config)
+        {
+            if (!(DiscoverDecoder(stream, config, out IImageFormat format) is IImageInfoDetector detector))
+            {
+                return (null, null);
+            }
+
+            if (detector is null)
+            {
+                return (null, format);
+            }
+
+            IImageInfo info = await detector.IdentifyAsync(config, stream).ConfigureAwait(false);
+            return (info, format);
         }
     }
 }

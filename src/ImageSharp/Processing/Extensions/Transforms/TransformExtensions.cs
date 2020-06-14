@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing
             IResampler sampler)
         {
             Matrix3x2 transform = builder.BuildMatrix(sourceRectangle);
-            Size targetDimensions = TransformUtils.GetTransformedSize(sourceRectangle.Size, transform);
+            Size targetDimensions = TransformUtilities.GetTransformedSize(sourceRectangle.Size, transform);
             return ctx.Transform(sourceRectangle, transform, targetDimensions, sampler);
         }
 
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Processing
             IResampler sampler)
         {
             Matrix4x4 transform = builder.BuildMatrix(sourceRectangle);
-            Size targetDimensions = TransformUtils.GetTransformedSize(sourceRectangle.Size, transform);
+            Size targetDimensions = TransformUtilities.GetTransformedSize(sourceRectangle.Size, transform);
             return ctx.Transform(sourceRectangle, transform, targetDimensions, sampler);
         }
 

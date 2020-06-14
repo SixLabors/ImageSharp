@@ -1,10 +1,11 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Advanced.ParallelUtils;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
@@ -14,7 +15,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly FilterProcessor definition;
 
@@ -35,27 +36,48 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-            int startX = interest.X;
+            var operation = new RowOperation(interest.X, source, this.definition.Matrix, this.Configuration);
 
-            ColorMatrix matrix = this.definition.Matrix;
-
-            ParallelHelper.IterateRowsWithTempBuffer<Vector4>(
-                interest,
+            ParallelRowIterator.IterateRows<RowOperation, Vector4>(
                 this.Configuration,
-                (rows, vectorBuffer) =>
-                    {
-                        for (int y = rows.Min; y < rows.Max; y++)
-                        {
-                            Span<Vector4> vectorSpan = vectorBuffer.Span;
-                            int length = vectorSpan.Length;
-                            Span<TPixel> rowSpan = source.GetPixelRowSpan(y).Slice(startX, length);
-                            PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, rowSpan, vectorSpan);
+                interest,
+                in operation);
+        }
 
-                            Vector4Utils.Transform(vectorSpan, ref matrix);
+        /// <summary>
+        /// A <see langword="struct"/> implementing the convolution logic for <see cref="FilterProcessor{TPixel}"/>.
+        /// </summary>
+        private readonly struct RowOperation : IRowOperation<Vector4>
+        {
+            private readonly int startX;
+            private readonly ImageFrame<TPixel> source;
+            private readonly ColorMatrix matrix;
+            private readonly Configuration configuration;
 
-                            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, vectorSpan, rowSpan);
-                        }
-                    });
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public RowOperation(
+                int startX,
+                ImageFrame<TPixel> source,
+                ColorMatrix matrix,
+                Configuration configuration)
+            {
+                this.startX = startX;
+                this.source = source;
+                this.matrix = matrix;
+                this.configuration = configuration;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(int y, Span<Vector4> span)
+            {
+                Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span);
+
+                Vector4Utilities.Transform(span, ref Unsafe.AsRef(this.matrix));
+
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan);
+            }
         }
     }
 }

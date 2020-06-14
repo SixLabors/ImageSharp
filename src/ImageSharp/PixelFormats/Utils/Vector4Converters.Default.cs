@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 Span<Vector4> sourceVectors,
                 Span<TPixel> destPixels,
                 PixelConversionModifiers modifiers)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
 
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 ReadOnlySpan<TPixel> sourcePixels,
                 Span<Vector4> destVectors,
                 PixelConversionModifiers modifiers)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
 
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 Span<Vector4> sourceVectors,
                 Span<TPixel> destPixels,
                 PixelConversionModifiers modifiers)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 ApplyBackwardConversionModifiers(sourceVectors, modifiers);
 
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 ReadOnlySpan<TPixel> sourcePixels,
                 Span<Vector4> destVectors,
                 PixelConversionModifiers modifiers)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 if (modifiers.IsDefined(PixelConversionModifiers.Scale))
                 {
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             private static void UnsafeFromVector4Core<TPixel>(
                 ReadOnlySpan<Vector4> sourceVectors,
                 Span<TPixel> destPixels)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
                 ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             private static void UnsafeToVector4Core<TPixel>(
                 ReadOnlySpan<TPixel> sourcePixels,
                 Span<Vector4> destVectors)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
                 ref Vector4 destRef = ref MemoryMarshal.GetReference(destVectors);
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             private static void UnsafeFromScaledVector4Core<TPixel>(
                 ReadOnlySpan<Vector4> sourceVectors,
                 Span<TPixel> destinationColors)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
                 ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             private static void UnsafeToScaledVector4Core<TPixel>(
                 ReadOnlySpan<TPixel> sourceColors,
                 Span<Vector4> destinationVectors)
-                where TPixel : struct, IPixel<TPixel>
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
                 ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);

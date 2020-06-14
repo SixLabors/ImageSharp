@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
@@ -1356,9 +1356,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         SerialNumber = 0xA431,
 
         /// <summary>
-        /// LensInfo
+        /// LensSpecification
         /// </summary>
-        LensInfo = 0xA432,
+        LensSpecification = 0xA432,
 
         /// <summary>
         /// LensMake

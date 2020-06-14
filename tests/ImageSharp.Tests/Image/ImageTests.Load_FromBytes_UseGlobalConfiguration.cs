@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -16,14 +16,14 @@ namespace SixLabors.ImageSharp.Tests
         public class Load_FromBytes_UseGlobalConfiguration
         {
             private static byte[] ByteArray { get; } = TestFile.Create(TestImages.Bmp.Bit8).Bytes;
-            
+
             private static Span<byte> ByteSpan => new Span<byte>(ByteArray);
 
             private static void VerifyDecodedImage(Image img)
             {
                 Assert.Equal(new Size(127, 64), img.Size());
             }
-            
+
             [Theory]
             [InlineData(false)]
             [InlineData(true)]
@@ -45,7 +45,6 @@ namespace SixLabors.ImageSharp.Tests
                     VerifyDecodedImage(img);
                 }
             }
-
 
             [Theory]
             [InlineData(false)]
@@ -81,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests
                     Assert.IsType<BmpFormat>(format);
                 }
             }
-            
+
             [Theory]
             [InlineData(false)]
             [InlineData(true)]

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     public partial class PixelOperations<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Gets the global <see cref="PixelOperations{TPixel}"/> instance for the pixel type <typeparamref name="TPixel"/>
@@ -32,17 +32,17 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </remarks>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
+        /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination colors.</param>
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the conversion</param>
         public virtual void FromVector4Destructive(
             Configuration configuration,
             Span<Vector4> sourceVectors,
-            Span<TPixel> destPixels,
+            Span<TPixel> destinationPixels,
             PixelConversionModifiers modifiers)
         {
             Guard.NotNull(configuration, nameof(configuration));
 
-            Utils.Vector4Converters.Default.FromVector4(sourceVectors, destPixels, modifiers);
+            Utils.Vector4Converters.Default.FromVector4(sourceVectors, destinationPixels, modifiers);
         }
 
         /// <summary>
@@ -55,29 +55,29 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </remarks>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
-        /// <param name="destPixels">The <see cref="Span{T}"/> to the destination colors.</param>
+        /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination colors.</param>
         public void FromVector4Destructive(
             Configuration configuration,
             Span<Vector4> sourceVectors,
-            Span<TPixel> destPixels)
-            => this.FromVector4Destructive(configuration, sourceVectors, destPixels, PixelConversionModifiers.None);
+            Span<TPixel> destinationPixels)
+            => this.FromVector4Destructive(configuration, sourceVectors, destinationPixels, PixelConversionModifiers.None);
 
         /// <summary>
         /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
+        /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
         /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the conversion</param>
         public virtual void ToVector4(
             Configuration configuration,
             ReadOnlySpan<TPixel> sourcePixels,
-            Span<Vector4> destVectors,
+            Span<Vector4> destinationVectors,
             PixelConversionModifiers modifiers)
         {
             Guard.NotNull(configuration, nameof(configuration));
 
-            Utils.Vector4Converters.Default.ToVector4(sourcePixels, destVectors, modifiers);
+            Utils.Vector4Converters.Default.ToVector4(sourcePixels, destinationVectors, modifiers);
         }
 
         /// <summary>
@@ -85,18 +85,26 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
         /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source colors.</param>
-        /// <param name="destVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
+        /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
         public void ToVector4(
             Configuration configuration,
             ReadOnlySpan<TPixel> sourcePixels,
-            Span<Vector4> destVectors)
-            => this.ToVector4(configuration, sourcePixels, destVectors, PixelConversionModifiers.None);
+            Span<Vector4> destinationVectors)
+            => this.ToVector4(configuration, sourcePixels, destinationVectors, PixelConversionModifiers.None);
 
-        internal virtual void From<TSourcePixel>(
+        /// <summary>
+        /// Bulk operation that copies the <paramref name="sourcePixels"/> to <paramref name="destinationPixels"/> in
+        /// <typeparamref name="TSourcePixel"/> format.
+        /// </summary>
+        /// <typeparam name="TSourcePixel">The destination pixel type.</typeparam>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
+        /// <param name="sourcePixels">The <see cref="ReadOnlySpan{TSourcePixel}"/> to the source pixels.</param>
+        /// <param name="destinationPixels">The <see cref="Span{TPixel}"/> to the destination pixels.</param>
+        public virtual void From<TSourcePixel>(
             Configuration configuration,
             ReadOnlySpan<TSourcePixel> sourcePixels,
             Span<TPixel> destinationPixels)
-            where TSourcePixel : struct, IPixel<TSourcePixel>
+            where TSourcePixel : unmanaged, IPixel<TSourcePixel>
         {
             const int SliceLength = 1024;
             int numberOfSlices = sourcePixels.Length / SliceLength;
@@ -126,17 +134,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Converts 'sourcePixels.Length' pixels from 'sourcePixels' into 'destinationPixels'.
+        /// Bulk operation that copies the <paramref name="sourcePixels"/> to <paramref name="destinationPixels"/> in
+        /// <typeparamref name="TDestinationPixel"/> format.
         /// </summary>
         /// <typeparam name="TDestinationPixel">The destination pixel type.</typeparam>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
-        /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-        /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-        internal virtual void To<TDestinationPixel>(
+        /// <param name="sourcePixels">The <see cref="ReadOnlySpan{TPixel}"/> to the source pixels.</param>
+        /// <param name="destinationPixels">The <see cref="Span{TDestinationPixel}"/> to the destination pixels.</param>
+        public virtual void To<TDestinationPixel>(
             Configuration configuration,
             ReadOnlySpan<TPixel> sourcePixels,
             Span<TDestinationPixel> destinationPixels)
-            where TDestinationPixel : struct, IPixel<TDestinationPixel>
+            where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));

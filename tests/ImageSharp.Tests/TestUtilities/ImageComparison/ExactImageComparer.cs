@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Advanced;
@@ -21,12 +24,11 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
             int width = actual.Width;
 
             // TODO: Comparing through Rgba64 may not be robust enough because of the existence of super high precision pixel types.
-
             var aBuffer = new Rgba64[width];
             var bBuffer = new Rgba64[width];
 
             var differences = new List<PixelDifference>();
-            Configuration configuration = expected.Configuration;
+            Configuration configuration = expected.GetConfiguration();
 
             for (int y = 0; y < actual.Height; y++)
             {

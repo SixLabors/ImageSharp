@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -57,8 +57,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// by making a copy from another EXIF profile.
         /// </summary>
         /// <param name="other">The other EXIF profile, where the clone should be made from.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is null.</exception>>
         private ExifProfile(ExifProfile other)
         {
+            Guard.NotNull(other, nameof(other));
+
             this.Parts = other.Parts;
             this.thumbnailLength = other.thumbnailLength;
             this.thumbnailOffset = other.thumbnailOffset;
@@ -114,7 +117,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// The <see cref="Image{TPixel}"/>.
         /// </returns>
         public Image<TPixel> CreateThumbnail<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.InitializeValues();
 

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class EdgeDetector2DProcessor<TPixel> : ImageProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EdgeDetector2DProcessor{TPixel}"/> class.
@@ -52,6 +52,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc/>
         protected override void BeforeImageApply()
         {
+            using (IImageProcessor<TPixel> opaque = new OpaqueProcessor<TPixel>(this.Configuration, this.Source, this.SourceRectangle))
+            {
+                opaque.Execute();
+            }
+
             if (this.Grayscale)
             {
                 new GrayscaleBt709Processor(1F).Execute(this.Configuration, this.Source, this.SourceRectangle);
@@ -63,10 +68,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc />
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            using (var processor = new Convolution2DProcessor<TPixel>(this.Configuration, this.KernelX, this.KernelY, true, this.Source, this.SourceRectangle))
-            {
-                processor.Apply(source);
-            }
+            using var processor = new Convolution2DProcessor<TPixel>(this.Configuration, this.KernelX, this.KernelY, true, this.Source, this.SourceRectangle);
+
+            processor.Apply(source);
         }
     }
 }

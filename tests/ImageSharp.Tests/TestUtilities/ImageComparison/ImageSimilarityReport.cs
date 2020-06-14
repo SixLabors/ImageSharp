@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -63,6 +66,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
                 sb.AppendLine();
                 sb.AppendLine($"Total difference: {this.DifferencePercentageString}");
             }
+
             int max = Math.Min(5, this.Differences.Length);
 
             for (int i = 0; i < max; i++)
@@ -73,17 +77,19 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
                     sb.AppendFormat(";{0}", Environment.NewLine);
                 }
             }
+
             if (this.Differences.Length >= 5)
             {
                 sb.Append("...");
             }
+
             return sb.ToString();
         }
     }
 
     public class ImageSimilarityReport<TPixelA, TPixelB> : ImageSimilarityReport
-        where TPixelA : struct, IPixel<TPixelA>
-        where TPixelB : struct, IPixel<TPixelB>
+        where TPixelA : unmanaged, IPixel<TPixelA>
+        where TPixelB : unmanaged, IPixel<TPixelB>
     {
         public ImageSimilarityReport(
             ImageFrame<TPixelA> expectedImage,

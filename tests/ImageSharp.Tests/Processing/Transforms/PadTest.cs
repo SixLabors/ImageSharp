@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing;
@@ -20,8 +20,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             this.operations.Pad(width, height);
             ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
-            Assert.Equal(width, resizeProcessor.TargetWidth);
-            Assert.Equal(height, resizeProcessor.TargetHeight);
+            Assert.Equal(width, resizeProcessor.DestinationWidth);
+            Assert.Equal(height, resizeProcessor.DestinationHeight);
             Assert.Equal(sampler, resizeProcessor.Sampler);
         }
     }

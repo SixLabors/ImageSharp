@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             buffer[0] = GifConstants.ApplicationBlockSize;
 
             // Write NETSCAPE2.0
-            GifConstants.NetscapeApplicationIdentificationBytes.AsSpan().CopyTo(buffer.Slice(1, 11));
+            GifConstants.NetscapeApplicationIdentificationBytes.CopyTo(buffer.Slice(1, 11));
 
             // Application Data ----
             buffer[12] = 3; // Application block length (always 3)

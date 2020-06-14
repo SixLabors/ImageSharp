@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -23,32 +23,32 @@ namespace SixLabors.ImageSharp.PixelFormats
             public override void ToVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,
-                Span<Vector4> destVectors,
+                Span<Vector4> destinationVectors,
                 PixelConversionModifiers modifiers)
             {
-                Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
 
-                destVectors = destVectors.Slice(0, sourcePixels.Length);
-                SimdUtils.BulkConvertByteToNormalizedFloat(
+                destinationVectors = destinationVectors.Slice(0, sourcePixels.Length);
+                SimdUtils.ByteToNormalizedFloat(
                     MemoryMarshal.Cast<Rgba32, byte>(sourcePixels),
-                    MemoryMarshal.Cast<Vector4, float>(destVectors));
-                Vector4Converters.ApplyForwardConversionModifiers(destVectors, modifiers);
+                    MemoryMarshal.Cast<Vector4, float>(destinationVectors));
+                Vector4Converters.ApplyForwardConversionModifiers(destinationVectors, modifiers);
             }
 
             /// <inheritdoc />
             public override void FromVector4Destructive(
                 Configuration configuration,
                 Span<Vector4> sourceVectors,
-                Span<Rgba32> destPixels,
+                Span<Rgba32> destinationPixels,
                 PixelConversionModifiers modifiers)
             {
-                Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
+                Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
 
-                destPixels = destPixels.Slice(0, sourceVectors.Length);
+                destinationPixels = destinationPixels.Slice(0, sourceVectors.Length);
                 Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers);
-                SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(
+                SimdUtils.NormalizedFloatToByteSaturate(
                     MemoryMarshal.Cast<Vector4, float>(sourceVectors),
-                    MemoryMarshal.Cast<Rgba32, byte>(destPixels));
+                    MemoryMarshal.Cast<Rgba32, byte>(destinationPixels));
             }
         }
     }

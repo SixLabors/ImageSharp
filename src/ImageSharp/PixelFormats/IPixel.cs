@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     /// <typeparam name="TSelf">The type implementing this interface</typeparam>
     public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
-        where TSelf : struct, IPixel<TSelf>
+        where TSelf : unmanaged, IPixel<TSelf>
     {
         /// <summary>
         /// Creates a <see cref="PixelOperations{TPixel}"/> instance for this pixel type.

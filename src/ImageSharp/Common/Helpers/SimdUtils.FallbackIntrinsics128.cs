@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -19,10 +19,10 @@ namespace SixLabors.ImageSharp
         public static class FallbackIntrinsics128
         {
             /// <summary>
-            /// <see cref="BulkConvertByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
+            /// <see cref="ByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void BulkConvertByteToNormalizedFloatReduce(
+            internal static void ByteToNormalizedFloatReduce(
                 ref ReadOnlySpan<byte> source,
                 ref Span<float> dest)
             {
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp
 
                 if (adjustedCount > 0)
                 {
-                    BulkConvertByteToNormalizedFloat(
+                    ByteToNormalizedFloat(
                         source.Slice(0, adjustedCount),
                         dest.Slice(0, adjustedCount));
 
@@ -43,10 +43,10 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// <see cref="BulkConvertNormalizedFloatToByteClampOverflows"/> as many elements as possible, slicing them down (keeping the remainder).
+            /// <see cref="NormalizedFloatToByteSaturate"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void BulkConvertNormalizedFloatToByteClampOverflowsReduce(
+            internal static void NormalizedFloatToByteSaturateReduce(
                 ref ReadOnlySpan<float> source,
                 ref Span<byte> dest)
             {
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp
 
                 if (adjustedCount > 0)
                 {
-                    BulkConvertNormalizedFloatToByteClampOverflows(
+                    NormalizedFloatToByteSaturate(
                         source.Slice(0, adjustedCount),
                         dest.Slice(0, adjustedCount));
 
@@ -67,10 +67,10 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// Implementation of <see cref="SimdUtils.BulkConvertByteToNormalizedFloat"/> using <see cref="Vector4"/>.
+            /// Implementation of <see cref="SimdUtils.ByteToNormalizedFloat"/> using <see cref="Vector4"/>.
             /// </summary>
             [MethodImpl(InliningOptions.ColdPath)]
-            internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
+            internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
                 VerifySpanInput(source, dest, 4);
 
@@ -99,10 +99,10 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// Implementation of <see cref="SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows"/> using <see cref="Vector4"/>.
+            /// Implementation of <see cref="SimdUtils.NormalizedFloatToByteSaturate"/> using <see cref="Vector4"/>.
             /// </summary>
             [MethodImpl(InliningOptions.ColdPath)]
-            internal static void BulkConvertNormalizedFloatToByteClampOverflows(
+            internal static void NormalizedFloatToByteSaturate(
                 ReadOnlySpan<float> source,
                 Span<byte> dest)
             {
@@ -125,10 +125,7 @@ namespace SixLabors.ImageSharp
                     Vector4 s = Unsafe.Add(ref sBase, i);
                     s *= maxBytes;
                     s += half;
-
-                    // I'm not sure if Vector4.Clamp() is properly implemented with intrinsics.
-                    s = Vector4.Max(Vector4.Zero, s);
-                    s = Vector4.Min(maxBytes, s);
+                    s = Vector4Utilities.FastClamp(s, Vector4.Zero, maxBytes);
 
                     ref ByteVector4 d = ref Unsafe.Add(ref dBase, i);
                     d.X = (byte)s.X;

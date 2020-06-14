@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tuples
         /// Downscale method, specific to Jpeg color conversion. Works only if Vector{float}.Count == 4!        /// TODO: Move it somewhere else.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RoundAndDownscalePreAvx2(float downscaleFactor)
+        internal void RoundAndDownscalePreVector8(float downscaleFactor)
         {
             ref Vector<float> a = ref Unsafe.As<Vector4, Vector<float>>(ref this.A);
             a = a.FastRound();
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tuples
         /// TODO: Move it somewhere else.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RoundAndDownscaleAvx2(float downscaleFactor)
+        internal void RoundAndDownscaleVector8(float downscaleFactor)
         {
             ref Vector<float> self = ref Unsafe.As<Vector4Pair, Vector<float>>(ref this);
             Vector<float> v = self;

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Provides access to pixel blenders
     /// </content>
     public partial class PixelOperations<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
         /// Find an instance of the pixel blender.

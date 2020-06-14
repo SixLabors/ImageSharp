@@ -1,7 +1,10 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -23,11 +26,45 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public FrameDecodingMode DecodingMode { get; set; } = FrameDecodingMode.All;
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        public async Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new GifDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(stream);
+
+            try
+            {
+                return await decoder.DecodeAsync<TPixel>(stream).ConfigureAwait(false);
+            }
+            catch (InvalidMemoryOperationException ex)
+            {
+                Size dims = decoder.Dimensions;
+
+                GifThrowHelper.ThrowInvalidImageContentException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
+
+                // Not reachable, as the previous statement will throw a exception.
+                return null;
+            }
+        }
+
+        /// <inheritdoc/>
+        public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var decoder = new GifDecoderCore(configuration, this);
+
+            try
+            {
+                return decoder.Decode<TPixel>(stream);
+            }
+            catch (InvalidMemoryOperationException ex)
+            {
+                Size dims = decoder.Dimensions;
+
+                GifThrowHelper.ThrowInvalidImageContentException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
+
+                // Not reachable, as the previous statement will throw a exception.
+                return null;
+            }
         }
 
         /// <inheritdoc/>
@@ -39,7 +76,19 @@ namespace SixLabors.ImageSharp.Formats.Gif
             return decoder.Identify(stream);
         }
 
+        /// <inheritdoc/>
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+        {
+            Guard.NotNull(stream, nameof(stream));
+
+            var decoder = new GifDecoderCore(configuration, this);
+            return decoder.IdentifyAsync(stream);
+        }
+
         /// <inheritdoc />
         public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
+
+        /// <inheritdoc />
+        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream) => await this.DecodeAsync<Rgba32>(configuration, stream).ConfigureAwait(false);
     }
 }

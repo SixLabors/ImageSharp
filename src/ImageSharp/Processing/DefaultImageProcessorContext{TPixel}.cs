@@ -1,6 +1,7 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors;
 
@@ -11,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing
     /// </summary>
     /// <typeparam name="TPixel">The pixel format</typeparam>
     internal class DefaultImageProcessorContext<TPixel> : IInternalImageProcessingContext<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly bool mutate;
         private readonly Image<TPixel> source;
@@ -38,6 +39,9 @@ namespace SixLabors.ImageSharp.Processing
 
         /// <inheritdoc/>
         public Configuration Configuration { get; }
+
+        /// <inheritdoc/>
+        public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
 
         /// <inheritdoc/>
         public Image<TPixel> GetResultImage()

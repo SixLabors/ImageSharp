@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -57,8 +57,7 @@ namespace SixLabors.ImageSharp.Tests
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
                 new TgaConfigurationModule(),
-                new TiffConfigurationModule()
-            );
+                new TiffConfigurationModule());
 
             // Magick codecs should work on all platforms
             IImageEncoder pngEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Png : new PngEncoder();

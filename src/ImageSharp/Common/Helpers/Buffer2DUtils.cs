@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp
             int maxRow,
             int minColumn,
             int maxColumn)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ComplexVector4 vector = default;
             int kernelLength = kernel.Length;

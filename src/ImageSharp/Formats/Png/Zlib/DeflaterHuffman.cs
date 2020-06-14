@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -36,17 +36,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
         private const int EofSymbol = 256;
 
-        // The lengths of the bit length codes are sent in order of decreasing
-        // probability, to avoid transmitting the lengths for unused bit length codes.
-        private static readonly int[] BitLengthOrder = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
-
-        private static readonly byte[] Bit4Reverse = { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
-
-        private static readonly short[] StaticLCodes;
-        private static readonly byte[] StaticLLength;
-        private static readonly short[] StaticDCodes;
-        private static readonly byte[] StaticDLength;
-
         private Tree literalTree;
         private Tree distTree;
         private Tree blTree;
@@ -63,49 +52,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         private int lastLiteral;
         private int extraBits;
         private bool isDisposed;
-
-        // TODO: These should be pre-generated array/readonlyspans.
-        static DeflaterHuffman()
-        {
-            // See RFC 1951 3.2.6
-            // Literal codes
-            StaticLCodes = new short[LiteralNumber];
-            StaticLLength = new byte[LiteralNumber];
-
-            int i = 0;
-            while (i < 144)
-            {
-                StaticLCodes[i] = BitReverse((0x030 + i) << 8);
-                StaticLLength[i++] = 8;
-            }
-
-            while (i < 256)
-            {
-                StaticLCodes[i] = BitReverse((0x190 - 144 + i) << 7);
-                StaticLLength[i++] = 9;
-            }
-
-            while (i < 280)
-            {
-                StaticLCodes[i] = BitReverse((0x000 - 256 + i) << 9);
-                StaticLLength[i++] = 7;
-            }
-
-            while (i < LiteralNumber)
-            {
-                StaticLCodes[i] = BitReverse((0x0c0 - 280 + i) << 8);
-                StaticLLength[i++] = 8;
-            }
-
-            // Distance codes
-            StaticDCodes = new short[DistanceNumber];
-            StaticDLength = new byte[DistanceNumber];
-            for (i = 0; i < DistanceNumber; i++)
-            {
-                StaticDCodes[i] = BitReverse(i << 11);
-                StaticDLength[i] = 5;
-            }
-        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DeflaterHuffman"/> class.
@@ -127,6 +73,81 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.literalBufferHandle = this.literalManagedBuffer.Memory.Pin();
             this.pinnedLiteralBuffer = (short*)this.literalBufferHandle.Pointer;
         }
+
+#pragma warning disable SA1201 // Elements should appear in the correct order
+
+        // See RFC 1951 3.2.6
+        // Literal codes
+        private static readonly short[] StaticLCodes = new short[]
+        {
+            12, 140, 76, 204, 44, 172, 108, 236, 28, 156, 92, 220, 60, 188, 124, 252,
+            2, 130, 66, 194, 34, 162, 98, 226, 18, 146, 82, 210, 50, 178, 114, 242,
+            10, 138, 74, 202, 42, 170, 106, 234, 26, 154, 90, 218, 58, 186, 122, 250,
+            6, 134, 70, 198, 38, 166, 102, 230, 22, 150, 86, 214, 54, 182, 118, 246,
+            14, 142, 78, 206, 46, 174, 110, 238, 30, 158, 94, 222, 62, 190, 126, 254,
+            1, 129, 65, 193, 33, 161, 97, 225, 17, 145, 81, 209, 49, 177, 113, 241, 9,
+            137, 73, 201, 41, 169, 105, 233, 25, 153, 89, 217, 57, 185, 121, 249, 5,
+            133, 69, 197, 37, 165, 101, 229, 21, 149, 85, 213, 53, 181, 117, 245, 13,
+            141, 77, 205, 45, 173, 109, 237, 29, 157, 93, 221, 61, 189, 125, 253, 19,
+            275, 147, 403, 83, 339, 211, 467, 51, 307, 179, 435, 115, 371, 243, 499,
+            11, 267, 139, 395, 75, 331, 203, 459, 43, 299, 171, 427, 107, 363, 235, 491,
+            27, 283, 155, 411, 91, 347, 219, 475, 59, 315, 187, 443, 123, 379, 251, 507,
+            7, 263, 135, 391, 71, 327, 199, 455, 39, 295, 167, 423, 103, 359, 231, 487,
+            23, 279, 151, 407, 87, 343, 215, 471, 55, 311, 183, 439, 119, 375, 247, 503,
+            15, 271, 143, 399, 79, 335, 207, 463, 47, 303, 175, 431, 111, 367, 239, 495,
+            31, 287, 159, 415, 95, 351, 223, 479, 63, 319, 191, 447, 127, 383, 255, 511,
+            0, 64, 32, 96, 16, 80, 48, 112, 8, 72, 40, 104, 24, 88, 56, 120, 4, 68, 36,
+            100, 20, 84, 52, 116, 3, 131, 67, 195, 35, 163
+        };
+
+        private static ReadOnlySpan<byte> StaticLLength => new byte[]
+        {
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+            9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8
+        };
+
+        // Distance codes and lengths.
+        private static readonly short[] StaticDCodes = new short[]
+        {
+            0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14,
+            30, 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23
+        };
+
+        private static ReadOnlySpan<byte> StaticDLength => new byte[]
+        {
+            5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+            5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5
+        };
+#pragma warning restore SA1201 // Elements should appear in the correct order
+
+        /// <summary>
+        /// Gets the lengths of the bit length codes are sent in order of decreasing probability, to avoid transmitting the lengths for unused bit length codes.
+        /// </summary>
+        private static ReadOnlySpan<byte> BitLengthOrder => new byte[]
+        {
+            16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
+        };
+
+        private static ReadOnlySpan<byte> Bit4Reverse => new byte[]
+        {
+            0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15
+        };
 
         /// <summary>
         /// Gets the pending buffer to use.
@@ -158,6 +179,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.Pending.WriteBits(this.literalTree.NumCodes - 257, 5);
             this.Pending.WriteBits(this.distTree.NumCodes - 1, 5);
             this.Pending.WriteBits(blTreeCodes - 4, 4);
+
             for (int rank = 0; rank < blTreeCodes; rank++)
             {
                 this.Pending.WriteBits(this.blTree.Length[BitLengthOrder[rank]], 3);
@@ -250,6 +272,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             this.blTree.BuildTree();
 
             int blTreeCodes = 4;
+
             for (int i = 18; i > blTreeCodes; i--)
             {
                 if (this.blTree.Length[BitLengthOrder[i]] > 0)
@@ -363,10 +386,30 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         [MethodImpl(InliningOptions.ShortMethod)]
         public static short BitReverse(int toReverse)
         {
-            return (short)(Bit4Reverse[toReverse & 0xF] << 12
-                           | Bit4Reverse[(toReverse >> 4) & 0xF] << 8
-                           | Bit4Reverse[(toReverse >> 8) & 0xF] << 4
-                           | Bit4Reverse[toReverse >> 12]);
+            /* Use unsafe offsetting and manually validate the input index to reduce the
+             * total number of conditional branches. There are two main cases to test here:
+             *   1. In the first 3, the input value (or some combination of it) is combined
+             *      with & 0xF, which results in a maximum value of 0xF no matter what the
+             *      input value was. That is 15, which is always in range for the target span.
+             *      As a result, no input validation is needed at all in this case.
+             *   2. There are two cases where the input value might cause an invalid access:
+             *      when it is either negative, or greater than 15 << 12. We can test both
+             *      conditions in a single pass by casting the input value to uint and right
+             *      shifting it by 12, which also preserves the sign. If it is a negative
+             *      value (2-complement), the test will fail as the uint cast will result
+             *      in a much larger value. If the value was simply too high, the test will
+             *      fail as expected. We can't simply check whether the value is lower than
+             *      15 << 12, because higher values are acceptable in the first 3 accesses.
+             * Doing this reduces the total number of index checks from 4 down to just 1. */
+            int toReverseRightShiftBy12 = toReverse >> 12;
+            Guard.MustBeLessThanOrEqualTo<uint>((uint)toReverseRightShiftBy12, 15, nameof(toReverse));
+
+            ref byte bit4ReverseRef = ref MemoryMarshal.GetReference(Bit4Reverse);
+
+            return (short)(Unsafe.Add(ref bit4ReverseRef, toReverse & 0xF) << 12
+                           | Unsafe.Add(ref bit4ReverseRef, (toReverse >> 4) & 0xF) << 8
+                           | Unsafe.Add(ref bit4ReverseRef, (toReverse >> 8) & 0xF) << 4
+                           | Unsafe.Add(ref bit4ReverseRef, toReverseRightShiftBy12));
         }
 
         /// <inheritdoc/>
@@ -390,8 +433,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 this.distTree = null;
                 this.isDisposed = true;
             }
-
-            GC.SuppressFinalize(this);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -530,6 +571,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 }
             }
 
+            [MethodImpl(InliningOptions.HotPath)]
             public void BuildTree()
             {
                 int numSymbols = this.elementCount;
@@ -941,8 +983,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
 
                     this.isDisposed = true;
                 }
-
-                GC.SuppressFinalize(this);
             }
         }
     }

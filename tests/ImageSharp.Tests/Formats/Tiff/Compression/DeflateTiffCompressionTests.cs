@@ -8,6 +8,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    /*
     [Trait("Category", "Tiff")]
     public class DeflateTiffCompressionTests
     {
@@ -42,5 +43,5 @@ namespace SixLabors.ImageSharp.Tests
             compressedStream.Seek(0, SeekOrigin.Begin);
             return compressedStream;
         }
-    }
+    } */
 }

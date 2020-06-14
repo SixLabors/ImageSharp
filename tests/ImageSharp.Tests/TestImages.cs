@@ -502,7 +502,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbJpeg = "Tiff/jpeg444_small_rgb_jpeg.tiff";
             public const string RgbLzw = "Tiff/jpeg444_small_rgb_lzw.tiff";
 
-            public const string MultiFrameRgb = "Tiff/multipage_tiff_example2.tif";
+            public const string MultiFrameRgb = "Tiff/multipage_tiff_example.tif";
 
             public static readonly string[] All = { GrayscaleUncompressed, PaletteUncompressed, RgbUncompressed, RgbPackbits, /*RgbDeflate,*/ RgbLzw };
 

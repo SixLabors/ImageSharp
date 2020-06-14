@@ -13,7 +13,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-#if DEBUG
     [Trait("Category", "Tiff_BlackBox")]
     public class TiffDecoderTests
     {
@@ -21,11 +20,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         public static readonly string[] MultiframeTestImages = TestImages.Tiff.Multiframe_MatchingSizes;
 
-
         [Theory]
         [WithFileCollection(nameof(SingleTestImages), PixelTypes.Rgba32)]
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
-          where TPixel : struct, IPixel<TPixel>
+          where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new TiffDecoder()))
             {
@@ -37,22 +35,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]
         public void DecodeMultiframe<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage(new TiffDecoder()))
             {
-                Assert.Equal(2, image.Frames.Count);
+                Assert.True(image.Frames.Count > 1);
 
                 image.DebugSave(provider);
                 image.CompareToOriginal(provider, ImageComparer.Exact);
 
-                /*
-                foreach (var frame in image.Frames)
-                {
-                    frame.DebugSave(provider);
-                    frame.CompareToOriginal(provider, ImageComparer.Exact);
-                }
-                */
+                image.DebugSaveMultiFrame(provider);
+                image.CompareToOriginalMultiFrame(provider, ImageComparer.Exact);
             }
         }
 
@@ -70,5 +63,4 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             }
         }
     }
-#endif
 }

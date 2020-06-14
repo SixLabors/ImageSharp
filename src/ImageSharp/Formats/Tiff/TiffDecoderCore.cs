@@ -106,15 +106,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The decoded image.</returns>
         public Image<TPixel> Decode<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var header = TiffHeader.Read(this.Stream);
             TiffIfd[] ifds = TiffFileFormatReader.ReadIfds(header, this.Stream);
 
             var frames = new List<ImageFrame<TPixel>>();
-            foreach (var ifd in ifds)
+            foreach (TiffIfd ifd in ifds)
             {
-                var frame = this.DecodeFrame<TPixel>(ifd);
+                ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd);
                 frames.Add(frame);
             }
 
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="ifd">The IFD to read the image from.</param>
         private ImageFrame<TPixel> DecodeFrame<TPixel>(TiffIfd ifd)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TiffIfdEntriesContainer entries = ifd.Entries;
             int width = (int)entries.Width;
@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
         /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
         private void DecodeImageStrips<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int stripsPerPixel = this.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? 1 : this.BitsPerSample.Length;
             int stripsPerPlane = stripOffsets.Length / stripsPerPixel;

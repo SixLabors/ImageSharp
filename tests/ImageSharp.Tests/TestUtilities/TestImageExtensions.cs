@@ -537,6 +537,16 @@ namespace SixLabors.ImageSharp.Tests
             return image;
         }
 
+        public static Image<TPixel> CompareToOriginalMultiFrame<TPixel>(
+        this Image<TPixel> image,
+        ITestImageProvider provider,
+        ImageComparer comparer,
+        IImageDecoder referenceDecoder = null)
+        where TPixel : unmanaged, IPixel<TPixel>
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Utility method for doing the following in one step:
         /// 1. Executing an operation (taken as a delegate)

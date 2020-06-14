@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     /// Implements the 'RGB' photometric interpretation (optimised for 8-bit full color images).
     /// </summary>
     internal class Rgb888TiffColor<TPixel> : TiffColorDecoder<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         public Rgb888TiffColor()
             : base(null, null)

@@ -1,9 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Text;
-using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -11,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     {
         public static object ReadValue(this TiffIfdEntry entry, TiffStream stream)
         {
-            DebugGuard.MustBeNull(entry.Value, "Value");
+            DebugGuard.IsTrue(entry.Value == null, nameof(entry.Value));
 
             switch (entry.Type)
             {

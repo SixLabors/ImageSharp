@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     /// Implements the 'BlackIsZero' photometric interpretation (optimised for 4-bit grayscale images).
     /// </summary>
     internal class BlackIsZero4TiffColor<TPixel> : TiffColorDecoder<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         public BlackIsZero4TiffColor()
               : base(null, null)

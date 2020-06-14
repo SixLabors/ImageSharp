@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests
 
             using (Image<Rgba32> image = new Image<Rgba32>(resultWidth, resultHeight))
             {
-                image.Mutate(x => x.Fill(DefaultColor));
+                image.Mutate(x => x.BackgroundColor(DefaultColor));
                 Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
 
                 decodeAction(pixels);
@@ -57,7 +57,8 @@ namespace SixLabors.ImageSharp.Tests
                 {
                     for (int x = 0; x < resultWidth; x++)
                     {
-                        Assert.True(expectedResult[y][x] == pixels[x, y],
+                        Assert.True(
+                            expectedResult[y][x] == pixels[x, y],
                             $"Pixel ({x}, {y}) should be {expectedResult[y][x]} but was {pixels[x, y]}");
                     }
                 }

@@ -8,7 +8,7 @@ using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 
 using CoreImage = SixLabors.ImageSharp.Image;
-using CoreSize = SixLabors.Primitives.Size;
+using CoreSize = SixLabors.ImageSharp.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {

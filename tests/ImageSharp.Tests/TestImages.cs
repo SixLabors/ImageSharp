@@ -490,7 +490,6 @@ namespace SixLabors.ImageSharp.Tests
             public const string NoAlphaBits32Bit = "Tga/32bit_no_alphabits.tga";
             public const string NoAlphaBits32BitRle = "Tga/32bit_rle_no_alphabits.tga";
         }
-    }
 
         public static class Tiff
         {
@@ -503,7 +502,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbJpeg = "Tiff/jpeg444_small_rgb_jpeg.tiff";
             public const string RgbLzw = "Tiff/jpeg444_small_rgb_lzw.tiff";
 
-            public const string MultiFrameRgb = "Tiff/multipage_test.tif";
+            public const string MultiFrameRgb = "Tiff/multipage_tiff_example2.tif";
 
             public static readonly string[] All = { GrayscaleUncompressed, PaletteUncompressed, RgbUncompressed, RgbPackbits, /*RgbDeflate,*/ RgbLzw };
 

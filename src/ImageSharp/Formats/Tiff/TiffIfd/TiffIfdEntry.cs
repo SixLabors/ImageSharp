@@ -118,7 +118,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
 
             (TiffTagId, uint) offset = stream.Context.ExtOffsets.First(t => t.Item1 == this.TagId);
-            DebugGuard.MustBeNull(this.Value, "Value");
+            DebugGuard.IsTrue(this.Value == null, nameof(this.Value));
             DebugGuard.MustBeGreaterThanOrEqualTo(offset.Item2, (uint)TiffConstants.SizeOfTiffHeader, nameof(offset));
 
             stream.Context.ExtOffsets.Remove(offset);

@@ -4,7 +4,6 @@
 using System;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {

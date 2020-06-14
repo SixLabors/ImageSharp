@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests

@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -41,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
@@ -134,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="ifdOffset">The marker to write this IFD offset.</param>
         /// <returns>The marker to write the next IFD offset (if present).</returns>
         public long WriteImage<TPixel>(TiffWriter writer, Image<TPixel> image, long ifdOffset)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             List<TiffIfdEntry> ifdEntries = new List<TiffIfdEntry>();
 
@@ -154,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="ifdEntries">The metadata entries to add to the IFD.</param>
         public void AddMetadata<TPixel>(Image<TPixel> image, List<TiffIfdEntry> ifdEntries)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ifdEntries.AddUnsignedRational(TiffTagId.XResolution, new Rational(image.Metadata.HorizontalResolution));
             ifdEntries.AddUnsignedRational(TiffTagId.YResolution, new Rational(image.Metadata.VerticalResolution));
@@ -223,7 +222,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="ifdEntries">The image format entries to add to the IFD.</param>
         public void AddImageFormat<TPixel>(Image<TPixel> image, List<TiffIfdEntry> ifdEntries)
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             throw new NotImplementedException();
         }

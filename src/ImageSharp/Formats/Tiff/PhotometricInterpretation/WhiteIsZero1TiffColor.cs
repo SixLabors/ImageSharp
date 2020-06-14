@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     /// Implements the 'WhiteIsZero' photometric interpretation (optimised for bilevel images).
     /// </summary>
     internal class WhiteIsZero1TiffColor<TPixel> : TiffColorDecoder<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         public WhiteIsZero1TiffColor()
             : base(null, null)

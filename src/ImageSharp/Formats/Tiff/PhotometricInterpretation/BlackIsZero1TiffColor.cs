@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class BlackIsZero1TiffColor<TPixel> : TiffColorDecoder<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         public BlackIsZero1TiffColor()
             : base(null, null)

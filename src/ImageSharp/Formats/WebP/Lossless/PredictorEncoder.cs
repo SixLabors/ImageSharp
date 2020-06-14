@@ -325,7 +325,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                         // Update the source image.
                         currentRow[x] = LosslessUtils.AddPixels(predict, residual);
 
-                        // x is never 0 here so we do not need to update upper_row like below.
+                        // x is never 0 here so we do not need to update upperRow like below.
                     }
 
                     if ((currentRow[x] & MaskAlpha) == 0)
@@ -344,7 +344,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                         // in that row as its top-right context pixel. Hence if we change the
                         // leftmost pixel of current_row, the corresponding change must be
                         // applied
-                        // to upper_row as well where top-right context is being read from.
+                        // to upperRow as well where top-right context is being read from.
                         if (x == 0 && y != 0)
                         {
                             upperRow[width] = currentRow[0];

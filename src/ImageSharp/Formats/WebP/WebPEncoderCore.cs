@@ -5,8 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.WebP.BitWriter;
 using SixLabors.ImageSharp.Formats.WebP.Lossless;
 using SixLabors.ImageSharp.Memory;
@@ -211,11 +211,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void EncodeImage(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, int quality, bool useCache, int cacheBits, int histogramBits, int initBytePosition)
         {
-            int lz77sTypesToTrySize = 1; // TODO: harcoded for now.
+            int lz77sTypesToTrySize = 1; // TODO: hardcoded for now.
             int[] lz77sTypesToTry = { 3 };
             int histogramImageXySize = LosslessUtils.SubSampleSize(width, histogramBits) * LosslessUtils.SubSampleSize(height, histogramBits);
-            short[] histogramSymbols = new short[histogramImageXySize];
+            var histogramSymbols = new short[histogramImageXySize];
             var huffTree = new HuffmanTree[3 * WebPConstants.CodeLengthCodes];
+            for (int i = 0; i < huffTree.Length; i++)
+            {
+                huffTree[i] = new HuffmanTree();
+            }
 
             if (useCache)
             {
@@ -256,6 +260,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 var histogramImageSize = histogramImage.Count;
                 var bitArraySize = 5 * histogramImageSize;
                 var huffmanCodes = new HuffmanTreeCode[bitArraySize];
+                for (int i = 0; i < huffmanCodes.Length; i++)
+                {
+                    huffmanCodes[i] = new HuffmanTreeCode();
+                }
 
                 GetHuffBitLengthsAndCodes(histogramImage, huffmanCodes);
 
@@ -306,6 +314,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
 
                 var tokens = new HuffmanTreeToken[maxTokens];
+                for (int i = 0; i < tokens.Length; i++)
+                {
+                    tokens[i] = new HuffmanTreeToken();
+                }
+
                 for (int i = 0; i < 5 * histogramImageSize; i++)
                 {
                     HuffmanTreeCode codes = huffmanCodes[i];
@@ -347,7 +360,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Applies the substract green transformation to the pixel data of the image.
         /// </summary>
-        /// <param name="enc">The VP8 Encoder.</param>
+        /// <param name="enc">The VP8L Encoder.</param>
         /// <param name="width">The width of the image.</param>
         /// <param name="height">The height of the image.</param>
         private void ApplySubtractGreen(Vp8LEncoder enc, int width, int height)
@@ -517,32 +530,29 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         private void StoreFullHuffmanCode(HuffmanTree[] huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode tree)
         {
-            int numTokens;
             int i;
-            byte[] codeLengthBitdepth = new byte[WebPConstants.CodeLengthCodes];
-            short[] codeLengthBitdepthSymbols = new short[WebPConstants.CodeLengthCodes];
+            var codeLengthBitDepth = new byte[WebPConstants.CodeLengthCodes];
+            var codeLengthBitDepthSymbols = new short[WebPConstants.CodeLengthCodes];
             var huffmanCode = new HuffmanTreeCode();
             huffmanCode.NumSymbols = WebPConstants.CodeLengthCodes;
-            huffmanCode.CodeLengths = codeLengthBitdepth;
-            huffmanCode.Codes = codeLengthBitdepthSymbols;
+            huffmanCode.CodeLengths = codeLengthBitDepth;
+            huffmanCode.Codes = codeLengthBitDepthSymbols;
 
             this.bitWriter.PutBits(0, 1);
-            numTokens = HuffmanUtils.CreateCompressedHuffmanTree(tree, tokens);
-            uint[] histogram = new uint[WebPConstants.CodeLengthCodes + 1];
-            bool[] bufRle = new bool[WebPConstants.CodeLengthCodes + 1];
+            var numTokens = HuffmanUtils.CreateCompressedHuffmanTree(tree, tokens);
+            var histogram = new uint[WebPConstants.CodeLengthCodes + 1];
+            var bufRle = new bool[WebPConstants.CodeLengthCodes + 1];
             for (i = 0; i < numTokens; i++)
             {
                 histogram[tokens[i].Code]++;
             }
 
             HuffmanUtils.CreateHuffmanTree(histogram, 7, bufRle, huffTree, huffmanCode);
-            this.StoreHuffmanTreeOfHuffmanTreeToBitMask(codeLengthBitdepth);
+            this.StoreHuffmanTreeOfHuffmanTreeToBitMask(codeLengthBitDepth);
             ClearHuffmanTreeIfOnlyOneSymbol(huffmanCode);
 
             int trailingZeroBits = 0;
             int trimmedLength = numTokens;
-            bool writeTrimmedLength;
-            int length;
             i = numTokens;
             while (i-- > 0)
             {
@@ -550,7 +560,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 if (ix == 0 || ix == 17 || ix == 18)
                 {
                     trimmedLength--;   // discount trailing zeros.
-                    trailingZeroBits += codeLengthBitdepth[ix];
+                    trailingZeroBits += codeLengthBitDepth[ix];
                     if (ix == 17)
                     {
                         trailingZeroBits += 3;
@@ -566,8 +576,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 }
             }
 
-            writeTrimmedLength = trimmedLength > 1 && trailingZeroBits > 12;
-            length = writeTrimmedLength ? trimmedLength : numTokens;
+            var writeTrimmedLength = trimmedLength > 1 && trailingZeroBits > 12;
+            var length = writeTrimmedLength ? trimmedLength : numTokens;
             this.bitWriter.PutBits((uint)(writeTrimmedLength ? 1 : 0), 1);
             if (writeTrimmedLength)
             {

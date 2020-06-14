@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats.WebP.Lossy;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
@@ -43,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// <summary>
         /// We want the max value to be attainable and stored in MaxLengthBits bits.
         /// </summary>
-        private const int MaxLength = (1 << MaxLengthBits) - 1;
+        public const int MaxLength = (1 << MaxLengthBits) - 1;
 
         /// <summary>
         /// Minimum number of pixels for which it is cheaper to encode a
@@ -51,6 +52,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         private const int MinLength = 4;
 
+        // TODO: move to Hashchain?
         public static void HashChainFill(Vp8LHashChain p, Span<uint> bgra, int quality, int xSize, int ySize)
         {
             int size = xSize * ySize;
@@ -230,7 +232,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         /// <summary>
         /// Evaluates best possible backward references for specified quality.
-        /// The input cache_bits to 'VP8LGetBackwardReferences' sets the maximum cache
+        /// The input cacheBits to 'GetBackwardReferences' sets the maximum cache
         /// bits to use (passing 0 implies disabling the local color cache).
         /// The optimal cache bits is evaluated and set for the cacheBits parameter.
         /// The return value is the pointer to the best of the two backward refs viz,
@@ -313,6 +315,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// The input bestCacheBits sets the maximum cache bits to use (passing 0 implies disabling the local color cache).
         /// The local color cache is also disabled for the lower (smaller then 25) quality.
         /// </summary>
+        /// <returns>Best cache size.</returns>
         private static int CalculateBestCacheSize(Span<uint> bgra, int quality, Vp8LBackwardRefs refs, int bestCacheBits)
         {
             int cacheBitsMax = (quality <= 25) ? 0 : bestCacheBits;
@@ -328,7 +331,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             var histos = new Vp8LHistogram[WebPConstants.MaxColorCacheBits + 1];
             for (int i = 0; i < WebPConstants.MaxColorCacheBits + 1; i++)
             {
-                histos[i] = new Vp8LHistogram();
+                histos[i] = new Vp8LHistogram(bestCacheBits);
                 colorCache[i] = new ColorCache();
                 colorCache[i].Init(i);
             }
@@ -419,19 +422,210 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         {
             int distArraySize = xSize * ySize;
             var distArray = new short[distArraySize];
-            short[] chosenPath;
-            int chosenPathSize = 0;
 
-            // TODO: implement this
-            // BackwardReferencesHashChainDistanceOnly(xSize, ySize, bgra, cacheBits, hashChain, refsSrc, distArray);
-            // TraceBackwards(distArray, distArraySize, chosenPath, chosenPathSize);
-            // BackwardReferencesHashChainFollowChosenPath(bgra, cacheBits, chosenPath, chosenPathSize, hashChain, refsDst);
+            BackwardReferencesHashChainDistanceOnly(xSize, ySize, bgra, cacheBits, hashChain, refsSrc, distArray);
+            int chosenPathSize = TraceBackwards(distArray, distArraySize);
+            Span<short> chosenPath = distArray.AsSpan(distArraySize - chosenPathSize);
+            BackwardReferencesHashChainFollowChosenPath(bgra, cacheBits, chosenPath, chosenPathSize, hashChain, refsDst);
+        }
+
+        private static void BackwardReferencesHashChainDistanceOnly(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refs, short[] distArray)
+        {
+            int pixCount = xSize * ySize;
+            bool useColorCache = cacheBits > 0;
+            var literalArraySize = WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + ((cacheBits > 0) ? (1 << cacheBits) : 0);
+            var costModel = new CostModel(literalArraySize);
+            int offsetPrev = -1;
+            int lenPrev = -1;
+            double offsetCost = -1;
+            int firstOffsetIsConstant = -1;  // initialized with 'impossible' value
+            int reach = 0;
+            var colorCache = new ColorCache();
+
+            if (useColorCache)
+            {
+                colorCache.Init(cacheBits);
+            }
+
+            costModel.Build(xSize, cacheBits, refs);
+            var costManager = new CostManager(distArray, pixCount, costModel);
+
+            // We loop one pixel at a time, but store all currently best points to
+            // non-processed locations from this point.
+            distArray[0] = 0;
+
+            // Add first pixel as literal.
+            AddSingleLiteralWithCostModel(bgra, colorCache, costModel, 0, useColorCache, 0.0f, costManager.Costs, distArray);
+
+            for (int i = 1; i < pixCount; i++)
+            {
+                float prevCost = costManager.Costs[i - 1];
+                int offset = hashChain.FindOffset(i);
+                int len = hashChain.FindLength(i);
+
+                // Try adding the pixel as a literal.
+                AddSingleLiteralWithCostModel(bgra, colorCache, costModel, i, useColorCache, prevCost, costManager.Costs, distArray);
+
+                // If we are dealing with a non-literal.
+                if (len >= 2)
+                {
+                    if (offset != offsetPrev)
+                    {
+                        int code = DistanceToPlaneCode(xSize, offset);
+                        offsetCost = costModel.GetDistanceCost(code);
+                        firstOffsetIsConstant = 1;
+                        costManager.PushInterval(prevCost + offsetCost, i, len);
+                    }
+                    else
+                    {
+                        // Instead of considering all contributions from a pixel i by calling:
+                        // costManager.PushInterval(prevCost + offsetCost, i, len);
+                        // we optimize these contributions in case offsetCost stays the same
+                        // for consecutive pixels. This describes a set of pixels similar to a
+                        // previous set (e.g. constant color regions).
+                        if (firstOffsetIsConstant != 0)
+                        {
+                            reach = i - 1 + lenPrev - 1;
+                            firstOffsetIsConstant = 0;
+                        }
+
+                        if (i + len - 1 > reach)
+                        {
+                            int offsetJ = 0;
+                            int lenJ = 0;
+                            int j;
+                            for (j = i; j <= reach; ++j)
+                            {
+                                offset = hashChain.FindOffset(j + 1);
+                                len = hashChain.FindLength(j + 1);
+                                if (offsetJ != offset)
+                                {
+                                    offset = hashChain.FindOffset(j);
+                                    len = hashChain.FindLength(j);
+                                    break;
+                                }
+                            }
+
+                            // Update the cost at j - 1 and j.
+                            costManager.UpdateCostAtIndex(j - 1, false);
+                            costManager.UpdateCostAtIndex(j, false);
+
+                            costManager.PushInterval(costManager.Costs[j - 1] + offsetCost, j, lenJ);
+                            reach = j + lenJ - 1;
+                        }
+                    }
+                }
+
+                costManager.UpdateCostAtIndex(i, true);
+                offsetPrev = offset;
+                lenPrev = len;
+            }
+        }
+
+        private static int TraceBackwards(short[] distArray, int distArraySize)
+        {
+            int chosenPathSize = 0;
+            int pathPos = distArraySize;
+            int curPos = distArraySize - 1;
+            while (curPos >= 0)
+            {
+                short cur = distArray[curPos];
+                pathPos--;
+                chosenPathSize++;
+                distArray[pathPos] = cur;
+                curPos -= cur;
+            }
+
+            return chosenPathSize;
+        }
+
+        private static void BackwardReferencesHashChainFollowChosenPath(Span<uint> bgra, int cacheBits, Span<short> chosenPath, int chosenPathSize, Vp8LHashChain hashChain, Vp8LBackwardRefs backwardRefs)
+        {
+            bool useColorCache = cacheBits > 0;
+            var colorCache = new ColorCache();
+            int i = 0;
+
+            if (useColorCache)
+            {
+                colorCache.Init(cacheBits);
+            }
+
+            backwardRefs.Refs.Clear();
+            for (int ix = 0; ix < chosenPathSize; ix++)
+            {
+                int len = chosenPath[ix];
+                if (len != 1)
+                {
+                    int offset = hashChain.FindOffset(i);
+                    backwardRefs.Add(PixOrCopy.CreateCopy((uint)offset, (short)len));
+
+                    if (useColorCache)
+                    {
+                        for (int k = 0; k < len; k++)
+                        {
+                            colorCache.Insert(bgra[i + k]);
+                        }
+                    }
+
+                    i += len;
+                }
+                else
+                {
+                    PixOrCopy v;
+                    int idx = useColorCache ? colorCache.Contains(bgra[i]) : -1;
+                    if (idx >= 0)
+                    {
+                        // useColorCache is true and color cache contains bgra[i]
+                        // Push pixel as a color cache index.
+                        v = PixOrCopy.CreateCacheIdx(idx);
+                    }
+                    else
+                    {
+                        if (useColorCache)
+                        {
+                            colorCache.Insert(bgra[i]);
+                        }
+
+                        v = PixOrCopy.CreateLiteral(bgra[i]);
+                    }
+
+                    backwardRefs.Add(v);
+                    i++;
+                }
+            }
+        }
+
+        private static void AddSingleLiteralWithCostModel(Span<uint> bgra, ColorCache colorCache, CostModel costModel, int idx, bool useColorCache, float prevCost, float[] cost, short[] distArray)
+        {
+            double costVal = prevCost;
+            uint color = bgra[idx];
+            int ix = useColorCache ? colorCache.Contains(color) : -1;
+            if (ix >= 0)
+            {
+                double mul0 = 0.68;
+                costVal += costModel.GetCacheCost((uint)ix) * mul0;
+            }
+            else
+            {
+                double mul1 = 0.82;
+                if (useColorCache)
+                {
+                    colorCache.Insert(color);
+                }
+
+                costVal += costModel.GetLiteralCost(color) * mul1;
+            }
+
+            if (cost[idx] > costVal)
+            {
+                cost[idx] = (float)costVal;
+                distArray[idx] = 1;  // only one is inserted.
+            }
         }
 
         private static void BackwardReferencesLz77(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refs)
         {
             int iLastCheck = -1;
-            int ccInit = 0;
             bool useColorCache = cacheBits > 0;
             int pixCount = xSize * ySize;
             var colorCache = new ColorCache();
@@ -526,7 +720,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             {
                 if (bgra[i] == bgra[i + 1])
                 {
-                    // Max out the counts to MAX_LENGTH.
+                    // Max out the counts to MaxLength.
                     counts[countsPos] = counts[countsPos + 1];
                     if (counts[countsPos + 1] != MaxLength)
                     {
@@ -540,7 +734,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             // Figure out the window offsets around a pixel. They are stored in a
-            // spiraling order around the pixel as defined by VP8LDistanceToPlaneCode.
+            // spiraling order around the pixel as defined by DistanceToPlaneCode.
             for (int y = 0; y <= 6; y++)
             {
                 for (int x = -6; x <= 6; x++)
@@ -819,7 +1013,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             refs.Add(v);
         }
 
-        private static int DistanceToPlaneCode(int xSize, int dist)
+        public static int DistanceToPlaneCode(int xSize, int dist)
         {
             int yOffset = dist / xSize;
             int xOffset = dist - (yOffset * xSize);

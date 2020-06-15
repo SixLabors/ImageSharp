@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calculators
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc
 {
     /// <summary>
     /// Represents an ICC calculator with <see cref="Vector4"/> values and results

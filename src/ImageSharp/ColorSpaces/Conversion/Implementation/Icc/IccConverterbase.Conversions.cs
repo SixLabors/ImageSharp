@@ -1,11 +1,11 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calculators;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc
 {
     /// <summary>
     /// Color converter for ICC profiles
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
 
                 case ConversionMethod.Invalid:
                 default:
-                    throw new InvalidIccProfileException();
+                    throw new InvalidIccProfileException("Invalid conversion method.");
             }
         }
 
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
                     return new LutABCalculator(lutBtoA);
 
                 default:
-                    throw new InvalidIccProfileException();
+                    throw new InvalidIccProfileException("Invalid entry.");
             }
         }
 
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
             IccMultiProcessElementsTagDataEntry entry = this.GetTag<IccMultiProcessElementsTagDataEntry>(profile, tag);
             if (entry == null)
             {
-                throw new InvalidIccProfileException();
+                throw new InvalidIccProfileException("Entry is null.");
             }
 
             throw new NotImplementedException("Multi process elements are not supported");
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc
                 greenTrc == null ||
                 blueTrc == null)
             {
-                throw new InvalidIccProfileException();
+                throw new InvalidIccProfileException("Missing matrix column or channel.");
             }
 
             return new ColorTrcCalculator(

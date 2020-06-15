@@ -1,11 +1,11 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calculators
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc
 {
     internal class ParametricCurveCalculator : ISingleCalculator
     {

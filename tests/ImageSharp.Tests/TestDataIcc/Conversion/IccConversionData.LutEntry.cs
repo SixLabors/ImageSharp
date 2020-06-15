@@ -1,34 +1,34 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
 {
     public class IccConversionDataLutEntry
     {
-        private static IccLut Lut256 = CreateLut(256);
-        private static IccLut Lut32 = CreateLut(32);
-        private static IccLut LutIdentity = CreateIdentityLut(0, 1);
+        private static readonly IccLut Lut256 = CreateLut(256);
+        private static readonly IccLut Lut32 = CreateLut(32);
+        private static readonly IccLut LutIdentity = CreateIdentityLut(0, 1);
 
-        private static IccLut8TagDataEntry Lut8 = new IccLut8TagDataEntry(
+        private static readonly IccLut8TagDataEntry Lut8 = new IccLut8TagDataEntry(
             new IccLut[] { Lut256, Lut256 },
             IccConversionDataClut.Clut2x1,
             new IccLut[] { Lut256 });
 
-        private static IccLut16TagDataEntry Lut16 = new IccLut16TagDataEntry(
+        private static readonly IccLut16TagDataEntry Lut16 = new IccLut16TagDataEntry(
             new IccLut[] { Lut32, Lut32 },
             IccConversionDataClut.Clut2x1,
             new IccLut[] { LutIdentity });
 
-        private static IccLut8TagDataEntry Lut8Matrix = new IccLut8TagDataEntry(
+        private static readonly IccLut8TagDataEntry Lut8Matrix = new IccLut8TagDataEntry(
             IccConversionDataMatrix.Matrix3x3Random,
             new IccLut[] { Lut256, Lut256, Lut256 },
             IccConversionDataClut.Clut3x1,
             new IccLut[] { Lut256 });
 
-        private static IccLut16TagDataEntry Lut16Matrix = new IccLut16TagDataEntry(
+        private static readonly IccLut16TagDataEntry Lut16Matrix = new IccLut16TagDataEntry(
             IccConversionDataMatrix.Matrix3x3Random,
             new IccLut[] { Lut32, Lut32, Lut32 },
             IccConversionDataClut.Clut3x1,
@@ -39,8 +39,9 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc
             float[] values = new float[length];
             for (int i = 0; i < values.Length; i++)
             {
-                values[i] = 0.1f + i / (float)length;
+                values[i] = 0.1f + (i / (float)length);
             }
+
             return new IccLut(values);
         }
 

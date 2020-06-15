@@ -2,7 +2,7 @@ IPTC source code is from [Magick.NET](https://github.com/dlemstra/Magick.NET)
 
 Information about IPTC can be found here in the following sources:
 
-- [metacpan.org, APP13-segment](https://metacpan.org/pod/Image::MetaData::JPEG::Structures#Structure-of-a-Photoshop-style-APP13-segment)
+- [metacpan.org, APP13-segment](https://metacpan.org/pod/Image::Metadata::JPEG::Structures#Structure-of-a-Photoshop-style-APP13-segment)
 
 - [iptc.org](https://www.iptc.org/std/photometadata/documentation/userguide/)
 

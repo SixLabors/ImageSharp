@@ -1,7 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calculators
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc
 {
     /// <summary>
     /// Represents an ICC calculator with a single floating point value and result

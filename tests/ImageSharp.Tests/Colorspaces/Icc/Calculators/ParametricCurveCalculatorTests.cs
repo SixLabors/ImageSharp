@@ -1,8 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation.Icc.Calculators;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Icc.Calculators

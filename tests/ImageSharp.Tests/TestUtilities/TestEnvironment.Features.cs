@@ -10,6 +10,27 @@ namespace SixLabors.ImageSharp.Tests
             public const string On = "1";
             public const string Off = "0";
 
+            // See https://github.com/SixLabors/ImageSharp/pull/1229#discussion_r440477861
+            // * EnableHWIntrinsic
+            //   * EnableSSE
+            //     * EnableSSE2
+            //       * EnableAES
+            //       * EnablePCLMULQDQ
+            //       * EnableSSE3
+            //         * EnableSSSE3
+            //           * EnableSSE41
+            //             * EnableSSE42
+            //               * EnablePOPCNT
+            //               * EnableAVX
+            //                 * EnableFMA
+            //                 * EnableAVX2
+            //   * EnableBMI1
+            //   * EnableBMI2
+            //   * EnableLZCNT
+            //
+            // `FeatureSIMD` ends up impacting all SIMD support(including `System.Numerics`) but not things
+            // like `LZCNT`, `BMI1`, or `BMI2`
+            // `EnableSSE3_4` is a legacy switch that exists for compat and is basically the same as `EnableSSE3`
             public const string EnableAES = "COMPlus_EnableAES";
             public const string EnableAVX = "COMPlus_EnableAVX";
             public const string EnableAVX2 = "COMPlus_EnableAVX2";
@@ -17,7 +38,6 @@ namespace SixLabors.ImageSharp.Tests
             public const string EnableBMI2 = "COMPlus_EnableBMI2";
             public const string EnableFMA = "COMPlus_EnableFMA";
             public const string EnableHWIntrinsic = "COMPlus_EnableHWIntrinsic";
-            public const string EnableIncompleteISAClass = "COMPlus_EnableIncompleteISAClass";
             public const string EnableLZCNT = "COMPlus_EnableLZCNT";
             public const string EnablePCLMULQDQ = "COMPlus_EnablePCLMULQDQ";
             public const string EnablePOPCNT = "COMPlus_EnablePOPCNT";

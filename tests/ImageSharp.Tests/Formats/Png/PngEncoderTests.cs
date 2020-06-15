@@ -2,14 +2,19 @@
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics.X86;
+#endif
+using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -527,6 +532,47 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                     appendPixelType: true,
                     appendPngColorType: true);
             }
+        }
+
+        [Theory]
+        [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
+        public void EncodeWorksWithoutSsse3Intrinsics<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            static void RunTest(string providerDump)
+            {
+                TestImageProvider<TPixel> provider =
+                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+#if SUPPORTS_RUNTIME_INTRINSICS
+                Assert.False(Ssse3.IsSupported);
+#endif
+
+                foreach (PngInterlaceMode interlaceMode in InterlaceMode)
+                {
+                    TestPngEncoderCore(
+                        provider,
+                        PngColorType.Rgb,
+                        PngFilterMethod.Adaptive,
+                        PngBitDepth.Bit8,
+                        interlaceMode,
+                        appendPixelType: true,
+                        appendPngColorType: true);
+                }
+            }
+
+            string providerDump = BasicSerializer.Serialize(provider);
+
+            var processStartInfo = new ProcessStartInfo();
+            processStartInfo.Environment[TestEnvironment.Features.EnableSSE3] = TestEnvironment.Features.Off;
+
+            RemoteExecutor.Invoke(
+                RunTest,
+                providerDump,
+                new RemoteInvokeOptions
+                {
+                    StartInfo = processStartInfo
+                })
+                .Dispose();
         }
 
         private static void TestPngEncoderCore<TPixel>(

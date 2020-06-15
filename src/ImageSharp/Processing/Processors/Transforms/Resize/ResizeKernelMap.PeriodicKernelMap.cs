@@ -1,15 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
-using SixLabors.Memory;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
-    /// <content>
-    /// Contains <see cref="PeriodicKernelMap"/>
-    /// </content>
     internal partial class ResizeKernelMap
     {
         /// <summary>
@@ -23,7 +18,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             public PeriodicKernelMap(
                 MemoryAllocator memoryAllocator,
-                IResampler sampler,
                 int sourceLength,
                 int destinationLength,
                 double ratio,
@@ -33,7 +27,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 int cornerInterval)
                 : base(
                     memoryAllocator,
-                    sampler,
                     sourceLength,
                     destinationLength,
                     (cornerInterval * 2) + period,
@@ -47,15 +40,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             internal override string Info => base.Info + $"|period:{this.period}|cornerInterval:{this.cornerInterval}";
 
-            protected override void Initialize()
+            protected internal override void Initialize<TResampler>(in TResampler sampler)
             {
                 // Build top corner data + one period of the mosaic data:
                 int startOfFirstRepeatedMosaic = this.cornerInterval + this.period;
 
                 for (int i = 0; i < startOfFirstRepeatedMosaic; i++)
                 {
-                    ResizeKernel kernel = this.BuildKernel(i, i);
-                    this.kernels[i] = kernel;
+                    this.kernels[i] = this.BuildKernel(in sampler, i, i);
                 }
 
                 // Copy the mosaics:
@@ -72,8 +64,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 int bottomStartData = this.cornerInterval + this.period;
                 for (int i = 0; i < this.cornerInterval; i++)
                 {
-                    ResizeKernel kernel = this.BuildKernel(bottomStartDest + i, bottomStartData + i);
-                    this.kernels[bottomStartDest + i] = kernel;
+                    this.kernels[bottomStartDest + i] = this.BuildKernel(in sampler, bottomStartDest + i, bottomStartData + i);
                 }
             }
         }

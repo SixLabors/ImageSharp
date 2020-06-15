@@ -1,17 +1,18 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
     /// <content>
-    /// Adds static methods allowing the creation of new image from raw pixel data.
+    /// Contains methods for loading raw pixel data.
     /// </content>
-    internal static class ImageFrame
+    public partial class ImageFrame
     {
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given byte array in <typeparamref name="TPixel"/> format.
@@ -22,8 +23,8 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static ImageFrame<TPixel> LoadPixelData<TPixel>(Configuration configuration, ReadOnlySpan<byte> data, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
+        internal static ImageFrame<TPixel> LoadPixelData<TPixel>(Configuration configuration, ReadOnlySpan<byte> data, int width, int height)
+            where TPixel : unmanaged, IPixel<TPixel>
             => LoadPixelData(configuration, MemoryMarshal.Cast<byte, TPixel>(data), width, height);
 
         /// <summary>
@@ -35,15 +36,16 @@ namespace SixLabors.ImageSharp
         /// <param name="height">The height of the final image.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
-        public static ImageFrame<TPixel> LoadPixelData<TPixel>(Configuration configuration, ReadOnlySpan<TPixel> data, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
+        internal static ImageFrame<TPixel> LoadPixelData<TPixel>(Configuration configuration, ReadOnlySpan<TPixel> data, int width, int height)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int count = width * height;
             Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
 
             var image = new ImageFrame<TPixel>(configuration, width, height);
 
-            data.Slice(0, count).CopyTo(image.GetPixelSpan());
+            data = data.Slice(0, count);
+            data.CopyTo(image.PixelBuffer.FastMemoryGroup);
 
             return image;
         }

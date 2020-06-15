@@ -1,25 +1,25 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
-
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     /// <summary>
     /// Applies edge detection processing to the image using the Laplacian of Gaussian operator filter.
-    /// <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node8.html"/>
+    /// See <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node8.html"/>.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class LaplacianOfGaussianProcessor<TPixel> : EdgeDetectorProcessor<TPixel>
-          where TPixel : struct, IPixel<TPixel>
+    public sealed class LaplacianOfGaussianProcessor : EdgeDetectorProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="LaplacianOfGaussianProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="LaplacianOfGaussianProcessor"/> class.
         /// </summary>
         /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
         public LaplacianOfGaussianProcessor(bool grayscale)
-            : base(LaplacianKernels.LaplacianOfGaussianXY, grayscale)
+            : base(grayscale)
         {
         }
+
+        /// <inheritdoc />
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            => new EdgeDetectorProcessor<TPixel>(configuration, LaplacianKernels.LaplacianOfGaussianXY, this.Grayscale, source, sourceRectangle);
     }
 }

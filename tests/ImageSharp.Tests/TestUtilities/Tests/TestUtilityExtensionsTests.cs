@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests
         private ITestOutputHelper Output { get; }
 
         public static Image<TPixel> CreateTestImage<TPixel>()
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var image = new Image<TPixel>(10, 10);
 
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, true)]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, false)]
         public void IsEquivalentTo_WhenFalse<TPixel>(TestImageProvider<TPixel> provider, bool compareAlpha)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Image<TPixel> a = provider.GetImage();
             Image<TPixel> b = provider.GetImage(x => x.OilPaint(3, 2));
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32 | PixelTypes.Bgr565, true)]
         [WithMemberFactory(nameof(CreateTestImage), PixelTypes.Rgba32 | PixelTypes.Bgr565, false)]
         public void IsEquivalentTo_WhenTrue<TPixel>(TestImageProvider<TPixel> provider, bool compareAlpha)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Image<TPixel> a = provider.GetImage();
             Image<TPixel> b = provider.GetImage();
@@ -93,19 +93,18 @@ namespace SixLabors.ImageSharp.Tests
             IEnumerable<KeyValuePair<PixelTypes, Type>> pixelTypesExp)
         {
             Assert.Contains(new KeyValuePair<PixelTypes, Type>(pt, typeof(T)), pixelTypesExp);
-
         }
 
         [Fact]
         public void ExpandAllTypes_1()
         {
-            PixelTypes pixelTypes = PixelTypes.Alpha8 | PixelTypes.Bgr565 | PixelTypes.HalfVector2 | PixelTypes.Rgba32;
+            PixelTypes pixelTypes = PixelTypes.A8 | PixelTypes.Bgr565 | PixelTypes.HalfVector2 | PixelTypes.Rgba32;
 
             IEnumerable<KeyValuePair<PixelTypes, Type>> expanded = pixelTypes.ExpandAllTypes();
 
             Assert.Equal(4, expanded.Count());
 
-            AssertContainsPixelType<Alpha8>(PixelTypes.Alpha8, expanded);
+            AssertContainsPixelType<A8>(PixelTypes.A8, expanded);
             AssertContainsPixelType<Bgr565>(PixelTypes.Bgr565, expanded);
             AssertContainsPixelType<HalfVector2>(PixelTypes.HalfVector2, expanded);
             AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);

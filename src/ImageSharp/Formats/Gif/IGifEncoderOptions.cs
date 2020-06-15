@@ -1,7 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Text;
+using System.Collections.Generic;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -12,11 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
     internal interface IGifEncoderOptions
     {
         /// <summary>
-        /// Gets the text encoding used to write comments.
-        /// </summary>
-        Encoding TextEncoding { get; }
-
-        /// <summary>
         /// Gets the quantizer used to generate the color palette.
         /// </summary>
         IQuantizer Quantizer { get; }
@@ -25,5 +22,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Gets the color table mode: Global or local.
         /// </summary>
         GifColorTableMode? ColorTableMode { get; }
+
+        /// <summary>
+        /// Gets the <see cref="IPixelSamplingStrategy"/> used for quantization when building a global color table.
+        /// </summary>
+        IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; }
     }
 }

@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Common.Helpers
 {
@@ -86,9 +86,10 @@ namespace SixLabors.ImageSharp.Common.Helpers
         [MethodImpl(InliningOptions.ShortMethod)]
         public static PixelResolutionUnit ExifProfileToResolutionUnit(ExifProfile profile)
         {
-            return profile.TryGetValue(ExifTag.ResolutionUnit, out ExifValue resolution)
-                ? (PixelResolutionUnit)(byte)(((ushort)resolution.Value) - 1) // EXIF is 1, 2, 3
-                : default;
+            IExifValue<ushort> resolution = profile.GetValue(ExifTag.ResolutionUnit);
+
+            // EXIF is 1, 2, 3 so we minus "1" off the result.
+            return resolution is null ? default : (PixelResolutionUnit)(byte)(resolution.Value - 1);
         }
     }
 }

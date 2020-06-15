@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <summary>
-    /// Unpacked pixel type containing four 16-bit floating-point values typically ranging from 0 to 1.
+    /// Unpacked pixel type containing four 32-bit floating-point values typically ranging from 0 to 1.
     /// The color components are stored in red, green, blue, and alpha order.
     /// <para>
     /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
@@ -94,10 +94,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>
         /// The <see cref="RgbaVector"/>.
         /// </returns>
-        public static RgbaVector FromHex(string hex) => ColorBuilder<RgbaVector>.FromHex(hex);
+        public static RgbaVector FromHex(string hex) => Color.ParseHex(hex).ToPixel<RgbaVector>();
 
         /// <inheritdoc />
-        public PixelOperations<RgbaVector> CreatePixelOperations() => new PixelOperations();
+        public readonly PixelOperations<RgbaVector> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -105,13 +105,13 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4() => this.ToVector4();
+        public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromVector4(Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One);
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, Vector4.One);
             this.R = vector.X;
             this.G = vector.Y;
             this.B = vector.Z;
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A);
+        public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -134,13 +134,25 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgra32(Bgra32 source) => this.FromScaledVector4(source.ToScaledVector4());
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source) => this.FromScaledVector4(source.ToScaledVector4());
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source) => this.FromScaledVector4(source.ToScaledVector4());
+        public void FromL8(L8 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromL16(L16 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -152,10 +164,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -169,7 +178,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Converts the value of this instance to a hexadecimal string.
         /// </summary>
         /// <returns>A hexadecimal string representation of the value.</returns>
-        public string ToHex()
+        public readonly string ToHex()
         {
             // Hex is RRGGBBAA
             Vector4 vector = this.ToVector4() * Max;
@@ -179,24 +188,23 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is RgbaVector other && this.Equals(other);
+        public override readonly bool Equals(object obj) => obj is RgbaVector other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(RgbaVector other) =>
+        public readonly bool Equals(RgbaVector other) =>
             this.R.Equals(other.R)
             && this.G.Equals(other.G)
             && this.B.Equals(other.B)
             && this.A.Equals(other.A);
 
         /// <inheritdoc/>
-        public override string ToString()
+        public override readonly string ToString()
         {
-            var vector = this.ToVector4();
             return FormattableString.Invariant($"RgbaVector({this.R:#0.##}, {this.G:#0.##}, {this.B:#0.##}, {this.A:#0.##})");
         }
 
         /// <inheritdoc/>
-        public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B, this.A);
+        public override readonly int GetHashCode() => HashCode.Combine(this.R, this.G, this.B, this.A);
     }
 }

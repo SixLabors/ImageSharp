@@ -1,7 +1,5 @@
-﻿// <copyright file="DetectEdges.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -12,8 +10,7 @@ namespace SixLabors.ImageSharp.Benchmarks
     using BenchmarkDotNet.Attributes;
 
     using SixLabors.ImageSharp.Processing;
-
-    using CoreImage = ImageSharp.Image;
+    using CoreImage = SixLabors.ImageSharp.Image;
 
     public class DetectEdges : BenchmarkBase
     {

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -15,14 +15,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects
         public static readonly TheoryData<float> AlphaValues
         = new TheoryData<float>
         {
-            20/100F,
-            80/100F
+            20 / 100F,
+            80 / 100F
         };
 
         [Theory]
         [WithTestPatternImages(nameof(AlphaValues), 48, 48, PixelTypes.Rgba32)]
         public void ApplyAlphaFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(x => x.Opacity(value), value);
         }

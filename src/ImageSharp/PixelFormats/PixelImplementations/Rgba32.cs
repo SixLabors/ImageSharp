@@ -1,6 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers.Binary;
+using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -122,7 +125,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public uint Rgba
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => Unsafe.As<Rgba32, uint>(ref this);
+            readonly get => Unsafe.As<Rgba32, uint>(ref Unsafe.AsRef(this));
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set => Unsafe.As<Rgba32, uint>(ref this) = value;
@@ -133,13 +136,16 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         public Rgb24 Rgb
         {
-            // If this is changed to ShortMethod then several jpeg encoding tests fail
-            // on 32 bit Net 4.6.2 and NET 4.7.1
-            [MethodImpl(InliningOptions.ColdPath)]
-            get => Unsafe.As<Rgba32, Rgb24>(ref this);
+            [MethodImpl(InliningOptions.ShortMethod)]
+            readonly get => new Rgb24(this.R, this.G, this.B);
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            set => Unsafe.As<Rgba32, Rgb24>(ref this) = value;
+            set
+            {
+                this.R = value.R;
+                this.G = value.G;
+                this.B = value.B;
+            }
         }
 
         /// <summary>
@@ -148,7 +154,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public Bgr24 Bgr
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => new Bgr24(this.R, this.G, this.B);
+            readonly get => new Bgr24(this.R, this.G, this.B);
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set
@@ -163,11 +169,27 @@ namespace SixLabors.ImageSharp.PixelFormats
         public uint PackedValue
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => this.Rgba;
+            readonly get => this.Rgba;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set => this.Rgba = value;
         }
+
+        /// <summary>
+        /// Converts an <see cref="Rgba32"/> to <see cref="Color"/>.
+        /// </summary>
+        /// <param name="source">The <see cref="Rgba32"/>.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Color(Rgba32 source) => new Color(source);
+
+        /// <summary>
+        /// Converts a <see cref="Color"/> to <see cref="Rgba32"/>.
+        /// </summary>
+        /// <param name="color">The <see cref="Color"/>.</param>
+        /// <returns>The <see cref="Rgba32"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Rgba32(Color color) => color.ToRgba32();
 
         /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
@@ -208,7 +230,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgba32 left, Rgba32 right) => !left.Equals(right);
 
         /// <summary>
-        /// Creates a new instance of the <see cref="Rgba32"/> struct.
+        /// Creates a new instance of the <see cref="Rgba32"/> struct
+        /// from the given hexadecimal string.
         /// </summary>
         /// <param name="hex">
         /// The hexadecimal representation of the combined color components arranged
@@ -217,10 +240,54 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <returns>
         /// The <see cref="Rgba32"/>.
         /// </returns>
-        public static Rgba32 FromHex(string hex) => ColorBuilder<Rgba32>.FromHex(hex);
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static Rgba32 ParseHex(string hex)
+        {
+            Guard.NotNull(hex, nameof(hex));
+
+            if (!TryParseHex(hex, out Rgba32 rgba))
+            {
+                throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
+            }
+
+            return rgba;
+        }
+
+        /// <summary>
+        /// Attempts to creates a new instance of the <see cref="Rgba32"/> struct
+        /// from the given hexadecimal string.
+        /// </summary>
+        /// <param name="hex">
+        /// The hexadecimal representation of the combined color components arranged
+        /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
+        /// </param>
+        /// <param name="result">When this method returns, contains the <see cref="Rgba32"/> equivalent of the hexadecimal input.</param>
+        /// <returns>
+        /// The <see cref="bool"/>.
+        /// </returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static bool TryParseHex(string hex, out Rgba32 result)
+        {
+            result = default;
+            if (string.IsNullOrWhiteSpace(hex))
+            {
+                return false;
+            }
+
+            hex = ToRgbaHex(hex);
+
+            if (hex is null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
+            {
+                return false;
+            }
+
+            packedValue = BinaryPrimitives.ReverseEndianness(packedValue);
+            result = Unsafe.As<uint, Rgba32>(ref packedValue);
+            return true;
+        }
 
         /// <inheritdoc />
-        public PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
+        public readonly PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -228,7 +295,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4() => this.ToVector4();
+        public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -236,7 +303,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
+        public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -268,7 +335,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source)
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromL8(L8 source)
         {
             this.R = source.PackedValue;
             this.G = source.PackedValue;
@@ -278,13 +349,34 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source)
+        public void FromL16(L16 source)
         {
             byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
             this.A = byte.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source)
+        {
+            this.R = source.L;
+            this.G = source.L;
+            this.B = source.L;
+            this.A = source.A;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source)
+        {
+            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.L);
+            this.R = rgb;
+            this.G = rgb;
+            this.B = rgb;
+            this.A = ImageMaths.DownScaleFrom16BitTo8Bit(source.A);
         }
 
         /// <inheritdoc/>
@@ -330,25 +422,25 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// Converts the value of this instance to a hexadecimal string.
         /// </summary>
         /// <returns>A hexadecimal string representation of the value.</returns>
-        public string ToHex()
+        public readonly string ToHex()
         {
             uint hexOrder = (uint)(this.A << 0 | this.B << 8 | this.G << 16 | this.R << 24);
             return hexOrder.ToString("X8");
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is Rgba32 rgba32 && this.Equals(rgba32);
+        public override readonly bool Equals(object obj) => obj is Rgba32 rgba32 && this.Equals(rgba32);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Rgba32 other) => this.Rgba.Equals(other.Rgba);
+        public readonly bool Equals(Rgba32 other) => this.Rgba.Equals(other.Rgba);
 
         /// <inheritdoc/>
-        public override string ToString() => $"Rgba32({this.R}, {this.G}, {this.B}, {this.A})";
+        public override readonly string ToString() => $"Rgba32({this.R}, {this.G}, {this.B}, {this.A})";
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => this.Rgba.GetHashCode();
+        public override readonly int GetHashCode() => this.Rgba.GetHashCode();
 
         /// <summary>
         /// Packs a <see cref="Vector4"/> into a color returning a new instance as a result.
@@ -360,7 +452,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector *= MaxBytes;
             vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, MaxBytes);
 
             return new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, (byte)vector.W);
         }
@@ -399,12 +491,49 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector *= MaxBytes;
             vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, MaxBytes);
 
             this.R = (byte)vector.X;
             this.G = (byte)vector.Y;
             this.B = (byte)vector.Z;
             this.A = (byte)vector.W;
+        }
+
+        /// <summary>
+        /// Converts the specified hex value to an rrggbbaa hex value.
+        /// </summary>
+        /// <param name="hex">The hex value to convert.</param>
+        /// <returns>
+        /// A rrggbbaa hex value.
+        /// </returns>
+        private static string ToRgbaHex(string hex)
+        {
+            if (hex[0] == '#')
+            {
+                hex = hex.Substring(1);
+            }
+
+            if (hex.Length == 8)
+            {
+                return hex;
+            }
+
+            if (hex.Length == 6)
+            {
+                return hex + "FF";
+            }
+
+            if (hex.Length < 3 || hex.Length > 4)
+            {
+                return null;
+            }
+
+            char r = hex[0];
+            char g = hex[1];
+            char b = hex[2];
+            char a = hex.Length == 3 ? 'F' : hex[3];
+
+            return new string(new[] { r, r, g, g, b, b, a, a });
         }
     }
 }

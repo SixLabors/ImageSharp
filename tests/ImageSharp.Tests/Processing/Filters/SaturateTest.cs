@@ -1,7 +1,6 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
 using Xunit;
@@ -14,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Saturation_amount_SaturationProcessorDefaultsSet()
         {
             this.operations.Saturate(34);
-            SaturateProcessor<Rgba32> processor = this.Verify<SaturateProcessor<Rgba32>>();
+            SaturateProcessor processor = this.Verify<SaturateProcessor>();
 
             Assert.Equal(34, processor.Amount);
         }
@@ -23,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Saturation_amount_rect_SaturationProcessorDefaultsSet()
         {
             this.operations.Saturate(5, this.rect);
-            SaturateProcessor<Rgba32> processor = this.Verify<SaturateProcessor<Rgba32>>(this.rect);
+            SaturateProcessor processor = this.Verify<SaturateProcessor>(this.rect);
 
             Assert.Equal(5, processor.Amount);
         }

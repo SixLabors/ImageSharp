@@ -1,9 +1,12 @@
-﻿using System;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Buffers;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    class TestMemoryManager<T> : MemoryManager<T>
+    public class TestMemoryManager<T> : MemoryManager<T>
         where T : struct
     {
         public TestMemoryManager(T[] pixelArray)

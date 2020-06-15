@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -7,8 +7,6 @@ using System.Numerics;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 using JpegColorConverter = SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters.JpegColorConverter;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -21,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// (4) Packing <see cref="Image{TPixel}"/> pixels from the <see cref="Vector4"/> buffer. <br/>
     /// These operations are executed in <see cref="NumberOfPostProcessorSteps"/> steps.
     /// <see cref="PixelRowsPerStep"/> image rows are converted in one step,
-    /// which means that size of the allocated memory is limited (does not depend on <see cref="ImageFrame{TPixel}.Height"/>).
+    /// which means that size of the allocated memory is limited (does not depend on <see cref="ImageFrame.Height"/>).
     /// </summary>
     internal class JpegImagePostProcessor : IDisposable
     {
@@ -114,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image</param>
         public void PostProcess<TPixel>(ImageFrame<TPixel> destination)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.PixelRowCounter = 0;
 
@@ -135,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image.</param>
         public void DoPostProcessorStep<TPixel>(ImageFrame<TPixel> destination)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (JpegComponentPostProcessor cpp in this.ComponentProcessors)
             {
@@ -153,7 +151,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image</param>
         private void ConvertColorsInto<TPixel>(ImageFrame<TPixel> destination)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int maxY = Math.Min(destination.Height, this.PixelRowCounter + PixelRowsPerStep);
 
@@ -173,7 +171,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
                 Span<TPixel> destRow = destination.GetPixelRowSpan(yy);
 
                 // TODO: Investigate if slicing is actually necessary
-                PixelOperations<TPixel>.Instance.FromVector4(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, this.rgbaBuffer.GetSpan().Slice(0, destRow.Length), destRow);
             }
         }
     }

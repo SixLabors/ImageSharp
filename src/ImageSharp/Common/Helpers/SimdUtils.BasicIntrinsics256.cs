@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -18,13 +17,14 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public static class BasicIntrinsics256
         {
-            public static bool IsAvailable { get; } = IsAvx2CompatibleArchitecture;
+            public static bool IsAvailable { get; } = HasVector8;
 
+#if !SUPPORTS_EXTENDED_INTRINSICS
             /// <summary>
-            /// <see cref="BulkConvertByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
+            /// <see cref="ByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void BulkConvertByteToNormalizedFloatReduce(
+            internal static void ByteToNormalizedFloatReduce(
                 ref ReadOnlySpan<byte> source,
                 ref Span<float> dest)
             {
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp
 
                 if (adjustedCount > 0)
                 {
-                    BulkConvertByteToNormalizedFloat(
+                    ByteToNormalizedFloat(
                         source.Slice(0, adjustedCount),
                         dest.Slice(0, adjustedCount));
 
@@ -50,10 +50,10 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// <see cref="BulkConvertNormalizedFloatToByteClampOverflows"/> as many elements as possible, slicing them down (keeping the remainder).
+            /// <see cref="NormalizedFloatToByteSaturate"/> as many elements as possible, slicing them down (keeping the remainder).
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
-            internal static void BulkConvertNormalizedFloatToByteClampOverflowsReduce(
+            internal static void NormalizedFloatToByteSaturateReduce(
                 ref ReadOnlySpan<float> source,
                 ref Span<byte> dest)
             {
@@ -69,23 +69,24 @@ namespace SixLabors.ImageSharp
 
                 if (adjustedCount > 0)
                 {
-                    BulkConvertNormalizedFloatToByteClampOverflows(source.Slice(0, adjustedCount), dest.Slice(0, adjustedCount));
+                    NormalizedFloatToByteSaturate(source.Slice(0, adjustedCount), dest.Slice(0, adjustedCount));
 
                     source = source.Slice(adjustedCount);
                     dest = dest.Slice(adjustedCount);
                 }
             }
+#endif
 
             /// <summary>
-            /// SIMD optimized implementation for <see cref="SimdUtils.BulkConvertByteToNormalizedFloat"/>.
+            /// SIMD optimized implementation for <see cref="SimdUtils.ByteToNormalizedFloat"/>.
             /// Works only with span Length divisible by 8.
             /// Implementation adapted from:
             /// http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
             /// http://stackoverflow.com/a/536278
             /// </summary>
-            internal static void BulkConvertByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
+            internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
             {
-                VerifyIsAvx2Compatible(nameof(BulkConvertByteToNormalizedFloat));
+                VerifyHasVector8(nameof(ByteToNormalizedFloat));
                 VerifySpanInput(source, dest, 8);
 
                 var bVec = new Vector<float>(256.0f / 255.0f);
@@ -93,17 +94,17 @@ namespace SixLabors.ImageSharp
                 var magicInt = new Vector<uint>(1191182336); // reinterpreted value of 32768.0f
                 var mask = new Vector<uint>(255);
 
-                ref Octet.OfByte sourceBase = ref Unsafe.As<byte, Octet.OfByte>(ref MemoryMarshal.GetReference(source));
-                ref Octet.OfUInt32 destBaseAsWideOctet = ref Unsafe.As<float, Octet.OfUInt32>(ref MemoryMarshal.GetReference(dest));
+                ref Octet<byte> sourceBase = ref Unsafe.As<byte, Octet<byte>>(ref MemoryMarshal.GetReference(source));
+                ref Octet<uint> destBaseAsWideOctet = ref Unsafe.As<float, Octet<uint>>(ref MemoryMarshal.GetReference(dest));
 
-                ref Vector<float> destBaseAsFloat = ref Unsafe.As<Octet.OfUInt32, Vector<float>>(ref destBaseAsWideOctet);
+                ref Vector<float> destBaseAsFloat = ref Unsafe.As<Octet<uint>, Vector<float>>(ref destBaseAsWideOctet);
 
                 int n = dest.Length / 8;
 
                 for (int i = 0; i < n; i++)
                 {
-                    ref Octet.OfByte s = ref Unsafe.Add(ref sourceBase, i);
-                    ref Octet.OfUInt32 d = ref Unsafe.Add(ref destBaseAsWideOctet, i);
+                    ref Octet<byte> s = ref Unsafe.Add(ref sourceBase, i);
+                    ref Octet<uint> d = ref Unsafe.Add(ref destBaseAsWideOctet, i);
                     d.LoadFrom(ref s);
                 }
 
@@ -123,11 +124,11 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// Implementation of <see cref="SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows"/> which is faster on older runtimes.
+            /// Implementation of <see cref="SimdUtils.NormalizedFloatToByteSaturate"/> which is faster on older runtimes.
             /// </summary>
-            internal static void BulkConvertNormalizedFloatToByteClampOverflows(ReadOnlySpan<float> source, Span<byte> dest)
+            internal static void NormalizedFloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> dest)
             {
-                VerifyIsAvx2Compatible(nameof(BulkConvertNormalizedFloatToByteClampOverflows));
+                VerifyHasVector8(nameof(NormalizedFloatToByteSaturate));
                 VerifySpanInput(source, dest, 8);
 
                 if (source.Length == 0)
@@ -136,17 +137,17 @@ namespace SixLabors.ImageSharp
                 }
 
                 ref Vector<float> srcBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
-                ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref MemoryMarshal.GetReference(dest));
+                ref Octet<byte> destBase = ref Unsafe.As<byte, Octet<byte>>(ref MemoryMarshal.GetReference(dest));
                 int n = source.Length / 8;
 
-                Vector<float> magick = new Vector<float>(32768.0f);
-                Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
+                var magick = new Vector<float>(32768.0f);
+                var scale = new Vector<float>(255f) / new Vector<float>(256f);
 
                 // need to copy to a temporary struct, because
-                // SimdUtils.Octet.OfUInt32 temp = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x)
+                // SimdUtils.Octet<uint> temp = Unsafe.As<Vector<float>, SimdUtils.Octet<uint>>(ref x)
                 // does not work. TODO: This might be a CoreClr bug, need to ask/report
-                var temp = default(Octet.OfUInt32);
-                ref Vector<float> tempRef = ref Unsafe.As<Octet.OfUInt32, Vector<float>>(ref temp);
+                var temp = default(Octet<uint>);
+                ref Vector<float> tempRef = ref Unsafe.As<Octet<uint>, Vector<float>>(ref temp);
 
                 for (int i = 0; i < n; i++)
                 {
@@ -160,7 +161,7 @@ namespace SixLabors.ImageSharp
                     x = (x * scale) + magick;
                     tempRef = x;
 
-                    ref Octet.OfByte d = ref Unsafe.Add(ref destBase, i);
+                    ref Octet<byte> d = ref Unsafe.Add(ref destBase, i);
                     d.LoadFrom(ref temp);
                 }
             }
@@ -176,7 +177,7 @@ namespace SixLabors.ImageSharp
             /// </summary>
             internal static void BulkConvertNormalizedFloatToByte(ReadOnlySpan<float> source, Span<byte> dest)
             {
-                VerifyIsAvx2Compatible(nameof(BulkConvertNormalizedFloatToByte));
+                VerifyHasVector8(nameof(BulkConvertNormalizedFloatToByte));
                 VerifySpanInput(source, dest, 8);
 
                 if (source.Length == 0)
@@ -185,17 +186,17 @@ namespace SixLabors.ImageSharp
                 }
 
                 ref Vector<float> srcBase = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
-                ref Octet.OfByte destBase = ref Unsafe.As<byte, Octet.OfByte>(ref MemoryMarshal.GetReference(dest));
+                ref Octet<byte> destBase = ref Unsafe.As<byte, Octet<byte>>(ref MemoryMarshal.GetReference(dest));
                 int n = source.Length / 8;
 
-                Vector<float> magick = new Vector<float>(32768.0f);
-                Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
+                var magick = new Vector<float>(32768.0f);
+                var scale = new Vector<float>(255f) / new Vector<float>(256f);
 
                 // need to copy to a temporary struct, because
-                // SimdUtils.Octet.OfUInt32 temp = Unsafe.As<Vector<float>, SimdUtils.Octet.OfUInt32>(ref x)
+                // SimdUtils.Octet<uint> temp = Unsafe.As<Vector<float>, SimdUtils.Octet<uint>>(ref x)
                 // does not work. TODO: This might be a CoreClr bug, need to ask/report
-                var temp = default(Octet.OfUInt32);
-                ref Vector<float> tempRef = ref Unsafe.As<Octet.OfUInt32, Vector<float>>(ref temp);
+                var temp = default(Octet<uint>);
+                ref Vector<float> tempRef = ref Unsafe.As<Octet<uint>, Vector<float>>(ref temp);
 
                 for (int i = 0; i < n; i++)
                 {
@@ -206,7 +207,7 @@ namespace SixLabors.ImageSharp
                     x = (x * scale) + magick;
                     tempRef = x;
 
-                    ref Octet.OfByte d = ref Unsafe.Add(ref destBase, i);
+                    ref Octet<byte> d = ref Unsafe.Add(ref destBase, i);
                     d.LoadFrom(ref temp);
                 }
             }

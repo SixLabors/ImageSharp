@@ -1,8 +1,10 @@
-﻿using System;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Runtime.CompilerServices;
 
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
 {
@@ -37,7 +39,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
 
             return acc;
         }
-
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float ClampUsingMathF(float x, float min, float max)

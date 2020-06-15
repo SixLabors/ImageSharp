@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -39,7 +42,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Default_GenericImpl<TPixel>(ReadOnlySpan<Rgba32> source, Span<TPixel> dest)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ref Rgba32 sBase = ref MemoryMarshal.GetReference(source);
             ref TPixel dBase = ref MemoryMarshal.GetReference(dest);
@@ -74,7 +77,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
-
         [Benchmark]
         public void Default_Group4()
         {
@@ -98,7 +100,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
                 Unsafe.Add(ref d2, 1).FromRgba32(s3);
             }
         }
-        
+
         [Benchmark]
         public void BitOps()
         {
@@ -137,6 +139,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             /// <summary>
             /// Converts a packed <see cref="Rgba32"/> to <see cref="Argb32"/>.
             /// </summary>
+            /// <returns>The argb value.</returns>
             [MethodImpl(InliningOptions.ShortMethod)]
             public static uint ToArgb32(uint packedRgba)
             {
@@ -148,6 +151,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             /// <summary>
             /// Converts a packed <see cref="Rgba32"/> to <see cref="Bgra32"/>.
             /// </summary>
+            /// <returns>The bgra value.</returns>
             [MethodImpl(InliningOptions.ShortMethod)]
             public static uint ToBgra32(uint packedRgba)
             {

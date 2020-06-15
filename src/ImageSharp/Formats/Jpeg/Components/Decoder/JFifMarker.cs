@@ -1,13 +1,13 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
     /// <summary>
-    /// Provides information about the JFIF marker segment
+    /// Provides information about the JFIF marker segment.
     /// TODO: Thumbnail?
     /// </summary>
     internal readonly struct JFifMarker : IEquatable<JFifMarker>
@@ -20,21 +20,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <summary>
         /// Initializes a new instance of the <see cref="JFifMarker"/> struct.
         /// </summary>
-        /// <param name="majorVersion">The major version</param>
-        /// <param name="minorVersion">The minor version</param>
-        /// <param name="densityUnits">The units for the density values</param>
-        /// <param name="xDensity">The horizontal pixel density</param>
-        /// <param name="yDensity">The vertical pixel density</param>
+        /// <param name="majorVersion">The major version.</param>
+        /// <param name="minorVersion">The minor version.</param>
+        /// <param name="densityUnits">The units for the density values.</param>
+        /// <param name="xDensity">The horizontal pixel density.</param>
+        /// <param name="yDensity">The vertical pixel density.</param>
         private JFifMarker(byte majorVersion, byte minorVersion, byte densityUnits, short xDensity, short yDensity)
         {
             if (xDensity <= 0)
             {
-                JpegThrowHelper.ThrowImageFormatException($"X-Density {xDensity} must be greater than 0.");
+                JpegThrowHelper.ThrowInvalidImageContentException($"X-Density {xDensity} must be greater than 0.");
             }
 
             if (yDensity <= 0)
             {
-                JpegThrowHelper.ThrowImageFormatException($"Y-Density {yDensity} must be greater than 0.");
+                JpegThrowHelper.ThrowInvalidImageContentException($"Y-Density {yDensity} must be greater than 0.");
             }
 
             this.MajorVersion = majorVersion;
@@ -47,12 +47,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         }
 
         /// <summary>
-        /// Gets the major version
+        /// Gets the major version.
         /// </summary>
         public byte MajorVersion { get; }
 
         /// <summary>
-        /// Gets the minor version
+        /// Gets the minor version.
         /// </summary>
         public byte MinorVersion { get; }
 
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// Converts the specified byte array representation of an JFIF marker to its <see cref="JFifMarker"/> equivalent and
         /// returns a value that indicates whether the conversion succeeded.
         /// </summary>
-        /// <param name="bytes">The byte array containing metadata to parse</param>
+        /// <param name="bytes">The byte array containing metadata to parse.</param>
         /// <param name="marker">The marker to return.</param>
         public static bool TryParse(byte[] bytes, out JFifMarker marker)
         {

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Threading.Tasks;
@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         public static ParallelOptions GetParallelOptions(this Configuration configuration)
         {
-            return new ParallelOptions() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
+            return new ParallelOptions { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
         }
     }
 }

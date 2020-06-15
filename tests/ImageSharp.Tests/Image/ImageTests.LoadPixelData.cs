@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -16,18 +16,18 @@ namespace SixLabors.ImageSharp.Tests
             [InlineData(true)]
             public void FromPixels(bool useSpan)
             {
-                Rgba32[] data = { Rgba32.Black, Rgba32.White, Rgba32.White, Rgba32.Black, };
+                Rgba32[] data = { Color.Black, Color.White, Color.White, Color.Black, };
 
                 using (Image<Rgba32> img = useSpan
                                                ? Image.LoadPixelData<Rgba32>(data.AsSpan(), 2, 2)
                                                : Image.LoadPixelData<Rgba32>(data, 2, 2))
                 {
                     Assert.NotNull(img);
-                    Assert.Equal(Rgba32.Black, img[0, 0]);
-                    Assert.Equal(Rgba32.White, img[0, 1]);
+                    Assert.Equal(Color.Black, (Color)img[0, 0]);
+                    Assert.Equal(Color.White, (Color)img[0, 1]);
 
-                    Assert.Equal(Rgba32.White, img[1, 0]);
-                    Assert.Equal(Rgba32.Black, img[1, 1]);
+                    Assert.Equal(Color.White, (Color)img[1, 0]);
+                    Assert.Equal(Color.Black, (Color)img[1, 1]);
                 }
             }
 
@@ -48,11 +48,11 @@ namespace SixLabors.ImageSharp.Tests
                                                : Image.LoadPixelData<Rgba32>(data, 2, 2))
                 {
                     Assert.NotNull(img);
-                    Assert.Equal(Rgba32.Black, img[0, 0]);
-                    Assert.Equal(Rgba32.White, img[0, 1]);
+                    Assert.Equal(Color.Black, (Color)img[0, 0]);
+                    Assert.Equal(Color.White, (Color)img[0, 1]);
 
-                    Assert.Equal(Rgba32.White, img[1, 0]);
-                    Assert.Equal(Rgba32.Black, img[1, 1]);
+                    Assert.Equal(Color.White, (Color)img[1, 0]);
+                    Assert.Equal(Color.Black, (Color)img[1, 1]);
                 }
             }
         }

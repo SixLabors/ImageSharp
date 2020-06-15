@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -30,6 +30,34 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// The amount to increment when processing each row per scanline for each interlaced pass.
         /// </summary>
         public static readonly int[] RowIncrement = { 8, 8, 8, 4, 4, 2, 2 };
+
+        /// <summary>
+        /// Gets the width of the block.
+        /// </summary>
+        /// <param name="width">The width.</param>
+        /// <param name="pass">The pass.</param>
+        /// <returns>
+        /// The <see cref="int" />
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ComputeBlockWidth(int width, int pass)
+        {
+            return (width + ColumnIncrement[pass] - 1 - FirstColumn[pass]) / ColumnIncrement[pass];
+        }
+
+        /// <summary>
+        /// Gets the height of the block.
+        /// </summary>
+        /// <param name="height">The height.</param>
+        /// <param name="pass">The pass.</param>
+        /// <returns>
+        /// The <see cref="int" />
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ComputeBlockHeight(int height, int pass)
+        {
+            return (height + RowIncrement[pass] - 1 - FirstRow[pass]) / RowIncrement[pass];
+        }
 
         /// <summary>
         /// Returns the correct number of columns for each interlaced pass.

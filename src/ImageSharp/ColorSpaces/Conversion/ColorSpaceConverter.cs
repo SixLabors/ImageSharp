@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
@@ -18,7 +17,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         private readonly CieXyz targetLuvWhitePoint;
         private readonly CieXyz targetLabWhitePoint;
         private readonly CieXyz targetHunterLabWhitePoint;
-        private readonly RgbWorkingSpaceBase targetRgbWorkingSpace;
+        private readonly RgbWorkingSpace targetRgbWorkingSpace;
         private readonly IChromaticAdaptation chromaticAdaptation;
         private readonly bool performChromaticAdaptation;
         private readonly CieXyzAndLmsConverter cieXyzAndLmsConverter;

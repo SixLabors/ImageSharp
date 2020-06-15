@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,13 +6,16 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -26,85 +29,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// The number of quantization tables.
         /// </summary>
         private const int QuantizationTableCount = 2;
-
-        /// <summary>
-        /// Counts the number of bits needed to hold an integer.
-        /// </summary>
-        private static readonly uint[] BitCountLut =
-            {
-                0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5,
-                5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                8, 8, 8,
-            };
-
-        /// <summary>
-        /// The SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
-        /// - the marker length "\x00\x0c",
-        /// - the number of components "\x03",
-        /// - component 1 uses DC table 0 and AC table 0 "\x01\x00",
-        /// - component 2 uses DC table 1 and AC table 1 "\x02\x11",
-        /// - component 3 uses DC table 1 and AC table 1 "\x03\x11",
-        /// - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
-        /// sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
-        /// should be 0x00, 0x3f, 0x00&lt;&lt;4 | 0x00.
-        /// </summary>
-        private static readonly byte[] SosHeaderYCbCr =
-            {
-                JpegConstants.Markers.XFF, JpegConstants.Markers.SOS,
-
-                // Marker
-                0x00, 0x0c,
-
-                // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
-                0x03, // Number of components in a scan, 3
-                0x01, // Component Id Y
-                0x00, // DC/AC Huffman table
-                0x02, // Component Id Cb
-                0x11, // DC/AC Huffman table
-                0x03, // Component Id Cr
-                0x11, // DC/AC Huffman table
-                0x00, // Ss - Start of spectral selection.
-                0x3f, // Se - End of spectral selection.
-                0x00
-
-                // Ah + Ah (Successive approximation bit position high + low)
-            };
-
-        /// <summary>
-        /// The unscaled quantization tables in zig-zag order. Each
-        /// encoder copies and scales the tables according to its quality parameter.
-        /// The values are derived from section K.1 after converting from natural to
-        /// zig-zag order.
-        /// </summary>
-        private static readonly byte[,] UnscaledQuant =
-            {
-                    {
-                        // Luminance.
-                        16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24,
-                        40, 26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60,
-                        57, 51, 56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80,
-                        109, 81, 87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112,
-                        100, 120, 92, 101, 103, 99,
-                    },
-                    {
-                        // Chrominance.
-                        17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66,
-                        99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                        99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                        99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
-                        99, 99, 99, 99, 99, 99, 99, 99,
-                    }
-            };
 
         /// <summary>
         /// A scratch buffer to reduce allocations.
@@ -168,28 +92,125 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
+        /// Gets the counts the number of bits needed to hold an integer.
+        /// </summary>
+        // The C# compiler emits this as a compile-time constant embedded in the PE file.
+        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
+        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
+        private static ReadOnlySpan<byte> BitCountLut => new byte[]
+            {
+                0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5,
+                5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                8, 8, 8,
+            };
+
+        /// <summary>
+        /// Gets the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
+        /// - the marker length "\x00\x0c",
+        /// - the number of components "\x03",
+        /// - component 1 uses DC table 0 and AC table 0 "\x01\x00",
+        /// - component 2 uses DC table 1 and AC table 1 "\x02\x11",
+        /// - component 3 uses DC table 1 and AC table 1 "\x03\x11",
+        /// - the bytes "\x00\x3f\x00". Section B.2.3 of the spec says that for
+        /// sequential DCTs, those bytes (8-bit Ss, 8-bit Se, 4-bit Ah, 4-bit Al)
+        /// should be 0x00, 0x3f, 0x00&lt;&lt;4 | 0x00.
+        /// </summary>
+        // The C# compiler emits this as a compile-time constant embedded in the PE file.
+        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
+        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
+        private static ReadOnlySpan<byte> SosHeaderYCbCr => new byte[]
+            {
+                JpegConstants.Markers.XFF, JpegConstants.Markers.SOS,
+
+                // Marker
+                0x00, 0x0c,
+
+                // Length (high byte, low byte), must be 6 + 2 * (number of components in scan)
+                0x03, // Number of components in a scan, 3
+                0x01, // Component Id Y
+                0x00, // DC/AC Huffman table
+                0x02, // Component Id Cb
+                0x11, // DC/AC Huffman table
+                0x03, // Component Id Cr
+                0x11, // DC/AC Huffman table
+                0x00, // Ss - Start of spectral selection.
+                0x3f, // Se - End of spectral selection.
+                0x00
+
+                // Ah + Ah (Successive approximation bit position high + low)
+            };
+
+        /// <summary>
+        /// Gets the unscaled quantization tables in zig-zag order. Each
+        /// encoder copies and scales the tables according to its quality parameter.
+        /// The values are derived from section K.1 after converting from natural to
+        /// zig-zag order.
+        /// </summary>
+        // The C# compiler emits this as a compile-time constant embedded in the PE file.
+        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
+        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
+        private static ReadOnlySpan<byte> UnscaledQuant_Luminance => new byte[]
+            {
+                // Luminance.
+                16, 11, 12, 14, 12, 10, 16, 14, 13, 14, 18, 17, 16, 19, 24,
+                40, 26, 24, 22, 22, 24, 49, 35, 37, 29, 40, 58, 51, 61, 60,
+                57, 51, 56, 55, 64, 72, 92, 78, 64, 68, 87, 69, 55, 56, 80,
+                109, 81, 87, 95, 98, 103, 104, 103, 62, 77, 113, 121, 112,
+                100, 120, 92, 101, 103, 99,
+            };
+
+        /// <summary>
+        /// Gets the unscaled quantization tables in zig-zag order. Each
+        /// encoder copies and scales the tables according to its quality parameter.
+        /// The values are derived from section K.1 after converting from natural to
+        /// zig-zag order.
+        /// </summary>
+        // The C# compiler emits this as a compile-time constant embedded in the PE file.
+        // This is effectively compiled down to: return new ReadOnlySpan<byte>(&data, length)
+        // More details can be found: https://github.com/dotnet/roslyn/pull/24621
+        private static ReadOnlySpan<byte> UnscaledQuant_Chrominance => new byte[]
+            {
+                // Chrominance.
+                17, 18, 18, 24, 21, 24, 47, 26, 26, 47, 99, 66, 56, 66,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+                99, 99, 99, 99, 99, 99, 99, 99,
+            };
+
+        /// <summary>
         /// Encode writes the image to the jpeg baseline format with the given options.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image to write from.</param>
         /// <param name="stream">The stream to write to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            ushort max = JpegConstants.MaxLength;
+            const ushort max = JpegConstants.MaxLength;
             if (image.Width >= max || image.Height >= max)
             {
                 throw new ImageFormatException($"Image is too large to encode at {image.Width}x{image.Height}.");
             }
 
             this.outputStream = stream;
-            ImageMetaData metaData = image.MetaData;
+            ImageMetadata metadata = image.Metadata;
 
             // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
-            int qlty = (this.quality ?? metaData.GetFormatMetaData(JpegFormat.Instance).Quality).Clamp(1, 100);
+            int qlty = (this.quality ?? metadata.GetJpegMetadata().Quality).Clamp(1, 100);
             this.subsample = this.subsample ?? (qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
 
             // Convert from a quality rating to a scaling factor.
@@ -208,13 +229,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             InitQuantizationTable(1, scale, ref this.chrominanceQuantTable);
 
             // Compute number of components based on input image type.
-            int componentCount = 3;
+            const int componentCount = 3;
 
             // Write the Start Of Image marker.
-            this.WriteApplicationHeader(metaData);
+            this.WriteApplicationHeader(metadata);
 
-            // Write Exif and ICC profiles
-            this.WriteProfiles(metaData);
+            // Write Exif, ICC and IPTC profiles
+            this.WriteProfiles(metadata);
 
             // Write the quantization tables.
             this.WriteDefineQuantizationTables();
@@ -259,9 +280,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="quant">The quantization table.</param>
         private static void InitQuantizationTable(int i, int scale, ref Block8x8F quant)
         {
+            DebugGuard.MustBeBetweenOrEqualTo(i, 0, 1, nameof(i));
+            ReadOnlySpan<byte> unscaledQuant = (i == 0) ? UnscaledQuant_Luminance : UnscaledQuant_Chrominance;
+
             for (int j = 0; j < Block8x8F.Size; j++)
             {
-                int x = UnscaledQuant[i, j];
+                int x = unscaledQuant[j];
                 x = ((x * scale) + 50) / 100;
                 if (x < 1)
                 {
@@ -357,7 +381,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
             else
             {
-                bt = 8 + BitCountLut[a >> 8];
+                bt = 8 + (uint)BitCountLut[a >> 8];
             }
 
             this.EmitHuff(index, (int)((uint)(runLength << 4) | bt));
@@ -373,7 +397,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode444<TPixel>(Image<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             // (Partially done with YCbCrForwardConverter<TPixel>)
@@ -389,12 +413,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
 
             var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
+            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
+            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
 
             for (int y = 0; y < pixels.Height; y += 8)
             {
+                var currentRows = new RowOctet<TPixel>(pixelBuffer, y);
+
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    pixelConverter.Convert(pixels.Frames.RootFrame, x, y);
+                    pixelConverter.Convert(frame, x, y, currentRows);
 
                     prevDCY = this.WriteBlock(
                         QuantIndex.Luminance,
@@ -427,8 +455,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the application header containing the JFIF identifier plus extra data.
         /// </summary>
-        /// <param name="meta">The image meta data.</param>
-        private void WriteApplicationHeader(ImageMetaData meta)
+        /// <param name="meta">The image metadata.</param>
+        private void WriteApplicationHeader(ImageMetadata meta)
         {
             // Write the start of image marker. Markers are always prefixed with 0xff.
             this.buffer[0] = JpegConstants.Markers.XFF;
@@ -622,51 +650,47 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Writes the EXIF profile.
         /// </summary>
         /// <param name="exifProfile">The exif profile.</param>
-        /// <exception cref="ImageFormatException">
-        /// Thrown if the EXIF profile size exceeds the limit
-        /// </exception>
         private void WriteExifProfile(ExifProfile exifProfile)
         {
-            if (exifProfile is null)
+            if (exifProfile is null || exifProfile.Values.Count == 0)
             {
                 return;
             }
 
-            const int MaxBytesApp1 = 65533;
-            const int MaxBytesWithExifId = 65527;
+            const int MaxBytesApp1 = 65533; // 64k - 2 padding bytes
+            const int MaxBytesWithExifId = 65527; // Max - 6 bytes for EXIF header.
 
-            byte[] data = exifProfile?.ToByteArray();
+            byte[] data = exifProfile.ToByteArray();
 
-            if (data is null || data.Length == 0)
+            if (data.Length == 0)
             {
                 return;
             }
 
-            data = ProfileResolver.ExifMarker.Concat(data).ToArray();
-
-            int remaining = data.Length;
+            // We can write up to a maximum of 64 data to the initial marker so calculate boundaries.
+            int exifMarkerLength = ProfileResolver.ExifMarker.Length;
+            int remaining = exifMarkerLength + data.Length;
             int bytesToWrite = remaining > MaxBytesApp1 ? MaxBytesApp1 : remaining;
             int app1Length = bytesToWrite + 2;
 
+            // Write the app marker, EXIF marker, and data
             this.WriteApp1Header(app1Length);
-
-            // write the exif data
-            this.outputStream.Write(data, 0, bytesToWrite);
+            this.outputStream.Write(ProfileResolver.ExifMarker);
+            this.outputStream.Write(data, 0, bytesToWrite - exifMarkerLength);
             remaining -= bytesToWrite;
 
-            // if the exif data exceeds 64K, write it in multiple APP1 Markers
-            for (int idx = MaxBytesApp1; idx < data.Length; idx += MaxBytesWithExifId)
+            // If the exif data exceeds 64K, write it in multiple APP1 Markers
+            for (int idx = MaxBytesWithExifId; idx < data.Length; idx += MaxBytesWithExifId)
             {
                 bytesToWrite = remaining > MaxBytesWithExifId ? MaxBytesWithExifId : remaining;
-                app1Length = bytesToWrite + 2 + 6;
+                app1Length = bytesToWrite + 2 + exifMarkerLength;
 
                 this.WriteApp1Header(app1Length);
 
-                // write Exif00 marker
-                ProfileResolver.ExifMarker.AsSpan().CopyTo(this.buffer.AsSpan());
-                this.outputStream.Write(this.buffer, 0, 6);
+                // Write Exif00 marker
+                this.outputStream.Write(ProfileResolver.ExifMarker);
 
-                // write the exif data
+                // Write the exif data
                 this.outputStream.Write(data, idx, bytesToWrite);
 
                 remaining -= bytesToWrite;
@@ -674,15 +698,67 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
+        /// Writes the IPTC metadata.
+        /// </summary>
+        /// <param name="iptcProfile">The iptc metadata to write.</param>
+        /// <exception cref="ImageFormatException">
+        /// Thrown if the IPTC profile size exceeds the limit of 65533 bytes.
+        /// </exception>
+        private void WriteIptcProfile(IptcProfile iptcProfile)
+        {
+            const int Max = 65533;
+            if (iptcProfile is null || !iptcProfile.Values.Any())
+            {
+                return;
+            }
+
+            iptcProfile.UpdateData();
+            byte[] data = iptcProfile.Data;
+            if (data.Length == 0)
+            {
+                return;
+            }
+
+            if (data.Length > Max)
+            {
+                throw new ImageFormatException($"Iptc profile size exceeds limit of {Max} bytes");
+            }
+
+            var app13Length = 2 + ProfileResolver.AdobePhotoshopApp13Marker.Length +
+                              ProfileResolver.AdobeImageResourceBlockMarker.Length +
+                              ProfileResolver.AdobeIptcMarker.Length +
+                              2 + 4 + data.Length;
+            this.WriteAppHeader(app13Length, JpegConstants.Markers.APP13);
+            this.outputStream.Write(ProfileResolver.AdobePhotoshopApp13Marker);
+            this.outputStream.Write(ProfileResolver.AdobeImageResourceBlockMarker);
+            this.outputStream.Write(ProfileResolver.AdobeIptcMarker);
+            this.outputStream.WriteByte(0); // a empty pascal string (padded to make size even)
+            this.outputStream.WriteByte(0);
+            BinaryPrimitives.WriteInt32BigEndian(this.buffer, data.Length);
+            this.outputStream.Write(this.buffer, 0, 4);
+            this.outputStream.Write(data, 0, data.Length);
+        }
+
+        /// <summary>
         /// Writes the App1 header.
         /// </summary>
-        /// <param name="app1Length">The length of the data the app1 marker contains</param>
+        /// <param name="app1Length">The length of the data the app1 marker contains.</param>
         private void WriteApp1Header(int app1Length)
         {
+            this.WriteAppHeader(app1Length, JpegConstants.Markers.APP1);
+        }
+
+        /// <summary>
+        /// Writes a AppX header.
+        /// </summary>
+        /// <param name="length">The length of the data the app marker contains.</param>
+        /// <param name="appMarker">The app marker to write.</param>
+        private void WriteAppHeader(int length, byte appMarker)
+        {
             this.buffer[0] = JpegConstants.Markers.XFF;
-            this.buffer[1] = JpegConstants.Markers.APP1; // Application Marker
-            this.buffer[2] = (byte)((app1Length >> 8) & 0xFF);
-            this.buffer[3] = (byte)(app1Length & 0xFF);
+            this.buffer[1] = appMarker;
+            this.buffer[2] = (byte)((length >> 8) & 0xFF);
+            this.buffer[3] = (byte)(length & 0xFF);
 
             this.outputStream.Write(this.buffer, 0, 4);
         }
@@ -770,17 +846,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Writes the metadata profiles to the image.
         /// </summary>
-        /// <param name="metaData">The image meta data.</param>
-        private void WriteProfiles(ImageMetaData metaData)
+        /// <param name="metadata">The image metadata.</param>
+        private void WriteProfiles(ImageMetadata metadata)
         {
-            if (metaData is null)
+            if (metadata is null)
             {
                 return;
             }
 
-            metaData.SyncProfiles();
-            this.WriteExifProfile(metaData.ExifProfile);
-            this.WriteIccProfile(metaData.IccProfile);
+            metadata.SyncProfiles();
+            this.WriteExifProfile(metadata.ExifProfile);
+            this.WriteIccProfile(metadata.IccProfile);
+            this.WriteIptcProfile(metadata.IptcProfile);
         }
 
         /// <summary>
@@ -867,11 +944,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The pixel accessor providing access to the image pixels.</param>
         private void WriteStartOfScan<TPixel>(Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             // TODO: We should allow grayscale writing.
-            this.outputStream.Write(SosHeaderYCbCr, 0, SosHeaderYCbCr.Length);
+            this.outputStream.Write(SosHeaderYCbCr);
 
             switch (this.subsample)
             {
@@ -894,7 +971,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         private void Encode420<TPixel>(Image<TPixel> pixels)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default;
@@ -916,6 +993,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // ReSharper disable once InconsistentNaming
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+            ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
+            Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
 
             for (int y = 0; y < pixels.Height; y += 16)
             {
@@ -926,7 +1005,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
 
-                        pixelConverter.Convert(pixels.Frames.RootFrame, x + xOff, y + yOff);
+                        // TODO: Try pushing this to the outer loop!
+                        var currentRows = new RowOctet<TPixel>(pixelBuffer, y + yOff);
+
+                        pixelConverter.Convert(frame, x + xOff, y + yOff, currentRows);
 
                         cbPtr[i] = pixelConverter.Cb;
                         crPtr[i] = pixelConverter.Cr;

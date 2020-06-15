@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -18,12 +18,16 @@ namespace SixLabors.ImageSharp.Tests
 
         protected readonly PixelTypes PixelTypes;
 
+        static ImageDataAttributeBase()
+        {
+            // ImageDataAttributes are used in almost all tests, thus a good place to enforce the execution of
+            // TestEnvironment static constructor before anything else is done.
+            TestEnvironment.EnsureSharedInitializersDone();
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ImageDataAttributeBase"/> class.
         /// </summary>
-        /// <param name="memberName"></param>
-        /// <param name="pixelTypes"></param>
-        /// <param name="additionalParameters"></param>
         protected ImageDataAttributeBase(string memberName, PixelTypes pixelTypes, object[] additionalParameters)
         {
             this.PixelTypes = pixelTypes;
@@ -32,12 +36,12 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         /// <summary>
-        /// Gets the member name
+        /// Gets the member name.
         /// </summary>
         public string MemberName { get; }
 
         /// <summary>
-        /// Gets the member type
+        /// Gets or sets the member type.
         /// </summary>
         public Type MemberType { get; set; }
 
@@ -72,8 +76,8 @@ namespace SixLabors.ImageSharp.Tests
                 addedRows = new[] { new object[0] };
             }
 
-            bool firstIsprovider = this.FirstIsProvider(testMethod);
-            if (firstIsprovider)
+            bool firstIsProvider = this.FirstIsProvider(testMethod);
+            if (firstIsProvider)
             {
                 return this.InnerGetData(testMethod, addedRows);
             }
@@ -84,8 +88,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Returns a value indicating whether the first parameter of the method is a test provider.
         /// </summary>
-        /// <param name="testMethod"></param>
-        /// <returns></returns>
+        /// <returns>True, if the first parameter is a test provider.</returns>
         private bool FirstIsProvider(MethodInfo testMethod)
         {
             TypeInfo dataType = testMethod.GetParameters().First().ParameterType.GetTypeInfo();
@@ -98,12 +101,12 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Type factoryType = typeof(TestImageProvider<>).MakeGenericType(kv.Value);
 
-                foreach (object[] originalFacoryMethodArgs in this.GetAllFactoryMethodArgs(testMethod, factoryType))
+                foreach (object[] originalFactoryMethodArgs in this.GetAllFactoryMethodArgs(testMethod, factoryType))
                 {
                     foreach (object[] row in memberData)
                     {
-                        object[] actualFactoryMethodArgs = new object[originalFacoryMethodArgs.Length + 2];
-                        Array.Copy(originalFacoryMethodArgs, actualFactoryMethodArgs, originalFacoryMethodArgs.Length);
+                        object[] actualFactoryMethodArgs = new object[originalFactoryMethodArgs.Length + 2];
+                        Array.Copy(originalFactoryMethodArgs, actualFactoryMethodArgs, originalFactoryMethodArgs.Length);
                         actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 2] = testMethod;
                         actualFactoryMethodArgs[actualFactoryMethodArgs.Length - 1] = kv.Key;
 
@@ -153,6 +156,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Gets the field accessor for the given type.
         /// </summary>
+        /// <returns>The field accessor.</returns>
         protected Func<object> GetFieldAccessor(Type type, string memberName)
         {
             FieldInfo fieldInfo = null;
@@ -160,11 +164,15 @@ namespace SixLabors.ImageSharp.Tests
             {
                 fieldInfo = reflectionType.GetRuntimeField(memberName);
                 if (fieldInfo != null)
+                {
                     break;
+                }
             }
 
-            if (fieldInfo == null || !fieldInfo.IsStatic)
+            if (fieldInfo is null || !fieldInfo.IsStatic)
+            {
                 return null;
+            }
 
             return () => fieldInfo.GetValue(null);
         }
@@ -172,6 +180,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Gets the property accessor for the given type.
         /// </summary>
+        /// <returns>The property accessor.</returns>
         protected Func<object> GetPropertyAccessor(Type type, string memberName)
         {
             PropertyInfo propInfo = null;
@@ -184,7 +193,7 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
-            if (propInfo?.GetMethod == null || !propInfo.GetMethod.IsStatic)
+            if (propInfo?.GetMethod is null || !propInfo.GetMethod.IsStatic)
             {
                 return null;
             }

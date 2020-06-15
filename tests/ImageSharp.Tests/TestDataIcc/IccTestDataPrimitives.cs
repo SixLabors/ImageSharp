@@ -1,12 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Tests
 {
     internal static class IccTestDataPrimitives
     {
-        #region UInt16
-
         public static readonly byte[] UInt16_0 = { 0x00, 0x00 };
         public static readonly byte[] UInt16_1 = { 0x00, 0x01 };
         public static readonly byte[] UInt16_2 = { 0x00, 0x02 };
@@ -19,10 +17,6 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly byte[] UInt16_9 = { 0x00, 0x09 };
         public static readonly byte[] UInt16_32768 = { 0x80, 0x00 };
         public static readonly byte[] UInt16_Max = { 0xFF, 0xFF };
-
-        #endregion
-
-        #region Int16
 
         public static readonly byte[] Int16_Min = { 0x80, 0x00 };
         public static readonly byte[] Int16_0 = { 0x00, 0x00 };
@@ -37,10 +31,6 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly byte[] Int16_9 = { 0x00, 0x09 };
         public static readonly byte[] Int16_Max = { 0x7F, 0xFF };
 
-        #endregion
-
-        #region UInt32
-
         public static readonly byte[] UInt32_0 = { 0x00, 0x00, 0x00, 0x00 };
         public static readonly byte[] UInt32_1 = { 0x00, 0x00, 0x00, 0x01 };
         public static readonly byte[] UInt32_2 = { 0x00, 0x00, 0x00, 0x02 };
@@ -53,7 +43,6 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly byte[] UInt32_9 = { 0x00, 0x00, 0x00, 0x09 };
         public static readonly byte[] UInt32_Max = { 0xFF, 0xFF, 0xFF, 0xFF };
 
-
         public static readonly uint UInt32_ValRand1 = 1749014123;
         public static readonly uint UInt32_ValRand2 = 3870560989;
         public static readonly uint UInt32_ValRand3 = 1050090334;
@@ -63,10 +52,6 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly byte[] UInt32_Rand2 = { 0xE6, 0xB4, 0x12, 0xDD };
         public static readonly byte[] UInt32_Rand3 = { 0x3E, 0x97, 0x1B, 0x5E };
         public static readonly byte[] UInt32_Rand4 = { 0xD3, 0x9C, 0x8F, 0x4A };
-
-        #endregion
-
-        #region Int32
 
         public static readonly byte[] Int32_Min = { 0x80, 0x00, 0x00, 0x00 };
         public static readonly byte[] Int32_0 = { 0x00, 0x00, 0x00, 0x00 };
@@ -81,10 +66,6 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly byte[] Int32_9 = { 0x00, 0x00, 0x00, 0x09 };
         public static readonly byte[] Int32_Max = { 0x7F, 0xFF, 0xFF, 0xFF };
 
-        #endregion
-
-        #region UInt64
-
         public static readonly byte[] UInt64_0 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
         public static readonly byte[] UInt64_1 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
         public static readonly byte[] UInt64_2 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02 };
@@ -96,10 +77,6 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly byte[] UInt64_8 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08 };
         public static readonly byte[] UInt64_9 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09 };
         public static readonly byte[] UInt64_Max = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-
-        #endregion
-
-        #region Int64
 
         public static readonly byte[] Int64_Min = { 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
         public static readonly byte[] Int64_0 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -114,10 +91,6 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly byte[] Int64_9 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09 };
         public static readonly byte[] Int64_Max = { 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-        #endregion
-
-        #region Single
-
         public static readonly byte[] Single_Min = { 0xFF, 0x7F, 0xFF, 0xFF };
         public static readonly byte[] Single_0 = { 0x00, 0x00, 0x00, 0x00 };
         public static readonly byte[] Single_1 = { 0x3F, 0x80, 0x00, 0x00 };
@@ -131,21 +104,13 @@ namespace SixLabors.ImageSharp.Tests
         public static readonly byte[] Single_9 = { 0x41, 0x10, 0x00, 0x00 };
         public static readonly byte[] Single_Max = { 0x7F, 0x7F, 0xFF, 0xFF };
 
-        #endregion
-
-        #region Double
-
         public static readonly byte[] Double_Min = { 0xFF, 0xEF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
         public static readonly byte[] Double_0 = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
         public static readonly byte[] Double_1 = { 0x3F, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
         public static readonly byte[] Double_Max = { 0x7F, 0xEF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-        #endregion
-
-        #region Fix16
-
         public const float Fix16_ValMin = short.MinValue;
-        public const float Fix16_ValMax = short.MaxValue + 65535f / 65536f;
+        public const float Fix16_ValMax = short.MaxValue + (65535f / 65536f);
 
         public static readonly byte[] Fix16_Min = { 0x80, 0x00, 0x00, 0x00 };
         public static readonly byte[] Fix16_0 = { 0x00, 0x00, 0x00, 0x00 };
@@ -168,12 +133,8 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Fix16_Max, Fix16_ValMax },
         };
 
-        #endregion
-
-        #region UFix16
-
         public const float UFix16_ValMin = 0;
-        public const float UFix16_ValMax = ushort.MaxValue + 65535f / 65536f;
+        public const float UFix16_ValMax = ushort.MaxValue + (65535f / 65536f);
 
         public static readonly byte[] UFix16_0 = { 0x00, 0x00, 0x00, 0x00 };
         public static readonly byte[] UFix16_1 = { 0x00, 0x01, 0x00, 0x00 };
@@ -194,12 +155,8 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { UFix16_Max, UFix16_ValMax },
         };
 
-        #endregion
-
-        #region U1Fix15
-
         public const float U1Fix15_ValMin = 0;
-        public const float U1Fix15_ValMax = 1f + 32767f / 32768f;
+        public const float U1Fix15_ValMax = 1f + (32767f / 32768f);
 
         public static readonly byte[] U1Fix15_0 = { 0x00, 0x00 };
         public static readonly byte[] U1Fix15_1 = { 0x80, 0x00 };
@@ -212,12 +169,8 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { U1Fix15_Max, U1Fix15_ValMax },
         };
 
-        #endregion
-
-        #region UFix8
-
         public const float UFix8_ValMin = 0;
-        public const float UFix8_ValMax = byte.MaxValue + 255f / 256f;
+        public const float UFix8_ValMax = byte.MaxValue + (255f / 256f);
 
         public static readonly byte[] UFix8_0 = { 0x00, 0x00 };
         public static readonly byte[] UFix8_1 = { 0x01, 0x00 };
@@ -237,10 +190,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { UFix8_4, 4 },
             new object[] { UFix8_Max, UFix8_ValMax },
         };
-
-        #endregion
-
-        #region ASCII String
 
         public const string Ascii_ValRand = "aBcdEf1234";
         public const string Ascii_ValRand1 = "Ecf3a";
@@ -283,10 +232,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { Ascii_RandLength4, 4, Ascii_ValRand, false },
         };
 
-        #endregion
-
-        #region Unicode String
-
         public const string Unicode_ValRand1 = ".6Abäñ$€β𐐷𤭢";
         public const string Unicode_ValRand2 = ".6Abäñ";
         public const string Unicode_ValRand3 = "$€β𐐷𤭢";
@@ -324,7 +269,5 @@ namespace SixLabors.ImageSharp.Tests
             0xD8, 0x01, 0xDC, 0x37, // 𐐷
             0xD8, 0x52, 0xDF, 0x62, // 𤭢
         };
-
-        #endregion
     }
 }

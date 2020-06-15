@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
@@ -25,14 +25,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2, 0)]
             public void LLM_ForwardThenInverse(int seed, int startAt)
             {
-                int[] data = JpegFixture.Create8x8RandomIntData(-1000, 1000, seed);
+                int[] data = Create8x8RandomIntData(-1000, 1000, seed);
                 float[] original = data.ConvertAllToFloat();
                 float[] src = data.ConvertAllToFloat();
                 float[] dest = new float[64];
                 float[] temp = new float[64];
 
-                ReferenceImplementations.LLM_FloatingPoint_DCT.fDCT2D_llm(src, dest, temp, true);
-                ReferenceImplementations.LLM_FloatingPoint_DCT.iDCT2D_llm(dest, src, temp);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.FDCT2D_llm(src, dest, temp, true);
+                ReferenceImplementations.LLM_FloatingPoint_DCT.IDCT2D_llm(dest, src, temp);
 
                 this.CompareBlocks(original, src, 0.1f);
             }
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2, 200)]
             public void LLM_IDCT_IsEquivalentTo_AccurateImplementation(int seed, int range)
             {
-                float[] sourceArray = JpegFixture.Create8x8RoundedRandomFloatData(-range, range, seed);
+                float[] sourceArray = Create8x8RoundedRandomFloatData(-range, range, seed);
 
                 var source = Block8x8F.Load(sourceArray);
 
@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void LLM_FDCT_IsEquivalentTo_AccurateImplementation(int seed)
             {
-                float[] floatData = JpegFixture.Create8x8RandomFloatData(-1000, 1000);
+                float[] floatData = Create8x8RandomFloatData(-1000, 1000);
 
                 Block8x8F source = default;
                 source.LoadFrom(floatData);
@@ -107,14 +107,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2, 200)]
             public void GT_IDCT_IsEquivalentTo_AccurateImplementation(int seed, int range)
             {
-                int[] intData = JpegFixture.Create8x8RandomIntData(-range, range, seed);
+                int[] intData = Create8x8RandomIntData(-range, range, seed);
                 float[] floatSrc = intData.ConvertAllToFloat();
 
                 ReferenceImplementations.AccurateDCT.TransformIDCTInplace(intData);
 
                 float[] dest = new float[64];
 
-                ReferenceImplementations.GT_FloatingPoint_DCT.iDCT8x8GT(floatSrc, dest);
+                ReferenceImplementations.GT_FloatingPoint_DCT.IDCT8x8GT(floatSrc, dest);
 
                 this.CompareBlocks(intData.ConvertAllToFloat(), dest, 1f);
             }

@@ -1,12 +1,13 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
 {
     /// <summary>
-    /// Detects bmp file headers
+    /// Detects bmp file headers.
     /// </summary>
     public sealed class BmpImageFormatDetector : IImageFormatDetector
     {
@@ -21,10 +22,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         {
-            // TODO: This should be in constants
-            return header.Length >= this.HeaderSize &&
-                   header[0] == 0x42 && // B
-                   header[1] == 0x4D;   // M
+            if (header.Length >= this.HeaderSize)
+            {
+                short fileTypeMarker = BinaryPrimitives.ReadInt16LittleEndian(header);
+                return fileTypeMarker == BmpConstants.TypeMarkers.Bitmap || fileTypeMarker == BmpConstants.TypeMarkers.BitmapArray;
+            }
+
+            return false;
         }
     }
 }

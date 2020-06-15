@@ -1,9 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing.Imaging;
 using System.IO;
 using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 using SDImage = System.Drawing.Image;
@@ -56,7 +57,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         {
             using (var memoryStream = new MemoryStream())
             {
-                this.bmpCore.SaveAsPng(memoryStream);
+                var encoder = new PngEncoder { FilterMethod = PngFilterMethod.None };
+                this.bmpCore.SaveAsPng(memoryStream, encoder);
             }
         }
     }

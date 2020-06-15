@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -84,9 +84,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             for (int i = 0; i < quantizationTables.Length; i++)
             {
                 ref Block8x8F qTable = ref quantizationTables[i];
-                for (int j = 0; j < Block8x8F.Size; j++)
+
+                if (!qTable.Equals(default))
                 {
-                    sum += qTable[j];
+                    for (int j = 0; j < Block8x8F.Size; j++)
+                    {
+                        sum += qTable[j];
+                    }
                 }
             }
 

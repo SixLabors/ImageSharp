@@ -1,14 +1,12 @@
-// <copyright file="DecodePng.cs" company="James Jackson-South">
-// Copyright (c) James Jackson-South and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
-// </copyright>
 
 using System.IO;
 using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
-using CoreSize = SixLabors.Primitives.Size;
+using CoreSize = SixLabors.ImageSharp.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {

@@ -1,19 +1,16 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 // Uncomment this to turn unit tests into benchmarks:
-//#define BENCHMARKING
-
+// #define BENCHMARKING
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 using Xunit;
 using Xunit.Abstractions;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public partial class Block8x8FTests
@@ -31,7 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 {
                     for (int x = 0; x < 20; x++)
                     {
-                        if (x < subX || x >= subX + 8 * horizontalFactor || y < subY || y >= subY + 8 * verticalFactor)
+                        if (x < subX || x >= subX + (8 * horizontalFactor) || y < subY || y >= subY + (8 * verticalFactor))
                         {
                             Assert.Equal(0, buffer[x, y]);
                         }
@@ -46,8 +43,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 using (Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(20, 20, AllocationOptions.Clean))
                 {
-                    BufferArea<float> area = buffer.GetArea(5, 10, 8, 8);
-                    block.Copy1x1Scale(area);
+                    Buffer2DRegion<float> region = buffer.GetRegion(5, 10, 8, 8);
+                    block.Copy1x1Scale(ref region.GetReferenceToOrigin(), region.Stride);
 
                     Assert.Equal(block[0, 0], buffer[5, 10]);
                     Assert.Equal(block[1, 0], buffer[6, 10]);
@@ -74,8 +71,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
                 using (Buffer2D<float> buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(100, 100, AllocationOptions.Clean))
                 {
-                    BufferArea<float> area = buffer.GetArea(start.X, start.Y, 8 * horizontalFactor, 8 * verticalFactor);
-                    block.CopyTo(area, horizontalFactor, verticalFactor);
+                    Buffer2DRegion<float> region = buffer.GetRegion(start.X, start.Y, 8 * horizontalFactor, 8 * verticalFactor);
+                    block.ScaledCopyTo(region, horizontalFactor, verticalFactor);
 
                     for (int y = 0; y < 8 * verticalFactor; y++)
                     {
@@ -85,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                             int xx = x / horizontalFactor;
 
                             float expected = block[xx, yy];
-                            float actual = area[x, y];
+                            float actual = region[x, y];
 
                             Assert.Equal(expected, actual);
                         }

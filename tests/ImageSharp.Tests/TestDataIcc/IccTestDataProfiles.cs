@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -78,41 +78,46 @@ namespace SixLabors.ImageSharp.Tests
                     0x64, 0x63, 0x62, 0x61,     // CreatorSignature
                  },
                  profileId,
+#pragma warning disable SA1118 // Parameter should not span multiple lines
                  new byte[]
-                 { 
+                 {
                     // Padding
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00,
+
                     // Nr of tag table entries
-                    (byte)(nrOfEntries >> 24), (byte)(nrOfEntries >> 16), (byte)(nrOfEntries >> 8), (byte)nrOfEntries
+                    (byte)(nrOfEntries >> 24),
+                    (byte)(nrOfEntries >> 16),
+                    (byte)(nrOfEntries >> 8),
+                    (byte)nrOfEntries
                  });
+#pragma warning restore SA1118 // Parameter should not span multiple lines
         }
 
-        public static readonly byte[] Profile_Random_Array = ArrayHelper.Concat(CreateHeaderRandomArray(168, 2, Profile_Random_Id_Array),
+        public static readonly byte[] Profile_Random_Array = ArrayHelper.Concat(
+            CreateHeaderRandomArray(168, 2, Profile_Random_Id_Array),
+#pragma warning disable SA1118 // Parameter should not span multiple lines
             new byte[]
             {
                 0x00, 0x00, 0x00, 0x00,     // tag signature (Unknown)
                 0x00, 0x00, 0x00, 0x9C,     // tag offset (156)
                 0x00, 0x00, 0x00, 0x0C,     // tag size (12)
-                
                 0x00, 0x00, 0x00, 0x00,     // tag signature (Unknown)
                 0x00, 0x00, 0x00, 0x9C,     // tag offset (156)
                 0x00, 0x00, 0x00, 0x0C,     // tag size (12)
             },
+#pragma warning restore SA1118 // Parameter should not span multiple lines
             IccTestDataTagDataEntry.TagDataEntryHeader_UnknownArr,
-            IccTestDataTagDataEntry.Unknown_Arr
-        );
+            IccTestDataTagDataEntry.Unknown_Arr);
 
-        public static readonly IccProfile Profile_Random_Val = new IccProfile(CreateHeaderRandomValue(168,
-            Profile_Random_Id_Value,
-            "acsp"),
-            new IccTagDataEntry[]
-            {
-                IccTestDataTagDataEntry.Unknown_Val,
-                IccTestDataTagDataEntry.Unknown_Val
-            });
+        public static readonly IccProfile Profile_Random_Val = new IccProfile(
+            CreateHeaderRandomValue(
+                168,
+                Profile_Random_Id_Value,
+                "acsp"),
+            new IccTagDataEntry[] { IccTestDataTagDataEntry.Unknown_Val, IccTestDataTagDataEntry.Unknown_Val });
 
         public static readonly byte[] Header_CorruptDataColorSpace_Array =
         {
@@ -132,8 +137,10 @@ namespace SixLabors.ImageSharp.Tests
             0x00, 0x00, 0x00, 0x03,     // RenderingIntent
             0x00, 0x04, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00,  // PcsIlluminant
             0x64, 0x63, 0x62, 0x61,     // CreatorSignature
+
             // Profile ID
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
             // Padding
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -159,8 +166,10 @@ namespace SixLabors.ImageSharp.Tests
             0x00, 0x00, 0x00, 0x03,     // RenderingIntent
             0x00, 0x04, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00,  // PcsIlluminant
             0x64, 0x63, 0x62, 0x61,     // CreatorSignature
+
             // Profile ID
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
             // Padding
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -186,8 +195,10 @@ namespace SixLabors.ImageSharp.Tests
             0x33, 0x41, 0x30, 0x6B,     // RenderingIntent
             0x00, 0x04, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00,  // PcsIlluminant
             0x64, 0x63, 0x62, 0x61,     // CreatorSignature
+
             // Profile ID
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
             // Padding
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

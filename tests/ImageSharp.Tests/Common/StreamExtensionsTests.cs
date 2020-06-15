@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -67,7 +67,10 @@ namespace SixLabors.ImageSharp.Tests.Common
             public long Offset;
             public SeekOrigin Loc;
 
-            public SeekableStream(int capacity) : base(capacity) { }
+            public SeekableStream(int capacity)
+                : base(capacity)
+            {
+            }
 
             public override long Seek(long offset, SeekOrigin loc)
             {
@@ -83,7 +86,10 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             public List<int> Counts = new List<int>();
 
-            public NonSeekableStream() : base(4) { }
+            public NonSeekableStream()
+                : base(4)
+            {
+            }
 
             public override int Read(byte[] buffer, int offset, int count)
             {
@@ -97,7 +103,10 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             public override bool CanSeek => false;
 
-            public EofStream(int capacity) : base(capacity) { }
+            public EofStream(int capacity)
+                : base(capacity)
+            {
+            }
 
             public override int Read(byte[] buffer, int offset, int count)
             {

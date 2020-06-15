@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -9,7 +9,6 @@ using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 // ReSharper disable InconsistentNaming
-
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
 {
     /// <summary>
@@ -25,15 +24,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         private static readonly Vector4 Half = new Vector4(0.5f);
 
         private Block8x8F inputDividend;
-        private Block8x8F inputDivisior;
+        private Block8x8F inputDivisor;
 
         [GlobalSetup]
         public void Setup()
         {
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                this.inputDividend[i] = i*44.8f;
-                this.inputDivisior[i] = 100 - i;
+                this.inputDividend[i] = i * 44.8f;
+                this.inputDivisor[i] = 100 - i;
             }
         }
 
@@ -43,7 +42,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             int sum = 0;
 
             Block8x8F b1 = this.inputDividend;
-            Block8x8F b2 = this.inputDivisior;
+            Block8x8F b2 = this.inputDivisor;
             float* pDividend = (float*)&b1;
             float* pDivisor = (float*)&b2;
 
@@ -54,10 +53,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
                 sum = 0;
                 for (int i = 0; i < Block8x8F.Size; i++)
                 {
-                    int a = (int) pDividend[i];
-                    int b = (int) pDivisor;
+                    int a = (int)pDividend[i];
+                    int b = (int)pDivisor;
                     result[i] = RationalRound(a, b);
                 }
+
                 for (int i = 0; i < Block8x8F.Size; i++)
                 {
                     sum += result[i];
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             int sum = 0;
 
             Block8x8F b1 = this.inputDividend;
-            Block8x8F b2 = this.inputDivisior;
+            Block8x8F b2 = this.inputDivisor;
             float* pDividend = (float*)&b1;
             float* pDivisor = (float*)&b2;
 
@@ -83,13 +83,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
                 for (int i = 0; i < Block8x8F.Size; i++)
                 {
                     double value = pDividend[i] / pDivisor[i];
-                    pDividend[i] = (float) System.Math.Round(value);
+                    pDividend[i] = (float)System.Math.Round(value);
                 }
+
                 for (int i = 0; i < Block8x8F.Size; i++)
                 {
-                    sum += (int) pDividend[i];
+                    sum += (int)pDividend[i];
                 }
             }
+
             return sum;
         }
 
@@ -99,7 +101,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             int sum = 0;
 
             Block8x8F bDividend = this.inputDividend;
-            Block8x8F bDivisor = this.inputDivisior;
+            Block8x8F bDivisor = this.inputDivisor;
             float* pDividend = (float*)&bDividend;
 
             for (int cnt = 0; cnt < ExecutionCount; cnt++)
@@ -111,6 +113,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
                     sum += (int)pDividend[i];
                 }
             }
+
             return sum;
         }
 
@@ -138,10 +141,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
         {
-            Vector4 sign = Vector4.Min(dividend, Vector4.One);
+            var sign = Vector4.Min(dividend, Vector4.One);
             sign = Vector4.Max(sign, MinusOne);
 
-            return dividend / divisor + sign * Half;
+            return (dividend / divisor) + (sign * Half);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

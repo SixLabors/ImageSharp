@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,23 +9,19 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal static class BmpThrowHelper
     {
         /// <summary>
-        /// Cold path optimization for throwing <see cref="ImageFormatException"/>-s
+        /// Cold path optimization for throwing <see cref="InvalidImageContentException"/>'s
         /// </summary>
         /// <param name="errorMessage">The error message for the exception.</param>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void ThrowImageFormatException(string errorMessage)
-        {
-            throw new ImageFormatException(errorMessage);
-        }
+        public static void ThrowInvalidImageContentException(string errorMessage)
+            => throw new InvalidImageContentException(errorMessage);
 
         /// <summary>
-        /// Cold path optimization for throwing <see cref="NotSupportedException"/>-s
+        /// Cold path optimization for throwing <see cref="NotSupportedException"/>'s
         /// </summary>
         /// <param name="errorMessage">The error message for the exception.</param>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void ThrowNotSupportedException(string errorMessage)
-        {
-            throw new NotSupportedException(errorMessage);
-        }
+            => throw new NotSupportedException(errorMessage);
     }
 }

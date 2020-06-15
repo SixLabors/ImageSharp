@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -8,8 +8,8 @@ using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Memory;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
 {
     public class Block8x8F_CopyTo2x2
@@ -18,20 +18,20 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
 
         private Buffer2D<float> buffer;
 
-        private BufferArea<float> destArea;
+        private Buffer2DRegion<float> destRegion;
 
         [GlobalSetup]
         public void Setup()
         {
             this.buffer = Configuration.Default.MemoryAllocator.Allocate2D<float>(1000, 500);
-            this.destArea = this.buffer.GetArea(200, 100, 128, 128);
+            this.destRegion = this.buffer.GetRegion(200, 100, 128, 128);
         }
 
         [Benchmark(Baseline = true)]
         public void Original()
         {
-            ref float destBase = ref this.destArea.GetReferenceToOrigin();
-            int destStride = this.destArea.Stride;
+            ref float destBase = ref this.destRegion.GetReferenceToOrigin();
+            int destStride = this.destRegion.Stride;
 
             ref Block8x8F src = ref this.block;
 
@@ -92,8 +92,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         [Benchmark]
         public void Original_V2()
         {
-            ref float destBase = ref this.destArea.GetReferenceToOrigin();
-            int destStride = this.destArea.Stride;
+            ref float destBase = ref this.destRegion.GetReferenceToOrigin();
+            int destStride = this.destRegion.Stride;
 
             ref Block8x8F src = ref this.block;
 
@@ -160,8 +160,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         [Benchmark]
         public void UseVector2()
         {
-            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref this.destArea.GetReferenceToOrigin());
-            int destStride = this.destArea.Stride / 2;
+            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref this.destRegion.GetReferenceToOrigin());
+            int destStride = this.destRegion.Stride / 2;
 
             ref Block8x8F src = ref this.block;
 
@@ -220,8 +220,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         [Benchmark]
         public void UseVector4()
         {
-            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref this.destArea.GetReferenceToOrigin());
-            int destStride = this.destArea.Stride / 2;
+            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref this.destRegion.GetReferenceToOrigin());
+            int destStride = this.destRegion.Stride / 2;
 
             ref Block8x8F src = ref this.block;
 
@@ -280,8 +280,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
         [Benchmark]
         public void UseVector4_SafeRightCorner()
         {
-            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref this.destArea.GetReferenceToOrigin());
-            int destStride = this.destArea.Stride / 2;
+            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref this.destRegion.GetReferenceToOrigin());
+            int destStride = this.destRegion.Stride / 2;
 
             ref Block8x8F src = ref this.block;
 
@@ -335,12 +335,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             Unsafe.Add(ref dBottomLeft, 7) = wRight;
         }
 
-
         [Benchmark]
         public void UseVector4_V2()
         {
-            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref this.destArea.GetReferenceToOrigin());
-            int destStride = this.destArea.Stride / 2;
+            ref Vector2 destBase = ref Unsafe.As<float, Vector2>(ref this.destRegion.GetReferenceToOrigin());
+            int destStride = this.destRegion.Stride / 2;
 
             ref Block8x8F src = ref this.block;
 
@@ -364,22 +363,30 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
             ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset));
             ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset + destStride));
 
-            var xyLeft = new Vector4(sLeft.X);
-            xyLeft.Z = sLeft.Y;
-            xyLeft.W = sLeft.Y;
+            var xyLeft = new Vector4(sLeft.X)
+            {
+                Z = sLeft.Y,
+                W = sLeft.Y
+            };
 
-            var zwLeft = new Vector4(sLeft.Z);
-            zwLeft.Z = sLeft.W;
-            zwLeft.W = sLeft.W;
-            
-            var xyRight = new Vector4(sRight.X);
-            xyRight.Z = sRight.Y;
-            xyRight.W = sRight.Y;
+            var zwLeft = new Vector4(sLeft.Z)
+            {
+                Z = sLeft.W,
+                W = sLeft.W
+            };
 
-            var zwRight = new Vector4(sRight.Z);
-            zwRight.Z = sRight.W;
-            zwRight.W = sRight.W;
-            
+            var xyRight = new Vector4(sRight.X)
+            {
+                Z = sRight.Y,
+                W = sRight.Y
+            };
+
+            var zwRight = new Vector4(sRight.Z)
+            {
+                Z = sRight.W,
+                W = sRight.W
+            };
+
             dTopLeft = xyLeft;
             Unsafe.Add(ref dTopLeft, 1) = zwLeft;
             Unsafe.Add(ref dTopLeft, 2) = xyRight;

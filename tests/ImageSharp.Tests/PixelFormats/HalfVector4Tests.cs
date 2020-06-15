@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // arrange
             var halfVector4 = new HalfVector4(-Vector4.One);
 
-            // act 
+            // act
             Vector4 actual = halfVector4.ToScaledVector4();
 
             // assert
@@ -58,12 +58,26 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             Vector4 scaled = new HalfVector4(-Vector4.One).ToScaledVector4();
             ulong expected = 13547034390470638592uL;
 
-            // act 
+            // act
             halfVector4.FromScaledVector4(scaled);
             ulong actual = halfVector4.PackedValue;
 
             // assert
             Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void HalfVector4_FromBgra5551()
+        {
+            // arrange
+            var halfVector4 = default(HalfVector4);
+            Vector4 expected = Vector4.One;
+
+            // act
+            halfVector4.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, halfVector4.ToScaledVector4());
         }
     }
 }

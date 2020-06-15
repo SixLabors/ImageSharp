@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse3.IsSupported && buffer.Length >= MinBufferSize)
+            if (Ssse3.IsSupported && buffer.Length >= MinBufferSize)
             {
                 return CalculateSse(adler, buffer);
             }

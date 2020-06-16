@@ -61,13 +61,13 @@ jobs:
               run: git branch --create-reflog master origin/master
 
             - name: Install GitVersion
-              uses: gittools/actions/setup-gitversion@v0.9.3
+              uses: gittools/actions/setup-gitversion@v0.9.2
               with:
                   versionSpec: "5.3.x"
 
             - name: Use GitVersion
               id: gitversion # step id used as reference for output values
-              uses: gittools/actions/execute-gitversion@v0.9.3
+              uses: gittools/actions/execute-gitversion@v0.9.2
 
             - name: Setup DotNet SDK
               uses: actions/setup-dotnet@v1
@@ -121,13 +121,13 @@ jobs:
               run: git branch --create-reflog master origin/master
 
             - name: Install GitVersion
-              uses: gittools/actions/setup-gitversion@v0.9.3
+              uses: gittools/actions/setup-gitversion@v0.9.2
               with:
                   versionSpec: "5.3.x"
 
             - name: Use GitVersion
               id: gitversion # step id used as reference for output values
-              uses: gittools/actions/execute-gitversion@v0.9.3
+              uses: gittools/actions/execute-gitversion@v0.9.2
 
             - name: Setup DotNet SDK
               uses: actions/setup-dotnet@v1

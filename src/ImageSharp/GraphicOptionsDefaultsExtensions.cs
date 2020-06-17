@@ -71,11 +71,9 @@ namespace SixLabors.ImageSharp
                 return go;
             }
 
-            var configOptions = context.Configuration.GetGraphicsOptions();
-
             // do not cache the fall back to config into the the processing context
             // in case someone want to change the value on the config and expects it re trflow thru
-            return configOptions;
+            return context.Configuration.GetGraphicsOptions();
         }
 
         /// <summary>

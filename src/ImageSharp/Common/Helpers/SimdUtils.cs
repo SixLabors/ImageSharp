@@ -112,6 +112,103 @@ namespace SixLabors.ImageSharp
             }
         }
 
+        internal static void PackBytesToUInt32SaturateChannel4(
+                ReadOnlySpan<byte> channel0,
+                ReadOnlySpan<byte> channel1,
+                ReadOnlySpan<byte> channel2,
+                Span<byte> dest)
+        {
+            DebugGuard.IsTrue(channel0.Length == dest.Length, nameof(channel0), "Input spans must be of same length!");
+            DebugGuard.IsTrue(channel1.Length == dest.Length, nameof(channel1), "Input spans must be of same length!");
+            DebugGuard.IsTrue(channel2.Length == dest.Length, nameof(channel2), "Input spans must be of same length!");
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            Avx2Intrinsics.PackBytesToUInt32SaturateChannel4Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+
+            // I can't immediately see a way to do this operation efficiently with Vector<T> or Vector4<T>. TODO
+#elif SUPPORTS_EXTENDED_INTRINSICS
+            //ExtendedIntrinsics.PackBytesToUInt32SaturateChannel4Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+#else
+            //BasicIntrinsics256.PackBytesToUInt32SaturateChannel4Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+#endif
+
+            // Deal with the remainder:
+            if (channel0.Length > 0)
+            {
+                PackBytesToUInt32SaturateChannel4Remainder(channel0, channel1, channel2, dest);
+            }
+        }
+
+        private static void PackBytesToUInt32SaturateChannel4Remainder(
+                ReadOnlySpan<byte> channel0,
+                ReadOnlySpan<byte> channel1,
+                ReadOnlySpan<byte> channel2,
+                Span<byte> dest)
+        {
+            DebugGuard.MustBeGreaterThanOrEqualTo(dest.Length, channel0.Length * 4, nameof(dest));
+
+            ref byte s0Base = ref MemoryMarshal.GetReference(channel0);
+            ref byte s1Base = ref MemoryMarshal.GetReference(channel1);
+            ref byte s2Base = ref MemoryMarshal.GetReference(channel2);
+            ref byte dBase = ref MemoryMarshal.GetReference(dest);
+
+            for (int i = 0, j = 0; i < dest.Length; i += 1, j += 4)
+            {
+                Unsafe.Add(ref dBase, j) = Unsafe.Add(ref s0Base, i);
+                Unsafe.Add(ref dBase, j + 1) = Unsafe.Add(ref s1Base, i);
+                Unsafe.Add(ref dBase, j + 2) = Unsafe.Add(ref s2Base, i);
+                Unsafe.Add(ref dBase, j + 2) = 0xFF;
+            }
+        }
+
+        internal static void PackBytesToUInt24(
+                ReadOnlySpan<byte> channel0,
+                ReadOnlySpan<byte> channel1,
+                ReadOnlySpan<byte> channel2,
+                Span<byte> dest)
+        {
+            DebugGuard.IsTrue(channel0.Length == dest.Length, nameof(channel0), "Input spans must be of same length!");
+            DebugGuard.IsTrue(channel1.Length == dest.Length, nameof(channel1), "Input spans must be of same length!");
+            DebugGuard.IsTrue(channel2.Length == dest.Length, nameof(channel2), "Input spans must be of same length!");
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            Avx2Intrinsics.PackBytesToUInt24Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+
+            // I can't immediately see a way to do this operation efficiently with Vector<T> or Vector4<T>. TODO
+#elif SUPPORTS_EXTENDED_INTRINSICS
+            //ExtendedIntrinsics.PackBytesToUInt24Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+#else
+            //BasicIntrinsics256.PackBytesToUInt24Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+#endif
+
+            // Deal with the remainder:
+            if (channel0.Length > 0)
+            {
+                PackBytesToUInt24(channel0, channel1, channel2, dest);
+            }
+        }
+
+        private static void PackBytesToUInt24Remainder(
+                ReadOnlySpan<byte> channel0,
+                ReadOnlySpan<byte> channel1,
+                ReadOnlySpan<byte> channel2,
+                Span<byte> dest)
+        {
+            DebugGuard.MustBeGreaterThanOrEqualTo(dest.Length, channel0.Length * 3, nameof(dest));
+
+            ref byte s0Base = ref MemoryMarshal.GetReference(channel0);
+            ref byte s1Base = ref MemoryMarshal.GetReference(channel1);
+            ref byte s2Base = ref MemoryMarshal.GetReference(channel2);
+            ref byte dBase = ref MemoryMarshal.GetReference(dest);
+
+            for (int i = 0, j = 0; i < dest.Length; i += 1, j += 3)
+            {
+                Unsafe.Add(ref dBase, j) = Unsafe.Add(ref s0Base, i);
+                Unsafe.Add(ref dBase, j + 1) = Unsafe.Add(ref s1Base, i);
+                Unsafe.Add(ref dBase, j + 2) = Unsafe.Add(ref s2Base, i);
+            }
+        }
+
         [MethodImpl(InliningOptions.ColdPath)]
         private static void ConvertByteToNormalizedFloatRemainder(ReadOnlySpan<byte> source, Span<float> dest)
         {
@@ -168,6 +265,16 @@ namespace SixLabors.ImageSharp
 
         [Conditional("DEBUG")]
         private static void VerifySpanInput(ReadOnlySpan<byte> source, Span<float> dest, int shouldBeDivisibleBy)
+        {
+            DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
+            DebugGuard.IsTrue(
+                ImageMaths.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
+                nameof(source),
+                $"length should be divisible by {shouldBeDivisibleBy}!");
+        }
+
+        [Conditional("DEBUG")]
+        private static void VerifySpanInput(ReadOnlySpan<byte> source, Span<byte> dest, int shouldBeDivisibleBy)
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
             DebugGuard.IsTrue(

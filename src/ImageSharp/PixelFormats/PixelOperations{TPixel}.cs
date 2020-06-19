@@ -152,5 +152,31 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             PixelOperations<TDestinationPixel>.Instance.From(configuration, sourcePixels, destinationPixels);
         }
+
+        /// <summary>
+        /// Bulk operation that converts 3 seperate RGB channels to <paramref name="destination"/>
+        /// </summary>
+        /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
+        /// <param name="redChannel">A <see cref="ReadOnlySpan{T}"/> to the red values.</param>
+        /// <param name="greenChannel">A <see cref="ReadOnlySpan{T}"/> to the green values.</param>
+        /// <param name="blueChannel">A <see cref="ReadOnlySpan{T}"/> to the blue values.</param>
+        /// <param name="destination">A <see cref="Span{T}"/> to the destination pixels.</param>
+        public virtual void PackFromRgbPlanes(
+           Configuration configuration,
+           ReadOnlySpan<byte> redChannel,
+           ReadOnlySpan<byte> greenChannel,
+           ReadOnlySpan<byte> blueChannel,
+           Span<TPixel> destination)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.DestinationShouldNotBeTooShort(redChannel, destination, nameof(destination));
+
+            for (int i = 0; i < destination.Length; i++)
+            {
+                var rgb24 = new Rgb24(redChannel[i], greenChannel[i], blueChannel[i]);
+
+                destination[i].FromRgb24(rgb24);
+            }
+        }
     }
 }

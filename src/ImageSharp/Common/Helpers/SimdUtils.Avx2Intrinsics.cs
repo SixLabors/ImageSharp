@@ -115,7 +115,6 @@ namespace SixLabors.ImageSharp
                             channel1,
                             channel2,
                             dest);
-
                     }
                 }
             }
@@ -202,7 +201,6 @@ namespace SixLabors.ImageSharp
                             channel1,
                             channel2,
                             dest);
-
                     }
                 }
             }

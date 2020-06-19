@@ -1,8 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.PixelFormats.PixelImplementations
+using System;
+using System.Runtime.InteropServices;
+
+namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <content>
     /// Provides optimized overrides for bulk operations.
@@ -20,7 +22,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelImplementations
                 ReadOnlySpan<byte> redChannel,
                 ReadOnlySpan<byte> greenChannel,
                 ReadOnlySpan<byte> blueChannel,
-                Span<Rgba32> destination)
+                Span<Rgb24> destination)
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.IsTrue(redChannel.Length == greenChannel.Length, nameof(redChannel), "Red channel must be same size as green channel");

@@ -127,9 +127,9 @@ namespace SixLabors.ImageSharp
 
             // I can't immediately see a way to do this operation efficiently with Vector<T> or Vector4<T>. TODO
 #elif SUPPORTS_EXTENDED_INTRINSICS
-            //ExtendedIntrinsics.PackBytesToUInt32SaturateChannel4Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+            // ExtendedIntrinsics.PackBytesToUInt32SaturateChannel4Reduce(ref channel0, ref channel1, ref channel2, ref dest);
 #else
-            //BasicIntrinsics256.PackBytesToUInt32SaturateChannel4Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+            // BasicIntrinsics256.PackBytesToUInt32SaturateChannel4Reduce(ref channel0, ref channel1, ref channel2, ref dest);
 #endif
 
             // Deal with the remainder:
@@ -176,9 +176,9 @@ namespace SixLabors.ImageSharp
 
             // I can't immediately see a way to do this operation efficiently with Vector<T> or Vector4<T>. TODO
 #elif SUPPORTS_EXTENDED_INTRINSICS
-            //ExtendedIntrinsics.PackBytesToUInt24Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+            // ExtendedIntrinsics.PackBytesToUInt24Reduce(ref channel0, ref channel1, ref channel2, ref dest);
 #else
-            //BasicIntrinsics256.PackBytesToUInt24Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+            // BasicIntrinsics256.PackBytesToUInt24Reduce(ref channel0, ref channel1, ref channel2, ref dest);
 #endif
 
             // Deal with the remainder:

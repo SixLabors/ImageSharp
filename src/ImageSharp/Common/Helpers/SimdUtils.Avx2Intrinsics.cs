@@ -35,9 +35,12 @@ namespace SixLabors.ImageSharp
 
                     if (adjustedCount > 0)
                     {
+                        NormalizedFloatToByteSaturate(
+                            source.Slice(0, adjustedCount),
+                            dest.Slice(0, adjustedCount));
+
                         source = source.Slice(adjustedCount);
                         dest = dest.Slice(adjustedCount);
-                        NormalizedFloatToByteSaturate(source, dest);
                     }
                 }
             }
@@ -192,8 +195,8 @@ namespace SixLabors.ImageSharp
                     if (adjustedCount > 0)
                     {
                         channel0 = channel0.Slice(adjustedCount);
-                        channel1 = channel0.Slice(adjustedCount);
-                        channel2 = channel0.Slice(adjustedCount);
+                        channel1 = channel1.Slice(adjustedCount);
+                        channel2 = channel2.Slice(adjustedCount);
                         dest = dest.Slice(adjustedCount);
 
                         PackBytesToUInt24(

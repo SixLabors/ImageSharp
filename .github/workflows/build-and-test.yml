@@ -107,5 +107,7 @@ jobs:
 
             - name: Publish to MyGet
               shell: pwsh
-              run: nuget.exe push .\artifacts\*.nupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v2/package
+              run: |
+                  nuget.exe push .\artifacts\*.nupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v2/package
+                  nuget.exe push .\artifacts\*.snupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v3/index.json
               # TODO: If github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org

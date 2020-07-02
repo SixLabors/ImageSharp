@@ -29,6 +29,12 @@
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
   </PropertyGroup>
 
+  <!--MinVer Properties for versioning-->
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerVerbosity>normal</MinVerVerbosity>
+  </PropertyGroup>
+
   <!--
     https://apisof.net/
     +===================+=======+==========+=====================+=============+=================+====================+==============+=========+

@@ -20,6 +20,17 @@
     <GeneratedInternalsVisibleToFile Condition="'$(GeneratedInternalsVisibleToFile)' == ''">$(IntermediateOutputPath)$(MSBuildProjectName).InternalsVisibleTo$(DefaultLanguageSourceExtension)</GeneratedInternalsVisibleToFile>
   </PropertyGroup>
 
+  <!-- Workaround for using SDK < 3.1.300, which we cannot use since it breaks coverlet -->
+  <!-- https://github.com/clairernovotny/DeterministicBuilds -->
+  <Project>
+    <PropertyGroup>
+      <TargetFrameworkMonikerAssemblyAttributesPath>$([System.IO.Path]::Combine('$(IntermediateOutputPath)','$(TargetFrameworkMoniker).AssemblyAttributes$(DefaultLanguageSourceExtension)'))</TargetFrameworkMonikerAssemblyAttributesPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
+    </ItemGroup>
+  </Project>
+
   <ItemDefinitionGroup>
     <InternalsVisibleTo>
       <Visible>false</Visible>
@@ -51,7 +62,7 @@
   <!-- Empty target so that `dotnet test` will work on the solution -->
   <!-- https://github.com/Microsoft/vstest/issues/411 -->
   <Target Name="VSTest" Condition="'$(IsTestProject)' == 'true'"/>
-
+  
   <ItemGroup>
     <!--Shared config files that have to exist at root level.-->
     <ConfigFilesToCopy Include="..\..\shared-infrastructure\.editorconfig;..\..\shared-infrastructure\.gitattributes" />

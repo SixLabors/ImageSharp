@@ -22,14 +22,12 @@
 
   <!-- Workaround for using SDK < 3.1.300, which we cannot use since it breaks coverlet -->
   <!-- https://github.com/clairernovotny/DeterministicBuilds -->
-  <Project>
-    <PropertyGroup>
-      <TargetFrameworkMonikerAssemblyAttributesPath>$([System.IO.Path]::Combine('$(IntermediateOutputPath)','$(TargetFrameworkMoniker).AssemblyAttributes$(DefaultLanguageSourceExtension)'))</TargetFrameworkMonikerAssemblyAttributesPath>
-    </PropertyGroup>
-    <ItemGroup>
-      <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
-    </ItemGroup>
-  </Project>
+  <PropertyGroup>
+    <TargetFrameworkMonikerAssemblyAttributesPath>$([System.IO.Path]::Combine('$(IntermediateOutputPath)','$(TargetFrameworkMoniker).AssemblyAttributes$(DefaultLanguageSourceExtension)'))</TargetFrameworkMonikerAssemblyAttributesPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
+  </ItemGroup>
 
   <ItemDefinitionGroup>
     <InternalsVisibleTo>

@@ -92,6 +92,12 @@
     <VersionSuffix></VersionSuffix>
   </PropertyGroup>
 
+  <!--Add deterministic builds in CI-->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
   <PropertyGroup>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <!-- Build symbol package (.snupkg) to distribute the PDB containing Source Link -->

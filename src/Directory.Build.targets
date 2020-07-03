@@ -20,15 +20,6 @@
     <GeneratedInternalsVisibleToFile Condition="'$(GeneratedInternalsVisibleToFile)' == ''">$(IntermediateOutputPath)$(MSBuildProjectName).InternalsVisibleTo$(DefaultLanguageSourceExtension)</GeneratedInternalsVisibleToFile>
   </PropertyGroup>
 
-  <!-- Workaround for using SDK < 3.1.300, which we cannot use since it breaks coverlet -->
-  <!-- https://github.com/clairernovotny/DeterministicBuilds -->
-  <!--<PropertyGroup>
-    <TargetFrameworkMonikerAssemblyAttributesPath>$([System.IO.Path]::Combine('$(IntermediateOutputPath)','$(TargetFrameworkMoniker).AssemblyAttributes$(DefaultLanguageSourceExtension)'))</TargetFrameworkMonikerAssemblyAttributesPath>
-  </PropertyGroup>
-  <ItemGroup>
-    <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
-  </ItemGroup>-->
-
   <!-- Workaround for running Coverlet with Determenistic builds -->
   <!-- https://github.com/coverlet-coverage/coverlet/blob/master/Documentation/DeterministicBuild.md -->
   <Target Name="CoverletGetPathMap"

@@ -1,11 +1,11 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
+using System.Threading.Tasks;
 using ImageMagick;
 
 using SixLabors.ImageSharp.Advanced;
@@ -49,6 +49,10 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             }
         }
 
+        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => Task.FromResult(this.Decode<TPixel>(configuration, stream));
+
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -80,5 +84,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         }
 
         public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
+
+        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream) => await this.DecodeAsync<Rgba32>(configuration, stream);
     }
 }

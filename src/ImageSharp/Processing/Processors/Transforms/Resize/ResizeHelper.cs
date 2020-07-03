@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 // case ResizeMode.Stretch:
                 default:
-                    return (new Size(width, height), new Rectangle(0, 0, width, height));
+                    return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(0, 0, Sanitize(width), Sanitize(height)));
             }
         }
 
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 }
 
                 // Target image width and height can be different to the rectangle width and height.
-                return (new Size(width, height), new Rectangle(targetX, targetY, targetWidth, targetHeight));
+                return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
             }
 
             // Switch to pad mode to downscale and calculate from there.
@@ -253,7 +253,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             // Target image width and height can be different to the rectangle width and height.
-            return (new Size(width, height), new Rectangle(targetX, targetY, targetWidth, targetHeight));
+            return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
         }
 
         private static (Size, Rectangle) CalculateMaxRectangle(
@@ -282,7 +282,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             // Replace the size to match the rectangle.
-            return (new Size(targetWidth, targetHeight), new Rectangle(0, 0, targetWidth, targetHeight));
+            return (new Size(Sanitize(targetWidth), Sanitize(targetHeight)), new Rectangle(0, 0, Sanitize(targetWidth), Sanitize(targetHeight)));
         }
 
         private static (Size, Rectangle) CalculateMinRectangle(
@@ -330,7 +330,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             // Replace the size to match the rectangle.
-            return (new Size(targetWidth, targetHeight), new Rectangle(0, 0, targetWidth, targetHeight));
+            return (new Size(Sanitize(targetWidth), Sanitize(targetHeight)), new Rectangle(0, 0, Sanitize(targetWidth), Sanitize(targetHeight)));
         }
 
         private static (Size, Rectangle) CalculatePadRectangle(
@@ -398,7 +398,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
 
             // Target image width and height can be different to the rectangle width and height.
-            return (new Size(width, height), new Rectangle(targetX, targetY, targetWidth, targetHeight));
+            return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
         }
 
         private static (Size, Rectangle) CalculateManualRectangle(
@@ -419,9 +419,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int targetHeight = targetRectangle.Height > 0 ? targetRectangle.Height : height;
 
             // Target image width and height can be different to the rectangle width and height.
-            return (new Size(width, height), new Rectangle(targetX, targetY, targetWidth, targetHeight));
+            return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
         }
 
         private static void ThrowInvalid(string message) => throw new InvalidOperationException(message);
+
+        private static int Sanitize(int input) => Math.Max(1, input);
     }
 }

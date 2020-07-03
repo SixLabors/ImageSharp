@@ -1,7 +1,9 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System.Buffers;
+using System.IO;
+using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Memory
 {
@@ -98,5 +100,8 @@ namespace SixLabors.ImageSharp.Memory
             AllocationOptions options = AllocationOptions.None)
             where T : struct
             => MemoryGroup<T>.Allocate(memoryAllocator, totalLength, bufferAlignment, options);
+
+        internal static MemoryStream AllocateFixedCapacityMemoryStream(this MemoryAllocator allocator, long length) =>
+            new FixedCapacityPooledMemoryStream(length, allocator);
     }
 }

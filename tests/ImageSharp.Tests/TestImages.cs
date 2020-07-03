@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System.Linq;
 
@@ -229,6 +229,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string IncorrectResize1006 = "Jpg/issues/issue1006-incorrect-resize.jpg";
                 public const string ExifResize1049 = "Jpg/issues/issue1049-exif-resize.jpg";
                 public const string BadSubSampling1076 = "Jpg/issues/issue-1076-invalid-subsampling.jpg";
+                public const string IdentifyMultiFrame1211 = "Jpg/issues/issue-1221-identify-multi-frame.jpg";
 
                 public static class Fuzz
                 {

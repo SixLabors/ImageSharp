@@ -1,12 +1,12 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        public class TestDecoder : ImageSharp.Formats.IImageDecoder
+        public class TestDecoder : IImageDecoder
         {
             private TestFormat testFormat;
 
@@ -219,9 +219,15 @@ namespace SixLabors.ImageSharp.Tests
                 return this.testFormat.Sample<TPixel>();
             }
 
+            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration config, Stream stream)
+                where TPixel : unmanaged, IPixel<TPixel>
+                => Task.FromResult(this.Decode<TPixel>(config, stream));
+
             public bool IsSupportedFileFormat(Span<byte> header) => this.testFormat.IsSupportedFileFormat(header);
 
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<TestPixelForAgnosticDecode>(configuration, stream);
+
+            public async Task<Image> DecodeAsync(Configuration configuration, Stream stream) => await this.DecodeAsync<TestPixelForAgnosticDecode>(configuration, stream);
         }
 
         public class TestEncoder : ImageSharp.Formats.IImageEncoder
@@ -241,6 +247,13 @@ namespace SixLabors.ImageSharp.Tests
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 // TODO record this happened so we can verify it.
+            }
+
+            public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+               where TPixel : unmanaged, IPixel<TPixel>
+            {
+                // TODO record this happened so we can verify it.
+                return Task.CompletedTask;
             }
         }
 

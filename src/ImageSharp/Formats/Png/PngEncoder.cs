@@ -1,7 +1,8 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -34,13 +35,20 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <inheritdoc/>
         public IQuantizer Quantizer { get; set; }
 
-        /// <summary>
-        /// Gets or sets the transparency threshold.
-        /// </summary>
+        /// <inheritdoc/>
         public byte Threshold { get; set; } = byte.MaxValue;
 
         /// <inheritdoc/>
         public PngInterlaceMode? InterlaceMethod { get; set; }
+
+        /// <inheritdoc/>
+        public PngChunkFilter? ChunkFilter { get; set; }
+
+        /// <inheritdoc/>
+        public bool IgnoreMetadata { get; set; }
+
+        /// <inheritdoc/>
+        public PngTransparentColorMode TransparentColorMode { get; set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -54,6 +62,22 @@ namespace SixLabors.ImageSharp.Formats.Png
             using (var encoder = new PngEncoderCore(image.GetMemoryAllocator(), image.GetConfiguration(), new PngEncoderOptions(this)))
             {
                 encoder.Encode(image, stream);
+            }
+        }
+
+        /// <summary>
+        /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
+        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (var encoder = new PngEncoderCore(image.GetMemoryAllocator(), image.GetConfiguration(), new PngEncoderOptions(this)))
+            {
+                await encoder.EncodeAsync(image, stream).ConfigureAwait(false);
             }
         }
     }

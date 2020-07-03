@@ -1,7 +1,9 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
@@ -167,6 +169,19 @@ namespace SixLabors.ImageSharp.Tests
             var options = context.GetGraphicsOptions();
             Assert.NotNull(options);
             Assert.IsType<GraphicsOptions>(options);
+        }
+
+        [Theory]
+        [WithBlankImages(100, 100, PixelTypes.Rgba32)]
+        public void CanGetGraphicsOptionsMultiThreaded<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Could not get fake operations to trigger #1230 so using a real image.
+            Parallel.For(0, 10, _ =>
+            {
+                using Image<TPixel> image = provider.GetImage();
+                image.Mutate(x => x.BackgroundColor(Color.White));
+            });
         }
     }
 }

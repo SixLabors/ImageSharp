@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System.IO;
 using SixLabors.ImageSharp.Formats;
@@ -38,6 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             { true, TestImages.Jpeg.Baseline.Jpeg400, 8, false, false },
             { true, TestImages.Jpeg.Baseline.Snake, 24, true, true },
             { true, TestImages.Jpeg.Baseline.Jpeg420Exif, 24, true, false },
+            { true, TestImages.Jpeg.Issues.IdentifyMultiFrame1211, 24, true, true },
         };
 
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =

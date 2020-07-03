@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using SixLabors.ImageSharp.Processing;
@@ -71,11 +71,9 @@ namespace SixLabors.ImageSharp
                 return go;
             }
 
-            var configOptions = context.Configuration.GetGraphicsOptions();
-
             // do not cache the fall back to config into the the processing context
             // in case someone want to change the value on the config and expects it re trflow thru
-            return configOptions;
+            return context.Configuration.GetGraphicsOptions();
         }
 
         /// <summary>

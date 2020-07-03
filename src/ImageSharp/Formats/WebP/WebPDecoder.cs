@@ -1,7 +1,8 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.WebP
@@ -35,5 +36,26 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         /// <inheritdoc />
         public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
+
+        /// <inheritdoc />
+        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(stream, nameof(stream));
+
+            return new WebPDecoderCore(configuration, this).DecodeAsync<TPixel>(stream);
+        }
+
+        /// <inheritdoc />
+        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream)
+            => await this.DecodeAsync<Rgba32>(configuration, stream).ConfigureAwait(false);
+
+        /// <inheritdoc />
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+        {
+            Guard.NotNull(stream, nameof(stream));
+
+            return new WebPDecoderCore(configuration, this).IdentifyAsync(stream);
+        }
     }
 }

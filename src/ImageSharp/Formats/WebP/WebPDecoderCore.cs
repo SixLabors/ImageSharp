@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers.Binary;
@@ -19,17 +19,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// <summary>
     /// Performs the webp decoding operation.
     /// </summary>
-    internal sealed class WebPDecoderCore
+    internal sealed class WebPDecoderCore : IImageDecoderInternals
     {
         /// <summary>
         /// Reusable buffer.
         /// </summary>
         private readonly byte[] buffer = new byte[4];
-
-        /// <summary>
-        /// The global configuration.
-        /// </summary>
-        private readonly Configuration configuration;
 
         /// <summary>
         /// Used for allocating memory during processing operations.
@@ -53,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <param name="options">The options.</param>
         public WebPDecoderCore(Configuration configuration, IWebPDecoderOptions options)
         {
-            this.configuration = configuration;
+            this.Configuration = configuration;
             this.memoryAllocator = configuration.MemoryAllocator;
             this.IgnoreMetadata = options.IgnoreMetadata;
         }
@@ -67,6 +62,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Gets the <see cref="ImageMetadata"/> decoded by this decoder instance.
         /// </summary>
         public ImageMetadata Metadata { get; private set; }
+
+        /// <inheritdoc/>
+        public Configuration Configuration { get; }
 
         /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/> and sets the data to the image.
@@ -87,16 +85,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 WebPThrowHelper.ThrowNotSupportedException("Animations are not supported");
             }
 
-            var image = new Image<TPixel>(this.configuration, (int)imageInfo.Width, (int)imageInfo.Height, this.Metadata);
+            var image = new Image<TPixel>(this.Configuration, (int)imageInfo.Width, (int)imageInfo.Height, this.Metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
             if (imageInfo.IsLossless)
             {
-                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
+                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp8LBitReader, this.memoryAllocator, this.Configuration);
                 losslessDecoder.Decode(pixels, image.Width, image.Height);
             }
             else
             {
-                var lossyDecoder = new WebPLossyDecoder(imageInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
+                var lossyDecoder = new WebPLossyDecoder(imageInfo.Vp8BitReader, this.memoryAllocator, this.Configuration);
                 lossyDecoder.Decode(pixels, image.Width, image.Height, imageInfo);
             }
 
@@ -326,11 +324,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             var vp8FrameHeader = new Vp8FrameHeader()
-                                 {
-                                     KeyFrame = true,
-                                     Profile = (sbyte)version,
-                                     PartitionLength = partitionLength
-                                 };
+            {
+                KeyFrame = true,
+                Profile = (sbyte)version,
+                PartitionLength = partitionLength
+            };
 
             var bitReader = new Vp8BitReader(
                 this.currentStream,
@@ -340,18 +338,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
             bitReader.Remaining = remaining;
 
             return new WebPImageInfo()
-                   {
-                       Width = width,
-                       Height = height,
-                       XScale = xScale,
-                       YScale = yScale,
-                       BitsPerPixel = features?.Alpha == true ? WebPBitsPerPixel.Pixel32 : WebPBitsPerPixel.Pixel24,
-                       IsLossless = false,
-                       Features = features,
-                       Vp8Profile = (sbyte)version,
-                       Vp8FrameHeader = vp8FrameHeader,
-                       Vp8BitReader = bitReader
-                   };
+            {
+                Width = width,
+                Height = height,
+                XScale = xScale,
+                YScale = yScale,
+                BitsPerPixel = features?.Alpha == true ? WebPBitsPerPixel.Pixel32 : WebPBitsPerPixel.Pixel24,
+                IsLossless = false,
+                Features = features,
+                Vp8Profile = (sbyte)version,
+                Vp8FrameHeader = vp8FrameHeader,
+                Vp8BitReader = bitReader
+            };
         }
 
         /// <summary>
@@ -396,14 +394,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
 
             return new WebPImageInfo()
-                   {
-                       Width = width,
-                       Height = height,
-                       BitsPerPixel = WebPBitsPerPixel.Pixel32,
-                       IsLossless = true,
-                       Features = features,
-                       Vp8LBitReader = bitReader
-                   };
+            {
+                Width = width,
+                Height = height,
+                BitsPerPixel = WebPBitsPerPixel.Pixel32,
+                IsLossless = true,
+                Features = features,
+                Vp8LBitReader = bitReader
+            };
         }
 
         /// <summary>

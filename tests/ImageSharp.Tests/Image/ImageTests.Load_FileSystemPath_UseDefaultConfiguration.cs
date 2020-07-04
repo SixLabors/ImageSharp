@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -35,6 +35,15 @@ namespace SixLabors.ImageSharp.Tests
             public void Path_Agnostic()
             {
                 using (var img = Image.Load(this.Path))
+                {
+                    VerifyDecodedImage(img);
+                }
+            }
+
+            [Fact]
+            public async Task Path_Agnostic_Async()
+            {
+                using (var img = await Image.LoadAsync(this.Path))
                 {
                     VerifyDecodedImage(img);
                 }

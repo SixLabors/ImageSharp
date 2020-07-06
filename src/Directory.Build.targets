@@ -20,6 +20,17 @@
     <GeneratedInternalsVisibleToFile Condition="'$(GeneratedInternalsVisibleToFile)' == ''">$(IntermediateOutputPath)$(MSBuildProjectName).InternalsVisibleTo$(DefaultLanguageSourceExtension)</GeneratedInternalsVisibleToFile>
   </PropertyGroup>
 
+  <!-- Workaround for running Coverlet with Determenistic builds -->
+  <!-- https://github.com/coverlet-coverage/coverlet/blob/master/Documentation/DeterministicBuild.md -->
+  <Target Name="CoverletGetPathMap"
+            DependsOnTargets="InitializeSourceRootMappedPaths"
+            Returns="@(_LocalTopLevelSourceRoot)"
+            Condition="'$(DeterministicSourcePaths)' == 'true'">
+    <ItemGroup>
+      <_LocalTopLevelSourceRoot Include="@(SourceRoot)" Condition="'%(SourceRoot.NestedRoot)' == ''"/>
+    </ItemGroup>
+  </Target>
+  
   <ItemDefinitionGroup>
     <InternalsVisibleTo>
       <Visible>false</Visible>
@@ -51,7 +62,7 @@
   <!-- Empty target so that `dotnet test` will work on the solution -->
   <!-- https://github.com/Microsoft/vstest/issues/411 -->
   <Target Name="VSTest" Condition="'$(IsTestProject)' == 'true'"/>
-
+  
   <ItemGroup>
     <!--Shared config files that have to exist at root level.-->
     <ConfigFilesToCopy Include="..\..\shared-infrastructure\.editorconfig;..\..\shared-infrastructure\.gitattributes" />

@@ -106,15 +106,16 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The image stream to read the header from.</param>
         /// <param name="config">The configuration.</param>
-        /// <param name="format">The IImageFormat.</param>
-        /// <returns>The image format or null if none found.</returns>
-        private static async Task<IImageDecoder> DiscoverDecoderAsync(Stream stream, Configuration config, out IImageFormat format)
+        /// <returns>The decoder and the image format or null if none found.</returns>
+        private static async Task<(IImageDecoder decoder, IImageFormat format)> DiscoverDecoderAsync(Stream stream, Configuration config)
         {
-            format = await InternalDetectFormatAsync(stream, config).ConfigureAwait(false);
+            IImageFormat format = await InternalDetectFormatAsync(stream, config).ConfigureAwait(false);
 
-            return format != null
+            IImageDecoder decoder = format != null
                 ? config.ImageFormatsManager.FindDecoder(format)
                 : null;
+
+            return (decoder, format);
         }
 
         /// <summary>
@@ -149,7 +150,7 @@ namespace SixLabors.ImageSharp
         private static async Task<(Image<TPixel> Image, IImageFormat Format)> DecodeAsync<TPixel>(Stream stream, Configuration config)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            (IImageDecoder decoder, IImageFormat format) = await DiscoverDecoderAsync(stream, config).ConfigureAwait(false);
             if (decoder is null)
             {
                 return (null, null);
@@ -173,7 +174,7 @@ namespace SixLabors.ImageSharp
 
         private static async Task<(Image Image, IImageFormat Format)> DecodeAsync(Stream stream, Configuration config)
         {
-            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+            (IImageDecoder decoder, IImageFormat format) = await DiscoverDecoderAsync(stream, config).ConfigureAwait(false);
             if (decoder is null)
             {
                 return (null, null);
@@ -193,7 +194,9 @@ namespace SixLabors.ImageSharp
         /// </returns>
         private static (IImageInfo ImageInfo, IImageFormat Format) InternalIdentity(Stream stream, Configuration config)
         {
-            if (!(DiscoverDecoder(stream, config, out IImageFormat format) is IImageInfoDetector detector))
+            IImageDecoder decoder = DiscoverDecoder(stream, config, out IImageFormat format);
+
+            if (!(decoder is IImageInfoDetector detector))
             {
                 return (null, null);
             }
@@ -213,7 +216,9 @@ namespace SixLabors.ImageSharp
         /// is not found.</returns>
         private static async Task<(IImageInfo ImageInfo, IImageFormat Format)> InternalIdentityAsync(Stream stream, Configuration config)
         {
-            if (!(DiscoverDecoder(stream, config, out IImageFormat format) is IImageInfoDetector detector))
+            (IImageDecoder decoder, IImageFormat format) = await DiscoverDecoderAsync(stream, config).ConfigureAwait(false);
+
+            if (!(decoder is IImageInfoDetector detector))
             {
                 return (null, null);
             }

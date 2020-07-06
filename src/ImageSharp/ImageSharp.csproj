@@ -19,6 +19,11 @@
     <RootNamespace>SixLabors.ImageSharp</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub"/>
+    <PackageReference Include="MinVer" PrivateAssets="All" />
+  </ItemGroup>
+  
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
   </ItemGroup>

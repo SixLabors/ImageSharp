@@ -50,6 +50,15 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public async Task Path_Agnostic_Configuration_Async()
+            {
+                using (var img = await Image.LoadAsync(Configuration.Default, this.Path))
+                {
+                    VerifyDecodedImage(img);
+                }
+            }
+
+            [Fact]
             public void Path_Decoder_Specific()
             {
                 using (var img = Image.Load<Rgba32>(this.Path, new BmpDecoder()))

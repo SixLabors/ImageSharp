@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -41,6 +41,24 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public async Task Path_Agnostic_Async()
+            {
+                using (var img = await Image.LoadAsync(this.Path))
+                {
+                    VerifyDecodedImage(img);
+                }
+            }
+
+            [Fact]
+            public async Task Path_Agnostic_Configuration_Async()
+            {
+                using (var img = await Image.LoadAsync(Configuration.Default, this.Path))
+                {
+                    VerifyDecodedImage(img);
+                }
+            }
+
+            [Fact]
             public void Path_Decoder_Specific()
             {
                 using (var img = Image.Load<Rgba32>(this.Path, new BmpDecoder()))
@@ -53,6 +71,15 @@ namespace SixLabors.ImageSharp.Tests
             public void Path_Decoder_Agnostic()
             {
                 using (var img = Image.Load(this.Path, new BmpDecoder()))
+                {
+                    VerifyDecodedImage(img);
+                }
+            }
+
+            [Fact]
+            public async Task Path_Decoder_Agnostic_Async()
+            {
+                using (var img = await Image.LoadAsync(Configuration.Default, this.Path, new BmpDecoder()))
                 {
                     VerifyDecodedImage(img);
                 }

@@ -59,7 +59,22 @@ namespace SixLabors.ImageSharp
             using (IManagedByteBuffer buffer = config.MemoryAllocator.AllocateManagedByteBuffer(headerSize, AllocationOptions.Clean))
             {
                 long startPosition = stream.Position;
-                stream.Read(buffer.Array, 0, headerSize);
+
+                int n = stream.Read(buffer.Array, 0, headerSize);
+
+                // Read doesn't always guarantee the full returned length so read a byte
+                // at a time until we get either our count or hit the end of the stream.
+                int i = 0;
+                while (n < headerSize && i != -1)
+                {
+                    i = stream.ReadByte();
+
+                    if (i != -1)
+                    {
+                        buffer.Array[n++] = (byte)i;
+                    }
+                }
+
                 stream.Position = startPosition;
 
                 // Does the given stream contain enough data to fit in the header for the format

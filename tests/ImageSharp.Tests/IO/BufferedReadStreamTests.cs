@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -221,7 +221,22 @@ namespace SixLabors.ImageSharp.Tests.IO
             var random = new Random();
             random.NextBytes(buffer);
 
-            return new MemoryStream(buffer);
+            return new EvilStream(buffer);
+        }
+
+        // Simulates a stream that can only return 1 byte at a time per read instruction.
+        // See https://github.com/SixLabors/ImageSharp/issues/1268
+        private class EvilStream : MemoryStream
+        {
+            public EvilStream(byte[] buffer)
+                : base(buffer)
+            {
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                return base.Read(buffer, offset, 1);
+            }
         }
     }
 }

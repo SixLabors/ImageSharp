@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <returns>The format type or null if none found.</returns>
         public static IImageFormat DetectFormat(Configuration configuration, Stream stream)
-            => WithSeekableStream(configuration, stream, false, s => InternalDetectFormat(s, configuration));
+            => WithSeekableStream(configuration, stream, s => InternalDetectFormat(s, configuration), false);
 
         /// <summary>
         /// By reading the header on the provided stream this calculates the images format type.
@@ -63,7 +63,8 @@ namespace SixLabors.ImageSharp
             => WithSeekableStreamAsync(
                 configuration,
                 stream,
-                s => InternalDetectFormatAsync(s, configuration));
+                s => InternalDetectFormatAsync(s, configuration),
+                false);
 
         /// <summary>
         /// Reads the raw image information from the specified stream without fully decoding it.
@@ -155,7 +156,7 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public static IImageInfo Identify(Configuration configuration, Stream stream, out IImageFormat format)
         {
-            (IImageInfo ImageInfo, IImageFormat format) data = WithSeekableStream(configuration, stream, false, s => InternalIdentity(s, configuration ?? Configuration.Default));
+            (IImageInfo ImageInfo, IImageFormat Format) data = WithSeekableStream(configuration, stream, s => InternalIdentity(s, configuration ?? Configuration.Default));
 
             format = data.Format;
             return data.ImageInfo;
@@ -291,7 +292,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image"/>.</returns>
         public static Image Load(Configuration configuration, Stream stream, IImageDecoder decoder)
-            => WithSeekableStream(configuration, stream, true, s => decoder.Decode(configuration, s));
+            => WithSeekableStream(configuration, stream, s => decoder.Decode(configuration, s));
 
         /// <summary>
         /// Decode a new instance of the <see cref="Image"/> class from the given stream.
@@ -416,7 +417,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
-            => WithSeekableStream(Configuration.Default, stream, true, s => decoder.Decode<TPixel>(Configuration.Default, s));
+            => WithSeekableStream(Configuration.Default, stream, s => decoder.Decode<TPixel>(Configuration.Default, s));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -451,7 +452,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration configuration, Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
-            => WithSeekableStream(configuration, stream, true, s => decoder.Decode<TPixel>(configuration, s));
+            => WithSeekableStream(configuration, stream, s => decoder.Decode<TPixel>(configuration, s));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -505,7 +506,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration configuration, Stream stream, out IImageFormat format)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            (Image<TPixel> Image, IImageFormat Format) data = WithSeekableStream(configuration, stream, true, s => Decode<TPixel>(s, configuration));
+            (Image<TPixel> Image, IImageFormat Format) data = WithSeekableStream(configuration, stream, s => Decode<TPixel>(s, configuration));
 
             format = data.Format;
 
@@ -632,7 +633,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image Load(Configuration configuration, Stream stream, out IImageFormat format)
         {
-            (Image img, IImageFormat format) data = WithSeekableStream(configuration, stream, true, s => Decode(s, configuration));
+            (Image img, IImageFormat format) data = WithSeekableStream(configuration, stream, s => Decode(s, configuration));
 
             format = data.format;
 
@@ -652,7 +653,24 @@ namespace SixLabors.ImageSharp
             throw new UnknownImageFormatException(sb.ToString());
         }
 
-        private static T WithSeekableStream<T>(Configuration configuration, Stream stream, bool buffer, Func<Stream, T> action)
+        /// <summary>
+        /// Performs the given action against the stream ensuring that it is seekable.
+        /// </summary>
+        /// <typeparam name="T">The type of object returned from the action.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="action">The action to perform.</param>
+        /// <param name="buffer">
+        /// Whether to buffer the input stream.
+        /// Short intial reads like <see cref="DetectFormat(Configuration, Stream)"/> do not require
+        /// the overhead of reading the stream to the buffer. Defaults to <see langword="true"/>.
+        /// </param>
+        /// <returns>The <typeparamref name="T"/>.</returns>
+        private static T WithSeekableStream<T>(
+            Configuration configuration,
+            Stream stream,
+            Func<Stream, T> action,
+            bool buffer = true)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(stream, nameof(stream));
@@ -684,14 +702,34 @@ namespace SixLabors.ImageSharp
                 stream.CopyTo(memoryStream);
                 memoryStream.Position = 0;
 
+                if (buffer)
+                {
+                    using var bufferedStream = new BufferedReadStream(memoryStream);
+                    return action(bufferedStream);
+                }
+
                 return action(memoryStream);
             }
         }
 
+        /// <summary>
+        /// Performs the given action asynchronously against the stream ensuring that it is seekable.
+        /// </summary>
+        /// <typeparam name="T">The type of object returned from the action.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="action">The action to perform.</param>
+        /// <param name="buffer">
+        /// Whether to buffer the input stream.
+        /// Short intial reads like <see cref="DetectFormat(Configuration, Stream)"/> do not require
+        /// the overhead of reading the stream to the buffer. Defaults to <see langword="true"/>.
+        /// </param>
+        /// <returns>The <see cref="Task{T}"/>.</returns>
         private static async Task<T> WithSeekableStreamAsync<T>(
             Configuration configuration,
             Stream stream,
-            Func<Stream, Task<T>> action)
+            Func<Stream, Task<T>> action,
+            bool buffer = true)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(stream, nameof(stream));
@@ -712,6 +750,12 @@ namespace SixLabors.ImageSharp
                     stream.Position = 0;
                 }
 
+                if (buffer)
+                {
+                    using var bufferedStream = new BufferedReadStream(stream);
+                    return await action(bufferedStream).ConfigureAwait(false);
+                }
+
                 return await action(stream).ConfigureAwait(false);
             }
 
@@ -719,6 +763,12 @@ namespace SixLabors.ImageSharp
             {
                 await stream.CopyToAsync(memoryStream).ConfigureAwait(false);
                 memoryStream.Position = 0;
+
+                if (buffer)
+                {
+                    using var bufferedStream = new BufferedReadStream(memoryStream);
+                    return await action(bufferedStream).ConfigureAwait(false);
+                }
 
                 return await action(memoryStream).ConfigureAwait(false);
             }

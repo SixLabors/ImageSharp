@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -223,7 +223,21 @@ namespace SixLabors.ImageSharp.IO
                 this.stream.Seek(this.readerPosition, SeekOrigin.Begin);
             }
 
-            this.stream.Read(this.readBuffer, 0, BufferLength);
+            int n = this.stream.Read(this.readBuffer, 0, BufferLength);
+
+            // Read doesn't always guarantee the full returned length so read a byte
+            // at a time until we get either our count or hit the end of the stream.
+            int i = 0;
+            while (n < BufferLength && i != -1)
+            {
+                i = this.stream.ReadByte();
+
+                if (i != -1)
+                {
+                    this.readBuffer[n++] = (byte)i;
+                }
+            }
+
             this.readBufferIndex = 0;
         }
 
@@ -258,6 +272,20 @@ namespace SixLabors.ImageSharp.IO
             }
 
             int n = this.stream.Read(buffer, offset, count);
+
+            // Read doesn't always guarantee the full returned length so read a byte
+            // at a time until we get either our count or hit the end of the stream.
+            int i = 0;
+            while (n < count && i != -1)
+            {
+                i = this.stream.ReadByte();
+
+                if (i != -1)
+                {
+                    buffer[n++] = (byte)i;
+                }
+            }
+
             this.Position += n;
 
             return n;

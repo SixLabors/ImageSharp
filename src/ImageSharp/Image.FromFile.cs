@@ -1,8 +1,9 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -93,6 +94,17 @@ namespace SixLabors.ImageSharp
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// </summary>
         /// <param name="path">The file path to the image.</param>
+        /// <exception cref="NotSupportedException">
+        /// Thrown if the stream is not readable nor seekable.
+        /// </exception>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
+        public static Task<Image> LoadAsync(string path)
+            => LoadAsync(Configuration.Default, path);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// </summary>
+        /// <param name="path">The file path to the image.</param>
         /// <param name="format">The mime type of the decoded image.</param>
         /// <exception cref="NotSupportedException">
         /// Thrown if the stream is not readable nor seekable.
@@ -117,6 +129,25 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// </summary>
+        /// <param name="configuration">The configuration for the decoder.</param>
+        /// <param name="path">The file path to the image.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
+        public static async Task<Image> LoadAsync(Configuration configuration, string path)
+        {
+            using (Stream stream = configuration.FileSystem.OpenRead(path))
+            {
+                (Image img, _) = await LoadWithFormatAsync(configuration, stream).ConfigureAwait(false);
+                return img;
+            }
+        }
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// </summary>
         /// <param name="configuration">The Configuration.</param>
         /// <param name="path">The file path to the image.</param>
         /// <param name="decoder">The decoder.</param>
@@ -134,6 +165,29 @@ namespace SixLabors.ImageSharp
             using (Stream stream = configuration.FileSystem.OpenRead(path))
             {
                 return Load(configuration, stream, decoder);
+            }
+        }
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// </summary>
+        /// <param name="configuration">The Configuration.</param>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="ArgumentNullException">The decoder is null.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
+        public static Task<Image> LoadAsync(Configuration configuration, string path, IImageDecoder decoder)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(path, nameof(path));
+
+            using (Stream stream = configuration.FileSystem.OpenRead(path))
+            {
+                return LoadAsync(configuration, stream, decoder);
             }
         }
 

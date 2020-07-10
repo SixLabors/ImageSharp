@@ -1,8 +1,9 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -12,6 +13,10 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
     public class SystemDrawingReferenceDecoder : IImageDecoder, IImageInfoDetector
     {
         public static SystemDrawingReferenceDecoder Instance { get; } = new SystemDrawingReferenceDecoder();
+
+        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => Task.FromResult(this.Decode<TPixel>(configuration, stream));
 
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -43,6 +48,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             }
         }
 
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+            => Task.FromResult(this.Identify(configuration, stream));
+
         public IImageInfo Identify(Configuration configuration, Stream stream)
         {
             using (var sourceBitmap = new System.Drawing.Bitmap(stream))
@@ -53,5 +61,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         }
 
         public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
+
+        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream) => await this.DecodeAsync<Rgba32>(configuration, stream);
     }
 }

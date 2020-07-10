@@ -23,6 +23,8 @@
     <PackageReference Update="StyleCop.Analyzers" PrivateAssets="All" Version="1.1.118" />
     
     <!--Src Dependencies-->
+    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+    <PackageReference Update="MinVer" PrivateAssets="All" Version="2.3.0" />
     <PackageReference Update="System.Buffers" Version="4.5.0" />
     <PackageReference Update="System.IO.Compression" Version="4.3.0" />
     <PackageReference Update="System.IO.UnmanagedMemoryStream" Version="4.3.0" />

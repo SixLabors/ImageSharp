@@ -1,7 +1,8 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Http;
 using SixLabors.ImageSharp.Formats;
@@ -78,7 +79,7 @@ namespace SixLabors.ImageSharp
         /// Gets a set of properties for the Congiguration.
         /// </summary>
         /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
-        public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
+        public IDictionary<object, object> Properties { get; } = new ConcurrentDictionary<object, object>();
 
         /// <summary>
         /// Gets the currently registered <see cref="IImageFormat"/>s.

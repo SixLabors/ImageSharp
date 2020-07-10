@@ -13,8 +13,8 @@
 
     <!-- Bind dll.config redirect.-->
     <!-- https://github.com/microsoft/msbuild/issues/1310 -->
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <!--<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>-->
   </PropertyGroup>
 
   <ItemGroup>

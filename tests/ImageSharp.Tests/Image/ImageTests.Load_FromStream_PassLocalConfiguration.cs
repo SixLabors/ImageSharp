@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
+using Moq;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
@@ -48,24 +48,30 @@ namespace SixLabors.ImageSharp.Tests
                 this.TestFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
             }
 
-            [Fact(Skip = "TODO: Enable when someone tells me how this mocking stuff works.")]
+            [Fact]
             public void Configuration_Stream_Decoder_Specific()
             {
                 var stream = new MemoryStream();
                 var img = Image.Load<Rgba32>(this.TopLevelConfiguration, stream, this.localDecoder.Object);
 
                 Assert.NotNull(img);
-                this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, stream));
+                this.localDecoder.Verify(
+                    x => x.Decode<Rgba32>(
+                        this.TopLevelConfiguration,
+                        It.Is<Stream>(x => ((BufferedReadStream)x).BaseStream == stream)));
             }
 
-            [Fact(Skip = "TODO: Enable when someone tells me how this mocking stuff works.")]
+            [Fact]
             public void Configuration_Stream_Decoder_Agnostic()
             {
                 var stream = new MemoryStream();
                 var img = Image.Load(this.TopLevelConfiguration, stream, this.localDecoder.Object);
 
                 Assert.NotNull(img);
-                this.localDecoder.Verify(x => x.Decode(this.TopLevelConfiguration, stream));
+                this.localDecoder.Verify(
+                    x => x.Decode(
+                        this.TopLevelConfiguration,
+                        It.Is<Stream>(x => ((BufferedReadStream)x).BaseStream == stream)));
             }
 
             [Fact]

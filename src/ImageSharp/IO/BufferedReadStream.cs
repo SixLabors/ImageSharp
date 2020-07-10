@@ -21,8 +21,6 @@ namespace SixLabors.ImageSharp.IO
 
         private const int MaxBufferIndex = BufferLength - 1;
 
-        private readonly Stream stream;
-
         private readonly byte[] readBuffer;
 
         private MemoryHandle readBufferHandle;
@@ -54,7 +52,7 @@ namespace SixLabors.ImageSharp.IO
                 stream.Flush();
             }
 
-            this.stream = stream;
+            this.BaseStream = stream;
             this.Position = (int)stream.Position;
             this.Length = stream.Length;
 
@@ -88,7 +86,7 @@ namespace SixLabors.ImageSharp.IO
                 else
                 {
                     // Base stream seek will throw for us if invalid.
-                    this.stream.Seek(value, SeekOrigin.Begin);
+                    this.BaseStream.Seek(value, SeekOrigin.Begin);
                     this.readerPosition = value;
                     this.readBufferIndex = BufferLength;
                 }
@@ -103,6 +101,15 @@ namespace SixLabors.ImageSharp.IO
 
         /// <inheritdoc/>
         public override bool CanWrite { get; } = false;
+
+        /// <summary>
+        /// Gets the underlying stream.
+        /// </summary>
+        public Stream BaseStream
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
+        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -148,10 +155,10 @@ namespace SixLabors.ImageSharp.IO
         public override void Flush()
         {
             // Reset the stream position to match reader position.
-            if (this.readerPosition != this.stream.Position)
+            if (this.readerPosition != this.BaseStream.Position)
             {
-                this.stream.Seek(this.readerPosition, SeekOrigin.Begin);
-                this.readerPosition = (int)this.stream.Position;
+                this.BaseStream.Seek(this.readerPosition, SeekOrigin.Begin);
+                this.readerPosition = (int)this.BaseStream.Position;
             }
 
             // Reset to trigger full read on next attempt.
@@ -218,9 +225,9 @@ namespace SixLabors.ImageSharp.IO
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void FillReadBuffer()
         {
-            if (this.readerPosition != this.stream.Position)
+            if (this.readerPosition != this.BaseStream.Position)
             {
-                this.stream.Seek(this.readerPosition, SeekOrigin.Begin);
+                this.BaseStream.Seek(this.readerPosition, SeekOrigin.Begin);
             }
 
             // Read doesn't always guarantee the full returned length so read a byte
@@ -229,7 +236,7 @@ namespace SixLabors.ImageSharp.IO
             int i;
             do
             {
-                i = this.stream.Read(this.readBuffer, n, BufferLength - n);
+                i = this.BaseStream.Read(this.readBuffer, n, BufferLength - n);
                 n += i;
             }
             while (n < BufferLength && i > 0);
@@ -262,9 +269,9 @@ namespace SixLabors.ImageSharp.IO
         private int ReadToBufferDirectSlow(byte[] buffer, int offset, int count)
         {
             // Read to target but don't copy to our read buffer.
-            if (this.readerPosition != this.stream.Position)
+            if (this.readerPosition != this.BaseStream.Position)
             {
-                this.stream.Seek(this.readerPosition, SeekOrigin.Begin);
+                this.BaseStream.Seek(this.readerPosition, SeekOrigin.Begin);
             }
 
             // Read doesn't always guarantee the full returned length so read a byte
@@ -273,7 +280,7 @@ namespace SixLabors.ImageSharp.IO
             int i;
             do
             {
-                i = this.stream.Read(buffer, n, count - n);
+                i = this.BaseStream.Read(buffer, n, count - n);
                 n += i;
             }
             while (n < count && i > 0);

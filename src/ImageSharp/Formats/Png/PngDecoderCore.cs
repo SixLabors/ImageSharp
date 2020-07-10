@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,10 +9,11 @@ using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -23,22 +24,12 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <summary>
     /// Performs the png decoding operation.
     /// </summary>
-    internal sealed class PngDecoderCore
+    internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         /// <summary>
         /// Reusable buffer.
         /// </summary>
         private readonly byte[] buffer = new byte[4];
-
-        /// <summary>
-        /// Reusable CRC for validating chunks.
-        /// </summary>
-        private readonly Crc32 crc = new Crc32();
-
-        /// <summary>
-        /// The global configuration.
-        /// </summary>
-        private readonly Configuration configuration;
 
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -127,28 +118,20 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="options">The decoder options.</param>
         public PngDecoderCore(Configuration configuration, IPngDecoderOptions options)
         {
-            this.configuration = configuration ?? Configuration.Default;
-            this.memoryAllocator = this.configuration.MemoryAllocator;
+            this.Configuration = configuration ?? Configuration.Default;
+            this.memoryAllocator = this.Configuration.MemoryAllocator;
             this.ignoreMetadata = options.IgnoreMetadata;
         }
+
+        /// <inheritdoc/>
+        public Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the dimensions of the image.
         /// </summary>
         public Size Dimensions => new Size(this.header.Width, this.header.Height);
 
-        /// <summary>
-        /// Decodes the stream to the image.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">The stream containing image data.</param>
-        /// <exception cref="ImageFormatException">
-        /// Thrown if the stream does not contain and end chunk.
-        /// </exception>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// Thrown if the image is larger than the maximum allowable size.
-        /// </exception>
-        /// <returns>The decoded image.</returns>
+        /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -240,10 +223,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
         }
 
-        /// <summary>
-        /// Reads the raw image information from the specified stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <inheritdoc/>
         public IImageInfo Identify(Stream stream)
         {
             var metadata = new ImageMetadata();
@@ -272,6 +252,21 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 break;
                             case PngChunkType.Text:
                                 this.ReadTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                break;
+                            case PngChunkType.CompressedText:
+                                this.ReadCompressedTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                break;
+                            case PngChunkType.InternationalText:
+                                this.ReadInternationalTextChunk(pngMetadata, chunk.Data.Array.AsSpan(0, chunk.Length));
+                                break;
+                            case PngChunkType.Exif:
+                                if (!this.ignoreMetadata)
+                                {
+                                    var exifData = new byte[chunk.Length];
+                                    Buffer.BlockCopy(chunk.Data.Array, 0, exifData, 0, chunk.Length);
+                                    metadata.ExifProfile = new ExifProfile(exifData);
+                                }
+
                                 break;
                             case PngChunkType.End:
                                 this.isEndChunkReached = true;
@@ -384,7 +379,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             image = Image.CreateUninitialized<TPixel>(
-                this.configuration,
+                this.Configuration,
                 this.header.Width,
                 this.header.Height,
                 metadata);
@@ -398,7 +393,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             }
 
             this.previousScanline = this.memoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
-            this.scanline = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
+            this.scanline = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
         }
 
         /// <summary>
@@ -697,7 +692,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 case PngColorType.Rgb:
                     PngScanlineProcessor.ProcessRgbScanline(
-                        this.configuration,
+                        this.Configuration,
                         this.header,
                         scanlineSpan,
                         rowSpan,
@@ -711,7 +706,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
                 case PngColorType.RgbWithAlpha:
                     PngScanlineProcessor.ProcessRgbaScanline(
-                        this.configuration,
+                        this.Configuration,
                         this.header,
                         scanlineSpan,
                         rowSpan,
@@ -1144,18 +1139,17 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="chunk">The <see cref="PngChunk"/>.</param>
         private void ValidateChunk(in PngChunk chunk)
         {
-            uint crc = this.ReadChunkCrc();
+            uint inputCrc = this.ReadChunkCrc();
 
             if (chunk.IsCritical)
             {
                 Span<byte> chunkType = stackalloc byte[4];
                 BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
 
-                this.crc.Reset();
-                this.crc.Update(chunkType);
-                this.crc.Update(chunk.Data.GetSpan());
+                uint validCrc = Crc32.Calculate(chunkType);
+                validCrc = Crc32.Calculate(validCrc, chunk.Data.GetSpan());
 
-                if (this.crc.Value != crc)
+                if (validCrc != inputCrc)
                 {
                     string chunkTypeName = Encoding.ASCII.GetString(chunkType);
                     PngThrowHelper.ThrowInvalidChunkCrc(chunkTypeName);
@@ -1197,7 +1191,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private IManagedByteBuffer ReadChunkData(int length)
         {
             // We rent the buffer here to return it afterwards in Decode()
-            IManagedByteBuffer buffer = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(length, AllocationOptions.Clean);
+            IManagedByteBuffer buffer = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(length, AllocationOptions.Clean);
 
             this.currentStream.Read(buffer.Array, 0, length);
 

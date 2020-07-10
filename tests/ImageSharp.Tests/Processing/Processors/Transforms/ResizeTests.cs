@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -603,6 +603,22 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             {
                 // Don't bother saving, we're testing the EXIF metadata updates.
                 image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
+            }
+        }
+
+        [Fact]
+        public void Issue1195()
+        {
+            using (var image = new Image<Rgba32>(2, 300))
+            {
+                var size = new Size(50, 50);
+                image.Mutate(x => x
+                    .Resize(
+                        new ResizeOptions
+                        {
+                            Size = size,
+                            Mode = ResizeMode.Max
+                        }));
             }
         }
     }

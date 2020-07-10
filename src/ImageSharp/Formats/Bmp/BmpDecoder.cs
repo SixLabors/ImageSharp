@@ -1,7 +1,8 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -28,6 +29,26 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public RleSkippedPixelHandling RleSkippedPixelHandling { get; set; } = RleSkippedPixelHandling.Black;
 
         /// <inheritdoc/>
+        public async Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream)
+           where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(stream, nameof(stream));
+
+            var decoder = new BmpDecoderCore(configuration, this);
+
+            try
+            {
+                return await decoder.DecodeAsync<TPixel>(stream).ConfigureAwait(false);
+            }
+            catch (InvalidMemoryOperationException ex)
+            {
+                Size dims = decoder.Dimensions;
+
+                throw new InvalidImageContentException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}. This error can happen for very large RLE bitmaps, which are not supported.", ex);
+            }
+        }
+
+        /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -43,14 +64,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 Size dims = decoder.Dimensions;
 
-                // TODO: use InvalidImageContentException here, if we decide to define it
-                // https://github.com/SixLabors/ImageSharp/issues/1110
-                throw new ImageFormatException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}. This error can happen for very large RLE bitmaps, which are not supported.", ex);
+                throw new InvalidImageContentException($"Can not decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}. This error can happen for very large RLE bitmaps, which are not supported.", ex);
             }
         }
 
         /// <inheritdoc />
         public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
+
+        /// <inheritdoc />
+        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream) => await this.DecodeAsync<Rgba32>(configuration, stream).ConfigureAwait(false);
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)
@@ -58,6 +80,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(stream, nameof(stream));
 
             return new BmpDecoderCore(configuration, this).Identify(stream);
+        }
+
+        /// <inheritdoc/>
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+        {
+            Guard.NotNull(stream, nameof(stream));
+
+            return new BmpDecoderCore(configuration, this).IdentifyAsync(stream);
         }
     }
 }

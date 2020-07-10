@@ -60,20 +60,16 @@ namespace SixLabors.ImageSharp
             {
                 long startPosition = stream.Position;
 
-                int n = stream.Read(buffer.Array, 0, headerSize);
-
                 // Read doesn't always guarantee the full returned length so read a byte
                 // at a time until we get either our count or hit the end of the stream.
-                int i = 0;
-                while (n < headerSize && i != -1)
+                int n = 0;
+                int i;
+                do
                 {
-                    i = stream.ReadByte();
-
-                    if (i != -1)
-                    {
-                        buffer.Array[n++] = (byte)i;
-                    }
+                    i = stream.Read(buffer.Array, n, headerSize - n);
+                    n += i;
                 }
+                while (n < headerSize && i > 0);
 
                 stream.Position = startPosition;
 

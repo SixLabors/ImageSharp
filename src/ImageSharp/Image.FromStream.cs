@@ -292,7 +292,10 @@ namespace SixLabors.ImageSharp
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>A new <see cref="Image"/>.</returns>
         public static Image Load(Configuration configuration, Stream stream, IImageDecoder decoder)
-            => WithSeekableStream(configuration, stream, s => decoder.Decode(configuration, s));
+        {
+            Guard.NotNull(decoder, nameof(decoder));
+            return WithSeekableStream(configuration, stream, s => decoder.Decode(configuration, s));
+        }
 
         /// <summary>
         /// Decode a new instance of the <see cref="Image"/> class from the given stream.
@@ -327,7 +330,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
-        /// <returns>A new <see cref="Image"/>.</returns>>
+        /// <returns>A new <see cref="Image"/>.</returns>
         public static Image Load(Configuration configuration, Stream stream) => Load(configuration, stream, out _);
 
         /// <summary>

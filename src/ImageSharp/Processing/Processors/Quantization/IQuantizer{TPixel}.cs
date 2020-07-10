@@ -1,7 +1,8 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
@@ -10,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     /// Provides methods to allow the execution of the quantization process on an image frame.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    public interface IFrameQuantizer<TPixel> : IDisposable
+    public interface IQuantizer<TPixel> : IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
         /// <summary>
@@ -27,16 +28,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// Gets the quantized color palette.
         /// </summary>
         /// <exception cref="InvalidOperationException">
-        /// The palette has not been built via <see cref="BuildPalette(ImageFrame{TPixel}, Rectangle)"/>.
+        /// The palette has not been built via <see cref="AddPaletteColors"/>.
         /// </exception>
         ReadOnlyMemory<TPixel> Palette { get; }
 
         /// <summary>
-        /// Builds the quantized palette from the given image frame and bounds.
+        /// Adds colors to the quantized palette from the given pixel source.
         /// </summary>
-        /// <param name="source">The source image frame.</param>
-        /// <param name="bounds">The region of interest bounds.</param>
-        void BuildPalette(ImageFrame<TPixel> source, Rectangle bounds);
+        /// <param name="pixelRegion">The <see cref="Buffer2DRegion{T}"/> of source pixels to register.</param>
+        void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion);
 
         /// <summary>
         /// Quantizes an image frame and return the resulting output pixels.
@@ -46,6 +46,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         /// <returns>
         /// A <see cref="IndexedImageFrame{TPixel}"/> representing a quantized version of the source frame pixels.
         /// </returns>
+        /// <remarks>
+        /// Only executes the second (quantization) step. The palette has to be built by calling <see cref="AddPaletteColors"/>.
+        /// To run both steps, use <see cref="QuantizerUtilities.BuildPaletteAndQuantizeFrame{TPixel}"/>.
+        /// </remarks>
         IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds);
 
         /// <summary>

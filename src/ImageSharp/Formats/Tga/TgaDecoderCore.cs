@@ -1,11 +1,11 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
-
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
     /// <summary>
     /// Performs the tga decoding operation.
     /// </summary>
-    internal sealed class TgaDecoderCore
+    internal sealed class TgaDecoderCore : IImageDecoderInternals
     {
         /// <summary>
         /// A scratch buffer to reduce allocations.
@@ -36,11 +36,6 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// The file header containing general information about the image.
         /// </summary>
         private TgaFileHeader fileHeader;
-
-        /// <summary>
-        /// The global configuration.
-        /// </summary>
-        private readonly Configuration configuration;
 
         /// <summary>
         /// Used for allocating memory during processing operations.
@@ -69,25 +64,20 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <param name="options">The options.</param>
         public TgaDecoderCore(Configuration configuration, ITgaDecoderOptions options)
         {
-            this.configuration = configuration;
+            this.Configuration = configuration;
             this.memoryAllocator = configuration.MemoryAllocator;
             this.options = options;
         }
+
+        /// <inheritdoc />
+        public Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the dimensions of the image.
         /// </summary>
         public Size Dimensions => new Size(this.fileHeader.Width, this.fileHeader.Height);
 
-        /// <summary>
-        /// Decodes the image from the specified stream.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">The stream, where the image should be decoded from. Cannot be null.</param>
-        /// <exception cref="System.ArgumentNullException">
-        ///    <para><paramref name="stream"/> is null.</para>
-        /// </exception>
-        /// <returns>The decoded image.</returns>
+        /// <inheritdoc />
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -107,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     throw new UnknownImageFormatException("Width or height cannot be 0");
                 }
 
-                var image = Image.CreateUninitialized<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
+                var image = Image.CreateUninitialized<TPixel>(this.Configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
                 if (this.fileHeader.ColorMapType == 1)
@@ -461,11 +451,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
                         if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
                         {
-                            PixelOperations<TPixel>.Instance.FromLa16Bytes(this.configuration, rowSpan, pixelSpan, width);
+                            PixelOperations<TPixel>.Instance.FromLa16Bytes(this.Configuration, rowSpan, pixelSpan, width);
                         }
                         else
                         {
-                            PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.configuration, rowSpan, pixelSpan, width);
+                            PixelOperations<TPixel>.Instance.FromBgra5551Bytes(this.Configuration, rowSpan, pixelSpan, width);
                         }
                     }
                 }
@@ -650,10 +640,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             }
         }
 
-        /// <summary>
-        /// Reads the raw image information from the specified stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <inheritdoc />
         public IImageInfo Identify(Stream stream)
         {
             this.ReadFileHeader(stream);
@@ -670,7 +657,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             this.currentStream.Read(row);
             Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromL8Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
+            PixelOperations<TPixel>.Instance.FromL8Bytes(this.Configuration, row.GetSpan(), pixelSpan, width);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -697,7 +684,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             this.currentStream.Read(row);
             Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
+            PixelOperations<TPixel>.Instance.FromBgr24Bytes(this.Configuration, row.GetSpan(), pixelSpan, width);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -716,7 +703,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             this.currentStream.Read(row);
             Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
-            PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.configuration, row.GetSpan(), pixelSpan, width);
+            PixelOperations<TPixel>.Instance.FromBgra32Bytes(this.Configuration, row.GetSpan(), pixelSpan, width);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

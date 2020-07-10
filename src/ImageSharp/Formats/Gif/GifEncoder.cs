@@ -1,7 +1,8 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -25,12 +26,26 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         public GifColorTableMode? ColorTableMode { get; set; }
 
+        /// <summary>
+        /// Gets or sets the <see cref="IPixelSamplingStrategy"/> used for quantization
+        /// when building a global color table in case of <see cref="GifColorTableMode.Global"/>.
+        /// </summary>
+        public IPixelSamplingStrategy GlobalPixelSamplingStrategy { get; set; } = new DefaultPixelSamplingStrategy();
+
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new GifEncoderCore(image.GetConfiguration(), this);
             encoder.Encode(image, stream);
+        }
+
+        /// <inheritdoc/>
+        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new GifEncoderCore(image.GetConfiguration(), this);
+            return encoder.EncodeAsync(image, stream);
         }
     }
 }

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -23,17 +24,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// Originally ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
     /// with additional fixes for both performance and common encoding errors.
     /// </summary>
-    internal sealed class JpegDecoderCore : IRawJpegData
+    internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     {
         /// <summary>
         /// The only supported precision
         /// </summary>
         private readonly int[] supportedPrecisions = { 8, 12 };
-
-        /// <summary>
-        /// The global configuration
-        /// </summary>
-        private readonly Configuration configuration;
 
         /// <summary>
         /// The buffer used to temporarily store bytes read from the stream.
@@ -107,9 +103,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="options">The options.</param>
         public JpegDecoderCore(Configuration configuration, IJpegDecoderOptions options)
         {
-            this.configuration = configuration ?? Configuration.Default;
+            this.Configuration = configuration ?? Configuration.Default;
             this.IgnoreMetadata = options.IgnoreMetadata;
         }
+
+        /// <inheritdoc />
+        public Configuration Configuration { get; }
 
         /// <summary>
         /// Gets the frame
@@ -206,12 +205,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             return new JpegFileMarker(marker[1], stream.Position - 2, true);
         }
 
-        /// <summary>
-        /// Decodes the image from the specified <see cref="Stream"/>  and sets the data to image.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">The stream, where the image should be.</param>
-        /// <returns>The decoded image.</returns>
+        /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -223,10 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             return this.PostProcessIntoImage<TPixel>();
         }
 
-        /// <summary>
-        /// Reads the raw image information from the specified stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <inheritdoc/>
         public IImageInfo Identify(Stream stream)
         {
             this.ParseStream(stream, true);
@@ -819,6 +810,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             if (this.Frame != null)
             {
+                if (metadataOnly)
+                {
+                    return;
+                }
+
                 JpegThrowHelper.ThrowInvalidImageContentException("Multiple SOF markers. Only single frame jpegs supported.");
             }
 
@@ -839,8 +835,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 Extended = frameMarker.Marker == JpegConstants.Markers.SOF1,
                 Progressive = frameMarker.Marker == JpegConstants.Markers.SOF2,
                 Precision = this.temp[0],
-                Scanlines = (short)((this.temp[1] << 8) | this.temp[2]),
-                SamplesPerLine = (short)((this.temp[3] << 8) | this.temp[4]),
+                Scanlines = (this.temp[1] << 8) | this.temp[2],
+                SamplesPerLine = (this.temp[3] << 8) | this.temp[4],
                 ComponentCount = this.temp[5]
             };
 
@@ -889,7 +885,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         maxV = v;
                     }
 
-                    var component = new JpegComponent(this.configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
+                    var component = new JpegComponent(this.Configuration.MemoryAllocator, this.Frame, this.temp[index], h, v, this.temp[index + 2], i);
 
                     this.Frame.Components[i] = component;
                     this.Frame.ComponentIds[i] = component.Id;
@@ -915,7 +911,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         {
             int length = remaining;
 
-            using (IManagedByteBuffer huffmanData = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
+            using (IManagedByteBuffer huffmanData = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
             {
                 ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
                 for (int i = 2; i < remaining;)
@@ -938,7 +934,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                     stream.Read(huffmanData.Array, 0, 16);
 
-                    using (IManagedByteBuffer codeLengths = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(17, AllocationOptions.Clean))
+                    using (IManagedByteBuffer codeLengths = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(17, AllocationOptions.Clean))
                     {
                         ref byte codeLengthsRef = ref MemoryMarshal.GetReference(codeLengths.GetSpan());
                         int codeLengthSum = 0;
@@ -955,7 +951,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             JpegThrowHelper.ThrowInvalidImageContentException("Huffman table has excessive length.");
                         }
 
-                        using (IManagedByteBuffer huffmanValues = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
+                        using (IManagedByteBuffer huffmanValues = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
                         {
                             stream.Read(huffmanValues.Array, 0, codeLengthSum);
 
@@ -1085,12 +1081,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             }
 
             var image = Image.CreateUninitialized<TPixel>(
-                this.configuration,
+                this.Configuration,
                 this.ImageWidth,
                 this.ImageHeight,
                 this.Metadata);
 
-            using (var postProcessor = new JpegImagePostProcessor(this.configuration, this))
+            using (var postProcessor = new JpegImagePostProcessor(this.Configuration, this))
             {
                 postProcessor.PostProcess(image.Frames.RootFrame);
             }

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -60,6 +60,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 var detector = new Mock<IImageInfoDetector>();
                 detector.Setup(x => x.Identify(It.IsAny<Configuration>(), It.IsAny<Stream>())).Returns(this.localImageInfoMock.Object);
+                detector.Setup(x => x.IdentifyAsync(It.IsAny<Configuration>(), It.IsAny<Stream>())).ReturnsAsync(this.localImageInfoMock.Object);
                 this.localDecoder = detector.As<IImageDecoder>();
                 this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
 

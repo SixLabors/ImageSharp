@@ -1,7 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -38,6 +39,14 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             var encoder = new BmpEncoderCore(this, image.GetMemoryAllocator());
             encoder.Encode(image, stream);
+        }
+
+        /// <inheritdoc/>
+        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new BmpEncoderCore(this, image.GetMemoryAllocator());
+            return encoder.EncodeAsync(image, stream);
         }
     }
 }

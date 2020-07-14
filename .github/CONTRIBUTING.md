@@ -20,6 +20,12 @@
 
 * Do not open an issue on GitHub until you have collected positive feedback about the change. GitHub issues are primarily intended for bug reports and fixes.
 
+#### **Building**
+
+ * When first cloning the repo, make sure to run `git submodule update --init --recursive` otherwise the submodules (e.g. `shared-infrastructure`) will be missing.
+
+ * Run `dotnet build` in the root of the repo, or open the ImageSharp.sln file in Visual Studio and build from there.
+
 #### **Running tests and Debugging**
 
 * Expected test output is pulled in as a submodule from the [ImageSharp.Tests.Images repository](https://github.com/SixLabors/Imagesharp.Tests.Images/tree/master/ReferenceOutput). To succesfully run tests, make sure that you have updated the submodules!
@@ -27,7 +33,7 @@
 
 #### **Do you have questions about consuming the library or the source code?**
 
-* Ask any question about how to use ImageSharp in the [ImageSharp Gitter Chat Room](https://gitter.im/ImageSharp/General).
+* Ask any question about how to use ImageSharp over in the [discussions section](https://github.com/SixLabors/ImageSharp/discussions).
 
 #### Code of Conduct  
 This project has adopted the code of conduct defined by the [Contributor Covenant](https://contributor-covenant.org/) to clarify expected behavior in our community.

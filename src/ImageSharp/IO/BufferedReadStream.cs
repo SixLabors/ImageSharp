@@ -286,7 +286,7 @@ namespace SixLabors.ImageSharp.IO
             int i;
             do
             {
-                i = this.BaseStream.Read(buffer, n, count - n);
+                i = this.BaseStream.Read(buffer, n + offset, count - n);
                 n += i;
             }
             while (n < count && i > 0);

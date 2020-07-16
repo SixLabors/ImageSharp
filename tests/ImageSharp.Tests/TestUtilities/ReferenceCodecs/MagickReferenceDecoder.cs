@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         public static MagickReferenceDecoder Instance { get; } = new MagickReferenceDecoder();
 
         private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
-            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (Memory<TPixel> m in destinationGroup)
             {
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         }
 
         private static void FromRgba64Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
-            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (Memory<TPixel> m in destinationGroup)
             {
@@ -47,17 +47,17 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         }
 
         public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
             => Task.FromResult(this.Decode<TPixel>(configuration, stream));
 
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using var magickImage = new MagickImage(stream);
             var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
             MemoryGroup<TPixel> resultPixels = result.GetRootFramePixelBuffer().FastMemoryGroup;
 
-            using (IUnsafePixelCollection<ushort> pixels = magickImage.GetPixelsUnsafe())
+            using (IPixelCollection pixels = magickImage.GetPixelsUnsafe())
             {
                 if (magickImage.Depth == 8)
                 {

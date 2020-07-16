@@ -10,11 +10,6 @@
     <RootNamespace>SixLabors.ImageSharp.Tests</RootNamespace>
     <!--Used to show test project to dotnet test-->
     <IsTestProject>true</IsTestProject>
-
-    <!-- Bind dll.config redirect.-->
-    <!-- https://github.com/microsoft/msbuild/issues/1310 -->
-    <!--<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>-->
   </PropertyGroup>
 
   <ItemGroup>

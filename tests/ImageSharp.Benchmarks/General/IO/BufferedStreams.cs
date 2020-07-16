@@ -177,30 +177,30 @@ namespace SixLabors.ImageSharp.Benchmarks.IO
 
     IterationCount=3  LaunchCount=1  WarmupCount=3
 
-    |                         Method |       Runtime |      Mean |      Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |------------------------------- |-------------- |----------:|-----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-    |             StandardStreamRead |    .NET 4.7.2 | 126.07 us | 126.498 us |  6.934 us |  0.99 |    0.08 |     - |     - |     - |         - |
-    |         BufferedReadStreamRead |    .NET 4.7.2 | 118.08 us |  42.234 us |  2.315 us |  0.92 |    0.03 |     - |     - |     - |         - |
-    |     BufferedReadStreamWrapRead |    .NET 4.7.2 |  45.33 us |  22.833 us |  1.252 us |  0.35 |    0.00 |     - |     - |     - |         - |
-    |         StandardStreamReadByte |    .NET 4.7.2 | 128.17 us |  94.616 us |  5.186 us |  1.00 |    0.00 |     - |     - |     - |         - |
-    |     BufferedReadStreamReadByte |    .NET 4.7.2 | 143.60 us |  92.871 us |  5.091 us |  1.12 |    0.08 |     - |     - |     - |         - |
-    | BufferedReadStreamWrapReadByte |    .NET 4.7.2 |  32.72 us |  53.708 us |  2.944 us |  0.26 |    0.02 |     - |     - |     - |         - |
-    |                  ArrayReadByte |    .NET 4.7.2 |  19.40 us |  12.206 us |  0.669 us |  0.15 |    0.01 |     - |     - |     - |         - |
-    |                                |               |           |            |           |       |         |       |       |       |           |
-    |             StandardStreamRead | .NET Core 2.1 |  84.82 us |  55.983 us |  3.069 us |  0.75 |    0.15 |     - |     - |     - |         - |
-    |         BufferedReadStreamRead | .NET Core 2.1 |  49.62 us |  27.253 us |  1.494 us |  0.44 |    0.08 |     - |     - |     - |         - |
-    |     BufferedReadStreamWrapRead | .NET Core 2.1 |  67.78 us |  87.546 us |  4.799 us |  0.60 |    0.10 |     - |     - |     - |         - |
-    |         StandardStreamReadByte | .NET Core 2.1 | 115.81 us | 382.107 us | 20.945 us |  1.00 |    0.00 |     - |     - |     - |         - |
-    |     BufferedReadStreamReadByte | .NET Core 2.1 |  16.32 us |   6.123 us |  0.336 us |  0.14 |    0.02 |     - |     - |     - |         - |
-    | BufferedReadStreamWrapReadByte | .NET Core 2.1 |  16.68 us |   4.616 us |  0.253 us |  0.15 |    0.03 |     - |     - |     - |         - |
-    |                  ArrayReadByte | .NET Core 2.1 |  15.13 us |  60.763 us |  3.331 us |  0.14 |    0.05 |     - |     - |     - |         - |
-    |                                |               |           |            |           |       |         |       |       |       |           |
-    |             StandardStreamRead | .NET Core 3.1 |  92.44 us |  88.217 us |  4.835 us |  0.94 |    0.06 |     - |     - |     - |         - |
-    |         BufferedReadStreamRead | .NET Core 3.1 |  36.41 us |   5.923 us |  0.325 us |  0.37 |    0.00 |     - |     - |     - |         - |
-    |     BufferedReadStreamWrapRead | .NET Core 3.1 |  37.22 us |   9.628 us |  0.528 us |  0.38 |    0.01 |     - |     - |     - |         - |
-    |         StandardStreamReadByte | .NET Core 3.1 |  98.67 us |  20.947 us |  1.148 us |  1.00 |    0.00 |     - |     - |     - |         - |
-    |     BufferedReadStreamReadByte | .NET Core 3.1 |  41.36 us | 123.536 us |  6.771 us |  0.42 |    0.06 |     - |     - |     - |         - |
-    | BufferedReadStreamWrapReadByte | .NET Core 3.1 |  39.11 us |  93.894 us |  5.147 us |  0.40 |    0.05 |     - |     - |     - |         - |
-    |                  ArrayReadByte | .NET Core 3.1 |  18.84 us |   4.684 us |  0.257 us |  0.19 |    0.00 |     - |     - |     - |         - |
+|                         Method |       Runtime |      Mean |       Error |     StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------------- |-------------- |----------:|------------:|-----------:|------:|--------:|------:|------:|------:|----------:|
+|             StandardStreamRead |    .NET 4.7.2 | 63.238 us |  49.7827 us |  2.7288 us |  0.66 |    0.13 |     - |     - |     - |         - |
+|         BufferedReadStreamRead |    .NET 4.7.2 | 66.092 us |   0.4273 us |  0.0234 us |  0.69 |    0.11 |     - |     - |     - |         - |
+|     BufferedReadStreamWrapRead |    .NET 4.7.2 | 26.216 us |   3.0527 us |  0.1673 us |  0.27 |    0.04 |     - |     - |     - |         - |
+|         StandardStreamReadByte |    .NET 4.7.2 | 97.900 us | 261.7204 us | 14.3458 us |  1.00 |    0.00 |     - |     - |     - |         - |
+|     BufferedReadStreamReadByte |    .NET 4.7.2 | 97.260 us |   1.2979 us |  0.0711 us |  1.01 |    0.15 |     - |     - |     - |         - |
+| BufferedReadStreamWrapReadByte |    .NET 4.7.2 | 19.170 us |   2.2296 us |  0.1222 us |  0.20 |    0.03 |     - |     - |     - |         - |
+|                  ArrayReadByte |    .NET 4.7.2 | 12.878 us |  11.1292 us |  0.6100 us |  0.13 |    0.02 |     - |     - |     - |         - |
+|                                |               |           |             |            |       |         |       |       |       |           |
+|             StandardStreamRead | .NET Core 2.1 | 60.618 us | 131.7038 us |  7.2191 us |  0.78 |    0.10 |     - |     - |     - |         - |
+|         BufferedReadStreamRead | .NET Core 2.1 | 30.006 us |  25.2499 us |  1.3840 us |  0.38 |    0.02 |     - |     - |     - |         - |
+|     BufferedReadStreamWrapRead | .NET Core 2.1 | 29.241 us |   6.5020 us |  0.3564 us |  0.37 |    0.01 |     - |     - |     - |         - |
+|         StandardStreamReadByte | .NET Core 2.1 | 78.074 us |  15.8463 us |  0.8686 us |  1.00 |    0.00 |     - |     - |     - |         - |
+|     BufferedReadStreamReadByte | .NET Core 2.1 | 14.737 us |  20.1510 us |  1.1045 us |  0.19 |    0.01 |     - |     - |     - |         - |
+| BufferedReadStreamWrapReadByte | .NET Core 2.1 | 13.234 us |   1.4711 us |  0.0806 us |  0.17 |    0.00 |     - |     - |     - |         - |
+|                  ArrayReadByte | .NET Core 2.1 |  9.373 us |   0.6108 us |  0.0335 us |  0.12 |    0.00 |     - |     - |     - |         - |
+|                                |               |           |             |            |       |         |       |       |       |           |
+|             StandardStreamRead | .NET Core 3.1 | 52.151 us |  19.9456 us |  1.0933 us |  0.65 |    0.03 |     - |     - |     - |         - |
+|         BufferedReadStreamRead | .NET Core 3.1 | 29.217 us |   0.2490 us |  0.0136 us |  0.36 |    0.01 |     - |     - |     - |         - |
+|     BufferedReadStreamWrapRead | .NET Core 3.1 | 32.962 us |   7.1382 us |  0.3913 us |  0.41 |    0.02 |     - |     - |     - |         - |
+|         StandardStreamReadByte | .NET Core 3.1 | 80.310 us |  45.0350 us |  2.4685 us |  1.00 |    0.00 |     - |     - |     - |         - |
+|     BufferedReadStreamReadByte | .NET Core 3.1 | 13.092 us |   0.6268 us |  0.0344 us |  0.16 |    0.00 |     - |     - |     - |         - |
+| BufferedReadStreamWrapReadByte | .NET Core 3.1 | 13.282 us |   3.8689 us |  0.2121 us |  0.17 |    0.01 |     - |     - |     - |         - |
+|                  ArrayReadByte | .NET Core 3.1 |  9.349 us |   2.9860 us |  0.1637 us |  0.12 |    0.00 |     - |     - |     - |         - |
     */
 }

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.IO
     /// A readonly stream that add a secondary level buffer in addition to native stream
     /// buffered reading to reduce the overhead of small incremental reads.
     /// </summary>
-    internal sealed unsafe class BufferedReadStream : Stream
+    internal sealed class BufferedReadStream : Stream
     {
         /// <summary>
         /// The length, in bytes, of the underlying buffer.
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.IO
 
         private MemoryHandle readBufferHandle;
 
-        private readonly byte* pinnedReadBuffer;
+        private readonly unsafe byte* pinnedReadBuffer;
 
         // Index within our buffer, not reader position.
         private int readBufferIndex;
@@ -58,7 +58,10 @@ namespace SixLabors.ImageSharp.IO
 
             this.readBuffer = ArrayPool<byte>.Shared.Rent(BufferLength);
             this.readBufferHandle = new Memory<byte>(this.readBuffer).Pin();
-            this.pinnedReadBuffer = (byte*)this.readBufferHandle.Pointer;
+            unsafe
+            {
+                this.pinnedReadBuffer = (byte*)this.readBufferHandle.Pointer;
+            }
 
             // This triggers a full read on first attempt.
             this.readBufferIndex = BufferLength;
@@ -128,7 +131,10 @@ namespace SixLabors.ImageSharp.IO
             }
 
             this.readerPosition++;
-            return this.pinnedReadBuffer[this.readBufferIndex++];
+            unsafe
+            {
+                return this.pinnedReadBuffer[this.readBufferIndex++];
+            }
         }
 
         /// <inheritdoc/>
@@ -308,7 +314,7 @@ namespace SixLabors.ImageSharp.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyBytes(byte[] buffer, int offset, int count)
+        private unsafe void CopyBytes(byte[] buffer, int offset, int count)
         {
             // Same as MemoryStream.
             if (count < 9)

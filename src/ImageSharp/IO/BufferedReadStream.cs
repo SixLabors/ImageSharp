@@ -157,14 +157,38 @@ namespace SixLabors.ImageSharp.IO
             return this.ReadToBufferViaCopyFast(buffer, offset, count);
         }
 
+#if SUPPORTS_SPAN_STREAM
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override int Read(Span<byte> buffer)
+        {
+            // Too big for our buffer. Read directly from the stream.
+            int count = buffer.Length;
+            if (count > BufferLength)
+            {
+                return this.ReadToBufferDirectSlow(buffer);
+            }
+
+            // Too big for remaining buffer but less than entire buffer length
+            // Copy to buffer then read from there.
+            if (count + this.readBufferIndex > BufferLength)
+            {
+                return this.ReadToBufferViaCopySlow(buffer);
+            }
+
+            return this.ReadToBufferViaCopyFast(buffer);
+        }
+#endif
+
         /// <inheritdoc/>
         public override void Flush()
         {
             // Reset the stream position to match reader position.
-            if (this.readerPosition != this.BaseStream.Position)
+            Stream baseStream = this.BaseStream;
+            if (this.readerPosition != baseStream.Position)
             {
-                this.BaseStream.Seek(this.readerPosition, SeekOrigin.Begin);
-                this.readerPosition = (int)this.BaseStream.Position;
+                baseStream.Seek(this.readerPosition, SeekOrigin.Begin);
+                this.readerPosition = (int)baseStream.Position;
             }
 
             // Reset to trigger full read on next attempt.
@@ -231,9 +255,10 @@ namespace SixLabors.ImageSharp.IO
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void FillReadBuffer()
         {
-            if (this.readerPosition != this.BaseStream.Position)
+            Stream baseStream = this.BaseStream;
+            if (this.readerPosition != baseStream.Position)
             {
-                this.BaseStream.Seek(this.readerPosition, SeekOrigin.Begin);
+                baseStream.Seek(this.readerPosition, SeekOrigin.Begin);
             }
 
             // Read doesn't always guarantee the full returned length so read a byte
@@ -242,12 +267,26 @@ namespace SixLabors.ImageSharp.IO
             int i;
             do
             {
-                i = this.BaseStream.Read(this.readBuffer, n, BufferLength - n);
+                i = baseStream.Read(this.readBuffer, n, BufferLength - n);
                 n += i;
             }
             while (n < BufferLength && i > 0);
 
             this.readBufferIndex = 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int ReadToBufferViaCopyFast(Span<byte> buffer)
+        {
+            int n = this.GetCopyCount(buffer.Length);
+
+            // Just straight copy. MemoryStream does the same so should be fast enough.
+            this.readBuffer.AsSpan(this.readBufferIndex, n).CopyTo(buffer);
+
+            this.readerPosition += n;
+            this.readBufferIndex += n;
+
+            return n;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -263,6 +302,15 @@ namespace SixLabors.ImageSharp.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int ReadToBufferViaCopySlow(Span<byte> buffer)
+        {
+            // Refill our buffer then copy.
+            this.FillReadBuffer();
+
+            return this.ReadToBufferViaCopyFast(buffer);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ReadToBufferViaCopySlow(byte[] buffer, int offset, int count)
         {
             // Refill our buffer then copy.
@@ -272,12 +320,40 @@ namespace SixLabors.ImageSharp.IO
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
+        private int ReadToBufferDirectSlow(Span<byte> buffer)
+        {
+            // Read to target but don't copy to our read buffer.
+            Stream baseStream = this.BaseStream;
+            if (this.readerPosition != baseStream.Position)
+            {
+                baseStream.Seek(this.readerPosition, SeekOrigin.Begin);
+            }
+
+            // Read doesn't always guarantee the full returned length so read a byte
+            // at a time until we get either our count or hit the end of the stream.
+            int count = buffer.Length;
+            int n = 0;
+            int i;
+            do
+            {
+                i = baseStream.Read(buffer.Slice(n, count - n));
+                n += i;
+            }
+            while (n < count && i > 0);
+
+            this.Position += n;
+
+            return n;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private int ReadToBufferDirectSlow(byte[] buffer, int offset, int count)
         {
             // Read to target but don't copy to our read buffer.
-            if (this.readerPosition != this.BaseStream.Position)
+            Stream baseStream = this.BaseStream;
+            if (this.readerPosition != baseStream.Position)
             {
-                this.BaseStream.Seek(this.readerPosition, SeekOrigin.Begin);
+                baseStream.Seek(this.readerPosition, SeekOrigin.Begin);
             }
 
             // Read doesn't always guarantee the full returned length so read a byte
@@ -286,7 +362,7 @@ namespace SixLabors.ImageSharp.IO
             int i;
             do
             {
-                i = this.BaseStream.Read(buffer, n + offset, count - n);
+                i = baseStream.Read(buffer, n + offset, count - n);
                 n += i;
             }
             while (n < count && i > 0);

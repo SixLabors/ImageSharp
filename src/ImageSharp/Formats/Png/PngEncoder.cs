@@ -72,13 +72,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var encoder = new PngEncoderCore(image.GetMemoryAllocator(), image.GetConfiguration(), new PngEncoderOptions(this)))
-            {
-                await encoder.EncodeAsync(image, stream).ConfigureAwait(false);
-            }
+            using var encoder = new PngEncoderCore(image.GetMemoryAllocator(), image.GetConfiguration(), new PngEncoderOptions(this));
+            return encoder.EncodeAsync(image, stream);
         }
     }
 }

@@ -103,15 +103,15 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
+        /// <exception cref="ArgumentNullException">Thrown if the stream or encoder is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public async Task SaveAsync(Stream stream, IImageEncoder encoder)
+        public Task SaveAsync(Stream stream, IImageEncoder encoder)
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
             this.EnsureNotDisposed();
 
-            await this.AcceptVisitorAsync(new EncodeVisitor(encoder, stream)).ConfigureAwait(false);
+            return this.AcceptVisitorAsync(new EncodeVisitor(encoder, stream));
         }
 
         /// <summary>
@@ -179,9 +179,8 @@ namespace SixLabors.ImageSharp
             public void Visit<TPixel>(Image<TPixel> image)
                 where TPixel : unmanaged, IPixel<TPixel> => this.encoder.Encode(image, this.stream);
 
-            public async Task VisitAsync<TPixel>(Image<TPixel> image)
-                where TPixel : unmanaged, IPixel<TPixel>
-                => await this.encoder.EncodeAsync(image, this.stream).ConfigureAwait(false);
+            public Task VisitAsync<TPixel>(Image<TPixel> image)
+                where TPixel : unmanaged, IPixel<TPixel> => this.encoder.EncodeAsync(image, this.stream);
         }
     }
 }

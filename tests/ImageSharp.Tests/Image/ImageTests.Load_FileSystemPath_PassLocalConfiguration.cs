@@ -2,10 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.IO;
-using Moq;
+
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
@@ -44,11 +42,7 @@ namespace SixLabors.ImageSharp.Tests
                 var img = Image.Load<Rgba32>(this.TopLevelConfiguration, this.MockFilePath, this.localDecoder.Object);
 
                 Assert.NotNull(img);
-                this.localDecoder
-                    .Verify(
-                    x => x.Decode<Rgba32>(
-                        this.TopLevelConfiguration,
-                        It.Is<Stream>(x => ((BufferedReadStream)x).BaseStream == this.DataStream)));
+                this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, this.DataStream));
             }
 
             [Fact]
@@ -57,10 +51,7 @@ namespace SixLabors.ImageSharp.Tests
                 var img = Image.Load(this.TopLevelConfiguration, this.MockFilePath, this.localDecoder.Object);
 
                 Assert.NotNull(img);
-                this.localDecoder.Verify(
-                    x => x.Decode(
-                        this.TopLevelConfiguration,
-                        It.Is<Stream>(x => ((BufferedReadStream)x).BaseStream == this.DataStream)));
+                this.localDecoder.Verify(x => x.Decode(this.TopLevelConfiguration, this.DataStream));
             }
 
             [Fact]
@@ -90,9 +81,9 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Assert.Throws<System.IO.FileNotFoundException>(
                     () =>
-                        {
-                            Image.Load<Rgba32>(this.TopLevelConfiguration, Guid.NewGuid().ToString());
-                        });
+                    {
+                        Image.Load<Rgba32>(this.TopLevelConfiguration, Guid.NewGuid().ToString());
+                    });
             }
 
             [Fact]
@@ -100,9 +91,9 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Assert.Throws<ArgumentNullException>(
                     () =>
-                        {
-                            Image.Load<Rgba32>(this.TopLevelConfiguration, (string)null);
-                        });
+                    {
+                        Image.Load<Rgba32>(this.TopLevelConfiguration, (string)null);
+                    });
             }
         }
     }

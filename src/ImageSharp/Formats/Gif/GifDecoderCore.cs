@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The currently loaded stream.
         /// </summary>
-        private Stream stream;
+        private BufferedReadStream stream;
 
         /// <summary>
         /// The global color table.
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private MemoryAllocator MemoryAllocator => this.Configuration.MemoryAllocator;
 
         /// <inheritdoc />
-        public Image<TPixel> Decode<TPixel>(Stream stream)
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Image<TPixel> image = null;
@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <inheritdoc />
-        public IImageInfo Identify(Stream stream)
+        public IImageInfo Identify(BufferedReadStream stream)
         {
             try
             {
@@ -572,7 +572,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Reads the logical screen descriptor and global color table blocks
         /// </summary>
         /// <param name="stream">The stream containing image data. </param>
-        private void ReadLogicalScreenDescriptorAndGlobalColorTable(Stream stream)
+        private void ReadLogicalScreenDescriptorAndGlobalColorTable(BufferedReadStream stream)
         {
             this.stream = stream;
 

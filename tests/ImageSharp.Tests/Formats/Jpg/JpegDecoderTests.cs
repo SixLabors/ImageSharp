@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
@@ -71,16 +72,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void ParseStream_BasicPropertiesAreCorrect()
         {
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
-            using (var ms = new MemoryStream(bytes))
-            {
-                var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-                decoder.ParseStream(ms);
+            using var ms = new MemoryStream(bytes);
+            using var bufferedStream = new BufferedReadStream(ms);
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            decoder.ParseStream(bufferedStream);
 
-                // I don't know why these numbers are different. All I know is that the decoder works
-                // and spectral data is exactly correct also.
-                // VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 43, 61, 22, 31, 22, 31);
-                VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 44, 62, 22, 31, 22, 31);
-            }
+            // I don't know why these numbers are different. All I know is that the decoder works
+            // and spectral data is exactly correct also.
+            // VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 43, 61, 22, 31, 22, 31);
+            VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 44, 62, 22, 31, 22, 31);
         }
 
         public const string DecodeBaselineJpegOutputName = "DecodeBaselineJpeg";

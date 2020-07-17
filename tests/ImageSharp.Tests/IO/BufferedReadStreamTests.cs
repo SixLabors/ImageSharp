@@ -144,6 +144,42 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Fact]
+        public void BufferedStreamCanReadSubsequentMultipleByteSpanCorrectly()
+        {
+            using (MemoryStream stream = this.CreateTestStream())
+            {
+                Span<byte> buffer = new byte[2];
+                byte[] expected = stream.ToArray();
+                using (var reader = new BufferedReadStream(stream))
+                {
+                    for (int i = 0, o = 0; i < expected.Length / 2; i++, o += 2)
+                    {
+                        Assert.Equal(2, reader.Read(buffer, 0, 2));
+                        Assert.Equal(expected[o], buffer[0]);
+                        Assert.Equal(expected[o + 1], buffer[1]);
+                        Assert.Equal(o + 2, reader.Position);
+
+                        int offset = i * 2;
+                        if (offset < BufferedReadStream.BufferLength)
+                        {
+                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength);
+                        }
+                        else if (offset >= BufferedReadStream.BufferLength && offset < BufferedReadStream.BufferLength * 2)
+                        {
+                            // We should have advanced to the second chunk now.
+                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength * 2);
+                        }
+                        else
+                        {
+                            // We should have advanced to the third chunk now.
+                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength * 3);
+                        }
+                    }
+                }
+            }
+        }
+
+        [Fact]
         public void BufferedStreamCanSkip()
         {
             using (MemoryStream stream = this.CreateTestStream())

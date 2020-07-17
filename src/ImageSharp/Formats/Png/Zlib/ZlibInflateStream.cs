@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -27,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// The inner raw memory stream.
         /// </summary>
-        private readonly Stream innerStream;
+        private readonly BufferedReadStream innerStream;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -56,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.
         /// </summary>
         /// <param name="innerStream">The inner raw stream.</param>
-        public ZlibInflateStream(Stream innerStream)
+        public ZlibInflateStream(BufferedReadStream innerStream)
             : this(innerStream, GetDataNoOp)
         {
         }
@@ -66,7 +67,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// </summary>
         /// <param name="innerStream">The inner raw stream.</param>
         /// <param name="getData">A delegate to get more data from the inner stream.</param>
-        public ZlibInflateStream(Stream innerStream, Func<int> getData)
+        public ZlibInflateStream(BufferedReadStream innerStream, Func<int> getData)
         {
             this.innerStream = innerStream;
             this.getData = getData;
@@ -272,7 +273,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
                 this.currentDataRemaining -= 4;
             }
 
-            // Initialize the deflate Stream.
+            // Initialize the deflate BufferedReadStream.
             this.CompressedStream = new DeflateStream(this, CompressionMode.Decompress, true);
 
             return true;

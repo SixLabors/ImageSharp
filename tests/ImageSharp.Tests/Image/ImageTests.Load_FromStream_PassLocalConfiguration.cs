@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-using Moq;
+
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
@@ -55,10 +54,7 @@ namespace SixLabors.ImageSharp.Tests
                 var img = Image.Load<Rgba32>(this.TopLevelConfiguration, stream, this.localDecoder.Object);
 
                 Assert.NotNull(img);
-                this.localDecoder.Verify(
-                    x => x.Decode<Rgba32>(
-                        this.TopLevelConfiguration,
-                        It.Is<Stream>(x => ((BufferedReadStream)x).BaseStream == stream)));
+                this.localDecoder.Verify(x => x.Decode<Rgba32>(this.TopLevelConfiguration, stream));
             }
 
             [Fact]
@@ -68,10 +64,7 @@ namespace SixLabors.ImageSharp.Tests
                 var img = Image.Load(this.TopLevelConfiguration, stream, this.localDecoder.Object);
 
                 Assert.NotNull(img);
-                this.localDecoder.Verify(
-                    x => x.Decode(
-                        this.TopLevelConfiguration,
-                        It.Is<Stream>(x => ((BufferedReadStream)x).BaseStream == stream)));
+                this.localDecoder.Verify(x => x.Decode(this.TopLevelConfiguration, stream));
             }
 
             [Fact]

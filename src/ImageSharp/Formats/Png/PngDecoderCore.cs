@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <summary>
         /// The stream to decode from.
         /// </summary>
-        private Stream currentStream;
+        private BufferedReadStream currentStream;
 
         /// <summary>
         /// The png header.
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public Size Dimensions => new Size(this.header.Width, this.header.Height);
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Stream stream)
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var metadata = new ImageMetadata();
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         }
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Stream stream)
+        public IImageInfo Identify(BufferedReadStream stream)
         {
             var metadata = new ImageMetadata();
             PngMetadata pngMetadata = metadata.GetPngMetadata();
@@ -499,7 +499,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="image">The image to decode to.</param>
         /// <param name="pngMetadata">The png metadata</param>
-        private void DecodePixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
+        private void DecodePixelData<TPixel>(DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             while (this.currentRow < this.header.Height)
@@ -555,7 +555,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// <param name="compressedStream">The compressed pixel data stream.</param>
         /// <param name="image">The current image.</param>
         /// <param name="pngMetadata">The png metadata.</param>
-        private void DecodeInterlacedPixelData<TPixel>(Stream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
+        private void DecodeInterlacedPixelData<TPixel>(DeflateStream compressedStream, ImageFrame<TPixel> image, PngMetadata pngMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int pass = 0;
@@ -1027,7 +1027,8 @@ namespace SixLabors.ImageSharp.Formats.Png
         private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, out string value)
         {
             using (var memoryStream = new MemoryStream(compressedData.ToArray()))
-            using (var inflateStream = new ZlibInflateStream(memoryStream))
+            using (var bufferedStream = new BufferedReadStream(memoryStream))
+            using (var inflateStream = new ZlibInflateStream(bufferedStream))
             {
                 if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
                 {

@@ -6,6 +6,7 @@ using System.IO;
 using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Tests;
 using SDSize = System.Drawing.Size;
 
@@ -30,24 +31,20 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark(Baseline = true, Description = "System.Drawing FULL")]
         public SDSize JpegSystemDrawing()
         {
-            using (var memoryStream = new MemoryStream(this.jpegBytes))
-            {
-                using (var image = System.Drawing.Image.FromStream(memoryStream))
-                {
-                    return image.Size;
-                }
-            }
+            using var memoryStream = new MemoryStream(this.jpegBytes);
+            using var image = System.Drawing.Image.FromStream(memoryStream);
+            return image.Size;
         }
 
         [Benchmark(Description = "JpegDecoderCore.ParseStream")]
         public void ParseStreamPdfJs()
         {
-            using (var memoryStream = new MemoryStream(this.jpegBytes))
-            {
-                var decoder = new JpegDecoderCore(Configuration.Default, new Formats.Jpeg.JpegDecoder { IgnoreMetadata = true });
-                decoder.ParseStream(memoryStream);
-                decoder.Dispose();
-            }
+            using var memoryStream = new MemoryStream(this.jpegBytes);
+            using var bufferedStream = new BufferedReadStream(memoryStream);
+
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder { IgnoreMetadata = true });
+            decoder.ParseStream(bufferedStream);
+            decoder.Dispose();
         }
 
         // RESULTS (2019 April 23):

@@ -357,7 +357,7 @@ namespace SixLabors.ImageSharp
             return WithSeekableStreamAsync(
                 configuration,
                 stream,
-                (s, ct) => decoder.DecodeAsync(configuration, s),
+                (s, ct) => decoder.DecodeAsync(configuration, s, ct),
                 cancellationToken);
         }
 
@@ -514,7 +514,7 @@ namespace SixLabors.ImageSharp
             => WithSeekableStreamAsync(
                 Configuration.Default,
                 stream,
-                (s, ct) => decoder.DecodeAsync<TPixel>(Configuration.Default, s),
+                (s, ct) => decoder.DecodeAsync<TPixel>(Configuration.Default, s, ct),
                 cancellationToken);
 
         /// <summary>
@@ -577,7 +577,7 @@ namespace SixLabors.ImageSharp
             => WithSeekableStreamAsync(
                 configuration,
                 stream,
-                (s, ct) => decoder.DecodeAsync<TPixel>(configuration, s),
+                (s, ct) => decoder.DecodeAsync<TPixel>(configuration, s, ct),
                 cancellationToken);
 
         /// <summary>

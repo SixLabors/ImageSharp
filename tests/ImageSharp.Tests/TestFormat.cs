@@ -220,8 +220,7 @@ namespace SixLabors.ImageSharp.Tests
                 return this.testFormat.Sample<TPixel>();
             }
 
-            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration config, Stream stream,
-                CancellationToken cancellationToken)
+            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration config, Stream stream, CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
                 => Task.FromResult(this.Decode<TPixel>(config, stream));
 
@@ -229,8 +228,8 @@ namespace SixLabors.ImageSharp.Tests
 
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<TestPixelForAgnosticDecode>(configuration, stream);
 
-            public async Task<Image> DecodeAsync(Configuration configuration, Stream stream,
-                CancellationToken cancellationToken) => await this.DecodeAsync<TestPixelForAgnosticDecode>(configuration, stream, TODO);
+            public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+                => await this.DecodeAsync<TestPixelForAgnosticDecode>(configuration, stream, cancellationToken);
         }
 
         public class TestEncoder : ImageSharp.Formats.IImageEncoder

@@ -3,7 +3,7 @@
 
 using System;
 using System.IO;
-
+using System.Threading;
 using Moq;
 
 using SixLabors.ImageSharp.Formats;
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 var detector = new Mock<IImageInfoDetector>();
                 detector.Setup(x => x.Identify(It.IsAny<Configuration>(), It.IsAny<Stream>())).Returns(this.localImageInfoMock.Object);
-                detector.Setup(x => x.IdentifyAsync(It.IsAny<Configuration>(), It.IsAny<Stream>(), TODO)).ReturnsAsync(this.localImageInfoMock.Object);
+                detector.Setup(x => x.IdentifyAsync(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).ReturnsAsync(this.localImageInfoMock.Object);
                 this.localDecoder = detector.As<IImageDecoder>();
                 this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
 

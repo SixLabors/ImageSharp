@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp
 {
@@ -30,6 +31,11 @@ namespace SixLabors.ImageSharp
         /// if no inner exception is specified.</param>
         public InvalidImageContentException(string errorMessage, Exception innerException)
             : base(errorMessage, innerException)
+        {
+        }
+
+        internal InvalidImageContentException(Size size, InvalidMemoryOperationException memoryException)
+            : this($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {size.Width}x{size.Height}.", memoryException)
         {
         }
     }

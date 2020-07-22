@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -77,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         public Size Dimensions => new Size(this.fileHeader.Width, this.fileHeader.Height);
 
         /// <inheritdoc />
-        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream)
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             try
@@ -640,7 +641,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         /// <inheritdoc />
-        public IImageInfo Identify(BufferedReadStream stream)
+        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             this.ReadFileHeader(stream);
             return new ImageInfo(

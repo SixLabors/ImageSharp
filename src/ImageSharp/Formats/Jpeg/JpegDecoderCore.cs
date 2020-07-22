@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -117,6 +118,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public Size ImageSizeInPixels { get; private set; }
 
+        /// <inheritdoc/>
+        Size IImageDecoderInternals.Dimensions => this.ImageSizeInPixels;
+
         /// <summary>
         /// Gets the number of MCU blocks in the image as <see cref="Size"/>.
         /// </summary>
@@ -205,7 +209,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream)
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.ParseStream(stream);
@@ -217,7 +221,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <inheritdoc/>
-        public IImageInfo Identify(BufferedReadStream stream)
+        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             this.ParseStream(stream, true);
             this.InitExifProfile();

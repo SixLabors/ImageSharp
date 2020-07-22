@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
@@ -371,7 +372,8 @@ namespace SixLabors.ImageSharp.Tests
                 return new Image<TPixel>(42, 42);
             }
 
-            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream)
+            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream,
+                CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 InvocationCountsAsync[this.callerName]++;
@@ -391,7 +393,8 @@ namespace SixLabors.ImageSharp.Tests
 
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
 
-            public async Task<Image> DecodeAsync(Configuration configuration, Stream stream) => await this.DecodeAsync<Rgba32>(configuration, stream);
+            public async Task<Image> DecodeAsync(Configuration configuration, Stream stream,
+                CancellationToken cancellationToken) => await this.DecodeAsync<Rgba32>(configuration, stream, TODO);
         }
 
         private class TestDecoderWithParameters : IImageDecoder
@@ -425,7 +428,8 @@ namespace SixLabors.ImageSharp.Tests
                 return new Image<TPixel>(42, 42);
             }
 
-            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream)
+            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream,
+                CancellationToken cancellationToken)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 InvocationCountsAsync[this.callerName]++;
@@ -445,7 +449,8 @@ namespace SixLabors.ImageSharp.Tests
 
             public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
 
-            public async Task<Image> DecodeAsync(Configuration configuration, Stream stream) => await this.DecodeAsync<Rgba32>(configuration, stream);
+            public async Task<Image> DecodeAsync(Configuration configuration, Stream stream,
+                CancellationToken cancellationToken) => await this.DecodeAsync<Rgba32>(configuration, stream, TODO);
         }
     }
 }

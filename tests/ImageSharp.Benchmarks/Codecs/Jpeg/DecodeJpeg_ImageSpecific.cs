@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
                 public ShortClr()
                 {
                     // Job.Default.With(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3),
-                    this.Add(Job.Default.With(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3));
+                    this.Add(Job.Default.With(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3));
                 }
             }
         }
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
-        #pragma warning disable SA1115
+#pragma warning disable SA1115
         [Params(
             TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
             TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,

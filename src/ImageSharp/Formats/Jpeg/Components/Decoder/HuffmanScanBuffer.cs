@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </summary>
     internal struct HuffmanScanBuffer
     {
-        private readonly DoubleBufferedStreamReader stream;
+        private readonly BufferedReadStream stream;
 
         // The entropy encoded code buffer.
         private ulong data;
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // Whether there is no more good data to pull from the stream for the current mcu.
         private bool badData;
 
-        public HuffmanScanBuffer(DoubleBufferedStreamReader stream)
+        public HuffmanScanBuffer(BufferedReadStream stream)
         {
             this.stream = stream;
             this.data = 0ul;

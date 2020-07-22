@@ -48,23 +48,28 @@ namespace SixLabors.ImageSharp
 
             if (stream.CanSeek)
             {
-                stream.Seek(count, SeekOrigin.Current); // Position += count;
+                stream.Seek(count, SeekOrigin.Current);
                 return;
             }
 
-            var buffer = ArrayPool<byte>.Shared.Rent(count);
-            while (count > 0)
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(count);
+            try
             {
-                int bytesRead = stream.Read(buffer, 0, count);
-                if (bytesRead == 0)
+                while (count > 0)
                 {
-                    break;
+                    int bytesRead = stream.Read(buffer, 0, count);
+                    if (bytesRead == 0)
+                    {
+                        break;
+                    }
+
+                    count -= bytesRead;
                 }
-
-                count -= bytesRead;
             }
-
-            ArrayPool<byte>.Shared.Return(buffer);
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         public static void Read(this Stream stream, IManagedByteBuffer buffer)

@@ -163,13 +163,15 @@ namespace SixLabors.ImageSharp
         private static async Task<(Image<TPixel> Image, IImageFormat Format)> DecodeAsync<TPixel>(Stream stream, Configuration config, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            (IImageDecoder decoder, IImageFormat format) = await DiscoverDecoderAsync(stream, config).ConfigureAwait(false);
+            (IImageDecoder decoder, IImageFormat format) = await DiscoverDecoderAsync(stream, config)
+                .ConfigureAwait(false);
             if (decoder is null)
             {
                 return (null, null);
             }
 
-            Image<TPixel> img = await decoder.DecodeAsync<TPixel>(config, stream).ConfigureAwait(false);
+            Image<TPixel> img = await decoder.DecodeAsync<TPixel>(config, stream, cancellationToken)
+                .ConfigureAwait(false);
             return (img, format);
         }
 
@@ -193,7 +195,7 @@ namespace SixLabors.ImageSharp
                 return (null, null);
             }
 
-            Image img = await decoder.DecodeAsync(config, stream).ConfigureAwait(false);
+            Image img = await decoder.DecodeAsync(config, stream, cancellationToken).ConfigureAwait(false);
             return (img, format);
         }
 
@@ -242,7 +244,7 @@ namespace SixLabors.ImageSharp
                 return (null, format);
             }
 
-            IImageInfo info = await detector.IdentifyAsync(config, stream).ConfigureAwait(false);
+            IImageInfo info = await detector.IdentifyAsync(config, stream, cancellationToken).ConfigureAwait(false);
             return (info, format);
         }
     }

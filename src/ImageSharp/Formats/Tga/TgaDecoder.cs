@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -21,21 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new TgaDecoderCore(configuration, this);
-
-            try
-            {
-                using var bufferedStream = new BufferedReadStream(stream);
-                return decoder.Decode<TPixel>(bufferedStream);
-            }
-            catch (InvalidMemoryOperationException ex)
-            {
-                Size dims = decoder.Dimensions;
-
-                TgaThrowHelper.ThrowInvalidImageContentException($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
-
-                // Not reachable, as the previous statement will throw a exception.
-                return null;
-            }
+            return decoder.Decode<TPixel>(stream);
         }
 
         /// <inheritdoc />
@@ -43,49 +30,33 @@ namespace SixLabors.ImageSharp.Formats.Tga
             => this.Decode<Rgba32>(configuration, stream);
 
         /// <inheritdoc/>
-        public async Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream)
+        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new TgaDecoderCore(configuration, this);
-
-            try
-            {
-                using var bufferedStream = new BufferedReadStream(stream);
-                return await decoder.DecodeAsync<TPixel>(bufferedStream).ConfigureAwait(false);
-            }
-            catch (InvalidMemoryOperationException ex)
-            {
-                Size dims = decoder.Dimensions;
-
-                TgaThrowHelper.ThrowInvalidImageContentException($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}.", ex);
-
-                // Not reachable, as the previous statement will throw a exception.
-                return null;
-            }
+            return decoder.DecodeAsync<TPixel>(stream, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream)
-            => await this.DecodeAsync<Rgba32>(configuration, stream).ConfigureAwait(false);
+        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken);
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
 
-            using var bufferedStream = new BufferedReadStream(stream);
-            return new TgaDecoderCore(configuration, this).Identify(bufferedStream);
+            return new TgaDecoderCore(configuration, this).Identify(stream);
         }
 
         /// <inheritdoc/>
-        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 
-            using var bufferedStream = new BufferedReadStream(stream);
-            return new TgaDecoderCore(configuration, this).IdentifyAsync(bufferedStream);
+            return new TgaDecoderCore(configuration, this).IdentifyAsync(stream, cancellationToken);
         }
     }
 }

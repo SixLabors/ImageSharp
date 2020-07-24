@@ -141,12 +141,10 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void StreamBufferSize_CannotGoBelowMinimum()
         {
-            var config = new Configuration
-            {
-                StreamProcessingBufferSize = 0
-            };
+            var config = new Configuration();
 
-            Assert.Equal(128, config.StreamProcessingBufferSize);
+            Assert.Throws<ArgumentOutOfRangeException>(
+                    () => config.StreamProcessingBufferSize = 0);
         }
     }
 }

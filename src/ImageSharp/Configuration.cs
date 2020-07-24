@@ -25,8 +25,6 @@ namespace SixLabors.ImageSharp
         /// A lazily initialized configuration default instance.
         /// </summary>
         private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(CreateDefaultInstance);
-
-        private const int MinStreamProcessingBufferSize = 128;
         private const int DefaultStreamProcessingBufferSize = 8096;
         private int streamProcessingBufferSize = DefaultStreamProcessingBufferSize;
         private int maxDegreeOfParallelism = Environment.ProcessorCount;
@@ -79,17 +77,16 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Gets or sets the size of the buffer to use when working with streams.
-        /// Intitialized with <see cref="DefaultStreamProcessingBufferSize"/> by default
-        /// and can accept a minimum value of <see cref="MinStreamProcessingBufferSize"/>.
+        /// Intitialized with <see cref="DefaultStreamProcessingBufferSize"/> by default.
         /// </summary>
         public int StreamProcessingBufferSize
         {
             get => this.streamProcessingBufferSize;
             set
             {
-                if (value < MinStreamProcessingBufferSize)
+                if (value <= 0)
                 {
-                    value = MinStreamProcessingBufferSize;
+                    throw new ArgumentOutOfRangeException(nameof(this.StreamProcessingBufferSize));
                 }
 
                 this.streamProcessingBufferSize = value;

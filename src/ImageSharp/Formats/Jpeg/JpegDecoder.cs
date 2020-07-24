@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             using var decoder = new JpegDecoderCore(configuration, this);
             try
             {
-                using var bufferedStream = new BufferedReadStream(stream);
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
                 return decoder.Decode<TPixel>(bufferedStream);
             }
             catch (InvalidMemoryOperationException ex)
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             using var decoder = new JpegDecoderCore(configuration, this);
             try
             {
-                using var bufferedStream = new BufferedReadStream(stream);
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
                 return await decoder.DecodeAsync<TPixel>(bufferedStream).ConfigureAwait(false);
             }
             catch (InvalidMemoryOperationException ex)
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             Guard.NotNull(stream, nameof(stream));
 
             using var decoder = new JpegDecoderCore(configuration, this);
-            using var bufferedStream = new BufferedReadStream(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
 
             return decoder.Identify(bufferedStream);
         }
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             Guard.NotNull(stream, nameof(stream));
 
             using var decoder = new JpegDecoderCore(configuration, this);
-            using var bufferedStream = new BufferedReadStream(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
 
             return decoder.IdentifyAsync(bufferedStream);
         }

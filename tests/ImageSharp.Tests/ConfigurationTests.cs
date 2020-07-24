@@ -133,5 +133,12 @@ namespace SixLabors.ImageSharp.Tests
             Configuration config = this.DefaultConfiguration;
             Assert.True(config.WorkingBufferSizeHintInBytes > 1024);
         }
+
+        [Fact]
+        public void StreamBufferSize_DefaultIsCorrect()
+        {
+            Configuration config = this.DefaultConfiguration;
+            Assert.True(config.StreamProcessingBufferSize == 8096);
+        }
     }
 }

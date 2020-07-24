@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         {
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
             using var ms = new MemoryStream(bytes);
-            using var bufferedStream = new BufferedReadStream(ms);
+            using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
             var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
             decoder.ParseStream(bufferedStream);
 

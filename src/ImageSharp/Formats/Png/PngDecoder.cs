@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             try
             {
-                using var bufferedStream = new BufferedReadStream(stream);
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
                 return decoder.Decode<TPixel>(bufferedStream);
             }
             catch (InvalidMemoryOperationException ex)
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Formats.Png
 
             try
             {
-                using var bufferedStream = new BufferedReadStream(stream);
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
                 return await decoder.DecodeAsync<TPixel>(bufferedStream).ConfigureAwait(false);
             }
             catch (InvalidMemoryOperationException ex)
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public IImageInfo Identify(Configuration configuration, Stream stream)
         {
             var decoder = new PngDecoderCore(configuration, this);
-            using var bufferedStream = new BufferedReadStream(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
             return decoder.Identify(bufferedStream);
         }
 
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
         {
             var decoder = new PngDecoderCore(configuration, this);
-            using var bufferedStream = new BufferedReadStream(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
             return decoder.IdentifyAsync(bufferedStream);
         }
     }

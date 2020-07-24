@@ -10,18 +10,27 @@ namespace SixLabors.ImageSharp.Tests.IO
 {
     public class BufferedReadStreamTests
     {
+        private readonly Configuration configuration;
+        private readonly int bufferSize;
+
+        public BufferedReadStreamTests()
+        {
+            this.configuration = Configuration.Default;
+            this.bufferSize = this.configuration.StreamProcessingBufferSize;
+        }
+
         [Fact]
         public void BufferedStreamCanReadSingleByteFromOrigin()
         {
-            using (MemoryStream stream = this.CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
             {
                 byte[] expected = stream.ToArray();
-                using (var reader = new BufferedReadStream(stream))
+                using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     Assert.Equal(expected[0], reader.ReadByte());
 
                     // We've read a whole chunk but increment by 1 in our reader.
-                    Assert.Equal(BufferedReadStream.BufferLength, stream.Position);
+                    Assert.Equal(this.bufferSize, stream.Position);
                     Assert.Equal(1, reader.Position);
                 }
 
@@ -33,18 +42,18 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void BufferedStreamCanReadSingleByteFromOffset()
         {
-            using (MemoryStream stream = this.CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
             {
                 byte[] expected = stream.ToArray();
                 const int offset = 5;
-                using (var reader = new BufferedReadStream(stream))
+                using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     reader.Position = offset;
 
                     Assert.Equal(expected[offset], reader.ReadByte());
 
                     // We've read a whole chunk but increment by 1 in our reader.
-                    Assert.Equal(BufferedReadStream.BufferLength + offset, stream.Position);
+                    Assert.Equal(this.bufferSize + offset, stream.Position);
                     Assert.Equal(offset + 1, reader.Position);
                 }
 
@@ -55,30 +64,30 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void BufferedStreamCanReadSubsequentSingleByteCorrectly()
         {
-            using (MemoryStream stream = this.CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
             {
                 byte[] expected = stream.ToArray();
                 int i;
-                using (var reader = new BufferedReadStream(stream))
+                using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     for (i = 0; i < expected.Length; i++)
                     {
                         Assert.Equal(expected[i], reader.ReadByte());
                         Assert.Equal(i + 1, reader.Position);
 
-                        if (i < BufferedReadStream.BufferLength)
+                        if (i < this.bufferSize)
                         {
-                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength);
+                            Assert.Equal(stream.Position, this.bufferSize);
                         }
-                        else if (i >= BufferedReadStream.BufferLength && i < BufferedReadStream.BufferLength * 2)
+                        else if (i >= this.bufferSize && i < this.bufferSize * 2)
                         {
                             // We should have advanced to the second chunk now.
-                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength * 2);
+                            Assert.Equal(stream.Position, this.bufferSize * 2);
                         }
                         else
                         {
                             // We should have advanced to the third chunk now.
-                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength * 3);
+                            Assert.Equal(stream.Position, this.bufferSize * 3);
                         }
                     }
                 }
@@ -90,18 +99,18 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void BufferedStreamCanReadMultipleBytesFromOrigin()
         {
-            using (MemoryStream stream = this.CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
             {
                 var buffer = new byte[2];
                 byte[] expected = stream.ToArray();
-                using (var reader = new BufferedReadStream(stream))
+                using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     Assert.Equal(2, reader.Read(buffer, 0, 2));
                     Assert.Equal(expected[0], buffer[0]);
                     Assert.Equal(expected[1], buffer[1]);
 
                     // We've read a whole chunk but increment by the buffer length in our reader.
-                    Assert.Equal(stream.Position, BufferedReadStream.BufferLength);
+                    Assert.Equal(stream.Position, this.bufferSize);
                     Assert.Equal(buffer.Length, reader.Position);
                 }
             }
@@ -110,11 +119,11 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void BufferedStreamCanReadSubsequentMultipleByteCorrectly()
         {
-            using (MemoryStream stream = this.CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
             {
                 var buffer = new byte[2];
                 byte[] expected = stream.ToArray();
-                using (var reader = new BufferedReadStream(stream))
+                using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     for (int i = 0, o = 0; i < expected.Length / 2; i++, o += 2)
                     {
@@ -124,19 +133,19 @@ namespace SixLabors.ImageSharp.Tests.IO
                         Assert.Equal(o + 2, reader.Position);
 
                         int offset = i * 2;
-                        if (offset < BufferedReadStream.BufferLength)
+                        if (offset < this.bufferSize)
                         {
-                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength);
+                            Assert.Equal(stream.Position, this.bufferSize);
                         }
-                        else if (offset >= BufferedReadStream.BufferLength && offset < BufferedReadStream.BufferLength * 2)
+                        else if (offset >= this.bufferSize && offset < this.bufferSize * 2)
                         {
                             // We should have advanced to the second chunk now.
-                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength * 2);
+                            Assert.Equal(stream.Position, this.bufferSize * 2);
                         }
                         else
                         {
                             // We should have advanced to the third chunk now.
-                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength * 3);
+                            Assert.Equal(stream.Position, this.bufferSize * 3);
                         }
                     }
                 }
@@ -146,11 +155,11 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void BufferedStreamCanReadSubsequentMultipleByteSpanCorrectly()
         {
-            using (MemoryStream stream = this.CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
             {
                 Span<byte> buffer = new byte[2];
                 byte[] expected = stream.ToArray();
-                using (var reader = new BufferedReadStream(stream))
+                using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     for (int i = 0, o = 0; i < expected.Length / 2; i++, o += 2)
                     {
@@ -160,19 +169,19 @@ namespace SixLabors.ImageSharp.Tests.IO
                         Assert.Equal(o + 2, reader.Position);
 
                         int offset = i * 2;
-                        if (offset < BufferedReadStream.BufferLength)
+                        if (offset < this.bufferSize)
                         {
-                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength);
+                            Assert.Equal(stream.Position, this.bufferSize);
                         }
-                        else if (offset >= BufferedReadStream.BufferLength && offset < BufferedReadStream.BufferLength * 2)
+                        else if (offset >= this.bufferSize && offset < this.bufferSize * 2)
                         {
                             // We should have advanced to the second chunk now.
-                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength * 2);
+                            Assert.Equal(stream.Position, this.bufferSize * 2);
                         }
                         else
                         {
                             // We should have advanced to the third chunk now.
-                            Assert.Equal(stream.Position, BufferedReadStream.BufferLength * 3);
+                            Assert.Equal(stream.Position, this.bufferSize * 3);
                         }
                     }
                 }
@@ -182,14 +191,14 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void BufferedStreamCanSkip()
         {
-            using (MemoryStream stream = this.CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
             {
                 byte[] expected = stream.ToArray();
-                using (var reader = new BufferedReadStream(stream))
+                using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     int skip = 50;
                     int plusOne = 1;
-                    int skip2 = BufferedReadStream.BufferLength;
+                    int skip2 = this.bufferSize;
 
                     // Skip
                     reader.Skip(skip);
@@ -216,18 +225,18 @@ namespace SixLabors.ImageSharp.Tests.IO
         public void BufferedStreamReadsSmallStream()
         {
             // Create a stream smaller than the default buffer length
-            using (MemoryStream stream = this.CreateTestStream(BufferedReadStream.BufferLength / 4))
+            using (MemoryStream stream = this.CreateTestStream(this.bufferSize / 4))
             {
                 byte[] expected = stream.ToArray();
                 const int offset = 5;
-                using (var reader = new BufferedReadStream(stream))
+                using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     reader.Position = offset;
 
                     Assert.Equal(expected[offset], reader.ReadByte());
 
                     // We've read a whole length of the stream but increment by 1 in our reader.
-                    Assert.Equal(BufferedReadStream.BufferLength / 4, stream.Position);
+                    Assert.Equal(this.bufferSize / 4, stream.Position);
                     Assert.Equal(offset + 1, reader.Position);
                 }
 
@@ -238,10 +247,10 @@ namespace SixLabors.ImageSharp.Tests.IO
         [Fact]
         public void BufferedStreamReadsCanReadAllAsSingleByteFromOrigin()
         {
-            using (MemoryStream stream = this.CreateTestStream())
+            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
             {
                 byte[] expected = stream.ToArray();
-                using (var reader = new BufferedReadStream(stream))
+                using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     for (int i = 0; i < expected.Length; i++)
                     {
@@ -251,7 +260,7 @@ namespace SixLabors.ImageSharp.Tests.IO
             }
         }
 
-        private MemoryStream CreateTestStream(int length = BufferedReadStream.BufferLength * 3)
+        private MemoryStream CreateTestStream(int length)
         {
             var buffer = new byte[length];
             var random = new Random();

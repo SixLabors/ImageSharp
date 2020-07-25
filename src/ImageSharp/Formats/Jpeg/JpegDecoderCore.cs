@@ -268,6 +268,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             while (fileMarker.Marker != JpegConstants.Markers.EOI
                 || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (!fileMarker.Invalid)
                 {
                     // Get the marker length

@@ -127,34 +127,44 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, 0)]
         [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 1)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 3)]
+        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 10)]
+        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 30)]
         [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 1)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 3)]
-        public async Task Decode_IsCancellable(string fileName, int waitMilliseconds)
+        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 10)]
+        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 30)]
+        public async Task Decode_IsCancellable(string fileName, int cancellationDelayMs)
         {
+            // Decoding these huge files took 300ms on i7-8650U in 2020. 30ms should be safe for cancellation delay.
             string hugeFile = Path.Combine(
                 TestEnvironment.InputImagesDirectoryFullPath,
                 fileName);
 
             var cts = new CancellationTokenSource();
-            cts.CancelAfter(waitMilliseconds);
+            if (cancellationDelayMs == 0)
+            {
+                cts.Cancel();
+            }
+            else
+            {
+                cts.CancelAfter(cancellationDelayMs);
+            }
+
             await Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync(hugeFile, cts.Token));
         }
 
         [Theory]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 1)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 3)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 1)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 3)]
-        public async Task Identify_IsCancellable(string fileName, int waitMilliseconds)
+        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform)]
+        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518)]
+        public async Task Identify_IsCancellable(string fileName)
         {
             string hugeFile = Path.Combine(
                 TestEnvironment.InputImagesDirectoryFullPath,
                 fileName);
 
             var cts = new CancellationTokenSource();
-            cts.CancelAfter(waitMilliseconds);
+            cts.CancelAfter(TimeSpan.FromTicks(1));
             await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyAsync(hugeFile, cts.Token));
         }
 

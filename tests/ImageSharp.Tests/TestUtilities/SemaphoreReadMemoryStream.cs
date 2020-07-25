@@ -10,62 +10,59 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
 {
     internal class SemaphoreReadMemoryStream : MemoryStream
     {
-        private SemaphoreSlim waitSemaphore;
-        private readonly SemaphoreSlim signalFinishedSemaphore;
-        private readonly long waitAfterPosition;
+        private readonly SemaphoreSlim continueSemaphore;
+        private readonly SemaphoreSlim notifyWaitPositionReachedSemaphore;
+        private int pauseDone;
+        private readonly long waitPosition;
 
-        public SemaphoreReadMemoryStream(byte[] buffer, SemaphoreSlim waitSemaphore, SemaphoreSlim signalFinishedSemaphore, long waitAfterPosition)
+        public SemaphoreReadMemoryStream(
+            byte[] buffer,
+            long waitPosition,
+            SemaphoreSlim notifyWaitPositionReachedSemaphore,
+            SemaphoreSlim continueSemaphore)
             : base(buffer)
         {
-            this.waitSemaphore = waitSemaphore;
-            this.signalFinishedSemaphore = signalFinishedSemaphore;
-            this.waitAfterPosition = waitAfterPosition;
+            this.continueSemaphore = continueSemaphore;
+            this.notifyWaitPositionReachedSemaphore = notifyWaitPositionReachedSemaphore;
+            this.waitPosition = waitPosition;
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
             int read = base.Read(buffer, offset, count);
-            if (this.Position + read > this.waitAfterPosition)
+            if (this.Position > this.waitPosition && this.TryPause())
             {
-                this.waitSemaphore.Wait();
+                this.notifyWaitPositionReachedSemaphore.Release();
+                this.continueSemaphore.Wait();
             }
-
-            this.SignalIfFinished();
 
             return read;
         }
 
+        private bool TryPause() => Interlocked.CompareExchange(ref this.pauseDone, 1, 0) == 0;
+
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             int read = await base.ReadAsync(buffer, offset, count, cancellationToken);
-            if (this.Position + read > this.waitAfterPosition)
+            if (this.Position > this.waitPosition && this.TryPause())
             {
-                await this.waitSemaphore.WaitAsync();
+                this.notifyWaitPositionReachedSemaphore.Release();
+                await this.continueSemaphore.WaitAsync();
             }
-
-            this.SignalIfFinished();
 
             return read;
         }
 
         public override int ReadByte()
         {
-            if (this.Position + 1 > this.waitAfterPosition)
+            if (this.Position + 1 > this.waitPosition && this.TryPause())
             {
-                this.waitSemaphore.Wait();
+                this.notifyWaitPositionReachedSemaphore.Release();
+                this.continueSemaphore.Wait();
             }
 
             int result = base.ReadByte();
-            this.SignalIfFinished();
             return result;
-        }
-
-        private void SignalIfFinished()
-        {
-            if (this.Position == this.Length)
-            {
-                this.signalFinishedSemaphore.Release();
-            }
         }
     }
 }

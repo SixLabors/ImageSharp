@@ -14,8 +14,6 @@ namespace SixLabors.ImageSharp.Tests
     {
         public class Load_FromBytes_PassLocalConfiguration : ImageLoadTestBase
         {
-            private byte[] ByteArray => this.DataStream.ToArray();
-
             private ReadOnlySpan<byte> ByteSpan => this.ByteArray.AsSpan();
 
             [Theory]

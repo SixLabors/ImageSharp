@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
             using var ms = new MemoryStream(sourceBytes);
-            using var bufferedStream = new BufferedReadStream(ms);
+            using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
             decoder.ParseStream(bufferedStream);
 
             var data = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
 
             using var ms = new MemoryStream(sourceBytes);
-            using var bufferedStream = new BufferedReadStream(ms);
+            using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
             decoder.ParseStream(bufferedStream);
 
             var imageSharpData = LibJpegTools.SpectralData.LoadFromImageSharpDecoder(decoder);

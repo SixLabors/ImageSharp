@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-        public class TestDecoder : IImageDecoder
+        public class TestDecoder : IImageDecoder, IImageInfoDetector
         {
             private TestFormat testFormat;
 
@@ -243,6 +243,12 @@ namespace SixLabors.ImageSharp.Tests
 
             public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
                 => await this.DecodeAsync<TestPixelForAgnosticDecode>(configuration, stream, cancellationToken);
+
+            public IImageInfo Identify(Configuration configuration, Stream stream) =>
+                this.IdentifyAsync(configuration, stream, default).GetAwaiter().GetResult();
+
+            public async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+                => await this.DecodeImpl<Rgba32>(configuration, stream, cancellationToken);
         }
 
         public class TestEncoder : ImageSharp.Formats.IImageEncoder

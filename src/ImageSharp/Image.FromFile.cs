@@ -81,6 +81,125 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <returns>
+        /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
+        /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+        /// </returns>
+        public static Task<IImageInfo> IdentifyAsync(string filePath)
+            => IdentifyAsync(Configuration.Default, filePath, default);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <returns>
+        /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
+        /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+        /// </returns>
+        public static Task<IImageInfo> IdentifyAsync(Configuration configuration, string filePath)
+            => IdentifyAsync(configuration, filePath, default);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <returns>
+        /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
+        /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+        /// </returns>
+        public static Task<IImageInfo> IdentifyAsync(string filePath, CancellationToken cancellationToken)
+            => IdentifyAsync(Configuration.Default, filePath, cancellationToken);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <returns>
+        /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
+        /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+        /// </returns>
+        public static async Task<IImageInfo> IdentifyAsync(Configuration configuration, string filePath, CancellationToken cancellationToken)
+        {
+            (IImageInfo ImageInfo, IImageFormat Format) res = await IdentifyWithFormatAsync(configuration, filePath, cancellationToken);
+            return res.ImageInfo;
+        }
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <returns>
+        /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
+        /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+        /// </returns>
+        public static Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(string filePath)
+            => IdentifyWithFormatAsync(Configuration.Default, filePath, default);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <returns>
+        /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
+        /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+        /// </returns>
+        public static Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+            string filePath,
+            CancellationToken cancellationToken)
+            => IdentifyWithFormatAsync(Configuration.Default, filePath, cancellationToken);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <returns>
+        /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
+        /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+        /// </returns>
+        public static Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+            Configuration configuration,
+            string filePath)
+            => IdentifyWithFormatAsync(configuration, filePath, default);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="filePath">The image file to open and to read the header from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <returns>
+        /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
+        /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+        /// </returns>
+        public static async Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+            Configuration configuration,
+            string filePath,
+            CancellationToken cancellationToken)
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            using Stream stream = configuration.FileSystem.OpenRead(filePath);
+            return await IdentifyWithFormatAsync(configuration, stream, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// </summary>
         /// <param name="path">The file path to the image.</param>
@@ -185,6 +304,20 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// </summary>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="ArgumentNullException">The decoder is null.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
+        public static Task<Image> LoadAsync(string path, IImageDecoder decoder)
+            => LoadAsync(Configuration.Default, path, decoder, default);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// </summary>
         /// <param name="configuration">The Configuration.</param>
         /// <param name="path">The file path to the image.</param>
         /// <param name="decoder">The decoder.</param>
@@ -196,6 +329,22 @@ namespace SixLabors.ImageSharp
         /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
         public static Task<Image> LoadAsync(Configuration configuration, string path, IImageDecoder decoder)
             => LoadAsync(configuration, path, decoder, default);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// </summary>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="ArgumentNullException">The decoder is null.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
+        public static Task<Image<TPixel>> LoadAsync<TPixel>(string path, IImageDecoder decoder)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => LoadAsync<TPixel>(Configuration.Default, path, decoder, default);
 
         /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.
@@ -259,6 +408,20 @@ namespace SixLabors.ImageSharp
             using Stream stream = configuration.FileSystem.OpenRead(path);
             return LoadAsync<TPixel>(configuration, stream, decoder, cancellationToken);
         }
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// </summary>
+        /// <param name="path">The file path to the image.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
+        public static Task<Image<TPixel>> LoadAsync<TPixel>(string path)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => LoadAsync<TPixel>(Configuration.Default, path, default(CancellationToken));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.

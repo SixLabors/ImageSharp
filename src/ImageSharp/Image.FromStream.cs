@@ -135,9 +135,26 @@ namespace SixLabors.ImageSharp
         /// A <see cref="Task{IImageInfo}"/> representing the asynchronous operation or null if
         /// a suitable detector is not found.
         /// </returns>
-        public static async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+        public static Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream)
+            => IdentifyAsync(configuration, stream, default);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="stream">The image stream to read the information from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <returns>
+        /// A <see cref="Task{IImageInfo}"/> representing the asynchronous operation or null if
+        /// a suitable detector is not found.
+        /// </returns>
+        public static async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
-            (IImageInfo ImageInfo, IImageFormat Format) res = await IdentifyWithFormatAsync(configuration, stream).ConfigureAwait(false);
+            (IImageInfo ImageInfo, IImageFormat Format) res = await IdentifyWithFormatAsync(configuration, stream, cancellationToken).ConfigureAwait(false);
             return res.ImageInfo;
         }
 
@@ -200,6 +217,24 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Reads the raw image information from the specified stream without fully decoding it.
         /// </summary>
+        /// <param name="stream">The image stream to read the information from.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <returns>
+        /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
+        /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
+        /// </returns>
+        public static Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(
+            Stream stream,
+            CancellationToken cancellationToken)
+            => IdentifyWithFormatAsync(Configuration.Default, stream, cancellationToken);
+
+        /// <summary>
+        /// Reads the raw image information from the specified stream without fully decoding it.
+        /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="stream">The image stream to read the information from.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -208,7 +243,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <returns>
-        /// The <see cref="Task{ValueTuple}"/> representing the asyncronous operation with the parameter type
+        /// The <see cref="Task{ValueTuple}"/> representing the asynchronous operation with the parameter type
         /// <see cref="IImageInfo"/> property set to null if suitable info detector is not found.
         /// </returns>
         public static Task<(IImageInfo ImageInfo, IImageFormat Format)> IdentifyWithFormatAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)

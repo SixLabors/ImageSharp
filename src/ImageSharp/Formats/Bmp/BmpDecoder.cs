@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new BmpDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(stream, CreateLargeImageException);
+            return decoder.Decode<TPixel>(configuration, stream, CreateLargeImageException);
         }
 
         /// <inheritdoc />
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new BmpDecoderCore(configuration, this);
-            return decoder.DecodeAsync<TPixel>(stream, CreateLargeImageException, cancellationToken);
+            return decoder.DecodeAsync<TPixel>(configuration, stream, CreateLargeImageException, cancellationToken);
         }
 
         /// <inheritdoc />
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new BmpDecoderCore(configuration, this).Identify(stream, CreateLargeImageException);
+            return new BmpDecoderCore(configuration, this).Identify(configuration, stream, CreateLargeImageException);
         }
 
         /// <inheritdoc/>
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new BmpDecoderCore(configuration, this).IdentifyAsync(stream, CreateLargeImageException, cancellationToken);
+            return new BmpDecoderCore(configuration, this).IdentifyAsync(configuration, stream, CreateLargeImageException, cancellationToken);
         }
 
         private static InvalidImageContentException CreateLargeImageException(InvalidMemoryOperationException ex, Size dims)

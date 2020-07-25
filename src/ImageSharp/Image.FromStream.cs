@@ -891,7 +891,7 @@ namespace SixLabors.ImageSharp
             }
 
             using MemoryStream memoryStream = configuration.MemoryAllocator.AllocateFixedCapacityMemoryStream(stream.Length);
-            TODO! await stream.CopyToAsync(memoryStream, cancellationToken).ConfigureAwait(false);
+            await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
             memoryStream.Position = 0;
 
             return await action(memoryStream, cancellationToken).ConfigureAwait(false);

@@ -50,6 +50,15 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public async Task Path_Specific_Async()
+            {
+                using (var img = await Image.LoadAsync<Rgb24>(Configuration.Default, this.Path))
+                {
+                    VerifyDecodedImage(img);
+                }
+            }
+
+            [Fact]
             public async Task Path_Agnostic_Configuration_Async()
             {
                 using (var img = await Image.LoadAsync(Configuration.Default, this.Path))
@@ -80,6 +89,15 @@ namespace SixLabors.ImageSharp.Tests
             public async Task Path_Decoder_Agnostic_Async()
             {
                 using (var img = await Image.LoadAsync(Configuration.Default, this.Path, new BmpDecoder()))
+                {
+                    VerifyDecodedImage(img);
+                }
+            }
+
+            [Fact]
+            public async Task Path_Decoder_Specific_Async()
+            {
+                using (var img = await Image.LoadAsync<Rgb24>(Configuration.Default, this.Path, new BmpDecoder()))
                 {
                     VerifyDecodedImage(img);
                 }

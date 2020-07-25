@@ -203,6 +203,23 @@ namespace SixLabors.ImageSharp
         /// <param name="configuration">The Configuration.</param>
         /// <param name="path">The file path to the image.</param>
         /// <param name="decoder">The decoder.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="ArgumentNullException">The decoder is null.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
+        public static Task<Image<TPixel>> LoadAsync<TPixel>(Configuration configuration, string path, IImageDecoder decoder)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => LoadAsync<TPixel>(configuration, path, decoder, default);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// </summary>
+        /// <param name="configuration">The Configuration.</param>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="decoder">The decoder.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
@@ -217,6 +234,66 @@ namespace SixLabors.ImageSharp
 
             using Stream stream = configuration.FileSystem.OpenRead(path);
             return LoadAsync(configuration, stream, decoder, cancellationToken);
+        }
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// </summary>
+        /// <param name="configuration">The Configuration.</param>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="ArgumentNullException">The decoder is null.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
+        public static Task<Image<TPixel>> LoadAsync<TPixel>(Configuration configuration, string path, IImageDecoder decoder, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(path, nameof(path));
+
+            using Stream stream = configuration.FileSystem.OpenRead(path);
+            return LoadAsync<TPixel>(configuration, stream, decoder, cancellationToken);
+        }
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// </summary>
+        /// <param name="configuration">The configuration for the decoder.</param>
+        /// <param name="path">The file path to the image.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
+        public static Task<Image<TPixel>> LoadAsync<TPixel>(Configuration configuration, string path)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => LoadAsync<TPixel>(configuration, path, default(CancellationToken));
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// </summary>
+        /// <param name="configuration">The configuration for the decoder.</param>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
+        public static async Task<Image<TPixel>> LoadAsync<TPixel>(Configuration configuration, string path, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Stream stream = configuration.FileSystem.OpenRead(path);
+            (Image<TPixel> img, _) = await LoadWithFormatAsync<TPixel>(configuration, stream, cancellationToken)
+                .ConfigureAwait(false);
+            return img;
         }
 
         /// <summary>

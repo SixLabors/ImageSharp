@@ -11,83 +11,72 @@ namespace SixLabors.ImageSharp.Tests
 {
     public class SemaphoreReadMemoryStreamTests
     {
-        private readonly SemaphoreSlim WaitSemaphore = new SemaphoreSlim(0);
-        private readonly SemaphoreSlim FinishedSemaphore = new SemaphoreSlim(0);
-        private readonly byte[] Buffer = new byte[128];
+        private readonly SemaphoreSlim continueSemaphore = new SemaphoreSlim(0);
+        private readonly SemaphoreSlim notifyWaitPositionReachedSemaphore = new SemaphoreSlim(0);
+        private readonly byte[] buffer = new byte[128];
 
         [Fact]
         public void Read_BeforeWaitLimit_ShouldFinish()
         {
-            using Stream stream = this.GetStream();
-            int read = stream.Read(this.Buffer);
-            Assert.Equal(this.Buffer.Length, read);
+            using Stream stream = this.CreateTestStream();
+            int read = stream.Read(this.buffer);
+            Assert.Equal(this.buffer.Length, read);
         }
 
         [Fact]
         public async Task ReadAsync_BeforeWaitLimit_ShouldFinish()
         {
-            using Stream stream = this.GetStream();
-            int read = await stream.ReadAsync(this.Buffer);
-            Assert.Equal(this.Buffer.Length, read);
+            using Stream stream = this.CreateTestStream();
+            int read = await stream.ReadAsync(this.buffer);
+            Assert.Equal(this.buffer.Length, read);
         }
 
         [Fact]
         public async Task Read_AfterWaitLimit_ShouldPause()
         {
-            using Stream stream = this.GetStream();
-            stream.Read(this.Buffer);
+            using Stream stream = this.CreateTestStream();
+            stream.Read(this.buffer);
 
-            Task readTask = Task.Factory.StartNew(() => stream.Read(new byte[512]), TaskCreationOptions.LongRunning);
+            Task readTask = Task.Factory.StartNew(
+                () =>
+            {
+                stream.Read(this.buffer);
+                stream.Read(this.buffer);
+                stream.Read(this.buffer);
+                stream.Read(this.buffer);
+                stream.Read(this.buffer);
+            }, TaskCreationOptions.LongRunning);
+            Assert.Equal(0, this.notifyWaitPositionReachedSemaphore.CurrentCount);
             await Task.Delay(5);
             Assert.False(readTask.IsCompleted);
-            this.WaitSemaphore.Release();
+            await this.notifyWaitPositionReachedSemaphore.WaitAsync();
+            await Task.Delay(5);
+            Assert.False(readTask.IsCompleted);
+            this.continueSemaphore.Release();
             await readTask;
         }
 
         [Fact]
         public async Task ReadAsync_AfterWaitLimit_ShouldPause()
         {
-            using Stream stream = this.GetStream();
-            await stream.ReadAsync(this.Buffer);
+            using Stream stream = this.CreateTestStream();
+            await stream.ReadAsync(this.buffer);
 
             Task readTask =
                 Task.Factory.StartNew(() => stream.ReadAsync(new byte[512]).AsTask(), TaskCreationOptions.LongRunning);
             await Task.Delay(5);
             Assert.False(readTask.IsCompleted);
-            this.WaitSemaphore.Release();
+            await this.notifyWaitPositionReachedSemaphore.WaitAsync();
+            await Task.Delay(5);
+            Assert.False(readTask.IsCompleted);
+            this.continueSemaphore.Release();
             await readTask;
         }
 
-        [Fact]
-        public async Task Read_WhenFinished_ShouldNotify()
-        {
-            using Stream stream = this.GetStream(512, int.MaxValue);
-            stream.Read(this.Buffer);
-            stream.Read(this.Buffer);
-            stream.Read(this.Buffer);
-            Assert.Equal(0, this.FinishedSemaphore.CurrentCount);
-            stream.Read(this.Buffer);
-            Assert.Equal(1, this.FinishedSemaphore.CurrentCount);
-        }
-
-        [Fact]
-        public async Task ReadAsync_WhenFinished_ShouldNotify()
-        {
-            using Stream stream = this.GetStream(512, int.MaxValue);
-            await stream.ReadAsync(this.Buffer);
-            await stream.ReadAsync(this.Buffer);
-            await stream.ReadAsync(this.Buffer);
-            Assert.Equal(0, this.FinishedSemaphore.CurrentCount);
-
-            Task lastRead = stream.ReadAsync(this.Buffer).AsTask();
-            Task finishedTask = this.FinishedSemaphore.WaitAsync();
-            await Task.WhenAll(lastRead, finishedTask);
-        }
-
-        private Stream GetStream(int size = 1024, int waitAfterPosition = 256)
+        private Stream CreateTestStream(int size = 1024, int waitAfterPosition = 256)
         {
             byte[] buffer = new byte[size];
-            return new SemaphoreReadMemoryStream(buffer, this.WaitSemaphore, this.FinishedSemaphore, waitAfterPosition);
+            return new SemaphoreReadMemoryStream(buffer, waitAfterPosition, this.notifyWaitPositionReachedSemaphore, this.continueSemaphore);
         }
     }
 }

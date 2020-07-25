@@ -21,8 +21,6 @@ namespace SixLabors.ImageSharp.Tests
 
             private byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
 
-            private byte[] ByteArray => this.DataStream.ToArray();
-
             private IImageInfo LocalImageInfo => this.localImageInfoMock.Object;
 
             private IImageFormat LocalImageFormat => this.localImageFormatMock.Object;

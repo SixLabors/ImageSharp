@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
@@ -33,9 +34,9 @@ namespace SixLabors.ImageSharp.Tests
 
         public List<DecodeOperation> DecodeCalls { get; } = new List<DecodeOperation>();
 
-        public IImageEncoder Encoder { get; }
+        public TestEncoder Encoder { get; }
 
-        public IImageDecoder Decoder { get; }
+        public TestDecoder Decoder { get; }
 
         private byte[] header = Guid.NewGuid().ToByteArray();
 
@@ -51,6 +52,14 @@ namespace SixLabors.ImageSharp.Tests
 
             ms.Position = 0;
             return ms;
+        }
+
+        public Stream CreateAsyncSamaphoreStream(SemaphoreSlim notifyWaitPositionReachedSemaphore, SemaphoreSlim continueSemaphore, bool seeakable, int size = 1024, int waitAfterPosition = 512)
+        {
+            var buffer = new byte[size];
+            this.header.CopyTo(buffer, 0);
+            var semaphoreStream = new SemaphoreReadMemoryStream(buffer, waitAfterPosition, notifyWaitPositionReachedSemaphore, continueSemaphore);
+            return seeakable ? (Stream)semaphoreStream : new AsyncStreamWrapper(semaphoreStream, () => false);
         }
 
         public void VerifySpecificDecodeCall<TPixel>(byte[] marker, Configuration config)
@@ -205,9 +214,17 @@ namespace SixLabors.ImageSharp.Tests
 
             public Image<TPixel> Decode<TPixel>(Configuration config, Stream stream)
                 where TPixel : unmanaged, IPixel<TPixel>
+                => this.DecodeImpl<TPixel>(config, stream, default).GetAwaiter().GetResult();
+
+            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration config, Stream stream, CancellationToken cancellationToken)
+                where TPixel : unmanaged, IPixel<TPixel>
+                => this.DecodeImpl<TPixel>(config, stream, cancellationToken);
+
+            private async Task<Image<TPixel>> DecodeImpl<TPixel>(Configuration config, Stream stream, CancellationToken cancellationToken)
+                where TPixel : unmanaged, IPixel<TPixel>
             {
                 var ms = new MemoryStream();
-                stream.CopyTo(ms);
+                await stream.CopyToAsync(ms, config.StreamProcessingBufferSize, cancellationToken);
                 var marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
                 this.testFormat.DecodeCalls.Add(new DecodeOperation
                 {
@@ -219,10 +236,6 @@ namespace SixLabors.ImageSharp.Tests
                 // TODO record this happened so we can verify it.
                 return this.testFormat.Sample<TPixel>();
             }
-
-            public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration config, Stream stream, CancellationToken cancellationToken)
-                where TPixel : unmanaged, IPixel<TPixel>
-                => Task.FromResult(this.Decode<TPixel>(config, stream));
 
             public bool IsSupportedFileFormat(Span<byte> header) => this.testFormat.IsSupportedFileFormat(header);
 

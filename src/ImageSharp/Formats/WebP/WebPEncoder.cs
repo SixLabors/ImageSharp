@@ -1,14 +1,15 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
-    ///  Image encoder for writing an image to a stream in the WebP format.
+    /// Image encoder for writing an image to a stream in the WebP format.
     /// </summary>
     public sealed class WebPEncoder : IImageEncoder, IWebPEncoderOptions
     {
@@ -33,6 +34,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             var encoder = new WebPEncoderCore(this, image.GetMemoryAllocator());
             encoder.Encode(image, stream);
+        }
+
+        /// <inheritdoc/>
+        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new WebPEncoderCore(this, image.GetMemoryAllocator());
+            return encoder.EncodeAsync(image, stream);
         }
     }
 }

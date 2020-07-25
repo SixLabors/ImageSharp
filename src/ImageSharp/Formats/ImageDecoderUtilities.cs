@@ -17,20 +17,23 @@ namespace SixLabors.ImageSharp.Formats
         /// Reads the raw image information from the specified stream.
         /// </summary>
         /// <param name="decoder">The decoder.</param>
+        /// /// <param name="configuration">The configuration for the image.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static Task<IImageInfo> IdentifyAsync(
             this IImageDecoderInternals decoder,
+            Configuration configuration,
             Stream stream,
             CancellationToken cancellationToken)
-            => decoder.IdentifyAsync(stream, DefaultLargeImageExceptionFactory, cancellationToken);
+            => decoder.IdentifyAsync(configuration, stream, DefaultLargeImageExceptionFactory, cancellationToken);
 
         /// <summary>
         /// Reads the raw image information from the specified stream.
         /// </summary>
         /// <param name="decoder">The decoder.</param>
+        /// <param name="configuration">The configuration for the image.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="tooLargeImageExceptionFactory">Factory method to handle <see cref="InvalidMemoryOperationException"/> as <see cref="InvalidImageContentException"/>.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -38,13 +41,14 @@ namespace SixLabors.ImageSharp.Formats
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static Task<IImageInfo> IdentifyAsync(
             this IImageDecoderInternals decoder,
+            Configuration configuration,
             Stream stream,
             Func<InvalidMemoryOperationException, Size, InvalidImageContentException> tooLargeImageExceptionFactory,
             CancellationToken cancellationToken)
         {
             try
             {
-                using BufferedReadStream bufferedReadStream = new BufferedReadStream(stream);
+                using BufferedReadStream bufferedReadStream = new BufferedReadStream(configuration, stream);
                 IImageInfo imageInfo = decoder.Identify(bufferedReadStream, cancellationToken);
                 return Task.FromResult(imageInfo);
             }
@@ -68,15 +72,18 @@ namespace SixLabors.ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="decoder">The decoder.</param>
+        /// <param name="configuration">The configuration for the image.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static Task<Image<TPixel>> DecodeAsync<TPixel>(
             this IImageDecoderInternals decoder,
+            Configuration configuration,
             Stream stream,
             CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel> =>
             decoder.DecodeAsync<TPixel>(
+                configuration,
                 stream,
                 DefaultLargeImageExceptionFactory,
                 cancellationToken);
@@ -86,12 +93,14 @@ namespace SixLabors.ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="decoder">The decoder.</param>
+        /// <param name="configuration">The configuration for the image.</param>
         /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
         /// <param name="largeImageExceptionFactory">Factory method to handle <see cref="InvalidMemoryOperationException"/> as <see cref="InvalidImageContentException"/>.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static Task<Image<TPixel>> DecodeAsync<TPixel>(
             this IImageDecoderInternals decoder,
+            Configuration configuration,
             Stream stream,
             Func<InvalidMemoryOperationException, Size, InvalidImageContentException> largeImageExceptionFactory,
             CancellationToken cancellationToken)
@@ -99,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats
         {
             try
             {
-                using BufferedReadStream bufferedReadStream = new BufferedReadStream(stream);
+                using BufferedReadStream bufferedReadStream = new BufferedReadStream(configuration, stream);
                 Image<TPixel> image = decoder.Decode<TPixel>(bufferedReadStream, cancellationToken);
                 return Task.FromResult(image);
             }
@@ -118,15 +127,16 @@ namespace SixLabors.ImageSharp.Formats
             }
         }
 
-        public static IImageInfo Identify(this IImageDecoderInternals decoder, Stream stream)
-            => decoder.Identify(stream, DefaultLargeImageExceptionFactory);
+        public static IImageInfo Identify(this IImageDecoderInternals decoder, Configuration configuration, Stream stream)
+            => decoder.Identify(configuration, stream, DefaultLargeImageExceptionFactory);
 
         public static IImageInfo Identify(
             this IImageDecoderInternals decoder,
+            Configuration configuration,
             Stream stream,
             Func<InvalidMemoryOperationException, Size, InvalidImageContentException> largeImageExceptionFactory)
         {
-            using BufferedReadStream bufferedReadStream = new BufferedReadStream(stream);
+            using BufferedReadStream bufferedReadStream = new BufferedReadStream(configuration, stream);
 
             try
             {
@@ -138,17 +148,18 @@ namespace SixLabors.ImageSharp.Formats
             }
         }
 
-        public static Image<TPixel> Decode<TPixel>(this IImageDecoderInternals decoder, Stream stream)
+        public static Image<TPixel> Decode<TPixel>(this IImageDecoderInternals decoder, Configuration configuration, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
-            => decoder.Decode<TPixel>(stream, DefaultLargeImageExceptionFactory);
+            => decoder.Decode<TPixel>(configuration, stream, DefaultLargeImageExceptionFactory);
 
         public static Image<TPixel> Decode<TPixel>(
             this IImageDecoderInternals decoder,
+            Configuration configuration,
             Stream stream,
             Func<InvalidMemoryOperationException, Size, InvalidImageContentException> largeImageExceptionFactory)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using BufferedReadStream bufferedReadStream = new BufferedReadStream(stream);
+            using BufferedReadStream bufferedReadStream = new BufferedReadStream(configuration, stream);
 
             try
             {

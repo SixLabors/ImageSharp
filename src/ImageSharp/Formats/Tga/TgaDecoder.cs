@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new TgaDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(stream);
+            return decoder.Decode<TPixel>(configuration, stream);
         }
 
         /// <inheritdoc />
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new TgaDecoderCore(configuration, this);
-            return decoder.DecodeAsync<TPixel>(stream, cancellationToken);
+            return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc />
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new TgaDecoderCore(configuration, this).Identify(stream);
+            return new TgaDecoderCore(configuration, this).Identify(configuration, stream);
         }
 
         /// <inheritdoc/>
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new TgaDecoderCore(configuration, this).IdentifyAsync(stream, cancellationToken);
+            return new TgaDecoderCore(configuration, this).IdentifyAsync(configuration, stream, cancellationToken);
         }
     }
 }

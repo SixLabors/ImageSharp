@@ -1028,7 +1028,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, out string value)
         {
             using (var memoryStream = new MemoryStream(compressedData.ToArray()))
-            using (var bufferedStream = new BufferedReadStream(memoryStream))
+            using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStream))
             using (var inflateStream = new ZlibInflateStream(bufferedStream))
             {
                 if (!inflateStream.AllocateNewBytes(compressedData.Length, false))

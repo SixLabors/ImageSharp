@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             Guard.NotNull(stream, nameof(stream));
 
             using var decoder = new JpegDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(stream);
+            return decoder.Decode<TPixel>(configuration, stream);
         }
 
         /// <inheritdoc />
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             Guard.NotNull(stream, nameof(stream));
 
             using var decoder = new JpegDecoderCore(configuration, this);
-            return decoder.DecodeAsync<TPixel>(stream, cancellationToken);
+            return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc />
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             Guard.NotNull(stream, nameof(stream));
 
             using var decoder = new JpegDecoderCore(configuration, this);
-            return decoder.Identify(stream);
+            return decoder.Identify(configuration, stream);
         }
 
         /// <inheritdoc/>
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             Guard.NotNull(stream, nameof(stream));
 
             using var decoder = new JpegDecoderCore(configuration, this);
-            return decoder.IdentifyAsync(stream, cancellationToken);
+            return decoder.IdentifyAsync(configuration, stream, cancellationToken);
         }
     }
 }

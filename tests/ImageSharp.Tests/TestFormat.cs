@@ -270,7 +270,7 @@ namespace SixLabors.ImageSharp.Tests
                 // TODO record this happened so we can verify it.
             }
 
-            public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+            public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
                where TPixel : unmanaged, IPixel<TPixel>
             {
                 // TODO record this happened so we can verify it.

@@ -172,7 +172,6 @@ namespace SixLabors.ImageSharp.Tests
                 Assert.Equal(ExpectedImageSize, info.Size());
             }
 
-
             [Fact]
             public async Task FromStreamAsync_CustomConfiguration()
             {

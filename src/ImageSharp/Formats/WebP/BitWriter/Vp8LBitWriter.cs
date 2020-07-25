@@ -100,6 +100,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             return this.cur + ((this.used + 7) >> 3);
         }
 
+        public Vp8LBitWriter Clone()
+        {
+            byte[] clonedBuffer = new byte[this.buffer.Length];
+            Buffer.BlockCopy(this.buffer, 0, clonedBuffer, 0, this.cur);
+            return new Vp8LBitWriter(clonedBuffer, this.bits, this.used, this.cur);
+        }
+
         /// <summary>
         /// Internal function for PutBits flushing 32 bits from the written state.
         /// </summary>
@@ -142,13 +149,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             }
 
             this.end = this.buffer.Length;
-        }
-
-        public Vp8LBitWriter Clone()
-        {
-            byte[] clonedBuffer = new byte[this.buffer.Length];
-            Buffer.BlockCopy(this.buffer, 0, clonedBuffer, 0, this.cur);
-            return new Vp8LBitWriter(clonedBuffer, this.bits, this.used, this.cur);
         }
     }
 }

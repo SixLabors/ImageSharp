@@ -305,6 +305,20 @@ namespace SixLabors.ImageSharp
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// </summary>
         /// <param name="path">The file path to the image.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="ArgumentNullException">The decoder is null.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <returns>A <see cref="Task{Image}"/> representing the asynchronous operation.</returns>
+        public static Task<Image> LoadAsync(string path, CancellationToken cancellationToken)
+            => LoadAsync(Configuration.Default, path, cancellationToken);
+
+        /// <summary>
+        /// Create a new instance of the <see cref="Image"/> class from the given file.
+        /// </summary>
+        /// <param name="path">The file path to the image.</param>
         /// <param name="decoder">The decoder.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The path is null.</exception>

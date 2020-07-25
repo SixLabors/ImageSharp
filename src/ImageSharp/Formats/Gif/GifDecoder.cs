@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new GifDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(stream);
+            return decoder.Decode<TPixel>(configuration, stream);
         }
 
         /// <inheritdoc />
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new GifDecoderCore(configuration, this);
-            return decoder.DecodeAsync<TPixel>(stream, cancellationToken);
+            return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc />
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             var decoder = new GifDecoderCore(configuration, this);
 
-            using var bufferedStream = new BufferedReadStream(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
             return decoder.Identify(bufferedStream, default);
         }
 
@@ -69,8 +69,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             var decoder = new GifDecoderCore(configuration, this);
 
-            using var bufferedStream = new BufferedReadStream(stream);
-            return await decoder.IdentifyAsync(bufferedStream, cancellationToken);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
+            return await decoder.IdentifyAsync(configuration, bufferedStream, cancellationToken);
         }
     }
 }

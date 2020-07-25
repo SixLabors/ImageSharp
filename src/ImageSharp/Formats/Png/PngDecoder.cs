@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new PngDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(stream);
+            return decoder.Decode<TPixel>(configuration, stream);
         }
 
         /// <inheritdoc />
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var decoder = new PngDecoderCore(configuration, this);
-            return decoder.DecodeAsync<TPixel>(stream, cancellationToken);
+            return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc />
@@ -45,14 +45,14 @@ namespace SixLabors.ImageSharp.Formats.Png
         public IImageInfo Identify(Configuration configuration, Stream stream)
         {
             var decoder = new PngDecoderCore(configuration, this);
-            return decoder.Identify(stream);
+            return decoder.Identify(configuration, stream);
         }
 
         /// <inheritdoc/>
         public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             var decoder = new PngDecoderCore(configuration, this);
-            return decoder.IdentifyAsync(stream, cancellationToken);
+            return decoder.IdentifyAsync(configuration, stream, cancellationToken);
         }
     }
 }

@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -23,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
     /// </summary>
-    internal sealed unsafe class JpegEncoderCore
+    internal sealed unsafe class JpegEncoderCore : IImageEncoderInternals
     {
         /// <summary>
         /// The number of quantization tables.
@@ -194,8 +195,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image to write from.</param>
         /// <param name="stream">The stream to write to.</param>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));

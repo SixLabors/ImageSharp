@@ -131,7 +131,8 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public static async Task<IImageInfo> IdentifyAsync(Configuration configuration, string filePath, CancellationToken cancellationToken)
         {
-            (IImageInfo ImageInfo, IImageFormat Format) res = await IdentifyWithFormatAsync(configuration, filePath, cancellationToken);
+            (IImageInfo ImageInfo, IImageFormat Format) res = await IdentifyWithFormatAsync(configuration, filePath, cancellationToken)
+                    .ConfigureAwait(false);
             return res.ImageInfo;
         }
 

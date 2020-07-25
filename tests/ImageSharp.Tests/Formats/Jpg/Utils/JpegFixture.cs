@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         {
             byte[] bytes = TestFile.Create(testFileName).Bytes;
             using var ms = new MemoryStream(bytes);
-            using var bufferedStream = new BufferedReadStream(ms);
+            using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
 
             var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
             decoder.ParseStream(bufferedStream, metaDataOnly);

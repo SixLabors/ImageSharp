@@ -14,12 +14,7 @@ namespace SixLabors.ImageSharp.IO
     /// </summary>
     internal sealed class BufferedReadStream : Stream
     {
-        /// <summary>
-        /// The length, in bytes, of the underlying buffer.
-        /// </summary>
-        public const int BufferLength = 8192;
-
-        private const int MaxBufferIndex = BufferLength - 1;
+        private readonly int maxBufferIndex;
 
         private readonly byte[] readBuffer;
 
@@ -38,9 +33,11 @@ namespace SixLabors.ImageSharp.IO
         /// <summary>
         /// Initializes a new instance of the <see cref="BufferedReadStream"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
         /// <param name="stream">The input stream.</param>
-        public BufferedReadStream(Stream stream)
+        public BufferedReadStream(Configuration configuration, Stream stream)
         {
+            Guard.NotNull(configuration, nameof(configuration));
             Guard.IsTrue(stream.CanRead, nameof(stream), "Stream must be readable.");
             Guard.IsTrue(stream.CanSeek, nameof(stream), "Stream must be seekable.");
 
@@ -53,10 +50,11 @@ namespace SixLabors.ImageSharp.IO
             }
 
             this.BaseStream = stream;
-            this.Position = (int)stream.Position;
             this.Length = stream.Length;
-
-            this.readBuffer = ArrayPool<byte>.Shared.Rent(BufferLength);
+            this.Position = (int)stream.Position;
+            this.BufferSize = configuration.StreamProcessingBufferSize;
+            this.maxBufferIndex = this.BufferSize - 1;
+            this.readBuffer = ArrayPool<byte>.Shared.Rent(this.BufferSize);
             this.readBufferHandle = new Memory<byte>(this.readBuffer).Pin();
             unsafe
             {
@@ -64,7 +62,16 @@ namespace SixLabors.ImageSharp.IO
             }
 
             // This triggers a full read on first attempt.
-            this.readBufferIndex = BufferLength;
+            this.readBufferIndex = this.BufferSize;
+        }
+
+        /// <summary>
+        /// Gets the size, in bytes, of the underlying buffer.
+        /// </summary>
+        public int BufferSize
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
         }
 
         /// <inheritdoc/>
@@ -79,6 +86,9 @@ namespace SixLabors.ImageSharp.IO
             [MethodImpl(MethodImplOptions.NoInlining)]
             set
             {
+                Guard.MustBeGreaterThanOrEqualTo(value, 0, nameof(this.Position));
+                Guard.MustBeLessThan(value, this.Length, nameof(this.Position));
+
                 // Only reset readBufferIndex if we are out of bounds of our working buffer
                 // otherwise we should simply move the value by the diff.
                 if (this.IsInReadBuffer(value, out long index))
@@ -91,7 +101,7 @@ namespace SixLabors.ImageSharp.IO
                     // Base stream seek will throw for us if invalid.
                     this.BaseStream.Seek(value, SeekOrigin.Begin);
                     this.readerPosition = value;
-                    this.readBufferIndex = BufferLength;
+                    this.readBufferIndex = this.BufferSize;
                 }
             }
         }
@@ -125,7 +135,7 @@ namespace SixLabors.ImageSharp.IO
 
             // Our buffer has been read.
             // We need to refill and start again.
-            if (this.readBufferIndex > MaxBufferIndex)
+            if (this.readBufferIndex > this.maxBufferIndex)
             {
                 this.FillReadBuffer();
             }
@@ -142,14 +152,14 @@ namespace SixLabors.ImageSharp.IO
         public override int Read(byte[] buffer, int offset, int count)
         {
             // Too big for our buffer. Read directly from the stream.
-            if (count > BufferLength)
+            if (count > this.BufferSize)
             {
                 return this.ReadToBufferDirectSlow(buffer, offset, count);
             }
 
             // Too big for remaining buffer but less than entire buffer length
             // Copy to buffer then read from there.
-            if (count + this.readBufferIndex > BufferLength)
+            if (count + this.readBufferIndex > this.BufferSize)
             {
                 return this.ReadToBufferViaCopySlow(buffer, offset, count);
             }
@@ -164,14 +174,14 @@ namespace SixLabors.ImageSharp.IO
         {
             // Too big for our buffer. Read directly from the stream.
             int count = buffer.Length;
-            if (count > BufferLength)
+            if (count > this.BufferSize)
             {
                 return this.ReadToBufferDirectSlow(buffer);
             }
 
             // Too big for remaining buffer but less than entire buffer length
             // Copy to buffer then read from there.
-            if (count + this.readBufferIndex > BufferLength)
+            if (count + this.readBufferIndex > this.BufferSize)
             {
                 return this.ReadToBufferViaCopySlow(buffer);
             }
@@ -192,7 +202,7 @@ namespace SixLabors.ImageSharp.IO
             }
 
             // Reset to trigger full read on next attempt.
-            this.readBufferIndex = BufferLength;
+            this.readBufferIndex = this.BufferSize;
         }
 
         /// <inheritdoc/>
@@ -249,7 +259,7 @@ namespace SixLabors.ImageSharp.IO
         private bool IsInReadBuffer(long newPosition, out long index)
         {
             index = newPosition - this.readerPosition + this.readBufferIndex;
-            return index > -1 && index < BufferLength;
+            return index > -1 && index < this.BufferSize;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -267,10 +277,10 @@ namespace SixLabors.ImageSharp.IO
             int i;
             do
             {
-                i = baseStream.Read(this.readBuffer, n, BufferLength - n);
+                i = baseStream.Read(this.readBuffer, n, this.BufferSize - n);
                 n += i;
             }
-            while (n < BufferLength && i > 0);
+            while (n < this.BufferSize && i > 0);
 
             this.readBufferIndex = 0;
         }

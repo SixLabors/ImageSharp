@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         public void ParseStreamPdfJs()
         {
             using var memoryStream = new MemoryStream(this.jpegBytes);
-            using var bufferedStream = new BufferedReadStream(memoryStream);
+            using var bufferedStream = new BufferedReadStream(Configuration.Default, memoryStream);
 
             var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder { IgnoreMetadata = true });
             decoder.ParseStream(bufferedStream);

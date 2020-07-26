@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         /// <summary>
         /// Finds the best predictor for each tile, and converts the image to residuals
-        /// with respect to predictions. If nearLosslessQuality < 100, applies
+        /// with respect to predictions. If nearLosslessQuality &lt; 100, applies
         /// near lossless processing, shaving off more bits of residuals for lower qualities.
         /// </summary>
         public static void ResidualImage(int width, int height, int bits, Span<uint> argb, Span<uint> argbScratch, Span<uint> image, int nearLosslessQuality, bool exact, bool usedSubtractGreen)
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int tilesPerRow = LosslessUtils.SubSampleSize(width, bits);
             int tilesPerCol = LosslessUtils.SubSampleSize(height, bits);
             int maxQuantization = 1 << LosslessUtils.NearLosslessBits(nearLosslessQuality);
-            int[][] histo = new int[4][];
+            var histo = new int[4][];
             for (int i = 0; i < 4; i++)
             {
                 histo[i] = new int[256];
@@ -73,12 +73,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                         LosslessUtils.ColorCodeToMultipliers(image[offset - tileXSize], ref prevY);
                     }
 
-                    prevX = GetBestColorTransformForTile(tileX, tileY, bits,
-                                            prevX, prevY,
-                                            quality, width, height,
-                                            accumulatedRedHisto,
-                                            accumulatedBlueHisto,
-                                            argb);
+                    prevX = GetBestColorTransformForTile(
+                        tileX,
+                        tileY,
+                        bits,
+                        prevX,
+                        prevY,
+                        quality,
+                        width,
+                        height,
+                        accumulatedRedHisto,
+                        accumulatedBlueHisto,
+                        argb);
 
                     image[offset] = MultipliersToColorCode(prevX);
                     CopyTileWithColorTransform(width, height, tileXOffset, tileYOffset, maxTileSize, prevX, argb);
@@ -118,9 +124,19 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// the given pixel).
         /// </summary>
         /// <returns>Best predictor.</returns>
-        private static int GetBestPredictorForTile(int width, int height, int tileX, int tileY,
-            int bits, int[][] accumulated, Span<uint> argbScratch, Span<uint> argb,
-            int maxQuantization, bool exact, bool usedSubtractGreen, Span<uint> modes)
+        private static int GetBestPredictorForTile(
+            int width,
+            int height,
+            int tileX,
+            int tileY,
+            int bits,
+            int[][] accumulated,
+            Span<uint> argbScratch,
+            Span<uint> argb,
+            int maxQuantization,
+            bool exact,
+            bool usedSubtractGreen,
+            Span<uint> modes)
         {
             const int numPredModes = 14;
             int startX = tileX << bits;
@@ -501,9 +517,21 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                         xEnd = width;
                     }
 
-                    GetResidual(width, height, upperRow, currentRow, currentMaxDiffs,
-                                mode, x, xEnd, y, maxQuantization, exact,
-                                usedSubtractGreen, argb.Slice((y * width) + x));
+                    GetResidual(
+                        width,
+                        height,
+                        upperRow,
+                        currentRow,
+                        currentMaxDiffs,
+                        mode,
+                        x,
+                        xEnd,
+                        y,
+                        maxQuantization,
+                        exact,
+                        usedSubtractGreen,
+                        argb.Slice((y * width) + x));
+
                     x = xEnd;
                 }
             }

@@ -236,7 +236,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
             0x40, 0x72, 0x7e, 0x61, 0x6f, 0x50, 0x71, 0x7f, 0x60, 0x70
         };
 
-        public static readonly uint[] PlaneToCodeLut = {
+        public static readonly uint[] PlaneToCodeLut =
+        {
             96,   73,  55,  39,  23,  13,   5,  1,  255, 255, 255, 255, 255, 255, 255, 255,
             101,  78,  58,  42,  26,  16,   8,  2,    0,   3,  9,   17,  27,  43,  59,  79,
             102,  86,  62,  46,  32,  20,  10,  6,    4,   7,  11,  21,  33,  47,  63,  87,
@@ -248,7 +249,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         };
 
         // 31 ^ clz(i)
-        public static readonly byte[] LogTable8bit =
+        public static readonly byte[] LogTable8Bit =
         {
             0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
             4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,

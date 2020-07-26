@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
 {
@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
     /// </summary>
     internal class Vp8BitWriter
     {
-        private uint range;
+        /*private uint range;
 
         private uint value;
 
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             this.maxPos = 0;
             this.error = false;
 
-            //BitWriterResize(expected_size);
-        }
+            // BitWriterResize(expected_size);
+        }*/
     }
 }

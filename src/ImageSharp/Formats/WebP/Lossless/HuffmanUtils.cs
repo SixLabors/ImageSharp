@@ -154,7 +154,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// <summary>
         /// Create an optimal Huffman tree.
         /// </summary>
-        /// <see cref="http://en.wikipedia.org/wiki/Huffman_coding"/>
+        /// <see href="http://en.wikipedia.org/wiki/Huffman_coding"/>
         /// <param name="tree">The huffman tree.</param>
         /// <param name="histogram">The histogram.</param>
         /// <param name="histogramSize">The size of the histogram.</param>

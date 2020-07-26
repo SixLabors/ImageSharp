@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
@@ -67,9 +67,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             this.IsUsed = new bool[5];
         }
 
-        /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new Vp8LHistogram(this);
-
         /// <summary>
         /// Gets or sets the palette code bits.
         /// </summary>
@@ -108,6 +105,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         public uint TrivialSymbol { get; set; }
 
         public bool[] IsUsed { get; }
+
+        /// <inheritdoc/>
+        public IDeepCloneable DeepClone() => new Vp8LHistogram(this);
 
         /// <summary>
         /// Collect all the references into a histogram (without reset).

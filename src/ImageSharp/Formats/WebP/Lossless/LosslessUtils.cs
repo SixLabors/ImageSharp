@@ -205,7 +205,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 newBlue -= ColorTransformDelta((sbyte)m.GreenToBlue, green);
                 newBlue -= ColorTransformDelta((sbyte)m.RedToBlue, red);
                 newBlue &= 0xff;
-                data[i] = (uint)((argb & 0xff00ff00u) | (newRed << 16) | newBlue);
+                data[i] = (argb & 0xff00ff00u) | ((uint)newRed << 16) | (uint)newBlue;
             }
         }
 

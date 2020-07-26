@@ -32,8 +32,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int histoYSize = histoBits > 0 ? LosslessUtils.SubSampleSize(ySize, histoBits) : 1;
             int imageHistoRawSize = histoXSize * histoYSize;
             int entropyCombineNumBins = BinSize;
-            short[] mapTmp = new short[imageHistoRawSize];
-            short[] clusterMappings = new short[imageHistoRawSize];
+            var mapTmp = new short[imageHistoRawSize];
+            var clusterMappings = new short[imageHistoRawSize];
             int numUsed = imageHistoRawSize;
             var origHisto = new List<Vp8LHistogram>(imageHistoRawSize);
             for (int i = 0; i < imageHistoRawSize; i++)
@@ -370,6 +370,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                 // Pop bestIdx2 from mappings.
                 var mappingIndex = Array.BinarySearch(mappings, bestIdx2);
+
                 // TODO: memmove(mapping_index, mapping_index + 1, sizeof(*mapping_index) *((*num_used) - (mapping_index - mappings) - 1));
 
                 // Merge the histograms and remove bestIdx2 from the queue.

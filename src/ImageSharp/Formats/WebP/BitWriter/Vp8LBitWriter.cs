@@ -45,12 +45,22 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
 
         private int end;
 
-        private bool error;
-
         public Vp8LBitWriter(int expectedSize)
         {
             this.buffer = new byte[expectedSize];
             this.end = this.buffer.Length;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8LBitWriter"/> class.
+        /// Used internally for cloning
+        /// </summary>
+        private Vp8LBitWriter(byte[] buffer, ulong bits, int used, int cur)
+        {
+            this.buffer = buffer;
+            this.bits = bits;
+            this.used = used;
+            this.cur = cur;
         }
 
         /// <summary>
@@ -90,6 +100,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             return this.cur + ((this.used + 7) >> 3);
         }
 
+        public Vp8LBitWriter Clone()
+        {
+            byte[] clonedBuffer = new byte[this.buffer.Length];
+            Buffer.BlockCopy(this.buffer, 0, clonedBuffer, 0, this.cur);
+            return new Vp8LBitWriter(clonedBuffer, this.bits, this.used, this.cur);
+        }
+
         /// <summary>
         /// Internal function for PutBits flushing 32 bits from the written state.
         /// </summary>
@@ -99,11 +116,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             if (this.cur + WriterBytes > this.end)
             {
                 var extraSize = (this.end - this.cur) + MinExtraSize;
-                if (!this.BitWriterResize(extraSize))
-                {
-                    this.error = true;
-                    return;
-                }
+                this.BitWriterResize(extraSize);
             }
 
             BinaryPrimitives.WriteUInt64LittleEndian(this.buffer.AsSpan(this.cur), this.bits);
@@ -112,10 +125,30 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             this.used -= WriterBits;
         }
 
-        private bool BitWriterResize(int extraSize)
+        private void BitWriterResize(int extraSize)
         {
-            // TODO: resize buffer
-            return true;
+            int maxBytes = this.end + this.buffer.Length;
+            int sizeRequired = this.cur + extraSize;
+
+            if (maxBytes > 0 && sizeRequired < maxBytes)
+            {
+                return;
+            }
+
+            int newSize = (3 * maxBytes) >> 1;
+            if (newSize < sizeRequired)
+            {
+                newSize = sizeRequired;
+            }
+
+            // make new size multiple of 1k
+            newSize = ((newSize >> 10) + 1) << 10;
+            if (this.cur > 0)
+            {
+                Array.Resize(ref this.buffer, newSize);
+            }
+
+            this.end = this.buffer.Length;
         }
     }
 }

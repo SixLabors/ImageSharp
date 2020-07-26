@@ -318,8 +318,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // Calculate backward references from ARGB image.
             BackwardReferenceEncoder.HashChainFill(hashChain, bgra, quality, width, height);
 
-            // TODO: BitWriterInit(&bw_best, 0)
-            // BitWriterClone(bw, &bw_best))
+            Vp8LBitWriter bitWriterBest = null;
+            if (lz77sTypesToTrySize > 1)
+            {
+                bitWriterBest = this.bitWriter.Clone();
+            }
 
             for (int lz77sIdx = 0; lz77sIdx < lz77sTypesToTrySize; lz77sIdx++)
             {
@@ -328,6 +331,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 // Keep the best references aside and use the other element from the first
                 // two as a temporary for later usage.
                 Vp8LBackwardRefs refsTmp = refsArray[refsBest.Equals(refsArray[0]) ? 1 : 0];
+
+                // TODO: this.bitWriter.Reset();
 
                 var tmpHisto = new Vp8LHistogram(cacheBits);
                 var histogramImage = new List<Vp8LHistogram>(histogramImageXySize);
@@ -414,7 +419,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 this.StoreImageToBitMask(width, histogramBits, refsBest, histogramSymbols, huffmanCodes);
 
                 // TODO: Keep track of the smallest image so far.
+
+                if (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes())
+                {
+                    // TODO : This was done in the reference by swapping references, this will be slower
+                    bitWriterBest = this.bitWriter.Clone();
+                }
             }
+
+            this.bitWriter = bitWriterBest;
         }
 
         /// <summary>

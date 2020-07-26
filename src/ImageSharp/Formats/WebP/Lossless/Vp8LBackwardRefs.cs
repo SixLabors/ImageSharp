@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
 
@@ -13,10 +13,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         }
 
         /// <summary>
-        /// Common block-size.
+        /// Gets or sets the common block-size.
         /// </summary>
         public int BlockSize { get; set; }
 
+        /// <summary>
+        /// Gets the backward references.
+        /// </summary>
         public List<PixOrCopy> Refs { get; }
 
         public void Add(PixOrCopy pixOrCopy)

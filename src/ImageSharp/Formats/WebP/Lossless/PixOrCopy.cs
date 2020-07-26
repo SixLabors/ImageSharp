@@ -1,8 +1,11 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Diagnostics;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
+    [DebuggerDisplay("Mode: {Mode}, Len: {Len}, BgraOrDistance: {BgraOrDistance}")]
     internal class PixOrCopy
     {
         public PixOrCopyMode Mode { get; set; }

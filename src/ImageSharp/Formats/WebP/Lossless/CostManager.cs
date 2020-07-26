@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -222,7 +222,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private void InsertInterval(double cost, int position, int start, int end)
         {
             // TODO: use COST_CACHE_INTERVAL_SIZE_MAX
-
             var interval = new CostCacheInterval()
             {
                 Cost = cost,

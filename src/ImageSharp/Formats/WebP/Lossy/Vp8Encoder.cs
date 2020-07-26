@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// <summary>
         /// A bit writer for writing lossy webp streams.
         /// </summary>
-        private Vp8BitWriter bitWriter;
+        private readonly Vp8BitWriter bitWriter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8Encoder"/> class.
@@ -34,7 +34,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         {
             this.memoryAllocator = memoryAllocator;
 
-            // TODO: initialize bitwriter
+            // TODO: properly initialize the bitwriter
+            this.bitWriter = new Vp8BitWriter();
         }
 
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

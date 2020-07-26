@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
 
         public Vp8LBitWriter Clone()
         {
-            byte[] clonedBuffer = new byte[this.buffer.Length];
+            var clonedBuffer = new byte[this.buffer.Length];
             Buffer.BlockCopy(this.buffer, 0, clonedBuffer, 0, this.cur);
             return new Vp8LBitWriter(clonedBuffer, this.bits, this.used, this.cur);
         }

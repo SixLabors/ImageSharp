@@ -514,6 +514,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // TODO: thumbnail
             if (remaining > 0)
             {
+                if (stream.Position + remaining >= stream.Length)
+                {
+                    JpegThrowHelper.ThrowInvalidImageContentException("Bad App0 Marker length.");
+                }
+
                 stream.Skip(remaining);
             }
         }
@@ -533,6 +538,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 return;
             }
 
+            if (stream.Position + remaining >= stream.Length)
+            {
+                JpegThrowHelper.ThrowInvalidImageContentException("Bad App1 Marker length.");
+            }
+
             var profile = new byte[remaining];
             stream.Read(profile, 0, remaining);
 
@@ -550,6 +560,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     this.ExtendProfile(ref this.exifData, profile.AsSpan(Exif00).ToArray());
                 }
             }
+
         }
 
         /// <summary>

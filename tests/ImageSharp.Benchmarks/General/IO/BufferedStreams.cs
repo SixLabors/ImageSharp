@@ -35,8 +35,8 @@ namespace SixLabors.ImageSharp.Benchmarks.IO
             this.stream4 = new MemoryStream(this.buffer);
             this.stream5 = new MemoryStream(this.buffer);
             this.stream6 = new MemoryStream(this.buffer);
-            this.bufferedStream1 = new BufferedReadStream(this.stream3);
-            this.bufferedStream2 = new BufferedReadStream(this.stream4);
+            this.bufferedStream1 = new BufferedReadStream(Configuration.Default, this.stream3);
+            this.bufferedStream2 = new BufferedReadStream(Configuration.Default, this.stream4);
             this.bufferedStreamWrap1 = new BufferedReadStreamWrapper(this.stream5);
             this.bufferedStreamWrap2 = new BufferedReadStreamWrapper(this.stream6);
         }
@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.Benchmarks.IO
 
         private static byte[] CreateTestBytes()
         {
-            var buffer = new byte[BufferedReadStream.BufferLength * 3];
+            var buffer = new byte[Configuration.Default.StreamProcessingBufferSize * 3];
             var random = new Random();
             random.NextBytes(buffer);
 

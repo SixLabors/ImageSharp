@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers.Binary;
+using System.IO;
 using SixLabors.ImageSharp.Formats.WebP.Lossless;
 
 namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
@@ -20,8 +21,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         private const int WriterBytes = 4;
 
         private const int WriterBits = 32;
-
-        private const int WriterMaxBits = 64;
 
         /// <summary>
         /// Bit accumulator.
@@ -45,15 +44,20 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
 
         private int end;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8LBitWriter"/> class.
+        /// </summary>
+        /// <param name="expectedSize">The expected size in bytes.</param>
         public Vp8LBitWriter(int expectedSize)
         {
+            // TODO: maybe use memory allocator here.
             this.buffer = new byte[expectedSize];
             this.end = this.buffer.Length;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LBitWriter"/> class.
-        /// Used internally for cloning
+        /// Used internally for cloning.
         /// </summary>
         private Vp8LBitWriter(byte[] buffer, ulong bits, int used, int cur)
         {
@@ -108,6 +112,31 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         }
 
         /// <summary>
+        /// Writes the encoded bytes of the image to the stream. Call BitWriterFinish() before this. 
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        public void WriteToStream(Stream stream)
+        {
+            stream.Write(this.buffer.AsSpan(0, this.NumBytes()));
+        }
+
+        /// <summary>
+        /// Flush leftover bits.
+        /// </summary>
+        public void BitWriterFinish()
+        {
+            this.BitWriterResize((this.used + 7) >> 3);
+            while (this.used > 0)
+            {
+                this.buffer[this.cur++] = (byte)this.bits;
+                this.bits >>= 8;
+                this.used -= 8;
+            }
+
+            this.used = 0;
+        }
+
+        /// <summary>
         /// Internal function for PutBits flushing 32 bits from the written state.
         /// </summary>
         private void PutBitsFlushBits()
@@ -125,6 +154,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             this.used -= WriterBits;
         }
 
+        /// <summary>
+        /// Resizes the buffer to write to.
+        /// </summary>
+        /// <param name="extraSize">The extra size in bytes needed.</param>
         private void BitWriterResize(int extraSize)
         {
             int maxBytes = this.end + this.buffer.Length;

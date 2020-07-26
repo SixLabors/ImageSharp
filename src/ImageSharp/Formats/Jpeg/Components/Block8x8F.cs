@@ -378,20 +378,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="qt">The quantization table</param>
         /// <param name="unzigPtr">Pointer to elements of <see cref="ZigZag"/></param>
         public static unsafe void Quantize(
-            Block8x8F* block,
-            Block8x8F* dest,
-            Block8x8F* qt,
+            ref Block8x8F block,
+            ref Block8x8F dest,
+            ref Block8x8F qt,
             byte* unzigPtr)
         {
-            float* s = (float*)block;
-            float* d = (float*)dest;
-
             for (int zig = 0; zig < Size; zig++)
             {
-                d[zig] = s[unzigPtr[zig]];
+                dest[zig] = block[unzigPtr[zig]];
             }
 
-            DivideRoundAll(ref *dest, ref *qt);
+            DivideRoundAll(ref dest, ref qt);
         }
 
         /// <summary>
@@ -399,13 +396,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         /// <param name="destination">The destination block.</param>
         /// <param name="source">The source block.</param>
-        public static unsafe void Scale16X16To8X8(Block8x8F* destination, Block8x8F* source)
+        public static unsafe void Scale16X16To8X8(ref Block8x8F destination,  Block8x8F* source)
         {
-            float* d = (float*)destination;
             for (int i = 0; i < 4; i++)
             {
                 int dstOff = ((i & 2) << 4) | ((i & 1) << 2);
-
                 float* iSource = (float*)(source + i);
 
                 for (int y = 0; y < 4; y++)
@@ -414,7 +409,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     {
                         int j = (16 * y) + (2 * x);
                         float sum = iSource[j] + iSource[j + 1] + iSource[j + 8] + iSource[j + 9];
-                        d[(8 * y) + x + dstOff] = (sum + 2) / 4;
+                        destination[(8 * y) + x + dstOff] = (sum + 2) * .25F;
                     }
                 }
             }
@@ -589,7 +584,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
         {
             // sign(dividend) = max(min(dividend, 1), -1)
-            var sign = Vector4Utilities.FastClamp(dividend, NegativeOne, Vector4.One);
+            Vector4 sign = Vector4Utilities.FastClamp(dividend, NegativeOne, Vector4.One);
 
             // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
             return (dividend / divisor) + (sign * Offset);

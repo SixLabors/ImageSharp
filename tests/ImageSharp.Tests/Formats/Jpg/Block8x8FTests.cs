@@ -282,7 +282,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             var actualResults = default(Block8x8F);
 
-            Block8x8F.Quantize(&block, &actualResults, &qt, unzig.Data);
+            Block8x8F.Quantize(ref block, ref actualResults, ref qt, unzig.Data);
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {

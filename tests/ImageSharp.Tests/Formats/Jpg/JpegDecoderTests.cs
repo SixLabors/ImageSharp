@@ -155,8 +155,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Theory]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518)]
+        [InlineData(TestImages.Jpeg.Baseline.Exif)]
+        [InlineData(TestImages.Jpeg.Progressive.Bad.ExifUndefType)]
         public async Task Identify_IsCancellable(string fileName)
         {
             string hugeFile = Path.Combine(

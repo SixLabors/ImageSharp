@@ -560,7 +560,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     this.ExtendProfile(ref this.exifData, profile.AsSpan(Exif00).ToArray());
                 }
             }
-
         }
 
         /// <summary>

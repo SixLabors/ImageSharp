@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
@@ -40,6 +41,17 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The source image.</param>
         /// <param name="path">The file path to save the image to.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task SaveAsync(this Image source, string path, CancellationToken cancellationToken)
+            => source.SaveAsync(path, source.DetectEncoder(path), cancellationToken);
+
+        /// <summary>
+        /// Writes the image to the given stream using the currently loaded image format.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="path">The file path to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The encoder is null.</exception>
@@ -62,14 +74,29 @@ namespace SixLabors.ImageSharp
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <exception cref="ArgumentNullException">The encoder is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static async Task SaveAsync(this Image source, string path, IImageEncoder encoder)
+        public static Task SaveAsync(this Image source, string path, IImageEncoder encoder)
+            => SaveAsync(source, path, encoder, default);
+
+        /// <summary>
+        /// Writes the image to the given stream using the currently loaded image format.
+        /// </summary>
+        /// <param name="source">The source image.</param>
+        /// <param name="path">The file path to save the image to.</param>
+        /// <param name="encoder">The encoder to save the image with.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="ArgumentNullException">The encoder is null.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static async Task SaveAsync(
+            this Image source,
+            string path,
+            IImageEncoder encoder,
+            CancellationToken cancellationToken)
         {
             Guard.NotNull(path, nameof(path));
             Guard.NotNull(encoder, nameof(encoder));
-            using (Stream fs = source.GetConfiguration().FileSystem.Create(path))
-            {
-                await source.SaveAsync(fs, encoder).ConfigureAwait(false);
-            }
+            using Stream fs = source.GetConfiguration().FileSystem.Create(path);
+            await source.SaveAsync(fs, encoder, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>

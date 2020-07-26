@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp
         public static Task SaveAs<#= fmt #>Async(this Image source, string path, <#= fmt #>Encoder encoder, CancellationToken cancellationToken) =>
             source.SaveAsync(
                 path,
-                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance),
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(<#= fmt #>Format.Instance),
                 cancellationToken);
 
         /// <summary>

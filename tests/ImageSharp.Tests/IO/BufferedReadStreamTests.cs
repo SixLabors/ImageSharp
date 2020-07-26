@@ -11,18 +11,27 @@ namespace SixLabors.ImageSharp.Tests.IO
     public class BufferedReadStreamTests
     {
         private readonly Configuration configuration;
-        private readonly int bufferSize;
 
         public BufferedReadStreamTests()
         {
-            this.configuration = Configuration.Default;
-            this.bufferSize = this.configuration.StreamProcessingBufferSize;
+            this.configuration = Configuration.CreateDefaultInstance();
         }
 
-        [Fact]
-        public void BufferedStreamCanReadSingleByteFromOrigin()
+        public static readonly TheoryData<int> BufferSizes =
+            new TheoryData<int>()
+            {
+                1, 2, 4, 8,
+                16, 97, 503,
+                719, 1024,
+                8096, 64768
+            };
+
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamCanReadSingleByteFromOrigin(int bufferSize)
         {
-            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
+            this.configuration.StreamProcessingBufferSize = bufferSize;
+            using (MemoryStream stream = this.CreateTestStream(bufferSize * 3))
             {
                 byte[] expected = stream.ToArray();
                 using (var reader = new BufferedReadStream(this.configuration, stream))
@@ -30,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.IO
                     Assert.Equal(expected[0], reader.ReadByte());
 
                     // We've read a whole chunk but increment by 1 in our reader.
-                    Assert.Equal(this.bufferSize, stream.Position);
+                    Assert.True(stream.Position >= bufferSize);
                     Assert.Equal(1, reader.Position);
                 }
 
@@ -39,13 +48,15 @@ namespace SixLabors.ImageSharp.Tests.IO
             }
         }
 
-        [Fact]
-        public void BufferedStreamCanReadSingleByteFromOffset()
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamCanReadSingleByteFromOffset(int bufferSize)
         {
-            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
+            this.configuration.StreamProcessingBufferSize = bufferSize;
+            using (MemoryStream stream = this.CreateTestStream(bufferSize * 3))
             {
                 byte[] expected = stream.ToArray();
-                const int offset = 5;
+                int offset = expected.Length / 2;
                 using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     reader.Position = offset;
@@ -53,7 +64,7 @@ namespace SixLabors.ImageSharp.Tests.IO
                     Assert.Equal(expected[offset], reader.ReadByte());
 
                     // We've read a whole chunk but increment by 1 in our reader.
-                    Assert.Equal(this.bufferSize + offset, stream.Position);
+                    Assert.Equal(bufferSize + offset, stream.Position);
                     Assert.Equal(offset + 1, reader.Position);
                 }
 
@@ -61,10 +72,12 @@ namespace SixLabors.ImageSharp.Tests.IO
             }
         }
 
-        [Fact]
-        public void BufferedStreamCanReadSubsequentSingleByteCorrectly()
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamCanReadSubsequentSingleByteCorrectly(int bufferSize)
         {
-            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
+            this.configuration.StreamProcessingBufferSize = bufferSize;
+            using (MemoryStream stream = this.CreateTestStream(bufferSize * 3))
             {
                 byte[] expected = stream.ToArray();
                 int i;
@@ -75,19 +88,19 @@ namespace SixLabors.ImageSharp.Tests.IO
                         Assert.Equal(expected[i], reader.ReadByte());
                         Assert.Equal(i + 1, reader.Position);
 
-                        if (i < this.bufferSize)
+                        if (i < bufferSize)
                         {
-                            Assert.Equal(stream.Position, this.bufferSize);
+                            Assert.Equal(stream.Position, bufferSize);
                         }
-                        else if (i >= this.bufferSize && i < this.bufferSize * 2)
+                        else if (i >= bufferSize && i < bufferSize * 2)
                         {
                             // We should have advanced to the second chunk now.
-                            Assert.Equal(stream.Position, this.bufferSize * 2);
+                            Assert.Equal(stream.Position, bufferSize * 2);
                         }
                         else
                         {
                             // We should have advanced to the third chunk now.
-                            Assert.Equal(stream.Position, this.bufferSize * 3);
+                            Assert.Equal(stream.Position, bufferSize * 3);
                         }
                     }
                 }
@@ -96,10 +109,12 @@ namespace SixLabors.ImageSharp.Tests.IO
             }
         }
 
-        [Fact]
-        public void BufferedStreamCanReadMultipleBytesFromOrigin()
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamCanReadMultipleBytesFromOrigin(int bufferSize)
         {
-            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
+            this.configuration.StreamProcessingBufferSize = bufferSize;
+            using (MemoryStream stream = this.CreateTestStream(bufferSize * 3))
             {
                 var buffer = new byte[2];
                 byte[] expected = stream.ToArray();
@@ -110,95 +125,127 @@ namespace SixLabors.ImageSharp.Tests.IO
                     Assert.Equal(expected[1], buffer[1]);
 
                     // We've read a whole chunk but increment by the buffer length in our reader.
-                    Assert.Equal(stream.Position, this.bufferSize);
+                    Assert.True(stream.Position >= bufferSize);
                     Assert.Equal(buffer.Length, reader.Position);
                 }
             }
         }
 
-        [Fact]
-        public void BufferedStreamCanReadSubsequentMultipleByteCorrectly()
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamCanReadSubsequentMultipleByteCorrectly(int bufferSize)
         {
-            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
+            this.configuration.StreamProcessingBufferSize = bufferSize;
+            using (MemoryStream stream = this.CreateTestStream(bufferSize * 3))
             {
+                const int increment = 2;
                 var buffer = new byte[2];
                 byte[] expected = stream.ToArray();
                 using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
-                    for (int i = 0, o = 0; i < expected.Length / 2; i++, o += 2)
+                    for (int i = 0, o = 0; i < expected.Length / increment; i++, o += increment)
                     {
-                        Assert.Equal(2, reader.Read(buffer, 0, 2));
+                        // Check values are correct.
+                        Assert.Equal(increment, reader.Read(buffer, 0, increment));
                         Assert.Equal(expected[o], buffer[0]);
                         Assert.Equal(expected[o + 1], buffer[1]);
-                        Assert.Equal(o + 2, reader.Position);
+                        Assert.Equal(o + increment, reader.Position);
 
-                        int offset = i * 2;
-                        if (offset < this.bufferSize)
+                        // These tests ensure that we are correctly reading
+                        // our buffer in chunks of the given size.
+                        int offset = i * increment;
+
+                        // First chunk.
+                        if (offset < bufferSize)
                         {
-                            Assert.Equal(stream.Position, this.bufferSize);
+                            // We've read an entire chunk once and are
+                            // now reading from that chunk.
+                            Assert.True(stream.Position >= bufferSize);
+                            continue;
                         }
-                        else if (offset >= this.bufferSize && offset < this.bufferSize * 2)
+
+                        // Second chunk
+                        if (offset < bufferSize * 2)
                         {
-                            // We should have advanced to the second chunk now.
-                            Assert.Equal(stream.Position, this.bufferSize * 2);
+                            Assert.True(stream.Position > bufferSize);
+
+                            // Odd buffer size with even increments can
+                            // jump to the third chunk on final read.
+                            Assert.True(stream.Position <= bufferSize * 3);
+                            continue;
                         }
-                        else
-                        {
-                            // We should have advanced to the third chunk now.
-                            Assert.Equal(stream.Position, this.bufferSize * 3);
-                        }
+
+                        // Third chunk
+                        Assert.True(stream.Position > bufferSize * 2);
                     }
                 }
             }
         }
 
-        [Fact]
-        public void BufferedStreamCanReadSubsequentMultipleByteSpanCorrectly()
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamCanReadSubsequentMultipleByteSpanCorrectly(int bufferSize)
         {
-            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
+            this.configuration.StreamProcessingBufferSize = bufferSize;
+            using (MemoryStream stream = this.CreateTestStream(bufferSize * 3))
             {
+                const int increment = 2;
                 Span<byte> buffer = new byte[2];
                 byte[] expected = stream.ToArray();
                 using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
-                    for (int i = 0, o = 0; i < expected.Length / 2; i++, o += 2)
+                    for (int i = 0, o = 0; i < expected.Length / increment; i++, o += increment)
                     {
-                        Assert.Equal(2, reader.Read(buffer, 0, 2));
+                        // Check values are correct.
+                        Assert.Equal(increment, reader.Read(buffer, 0, increment));
                         Assert.Equal(expected[o], buffer[0]);
                         Assert.Equal(expected[o + 1], buffer[1]);
-                        Assert.Equal(o + 2, reader.Position);
+                        Assert.Equal(o + increment, reader.Position);
 
-                        int offset = i * 2;
-                        if (offset < this.bufferSize)
+                        // These tests ensure that we are correctly reading
+                        // our buffer in chunks of the given size.
+                        int offset = i * increment;
+
+                        // First chunk.
+                        if (offset < bufferSize)
                         {
-                            Assert.Equal(stream.Position, this.bufferSize);
+                            // We've read an entire chunk once and are
+                            // now reading from that chunk.
+                            Assert.True(stream.Position >= bufferSize);
+                            continue;
                         }
-                        else if (offset >= this.bufferSize && offset < this.bufferSize * 2)
+
+                        // Second chunk
+                        if (offset < bufferSize * 2)
                         {
-                            // We should have advanced to the second chunk now.
-                            Assert.Equal(stream.Position, this.bufferSize * 2);
+                            Assert.True(stream.Position > bufferSize);
+
+                            // Odd buffer size with even increments can
+                            // jump to the third chunk on final read.
+                            Assert.True(stream.Position <= bufferSize * 3);
+                            continue;
                         }
-                        else
-                        {
-                            // We should have advanced to the third chunk now.
-                            Assert.Equal(stream.Position, this.bufferSize * 3);
-                        }
+
+                        // Third chunk
+                        Assert.True(stream.Position > bufferSize * 2);
                     }
                 }
             }
         }
 
-        [Fact]
-        public void BufferedStreamCanSkip()
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamCanSkip(int bufferSize)
         {
-            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
+            this.configuration.StreamProcessingBufferSize = bufferSize;
+            using (MemoryStream stream = this.CreateTestStream(bufferSize * 4))
             {
                 byte[] expected = stream.ToArray();
                 using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
-                    int skip = 50;
+                    int skip = 1;
                     int plusOne = 1;
-                    int skip2 = this.bufferSize;
+                    int skip2 = bufferSize;
 
                     // Skip
                     reader.Skip(skip);
@@ -221,14 +268,17 @@ namespace SixLabors.ImageSharp.Tests.IO
             }
         }
 
-        [Fact]
-        public void BufferedStreamReadsSmallStream()
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamReadsSmallStream(int bufferSize)
         {
+            this.configuration.StreamProcessingBufferSize = bufferSize;
+
             // Create a stream smaller than the default buffer length
-            using (MemoryStream stream = this.CreateTestStream(this.bufferSize / 4))
+            using (MemoryStream stream = this.CreateTestStream(Math.Max(1, bufferSize / 4)))
             {
                 byte[] expected = stream.ToArray();
-                const int offset = 5;
+                int offset = expected.Length / 2;
                 using (var reader = new BufferedReadStream(this.configuration, stream))
                 {
                     reader.Position = offset;
@@ -236,7 +286,7 @@ namespace SixLabors.ImageSharp.Tests.IO
                     Assert.Equal(expected[offset], reader.ReadByte());
 
                     // We've read a whole length of the stream but increment by 1 in our reader.
-                    Assert.Equal(this.bufferSize / 4, stream.Position);
+                    Assert.Equal(Math.Max(1, bufferSize / 4), stream.Position);
                     Assert.Equal(offset + 1, reader.Position);
                 }
 
@@ -244,10 +294,12 @@ namespace SixLabors.ImageSharp.Tests.IO
             }
         }
 
-        [Fact]
-        public void BufferedStreamReadsCanReadAllAsSingleByteFromOrigin()
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamReadsCanReadAllAsSingleByteFromOrigin(int bufferSize)
         {
-            using (MemoryStream stream = this.CreateTestStream(this.bufferSize * 3))
+            this.configuration.StreamProcessingBufferSize = bufferSize;
+            using (MemoryStream stream = this.CreateTestStream(bufferSize * 3))
             {
                 byte[] expected = stream.ToArray();
                 using (var reader = new BufferedReadStream(this.configuration, stream))
@@ -256,6 +308,21 @@ namespace SixLabors.ImageSharp.Tests.IO
                     {
                         Assert.Equal(expected[i], reader.ReadByte());
                     }
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(BufferSizes))]
+        public void BufferedStreamThrowsOnBadPosition(int bufferSize)
+        {
+            this.configuration.StreamProcessingBufferSize = bufferSize;
+            using (MemoryStream stream = this.CreateTestStream(bufferSize))
+            {
+                using (var reader = new BufferedReadStream(this.configuration, stream))
+                {
+                    Assert.Throws<ArgumentOutOfRangeException>(() => reader.Position = -stream.Length);
+                    Assert.Throws<ArgumentOutOfRangeException>(() => reader.Position = stream.Length);
                 }
             }
         }

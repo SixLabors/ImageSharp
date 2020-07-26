@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests
         public async Task ReadAsync_BeforeWaitLimit_ShouldFinish()
         {
             using Stream stream = this.CreateTestStream();
-            int read = await stream.ReadAsync(this.buffer);
+            int read = await stream.ReadAsync(this.buffer, 0, this.buffer.Length);
             Assert.Equal(this.buffer.Length, read);
         }
 
@@ -60,10 +60,10 @@ namespace SixLabors.ImageSharp.Tests
         public async Task ReadAsync_AfterWaitLimit_ShouldPause()
         {
             using Stream stream = this.CreateTestStream();
-            await stream.ReadAsync(this.buffer);
+            await stream.ReadAsync(this.buffer, 0, this.buffer.Length);
 
             Task readTask =
-                Task.Factory.StartNew(() => stream.ReadAsync(new byte[512]).AsTask(), TaskCreationOptions.LongRunning);
+                Task.Factory.StartNew(() => stream.ReadAsync(new byte[512], 0, this.buffer.Length), TaskCreationOptions.LongRunning);
             await Task.Delay(5);
             Assert.False(readTask.IsCompleted);
             await this.notifyWaitPositionReachedSemaphore.WaitAsync();

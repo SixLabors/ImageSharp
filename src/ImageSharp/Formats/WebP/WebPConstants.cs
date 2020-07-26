@@ -31,6 +31,22 @@ namespace SixLabors.ImageSharp.Formats.WebP
         };
 
         /// <summary>
+        /// Signature byte which identifies a VP8L header.
+        /// </summary>
+        public const byte Vp8LMagicByte = 0x2F;
+
+        /// <summary>
+        /// Header bytes identifying a lossless image.
+        /// </summary>
+        public static readonly byte[] Vp8LTag =
+        {
+            0x56, // V
+            0x50, // P
+            0x38, // 8
+            0x4C // L
+        };
+
+        /// <summary>
         /// The header bytes identifying RIFF file.
         /// </summary>
         public static readonly byte[] RiffFourCc =
@@ -53,11 +69,6 @@ namespace SixLabors.ImageSharp.Formats.WebP
         };
 
         /// <summary>
-        /// Signature byte which identifies a VP8L header.
-        /// </summary>
-        public const byte Vp8LMagicByte = 0x2F;
-
-        /// <summary>
         /// 3 bits reserved for version.
         /// </summary>
         public const int Vp8LVersionBits = 3;
@@ -66,6 +77,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// Bits for width and height infos of a VPL8 image.
         /// </summary>
         public const int Vp8LImageSizeBits = 14;
+
+        /// <summary>
+        /// Size of a chunk header.
+        /// </summary>
+        public const int ChunkHeaderSize = 8;
+
+        /// <summary>
+        /// Size of a chunk tag (e.g. "VP8L").
+        /// </summary>
+        public const int TagSize = 4;
 
         /// <summary>
         /// The Vp8L version 0.

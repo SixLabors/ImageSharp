@@ -3,8 +3,10 @@
 
 using System;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.WebP.BitWriter;
 using SixLabors.ImageSharp.Memory;
@@ -147,6 +149,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         public Vp8LHashChain HashChain { get; }
 
+        /// <summary>
+        /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
+        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -162,11 +170,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // Encode the main image stream.
             this.EncodeStream(image);
 
-            // TODO: write bytes from the bitwriter to the stream.
+            // Write bytes from the bitwriter buffer to the stream.
+            this.bitWriter.BitWriterFinish();
+            var numBytes = this.bitWriter.NumBytes();
+            var vp8LSize = 1 + numBytes; // One byte extra for the VP8L signature.
+            var pad = vp8LSize & 1;
+            var riffSize = WebPConstants.TagSize + WebPConstants.ChunkHeaderSize + vp8LSize + pad;
+            this.WriteRiffHeader(riffSize, vp8LSize, stream);
+            this.bitWriter.WriteToStream(stream);
         }
 
         /// <summary>
-        /// Writes the image size to the stream.
+        /// Writes the image size to the bitwriter buffer.
         /// </summary>
         /// <param name="inputImgWidth">The input image width.</param>
         /// <param name="inputImgHeight">The input image height.</param>
@@ -182,10 +197,34 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             this.bitWriter.PutBits(height, WebPConstants.Vp8LImageSizeBits);
         }
 
+        /// <summary>
+        /// Writes a flag indicating if alpha channel is used and the VP8L version to the bitwriter buffer.
+        /// </summary>
+        /// <param name="hasAlpha">Indicates if a alpha channel is present.</param>
         private void WriteAlphaAndVersion(bool hasAlpha)
         {
             this.bitWriter.PutBits(hasAlpha ? 1U : 0, 1);
             this.bitWriter.PutBits(WebPConstants.Vp8LVersion, WebPConstants.Vp8LVersionBits);
+        }
+
+        /// <summary>
+        /// Writes the RIFF header to the stream.
+        /// </summary>
+        /// <param name="riffSize">The block length.</param>
+        /// <param name="vp8LSize">The size in bytes of the compressed image.</param>
+        /// <param name="stream">The stream to write to.</param>
+        private void WriteRiffHeader(int riffSize, int vp8LSize, Stream stream)
+        {
+            Span<byte> buffer = stackalloc byte[4];
+
+            stream.Write(WebPConstants.RiffFourCc);
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer, (uint)riffSize);
+            stream.Write(buffer);
+            stream.Write(WebPConstants.WebPHeader);
+            stream.Write(WebPConstants.Vp8LTag);
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer, (uint)vp8LSize);
+            stream.Write(buffer);
+            stream.WriteByte(WebPConstants.Vp8LMagicByte);
         }
 
         /// <summary>
@@ -322,6 +361,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             if (lz77sTypesToTrySize > 1)
             {
                 bitWriterBest = this.bitWriter.Clone();
+            }
+            else
+            {
+                bitWriterBest = this.bitWriter;
             }
 
             for (int lz77sIdx = 0; lz77sIdx < lz77sTypesToTrySize; lz77sIdx++)

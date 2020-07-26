@@ -1,9 +1,8 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
-using SixLabors.ImageSharp.Formats.WebP.Lossy;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
@@ -238,8 +237,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// The return value is the pointer to the best of the two backward refs viz,
         /// refs[0] or refs[1].
         /// </summary>
-        public static Vp8LBackwardRefs GetBackwardReferences(int width, int height, Span<uint> bgra, int quality,
-            int lz77TypesToTry, ref int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs best, Vp8LBackwardRefs worst)
+        public static Vp8LBackwardRefs GetBackwardReferences(
+            int width,
+            int height,
+            Span<uint> bgra,
+            int quality,
+            int lz77TypesToTry,
+            ref int cacheBits,
+            Vp8LHashChain hashChain,
+            Vp8LBackwardRefs best,
+            Vp8LBackwardRefs worst)
         {
             var histo = new Vp8LHistogram[WebPConstants.MaxColorCacheBits];
             int lz77TypeBest = 0;
@@ -248,7 +255,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             Vp8LHashChain hashChainBox = null;
             for (int lz77Type = 1; lz77TypesToTry > 0; lz77TypesToTry &= ~lz77Type, lz77Type <<= 1)
             {
-                double bitCost;
                 int cacheBitsTmp = cacheBitsInitial;
                 if ((lz77TypesToTry & lz77Type) == 0)
                 {
@@ -279,7 +285,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                 // Keep the best backward references.
                 histo[0] = new Vp8LHistogram(worst, cacheBitsTmp);
-                bitCost = histo[0].EstimateBits();
+                var bitCost = histo[0].EstimateBits();
 
                 if (lz77TypeBest == 0 || bitCost < bitCostBest)
                 {

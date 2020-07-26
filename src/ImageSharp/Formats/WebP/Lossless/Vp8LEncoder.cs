@@ -315,7 +315,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 cacheBits = 0;
             }
 
-            // Calculate backward references from ARGB image.
+            // Calculate backward references from BGRA image.
             BackwardReferenceEncoder.HashChainFill(hashChain, bgra, quality, width, height);
 
             Vp8LBitWriter bitWriterBest = null;
@@ -333,7 +333,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 Vp8LBackwardRefs refsTmp = refsArray[refsBest.Equals(refsArray[0]) ? 1 : 0];
 
                 // TODO: this.bitWriter.Reset();
-
                 var tmpHisto = new Vp8LHistogram(cacheBits);
                 var histogramImage = new List<Vp8LHistogram>(histogramImageXySize);
                 for (int i = 0; i < histogramImageXySize; i++)
@@ -419,7 +418,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 this.StoreImageToBitMask(width, histogramBits, refsBest, histogramSymbols, huffmanCodes);
 
                 // TODO: Keep track of the smallest image so far.
-
                 if (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes())
                 {
                     // TODO : This was done in the reference by swapping references, this will be slower
@@ -711,7 +709,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
-        private void StoreHuffmanTreeOfHuffmanTreeToBitMask(byte[] codeLengthBitdepth)
+        private void StoreHuffmanTreeOfHuffmanTreeToBitMask(byte[] codeLengthBitDepth)
         {
             // RFC 1951 will calm you down if you are worried about this funny sequence.
             // This sequence is tuned from that, but more weighted for lower symbol count,
@@ -722,7 +720,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int codesToStore = WebPConstants.CodeLengthCodes;
             for (; codesToStore > 4; codesToStore--)
             {
-                if (codeLengthBitdepth[storageOrder[codesToStore - 1]] != 0)
+                if (codeLengthBitDepth[storageOrder[codesToStore - 1]] != 0)
                 {
                     break;
                 }
@@ -731,7 +729,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             this.bitWriter.PutBits((uint)codesToStore - 4, 4);
             for (int i = 0; i < codesToStore; i++)
             {
-                this.bitWriter.PutBits(codeLengthBitdepth[storageOrder[i]], 3);
+                this.bitWriter.PutBits(codeLengthBitDepth[storageOrder[i]], 3);
             }
         }
 
@@ -1353,7 +1351,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             // Create Huffman trees.
-            bool[] bufRle = new bool[maxNumSymbols];
+            var bufRle = new bool[maxNumSymbols];
             var huffTree = new HuffmanTree[3 * maxNumSymbols];
             for (int i = 0; i < huffTree.Length; i++)
             {

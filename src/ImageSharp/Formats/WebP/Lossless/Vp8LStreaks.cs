@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
@@ -17,12 +17,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         }
 
         /// <summary>
+        /// Gets the streak count.
         /// index: 0=zero streak, 1=non-zero streak.
         /// </summary>
         public int[] Counts { get; }
 
         /// <summary>
-        /// [zero/non-zero][streak < 3 / streak >= 3].
+        /// Gets the streaks.
+        /// [zero/non-zero][streak &lt; 3 / streak >= 3].
         /// </summary>
         public int[][] Streaks { get; }
 

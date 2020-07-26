@@ -1,5 +1,5 @@
-// Copyright (c) Six Labors and contributors.
-// Licensed under the GNU Affero General Public License, Version 3.
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
 
@@ -8,9 +8,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// <summary>
     /// Utility methods for lossy and lossless webp format.
     /// </summary>
-    public static class WebPCommonUtils
+    internal static class WebPCommonUtils
     {
-        // Returns 31 ^ clz(n) = log2(n).Returns 31 ^ clz(n) = log2(n).
+        /// <summary>
+        /// Returns 31 ^ clz(n) = log2(n).Returns 31 ^ clz(n) = log2(n).
+        /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int BitsLog2Floor(uint n)
         {
@@ -21,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 n >>= 8;
             }
 
-            return logValue + WebPLookupTables.LogTable8bit[n];
+            return logValue + WebPLookupTables.LogTable8Bit[n];
         }
     }
 }

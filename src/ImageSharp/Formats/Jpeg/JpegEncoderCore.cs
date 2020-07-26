@@ -427,26 +427,26 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     prevDCY = this.WriteBlock(
                         QuantIndex.Luminance,
                         prevDCY,
-                        &pixelConverter.Y,
-                        &temp1,
-                        &temp2,
-                        &onStackLuminanceQuantTable,
+                        ref pixelConverter.Y,
+                        ref temp1,
+                        ref temp2,
+                        ref onStackLuminanceQuantTable,
                         unzig.Data);
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
-                        &pixelConverter.Cb,
-                        &temp1,
-                        &temp2,
-                        &onStackChrominanceQuantTable,
+                        ref pixelConverter.Cb,
+                        ref temp1,
+                        ref temp2,
+                        ref onStackChrominanceQuantTable,
                         unzig.Data);
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
-                        &pixelConverter.Cr,
-                        &temp1,
-                        &temp2,
-                        &onStackChrominanceQuantTable,
+                        ref pixelConverter.Cr,
+                        ref temp1,
+                        ref temp2,
+                        ref onStackChrominanceQuantTable,
                         unzig.Data);
                 }
             }
@@ -519,18 +519,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         private int WriteBlock(
             QuantIndex index,
             int prevDC,
-            Block8x8F* src,
-            Block8x8F* tempDest1,
-            Block8x8F* tempDest2,
-            Block8x8F* quant,
+            ref Block8x8F src,
+            ref Block8x8F tempDest1,
+            ref Block8x8F tempDest2,
+            ref Block8x8F quant,
             byte* unzigPtr)
         {
-            FastFloatingPointDCT.TransformFDCT(ref *src, ref *tempDest1, ref *tempDest2);
+            FastFloatingPointDCT.TransformFDCT(ref src, ref tempDest1, ref tempDest2);
 
-            Block8x8F.Quantize(tempDest1, tempDest2, quant, unzigPtr);
-            float* unziggedDestPtr = (float*)tempDest2;
+            Block8x8F.Quantize(ref tempDest1, ref tempDest2, ref quant, unzigPtr);
 
-            int dc = (int)unziggedDestPtr[0];
+            int dc = (int)tempDest2[0];
 
             // Emit the DC delta.
             this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
@@ -541,7 +540,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             for (int zig = 1; zig < Block8x8F.Size; zig++)
             {
-                int ac = (int)unziggedDestPtr[zig];
+                int ac = (int)tempDest2[zig];
 
                 if (ac == 0)
                 {
@@ -1016,31 +1015,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         prevDCY = this.WriteBlock(
                             QuantIndex.Luminance,
                             prevDCY,
-                            &pixelConverter.Y,
-                            &temp1,
-                            &temp2,
-                            &onStackLuminanceQuantTable,
+                            ref pixelConverter.Y,
+                            ref temp1,
+                            ref temp2,
+                            ref onStackLuminanceQuantTable,
                             unzig.Data);
                     }
 
-                    Block8x8F.Scale16X16To8X8(&b, cbPtr);
+                    Block8x8F.Scale16X16To8X8(ref b, cbPtr);
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
-                        &b,
-                        &temp1,
-                        &temp2,
-                        &onStackChrominanceQuantTable,
+                        ref b,
+                        ref temp1,
+                        ref temp2,
+                        ref onStackChrominanceQuantTable,
                         unzig.Data);
 
-                    Block8x8F.Scale16X16To8X8(&b, crPtr);
+                    Block8x8F.Scale16X16To8X8(ref b, crPtr);
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
-                        &b,
-                        &temp1,
-                        &temp2,
-                        &onStackChrominanceQuantTable,
+                        ref b,
+                        ref temp1,
+                        ref temp2,
+                        ref onStackChrominanceQuantTable,
                         unzig.Data);
                 }
             }

@@ -154,18 +154,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             await Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync(hugeFile, cts.Token));
         }
 
-        [Theory]
+        [Theory(Skip = "Identify is too fast, doesn't work reliably.")]
         [InlineData(TestImages.Jpeg.Baseline.Exif)]
         [InlineData(TestImages.Jpeg.Progressive.Bad.ExifUndefType)]
         public async Task Identify_IsCancellable(string fileName)
         {
-            string hugeFile = Path.Combine(
+            string file = Path.Combine(
                 TestEnvironment.InputImagesDirectoryFullPath,
                 fileName);
 
             var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromTicks(1));
-            await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyAsync(hugeFile, cts.Token));
+            await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyAsync(file, cts.Token));
         }
 
         // DEBUG ONLY!

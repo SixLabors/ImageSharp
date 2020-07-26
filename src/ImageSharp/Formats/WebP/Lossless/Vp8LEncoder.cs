@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.WebP.BitWriter;
@@ -38,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// A bit writer for writing lossless webp streams.
         /// </summary>
         private Vp8LBitWriter bitWriter;
-
+        
         private const int ApplyPaletteGreedyMax = 4;
 
         private const int PaletteInvSizeBits = 11;
@@ -252,66 +253,74 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             // Analyze image (entropy, numPalettes etc).
-            this.EncoderAnalyze(image);
+            CrunchConfig[] crunchConfigs = this.EncoderAnalyze(image, out bool redAndBlueAlwaysZero);
 
-            var entropyIdx = 3; // TODO: hardcoded for now.
             int quality = 75; // TODO: quality is hardcoded for now.
-            bool useCache = true; // TODO: useCache is hardcoded for now.
-            bool redAndBlueAlwaysZero = false;
 
-            this.UsePalette = entropyIdx == (int)EntropyIx.Palette;
-            this.UseSubtractGreenTransform = (entropyIdx == (int)EntropyIx.SubGreen) || (entropyIdx == (int)EntropyIx.SpatialSubGreen);
-            this.UsePredictorTransform = (entropyIdx == (int)EntropyIx.Spatial) || (entropyIdx == (int)EntropyIx.SpatialSubGreen);
-            this.UseCrossColorTransform = redAndBlueAlwaysZero ? false : this.UsePredictorTransform;
-            this.AllocateTransformBuffer(width, height);
-
-            // Reset any parameter in the encoder that is set in the previous iteration.
-            this.CacheBits = 0;
-            this.ClearRefs();
-
-            // TODO: Apply near-lossless preprocessing.
-
-            // Encode palette.
-            if (this.UsePalette)
+            // TODO : Do we want to do this multi-threaded, this will probably require a second class:
+            // one which co-ordinates the threading and comparison and another which does the actual encoding
+            foreach (CrunchConfig crunchConfig in crunchConfigs)
             {
-                this.EncodePalette();
-                this.MapImageFromPalette(width, height);
+                bool useCache = true;
+                this.UsePalette = crunchConfig.EntropyIdx == EntropyIx.Palette || crunchConfig.EntropyIdx == EntropyIx.PaletteAndSpatial;
+                this.UseSubtractGreenTransform = (crunchConfig.EntropyIdx == EntropyIx.SubGreen) ||
+                                                 (crunchConfig.EntropyIdx == EntropyIx.SpatialSubGreen);
+                this.UsePredictorTransform = (crunchConfig.EntropyIdx == EntropyIx.Spatial) ||
+                                             (crunchConfig.EntropyIdx == EntropyIx.SpatialSubGreen);
+                this.UseCrossColorTransform = redAndBlueAlwaysZero ? false : this.UsePredictorTransform;
+                this.AllocateTransformBuffer(width, height);
 
-                // If using a color cache, do not have it bigger than the number of colors.
-                if (useCache && this.PaletteSize < (1 << WebPConstants.MaxColorCacheBits))
+                // Reset any parameter in the encoder that is set in the previous iteration.
+                this.CacheBits = 0;
+                this.ClearRefs();
+
+                // TODO: Apply near-lossless preprocessing.
+
+                // Encode palette.
+                if (this.UsePalette)
                 {
-                    this.CacheBits = WebPCommonUtils.BitsLog2Floor((uint)this.PaletteSize) + 1;
+                    this.EncodePalette();
+                    this.MapImageFromPalette(width, height);
+
+                    // If using a color cache, do not have it bigger than the number of colors.
+                    if (useCache && this.PaletteSize < (1 << WebPConstants.MaxColorCacheBits))
+                    {
+                        this.CacheBits = WebPCommonUtils.BitsLog2Floor((uint)this.PaletteSize) + 1;
+                    }
                 }
+
+                // Apply transforms and write transform data.
+                if (this.UseSubtractGreenTransform)
+                {
+                    this.ApplySubtractGreen(this.CurrentWidth, height);
+                }
+
+                if (this.UsePredictorTransform)
+                {
+                    this.ApplyPredictFilter(this.CurrentWidth, height, quality, this.UseSubtractGreenTransform);
+                }
+
+                if (this.UseCrossColorTransform)
+                {
+                    this.ApplyCrossColorFilter(this.CurrentWidth, height, quality);
+                }
+
+                this.bitWriter.PutBits(0, 1); // No more transforms.
+
+                // Encode and write the transformed image.
+                this.EncodeImage(bgra, this.HashChain, this.Refs, this.CurrentWidth, height, quality, useCache, crunchConfig,
+                    this.CacheBits, this.HistoBits, bytePosition);
             }
-
-            // Apply transforms and write transform data.
-            if (this.UseSubtractGreenTransform)
-            {
-                this.ApplySubtractGreen(this.CurrentWidth, height);
-            }
-
-            if (this.UsePredictorTransform)
-            {
-                this.ApplyPredictFilter(this.CurrentWidth, height, quality, this.UseSubtractGreenTransform);
-            }
-
-            if (this.UseCrossColorTransform)
-            {
-                this.ApplyCrossColorFilter(this.CurrentWidth, height, quality);
-            }
-
-            this.bitWriter.PutBits(0, 1);  // No more transforms.
-
-            // Encode and write the transformed image.
-            this.EncodeImage(bgra, this.HashChain, this.Refs, this.CurrentWidth, height, quality, useCache, this.CacheBits, this.HistoBits, bytePosition);
+            // TODO: Comparison and picking of best (smallest) encoding
         }
 
         /// <summary>
         /// Analyzes the image and decides what transforms should be used.
         /// </summary>
-        private void EncoderAnalyze<TPixel>(Image<TPixel> image)
+        private CrunchConfig[] EncoderAnalyze<TPixel>(Image<TPixel> image, out bool redAndBlueAlwaysZero)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            var configQuality = 75; // TODO: hardcoded quality for now
             int method = 4; // TODO: method hardcoded to 4 for now.
             int width = image.Width;
             int height = image.Height;
@@ -325,15 +334,61 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             // Try out multiple LZ77 on images with few colors.
             var nlz77s = (this.PaletteSize > 0 && this.PaletteSize <= 16) ? 2 : 1;
-            EntropyIx entropyIdx = this.AnalyzeEntropy(image, usePalette, this.PaletteSize, this.TransformBits, out bool redAndBlueAlwaysZero);
+            EntropyIx entropyIdx = this.AnalyzeEntropy(image, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
+            
+            bool doNotCache = false;
+            var crunchConfigs = new List<CrunchConfig>();
 
-            // TODO: Fill CrunchConfig
+            if (method == 6 && configQuality == 100)
+            {
+                doNotCache = true;
+
+                // Go brute force on all transforms.
+                foreach (EntropyIx entropyIx in Enum.GetValues(typeof(EntropyIx)).Cast<EntropyIx>())
+                {
+                    // We can only apply kPalette or kPaletteAndSpatial if we can indeed use
+                    // a palette.
+                    if ((entropyIx != EntropyIx.Palette && entropyIx != EntropyIx.PaletteAndSpatial) || usePalette)
+                    {
+                        crunchConfigs.Add(new CrunchConfig { EntropyIdx = entropyIx });
+                    }
+                }
+            }
+            else
+            {
+                // Only choose the guessed best transform.
+                crunchConfigs.Add(new CrunchConfig {EntropyIdx = entropyIdx});
+                if (configQuality >= 75 && method == 5)
+                {
+                    // Test with and without color cache.
+                    doNotCache = true;
+
+                    // If we have a palette, also check in combination with spatial.
+                    if (entropyIdx == EntropyIx.Palette)
+                    {
+                        crunchConfigs.Add(new CrunchConfig { EntropyIdx = EntropyIx.PaletteAndSpatial});
+                    }
+                }
+            }
+
+            // Fill in the different LZ77s.
+            foreach (CrunchConfig crunchConfig in crunchConfigs)
+            {
+                for (var j = 0; j < nlz77s; ++j)
+                {
+                    crunchConfig.SubConfigs.Add(new CrunchSubConfig
+                    {
+                        Lz77 = (j == 0) ? (int)Vp8LLz77Type.Lz77Standard | (int)Vp8LLz77Type.Lz77Rle : (int)Vp8LLz77Type.Lz77Box,
+                        DoNotCache = doNotCache
+                    });
+                }
+            }
+
+            return crunchConfigs.ToArray();
         }
 
-        private void EncodeImage(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, int quality, bool useCache, int cacheBits, int histogramBits, int initBytePosition)
+        private void EncodeImage(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, int quality, bool useCache, CrunchConfig config, int cacheBits, int histogramBits, int initBytePosition)
         {
-            int lz77sTypesToTrySize = 1; // TODO: hardcoded for now.
-            int[] lz77sTypesToTry = { 3 };
             int histogramImageXySize = LosslessUtils.SubSampleSize(width, histogramBits) * LosslessUtils.SubSampleSize(height, histogramBits);
             var histogramSymbols = new short[histogramImageXySize];
             var huffTree = new HuffmanTree[3 * WebPConstants.CodeLengthCodes];
@@ -357,24 +412,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // Calculate backward references from BGRA image.
             BackwardReferenceEncoder.HashChainFill(hashChain, bgra, quality, width, height);
 
-            Vp8LBitWriter bitWriterBest = null;
-            if (lz77sTypesToTrySize > 1)
-            {
-                bitWriterBest = this.bitWriter.Clone();
-            }
-            else
-            {
-                bitWriterBest = this.bitWriter;
-            }
+            Vp8LBitWriter bitWriterBest = config.SubConfigs.Count > 1 ? this.bitWriter.Clone() : this.bitWriter;
 
-            for (int lz77sIdx = 0; lz77sIdx < lz77sTypesToTrySize; lz77sIdx++)
+            foreach (CrunchSubConfig subConfig in config.SubConfigs)
             {
-                Vp8LBackwardRefs refsBest = BackwardReferenceEncoder.GetBackwardReferences(width, height, bgra, quality, lz77sTypesToTry[lz77sIdx], ref cacheBits, hashChain, refsArray[0], refsArray[1]);
-
+                Vp8LBackwardRefs refsBest = BackwardReferenceEncoder.GetBackwardReferences(width, height, bgra, quality, subConfig.Lz77, ref cacheBits, hashChain, refsArray[0], refsArray[1]); // TODO : Pass do not cache
                 // Keep the best references aside and use the other element from the first
                 // two as a temporary for later usage.
                 Vp8LBackwardRefs refsTmp = refsArray[refsBest.Equals(refsArray[0]) ? 1 : 0];
 
+                // TODO : Loop based on cache/no cache
+                
                 // TODO: this.bitWriter.Reset();
                 var tmpHisto = new Vp8LHistogram(cacheBits);
                 var histogramImage = new List<Vp8LHistogram>(histogramImageXySize);
@@ -1567,5 +1615,21 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             this.Palette.Dispose();
             this.TransformData.Dispose();
         }
+
+        // TODO : Not a fan of private classes
+        private class CrunchConfig
+        {
+            public EntropyIx EntropyIdx { get; set; }
+            public List<CrunchSubConfig> SubConfigs { get; } = new List<CrunchSubConfig>();
+        }
+
+        // TODO : Not a fan of private classes
+        private class CrunchSubConfig
+        {
+            public int Lz77 { get; set; }
+            public bool DoNotCache { get; set; }
+        }
     }
+
+   
 }

@@ -18,6 +18,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         Palette = 4,
 
-        NumEntropyIx = 5
+        PaletteAndSpatial = 5,
+
+        NumEntropyIx = 6
     }
 }

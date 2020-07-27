@@ -7,7 +7,6 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -655,7 +654,18 @@ namespace SixLabors.ImageSharp
             throw new UnknownImageFormatException(sb.ToString());
         }
 
-        private static T WithSeekableStream<T>(Configuration configuration, Stream stream, Func<Stream, T> action)
+        /// <summary>
+        /// Performs the given action against the stream ensuring that it is seekable.
+        /// </summary>
+        /// <typeparam name="T">The type of object returned from the action.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="action">The action to perform.</param>
+        /// <returns>The <typeparamref name="T"/>.</returns>
+        private static T WithSeekableStream<T>(
+            Configuration configuration,
+            Stream stream,
+            Func<Stream, T> action)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(stream, nameof(stream));
@@ -676,15 +686,21 @@ namespace SixLabors.ImageSharp
             }
 
             // We want to be able to load images from things like HttpContext.Request.Body
-            using (MemoryStream memoryStream = configuration.MemoryAllocator.AllocateFixedCapacityMemoryStream(stream.Length))
-            {
-                stream.CopyTo(memoryStream);
-                memoryStream.Position = 0;
+            using MemoryStream memoryStream = configuration.MemoryAllocator.AllocateFixedCapacityMemoryStream(stream.Length);
+            stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
+            memoryStream.Position = 0;
 
-                return action(memoryStream);
-            }
+            return action(memoryStream);
         }
 
+        /// <summary>
+        /// Performs the given action asynchronously against the stream ensuring that it is seekable.
+        /// </summary>
+        /// <typeparam name="T">The type of object returned from the action.</typeparam>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="action">The action to perform.</param>
+        /// <returns>The <see cref="Task{T}"/>.</returns>
         private static async Task<T> WithSeekableStreamAsync<T>(
             Configuration configuration,
             Stream stream,
@@ -712,13 +728,11 @@ namespace SixLabors.ImageSharp
                 return await action(stream).ConfigureAwait(false);
             }
 
-            using (MemoryStream memoryStream = configuration.MemoryAllocator.AllocateFixedCapacityMemoryStream(stream.Length))
-            {
-                await stream.CopyToAsync(memoryStream).ConfigureAwait(false);
-                memoryStream.Position = 0;
+            using MemoryStream memoryStream = configuration.MemoryAllocator.AllocateFixedCapacityMemoryStream(stream.Length);
+            await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize).ConfigureAwait(false);
+            memoryStream.Position = 0;
 
-                return await action(memoryStream).ConfigureAwait(false);
-            }
+            return await action(memoryStream).ConfigureAwait(false);
         }
     }
 }

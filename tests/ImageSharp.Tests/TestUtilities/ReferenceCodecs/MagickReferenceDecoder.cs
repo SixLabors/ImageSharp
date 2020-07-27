@@ -3,12 +3,9 @@
 
 using System;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using ImageMagick;
-
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;

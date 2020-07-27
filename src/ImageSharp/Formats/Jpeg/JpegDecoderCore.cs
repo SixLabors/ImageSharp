@@ -3,10 +3,8 @@
 
 using System;
 using System.Buffers.Binary;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -140,11 +138,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public int BitsPerPixel => this.ComponentCount * this.Frame.Precision;
 
         /// <summary>
-        /// Gets the input stream.
-        /// </summary>
-        public DoubleBufferedStreamReader InputStream { get; private set; }
-
-        /// <summary>
         /// Gets a value indicating whether the metadata should be ignored when the image is being decoded.
         /// </summary>
         public bool IgnoreMetadata { get; }
@@ -180,7 +173,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="marker">The buffer to read file markers to</param>
         /// <param name="stream">The input stream</param>
         /// <returns>The <see cref="JpegFileMarker"/></returns>
-        public static JpegFileMarker FindNextFileMarker(byte[] marker, DoubleBufferedStreamReader stream)
+        public static JpegFileMarker FindNextFileMarker(byte[] marker, BufferedReadStream stream)
         {
             int value = stream.Read(marker, 0, 2);
 
@@ -212,7 +205,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(Stream stream)
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.ParseStream(stream);
@@ -224,7 +217,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <inheritdoc/>
-        public IImageInfo Identify(Stream stream)
+        public IImageInfo Identify(BufferedReadStream stream)
         {
             this.ParseStream(stream, true);
             this.InitExifProfile();
@@ -240,22 +233,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="stream">The input stream</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
-        public void ParseStream(Stream stream, bool metadataOnly = false)
+        public void ParseStream(BufferedReadStream stream, bool metadataOnly = false)
         {
             this.Metadata = new ImageMetadata();
-            this.InputStream = new DoubleBufferedStreamReader(this.Configuration.MemoryAllocator, stream);
 
             // Check for the Start Of Image marker.
-            this.InputStream.Read(this.markerBuffer, 0, 2);
+            stream.Read(this.markerBuffer, 0, 2);
             var fileMarker = new JpegFileMarker(this.markerBuffer[1], 0);
             if (fileMarker.Marker != JpegConstants.Markers.SOI)
             {
                 JpegThrowHelper.ThrowInvalidImageContentException("Missing SOI marker.");
             }
 
-            this.InputStream.Read(this.markerBuffer, 0, 2);
+            stream.Read(this.markerBuffer, 0, 2);
             byte marker = this.markerBuffer[1];
-            fileMarker = new JpegFileMarker(marker, (int)this.InputStream.Position - 2);
+            fileMarker = new JpegFileMarker(marker, (int)stream.Position - 2);
             this.QuantizationTables = new Block8x8F[4];
 
             // Only assign what we need
@@ -274,20 +266,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 if (!fileMarker.Invalid)
                 {
                     // Get the marker length
-                    int remaining = this.ReadUint16() - 2;
+                    int remaining = this.ReadUint16(stream) - 2;
 
                     switch (fileMarker.Marker)
                     {
                         case JpegConstants.Markers.SOF0:
                         case JpegConstants.Markers.SOF1:
                         case JpegConstants.Markers.SOF2:
-                            this.ProcessStartOfFrameMarker(remaining, fileMarker, metadataOnly);
+                            this.ProcessStartOfFrameMarker(stream, remaining, fileMarker, metadataOnly);
                             break;
 
                         case JpegConstants.Markers.SOS:
                             if (!metadataOnly)
                             {
-                                this.ProcessStartOfScanMarker();
+                                this.ProcessStartOfScanMarker(stream);
                                 break;
                             }
                             else
@@ -301,41 +293,41 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                             if (metadataOnly)
                             {
-                                this.InputStream.Skip(remaining);
+                                stream.Skip(remaining);
                             }
                             else
                             {
-                                this.ProcessDefineHuffmanTablesMarker(remaining);
+                                this.ProcessDefineHuffmanTablesMarker(stream, remaining);
                             }
 
                             break;
 
                         case JpegConstants.Markers.DQT:
-                            this.ProcessDefineQuantizationTablesMarker(remaining);
+                            this.ProcessDefineQuantizationTablesMarker(stream, remaining);
                             break;
 
                         case JpegConstants.Markers.DRI:
                             if (metadataOnly)
                             {
-                                this.InputStream.Skip(remaining);
+                                stream.Skip(remaining);
                             }
                             else
                             {
-                                this.ProcessDefineRestartIntervalMarker(remaining);
+                                this.ProcessDefineRestartIntervalMarker(stream, remaining);
                             }
 
                             break;
 
                         case JpegConstants.Markers.APP0:
-                            this.ProcessApplicationHeaderMarker(remaining);
+                            this.ProcessApplicationHeaderMarker(stream, remaining);
                             break;
 
                         case JpegConstants.Markers.APP1:
-                            this.ProcessApp1Marker(remaining);
+                            this.ProcessApp1Marker(stream, remaining);
                             break;
 
                         case JpegConstants.Markers.APP2:
-                            this.ProcessApp2Marker(remaining);
+                            this.ProcessApp2Marker(stream, remaining);
                             break;
 
                         case JpegConstants.Markers.APP3:
@@ -348,37 +340,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.APP10:
                         case JpegConstants.Markers.APP11:
                         case JpegConstants.Markers.APP12:
-                            this.InputStream.Skip(remaining);
+                            stream.Skip(remaining);
                             break;
 
                         case JpegConstants.Markers.APP13:
-                            this.ProcessApp13Marker(remaining);
+                            this.ProcessApp13Marker(stream, remaining);
                             break;
 
                         case JpegConstants.Markers.APP14:
-                            this.ProcessApp14Marker(remaining);
+                            this.ProcessApp14Marker(stream, remaining);
                             break;
 
                         case JpegConstants.Markers.APP15:
                         case JpegConstants.Markers.COM:
-                            this.InputStream.Skip(remaining);
+                            stream.Skip(remaining);
                             break;
                     }
                 }
 
                 // Read on.
-                fileMarker = FindNextFileMarker(this.markerBuffer, this.InputStream);
+                fileMarker = FindNextFileMarker(this.markerBuffer, stream);
             }
         }
 
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.InputStream?.Dispose();
             this.Frame?.Dispose();
 
             // Set large fields to null.
-            this.InputStream = null;
             this.Frame = null;
             this.dcHuffmanTables = null;
             this.acHuffmanTables = null;
@@ -504,18 +494,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Processes the application header containing the JFIF identifier plus extra data.
         /// </summary>
+        /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessApplicationHeaderMarker(int remaining)
+        private void ProcessApplicationHeaderMarker(BufferedReadStream stream, int remaining)
         {
             // We can only decode JFif identifiers.
             if (remaining < JFifMarker.Length)
             {
                 // Skip the application header length
-                this.InputStream.Skip(remaining);
+                stream.Skip(remaining);
                 return;
             }
 
-            this.InputStream.Read(this.temp, 0, JFifMarker.Length);
+            stream.Read(this.temp, 0, JFifMarker.Length);
             remaining -= JFifMarker.Length;
 
             JFifMarker.TryParse(this.temp, out this.jFif);
@@ -523,26 +514,37 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // TODO: thumbnail
             if (remaining > 0)
             {
-                this.InputStream.Skip(remaining);
+                if (stream.Position + remaining >= stream.Length)
+                {
+                    JpegThrowHelper.ThrowInvalidImageContentException("Bad App0 Marker length.");
+                }
+
+                stream.Skip(remaining);
             }
         }
 
         /// <summary>
         /// Processes the App1 marker retrieving any stored metadata
         /// </summary>
+        /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessApp1Marker(int remaining)
+        private void ProcessApp1Marker(BufferedReadStream stream, int remaining)
         {
             const int Exif00 = 6;
             if (remaining < Exif00 || this.IgnoreMetadata)
             {
                 // Skip the application header length
-                this.InputStream.Skip(remaining);
+                stream.Skip(remaining);
                 return;
             }
 
+            if (stream.Position + remaining >= stream.Length)
+            {
+                JpegThrowHelper.ThrowInvalidImageContentException("Bad App1 Marker length.");
+            }
+
             var profile = new byte[remaining];
-            this.InputStream.Read(profile, 0, remaining);
+            stream.Read(profile, 0, remaining);
 
             if (ProfileResolver.IsProfile(profile, ProfileResolver.ExifMarker))
             {
@@ -563,26 +565,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Processes the App2 marker retrieving any stored ICC profile information
         /// </summary>
+        /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessApp2Marker(int remaining)
+        private void ProcessApp2Marker(BufferedReadStream stream, int remaining)
         {
             // Length is 14 though we only need to check 12.
             const int Icclength = 14;
             if (remaining < Icclength || this.IgnoreMetadata)
             {
-                this.InputStream.Skip(remaining);
+                stream.Skip(remaining);
                 return;
             }
 
             var identifier = new byte[Icclength];
-            this.InputStream.Read(identifier, 0, Icclength);
+            stream.Read(identifier, 0, Icclength);
             remaining -= Icclength; // We have read it by this point
 
             if (ProfileResolver.IsProfile(identifier, ProfileResolver.IccMarker))
             {
                 this.isIcc = true;
                 var profile = new byte[remaining];
-                this.InputStream.Read(profile, 0, remaining);
+                stream.Read(profile, 0, remaining);
 
                 if (this.iccData is null)
                 {
@@ -597,7 +600,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             else
             {
                 // Not an ICC profile we can handle. Skip the remaining bytes so we can carry on and ignore this.
-                this.InputStream.Skip(remaining);
+                stream.Skip(remaining);
             }
         }
 
@@ -605,21 +608,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Processes a App13 marker, which contains IPTC data stored with Adobe Photoshop.
         /// The content of an APP13 segment is formed by an identifier string followed by a sequence of resource data blocks.
         /// </summary>
+        /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessApp13Marker(int remaining)
+        private void ProcessApp13Marker(BufferedReadStream stream, int remaining)
         {
             if (remaining < ProfileResolver.AdobePhotoshopApp13Marker.Length || this.IgnoreMetadata)
             {
-                this.InputStream.Skip(remaining);
+                stream.Skip(remaining);
                 return;
             }
 
-            this.InputStream.Read(this.temp, 0, ProfileResolver.AdobePhotoshopApp13Marker.Length);
+            stream.Read(this.temp, 0, ProfileResolver.AdobePhotoshopApp13Marker.Length);
             remaining -= ProfileResolver.AdobePhotoshopApp13Marker.Length;
             if (ProfileResolver.IsProfile(this.temp, ProfileResolver.AdobePhotoshopApp13Marker))
             {
                 var resourceBlockData = new byte[remaining];
-                this.InputStream.Read(resourceBlockData, 0, remaining);
+                stream.Read(resourceBlockData, 0, remaining);
                 Span<byte> blockDataSpan = resourceBlockData.AsSpan();
 
                 while (blockDataSpan.Length > 12)
@@ -694,42 +698,44 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Processes the application header containing the Adobe identifier
         /// which stores image encoding information for DCT filters.
         /// </summary>
+        /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessApp14Marker(int remaining)
+        private void ProcessApp14Marker(BufferedReadStream stream, int remaining)
         {
             const int MarkerLength = AdobeMarker.Length;
             if (remaining < MarkerLength)
             {
                 // Skip the application header length
-                this.InputStream.Skip(remaining);
+                stream.Skip(remaining);
                 return;
             }
 
-            this.InputStream.Read(this.temp, 0, MarkerLength);
+            stream.Read(this.temp, 0, MarkerLength);
             remaining -= MarkerLength;
 
             AdobeMarker.TryParse(this.temp, out this.adobe);
 
             if (remaining > 0)
             {
-                this.InputStream.Skip(remaining);
+                stream.Skip(remaining);
             }
         }
 
         /// <summary>
         /// Processes the Define Quantization Marker and tables. Specified in section B.2.4.1.
         /// </summary>
+        /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <exception cref="ImageFormatException">
         /// Thrown if the tables do not match the header
         /// </exception>
-        private void ProcessDefineQuantizationTablesMarker(int remaining)
+        private void ProcessDefineQuantizationTablesMarker(BufferedReadStream stream, int remaining)
         {
             while (remaining > 0)
             {
                 bool done = false;
                 remaining--;
-                int quantizationTableSpec = this.InputStream.ReadByte();
+                int quantizationTableSpec = stream.ReadByte();
                 int tableIndex = quantizationTableSpec & 15;
 
                 // Max index. 4 Tables max.
@@ -749,7 +755,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             break;
                         }
 
-                        this.InputStream.Read(this.temp, 0, 64);
+                        stream.Read(this.temp, 0, 64);
                         remaining -= 64;
 
                         ref Block8x8F table = ref this.QuantizationTables[tableIndex];
@@ -769,7 +775,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             break;
                         }
 
-                        this.InputStream.Read(this.temp, 0, 128);
+                        stream.Read(this.temp, 0, 128);
                         remaining -= 128;
 
                         ref Block8x8F table = ref this.QuantizationTables[tableIndex];
@@ -805,10 +811,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Processes the Start of Frame marker.  Specified in section B.2.2.
         /// </summary>
+        /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
         /// <param name="frameMarker">The current frame marker.</param>
         /// <param name="metadataOnly">Whether to parse metadata only</param>
-        private void ProcessStartOfFrameMarker(int remaining, in JpegFileMarker frameMarker, bool metadataOnly)
+        private void ProcessStartOfFrameMarker(BufferedReadStream stream, int remaining, in JpegFileMarker frameMarker, bool metadataOnly)
         {
             if (this.Frame != null)
             {
@@ -822,7 +829,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             // Read initial marker definitions.
             const int length = 6;
-            this.InputStream.Read(this.temp, 0, length);
+            stream.Read(this.temp, 0, length);
 
             // We only support 8-bit and 12-bit precision.
             if (Array.IndexOf(this.supportedPrecisions, this.temp[0]) == -1)
@@ -860,7 +867,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     JpegThrowHelper.ThrowBadMarker("SOFn", remaining);
                 }
 
-                this.InputStream.Read(this.temp, 0, remaining);
+                stream.Read(this.temp, 0, remaining);
 
                 // No need to pool this. They max out at 4
                 this.Frame.ComponentIds = new byte[this.ComponentCount];
@@ -907,8 +914,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Processes a Define Huffman Table marker, and initializes a huffman
         /// struct from its contents. Specified in section B.2.4.2.
         /// </summary>
+        /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessDefineHuffmanTablesMarker(int remaining)
+        private void ProcessDefineHuffmanTablesMarker(BufferedReadStream stream, int remaining)
         {
             int length = remaining;
 
@@ -917,7 +925,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 ref byte huffmanDataRef = ref MemoryMarshal.GetReference(huffmanData.GetSpan());
                 for (int i = 2; i < remaining;)
                 {
-                    byte huffmanTableSpec = (byte)this.InputStream.ReadByte();
+                    byte huffmanTableSpec = (byte)stream.ReadByte();
                     int tableType = huffmanTableSpec >> 4;
                     int tableIndex = huffmanTableSpec & 15;
 
@@ -933,7 +941,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         JpegThrowHelper.ThrowInvalidImageContentException("Bad Huffman Table index.");
                     }
 
-                    this.InputStream.Read(huffmanData.Array, 0, 16);
+                    stream.Read(huffmanData.Array, 0, 16);
 
                     using (IManagedByteBuffer codeLengths = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(17, AllocationOptions.Clean))
                     {
@@ -954,7 +962,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                         using (IManagedByteBuffer huffmanValues = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(256, AllocationOptions.Clean))
                         {
-                            this.InputStream.Read(huffmanValues.Array, 0, codeLengthSum);
+                            stream.Read(huffmanValues.Array, 0, codeLengthSum);
 
                             i += 17 + codeLengthSum;
 
@@ -973,32 +981,34 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Processes the DRI (Define Restart Interval Marker) Which specifies the interval between RSTn markers, in
         /// macroblocks
         /// </summary>
+        /// <param name="stream">The input stream.</param>
         /// <param name="remaining">The remaining bytes in the segment block.</param>
-        private void ProcessDefineRestartIntervalMarker(int remaining)
+        private void ProcessDefineRestartIntervalMarker(BufferedReadStream stream, int remaining)
         {
             if (remaining != 2)
             {
                 JpegThrowHelper.ThrowBadMarker(nameof(JpegConstants.Markers.DRI), remaining);
             }
 
-            this.resetInterval = this.ReadUint16();
+            this.resetInterval = this.ReadUint16(stream);
         }
 
         /// <summary>
         /// Processes the SOS (Start of scan marker).
         /// </summary>
-        private void ProcessStartOfScanMarker()
+        /// <param name="stream">The input stream.</param>
+        private void ProcessStartOfScanMarker(BufferedReadStream stream)
         {
             if (this.Frame is null)
             {
                 JpegThrowHelper.ThrowInvalidImageContentException("No readable SOFn (Start Of Frame) marker found.");
             }
 
-            int selectorsCount = this.InputStream.ReadByte();
+            int selectorsCount = stream.ReadByte();
             for (int i = 0; i < selectorsCount; i++)
             {
                 int componentIndex = -1;
-                int selector = this.InputStream.ReadByte();
+                int selector = stream.ReadByte();
 
                 for (int j = 0; j < this.Frame.ComponentIds.Length; j++)
                 {
@@ -1016,20 +1026,20 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 }
 
                 ref JpegComponent component = ref this.Frame.Components[componentIndex];
-                int tableSpec = this.InputStream.ReadByte();
+                int tableSpec = stream.ReadByte();
                 component.DCHuffmanTableId = tableSpec >> 4;
                 component.ACHuffmanTableId = tableSpec & 15;
                 this.Frame.ComponentOrder[i] = (byte)componentIndex;
             }
 
-            this.InputStream.Read(this.temp, 0, 3);
+            stream.Read(this.temp, 0, 3);
 
             int spectralStart = this.temp[0];
             int spectralEnd = this.temp[1];
             int successiveApproximation = this.temp[2];
 
             var sd = new HuffmanScanDecoder(
-                this.InputStream,
+                stream,
                 this.Frame,
                 this.dcHuffmanTables,
                 this.acHuffmanTables,
@@ -1057,11 +1067,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Reads a <see cref="ushort"/> from the stream advancing it by two bytes
         /// </summary>
+        /// <param name="stream">The input stream.</param>
         /// <returns>The <see cref="ushort"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private ushort ReadUint16()
+        private ushort ReadUint16(BufferedReadStream stream)
         {
-            this.InputStream.Read(this.markerBuffer, 0, 2);
+            stream.Read(this.markerBuffer, 0, 2);
             return BinaryPrimitives.ReadUInt16BigEndian(this.markerBuffer);
         }
 

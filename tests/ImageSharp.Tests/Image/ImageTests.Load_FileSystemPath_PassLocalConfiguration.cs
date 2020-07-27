@@ -81,9 +81,9 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Assert.Throws<System.IO.FileNotFoundException>(
                     () =>
-                        {
-                            Image.Load<Rgba32>(this.TopLevelConfiguration, Guid.NewGuid().ToString());
-                        });
+                    {
+                        Image.Load<Rgba32>(this.TopLevelConfiguration, Guid.NewGuid().ToString());
+                    });
             }
 
             [Fact]
@@ -91,9 +91,9 @@ namespace SixLabors.ImageSharp.Tests
             {
                 Assert.Throws<ArgumentNullException>(
                     () =>
-                        {
-                            Image.Load<Rgba32>(this.TopLevelConfiguration, (string)null);
-                        });
+                    {
+                        Image.Load<Rgba32>(this.TopLevelConfiguration, (string)null);
+                    });
             }
         }
     }

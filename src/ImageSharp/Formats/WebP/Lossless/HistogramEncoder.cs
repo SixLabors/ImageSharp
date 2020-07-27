@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         private const uint NonTrivialSym = 0xffffffff;
 
-        private const short InvalidHistogramSymbol = Int16.MaxValue;
+        private const short InvalidHistogramSymbol = short.MaxValue;
 
         public static void GetHistoImageSymbols(int xSize, int ySize, Vp8LBackwardRefs refs, int quality, int histoBits, int cacheBits, List<Vp8LHistogram> imageHisto, Vp8LHistogram tmpHisto, short[] histogramSymbols)
         {
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             // Cubic ramp between 1 and MaxHistoGreedy:
             int thresholdSize = (int)(1 + (x * x * x * (MaxHistoGreedy - 1)));
-            bool doGreedy = HistogramCombineStochastic(imageHisto, ref numUsed, thresholdSize);
+            bool doGreedy = HistogramCombineStochastic(imageHisto, thresholdSize);
             if (doGreedy)
             {
                 HistogramCombineGreedy(imageHisto);
@@ -303,14 +303,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// Perform histogram aggregation using a stochastic approach.
         /// </summary>
         /// <returns>true if a greedy approach needs to be performed afterwards, false otherwise.</returns>
-        private static bool HistogramCombineStochastic(List<Vp8LHistogram> histograms, ref int numUsed, int minClusterSize)
+        private static bool HistogramCombineStochastic(List<Vp8LHistogram> histograms, int minClusterSize)
         {
             var rand = new Random();
             int triesWithNoSuccess = 0;
+            var numUsed = histograms.Count(h => h != null);
             int outerIters = numUsed;
             int numTriesNoSuccess = outerIters / 2;
 
-            if (histograms.Count < minClusterSize)
+            if (numUsed < minClusterSize)
             {
                 return true;
             }
@@ -333,7 +334,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 double bestCost = (histoPriorityList.Count == 0) ? 0.0d : histoPriorityList[0].CostDiff;
                 int bestIdx1 = -1;
                 int bestIdx2 = 1;
-                int numTries = numUsed / 2; // TODO: should that be histogram.Count/2?
+                int numTries = numUsed / 2;
                 uint randRange = (uint)((numUsed - 1) * numUsed);
 
                 // Pick random samples.
@@ -454,16 +455,26 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         private static void HistogramCombineGreedy(List<Vp8LHistogram> histograms)
         {
-            int histoSize = histograms.Count;
+            int histoSize = histograms.Count(h => h != null);
 
             // Priority list of histogram pairs.
             var histoPriorityList = new List<HistogramPair>();
             int maxSize = histoSize * histoSize;
 
-            for (int i = 0; i < histograms.Count; i++)
+            for (int i = 0; i < histoSize; i++)
             {
-                for (int j = i + 1; j < histograms.Count; j++)
+                if (histograms[i] == null)
                 {
+                    continue;
+                }
+
+                for (int j = i + 1; j < histoSize; j++)
+                {
+                    if (histograms[j] == null)
+                    {
+                        continue;
+                    }
+
                     HistoPriorityListPush(histoPriorityList, maxSize, histograms, i, j, 0.0d);
                 }
             }
@@ -496,7 +507,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
 
                 // Push new pairs formed with combined histogram to the list.
-                for (int i = 0; i < histograms.Count; i++)
+                for (int i = 0; i < histoSize; i++)
                 {
                     if (i == idx1 || histograms[i] == null)
                     {

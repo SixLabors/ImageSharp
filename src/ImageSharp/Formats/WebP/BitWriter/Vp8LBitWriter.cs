@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         }
 
         /// <summary>
-        /// Writes the encoded bytes of the image to the stream. Call BitWriterFinish() before this. 
+        /// Writes the encoded bytes of the image to the stream. Call BitWriterFinish() before this.
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
         public void WriteToStream(Stream stream)

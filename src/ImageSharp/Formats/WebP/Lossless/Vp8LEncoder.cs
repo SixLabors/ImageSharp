@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+
 using SixLabors.ImageSharp.Formats.WebP.BitWriter;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -417,12 +418,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             foreach (CrunchSubConfig subConfig in config.SubConfigs)
             {
                 Vp8LBackwardRefs refsBest = BackwardReferenceEncoder.GetBackwardReferences(width, height, bgra, quality, subConfig.Lz77, ref cacheBits, hashChain, refsArray[0], refsArray[1]); // TODO : Pass do not cache
+
                 // Keep the best references aside and use the other element from the first
                 // two as a temporary for later usage.
                 Vp8LBackwardRefs refsTmp = refsArray[refsBest.Equals(refsArray[0]) ? 1 : 0];
 
                 // TODO : Loop based on cache/no cache
-                
+
                 // TODO: this.bitWriter.Reset();
                 var tmpHisto = new Vp8LHistogram(cacheBits);
                 var histogramImage = new List<Vp8LHistogram>(histogramImageXySize);
@@ -474,7 +476,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                         }
                     }
 
-                    histogramImageSize = maxIndex;
                     this.bitWriter.PutBits((uint)(histogramBits - 2), 3);
                     this.EncodeImageNoHuffman(histogramArgb, hashChain, refsTmp, refsArray[2], LosslessUtils.SubSampleSize(width, histogramBits), LosslessUtils.SubSampleSize(height, histogramBits), quality);
                 }
@@ -482,7 +483,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 // Store Huffman codes.
                 // Find maximum number of symbols for the huffman tree-set.
                 int maxTokens = 0;
-                for (int i = 0; i < 5 * histogramImageSize; i++)
+                for (int i = 0; i < 5 * histogramImage.Count; i++)
                 {
                     HuffmanTreeCode codes = huffmanCodes[i];
                     if (maxTokens < codes.NumSymbols)
@@ -497,7 +498,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     tokens[i] = new HuffmanTreeToken();
                 }
 
-                for (int i = 0; i < 5 * histogramImageSize; i++)
+                for (int i = 0; i < 5 * histogramImage.Count; i++)
                 {
                     HuffmanTreeCode codes = huffmanCodes[i];
                     this.StoreHuffmanCode(huffTree, tokens, codes);
@@ -912,7 +913,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 return EntropyIx.Palette;
             }
 
-            using System.Buffers.IMemoryOwner<uint> histoBuffer = this.memoryAllocator.Allocate<uint>((int)HistoIx.HistoTotal * 256);
+            using IMemoryOwner<uint> histoBuffer = this.memoryAllocator.Allocate<uint>((int)HistoIx.HistoTotal * 256);
             Span<uint> histo = histoBuffer.Memory.Span;
             Bgra32 pixPrev = ToBgra32(image.GetPixelRowSpan(0)[0]); // Skip the first pixel.
             Span<TPixel> prevRow = null;
@@ -955,7 +956,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     histo[((int)HistoIx.HistoPalette * 256) + (int)hash]++;
                 }
 
-                var histo0 = histo[0];
                 prevRow = currentRow;
             }
 
@@ -1149,7 +1149,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         private void ApplyPalette(Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<uint> palette, int paletteSize, int width, int height, int xBits)
         {
-            using System.Buffers.IMemoryOwner<byte> tmpRowBuffer = this.memoryAllocator.Allocate<byte>(width);
+            using IMemoryOwner<byte> tmpRowBuffer = this.memoryAllocator.Allocate<byte>(width);
             Span<byte> tmpRow = tmpRowBuffer.GetSpan();
 
             if (paletteSize < ApplyPaletteGreedyMax)
@@ -1209,8 +1209,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
                 else
                 {
-                    uint[] idxMap = new uint[paletteSize];
-                    uint[] paletteSorted = new uint[paletteSize];
+                    var idxMap = new uint[paletteSize];
+                    var paletteSorted = new uint[paletteSize];
                     PrepareMapToPalette(palette, paletteSize, paletteSorted, idxMap);
                     ApplyPaletteForWithIdxMap(width, height, palette, src, srcStride, dst, dstStride, tmpRow, idxMap, xBits, paletteSorted, paletteSize);
                 }

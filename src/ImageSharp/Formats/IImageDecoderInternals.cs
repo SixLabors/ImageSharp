@@ -1,7 +1,8 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.IO;
+using System;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats
@@ -21,18 +22,16 @@ namespace SixLabors.ImageSharp.Formats
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="stream">The stream, where the image should be decoded from. Cannot be null.</param>
-        /// <exception cref="System.ArgumentNullException">
-        ///    <para><paramref name="stream"/> is null.</para>
-        /// </exception>
+        /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
         /// <returns>The decoded image.</returns>
-        Image<TPixel> Decode<TPixel>(Stream stream)
+        Image<TPixel> Decode<TPixel>(BufferedReadStream stream)
             where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
         /// Reads the raw image information from the specified stream.
         /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
         /// <returns>The <see cref="IImageInfo"/>.</returns>
-        IImageInfo Identify(Stream stream);
+        IImageInfo Identify(BufferedReadStream stream);
     }
 }

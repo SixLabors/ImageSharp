@@ -5,7 +5,6 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
@@ -19,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         private readonly JpegFrame frame;
         private readonly HuffmanTable[] dcHuffmanTables;
         private readonly HuffmanTable[] acHuffmanTables;
-        private readonly DoubleBufferedStreamReader stream;
+        private readonly BufferedReadStream stream;
         private readonly JpegComponent[] components;
 
         // The restart interval.
@@ -65,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="successiveHigh">The successive approximation bit high end.</param>
         /// <param name="successiveLow">The successive approximation bit low end.</param>
         public HuffmanScanDecoder(
-            DoubleBufferedStreamReader stream,
+            BufferedReadStream stream,
             JpegFrame frame,
             HuffmanTable[] dcHuffmanTables,
             HuffmanTable[] acHuffmanTables,

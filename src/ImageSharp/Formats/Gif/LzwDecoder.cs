@@ -3,10 +3,9 @@
 
 using System;
 using System.Buffers;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
@@ -29,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The stream to decode.
         /// </summary>
-        private readonly Stream stream;
+        private readonly BufferedReadStream stream;
 
         /// <summary>
         /// The prefix buffer.
@@ -52,8 +51,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="stream">The stream to read from.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="stream"/> is null.</exception>
-        public LzwDecoder(MemoryAllocator memoryAllocator, Stream stream)
+        /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
+        public LzwDecoder(MemoryAllocator memoryAllocator, BufferedReadStream stream)
         {
             this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
 

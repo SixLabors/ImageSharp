@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             try
             {
-                using var bufferedStream = new BufferedReadStream(stream);
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
                 return decoder.Decode<TPixel>(bufferedStream);
             }
             catch (InvalidMemoryOperationException ex)
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             try
             {
-                using var bufferedStream = new BufferedReadStream(stream);
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
                 return await decoder.DecodeAsync<TPixel>(bufferedStream).ConfigureAwait(false);
             }
             catch (InvalidMemoryOperationException ex)
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             Guard.NotNull(stream, nameof(stream));
 
-            using var bufferedStream = new BufferedReadStream(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
             return new BmpDecoderCore(configuration, this).Identify(bufferedStream);
         }
 
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             Guard.NotNull(stream, nameof(stream));
 
-            using var bufferedStream = new BufferedReadStream(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
             return new BmpDecoderCore(configuration, this).IdentifyAsync(bufferedStream);
         }
     }

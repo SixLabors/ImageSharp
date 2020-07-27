@@ -3,6 +3,9 @@
 
 using System.IO;
 using System.Threading.Tasks;
+
+using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.WebP
@@ -23,7 +26,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new WebPDecoderCore(configuration, this).Decode<TPixel>(stream);
+            var decoder = new WebPDecoderCore(configuration, this);
+
+            try
+            {
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
+                return decoder.Decode<TPixel>(bufferedStream);
+            }
+            catch (InvalidMemoryOperationException ex)
+            {
+                Size dims = decoder.Dimensions;
+
+                throw new InvalidImageContentException($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}. This error can happen for very large RLE bitmaps, which are not supported.", ex);
+            }
         }
 
         /// <inheritdoc/>
@@ -31,7 +46,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new WebPDecoderCore(configuration, this).Identify(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
+            return new WebPDecoderCore(configuration, this).Identify(bufferedStream);
         }
 
         /// <inheritdoc />
@@ -43,7 +59,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new WebPDecoderCore(configuration, this).DecodeAsync<TPixel>(stream);
+            var decoder = new WebPDecoderCore(configuration, this);
+
+            try
+            {
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
+                return decoder.DecodeAsync<TPixel>(bufferedStream);
+            }
+            catch (InvalidMemoryOperationException ex)
+            {
+                Size dims = decoder.Dimensions;
+
+                throw new InvalidImageContentException($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}. This error can happen for very large RLE bitmaps, which are not supported.", ex);
+            }
         }
 
         /// <inheritdoc />
@@ -55,7 +83,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new WebPDecoderCore(configuration, this).IdentifyAsync(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
+            return new WebPDecoderCore(configuration, this).IdentifyAsync(bufferedStream);
         }
     }
 }

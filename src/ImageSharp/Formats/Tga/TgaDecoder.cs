@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
             try
             {
-                using var bufferedStream = new BufferedReadStream(stream);
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
                 return decoder.Decode<TPixel>(bufferedStream);
             }
             catch (InvalidMemoryOperationException ex)
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
 
             try
             {
-                using var bufferedStream = new BufferedReadStream(stream);
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
                 return await decoder.DecodeAsync<TPixel>(bufferedStream).ConfigureAwait(false);
             }
             catch (InvalidMemoryOperationException ex)
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             Guard.NotNull(stream, nameof(stream));
 
-            using var bufferedStream = new BufferedReadStream(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
             return new TgaDecoderCore(configuration, this).Identify(bufferedStream);
         }
 
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         {
             Guard.NotNull(stream, nameof(stream));
 
-            using var bufferedStream = new BufferedReadStream(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
             return new TgaDecoderCore(configuration, this).IdentifyAsync(bufferedStream);
         }
     }

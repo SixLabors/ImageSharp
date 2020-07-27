@@ -514,6 +514,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // TODO: thumbnail
             if (remaining > 0)
             {
+                if (stream.Position + remaining >= stream.Length)
+                {
+                    JpegThrowHelper.ThrowInvalidImageContentException("Bad App0 Marker length.");
+                }
+
                 stream.Skip(remaining);
             }
         }
@@ -531,6 +536,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 // Skip the application header length
                 stream.Skip(remaining);
                 return;
+            }
+
+            if (stream.Position + remaining >= stream.Length)
+            {
+                JpegThrowHelper.ThrowInvalidImageContentException("Bad App1 Marker length.");
             }
 
             var profile = new byte[remaining];

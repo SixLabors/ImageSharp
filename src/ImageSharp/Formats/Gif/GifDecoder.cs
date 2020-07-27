@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             try
             {
-                using var bufferedStream = new BufferedReadStream(stream);
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
                 return decoder.Decode<TPixel>(bufferedStream);
             }
             catch (InvalidMemoryOperationException ex)
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             try
             {
-                using var bufferedStream = new BufferedReadStream(stream);
+                using var bufferedStream = new BufferedReadStream(configuration, stream);
                 return await decoder.DecodeAsync<TPixel>(bufferedStream).ConfigureAwait(false);
             }
             catch (InvalidMemoryOperationException ex)
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             var decoder = new GifDecoderCore(configuration, this);
 
-            using var bufferedStream = new BufferedReadStream(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
             return decoder.Identify(bufferedStream);
         }
 
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             var decoder = new GifDecoderCore(configuration, this);
 
-            using var bufferedStream = new BufferedReadStream(stream);
+            using var bufferedStream = new BufferedReadStream(configuration, stream);
             return decoder.IdentifyAsync(bufferedStream);
         }
     }

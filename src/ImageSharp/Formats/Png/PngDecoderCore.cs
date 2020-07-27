@@ -9,7 +9,6 @@ using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -1027,7 +1026,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         private bool TryUncompressTextData(ReadOnlySpan<byte> compressedData, Encoding encoding, out string value)
         {
             using (var memoryStream = new MemoryStream(compressedData.ToArray()))
-            using (var bufferedStream = new BufferedReadStream(memoryStream))
+            using (var bufferedStream = new BufferedReadStream(this.Configuration, memoryStream))
             using (var inflateStream = new ZlibInflateStream(bufferedStream))
             {
                 if (!inflateStream.AllocateNewBytes(compressedData.Length, false))

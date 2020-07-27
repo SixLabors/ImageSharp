@@ -8,6 +8,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.WebP.BitReader;
 using SixLabors.ImageSharp.Formats.WebP.Lossless;
 using SixLabors.ImageSharp.Formats.WebP.Lossy;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -42,6 +43,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private WebPMetadata webpMetadata;
 
         /// <summary>
+        /// Information about the webp image.
+        /// </summary>
+        private WebPImageInfo webImageInfo;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebPDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -67,58 +73,59 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Configuration Configuration { get; }
 
         /// <summary>
-        /// Decodes the image from the specified <see cref="Stream"/> and sets the data to the image.
+        /// Gets the dimensions of the image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">The stream, where the image should be.</param>
-        /// <returns>The decoded image.</returns>
-        public Image<TPixel> Decode<TPixel>(Stream stream)
+        public Size Dimensions => new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height);
+
+        /// <inheritdoc />
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.Metadata = new ImageMetadata();
             this.currentStream = stream;
 
             this.ReadImageHeader();
-            using WebPImageInfo imageInfo = this.ReadVp8Info();
-            if (imageInfo.Features != null && imageInfo.Features.Animation)
-            {
-                WebPThrowHelper.ThrowNotSupportedException("Animations are not supported");
-            }
 
-            var image = new Image<TPixel>(this.Configuration, (int)imageInfo.Width, (int)imageInfo.Height, this.Metadata);
-            Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
-            if (imageInfo.IsLossless)
+            using (this.webImageInfo = this.ReadVp8Info())
             {
-                var losslessDecoder = new WebPLosslessDecoder(imageInfo.Vp8LBitReader, this.memoryAllocator, this.Configuration);
-                losslessDecoder.Decode(pixels, image.Width, image.Height);
-            }
-            else
-            {
-                var lossyDecoder = new WebPLossyDecoder(imageInfo.Vp8BitReader, this.memoryAllocator, this.Configuration);
-                lossyDecoder.Decode(pixels, image.Width, image.Height, imageInfo);
-            }
+                if (this.webImageInfo.Features != null && this.webImageInfo.Features.Animation)
+                {
+                    WebPThrowHelper.ThrowNotSupportedException("Animations are not supported");
+                }
 
-            // There can be optional chunks after the image data, like EXIF and XMP.
-            if (imageInfo.Features != null)
-            {
-                this.ParseOptionalChunks(imageInfo.Features);
-            }
+                var image = new Image<TPixel>(this.Configuration, (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, this.Metadata);
+                Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
+                if (this.webImageInfo.IsLossless)
+                {
+                    var losslessDecoder = new WebPLosslessDecoder(this.webImageInfo.Vp8LBitReader, this.memoryAllocator, this.Configuration);
+                    losslessDecoder.Decode(pixels, image.Width, image.Height);
+                }
+                else
+                {
+                    var lossyDecoder = new WebPLossyDecoder(this.webImageInfo.Vp8BitReader, this.memoryAllocator, this.Configuration);
+                    lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo);
+                }
 
-            return image;
+                // There can be optional chunks after the image data, like EXIF and XMP.
+                if (this.webImageInfo.Features != null)
+                {
+                    this.ParseOptionalChunks(this.webImageInfo.Features);
+                }
+
+                return image;
+            }
         }
 
-        /// <summary>
-        /// Reads the raw image information from the specified stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public IImageInfo Identify(Stream stream)
+        /// <inheritdoc />
+        public IImageInfo Identify(BufferedReadStream stream)
         {
             this.currentStream = stream;
 
             this.ReadImageHeader();
-            WebPImageInfo imageInfo = this.ReadVp8Info();
-
-            return new ImageInfo(new PixelTypeInfo((int)imageInfo.BitsPerPixel), (int)imageInfo.Width, (int)imageInfo.Height, this.Metadata);
+            using (this.webImageInfo = this.ReadVp8Info())
+            {
+                return new ImageInfo(new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel), (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, this.Metadata);
+            }
         }
 
         /// <summary>

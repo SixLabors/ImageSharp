@@ -7,7 +7,6 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Formats.WebP.BitWriter;
@@ -34,13 +33,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// <summary>
         /// The <see cref="MemoryAllocator"/> to use for buffer allocations.
         /// </summary>
-        private MemoryAllocator memoryAllocator;
+        private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
         /// A bit writer for writing lossless webp streams.
         /// </summary>
         private Vp8LBitWriter bitWriter;
-        
+
         private const int ApplyPaletteGreedyMax = 4;
 
         private const int PaletteInvSizeBits = 11;
@@ -309,9 +308,20 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 this.bitWriter.PutBits(0, 1); // No more transforms.
 
                 // Encode and write the transformed image.
-                this.EncodeImage(bgra, this.HashChain, this.Refs, this.CurrentWidth, height, quality, useCache, crunchConfig,
-                    this.CacheBits, this.HistoBits, bytePosition);
+                this.EncodeImage(
+                    bgra,
+                    this.HashChain,
+                    this.Refs,
+                    this.CurrentWidth,
+                    height,
+                    quality,
+                    useCache,
+                    crunchConfig,
+                    this.CacheBits,
+                    this.HistoBits,
+                    bytePosition);
             }
+
             // TODO: Comparison and picking of best (smallest) encoding
         }
 
@@ -336,7 +346,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // Try out multiple LZ77 on images with few colors.
             var nlz77s = (this.PaletteSize > 0 && this.PaletteSize <= 16) ? 2 : 1;
             EntropyIx entropyIdx = this.AnalyzeEntropy(image, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
-            
+
             bool doNotCache = false;
             var crunchConfigs = new List<CrunchConfig>();
 
@@ -358,7 +368,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             else
             {
                 // Only choose the guessed best transform.
-                crunchConfigs.Add(new CrunchConfig {EntropyIdx = entropyIdx});
+                crunchConfigs.Add(new CrunchConfig { EntropyIdx = entropyIdx });
                 if (configQuality >= 75 && method == 5)
                 {
                     // Test with and without color cache.
@@ -367,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     // If we have a palette, also check in combination with spatial.
                     if (entropyIdx == EntropyIx.Palette)
                     {
-                        crunchConfigs.Add(new CrunchConfig { EntropyIdx = EntropyIx.PaletteAndSpatial});
+                        crunchConfigs.Add(new CrunchConfig { EntropyIdx = EntropyIx.PaletteAndSpatial });
                     }
                 }
             }
@@ -1584,8 +1594,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         public void AllocateTransformBuffer(int width, int height)
         {
-            int imageSize = width * height;
-
             // VP8LResidualImage needs room for 2 scanlines of uint32 pixels with an extra
             // pixel in each, plus 2 regular scanlines of bytes.
             int argbScratchSize = this.UsePredictorTransform ? ((width + 1) * 2) + (((width * 2) + 4 - 1) / 4) : 0;
@@ -1620,6 +1628,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private class CrunchConfig
         {
             public EntropyIx EntropyIdx { get; set; }
+
             public List<CrunchSubConfig> SubConfigs { get; } = new List<CrunchSubConfig>();
         }
 
@@ -1627,9 +1636,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private class CrunchSubConfig
         {
             public int Lz77 { get; set; }
+
             public bool DoNotCache { get; set; }
         }
     }
-
-   
 }

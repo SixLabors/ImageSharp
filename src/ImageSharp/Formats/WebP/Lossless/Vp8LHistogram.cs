@@ -28,6 +28,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             other.Blue.AsSpan().CopyTo(this.Blue);
             other.Alpha.AsSpan().CopyTo(this.Alpha);
             other.Literal.AsSpan().CopyTo(this.Literal);
+            other.Distance.AsSpan().CopyTo(this.Distance);
             other.IsUsed.AsSpan().CopyTo(this.IsUsed);
             this.LiteralCost = other.LiteralCost;
             this.RedCost = other.RedCost;

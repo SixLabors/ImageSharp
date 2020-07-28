@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
@@ -96,7 +96,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// Optimized method to allocates the correct y, cb, and cr values to the DCT blocks from the given r, g, b values.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ConvertPixelInto(int r, int g, int b, ref float yResult, ref float cbResult, ref float crResult)
+        public void ConvertPixelInto(
+            int r,
+            int g,
+            int b,
+            ref Block8x8F yResult,
+            ref Block8x8F cbResult,
+            ref Block8x8F crResult,
+            int i)
         {
             ref int start = ref Unsafe.As<RgbToYCbCrTables, int>(ref this);
 
@@ -111,9 +118,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             ref int crG = ref Unsafe.Add(ref start, 256 * 6);
             ref int crB = ref Unsafe.Add(ref start, 256 * 7);
 
-            yResult = (Unsafe.Add(ref yR, r) + Unsafe.Add(ref yG, g) + Unsafe.Add(ref yB, b)) >> ScaleBits;
-            cbResult = (Unsafe.Add(ref cbR, r) + Unsafe.Add(ref cbG, g) + Unsafe.Add(ref cbB, b)) >> ScaleBits;
-            crResult = (Unsafe.Add(ref cbB, r) + Unsafe.Add(ref crG, g) + Unsafe.Add(ref crB, b)) >> ScaleBits;
+            yResult[i] = (Unsafe.Add(ref yR, r) + Unsafe.Add(ref yG, g) + Unsafe.Add(ref yB, b)) >> ScaleBits;
+            cbResult[i] = (Unsafe.Add(ref cbR, r) + Unsafe.Add(ref cbG, g) + Unsafe.Add(ref cbB, b)) >> ScaleBits;
+            crResult[i] = (Unsafe.Add(ref cbB, r) + Unsafe.Add(ref crG, g) + Unsafe.Add(ref crB, b)) >> ScaleBits;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

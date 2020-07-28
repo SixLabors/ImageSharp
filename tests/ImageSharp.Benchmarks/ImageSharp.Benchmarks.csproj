@@ -32,7 +32,6 @@
   <!-- Exclude benchmarks using internals, in case of unsigned benchmark execution: -->
   <ItemGroup Condition="'$(SignAssembly)' == 'false'">
     <Compile Remove="Codecs\Jpeg\BlockOperations\**" />
-    <Compile Remove="Codecs\Jpeg\DoubleBufferedStreams.cs" />
     <Compile Remove="Codecs\Jpeg\YCbCrColorConversion.cs" />
     <Compile Remove="Codecs\Jpeg\DecodeJpegParseStreamOnly.cs" />
     <Compile Remove="Color\Bulk\**" />

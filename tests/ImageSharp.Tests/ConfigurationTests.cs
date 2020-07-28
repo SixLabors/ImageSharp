@@ -76,10 +76,7 @@ namespace SixLabors.ImageSharp.Tests
             if (throws)
             {
                 Assert.Throws<ArgumentOutOfRangeException>(
-                    () =>
-                    {
-                        cfg.MaxDegreeOfParallelism = maxDegreeOfParallelism;
-                    });
+                    () => cfg.MaxDegreeOfParallelism = maxDegreeOfParallelism);
             }
             else
             {
@@ -122,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void DefaultConfigurationHasCorrectFormatCount()
         {
-            Configuration config = Configuration.CreateDefaultInstance();
+            var config = Configuration.CreateDefaultInstance();
 
             Assert.Equal(this.expectedDefaultConfigurationCount, config.ImageFormats.Count());
         }
@@ -132,6 +129,22 @@ namespace SixLabors.ImageSharp.Tests
         {
             Configuration config = this.DefaultConfiguration;
             Assert.True(config.WorkingBufferSizeHintInBytes > 1024);
+        }
+
+        [Fact]
+        public void StreamBufferSize_DefaultIsCorrect()
+        {
+            Configuration config = this.DefaultConfiguration;
+            Assert.True(config.StreamProcessingBufferSize == 8096);
+        }
+
+        [Fact]
+        public void StreamBufferSize_CannotGoBelowMinimum()
+        {
+            var config = new Configuration();
+
+            Assert.Throws<ArgumentOutOfRangeException>(
+                    () => config.StreamProcessingBufferSize = 0);
         }
     }
 }

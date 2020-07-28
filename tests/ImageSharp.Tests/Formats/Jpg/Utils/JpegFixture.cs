@@ -8,7 +8,7 @@ using System.Text;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
-
+using SixLabors.ImageSharp.IO;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -192,12 +192,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         internal static JpegDecoderCore ParseJpegStream(string testFileName, bool metaDataOnly = false)
         {
             byte[] bytes = TestFile.Create(testFileName).Bytes;
-            using (var ms = new MemoryStream(bytes))
-            {
-                var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-                decoder.ParseStream(ms, metaDataOnly);
-                return decoder;
-            }
+            using var ms = new MemoryStream(bytes);
+            using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
+
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            decoder.ParseStream(bufferedStream, metaDataOnly);
+
+            return decoder;
         }
     }
 }

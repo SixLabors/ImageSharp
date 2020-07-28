@@ -629,7 +629,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             for (int x = 1; x < width - 1; x++)
             {
-                uint up = argb[-stride + x]; // TODO: -stride!
+                uint up = argb[-stride + x];
                 uint down = argb[stride + x];
                 uint left = current;
                 current = right;

@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     /// <summary>
     /// The GetLengthCost(costModel, k) are cached in a CostCacheInterval.
     /// </summary>
-    [DebuggerDisplay("Start: {Start}, End: {End}, Cost: {Cost}")]
+    [DebuggerDisplay("Start: {Start}, End: {End}, Cost: {Cost}, Position: {Position}")]
     internal class CostCacheInterval
     {
         public double Cost { get; set; }

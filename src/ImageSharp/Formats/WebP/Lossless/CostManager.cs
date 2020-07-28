@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     /// <summary>
     /// The CostManager is in charge of managing intervals and costs.
     /// It caches the different CostCacheInterval, caches the different
-    /// GetLengthCost(cost_model, k) in cost_cache_ and the CostInterval's.
+    /// GetLengthCost(costModel, k) in cost_cache_ and the CostInterval's.
     /// </summary>
     internal class CostManager
     {
@@ -70,10 +70,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
+        private CostInterval head;
+
         /// <summary>
-        /// Gets the number of stored intervals.
+        /// Gets or sets the number of stored intervals.
         /// </summary>
-        public int Count { get; }
+        public int Count { get; set; }
 
         /// <summary>
         /// Gets the costs cache. Contains the GetLengthCost(costModel, k).
@@ -97,34 +99,32 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// <param name="doCleanIntervals">If 'doCleanIntervals' is true, intervals that end before 'i' will be popped.</param>
         public void UpdateCostAtIndex(int i, bool doCleanIntervals)
         {
-            var indicesToRemove = new List<int>();
+            CostInterval current = this.head;
             using List<CostInterval>.Enumerator intervalEnumerator = this.Intervals.GetEnumerator();
-            while (intervalEnumerator.MoveNext() && intervalEnumerator.Current.Start <= i)
+            while (current != null && current.Start <= i)
             {
-                if (intervalEnumerator.Current.End <= i)
+                CostInterval next = current.Next;
+                if (current.End <= i)
                 {
                     if (doCleanIntervals)
                     {
                         // We have an outdated interval, remove it.
-                        indicesToRemove.Add(i);
+                        this.PopInterval(current);
                     }
                 }
                 else
                 {
-                    this.UpdateCost(i, intervalEnumerator.Current.Index, intervalEnumerator.Current.Cost);
+                    this.UpdateCost(i, current.Index, current.Cost);
                 }
-            }
 
-            foreach (int index in indicesToRemove.OrderByDescending(i => i))
-            {
-                this.Intervals.RemoveAt(index);
+                current = next;
             }
         }
 
         /// <summary>
         /// Given a new cost interval defined by its start at position, its length value
         /// and distanceCost, add its contributions to the previous intervals and costs.
-        /// If handling the interval or one of its subintervals becomes to heavy, its
+        /// If handling the interval or one of its sub-intervals becomes to heavy, its
         /// contribution is added to the costs right away.
         /// </summary>
         public void PushInterval(double distanceCost, int position, int len)
@@ -150,6 +150,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 return;
             }
 
+            CostInterval interval = this.head;
             for (int i = 0; i < this.CacheIntervalsSize && this.CacheIntervals[i].Start < len; i++)
             {
                 // Define the intersection of the ith interval with the new one.
@@ -158,10 +159,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 float cost = (float)(distanceCost + this.CacheIntervals[i].Cost);
 
                 var idx = i;
-                CostCacheInterval interval = this.CacheIntervals[idx];
-                var indicesToRemove = new List<int>();
-                for (; interval.Start < end; idx++)
+                CostInterval intervalNext;
+                for (; interval != null && interval.Start < end; interval = intervalNext)
                 {
+                    intervalNext = interval.Next;
+
                     // Make sure we have some overlap.
                     if (start >= interval.End)
                     {
@@ -170,8 +172,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                     if (cost >= interval.Cost)
                     {
+                        // If we are worse than what we already have, add whatever we have so far up to interval.
                         int startNew = interval.End;
-                        this.InsertInterval(cost, position, start, interval.Start);
+                        this.InsertInterval(interval, cost, position, start, interval.Start);
                         start = startNew;
                         if (start >= end)
                         {
@@ -185,7 +188,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     {
                         if (interval.End <= end)
                         {
-                            indicesToRemove.Add(idx);
+                            // We can safely remove the old interval as it is fully included.
+                            this.PopInterval(interval);
                         }
                         else
                         {
@@ -197,9 +201,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     {
                         if (end < interval.End)
                         {
+                            // We have to split the old interval as it fully contains the new one.
                             int endOriginal = interval.End;
                             interval.End = start;
-                            this.InsertInterval(interval.Cost, idx, end, endOriginal);
+                            this.InsertInterval(interval, interval.Cost, idx, end, endOriginal);
                             break;
                         }
                         else
@@ -209,27 +214,98 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     }
                 }
 
-                foreach (int indice in indicesToRemove.OrderByDescending(i => i))
-                {
-                    this.Intervals.RemoveAt(indice);
-                }
-
                 // Insert the remaining interval from start to end.
-                this.InsertInterval(cost, position, start, end);
+                this.InsertInterval(interval, cost, position, start, end);
             }
         }
 
-        private void InsertInterval(double cost, int position, int start, int end)
+        /// <summary>
+        /// Pop an interval from the manager.
+        /// </summary>
+        /// <param name="interval">The interval to remove.</param>
+        private void PopInterval(CostInterval interval)
         {
-            // TODO: use COST_CACHE_INTERVAL_SIZE_MAX
-            var interval = new CostCacheInterval()
+            if (interval == null)
+            {
+                return;
+            }
+
+            ConnectIntervals(interval.Previous, interval.Next);
+            this.Count--;
+        }
+
+        private void InsertInterval(CostInterval intervalIn, float cost, int position, int start, int end)
+        {
+            if (start >= end)
+            {
+                return;
+            }
+
+            // TODO: should we use COST_CACHE_INTERVAL_SIZE_MAX?
+            var intervalNew = new CostInterval()
             {
                 Cost = cost,
                 Start = start,
-                End = end
+                End = end,
+                Index = position
             };
 
-            this.CacheIntervals.Insert(position, interval);
+            this.PositionOrphanInterval(intervalNew, intervalIn);
+            this.Count++;
+        }
+
+        /// <summary>
+        /// Given a current orphan interval and its previous interval, before
+        /// it was orphaned (which can be NULL), set it at the right place in the list
+        /// of intervals using the start_ ordering and the previous interval as a hint.
+        /// </summary>
+        private void PositionOrphanInterval(CostInterval current, CostInterval previous)
+        {
+            if (previous == null)
+            {
+                previous = this.head;
+            }
+
+            while (previous != null && current.Start < previous.Start)
+            {
+                previous = previous.Previous;
+            }
+
+            while (previous != null && previous.Next != null && previous.Next.Start < current.Start)
+            {
+                previous = previous.Next;
+            }
+
+            if (previous != null)
+            {
+                this.ConnectIntervals(current, previous.Next);
+            }
+            else
+            {
+                this.ConnectIntervals(current, this.head);
+            }
+
+            this.ConnectIntervals(previous, current);
+        }
+
+        /// <summary>
+        /// Given two intervals, make 'prev' be the previous one of 'next' in 'manager'.
+        /// </summary>
+        private void ConnectIntervals(CostInterval prev, CostInterval next)
+        {
+            if (prev != null)
+            {
+                prev.Next = next;
+            }
+            else
+            {
+                this.head = next;
+            }
+
+            if (next != null)
+            {
+                next.Previous = prev;
+            }
         }
 
         /// <summary>

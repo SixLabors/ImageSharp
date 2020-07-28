@@ -105,28 +105,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             ref Block8x8F crResult,
             int i)
         {
-            ref int start = ref Unsafe.As<RgbToYCbCrTables, int>(ref this);
+            // float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
+            yResult[i] = (this.YRTable[r] + this.YGTable[g] + this.YBTable[b]) >> ScaleBits;
 
-            ref int yR = ref start;
-            ref int yG = ref Unsafe.Add(ref start, 256 * 1);
-            ref int yB = ref Unsafe.Add(ref start, 256 * 2);
+            // float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
+            cbResult[i] = (this.CbRTable[r] + this.CbGTable[g] + this.CbBTable[b]) >> ScaleBits;
 
-            ref int cbR = ref Unsafe.Add(ref start, 256 * 3);
-            ref int cbG = ref Unsafe.Add(ref start, 256 * 4);
-            ref int cbB = ref Unsafe.Add(ref start, 256 * 5);
-
-            ref int crG = ref Unsafe.Add(ref start, 256 * 6);
-            ref int crB = ref Unsafe.Add(ref start, 256 * 7);
-
-            yResult[i] = (Unsafe.Add(ref yR, r) + Unsafe.Add(ref yG, g) + Unsafe.Add(ref yB, b)) >> ScaleBits;
-            cbResult[i] = (Unsafe.Add(ref cbR, r) + Unsafe.Add(ref cbG, g) + Unsafe.Add(ref cbB, b)) >> ScaleBits;
-            crResult[i] = (Unsafe.Add(ref cbB, r) + Unsafe.Add(ref crG, g) + Unsafe.Add(ref crB, b)) >> ScaleBits;
+            // float cr = MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero);
+            crResult[i] = (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int Fix(float x)
-        {
-            return (int)((x * (1L << ScaleBits)) + 0.5F);
-        }
+            => (int)((x * (1L << ScaleBits)) + 0.5F);
     }
 }

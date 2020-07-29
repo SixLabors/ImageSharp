@@ -30,17 +30,17 @@
 
   <!--
     https://apisof.net/
-    +===================+=======+==========+=====================+=============+=================+====================+==============+=========+
-    | SUPPORTS          | MATHF | HASHCODE | EXTENDED_INTRINSICS | SPAN_STREAM | ENCODING_STRING | RUNTIME_INTRINSICS | CODECOVERAGE | HOTPATH |
-    +===================+=======+==========+=====================+=============+=================+====================+==============+=========|
-    | netcoreapp3.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        Y           |      Y       |    Y    |
-    | netcoreapp2.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        N           |      Y       |    N    |
-    | netcoreapp2.0     |   Y   |    N     |         N           |      N      |        N        |        N           |      Y       |    N    |
-    | netstandard2.1    |   Y   |    Y     |         N           |      Y      |        Y        |        N           |      Y       |    N    |
-    | netstandard2.0    |   N   |    N     |         N           |      N      |        N        |        N           |      Y       |    N    |
-    | netstandard1.3    |   N   |    N     |         N           |      N      |        N        |        N           |      N       |    N    |
-    | net472            |   N   |    N     |         Y           |      N      |        N        |        N           |      Y       |    N    |
-    +===================+=======+==========+=====================+=============+=================+====================+==============+=========|
+    +===================+=======+==========+=====================+=============+=================+====================+==============+=========+============|
+    | SUPPORTS          | MATHF | HASHCODE | EXTENDED_INTRINSICS | SPAN_STREAM | ENCODING_STRING | RUNTIME_INTRINSICS | CODECOVERAGE | HOTPATH | CREATESPAN |
+    +===================+=======+==========+=====================+=============+=================+====================+==============+=========|============|
+    | netcoreapp3.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        Y           |      Y       |    Y    |      Y     |
+    | netcoreapp2.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        N           |      Y       |    N    |      Y     |
+    | netcoreapp2.0     |   Y   |    N     |         N           |      N      |        N        |        N           |      Y       |    N    |      Y     |
+    | netstandard2.1    |   Y   |    Y     |         N           |      Y      |        Y        |        N           |      Y       |    N    |      Y     |
+    | netstandard2.0    |   N   |    N     |         N           |      N      |        N        |        N           |      Y       |    N    |      N     |
+    | netstandard1.3    |   N   |    N     |         N           |      N      |        N        |        N           |      N       |    N    |      N     |
+    | net472            |   N   |    N     |         Y           |      N      |        N        |        N           |      Y       |    N    |      N     |
+    +===================+=======+==========+=====================+=============+=================+====================+==============+=========|============|
     -->
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
@@ -52,6 +52,7 @@
     <DefineConstants>$(DefineConstants);SUPPORTS_RUNTIME_INTRINSICS</DefineConstants>
     <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
     <DefineConstants>$(DefineConstants);SUPPORTS_HOTPATH</DefineConstants>
+    <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp2.1'">
     <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
@@ -60,10 +61,12 @@
     <DefineConstants>$(DefineConstants);SUPPORTS_SPAN_STREAM</DefineConstants>
     <DefineConstants>$(DefineConstants);SUPPORTS_ENCODING_STRING</DefineConstants>
     <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
+    <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp2.0'">
     <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
     <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
+    <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
     <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
@@ -71,6 +74,7 @@
     <DefineConstants>$(DefineConstants);SUPPORTS_SPAN_STREAM</DefineConstants>
     <DefineConstants>$(DefineConstants);SUPPORTS_ENCODING_STRING</DefineConstants>
     <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
+    <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>

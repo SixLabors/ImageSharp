@@ -109,6 +109,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Only for on-stack instances!
         /// </summary>
-        public Span<T> AsSpanUnsafe() => new Span<T>(Unsafe.AsPointer(ref this), Size);
+        public Span<T> AsSpanUnsafe()
+        {
+#if SUPPORTS_CREATESPAN
+            Span<GenericBlock8x8<T>> s = MemoryMarshal.CreateSpan(ref this, 1);
+            return MemoryMarshal.Cast<GenericBlock8x8<T>, T>(s);
+#else
+            return new Span<T>(Unsafe.AsPointer(ref this), Size);
+#endif
+        }
     }
 }

@@ -4,7 +4,6 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -16,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe partial struct GenericBlock8x8<T>
-        where T : struct
+        where T : unmanaged
     {
         public const int Size = 64;
 

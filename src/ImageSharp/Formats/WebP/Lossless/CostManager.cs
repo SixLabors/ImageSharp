@@ -2,17 +2,18 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
     /// <summary>
     /// The CostManager is in charge of managing intervals and costs.
     /// It caches the different CostCacheInterval, caches the different
-    /// GetLengthCost(costModel, k) in cost_cache_ and the CostInterval's.
+    /// GetLengthCost(costModel, k) in costCache and the CostInterval's.
     /// </summary>
     internal class CostManager
     {
+        private CostInterval head;
+
         public CostManager(short[] distArray, int pixCount, CostModel costModel)
         {
             int costCacheSize = (pixCount > BackwardReferenceEncoder.MaxLength) ? BackwardReferenceEncoder.MaxLength : pixCount;
@@ -63,14 +64,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 cur.End = i + 1;
             }
 
-            // Set the initial costs_ high for every pixel as we will keep the minimum.
+            // Set the initial costs high for every pixel as we will keep the minimum.
             for (int i = 0; i < pixCount; i++)
             {
                 this.Costs[i] = 1e38f;
             }
         }
-
-        private CostInterval head;
 
         /// <summary>
         /// Gets or sets the number of stored intervals.
@@ -230,7 +229,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 return;
             }
 
-            ConnectIntervals(interval.Previous, interval.Next);
+            this.ConnectIntervals(interval.Previous, interval.Next);
             this.Count--;
         }
 

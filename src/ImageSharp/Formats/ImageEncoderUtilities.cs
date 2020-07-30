@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,15 +22,32 @@ namespace SixLabors.ImageSharp.Formats
             Configuration configuration = image.GetConfiguration();
             if (stream.CanSeek)
             {
-                encoder.Encode(image, stream, cancellationToken);
+                await DoEncodeAsync();
             }
             else
             {
                 using var ms = new MemoryStream();
-                encoder.Encode(image, ms, cancellationToken);
+                await DoEncodeAsync();
                 ms.Position = 0;
                 await ms.CopyToAsync(stream, configuration.StreamProcessingBufferSize, cancellationToken)
                     .ConfigureAwait(false);
+            }
+
+            Task DoEncodeAsync()
+            {
+                try
+                {
+                    encoder.Encode(image, stream, cancellationToken);
+                    return Task.CompletedTask;
+                }
+                catch (OperationCanceledException)
+                {
+                    return Task.FromCanceled(cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    return Task.FromException(ex);
+                }
             }
         }
 

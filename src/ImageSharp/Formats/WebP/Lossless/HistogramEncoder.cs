@@ -48,6 +48,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             // Copies the histograms and computes its bitCost. histogramSymbols is optimized.
             HistogramCopyAndAnalyze(origHisto, imageHisto, histogramSymbols);
+            numUsed = imageHisto.Count(h => h != null);
 
             var entropyCombine = (numUsed > entropyCombineNumBins * 2) && (quality < 100);
             if (entropyCombine)
@@ -319,12 +320,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // Priority queue of histogram pairs. Its size impacts the quality of the compression and the speed:
             // the smaller the faster but the worse for the compression.
             var histoPriorityList = new List<HistogramPair>();
-            int histoQueueMaxSize = histograms.Count * histograms.Count;
+            int maxSize = 9;
 
             // Fill the initial mapping.
             var mappings = new int[histograms.Count];
             for (int j = 0, iter = 0; iter < histograms.Count; iter++)
             {
+                if (histograms[iter] == null)
+                {
+                    continue;
+                }
+
                 mappings[j++] = iter;
             }
 
@@ -353,15 +359,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     idx2 = mappings[idx2];
 
                     // Calculate cost reduction on combination.
-                    var currCost = HistoPriorityListPush(histoPriorityList, histoQueueMaxSize, histograms, idx1, idx2, bestCost);
+                    var currCost = HistoPriorityListPush(histoPriorityList, maxSize, histograms, idx1, idx2, bestCost);
 
                     // Found a better pair?
                     if (currCost < 0)
                     {
                         bestCost = currCost;
 
-                        // Empty the queue if we reached full capacity.
-                        if (histoPriorityList.Count == histoQueueMaxSize)
+                        if (histoPriorityList.Count == maxSize)
                         {
                             break;
                         }
@@ -377,10 +382,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 bestIdx1 = histoPriorityList[0].Idx1;
                 bestIdx2 = histoPriorityList[0].Idx2;
 
+                // TODO: Review this again, not sure why this is needed in the reference implementation.
                 // Pop bestIdx2 from mappings.
-                var mappingIndex = Array.BinarySearch(mappings, bestIdx2);
-
-                // TODO: memmove(mapping_index, mapping_index + 1, sizeof(*mapping_index) *((*num_used) - (mapping_index - mappings) - 1));
+                // var mappingIndex = Array.BinarySearch(mappings, bestIdx2);
+                // memmove(mapping_index, mapping_index + 1, sizeof(*mapping_index) *((*num_used) - (mapping_index - mappings) - 1));
 
                 // Merge the histograms and remove bestIdx2 from the queue.
                 HistogramAdd(histograms[bestIdx2], histograms[bestIdx1], histograms[bestIdx1]);
@@ -388,8 +393,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 histograms.RemoveAt(bestIdx2);
                 numUsed--;
 
-                var indicesToRemove = new List<int>();
-                int lastIndex = histoPriorityList.Count - 1;
                 for (int j = 0; j < histoPriorityList.Count;)
                 {
                     HistogramPair p = histoPriorityList.ElementAt(j);
@@ -401,9 +404,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     // check for it all the time nevertheless.
                     if (isIdx1Best && isIdx2Best)
                     {
-                        indicesToRemove.Add(lastIndex);
+                        histoPriorityList.RemoveAt(histoPriorityList.Count - 1);
                         numUsed--;
-                        lastIndex--;
                         continue;
                     }
 
@@ -434,8 +436,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                         HistoListUpdatePair(histograms[p.Idx1], histograms[p.Idx2], 0.0d, p);
                         if (p.CostDiff >= 0.0d)
                         {
-                            indicesToRemove.Add(lastIndex);
-                            lastIndex--;
+                            histoPriorityList.RemoveAt(histoPriorityList.Count - 1);
                             numUsed--;
                             continue;
                         }
@@ -578,10 +579,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         }
 
         /// <summary>
-        /// Create a pair from indices "idx1" and "idx2" provided its cost
-        /// is inferior to "threshold", a negative entropy.
+        /// Create a pair from indices "idx1" and "idx2" provided its cost is inferior to "threshold", a negative entropy.
         /// </summary>
-        /// <returns>The cost of the pair, or 0. if it superior to threshold.</returns>
+        /// <returns>The cost of the pair, or 0 if it superior to threshold.</returns>
         private static double HistoPriorityListPush(List<HistogramPair> histoList, int maxSize, List<Vp8LHistogram> histograms, int idx1, int idx2, double threshold)
         {
             var pair = new HistogramPair();

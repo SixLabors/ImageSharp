@@ -310,7 +310,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
 
             var encoder = new JpegEncoder() { Subsample = subsample };
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => image.SaveAsync(stream, encoder, cts.Token));
+            await Assert.ThrowsAsync<TaskCanceledException>(() => image.SaveAsync(stream, encoder, cts.Token));
         }
     }
 }

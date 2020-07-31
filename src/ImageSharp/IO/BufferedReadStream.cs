@@ -50,8 +50,8 @@ namespace SixLabors.ImageSharp.IO
             }
 
             this.BaseStream = stream;
-            this.Position = (int)stream.Position;
             this.Length = stream.Length;
+            this.Position = (int)stream.Position;
             this.BufferSize = configuration.StreamProcessingBufferSize;
             this.maxBufferIndex = this.BufferSize - 1;
             this.readBuffer = ArrayPool<byte>.Shared.Rent(this.BufferSize);
@@ -86,6 +86,9 @@ namespace SixLabors.ImageSharp.IO
             [MethodImpl(MethodImplOptions.NoInlining)]
             set
             {
+                Guard.MustBeGreaterThanOrEqualTo(value, 0, nameof(this.Position));
+                Guard.MustBeLessThanOrEqualTo(value, this.Length, nameof(this.Position));
+
                 // Only reset readBufferIndex if we are out of bounds of our working buffer
                 // otherwise we should simply move the value by the diff.
                 if (this.IsInReadBuffer(value, out long index))

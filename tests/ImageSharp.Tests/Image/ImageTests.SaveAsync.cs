@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public async Task SaveAsync_WithNonSeekableStream_IsCancellable()
             {
-                using var image = new Image<Rgba32>(2000, 2000);
+                using var image = new Image<Rgba32>(4000, 4000);
                 var encoder = new PngEncoder() { CompressionLevel = PngCompressionLevel.BestCompression };
                 using var stream = new MemoryStream();
                 var asyncStream = new AsyncStreamWrapper(stream, () => false);

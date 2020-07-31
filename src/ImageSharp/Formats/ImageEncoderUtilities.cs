@@ -22,22 +22,22 @@ namespace SixLabors.ImageSharp.Formats
             Configuration configuration = image.GetConfiguration();
             if (stream.CanSeek)
             {
-                await DoEncodeAsync();
+                await DoEncodeAsync(stream);
             }
             else
             {
                 using var ms = new MemoryStream();
-                await DoEncodeAsync();
+                await DoEncodeAsync(ms);
                 ms.Position = 0;
                 await ms.CopyToAsync(stream, configuration.StreamProcessingBufferSize, cancellationToken)
                     .ConfigureAwait(false);
             }
 
-            Task DoEncodeAsync()
+            Task DoEncodeAsync(Stream innerStream)
             {
                 try
                 {
-                    encoder.Encode(image, stream, cancellationToken);
+                    encoder.Encode(image, innerStream, cancellationToken);
                     return Task.CompletedTask;
                 }
                 catch (OperationCanceledException)

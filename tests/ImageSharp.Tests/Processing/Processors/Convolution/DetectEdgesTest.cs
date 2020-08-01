@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Convolution;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
@@ -20,18 +21,29 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 
-        public static readonly TheoryData<KnownEdgeDetectionOperators> DetectEdgesFilters = new TheoryData<KnownEdgeDetectionOperators>
+        public static readonly TheoryData<EdgeDetectorKernel> DetectEdgesFilters
+            = new TheoryData<EdgeDetectorKernel>
         {
-            KnownEdgeDetectionOperators.Kayyali,
-            KnownEdgeDetectionOperators.Kirsch,
-            KnownEdgeDetectionOperators.Laplacian3x3,
-            KnownEdgeDetectionOperators.Laplacian5x5,
-            KnownEdgeDetectionOperators.LaplacianOfGaussian,
-            KnownEdgeDetectionOperators.Prewitt,
-            KnownEdgeDetectionOperators.RobertsCross,
-            KnownEdgeDetectionOperators.Robinson,
-            KnownEdgeDetectionOperators.Scharr,
-            KnownEdgeDetectionOperators.Sobel
+            KnownEdgeDetectorKernels.Laplacian3x3,
+            KnownEdgeDetectorKernels.Laplacian5x5,
+            KnownEdgeDetectorKernels.LaplacianOfGaussian,
+        };
+
+        public static readonly TheoryData<EdgeDetector2DKernel> DetectEdges2DFilters
+            = new TheoryData<EdgeDetector2DKernel>
+        {
+            KnownEdgeDetectorKernels.Kayyali,
+            KnownEdgeDetectorKernels.Prewitt,
+            KnownEdgeDetectorKernels.RobertsCross,
+            KnownEdgeDetectorKernels.Scharr,
+            KnownEdgeDetectorKernels.Sobel
+        };
+
+        public static readonly TheoryData<EdgeDetectorCompassKernel> DetectEdgesCompassFilters
+            = new TheoryData<EdgeDetectorCompassKernel>
+        {
+            KnownEdgeDetectorKernels.Kirsch,
+            KnownEdgeDetectorKernels.Robinson,
         };
 
         [Theory]
@@ -53,7 +65,39 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, PixelTypes.Rgba32)]
         [WithFileCollection(nameof(TestImages), nameof(DetectEdgesFilters), PixelTypes.Rgba32)]
-        public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, KnownEdgeDetectionOperators detector)
+        public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectorKernel detector)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            bool hasAlpha = provider.SourceFileOrDescription.Contains("TestPattern");
+            ImageComparer comparer = hasAlpha ? TransparentComparer : OpaqueComparer;
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.DetectEdges(detector));
+                image.DebugSave(provider, detector.ToString());
+                image.CompareToReferenceOutput(comparer, provider, detector.ToString());
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, PixelTypes.Rgba32)]
+        [WithFileCollection(nameof(TestImages), nameof(DetectEdges2DFilters), PixelTypes.Rgba32)]
+        public void DetectEdges2D_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetector2DKernel detector)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            bool hasAlpha = provider.SourceFileOrDescription.Contains("TestPattern");
+            ImageComparer comparer = hasAlpha ? TransparentComparer : OpaqueComparer;
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.DetectEdges(detector));
+                image.DebugSave(provider, detector.ToString());
+                image.CompareToReferenceOutput(comparer, provider, detector.ToString());
+            }
+        }
+
+        [Theory]
+        [WithTestPatternImages(nameof(DetectEdgesCompassFilters), 100, 100, PixelTypes.Rgba32)]
+        [WithFileCollection(nameof(TestImages), nameof(DetectEdgesFilters), PixelTypes.Rgba32)]
+        public void DetectEdgesCompass_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectorCompassKernel detector)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             bool hasAlpha = provider.SourceFileOrDescription.Contains("TestPattern");
@@ -115,7 +159,29 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 
         [Theory]
         [WithFile(Tests.TestImages.Png.Bike, nameof(DetectEdgesFilters), PixelTypes.Rgba32)]
-        public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider, KnownEdgeDetectionOperators detector)
+        public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectorKernel detector)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.RunBufferCapacityLimitProcessorTest(
+                41,
+                c => c.DetectEdges(detector),
+                detector);
+        }
+
+        [Theory]
+        [WithFile(Tests.TestImages.Png.Bike, nameof(DetectEdges2DFilters), PixelTypes.Rgba32)]
+        public void WorksWithDiscoBuffers2D<TPixel>(TestImageProvider<TPixel> provider, EdgeDetector2DKernel detector)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.RunBufferCapacityLimitProcessorTest(
+                41,
+                c => c.DetectEdges(detector),
+                detector);
+        }
+
+        [Theory]
+        [WithFile(Tests.TestImages.Png.Bike, nameof(DetectEdgesCompassFilters), PixelTypes.Rgba32)]
+        public void WorksWithDiscoBuffersCompass<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectorCompassKernel detector)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunBufferCapacityLimitProcessorTest(

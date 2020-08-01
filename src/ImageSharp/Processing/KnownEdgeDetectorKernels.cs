@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Contains reusable static instances of known edge detection kernels.
     /// </summary>
-    public static class KnownEdgeDetectionOperators
+    public static class KnownEdgeDetectorKernels
     {
         /// <summary>
         /// Gets the Kayyali edge detector kernel.

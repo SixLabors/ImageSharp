@@ -5,6 +5,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     /// <summary>
     /// Contains the kernels used for Robinson edge detection.
+    /// <see href="http://www.tutorialspoint.com/dip/Robinson_Compass_Mask.htm"/>
     /// </summary>
     internal static class RobinsonKernels
     {

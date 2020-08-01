@@ -25,15 +25,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="EdgeDetectorCompassProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="kernels">The kernels to use.</param>
-        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
+        /// <param name="definition">The <see cref="EdgeDetectorCompassProcessor"/> defining the processor parameters.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        internal EdgeDetectorCompassProcessor(Configuration configuration, in EdgeDetectorCompassKernel kernels, bool grayscale, Image<TPixel> source, Rectangle sourceRectangle)
+        internal EdgeDetectorCompassProcessor(
+            Configuration configuration,
+            EdgeDetectorCompassProcessor definition,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
-            this.grayscale = grayscale;
-            this.kernels = kernels.Flatten();
+            this.grayscale = definition.Grayscale;
+            this.kernels = definition.Kernel.Flatten();
         }
 
         /// <inheritdoc/>

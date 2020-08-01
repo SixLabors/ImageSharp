@@ -35,21 +35,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
 
         public static IEnumerable<object[]> EdgeDetectionTheoryData => new[]
         {
-            new object[] { new TestType<KayyaliProcessor>(), EdgeDetectionOperators.Kayyali },
-            new object[] { new TestType<KirschProcessor>(), EdgeDetectionOperators.Kirsch },
-            new object[] { new TestType<Laplacian3x3Processor>(), EdgeDetectionOperators.Laplacian3x3 },
-            new object[] { new TestType<Laplacian5x5Processor>(), EdgeDetectionOperators.Laplacian5x5 },
-            new object[] { new TestType<LaplacianOfGaussianProcessor>(), EdgeDetectionOperators.LaplacianOfGaussian },
-            new object[] { new TestType<PrewittProcessor>(), EdgeDetectionOperators.Prewitt },
-            new object[] { new TestType<RobertsCrossProcessor>(), EdgeDetectionOperators.RobertsCross },
-            new object[] { new TestType<RobinsonProcessor>(), EdgeDetectionOperators.Robinson },
-            new object[] { new TestType<ScharrProcessor>(), EdgeDetectionOperators.Scharr },
-            new object[] { new TestType<SobelProcessor>(), EdgeDetectionOperators.Sobel },
+            new object[] { new TestType<KayyaliProcessor>(), KnownEdgeDetectionOperators.Kayyali },
+            new object[] { new TestType<KirschProcessor>(), KnownEdgeDetectionOperators.Kirsch },
+            new object[] { new TestType<Laplacian3x3Processor>(), KnownEdgeDetectionOperators.Laplacian3x3 },
+            new object[] { new TestType<Laplacian5x5Processor>(), KnownEdgeDetectionOperators.Laplacian5x5 },
+            new object[] { new TestType<LaplacianOfGaussianProcessor>(), KnownEdgeDetectionOperators.LaplacianOfGaussian },
+            new object[] { new TestType<PrewittProcessor>(), KnownEdgeDetectionOperators.Prewitt },
+            new object[] { new TestType<RobertsCrossProcessor>(), KnownEdgeDetectionOperators.RobertsCross },
+            new object[] { new TestType<RobinsonProcessor>(), KnownEdgeDetectionOperators.Robinson },
+            new object[] { new TestType<ScharrProcessor>(), KnownEdgeDetectionOperators.Scharr },
+            new object[] { new TestType<SobelProcessor>(), KnownEdgeDetectionOperators.Sobel },
         };
 
         [Theory]
         [MemberData(nameof(EdgeDetectionTheoryData))]
-        public void DetectEdges_filter_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, EdgeDetectionOperators filter)
+        public void DetectEdges_filter_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, KnownEdgeDetectionOperators filter)
             where TProcessor : EdgeDetectorProcessor
         {
             this.operations.DetectEdges(filter);
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution
 
         [Theory]
         [MemberData(nameof(EdgeDetectionTheoryData))]
-        public void DetectEdges_filter_grayscale_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, EdgeDetectionOperators filter)
+        public void DetectEdges_filter_grayscale_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, KnownEdgeDetectionOperators filter)
             where TProcessor : EdgeDetectorProcessor
         {
             bool grey = (int)filter % 2 == 0;

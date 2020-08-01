@@ -37,17 +37,17 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Benchmark(Description = "ImageSharp DetectEdges")]
         public void ImageProcessorCoreDetectEdges()
         {
-            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectionOperators.Kayyali));
-            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectionOperators.Kayyali));
-            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectionOperators.Kirsch));
-            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectionOperators.Laplacian3x3));
-            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectionOperators.Laplacian5x5));
-            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectionOperators.LaplacianOfGaussian));
-            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectionOperators.Prewitt));
-            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectionOperators.RobertsCross));
-            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectionOperators.Robinson));
-            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectionOperators.Scharr));
-            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectionOperators.Sobel));
+            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectorKernels.Kayyali));
+            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectorKernels.Kayyali));
+            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectorKernels.Kirsch));
+            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectorKernels.Laplacian3x3));
+            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectorKernels.Laplacian5x5));
+            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectorKernels.LaplacianOfGaussian));
+            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectorKernels.Prewitt));
+            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectorKernels.RobertsCross));
+            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectorKernels.Robinson));
+            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectorKernels.Scharr));
+            this.image.Mutate(x => x.DetectEdges(KnownEdgeDetectorKernels.Sobel));
         }
     }
 }

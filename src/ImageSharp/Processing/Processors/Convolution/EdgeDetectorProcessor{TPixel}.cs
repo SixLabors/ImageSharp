@@ -13,6 +13,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     internal class EdgeDetectorProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        private readonly bool grayscale;
+        private readonly DenseMatrix<float> kernelXY;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="EdgeDetectorProcessor{TPixel}"/> class.
         /// </summary>
@@ -23,22 +26,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
         public EdgeDetectorProcessor(
             Configuration configuration,
-            in DenseMatrix<float> kernelXY,
+            in EdgeDetectorKernel kernelXY,
             bool grayscale,
             Image<TPixel> source,
             Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
-            this.KernelXY = kernelXY;
-            this.Grayscale = grayscale;
+            this.kernelXY = kernelXY.KernelXY;
+            this.grayscale = grayscale;
         }
-
-        public bool Grayscale { get; }
-
-        /// <summary>
-        /// Gets the 2d gradient operator.
-        /// </summary>
-        public DenseMatrix<float> KernelXY { get; }
 
         /// <inheritdoc/>
         protected override void BeforeImageApply()
@@ -48,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 opaque.Execute();
             }
 
-            if (this.Grayscale)
+            if (this.grayscale)
             {
                 new GrayscaleBt709Processor(1F).Execute(this.Configuration, this.Source, this.SourceRectangle);
             }
@@ -59,10 +55,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, this.KernelXY, true, this.Source, this.SourceRectangle))
-            {
-                processor.Apply(source);
-            }
+            using var processor = new ConvolutionProcessor<TPixel>(this.Configuration, in this.kernelXY, true, this.Source, this.SourceRectangle);
+            processor.Apply(source);
         }
     }
 }

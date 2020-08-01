@@ -20,18 +20,18 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 
-        public static readonly TheoryData<EdgeDetectionOperators> DetectEdgesFilters = new TheoryData<EdgeDetectionOperators>
+        public static readonly TheoryData<KnownEdgeDetectionOperators> DetectEdgesFilters = new TheoryData<KnownEdgeDetectionOperators>
         {
-            EdgeDetectionOperators.Kayyali,
-            EdgeDetectionOperators.Kirsch,
-            EdgeDetectionOperators.Laplacian3x3,
-            EdgeDetectionOperators.Laplacian5x5,
-            EdgeDetectionOperators.LaplacianOfGaussian,
-            EdgeDetectionOperators.Prewitt,
-            EdgeDetectionOperators.RobertsCross,
-            EdgeDetectionOperators.Robinson,
-            EdgeDetectionOperators.Scharr,
-            EdgeDetectionOperators.Sobel
+            KnownEdgeDetectionOperators.Kayyali,
+            KnownEdgeDetectionOperators.Kirsch,
+            KnownEdgeDetectionOperators.Laplacian3x3,
+            KnownEdgeDetectionOperators.Laplacian5x5,
+            KnownEdgeDetectionOperators.LaplacianOfGaussian,
+            KnownEdgeDetectionOperators.Prewitt,
+            KnownEdgeDetectionOperators.RobertsCross,
+            KnownEdgeDetectionOperators.Robinson,
+            KnownEdgeDetectionOperators.Scharr,
+            KnownEdgeDetectionOperators.Sobel
         };
 
         [Theory]
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [Theory]
         [WithTestPatternImages(nameof(DetectEdgesFilters), 100, 100, PixelTypes.Rgba32)]
         [WithFileCollection(nameof(TestImages), nameof(DetectEdgesFilters), PixelTypes.Rgba32)]
-        public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
+        public void DetectEdges_WorksWithAllFilters<TPixel>(TestImageProvider<TPixel> provider, KnownEdgeDetectionOperators detector)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             bool hasAlpha = provider.SourceFileOrDescription.Contains("TestPattern");
@@ -115,7 +115,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 
         [Theory]
         [WithFile(Tests.TestImages.Png.Bike, nameof(DetectEdgesFilters), PixelTypes.Rgba32)]
-        public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider, EdgeDetectionOperators detector)
+        public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider, KnownEdgeDetectionOperators detector)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunBufferCapacityLimitProcessorTest(

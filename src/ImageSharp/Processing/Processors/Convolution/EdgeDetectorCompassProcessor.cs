@@ -6,18 +6,18 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     /// <summary>
-    /// Defines edge detection using a single 2D gradient operator.
+    /// Defines edge detection using eight gradient operators.
     /// </summary>
-    public sealed class EdgeDetectorProcessor : IImageProcessor
+    public sealed class EdgeDetectorCompassProcessor : IImageProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="EdgeDetectorProcessor"/> class.
+        /// Initializes a new instance of the <see cref="EdgeDetectorCompassProcessor"/> class.
         /// </summary>
-        /// <param name="kernel">The  edge detector kernel.</param>
+        /// <param name="kernel">The edge detector kernel.</param>
         /// <param name="grayscale">
         /// Whether to convert the image to grayscale before performing edge detection.
         /// </param>
-        public EdgeDetectorProcessor(EdgeDetectorKernel kernel, bool grayscale)
+        public EdgeDetectorCompassProcessor(EdgeDetectorCompassKernel kernel, bool grayscale)
         {
             this.Kernel = kernel;
             this.Grayscale = grayscale;
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// Gets the edge detector kernel.
         /// </summary>
-        public EdgeDetectorKernel Kernel { get; }
+        public EdgeDetectorCompassKernel Kernel { get; }
 
         /// <summary>
         /// Gets a value indicating whether to convert the image to grayscale before performing
@@ -37,6 +37,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : unmanaged, IPixel<TPixel>
-            => new EdgeDetectorProcessor<TPixel>(configuration, this, source, sourceRectangle);
+            => new EdgeDetectorCompassProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

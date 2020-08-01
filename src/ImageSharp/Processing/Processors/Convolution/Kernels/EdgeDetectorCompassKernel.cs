@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     {
         /// <summary>
         /// An edge detection kenel comprised of Kirsch gradient operators.
+        /// <see href="http://en.wikipedia.org/wiki/Kirsch_operator"/>.
         /// </summary>
         public static EdgeDetectorCompassKernel Kirsch =
             new EdgeDetectorCompassKernel(
@@ -26,6 +27,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
         /// <summary>
         /// An edge detection kenel comprised of Robinson gradient operators.
+        /// <see href="http://www.tutorialspoint.com/dip/Robinson_Compass_Mask.htm"/>
         /// </summary>
         public static EdgeDetectorCompassKernel Robinson =
             new EdgeDetectorCompassKernel(

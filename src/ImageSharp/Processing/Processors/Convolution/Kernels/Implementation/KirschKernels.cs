@@ -4,7 +4,8 @@
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     /// <summary>
-    /// Contains the eight matrices used for Kirsch edge detection
+    /// Contains the eight matrices used for Kirsch edge detection.
+    /// <see href="http://en.wikipedia.org/wiki/Kirsch_operator"/>.
     /// </summary>
     internal static class KirschKernels
     {

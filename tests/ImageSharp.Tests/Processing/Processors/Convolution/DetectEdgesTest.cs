@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
@@ -11,6 +12,7 @@ using Xunit;
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
 {
     [GroupOutput("Convolution")]
+    [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "OK. Used for TheoryData compatibility.")]
     public class DetectEdgesTest
     {
         private static readonly ImageComparer OpaqueComparer = ImageComparer.TolerantPercentage(0.01F);

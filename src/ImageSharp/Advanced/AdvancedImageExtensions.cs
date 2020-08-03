@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// <param name="visitor">The image visitor.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A  <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task AcceptVisitorAsync(this Image source, IImageVisitorAsync visitor, CancellationToken cancellationToken)
+        public static Task AcceptVisitorAsync(this Image source, IImageVisitorAsync visitor, CancellationToken cancellationToken = default)
             => source.AcceptAsync(visitor, cancellationToken);
 
         /// <summary>

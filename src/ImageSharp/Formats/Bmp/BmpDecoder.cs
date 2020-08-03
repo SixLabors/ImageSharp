@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new BmpDecoderCore(configuration, this);
-            return decoder.Decode<TPixel>(configuration, stream, CreateLargeImageException);
+            return decoder.Decode<TPixel>(configuration, stream);
         }
 
         /// <inheritdoc />
@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new BmpDecoderCore(configuration, this);
-            return decoder.DecodeAsync<TPixel>(configuration, stream, CreateLargeImageException, cancellationToken);
+            return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc />
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new BmpDecoderCore(configuration, this).Identify(configuration, stream, CreateLargeImageException);
+            return new BmpDecoderCore(configuration, this).Identify(configuration, stream);
         }
 
         /// <inheritdoc/>
@@ -72,12 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new BmpDecoderCore(configuration, this).IdentifyAsync(configuration, stream, CreateLargeImageException, cancellationToken);
-        }
-
-        private static InvalidImageContentException CreateLargeImageException(InvalidMemoryOperationException ex, Size dims)
-        {
-            return new InvalidImageContentException($"Cannot decode image. Failed to allocate buffers for possibly degenerate dimensions: {dims.Width}x{dims.Height}. This error can happen for very large RLE bitmaps, which are not supported.", ex);
+            return new BmpDecoderCore(configuration, this).IdentifyAsync(configuration, stream, cancellationToken);
         }
     }
 }

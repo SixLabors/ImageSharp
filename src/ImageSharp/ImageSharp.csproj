@@ -17,7 +17,6 @@
     <PackageId>SixLabors.ImageSharp</PackageId>
     <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Png Core</PackageTags>
     <RootNamespace>SixLabors.ImageSharp</RootNamespace>
-    <NoWarn>SA1636</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -133,10 +132,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PorterDuffFunctions.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="Formats\ImageExtesions.Save.cs">
+    <Compile Update="Formats\ImageExtensions.Save.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
-      <DependentUpon>ImageExtesions.Save.tt</DependentUpon>
+      <DependentUpon>ImageExtensions.Save.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 
@@ -213,9 +212,9 @@
       <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
-    <None Update="Formats\ImageExtesions.Save.tt">
+    <None Update="Formats\ImageExtensions.Save.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>ImageExtesions.Save.cs</LastGenOutput>
+      <LastGenOutput>ImageExtensions.Save.cs</LastGenOutput>
     </None>
   </ItemGroup>
 

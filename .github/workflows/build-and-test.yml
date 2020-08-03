@@ -62,8 +62,9 @@ jobs:
                   dotnet-version: "3.1.x"
 
             - name: Install macos dependencies
-              if: ${{matrix.options.os}} == 'macos-10.15'
-              run: brew install mono-libgdiplus
+              shell: pwsh
+              #if: "${{matrix.options.os}}" == 'macos-10.15'
+              run: if ("${{matrix.options.os}}" -eq "macos-10.15") { brew install mono-libgdiplus } else { write-output "Not macOS" }
 
             - name: Build
               shell: pwsh

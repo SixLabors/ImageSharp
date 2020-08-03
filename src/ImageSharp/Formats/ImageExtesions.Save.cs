@@ -66,21 +66,10 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsBmpAsync(this Image source, string path, BmpEncoder encoder)
-            => SaveAsBmpAsync(source, path, encoder, default);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Bmp format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="path">The file path to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsBmpAsync(this Image source, string path, BmpEncoder encoder, CancellationToken cancellationToken) =>
+        public static Task SaveAsBmpAsync(this Image source, string path, BmpEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 path,
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance),
@@ -100,19 +89,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsBmpAsync(this Image source, Stream stream) => SaveAsBmpAsync(source, stream, null);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Bmp format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="stream">The stream to save the image to.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsBmpAsync(this Image source, Stream stream, CancellationToken cancellationToken)
+        public static Task SaveAsBmpAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
             => SaveAsBmpAsync(source, stream, null, cancellationToken);
 
         /// <summary>
@@ -134,21 +114,10 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsBmpAsync(this Image source, Stream stream, BmpEncoder encoder)
-            => SaveAsBmpAsync(source, stream, encoder, default);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Bmp format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsBmpAsync(this Image source, Stream stream, BmpEncoder encoder, CancellationToken cancellationToken) =>
+        public static Task SaveAsBmpAsync(this Image source, Stream stream, BmpEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 stream,
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(BmpFormat.Instance),
@@ -200,21 +169,10 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsGifAsync(this Image source, string path, GifEncoder encoder)
-            => SaveAsGifAsync(source, path, encoder, default);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Gif format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="path">The file path to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsGifAsync(this Image source, string path, GifEncoder encoder, CancellationToken cancellationToken) =>
+        public static Task SaveAsGifAsync(this Image source, string path, GifEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 path,
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance),
@@ -234,19 +192,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsGifAsync(this Image source, Stream stream) => SaveAsGifAsync(source, stream, null);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Gif format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="stream">The stream to save the image to.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsGifAsync(this Image source, Stream stream, CancellationToken cancellationToken)
+        public static Task SaveAsGifAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
             => SaveAsGifAsync(source, stream, null, cancellationToken);
 
         /// <summary>
@@ -268,21 +217,10 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsGifAsync(this Image source, Stream stream, GifEncoder encoder)
-            => SaveAsGifAsync(source, stream, encoder, default);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Gif format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsGifAsync(this Image source, Stream stream, GifEncoder encoder, CancellationToken cancellationToken) =>
+        public static Task SaveAsGifAsync(this Image source, Stream stream, GifEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 stream,
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(GifFormat.Instance),
@@ -334,21 +272,10 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsJpegAsync(this Image source, string path, JpegEncoder encoder)
-            => SaveAsJpegAsync(source, path, encoder, default);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Jpeg format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="path">The file path to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsJpegAsync(this Image source, string path, JpegEncoder encoder, CancellationToken cancellationToken) =>
+        public static Task SaveAsJpegAsync(this Image source, string path, JpegEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 path,
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance),
@@ -368,19 +295,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsJpegAsync(this Image source, Stream stream) => SaveAsJpegAsync(source, stream, null);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Jpeg format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="stream">The stream to save the image to.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsJpegAsync(this Image source, Stream stream, CancellationToken cancellationToken)
+        public static Task SaveAsJpegAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
             => SaveAsJpegAsync(source, stream, null, cancellationToken);
 
         /// <summary>
@@ -402,21 +320,10 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsJpegAsync(this Image source, Stream stream, JpegEncoder encoder)
-            => SaveAsJpegAsync(source, stream, encoder, default);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Jpeg format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsJpegAsync(this Image source, Stream stream, JpegEncoder encoder, CancellationToken cancellationToken) =>
+        public static Task SaveAsJpegAsync(this Image source, Stream stream, JpegEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 stream,
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(JpegFormat.Instance),
@@ -468,21 +375,10 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsPngAsync(this Image source, string path, PngEncoder encoder)
-            => SaveAsPngAsync(source, path, encoder, default);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Png format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="path">The file path to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsPngAsync(this Image source, string path, PngEncoder encoder, CancellationToken cancellationToken) =>
+        public static Task SaveAsPngAsync(this Image source, string path, PngEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 path,
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance),
@@ -502,19 +398,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsPngAsync(this Image source, Stream stream) => SaveAsPngAsync(source, stream, null);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Png format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="stream">The stream to save the image to.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsPngAsync(this Image source, Stream stream, CancellationToken cancellationToken)
+        public static Task SaveAsPngAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
             => SaveAsPngAsync(source, stream, null, cancellationToken);
 
         /// <summary>
@@ -536,21 +423,10 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsPngAsync(this Image source, Stream stream, PngEncoder encoder)
-            => SaveAsPngAsync(source, stream, encoder, default);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Png format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsPngAsync(this Image source, Stream stream, PngEncoder encoder, CancellationToken cancellationToken) =>
+        public static Task SaveAsPngAsync(this Image source, Stream stream, PngEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 stream,
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(PngFormat.Instance),
@@ -602,21 +478,10 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsTgaAsync(this Image source, string path, TgaEncoder encoder)
-            => SaveAsTgaAsync(source, path, encoder, default);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Tga format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="path">The file path to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsTgaAsync(this Image source, string path, TgaEncoder encoder, CancellationToken cancellationToken) =>
+        public static Task SaveAsTgaAsync(this Image source, string path, TgaEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 path,
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance),
@@ -636,19 +501,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsTgaAsync(this Image source, Stream stream) => SaveAsTgaAsync(source, stream, null);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Tga format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="stream">The stream to save the image to.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsTgaAsync(this Image source, Stream stream, CancellationToken cancellationToken)
+        public static Task SaveAsTgaAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
             => SaveAsTgaAsync(source, stream, null, cancellationToken);
 
         /// <summary>
@@ -670,21 +526,10 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsTgaAsync(this Image source, Stream stream, TgaEncoder encoder)
-            => SaveAsTgaAsync(source, stream, encoder, default);
-
-        /// <summary>
-        /// Saves the image to the given stream with the Tga format.
-        /// </summary>
-        /// <param name="source">The image this method extends.</param>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsTgaAsync(this Image source, Stream stream, TgaEncoder encoder, CancellationToken cancellationToken) =>
+        public static Task SaveAsTgaAsync(this Image source, Stream stream, TgaEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 stream,
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TgaFormat.Instance),

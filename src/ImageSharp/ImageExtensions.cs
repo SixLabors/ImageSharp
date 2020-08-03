@@ -31,20 +31,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="source">The source image.</param>
         /// <param name="path">The file path to save the image to.</param>
-        /// <exception cref="ArgumentNullException">The path is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsync(this Image source, string path)
-            => source.SaveAsync(path, source.DetectEncoder(path));
-
-        /// <summary>
-        /// Writes the image to the given stream using the currently loaded image format.
-        /// </summary>
-        /// <param name="source">The source image.</param>
-        /// <param name="path">The file path to save the image to.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">The path is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsync(this Image source, string path, CancellationToken cancellationToken)
+        public static Task SaveAsync(this Image source, string path, CancellationToken cancellationToken = default)
             => source.SaveAsync(path, source.DetectEncoder(path), cancellationToken);
 
         /// <summary>

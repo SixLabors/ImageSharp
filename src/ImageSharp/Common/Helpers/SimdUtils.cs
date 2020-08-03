@@ -6,6 +6,10 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp
 {
@@ -28,7 +32,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector4 PseudoRound(this Vector4 v)
         {
-            var sign = Vector4Utilities.FastClamp(v, new Vector4(-1), new Vector4(1));
+            Vector4 sign = Vector4Utilities.FastClamp(v, new Vector4(-1), new Vector4(1));
 
             return v + (sign * 0.5f);
         }
@@ -44,13 +48,24 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector<float> FastRound(this Vector<float> v)
         {
-            var magic0 = new Vector<int>(int.MinValue); // 0x80000000
-            Vector<float> sgn0 = Vector.AsVectorSingle(magic0);
-            Vector<float> and0 = Vector.BitwiseAnd(sgn0, v);
-            Vector<float> or0 = Vector.BitwiseOr(and0, new Vector<float>(8388608.0f));
-            Vector<float> add0 = Vector.Add(v, or0);
-            Vector<float> sub0 = Vector.Subtract(add0, or0);
-            return sub0;
+#if SUPPORTS_RUNTIME_INTRINSICS
+
+            if (Avx.IsSupported)
+            {
+                ref Vector256<float> v256 = ref Unsafe.As<Vector<float>, Vector256<float>>(ref v);
+                Vector256<float> vRound = Avx.RoundToNearestInteger(v256);
+                return Unsafe.As<Vector256<float>, Vector<float>>(ref vRound);
+            }
+            else
+#endif
+            {
+                var magic0 = new Vector<int>(int.MinValue); // 0x80000000
+                var sgn0 = Vector.AsVectorSingle(magic0);
+                var and0 = Vector.BitwiseAnd(sgn0, v);
+                var or0 = Vector.BitwiseOr(and0, new Vector<float>(8388608.0f));
+                var add0 = Vector.Add(v, or0);
+                return Vector.Subtract(add0, or0);
+            }
         }
 
         /// <summary>

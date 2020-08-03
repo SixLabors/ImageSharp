@@ -104,20 +104,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="ArgumentNullException">Thrown if the stream or encoder is null.</exception>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public Task SaveAsync(Stream stream, IImageEncoder encoder)
-            => this.SaveAsync(stream, encoder, default);
-
-        /// <summary>
-        /// Saves the image to the given stream using the given image encoder.
-        /// </summary>
-        /// <param name="stream">The stream to save the image to.</param>
-        /// <param name="encoder">The encoder to save the image with.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="ArgumentNullException">Thrown if the stream or encoder is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public Task SaveAsync(Stream stream, IImageEncoder encoder, CancellationToken cancellationToken)
+        public Task SaveAsync(Stream stream, IImageEncoder encoder, CancellationToken cancellationToken = default)
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));

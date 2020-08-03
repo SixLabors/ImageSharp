@@ -160,7 +160,10 @@ namespace SixLabors.ImageSharp
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>A <see cref="Task{ValueTuple}"/> representing the asynchronous operation.</returns>
-        private static async Task<(Image<TPixel> Image, IImageFormat Format)> DecodeAsync<TPixel>(Stream stream, Configuration config, CancellationToken cancellationToken)
+        private static async Task<(Image<TPixel> Image, IImageFormat Format)> DecodeAsync<TPixel>(
+            Stream stream,
+            Configuration config,
+            CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             (IImageDecoder decoder, IImageFormat format) = await DiscoverDecoderAsync(stream, config)

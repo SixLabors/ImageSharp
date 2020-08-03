@@ -127,14 +127,10 @@ namespace SixLabors.ImageSharp.Formats
             }
         }
 
-        public static IImageInfo Identify(this IImageDecoderInternals decoder, Configuration configuration, Stream stream)
-            => decoder.Identify(configuration, stream, DefaultLargeImageExceptionFactory);
-
         public static IImageInfo Identify(
             this IImageDecoderInternals decoder,
             Configuration configuration,
-            Stream stream,
-            Func<InvalidMemoryOperationException, Size, InvalidImageContentException> largeImageExceptionFactory)
+            Stream stream)
         {
             using BufferedReadStream bufferedReadStream = new BufferedReadStream(configuration, stream);
 
@@ -144,7 +140,7 @@ namespace SixLabors.ImageSharp.Formats
             }
             catch (InvalidMemoryOperationException ex)
             {
-                throw largeImageExceptionFactory(ex, decoder.Dimensions);
+                throw new InvalidImageContentException(decoder.Dimensions, ex);
             }
         }
 

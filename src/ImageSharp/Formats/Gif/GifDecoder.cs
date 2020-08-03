@@ -63,14 +63,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <inheritdoc/>
-        public async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             Guard.NotNull(stream, nameof(stream));
 
             var decoder = new GifDecoderCore(configuration, this);
-
-            using var bufferedStream = new BufferedReadStream(configuration, stream);
-            return await decoder.IdentifyAsync(configuration, bufferedStream, cancellationToken);
+            return decoder.IdentifyAsync(configuration, stream, cancellationToken);
         }
     }
 }

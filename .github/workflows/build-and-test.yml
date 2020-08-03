@@ -19,7 +19,7 @@ jobs:
                       framework: netcoreapp3.1
                       runtime: -x64
                       codecov: false
-                    - os: macos-10.15
+                    - os: macos-latest
                       framework: netcoreapp3.1
                       runtime: -x64
                       codecov: false
@@ -63,8 +63,8 @@ jobs:
 
             - name: Install macos dependencies
               shell: pwsh
-              #if: "${{matrix.options.os}}" == 'macos-10.15'
-              run: if ("${{matrix.options.os}}" -eq "macos-10.15") { brew install mono-libgdiplus } else { write-output "Not macOS" }
+              if: startsWith(matrix.options.os, 'macos')
+              run: brew install mono-libgdiplus
 
             - name: Build
               shell: pwsh

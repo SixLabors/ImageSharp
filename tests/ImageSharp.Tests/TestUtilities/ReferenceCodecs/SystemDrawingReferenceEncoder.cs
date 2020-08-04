@@ -3,6 +3,7 @@
 
 using System.Drawing.Imaging;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -31,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             }
         }
 
-        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (System.Drawing.Bitmap sdBitmap = SystemDrawingBridge.To32bppArgbSystemDrawingBitmap(image))

@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats
         {
             try
             {
-                using BufferedReadStream bufferedReadStream = new BufferedReadStream(configuration, stream);
+                using var bufferedReadStream = new BufferedReadStream(configuration, stream);
                 IImageInfo imageInfo = decoder.Identify(bufferedReadStream, cancellationToken);
                 return Task.FromResult(imageInfo);
             }
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats
         {
             try
             {
-                using BufferedReadStream bufferedReadStream = new BufferedReadStream(configuration, stream);
+                using var bufferedReadStream = new BufferedReadStream(configuration, stream);
                 Image<TPixel> image = decoder.Decode<TPixel>(bufferedReadStream, cancellationToken);
                 return Task.FromResult(image);
             }
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Formats
             Configuration configuration,
             Stream stream)
         {
-            using BufferedReadStream bufferedReadStream = new BufferedReadStream(configuration, stream);
+            using var bufferedReadStream = new BufferedReadStream(configuration, stream);
 
             try
             {
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp.Formats
             Func<InvalidMemoryOperationException, Size, InvalidImageContentException> largeImageExceptionFactory)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using BufferedReadStream bufferedReadStream = new BufferedReadStream(configuration, stream);
+            using var bufferedReadStream = new BufferedReadStream(configuration, stream);
 
             try
             {

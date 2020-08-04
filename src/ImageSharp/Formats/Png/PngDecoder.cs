@@ -4,8 +4,6 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -39,7 +37,8 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         /// <inheritdoc />
         public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken);
+            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
+            .ConfigureAwait(false);
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)

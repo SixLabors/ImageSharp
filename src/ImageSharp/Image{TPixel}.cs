@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
@@ -290,11 +291,11 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc />
-        internal override Task AcceptAsync(IImageVisitorAsync visitor)
+        internal override Task AcceptAsync(IImageVisitorAsync visitor, CancellationToken cancellationToken)
         {
             this.EnsureNotDisposed();
 
-            return visitor.VisitAsync(this);
+            return visitor.VisitAsync(this, cancellationToken);
         }
 
         /// <summary>

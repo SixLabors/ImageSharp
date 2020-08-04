@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using ImageMagick;
 using SixLabors.ImageSharp.Formats;
@@ -46,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             }
         }
 
-        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream)
+        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
             => Task.FromResult(this.Decode<TPixel>(configuration, stream));
 
@@ -82,6 +83,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
         public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
 
-        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream) => await this.DecodeAsync<Rgba32>(configuration, stream);
+        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+            => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken);
     }
 }

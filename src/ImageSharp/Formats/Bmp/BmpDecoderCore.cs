@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -118,7 +119,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public Size Dimensions => new Size(this.infoHeader.Width, this.infoHeader.Height);
 
         /// <inheritdoc />
-        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream)
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             try
@@ -197,7 +198,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <inheritdoc />
-        public IImageInfo Identify(BufferedReadStream stream)
+        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             this.ReadImageHeaders(stream, out _, out _);
             return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, this.metadata);

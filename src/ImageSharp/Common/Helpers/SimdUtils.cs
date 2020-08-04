@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
 
-            if (Avx.IsSupported)
+            if (Avx2.IsSupported)
             {
                 ref Vector256<float> v256 = ref Unsafe.As<Vector<float>, Vector256<float>>(ref v);
                 Vector256<float> vRound = Avx.RoundToNearestInteger(v256);

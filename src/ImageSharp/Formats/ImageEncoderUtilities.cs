@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats
             Configuration configuration = image.GetConfiguration();
             if (stream.CanSeek)
             {
-                await DoEncodeAsync(stream);
+                await DoEncodeAsync(stream).ConfigureAwait(false);
             }
             else
             {

@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <inheritdoc />
         public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
-                .ConfigureAwait(false);
+            .ConfigureAwait(false);
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)

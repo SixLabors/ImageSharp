@@ -77,6 +77,9 @@ namespace SixLabors.ImageSharp.Formats.Png
         public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // The introduction of a local variable that refers to an object the implements
+            // IDisposable means you must use async/await, where the compiler generates the
+            // state machine and a continuation.
             using (var encoder = new PngEncoderCore(image.GetMemoryAllocator(), image.GetConfiguration(), new PngEncoderOptions(this)))
             {
                 await encoder.EncodeAsync(image, stream, cancellationToken).ConfigureAwait(false);

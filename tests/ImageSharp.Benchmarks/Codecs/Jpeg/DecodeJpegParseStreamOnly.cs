@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Drawing;
 using System.IO;
 using BenchmarkDotNet.Attributes;
 
@@ -15,7 +14,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
     [Config(typeof(Config.ShortClr))]
     public class DecodeJpegParseStreamOnly
     {
-        [Params(TestImages.Jpeg.Baseline.Jpeg420Exif)]
+        [Params(TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr)]
         public string TestImage { get; set; }
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
@@ -37,7 +36,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark(Description = "JpegDecoderCore.ParseStream")]
-        public void ParseStreamPdfJs()
+        public void ParseStream()
         {
             using var memoryStream = new MemoryStream(this.jpegBytes);
             using var bufferedStream = new BufferedReadStream(Configuration.Default, memoryStream);
@@ -46,22 +45,18 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             decoder.ParseStream(bufferedStream);
             decoder.Dispose();
         }
-
-        // RESULTS (2019 April 23):
-        //
-        // BenchmarkDotNet=v0.11.3, OS=Windows 10.0.17763.437 (1809/October2018Update/Redstone5)
-        // Intel Core i7-6600U CPU 2.60GHz (Skylake), 1 CPU, 4 logical and 2 physical cores
-        // .NET Core SDK=2.2.202
-        //  [Host] : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
-        //  Clr    : .NET Framework 4.7.2 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.3362.0
-        //  Core   : .NET Core 2.1.9 (CoreCLR 4.6.27414.06, CoreFX 4.6.27415.01), 64bit RyuJIT
-        //
-        // |                      Method |  Job | Runtime |            TestImage |     Mean |    Error |    StdDev | Ratio | RatioSD |    Gen 0 | Gen 1 | Gen 2 | Allocated |
-        // |---------------------------- |----- |-------- |--------------------- |---------:|---------:|----------:|------:|--------:|---------:|------:|------:|----------:|
-        // |       'System.Drawing FULL' |  Clr |     Clr | Jpg/b(...)f.jpg [28] | 18.69 ms | 8.273 ms | 0.4535 ms |  1.00 |    0.00 | 343.7500 |     - |     - | 757.89 KB |
-        // | JpegDecoderCore.ParseStream |  Clr |     Clr | Jpg/b(...)f.jpg [28] | 15.76 ms | 4.266 ms | 0.2339 ms |  0.84 |    0.03 |        - |     - |     - |  11.83 KB |
-        // |                             |      |         |                      |          |          |           |       |         |          |       |       |           |
-        // |       'System.Drawing FULL' | Core |    Core | Jpg/b(...)f.jpg [28] | 17.68 ms | 2.711 ms | 0.1486 ms |  1.00 |    0.00 | 343.7500 |     - |     - | 757.04 KB |
-        // | JpegDecoderCore.ParseStream | Core |    Core | Jpg/b(...)f.jpg [28] | 14.27 ms | 3.671 ms | 0.2012 ms |  0.81 |    0.00 |        - |     - |     - |  11.76 KB |
     }
+
+    /*
+    |                      Method |        Job |       Runtime |            TestImage |     Mean |     Error |    StdDev | Ratio |   Gen 0 | Gen 1 | Gen 2 | Allocated |
+    |---------------------------- |----------- |-------------- |--------------------- |---------:|----------:|----------:|------:|--------:|------:|------:|----------:|
+    |       'System.Drawing FULL' | Job-HITJFX |    .NET 4.7.2 | Jpg/b(...)e.jpg [21] | 5.828 ms | 0.9885 ms | 0.0542 ms |  1.00 | 46.8750 |     - |     - |  211566 B |
+    | JpegDecoderCore.ParseStream | Job-HITJFX |    .NET 4.7.2 | Jpg/b(...)e.jpg [21] | 5.833 ms | 0.2923 ms | 0.0160 ms |  1.00 |       - |     - |     - |   12416 B |
+    |                             |            |               |                      |          |           |           |       |         |       |       |           |
+    |       'System.Drawing FULL' | Job-WPSKZD | .NET Core 2.1 | Jpg/b(...)e.jpg [21] | 6.018 ms | 2.1374 ms | 0.1172 ms |  1.00 | 46.8750 |     - |     - |  210768 B |
+    | JpegDecoderCore.ParseStream | Job-WPSKZD | .NET Core 2.1 | Jpg/b(...)e.jpg [21] | 4.382 ms | 0.9009 ms | 0.0494 ms |  0.73 |       - |     - |     - |   12360 B |
+    |                             |            |               |                      |          |           |           |       |         |       |       |           |
+    |       'System.Drawing FULL' | Job-ZLSNRP | .NET Core 3.1 | Jpg/b(...)e.jpg [21] | 5.714 ms | 0.4078 ms | 0.0224 ms |  1.00 |       - |     - |     - |     176 B |
+    | JpegDecoderCore.ParseStream | Job-ZLSNRP | .NET Core 3.1 | Jpg/b(...)e.jpg [21] | 4.239 ms | 1.0943 ms | 0.0600 ms |  0.74 |       - |     - |     - |   12406 B |
+    */
 }

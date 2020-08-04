@@ -19,9 +19,9 @@ namespace SixLabors.ImageSharp.Tests
         {
             private static readonly string ActualImagePath = TestFile.GetInputFileFullPath(TestImages.Bmp.F);
 
-            private byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
+            private static readonly Size ExpectedImageSize = new Size(108, 202);
 
-            private byte[] ByteArray => this.DataStream.ToArray();
+            private byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
 
             private IImageInfo LocalImageInfo => this.localImageInfoMock.Object;
 
@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 IImageInfo info = Image.Identify(this.ActualImageBytes, out IImageFormat type);
 
-                Assert.NotNull(info);
+                Assert.Equal(ExpectedImageSize, info.Size());
                 Assert.Equal(ExpectedGlobalFormat, type);
             }
 
@@ -133,11 +133,43 @@ namespace SixLabors.ImageSharp.Tests
                 using (var stream = new MemoryStream(this.ActualImageBytes))
                 {
                     var asyncStream = new AsyncStreamWrapper(stream, () => false);
-                    (IImageInfo ImageInfo, IImageFormat Format) info = await Image.IdentifyWithFormatAsync(asyncStream);
+                    (IImageInfo ImageInfo, IImageFormat Format) res = await Image.IdentifyWithFormatAsync(asyncStream);
 
-                    Assert.NotNull(info.ImageInfo);
-                    Assert.Equal(ExpectedGlobalFormat, info.Format);
+                    Assert.Equal(ExpectedImageSize, res.ImageInfo.Size());
+                    Assert.Equal(ExpectedGlobalFormat, res.Format);
                 }
+            }
+
+            [Fact]
+            public async Task FromPathAsync_CustomConfiguration()
+            {
+                IImageInfo info = await Image.IdentifyAsync(this.LocalConfiguration, this.MockFilePath);
+                Assert.Equal(this.LocalImageInfo, info);
+            }
+
+            [Fact]
+            public async Task IdentifyWithFormatAsync_FromPath_CustomConfiguration()
+            {
+                (IImageInfo ImageInfo, IImageFormat Format) info = await Image.IdentifyWithFormatAsync(this.LocalConfiguration, this.MockFilePath);
+                Assert.NotNull(info.ImageInfo);
+                Assert.Equal(this.LocalImageFormat, info.Format);
+            }
+
+            [Fact]
+            public async Task IdentifyWithFormatAsync_FromPath_GlobalConfiguration()
+            {
+                (IImageInfo ImageInfo, IImageFormat Format) res = await Image.IdentifyWithFormatAsync(ActualImagePath);
+
+                Assert.Equal(ExpectedImageSize, res.ImageInfo.Size());
+                Assert.Equal(ExpectedGlobalFormat, res.Format);
+            }
+
+            [Fact]
+            public async Task FromPathAsync_GlobalConfiguration()
+            {
+                IImageInfo info = await Image.IdentifyAsync(ActualImagePath);
+
+                Assert.Equal(ExpectedImageSize, info.Size());
             }
 
             [Fact]

@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 Configuration configuration = this.Source.GetConfiguration();
 
                 // Detect the edges.
-                new SobelProcessor(false).Execute(this.Configuration, temp, this.SourceRectangle);
+                new EdgeDetector2DProcessor(KnownEdgeDetectorKernels.Sobel, false).Execute(this.Configuration, temp, this.SourceRectangle);
 
                 // Apply threshold binarization filter.
                 new BinaryThresholdProcessor(this.definition.Threshold).Execute(this.Configuration, temp, this.SourceRectangle);

@@ -3,6 +3,7 @@
 
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using Castle.Core.Internal;
 
 using SixLabors.ImageSharp.Formats;
@@ -95,6 +96,11 @@ namespace SixLabors.ImageSharp.Tests
         public virtual Image<TPixel> GetImage(IImageDecoder decoder)
         {
             throw new NotSupportedException($"Decoder specific GetImage() is not supported with {this.GetType().Name}!");
+        }
+
+        public virtual Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder)
+        {
+            throw new NotSupportedException($"Decoder specific GetImageAsync() is not supported with {this.GetType().Name}!");
         }
 
         /// <summary>

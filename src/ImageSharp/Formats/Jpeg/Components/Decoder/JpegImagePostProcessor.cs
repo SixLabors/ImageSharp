@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Numerics;
+using System.Threading;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -111,7 +112,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="destination">The destination image</param>
-        public void PostProcess<TPixel>(ImageFrame<TPixel> destination)
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        public void PostProcess<TPixel>(ImageFrame<TPixel> destination, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.PixelRowCounter = 0;
@@ -123,6 +125,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             while (this.PixelRowCounter < this.RawJpeg.ImageSizeInPixels.Height)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 this.DoPostProcessorStep(destination);
             }
         }

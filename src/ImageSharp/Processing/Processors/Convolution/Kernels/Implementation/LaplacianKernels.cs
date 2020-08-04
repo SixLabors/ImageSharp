@@ -1,10 +1,12 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     /// <summary>
-    /// Contains Laplacian kernels of different sizes
+    /// Contains Laplacian kernels of different sizes.
+    /// <see href="http://en.wikipedia.org/wiki/Discrete_Laplace_operator"/>
+    /// <see href="http://fourier.eng.hmc.edu/e161/lectures/gradient/node8.html"/>.
     /// </summary>
     internal static class LaplacianKernels
     {

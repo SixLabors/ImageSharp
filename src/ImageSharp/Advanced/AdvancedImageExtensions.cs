@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
@@ -73,9 +74,10 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <param name="source">The source image.</param>
         /// <param name="visitor">The image visitor.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A  <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task AcceptVisitorAsync(this Image source, IImageVisitorAsync visitor)
-            => source.AcceptAsync(visitor);
+        public static Task AcceptVisitorAsync(this Image source, IImageVisitorAsync visitor, CancellationToken cancellationToken = default)
+            => source.AcceptAsync(visitor, cancellationToken);
 
         /// <summary>
         /// Gets the configuration for the image.

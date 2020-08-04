@@ -6,26 +6,37 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     /// <summary>
-    /// Defines a processor that detects edges within an image using a single two dimensional matrix.
+    /// Defines edge detection using a single 2D gradient operator.
     /// </summary>
-    public abstract class EdgeDetectorProcessor : IImageProcessor
+    public sealed class EdgeDetectorProcessor : IImageProcessor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EdgeDetectorProcessor"/> class.
         /// </summary>
-        /// <param name="grayscale">A value indicating whether to convert the image to grayscale before performing edge detection.</param>
-        protected EdgeDetectorProcessor(bool grayscale)
+        /// <param name="kernel">The  edge detector kernel.</param>
+        /// <param name="grayscale">
+        /// Whether to convert the image to grayscale before performing edge detection.
+        /// </param>
+        public EdgeDetectorProcessor(EdgeDetectorKernel kernel, bool grayscale)
         {
+            this.Kernel = kernel;
             this.Grayscale = grayscale;
         }
 
         /// <summary>
-        /// Gets a value indicating whether to convert the image to grayscale before performing edge detection.
+        /// Gets the edge detector kernel.
+        /// </summary>
+        public EdgeDetectorKernel Kernel { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether to convert the image to grayscale before performing
+        /// edge detection.
         /// </summary>
         public bool Grayscale { get; }
 
         /// <inheritdoc />
-        public abstract IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
-            where TPixel : unmanaged, IPixel<TPixel>;
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => new EdgeDetectorProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

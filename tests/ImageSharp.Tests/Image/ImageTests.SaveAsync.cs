@@ -3,9 +3,9 @@
 
 using System;
 using System.IO;
-
+using System.Threading;
 using Moq;
-
+using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests
             [InlineData("test.bmp")]
             [InlineData("test.jpg")]
             [InlineData("test.gif")]
-            public async Task SaveNeverCallsSyncMethods(string filename)
+            public async Task SaveAsync_NeverCallsSyncMethods(string filename)
             {
                 using (var image = new Image<Rgba32>(5, 5))
                 {
@@ -101,6 +101,20 @@ namespace SixLabors.ImageSharp.Tests
                         await image.SaveAsync(asyncStream, encoder);
                     }
                 }
+            }
+
+            [Fact]
+            public async Task SaveAsync_WithNonSeekableStream_IsCancellable()
+            {
+                using var image = new Image<Rgba32>(4000, 4000);
+                var encoder = new PngEncoder() { CompressionLevel = PngCompressionLevel.BestCompression };
+                using var stream = new MemoryStream();
+                var asyncStream = new AsyncStreamWrapper(stream, () => false);
+                var cts = new CancellationTokenSource();
+                cts.CancelAfter(TimeSpan.FromTicks(1));
+
+                await Assert.ThrowsAnyAsync<TaskCanceledException>(() =>
+                    image.SaveAsync(asyncStream, encoder, cts.Token));
             }
         }
     }

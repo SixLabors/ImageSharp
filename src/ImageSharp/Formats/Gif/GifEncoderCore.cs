@@ -6,6 +6,7 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -18,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// <summary>
     /// Implements the GIF encoding protocol.
     /// </summary>
-    internal sealed class GifEncoderCore
+    internal sealed class GifEncoderCore : IImageEncoderInternals
     {
         /// <summary>
         /// Used for allocating memory during processing operations.
@@ -75,25 +76,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using (var ms = new MemoryStream())
-            {
-                this.Encode(image, ms);
-                ms.Position = 0;
-                await ms.CopyToAsync(stream).ConfigureAwait(false);
-            }
-        }
-
-        /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));

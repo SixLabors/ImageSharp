@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
@@ -50,6 +51,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
         private HuffmanScanBuffer scanBuffer;
 
+        private CancellationToken cancellationToken;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="HuffmanScanDecoder"/> class.
         /// </summary>
@@ -63,6 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// <param name="spectralEnd">The spectral selection end.</param>
         /// <param name="successiveHigh">The successive approximation bit high end.</param>
         /// <param name="successiveLow">The successive approximation bit low end.</param>
+        /// <param name="cancellationToken">The token to monitor cancellation.</param>
         public HuffmanScanDecoder(
             BufferedReadStream stream,
             JpegFrame frame,
@@ -73,7 +77,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             int spectralStart,
             int spectralEnd,
             int successiveHigh,
-            int successiveLow)
+            int successiveLow,
+            CancellationToken cancellationToken)
         {
             this.dctZigZag = ZigZag.CreateUnzigTable();
             this.stream = stream;
@@ -89,6 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.spectralEnd = spectralEnd;
             this.successiveHigh = successiveHigh;
             this.successiveLow = successiveLow;
+            this.cancellationToken = cancellationToken;
         }
 
         /// <summary>
@@ -96,6 +102,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         /// </summary>
         public void ParseEntropyCodedData()
         {
+            this.cancellationToken.ThrowIfCancellationRequested();
+
             if (!this.frame.Progressive)
             {
                 this.ParseBaselineData();
@@ -145,6 +153,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             for (int j = 0; j < mcusPerColumn; j++)
             {
+                this.cancellationToken.ThrowIfCancellationRequested();
+
                 for (int i = 0; i < mcusPerLine; i++)
                 {
                     // Scan an interleaved mcu... process components in order
@@ -210,6 +220,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
             for (int j = 0; j < h; j++)
             {
+                this.cancellationToken.ThrowIfCancellationRequested();
                 Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
                 ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
@@ -376,6 +387,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int j = 0; j < h; j++)
                 {
+                    this.cancellationToken.ThrowIfCancellationRequested();
+
                     Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
                     ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 
@@ -402,6 +415,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 
                 for (int j = 0; j < h; j++)
                 {
+                    this.cancellationToken.ThrowIfCancellationRequested();
+
                     Span<Block8x8> blockSpan = component.SpectralBlocks.GetRowSpan(j);
                     ref Block8x8 blockRef = ref MemoryMarshal.GetReference(blockSpan);
 

@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Tests
     /// </summary>
     public class TestFileSystem : ImageSharp.IO.IFileSystem
     {
-        private readonly Dictionary<string, Stream> fileSystem = new Dictionary<string, Stream>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, Func<Stream>> fileSystem = new Dictionary<string, Func<Stream>>(StringComparer.OrdinalIgnoreCase);
 
-        public void AddFile(string path, Stream data)
+        public void AddFile(string path, Func<Stream> data)
         {
             lock (this.fileSystem)
             {
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 if (this.fileSystem.ContainsKey(path))
                 {
-                    Stream stream = this.fileSystem[path];
+                    Stream stream = this.fileSystem[path]();
                     stream.Position = 0;
                     return stream;
                 }
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 if (this.fileSystem.ContainsKey(path))
                 {
-                    Stream stream = this.fileSystem[path];
+                    Stream stream = this.fileSystem[path]();
                     stream.Position = 0;
                     return stream;
                 }

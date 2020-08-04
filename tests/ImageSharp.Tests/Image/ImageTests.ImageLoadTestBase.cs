@@ -3,7 +3,7 @@
 
 using System;
 using System.IO;
-
+using System.Threading;
 using Moq;
 
 using SixLabors.ImageSharp.Formats;
@@ -16,6 +16,8 @@ namespace SixLabors.ImageSharp.Tests
     {
         public abstract class ImageLoadTestBase : IDisposable
         {
+            private Lazy<Stream> dataStreamLazy;
+
             protected Image<Rgba32> localStreamReturnImageRgba32;
 
             protected Image<Bgra4444> localStreamReturnImageAgnostic;
@@ -46,9 +48,11 @@ namespace SixLabors.ImageSharp.Tests
 
             public byte[] Marker { get; }
 
-            public MemoryStream DataStream { get; }
+            public Stream DataStream => this.dataStreamLazy.Value;
 
             public byte[] DecodedData { get; private set; }
+
+            protected byte[] ByteArray => ((MemoryStream)this.DataStream).ToArray();
 
             protected ImageLoadTestBase()
             {
@@ -60,10 +64,9 @@ namespace SixLabors.ImageSharp.Tests
 
                 var detector = new Mock<IImageInfoDetector>();
                 detector.Setup(x => x.Identify(It.IsAny<Configuration>(), It.IsAny<Stream>())).Returns(this.localImageInfoMock.Object);
-                detector.Setup(x => x.IdentifyAsync(It.IsAny<Configuration>(), It.IsAny<Stream>())).ReturnsAsync(this.localImageInfoMock.Object);
-                this.localDecoder = detector.As<IImageDecoder>();
-                this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
+                detector.Setup(x => x.IdentifyAsync(It.IsAny<Configuration>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>())).ReturnsAsync(this.localImageInfoMock.Object);
 
+                this.localDecoder = detector.As<IImageDecoder>();
                 this.localDecoder.Setup(x => x.Decode<Rgba32>(It.IsAny<Configuration>(), It.IsAny<Stream>()))
                     .Callback<Configuration, Stream>((c, s) =>
                         {
@@ -86,6 +89,8 @@ namespace SixLabors.ImageSharp.Tests
                         })
                     .Returns(this.localStreamReturnImageAgnostic);
 
+                this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
+
                 this.LocalConfiguration = new Configuration();
                 this.LocalConfiguration.ImageFormatsManager.AddImageFormatDetector(this.localMimeTypeDetector);
                 this.LocalConfiguration.ImageFormatsManager.SetDecoder(this.localImageFormatMock.Object, this.localDecoder.Object);
@@ -93,10 +98,12 @@ namespace SixLabors.ImageSharp.Tests
                 this.TopLevelConfiguration = new Configuration(this.TestFormat);
 
                 this.Marker = Guid.NewGuid().ToByteArray();
-                this.DataStream = this.TestFormat.CreateStream(this.Marker);
 
-                this.LocalFileSystemMock.Setup(x => x.OpenRead(this.MockFilePath)).Returns(this.DataStream);
-                this.topLevelFileSystem.AddFile(this.MockFilePath, this.DataStream);
+                this.dataStreamLazy = new Lazy<Stream>(this.CreateStream);
+                Stream StreamFactory() => this.DataStream;
+
+                this.LocalFileSystemMock.Setup(x => x.OpenRead(this.MockFilePath)).Returns(StreamFactory);
+                this.topLevelFileSystem.AddFile(this.MockFilePath, StreamFactory);
                 this.LocalConfiguration.FileSystem = this.LocalFileSystemMock.Object;
                 this.TopLevelConfiguration.FileSystem = this.topLevelFileSystem;
             }
@@ -107,6 +114,8 @@ namespace SixLabors.ImageSharp.Tests
                 this.localStreamReturnImageRgba32?.Dispose();
                 this.localStreamReturnImageAgnostic?.Dispose();
             }
+
+            protected virtual Stream CreateStream() => this.TestFormat.CreateStream(this.Marker);
         }
     }
 }

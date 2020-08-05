@@ -4,8 +4,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -162,6 +163,15 @@ namespace SixLabors.ImageSharp.Tests
                 Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.LoadImage(decoder));
 
                 return cachedImage.Clone(this.Configuration);
+            }
+
+            public override Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder)
+            {
+                Guard.NotNull(decoder, nameof(decoder));
+
+                // Used in small subset of decoder tests, no caching.
+                string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.FilePath);
+                return Image.LoadAsync<TPixel>(this.Configuration, path, decoder);
             }
 
             public override void Deserialize(IXunitSerializationInfo info)

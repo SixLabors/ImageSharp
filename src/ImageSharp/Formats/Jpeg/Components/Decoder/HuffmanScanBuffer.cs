@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     /// </summary>
     internal struct HuffmanScanBuffer
     {
-        private readonly DoubleBufferedStreamReader stream;
+        private readonly BufferedReadStream stream;
 
         // The entropy encoded code buffer.
         private ulong data;
@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // Whether there is no more good data to pull from the stream for the current mcu.
         private bool badData;
 
-        public HuffmanScanBuffer(DoubleBufferedStreamReader stream)
+        public HuffmanScanBuffer(BufferedReadStream stream)
         {
             this.stream = stream;
             this.data = 0ul;
@@ -93,25 +93,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         public unsafe int DecodeHuffman(ref HuffmanTable h)
         {
             this.CheckBits();
-            int v = this.PeekBits(JpegConstants.Huffman.LookupBits);
-            int symbol = h.LookaheadValue[v];
-            int size = h.LookaheadSize[v];
+            int index = this.PeekBits(JpegConstants.Huffman.LookupBits);
+            int size = h.LookaheadSize[index];
 
-            if (size == JpegConstants.Huffman.SlowBits)
+            if (size < JpegConstants.Huffman.SlowBits)
             {
-                ulong x = this.data << (JpegConstants.Huffman.RegisterSize - this.remainingBits);
-                while (x > h.MaxCode[size])
-                {
-                    size++;
-                }
+                this.remainingBits -= size;
+                return h.LookaheadValue[index];
+            }
 
-                v = (int)(x >> (JpegConstants.Huffman.RegisterSize - size));
-                symbol = h.Values[(h.ValOffset[size] + v) & 0xFF];
+            ulong x = this.data << (JpegConstants.Huffman.RegisterSize - this.remainingBits);
+            while (x > h.MaxCode[size])
+            {
+                size++;
             }
 
             this.remainingBits -= size;
 
-            return symbol;
+            return h.Values[(h.ValOffset[size] + (int)(x >> (JpegConstants.Huffman.RegisterSize - size))) & 0xFF];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

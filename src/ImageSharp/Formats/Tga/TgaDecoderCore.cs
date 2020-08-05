@@ -3,8 +3,8 @@
 
 using System;
 using System.Buffers;
-using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// The stream to decode from.
         /// </summary>
-        private Stream currentStream;
+        private BufferedReadStream currentStream;
 
         /// <summary>
         /// The bitmap decoder options.
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         public Size Dimensions => new Size(this.fileHeader.Width, this.fileHeader.Height);
 
         /// <inheritdoc />
-        public Image<TPixel> Decode<TPixel>(Stream stream)
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             try
@@ -641,7 +641,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         /// <inheritdoc />
-        public IImageInfo Identify(Stream stream)
+        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             this.ReadFileHeader(stream);
             return new ImageInfo(
@@ -868,9 +868,9 @@ namespace SixLabors.ImageSharp.Formats.Tga
         /// <summary>
         /// Reads the tga file header from the stream.
         /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
         /// <returns>The image origin.</returns>
-        private TgaImageOrigin ReadFileHeader(Stream stream)
+        private TgaImageOrigin ReadFileHeader(BufferedReadStream stream)
         {
             this.currentStream = stream;
 

@@ -1,8 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -283,6 +286,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.NotNull(actual);
             IccProfile values = input.Metadata.IccProfile;
             Assert.Equal(values.Entries, actual.Entries);
+        }
+
+        [Theory]
+        [InlineData(JpegSubsample.Ratio420, 0)]
+        [InlineData(JpegSubsample.Ratio420, 3)]
+        [InlineData(JpegSubsample.Ratio420, 10)]
+        [InlineData(JpegSubsample.Ratio444, 0)]
+        [InlineData(JpegSubsample.Ratio444, 3)]
+        [InlineData(JpegSubsample.Ratio444, 10)]
+        public async Task Encode_IsCancellable(JpegSubsample subsample, int cancellationDelayMs)
+        {
+            using var image = new Image<Rgba32>(5000, 5000);
+            using MemoryStream stream = new MemoryStream();
+            var cts = new CancellationTokenSource();
+            if (cancellationDelayMs == 0)
+            {
+                cts.Cancel();
+            }
+            else
+            {
+                cts.CancelAfter(cancellationDelayMs);
+            }
+
+            var encoder = new JpegEncoder() { Subsample = subsample };
+            await Assert.ThrowsAsync<TaskCanceledException>(() => image.SaveAsync(stream, encoder, cts.Token));
         }
     }
 }

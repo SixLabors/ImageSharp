@@ -4,10 +4,9 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
+using System.Threading;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -62,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// <summary>
         /// The stream to decode from.
         /// </summary>
-        private Stream stream;
+        private BufferedReadStream stream;
 
         /// <summary>
         /// The metadata.
@@ -120,7 +119,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public Size Dimensions => new Size(this.infoHeader.Width, this.infoHeader.Height);
 
         /// <inheritdoc />
-        public Image<TPixel> Decode<TPixel>(Stream stream)
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             try
@@ -199,7 +198,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <inheritdoc />
-        public IImageInfo Identify(Stream stream)
+        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             this.ReadImageHeaders(stream, out _, out _);
             return new ImageInfo(new PixelTypeInfo(this.infoHeader.BitsPerPixel), this.infoHeader.Width, this.infoHeader.Height, this.metadata);
@@ -1355,7 +1354,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         /// </summary>
         /// <returns>Bytes per color palette entry. Usually 4 bytes, but in case of Windows 2.x bitmaps or OS/2 1.x bitmaps
         /// the bytes per color palette entry's can be 3 bytes instead of 4.</returns>
-        private int ReadImageHeaders(Stream stream, out bool inverted, out byte[] palette)
+        private int ReadImageHeaders(BufferedReadStream stream, out bool inverted, out byte[] palette)
         {
             this.stream = stream;
 

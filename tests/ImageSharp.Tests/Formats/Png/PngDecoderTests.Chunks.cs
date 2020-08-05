@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 var decoder = new PngDecoder();
 
                 ImageFormatException exception =
-                    Assert.Throws<InvalidImageContentException>(() => decoder.Decode<Rgb24>(null, memStream));
+                    Assert.Throws<InvalidImageContentException>(() => decoder.Decode<Rgb24>(Configuration.Default, memStream));
 
                 Assert.Equal($"CRC Error. PNG {chunkName} chunk is corrupt!", exception.Message);
             }

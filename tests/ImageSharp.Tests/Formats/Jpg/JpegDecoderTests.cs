@@ -4,8 +4,11 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
@@ -71,16 +74,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void ParseStream_BasicPropertiesAreCorrect()
         {
             byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
-            using (var ms = new MemoryStream(bytes))
-            {
-                var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
-                decoder.ParseStream(ms);
+            using var ms = new MemoryStream(bytes);
+            using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
+            var decoder = new JpegDecoderCore(Configuration.Default, new JpegDecoder());
+            decoder.ParseStream(bufferedStream);
 
-                // I don't know why these numbers are different. All I know is that the decoder works
-                // and spectral data is exactly correct also.
-                // VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 43, 61, 22, 31, 22, 31);
-                VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 44, 62, 22, 31, 22, 31);
-            }
+            // I don't know why these numbers are different. All I know is that the decoder works
+            // and spectral data is exactly correct also.
+            // VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 43, 61, 22, 31, 22, 31);
+            VerifyJpeg.VerifyComponentSizes3(decoder.Frame.Components, 44, 62, 22, 31, 22, 31);
         }
 
         public const string DecodeBaselineJpegOutputName = "DecodeBaselineJpeg";
@@ -103,13 +105,67 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32)]
         [WithFile(TestImages.Jpeg.Progressive.Festzug, PixelTypes.Rgba32)]
-        public void DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+        public void Decode_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(10);
             InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(JpegDecoder));
             this.Output.WriteLine(ex.Message);
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Jpeg.Progressive.Festzug, PixelTypes.Rgba32)]
+        public async Task DecodeAsnc_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            provider.LimitAllocatorBufferCapacity().InBytesSqrt(10);
+            InvalidImageContentException ex = await Assert.ThrowsAsync<InvalidImageContentException>(() => provider.GetImageAsync(JpegDecoder));
+            this.Output.WriteLine(ex.Message);
+            Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
+        }
+
+        [Theory]
+        [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, 0)]
+        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 1)]
+        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 10)]
+        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 30)]
+        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 1)]
+        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 10)]
+        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 30)]
+        public async Task Decode_IsCancellable(string fileName, int cancellationDelayMs)
+        {
+            // Decoding these huge files took 300ms on i7-8650U in 2020. 30ms should be safe for cancellation delay.
+            string hugeFile = Path.Combine(
+                TestEnvironment.InputImagesDirectoryFullPath,
+                fileName);
+
+            var cts = new CancellationTokenSource();
+            if (cancellationDelayMs == 0)
+            {
+                cts.Cancel();
+            }
+            else
+            {
+                cts.CancelAfter(cancellationDelayMs);
+            }
+
+            await Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync(hugeFile, cts.Token));
+        }
+
+        [Theory(Skip = "Identify is too fast, doesn't work reliably.")]
+        [InlineData(TestImages.Jpeg.Baseline.Exif)]
+        [InlineData(TestImages.Jpeg.Progressive.Bad.ExifUndefType)]
+        public async Task Identify_IsCancellable(string fileName)
+        {
+            string file = Path.Combine(
+                TestEnvironment.InputImagesDirectoryFullPath,
+                fileName);
+
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(TimeSpan.FromTicks(1));
+            await Assert.ThrowsAsync<TaskCanceledException>(() => Image.IdentifyAsync(file, cts.Token));
         }
 
         // DEBUG ONLY!

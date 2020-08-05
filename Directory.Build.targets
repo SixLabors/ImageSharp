@@ -23,12 +23,18 @@
     <PackageReference Update="StyleCop.Analyzers" PrivateAssets="All" Version="1.1.118" />
     
     <!--Src Dependencies-->
-    <PackageReference Update="System.Buffers" Version="4.5.0" />
+    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+    <PackageReference Update="MinVer" PrivateAssets="All" Version="2.3.0" />
+    <PackageReference Update="System.Buffers" Version="4.5.1" />
     <PackageReference Update="System.IO.Compression" Version="4.3.0" />
     <PackageReference Update="System.IO.UnmanagedMemoryStream" Version="4.3.0" />
     <PackageReference Update="System.Numerics.Vectors" Version="4.5.0" />
+    <!--
+    Do no update System.Memory as it currently breaks the CI build
+    with FileNotFoundException for SixLabors.ImageSharp.Tests.dll.config
+    -->
     <PackageReference Update="System.Memory" Version="4.5.3" />
-    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="4.7" />
+    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
     <PackageReference Update="System.Threading.Tasks.Parallel" Version="4.3.0" />
     <PackageReference Update="System.ValueTuple" Version="4.5.0" />
 

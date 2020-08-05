@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Net.Http;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -26,7 +26,8 @@ namespace SixLabors.ImageSharp
         /// A lazily initialized configuration default instance.
         /// </summary>
         private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(CreateDefaultInstance);
-
+        private const int DefaultStreamProcessingBufferSize = 8096;
+        private int streamProcessingBufferSize = DefaultStreamProcessingBufferSize;
         private int maxDegreeOfParallelism = Environment.ProcessorCount;
 
         /// <summary>
@@ -76,10 +77,28 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Gets or sets the size of the buffer to use when working with streams.
+        /// Intitialized with <see cref="DefaultStreamProcessingBufferSize"/> by default.
+        /// </summary>
+        public int StreamProcessingBufferSize
+        {
+            get => this.streamProcessingBufferSize;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(this.StreamProcessingBufferSize));
+                }
+
+                this.streamProcessingBufferSize = value;
+            }
+        }
+
+        /// <summary>
         /// Gets a set of properties for the Congiguration.
         /// </summary>
         /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
-        public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
+        public IDictionary<object, object> Properties { get; } = new ConcurrentDictionary<object, object>();
 
         /// <summary>
         /// Gets the currently registered <see cref="IImageFormat"/>s.
@@ -145,6 +164,7 @@ namespace SixLabors.ImageSharp
             return new Configuration
             {
                 MaxDegreeOfParallelism = this.MaxDegreeOfParallelism,
+                StreamProcessingBufferSize = this.StreamProcessingBufferSize,
                 ImageFormatsManager = this.ImageFormatsManager,
                 MemoryAllocator = this.MemoryAllocator,
                 ImageOperationsProvider = this.ImageOperationsProvider,

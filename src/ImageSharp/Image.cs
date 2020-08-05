@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
@@ -103,15 +104,16 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
-        /// <exception cref="System.ArgumentNullException">Thrown if the stream or encoder is null.</exception>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the stream or encoder is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public async Task SaveAsync(Stream stream, IImageEncoder encoder)
+        public Task SaveAsync(Stream stream, IImageEncoder encoder, CancellationToken cancellationToken = default)
         {
             Guard.NotNull(stream, nameof(stream));
             Guard.NotNull(encoder, nameof(encoder));
             this.EnsureNotDisposed();
 
-            await this.AcceptVisitorAsync(new EncodeVisitor(encoder, stream)).ConfigureAwait(false);
+            return this.AcceptVisitorAsync(new EncodeVisitor(encoder, stream), cancellationToken);
         }
 
         /// <summary>
@@ -162,7 +164,8 @@ namespace SixLabors.ImageSharp
         /// with the pixel type of the image.
         /// </summary>
         /// <param name="visitor">The visitor.</param>
-        internal abstract Task AcceptAsync(IImageVisitorAsync visitor);
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        internal abstract Task AcceptAsync(IImageVisitorAsync visitor, CancellationToken cancellationToken);
 
         private class EncodeVisitor : IImageVisitor, IImageVisitorAsync
         {
@@ -179,9 +182,8 @@ namespace SixLabors.ImageSharp
             public void Visit<TPixel>(Image<TPixel> image)
                 where TPixel : unmanaged, IPixel<TPixel> => this.encoder.Encode(image, this.stream);
 
-            public async Task VisitAsync<TPixel>(Image<TPixel> image)
-                where TPixel : unmanaged, IPixel<TPixel>
-                => await this.encoder.EncodeAsync(image, this.stream).ConfigureAwait(false);
+            public Task VisitAsync<TPixel>(Image<TPixel> image, CancellationToken cancellationToken)
+                where TPixel : unmanaged, IPixel<TPixel> => this.encoder.EncodeAsync(image, this.stream, cancellationToken);
         }
     }
 }

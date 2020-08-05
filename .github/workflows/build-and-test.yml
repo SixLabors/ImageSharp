@@ -52,31 +52,14 @@ jobs:
                   git fetch --prune --unshallow
                   git submodule -q update --init --recursive
 
-            - name: Fetch Tags for GitVersion
-              run: |
-                  git fetch --tags
-
-            - name: Fetch master for GitVersion
-              if: github.ref != 'refs/heads/master'
-              run: git branch --create-reflog master origin/master
-
-            - name: Install GitVersion
-              uses: gittools/actions/setup-gitversion@v0.3
-              with:
-                  versionSpec: "5.1.x"
-
-            - name: Use GitVersion
-              id: gitversion # step id used as reference for output values
-              uses: gittools/actions/execute-gitversion@v0.3
-
             - name: Setup DotNet SDK
               uses: actions/setup-dotnet@v1
               with:
-                  dotnet-version: "3.1.101"
+                  dotnet-version: "3.1.x"
 
             - name: Build
               shell: pwsh
-              run: ./ci-build.ps1 "${{steps.gitversion.outputs.nuGetVersion}}" "${{matrix.options.framework}}"
+              run: ./ci-build.ps1 "${{matrix.options.framework}}"
 
             - name: Test
               shell: pwsh
@@ -112,33 +95,18 @@ jobs:
                   git fetch --prune --unshallow
                   git submodule -q update --init --recursive
 
-            - name: Fetch Tags for GitVersion
-              run: |
-                  git fetch --tags
-
-            - name: Fetch master for GitVersion
-              if: github.ref != 'refs/heads/master'
-              run: git branch --create-reflog master origin/master
-
-            - name: Install GitVersion
-              uses: gittools/actions/setup-gitversion@v0.3
-              with:
-                  versionSpec: "5.1.x"
-
-            - name: Use GitVersion
-              id: gitversion # step id used as reference for output values
-              uses: gittools/actions/execute-gitversion@v0.3
-
             - name: Setup DotNet SDK
               uses: actions/setup-dotnet@v1
               with:
-                  dotnet-version: "3.1.101"
+                  dotnet-version: "3.1.x"
 
             - name: Pack
               shell: pwsh
-              run: ./ci-pack.ps1 "${{steps.gitversion.outputs.nuGetVersion}}"
+              run: ./ci-pack.ps1
 
             - name: Publish to MyGet
               shell: pwsh
-              run: nuget.exe push .\artifacts\*.nupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v2/package
+              run: |
+                  nuget.exe push .\artifacts\*.nupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v2/package
+                  nuget.exe push .\artifacts\*.snupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v3/index.json
               # TODO: If github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org

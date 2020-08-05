@@ -13,32 +13,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     internal class EdgeDetectorProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        private readonly bool grayscale;
+        private readonly DenseMatrix<float> kernelXY;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="EdgeDetectorProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="kernelXY">The 2d gradient operator.</param>
-        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
+        /// <param name="definition">The <see cref="EdgeDetectorProcessor"/> defining the processor parameters.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The target area to process for the current processor instance.</param>
         public EdgeDetectorProcessor(
             Configuration configuration,
-            in DenseMatrix<float> kernelXY,
-            bool grayscale,
+            EdgeDetectorProcessor definition,
             Image<TPixel> source,
             Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
-            this.KernelXY = kernelXY;
-            this.Grayscale = grayscale;
+            this.kernelXY = definition.Kernel.KernelXY;
+            this.grayscale = definition.Grayscale;
         }
-
-        public bool Grayscale { get; }
-
-        /// <summary>
-        /// Gets the 2d gradient operator.
-        /// </summary>
-        public DenseMatrix<float> KernelXY { get; }
 
         /// <inheritdoc/>
         protected override void BeforeImageApply()
@@ -48,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 opaque.Execute();
             }
 
-            if (this.Grayscale)
+            if (this.grayscale)
             {
                 new GrayscaleBt709Processor(1F).Execute(this.Configuration, this.Source, this.SourceRectangle);
             }
@@ -59,10 +53,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, this.KernelXY, true, this.Source, this.SourceRectangle))
-            {
-                processor.Apply(source);
-            }
+            using var processor = new ConvolutionProcessor<TPixel>(this.Configuration, in this.kernelXY, true, this.Source, this.SourceRectangle);
+            processor.Apply(source);
         }
     }
 }

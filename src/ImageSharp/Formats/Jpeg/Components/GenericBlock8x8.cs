@@ -4,7 +4,6 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -16,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe partial struct GenericBlock8x8<T>
-        where T : struct
+        where T : unmanaged
     {
         public const int Size = 64;
 
@@ -110,6 +109,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Only for on-stack instances!
         /// </summary>
-        public Span<T> AsSpanUnsafe() => new Span<T>(Unsafe.AsPointer(ref this), Size);
+        public Span<T> AsSpanUnsafe()
+        {
+#if SUPPORTS_CREATESPAN
+            Span<GenericBlock8x8<T>> s = MemoryMarshal.CreateSpan(ref this, 1);
+            return MemoryMarshal.Cast<GenericBlock8x8<T>, T>(s);
+#else
+            return new Span<T>(Unsafe.AsPointer(ref this), Size);
+#endif
+        }
     }
 }

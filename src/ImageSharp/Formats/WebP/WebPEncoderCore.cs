@@ -34,9 +34,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private bool alphaCompression;
 
         /// <summary>
-        /// Indicating whether lossless compression should be used. If false, lossy compression will be used.
+        /// Indicating whether lossy compression should be used. If false, lossless compression will be used.
         /// </summary>
-        private bool lossless;
+        private readonly bool lossy;
 
         /// <summary>
         /// Compression quality. Between 0 and 100.
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         {
             this.memoryAllocator = memoryAllocator;
             this.alphaCompression = options.AlphaCompression;
-            this.lossless = options.Lossless;
+            this.lossy = options.Lossy;
             this.quality = options.Quality;
         }
 
@@ -71,14 +71,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
 
-            if (this.lossless)
+            if (this.lossy)
             {
-                var enc = new Vp8LEncoder(this.memoryAllocator, image.Width, image.Height);
+                var enc = new Vp8Encoder(this.memoryAllocator, image.Width, image.Height);
                 enc.Encode(image, stream);
             }
             else
             {
-                var enc = new Vp8Encoder(this.memoryAllocator, image.Width, image.Height);
+                var enc = new Vp8LEncoder(this.memoryAllocator, image.Width, image.Height);
                 enc.Encode(image, stream);
             }
         }

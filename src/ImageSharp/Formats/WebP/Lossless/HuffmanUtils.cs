@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             stride = 0;
             uint limit = counts[0];
             uint sum = 0;
-            for (int i = 0; i < length + 1; i++)
+            for (int i = 0; i < length; i++)
             {
                 var valuesShouldBeCollapsedToStrideAverage = ValuesShouldBeCollapsedToStrideAverage((int)counts[i], (int)limit);
                 if (i == length || goodForRle[i] || (i != 0 && goodForRle[i - 1]) || !valuesShouldBeCollapsedToStrideAverage)

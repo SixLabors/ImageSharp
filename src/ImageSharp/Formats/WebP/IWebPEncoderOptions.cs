@@ -9,10 +9,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
     internal interface IWebPEncoderOptions
     {
         /// <summary>
-        /// Gets a value indicating whether lossless compression should be used.
-        /// If false, lossy compression will be used.
+        /// Gets a value indicating whether lossy compression should be used.
+        /// If false, lossless compression will be used.
         /// </summary>
-        bool Lossless { get; }
+        bool Lossy { get; }
 
         /// <summary>
         /// Gets the compression quality. Between 0 and 100.

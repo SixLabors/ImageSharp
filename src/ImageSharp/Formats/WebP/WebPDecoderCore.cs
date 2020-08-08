@@ -4,7 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-
+using System.Threading;
 using SixLabors.ImageSharp.Formats.WebP.BitReader;
 using SixLabors.ImageSharp.Formats.WebP.Lossless;
 using SixLabors.ImageSharp.Formats.WebP.Lossy;
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public Size Dimensions => new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height);
 
         /// <inheritdoc />
-        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream)
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.Metadata = new ImageMetadata();
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         }
 
         /// <inheritdoc />
-        public IImageInfo Identify(BufferedReadStream stream)
+        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             this.currentStream = stream;
 

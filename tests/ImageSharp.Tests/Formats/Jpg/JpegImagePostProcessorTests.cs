@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             using (var pp = new JpegImagePostProcessor(Configuration.Default, decoder))
             using (var image = new Image<Rgba32>(decoder.ImageWidth, decoder.ImageHeight))
             {
-                pp.PostProcess(image.Frames.RootFrame);
+                pp.PostProcess(image.Frames.RootFrame, default);
 
                 image.DebugSave(provider);
 

@@ -24,8 +24,6 @@ namespace SixLabors.ImageSharp.Tests
 
             private ReadOnlySpan<byte> ActualImageSpan => this.ActualImageBytes.AsSpan();
 
-            private byte[] ByteArray => this.DataStream.ToArray();
-
             private IImageFormat LocalImageFormat => this.localImageFormatMock.Object;
 
             private static readonly IImageFormat ExpectedGlobalFormat =

@@ -66,6 +66,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceEncoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]
+        [InlineData("lol/foobar.webp", typeof(WebPEncoder))]
         public void GetReferenceEncoder_ReturnsCorrectEncoders_Windows(string fileName, Type expectedEncoderType)
         {
             if (TestEnvironment.IsLinux)
@@ -82,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Rofl.bmp", typeof(SystemDrawingReferenceDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
-        [InlineData("lol/foobar.webp", typeof(MagickReferenceDecoder))]
+        [InlineData("lol/foobar.webp", typeof(WebPDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Windows(string fileName, Type expectedDecoderType)
         {
             if (TestEnvironment.IsLinux)
@@ -116,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Rofl.bmp", typeof(MagickReferenceDecoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
-        [InlineData("lol/foobar.webp", typeof(MagickReferenceDecoder))]
+        [InlineData("lol/foobar.webp", typeof(WebPDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Linux(string fileName, Type expectedDecoderType)
         {
             if (!TestEnvironment.IsLinux)

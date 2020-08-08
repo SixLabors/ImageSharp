@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -117,6 +118,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <inheritdoc/>
         public Size ImageSizeInPixels { get; private set; }
 
+        /// <inheritdoc/>
+        Size IImageDecoderInternals.Dimensions => this.ImageSizeInPixels;
+
         /// <summary>
         /// Gets the number of MCU blocks in the image as <see cref="Size"/>.
         /// </summary>
@@ -205,21 +209,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <inheritdoc/>
-        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream)
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.ParseStream(stream);
+            this.ParseStream(stream, cancellationToken: cancellationToken);
             this.InitExifProfile();
             this.InitIccProfile();
             this.InitIptcProfile();
             this.InitDerivedMetadataProperties();
-            return this.PostProcessIntoImage<TPixel>();
+            return this.PostProcessIntoImage<TPixel>(cancellationToken);
         }
 
         /// <inheritdoc/>
-        public IImageInfo Identify(BufferedReadStream stream)
+        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
-            this.ParseStream(stream, true);
+            this.ParseStream(stream, true, cancellationToken);
             this.InitExifProfile();
             this.InitIccProfile();
             this.InitIptcProfile();
@@ -233,7 +237,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="stream">The input stream</param>
         /// <param name="metadataOnly">Whether to decode metadata only.</param>
-        public void ParseStream(BufferedReadStream stream, bool metadataOnly = false)
+        /// <param name="cancellationToken">The token to monitor cancellation.</param>
+        public void ParseStream(BufferedReadStream stream, bool metadataOnly = false, CancellationToken cancellationToken = default)
         {
             this.Metadata = new ImageMetadata();
 
@@ -263,6 +268,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             while (fileMarker.Marker != JpegConstants.Markers.EOI
                 || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (!fileMarker.Invalid)
                 {
                     // Get the marker length
@@ -279,7 +286,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         case JpegConstants.Markers.SOS:
                             if (!metadataOnly)
                             {
-                                this.ProcessStartOfScanMarker(stream);
+                                this.ProcessStartOfScanMarker(stream, cancellationToken);
                                 break;
                             }
                             else
@@ -996,8 +1003,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <summary>
         /// Processes the SOS (Start of scan marker).
         /// </summary>
-        /// <param name="stream">The input stream.</param>
-        private void ProcessStartOfScanMarker(BufferedReadStream stream)
+        private void ProcessStartOfScanMarker(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             if (this.Frame is null)
             {
@@ -1048,7 +1054,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 spectralStart,
                 spectralEnd,
                 successiveApproximation >> 4,
-                successiveApproximation & 15);
+                successiveApproximation & 15,
+                cancellationToken);
 
             sd.ParseEntropyCodedData();
         }
@@ -1081,7 +1088,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        private Image<TPixel> PostProcessIntoImage<TPixel>()
+        private Image<TPixel> PostProcessIntoImage<TPixel>(CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (this.ImageWidth == 0 || this.ImageHeight == 0)
@@ -1097,7 +1104,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             using (var postProcessor = new JpegImagePostProcessor(this.Configuration, this))
             {
-                postProcessor.PostProcess(image.Frames.RootFrame);
+                postProcessor.PostProcess(image.Frames.RootFrame, cancellationToken);
             }
 
             return image;

@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -97,7 +98,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private MemoryAllocator MemoryAllocator => this.Configuration.MemoryAllocator;
 
         /// <inheritdoc />
-        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream)
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Image<TPixel> image = null;
@@ -158,7 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         }
 
         /// <inheritdoc />
-        public IImageInfo Identify(BufferedReadStream stream)
+        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             try
             {

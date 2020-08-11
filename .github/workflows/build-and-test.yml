@@ -11,7 +11,7 @@ on:
             - master
 jobs:
     Build:
-        if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
+        if: "!contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
 
         strategy:
             matrix:

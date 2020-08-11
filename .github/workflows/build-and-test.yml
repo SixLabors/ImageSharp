@@ -8,19 +8,15 @@ on:
             - "v*"
         paths-ignore:
             - "README.md"
-            - ".github/FUNDING.yml"
-            - ".github/CONTRIBUTING.md"
-            - ".github/PULL_REQUEST_TEMPLATE.md"
-            - ".github/ISSUE_TEMPLATE/**"
+            - ".github/**"
+            - "!.github/workflows/**"
     pull_request:
         branches:
             - master
         paths-ignore:
             - "README.md"
-            - ".github/FUNDING.yml"
-            - ".github/CONTRIBUTING.md"
-            - ".github/PULL_REQUEST_TEMPLATE.md"
-            - ".github/ISSUE_TEMPLATE/**"
+            - ".github/**"
+            - "!.github/workflows/**"
 
 jobs:
     Build:

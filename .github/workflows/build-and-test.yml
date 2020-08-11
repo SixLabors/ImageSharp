@@ -11,8 +11,6 @@ on:
             - master
 jobs:
     Build:
-        if: "!contains(github.event.head_commit.message, '[skip-ci]')"
-
         strategy:
             matrix:
                 options:
@@ -38,6 +36,7 @@ jobs:
                       codecov: false
 
         runs-on: ${{matrix.options.os}}
+        if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
         steps:
             - uses: actions/checkout@v2

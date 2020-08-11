@@ -6,9 +6,21 @@ on:
             - master
         tags:
             - "v*"
+        paths-ignore:
+            - "README.md"
+            - ".github/FUNDING.yml"
+            - ".github/CONTRIBUTING.md"
+            - ".github/PULL_REQUEST_TEMPLATE.md"
+            - ".github/ISSUE_TEMPLATE/**"
     pull_request:
         branches:
             - master
+        paths-ignore:
+            - "README.md"
+            - ".github/FUNDING.yml"
+            - ".github/CONTRIBUTING.md"
+            - ".github/PULL_REQUEST_TEMPLATE.md"
+            - ".github/ISSUE_TEMPLATE/**"
 
 jobs:
     Build:

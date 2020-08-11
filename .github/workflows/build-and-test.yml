@@ -6,20 +6,13 @@ on:
             - master
         tags:
             - "v*"
-        paths-ignore:
-            - "README.md"
-            - ".github/**"
-            - "!.github/workflows/**"
     pull_request:
         branches:
             - master
-        paths-ignore:
-            - "README.md"
-            - ".github/**"
-            - "!.github/workflows/**"
-
 jobs:
     Build:
+        if: "! contains(toJSON(github.event.commits.*.message), '[skip-ci]')"
+
         strategy:
             matrix:
                 options:

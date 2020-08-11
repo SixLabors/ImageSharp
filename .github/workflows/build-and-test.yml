@@ -9,7 +9,6 @@ on:
     pull_request:
         branches:
             - master
-
 jobs:
     Build:
         strategy:
@@ -37,6 +36,7 @@ jobs:
                       codecov: false
 
         runs-on: ${{matrix.options.os}}
+        if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
         steps:
             - uses: actions/checkout@v2

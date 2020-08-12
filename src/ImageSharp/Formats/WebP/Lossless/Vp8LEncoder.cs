@@ -1164,18 +1164,37 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             if (paletteSize < ApplyPaletteGreedyMax)
             {
-                // TODO: APPLY_PALETTE_FOR(SearchColorGreedy(palette, palette_size, pix));
+                uint prevPix = palette[0];
+                uint prevIdx = 0;
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        uint pix = src[x];
+                        if (pix != prevPix)
+                        {
+                            prevIdx = SearchColorGreedy(palette, pix);
+                            prevPix = pix;
+                        }
+
+                        tmpRow[x] = (byte)prevIdx;
+                    }
+
+                    BundleColorMap(tmpRow, width, xBits, dst);
+                    src = src.Slice(srcStride);
+                    dst = dst.Slice(dstStride);
+                }
             }
             else
             {
-                uint[] buffer = new uint[PaletteInvSize];
+                var buffer = new uint[PaletteInvSize];
 
                 // Try to find a perfect hash function able to go from a color to an index
                 // within 1 << PaletteInvSize in order to build a hash map to go from color to index in palette.
                 int i;
                 for (i = 0; i < 3; i++)
                 {
-                    bool useLUT = true;
+                    bool useLut = true;
 
                     // Set each element in buffer to max value.
                     buffer.AsSpan().Fill(uint.MaxValue);
@@ -1198,7 +1217,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                         if (buffer[ind] != uint.MaxValue)
                         {
-                            useLUT = false;
+                            useLut = false;
                             break;
                         }
                         else
@@ -1207,7 +1226,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                         }
                     }
 
-                    if (useLUT)
+                    if (useLut)
                     {
                         break;
                     }
@@ -1514,6 +1533,38 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         }
 
         /// <summary>
+        /// Bundles multiple (1, 2, 4 or 8) pixels into a single pixel.
+        /// </summary>
+        private static void BundleColorMap(Span<byte> row, int width, int xBits, Span<uint> dst)
+        {
+            int x;
+            if (xBits > 0)
+            {
+                int bitDepth = 1 << (3 - xBits);
+                int mask = (1 << xBits) - 1;
+                uint code = 0xff000000;
+                for (x = 0; x < width; ++x)
+                {
+                    int xSub = x & mask;
+                    if (xSub == 0)
+                    {
+                        code = 0xff000000;
+                    }
+
+                    code |= (uint)(row[x] << (8 + (bitDepth * xSub)));
+                    dst[x >> xBits] = code;
+                }
+            }
+            else
+            {
+                for (x = 0; x < width; ++x)
+                {
+                    dst[x] = (uint)(0xff000000 | (row[x] << 8));
+                }
+            }
+        }
+
+        /// <summary>
         /// Calculates the bits used for the transformation.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -1549,6 +1600,27 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int green = (int)p >> 8;  // The upper bits are masked away later.
             r[(int)((p >> 16) - green) & 0xff]++;
             b[(int)((p >> 0) - green) & 0xff]++;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static uint SearchColorGreedy(Span<uint> palette, uint color)
+        {
+            if (color == palette[0])
+            {
+                return 0;
+            }
+
+            if (color == palette[1])
+            {
+                return 1;
+            }
+
+            if (color == palette[2])
+            {
+                return 2;
+            }
+
+            return 3;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

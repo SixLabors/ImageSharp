@@ -68,9 +68,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             // Cubic ramp between 1 and MaxHistoGreedy:
             int thresholdSize = (int)(1 + (x * x * x * (MaxHistoGreedy - 1)));
+            RemoveEmptyHistograms(imageHisto);
             bool doGreedy = HistogramCombineStochastic(imageHisto, thresholdSize);
             if (doGreedy)
             {
+                RemoveEmptyHistograms(imageHisto);
                 HistogramCombineGreedy(imageHisto);
             }
 

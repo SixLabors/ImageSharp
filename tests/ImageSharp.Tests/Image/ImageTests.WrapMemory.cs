@@ -105,7 +105,15 @@ namespace SixLabors.ImageSharp.Tests
                 /// <inheritdoc/>
                 public override MemoryHandle Pin(int elementIndex = 0)
                 {
-                    return this.memory.Slice(elementIndex).Pin();
+                    int byteOffset = elementIndex * Unsafe.SizeOf<TTo>();
+                    int shiftedOffset = Math.DivRem(byteOffset, Unsafe.SizeOf<TFrom>(), out int remainder);
+
+                    if (remainder != 0)
+                    {
+                        ThrowHelper.ThrowArgumentException("The input index doesn't result in an aligned item access", nameof(elementIndex));
+                    }
+
+                    return this.memory.Slice(shiftedOffset).Pin();
                 }
 
                 /// <inheritdoc/>

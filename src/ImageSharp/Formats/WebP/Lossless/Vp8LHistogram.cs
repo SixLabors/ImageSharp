@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             this.Alpha = new uint[WebPConstants.NumLiteralCodes + 1];
             this.Distance = new uint[WebPConstants.NumDistanceCodes];
 
-            var literalSize = WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + ((this.PaletteCodeBits > 0) ? (1 << this.PaletteCodeBits) : 0);
+            var literalSize = WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + (1 << WebPConstants.MaxColorCacheBits);
             this.Literal = new uint[literalSize];
 
             // 5 for literal, red, blue, alpha, distance.

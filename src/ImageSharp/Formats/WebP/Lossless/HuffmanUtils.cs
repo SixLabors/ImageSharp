@@ -279,13 +279,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             {
                 int value = tree.CodeLengths[i];
                 int k = i + 1;
-                int runs;
                 while (k < depthSize && tree.CodeLengths[k] == value)
                 {
                     k++;
                 }
 
-                runs = k - i;
+                var runs = k - i;
                 if (value == 0)
                 {
                     tokenPos += CodeRepeatedZeros(runs, tokensArray.AsSpan(tokenPos));

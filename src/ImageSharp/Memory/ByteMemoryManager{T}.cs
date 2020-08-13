@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc/>
         public override MemoryHandle Pin(int elementIndex = 0)
         {
-            return this.memory.Pin();
+            return this.memory.Slice(elementIndex).Pin();
         }
 
         /// <inheritdoc/>

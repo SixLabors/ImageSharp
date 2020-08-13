@@ -99,25 +99,13 @@ namespace SixLabors.ImageSharp.Tests
                 /// <inheritdoc/>
                 public override Span<TTo> GetSpan()
                 {
-                    if (MemoryMarshal.TryGetArray(this.memory, out ArraySegment<TFrom> arraySegment))
-                    {
-                        return MemoryMarshal.Cast<TFrom, TTo>(arraySegment.AsSpan());
-                    }
-
-                    if (MemoryMarshal.TryGetMemoryManager<TFrom, MemoryManager<TFrom>>(this.memory, out MemoryManager<TFrom> memoryManager))
-                    {
-                        return MemoryMarshal.Cast<TFrom, TTo>(memoryManager.GetSpan());
-                    }
-
-                    ThrowHelper.ThrowArgumentException("The input Memory<byte> instance was not valid.", nameof(this.memory));
-
-                    return default;
+                    return MemoryMarshal.Cast<TFrom, TTo>(this.memory.Span);
                 }
 
                 /// <inheritdoc/>
                 public override MemoryHandle Pin(int elementIndex = 0)
                 {
-                    return this.memory.Pin();
+                    return this.memory.Slice(elementIndex).Pin();
                 }
 
                 /// <inheritdoc/>

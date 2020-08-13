@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     {
         public PixOrCopyMode Mode { get; set; }
 
-        public short Len { get; set; }
+        public ushort Len { get; set; }
 
         public uint BgraOrDistance { get; set; }
 
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return retval;
         }
 
-        public static PixOrCopy CreateCopy(uint distance, short len)
+        public static PixOrCopy CreateCopy(uint distance, ushort len)
         {
             var retval = new PixOrCopy()
             {
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return this.BgraOrDistance;
         }
 
-        public short Length()
+        public ushort Length()
         {
             return this.Len;
         }

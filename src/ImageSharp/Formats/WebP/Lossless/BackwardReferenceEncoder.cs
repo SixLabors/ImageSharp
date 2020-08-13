@@ -230,12 +230,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         }
 
         /// <summary>
-        /// Evaluates best possible backward references for specified quality.
-        /// The input cacheBits to 'GetBackwardReferences' sets the maximum cache
-        /// bits to use (passing 0 implies disabling the local color cache).
+        /// Evaluates best possible backward references for specified quality. The input cacheBits to 'GetBackwardReferences'
+        /// sets the maximum cache bits to use (passing 0 implies disabling the local color cache).
         /// The optimal cache bits is evaluated and set for the cacheBits parameter.
-        /// The return value is the pointer to the best of the two backward refs viz,
-        /// refs[0] or refs[1].
+        /// The return value is the pointer to the best of the two backward refs viz, refs[0] or refs[1].
         /// </summary>
         public static Vp8LBackwardRefs GetBackwardReferences(
             int width,
@@ -335,9 +333,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int pos = 0;
             var colorCache = new ColorCache[WebPConstants.MaxColorCacheBits + 1];
             var histos = new Vp8LHistogram[WebPConstants.MaxColorCacheBits + 1];
-            for (int i = 0; i < WebPConstants.MaxColorCacheBits + 1; i++)
+            for (int i = 0; i <= WebPConstants.MaxColorCacheBits; i++)
             {
-                histos[i] = new Vp8LHistogram(bestCacheBits);
+                histos[i] = new Vp8LHistogram(paletteCodeBits: i);
                 colorCache[i] = new ColorCache();
                 colorCache[i].Init(i);
             }
@@ -369,7 +367,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     {
                         if (colorCache[i].Lookup(key) == pix)
                         {
-                            ++histos[i].Literal[WebPConstants.NumLiteralCodes + WebPConstants.CodeLengthCodes + key];
+                            ++histos[i].Literal[WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + key];
                         }
                         else
                         {
@@ -563,7 +561,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 if (len != 1)
                 {
                     int offset = hashChain.FindOffset(i);
-                    backwardRefs.Add(PixOrCopy.CreateCopy((uint)offset, (short)len));
+                    backwardRefs.Add(PixOrCopy.CreateCopy((uint)offset, (ushort)len));
 
                     if (useColorCache)
                     {
@@ -689,7 +687,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
                 else
                 {
-                    refs.Add(PixOrCopy.CreateCopy((uint)offset, (short)len));
+                    refs.Add(PixOrCopy.CreateCopy((uint)offset, (ushort)len));
                     if (useColorCache)
                     {
                         for (j = i; j < i + len; ++j)
@@ -908,7 +906,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 int prevRowLen = (i < xSize) ? 0 : FindMatchLength(bgra.Slice(i), bgra.Slice(i - xSize), 0, maxLen);
                 if (rleLen >= prevRowLen && rleLen >= MinLength)
                 {
-                    refs.Add(PixOrCopy.CreateCopy(1, (short)rleLen));
+                    refs.Add(PixOrCopy.CreateCopy(1, (ushort)rleLen));
 
                     // We don't need to update the color cache here since it is always the
                     // same pixel being copied, and that does not change the color cache state.
@@ -916,7 +914,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
                 else if (prevRowLen >= MinLength)
                 {
-                    refs.Add(PixOrCopy.CreateCopy((uint)xSize, (short)prevRowLen));
+                    refs.Add(PixOrCopy.CreateCopy((uint)xSize, (ushort)prevRowLen));
                     if (useColorCache)
                     {
                         for (int k = 0; k < prevRowLen; k++)
@@ -936,7 +934,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             if (useColorCache)
             {
-                // TODO: VP8LColorCacheClear();
+                // TODO: VP8LColorCacheClear()?
             }
         }
 
@@ -978,7 +976,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
             }
 
-            // TODO: VP8LColorCacheClear(colorCache);
+            // TODO: VP8LColorCacheClear(colorCache)?
         }
 
         private static void BackwardReferences2DLocality(int xSize, Vp8LBackwardRefs refs)

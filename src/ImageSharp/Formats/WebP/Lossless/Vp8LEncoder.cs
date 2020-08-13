@@ -427,7 +427,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             foreach (CrunchSubConfig subConfig in config.SubConfigs)
             {
-                Vp8LBackwardRefs refsBest = BackwardReferenceEncoder.GetBackwardReferences(width, height, bgra, quality, subConfig.Lz77, ref cacheBits, hashChain, refsArray[0], refsArray[1]); // TODO : Pass do not cache
+                Vp8LBackwardRefs refsBest = BackwardReferenceEncoder.GetBackwardReferences(
+                    width,
+                    height,
+                    bgra,
+                    quality,
+                    subConfig.Lz77,
+                    ref cacheBits,
+                    hashChain,
+                    refsArray[0],
+                    refsArray[1]); // TODO : Pass do not cache
 
                 // Keep the best references aside and use the other element from the first
                 // two as a temporary for later usage.
@@ -473,13 +482,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 this.bitWriter.PutBits((uint)(writeHistogramImage ? 1 : 0), 1);
                 if (writeHistogramImage)
                 {
-                    using IMemoryOwner<uint> histogramArgbBuffer = this.memoryAllocator.Allocate<uint>(histogramImageXySize);
-                    Span<uint> histogramArgb = histogramArgbBuffer.GetSpan();
+                    using IMemoryOwner<uint> histogramBgraBuffer = this.memoryAllocator.Allocate<uint>(histogramImageXySize);
+                    Span<uint> histogramBgra = histogramBgraBuffer.GetSpan();
                     int maxIndex = 0;
                     for (int i = 0; i < histogramImageXySize; i++)
                     {
                         int symbolIndex = histogramSymbols[i] & 0xffff;
-                        histogramArgb[i] = (uint)(symbolIndex << 8);
+                        histogramBgra[i] = (uint)(symbolIndex << 8);
                         if (symbolIndex >= maxIndex)
                         {
                             maxIndex = symbolIndex + 1;
@@ -487,7 +496,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     }
 
                     this.bitWriter.PutBits((uint)(histogramBits - 2), 3);
-                    this.EncodeImageNoHuffman(histogramArgb, hashChain, refsTmp, refsArray[2], LosslessUtils.SubSampleSize(width, histogramBits), LosslessUtils.SubSampleSize(height, histogramBits), quality);
+                    this.EncodeImageNoHuffman(histogramBgra, hashChain, refsTmp, refsArray[2], LosslessUtils.SubSampleSize(width, histogramBits), LosslessUtils.SubSampleSize(height, histogramBits), quality);
                 }
 
                 // Store Huffman codes.
@@ -690,7 +699,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             if (count == 0)
             {
-                // emit minimal tree for empty cases
+                // Emit minimal tree for empty cases.
                 // bits: small tree marker: 1, count-1: 0, large 8-bit code: 0, code: 0
                 this.bitWriter.PutBits(0x01, 4);
             }
@@ -725,10 +734,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int i;
             var codeLengthBitDepth = new byte[WebPConstants.CodeLengthCodes];
             var codeLengthBitDepthSymbols = new short[WebPConstants.CodeLengthCodes];
-            var huffmanCode = new HuffmanTreeCode();
-            huffmanCode.NumSymbols = WebPConstants.CodeLengthCodes;
-            huffmanCode.CodeLengths = codeLengthBitDepth;
-            huffmanCode.Codes = codeLengthBitDepthSymbols;
+            var huffmanCode = new HuffmanTreeCode
+            {
+                NumSymbols = WebPConstants.CodeLengthCodes,
+                CodeLengths = codeLengthBitDepth,
+                Codes = codeLengthBitDepthSymbols
+            };
 
             this.bitWriter.PutBits(0, 1);
             var numTokens = HuffmanUtils.CreateCompressedHuffmanTree(tree, tokens);
@@ -1313,7 +1324,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         private static void PrepareMapToPalette(Span<uint> palette, int numColors, uint[] sorted, uint[] idxMap)
         {
-            palette.Slice(numColors).CopyTo(sorted);
+            palette.Slice(0, numColors).CopyTo(sorted);
             Array.Sort(sorted, PaletteCompareColorsForSort);
             for (int i = 0; i < numColors; i++)
             {

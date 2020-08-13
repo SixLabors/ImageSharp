@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Memory
@@ -42,7 +43,10 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc/>
         public override MemoryHandle Pin(int elementIndex = 0)
         {
-            return this.memory.Slice(elementIndex).Pin();
+            // We need to adjust the offset into the wrapped byte segment,
+            // as the input index refers to the target-cast memory of T.
+            // We just have to shift this index by the byte size of T.
+            return this.memory.Slice(elementIndex * Unsafe.SizeOf<T>()).Pin();
         }
 
         /// <inheritdoc/>

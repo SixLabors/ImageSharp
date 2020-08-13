@@ -254,8 +254,16 @@ namespace SixLabors.ImageSharp.Tests
 
                         using (var image = Image.WrapMemory<Bgra32>(byteMemory, bmp.Width, bmp.Height))
                         {
-                            Assert.Equal(pixelMemory, image.GetRootFramePixelBuffer().GetSingleMemory());
-                            Assert.True(image.TryGetSinglePixelSpan(out Span<Bgra32> imageSpan));
+                            Span<Bgra32> pixelSpan = pixelMemory.Span;
+                            Span<Bgra32> imageSpan = image.GetRootFramePixelBuffer().GetSingleMemory().Span;
+
+                            // We can't compare the two Memory<T> instances directly as they wrap different memory managers.
+                            // To check that the underlying data matches, we can just manually check their lenth, and the
+                            // fact that a reference to the first pixel in both spans is actually the same memory location.
+                            Assert.Equal(pixelSpan.Length, imageSpan.Length);
+                            Assert.True(Unsafe.AreSame(ref pixelSpan.GetPinnableReference(), ref imageSpan.GetPinnableReference()));
+
+                            Assert.True(image.TryGetSinglePixelSpan(out imageSpan));
                             imageSpan.Fill(bg);
                             for (var i = 10; i < 20; i++)
                             {

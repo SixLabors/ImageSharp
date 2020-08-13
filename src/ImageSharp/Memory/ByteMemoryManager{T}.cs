@@ -36,21 +36,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc/>
         public override Span<T> GetSpan()
         {
-            if (MemoryMarshal.TryGetArray(this.memory, out ArraySegment<byte> arraySegment))
-            {
-                return MemoryMarshal.Cast<byte, T>(arraySegment.AsSpan());
-            }
-
-            if (MemoryMarshal.TryGetMemoryManager<byte, MemoryManager<byte>>(this.memory, out MemoryManager<byte> memoryManager))
-            {
-                return MemoryMarshal.Cast<byte, T>(memoryManager.GetSpan());
-            }
-
-            // This should never be reached, as Memory<T> can currently only be wrapping
-            // either a byte[] array or a MemoryManager<byte> instance in this case.
-            ThrowHelper.ThrowArgumentException("The input Memory<byte> instance was not valid.", nameof(this.memory));
-
-            return default;
+            return MemoryMarshal.Cast<byte, T>(this.memory.Span);
         }
 
         /// <inheritdoc/>

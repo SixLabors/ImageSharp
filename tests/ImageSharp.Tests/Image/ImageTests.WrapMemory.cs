@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void WrapMemory_CreatedImageIsCorrect()
             {
-                Configuration cfg = Configuration.Default.Clone();
+                var cfg = Configuration.CreateDefaultInstance();
                 var metaData = new ImageMetadata();
 
                 var array = new Rgba32[25];
@@ -218,7 +218,7 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void WrapMemory_FromBytes_CreatedImageIsCorrect()
             {
-                Configuration cfg = Configuration.Default.Clone();
+                var cfg = Configuration.CreateDefaultInstance();
                 var metaData = new ImageMetadata();
 
                 var array = new byte[25 * Unsafe.SizeOf<Rgba32>()];

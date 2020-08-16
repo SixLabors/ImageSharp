@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.IO
                 this.readOffset = 0;
             }
 
-            byte[] chunkBuffer = this.writeChunk.Buffer.Array;
+            byte[] chunkBuffer = this.readChunk.Buffer.Array;
             int chunkSize = this.readChunk.Length;
             if (this.readChunk.Next is null)
             {
@@ -275,7 +275,7 @@ namespace SixLabors.ImageSharp.IO
 
                     this.readChunk = this.readChunk.Next;
                     this.readOffset = 0;
-                    chunkBuffer = this.writeChunk.Buffer.Array;
+                    chunkBuffer = this.readChunk.Buffer.Array;
                     chunkSize = this.readChunk.Length;
                     if (this.readChunk.Next is null)
                     {
@@ -310,7 +310,7 @@ namespace SixLabors.ImageSharp.IO
                 this.readOffset = 0;
             }
 
-            byte[] chunkBuffer = this.writeChunk.Buffer.Array;
+            byte[] chunkBuffer = this.readChunk.Buffer.Array;
             int chunkSize = this.readChunk.Length;
             if (this.readChunk.Next is null)
             {
@@ -327,7 +327,7 @@ namespace SixLabors.ImageSharp.IO
 
                 this.readChunk = this.readChunk.Next;
                 this.readOffset = 0;
-                chunkBuffer = this.writeChunk.Buffer.Array;
+                chunkBuffer = this.readChunk.Buffer.Array;
             }
 
             return chunkBuffer[this.readOffset++];
@@ -497,7 +497,7 @@ namespace SixLabors.ImageSharp.IO
             {
                 Buffer = buffer,
                 Next = null,
-                Length = this.chunkLength
+                Length = buffer.Length()
             };
         }
 

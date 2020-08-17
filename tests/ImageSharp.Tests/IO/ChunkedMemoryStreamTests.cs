@@ -142,6 +142,32 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Fact]
+        public void MemoryStream_WriteByteTests()
+        {
+            using (var ms2 = new ChunkedMemoryStream(this.allocator))
+            {
+                byte[] bytArrRet;
+                byte[] bytArr = new byte[] { byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250 };
+
+                for (int i = 0; i < bytArr.Length; i++)
+                {
+                    ms2.WriteByte(bytArr[i]);
+                }
+
+                using var readonlyStream = new ChunkedMemoryStream(this.allocator);
+                ms2.WriteTo(readonlyStream);
+                readonlyStream.Flush();
+                readonlyStream.Position = 0;
+                bytArrRet = new byte[(int)readonlyStream.Length];
+                readonlyStream.Read(bytArrRet, 0, (int)readonlyStream.Length);
+                for (int i = 0; i < bytArr.Length; i++)
+                {
+                    Assert.Equal(bytArr[i], bytArrRet[i]);
+                }
+            }
+        }
+
+        [Fact]
         public void MemoryStream_WriteToTests_Negative()
         {
             using var ms2 = new ChunkedMemoryStream(this.allocator);

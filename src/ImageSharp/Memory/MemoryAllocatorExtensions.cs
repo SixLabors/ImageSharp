@@ -100,8 +100,5 @@ namespace SixLabors.ImageSharp.Memory
             AllocationOptions options = AllocationOptions.None)
             where T : struct
             => MemoryGroup<T>.Allocate(memoryAllocator, totalLength, bufferAlignment, options);
-
-        internal static MemoryStream AllocateFixedCapacityMemoryStream(this MemoryAllocator allocator, long length) =>
-            new FixedCapacityPooledMemoryStream(length, allocator);
     }
 }

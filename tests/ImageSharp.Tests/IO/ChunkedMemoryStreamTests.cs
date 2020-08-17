@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Fact]
-        public void ChunkedPooledMemoryStream_GetPositionTest_Negative()
+        public void MemoryStream_GetPositionTest_Negative()
         {
             using var ms = new ChunkedMemoryStream(this.allocator);
             long iCurrentPos = ms.Position;
@@ -55,6 +55,48 @@ namespace SixLabors.ImageSharp.Tests.IO
             ms2.Dispose();
 
             Assert.Throws<ObjectDisposedException>(() => ms2.Read(new byte[] { 1 }, 0, 1));
+        }
+
+        [Theory]
+        [InlineData(1024)]
+        [InlineData(1024 * 4)]
+        [InlineData(1024 * 6)]
+        [InlineData(1024 * 8)]
+        public void MemoryStream_ReadByteTest(int length)
+        {
+            using MemoryStream ms = this.CreateTestStream(length);
+            using var cms = new ChunkedMemoryStream(this.allocator);
+
+            ms.CopyTo(cms);
+            cms.Position = 0;
+            var expected = ms.ToArray();
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i], cms.ReadByte());
+            }
+        }
+
+        [Theory]
+        [InlineData(1024)]
+        [InlineData(1024 * 4)]
+        [InlineData(1024 * 6)]
+        [InlineData(1024 * 8)]
+        public void MemoryStream_ReadByteBufferTest(int length)
+        {
+            using MemoryStream ms = this.CreateTestStream(length);
+            using var cms = new ChunkedMemoryStream(this.allocator);
+
+            ms.CopyTo(cms);
+            cms.Position = 0;
+            var expected = ms.ToArray();
+            var buffer = new byte[2];
+            for (int i = 0; i < expected.Length; i += 2)
+            {
+                cms.Read(buffer);
+                Assert.Equal(expected[i], buffer[0]);
+                Assert.Equal(expected[i + 1], buffer[1]);
+            }
         }
 
         [Fact]
@@ -178,6 +220,15 @@ namespace SixLabors.ImageSharp.Tests.IO
             var stream3 = new MemoryStream(data3) { Position = data3.Length + 1 };
 
             yield return new object[] { stream3, Array.Empty<byte>() };
+        }
+
+        private MemoryStream CreateTestStream(int length)
+        {
+            var buffer = new byte[length];
+            var random = new Random();
+            random.NextBytes(buffer);
+
+            return new MemoryStream(buffer);
         }
     }
 }

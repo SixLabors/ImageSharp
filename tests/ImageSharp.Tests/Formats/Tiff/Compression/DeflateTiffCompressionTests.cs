@@ -1,14 +1,15 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    /*
     [Trait("Category", "Tiff")]
     public class DeflateTiffCompressionTests
     {
@@ -35,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests
             Stream compressedStream = new MemoryStream();
 
             using (Stream uncompressedStream = new MemoryStream(data),
-                          deflateStream = new ZlibDeflateStream(compressedStream, 6))
+                          deflateStream = new ZlibDeflateStream(new ArrayPoolMemoryAllocator(), compressedStream, PngCompressionLevel.Level6))
             {
                 uncompressedStream.CopyTo(deflateStream);
             }
@@ -43,5 +44,5 @@ namespace SixLabors.ImageSharp.Tests
             compressedStream.Seek(0, SeekOrigin.Begin);
             return compressedStream;
         }
-    } */
+    }
 }

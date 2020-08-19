@@ -544,7 +544,22 @@ namespace SixLabors.ImageSharp.Tests
         IImageDecoder referenceDecoder = null)
         where TPixel : unmanaged, IPixel<TPixel>
         {
-            throw new NotImplementedException();
+            string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
+            if (path == null)
+            {
+                throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
+            }
+
+            var testFile = TestFile.Create(path);
+
+            referenceDecoder = referenceDecoder ?? TestEnvironment.GetReferenceDecoder(path);
+
+            using (var original = Image.Load<TPixel>(testFile.Bytes, referenceDecoder))
+            {
+                comparer.VerifySimilarity(original, image);
+            }
+
+            return image;
         }
 
         /// <summary>

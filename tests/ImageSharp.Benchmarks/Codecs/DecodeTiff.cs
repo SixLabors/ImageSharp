@@ -1,52 +1,51 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Drawing;
 using System.IO;
-
 using BenchmarkDotNet.Attributes;
-
 using SixLabors.ImageSharp.PixelFormats;
-
-using CoreImage = SixLabors.ImageSharp.Image;
-using CoreSize = SixLabors.ImageSharp.Size;
+using SixLabors.ImageSharp.Tests;
+using SDImage = System.Drawing.Image;
+using SDSize = System.Drawing.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
+    [Config(typeof(Config.ShortClr))]
     public class DecodeTiff : BenchmarkBase
     {
         private byte[] tiffBytes;
+
+        private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
+
+        [Params(TestImages.Tiff.RgbLzw)]
+        public string TestImage { get; set; }
 
         [GlobalSetup]
         public void ReadImages()
         {
             if (this.tiffBytes == null)
             {
-                this.tiffBytes = File.ReadAllBytes("../ImageSharp.Tests/TestImages/Formats/Tiff/Calliphora_rgb_uncompressed.tiff");
+                this.tiffBytes = File.ReadAllBytes(this.TestImageFullPath);
             }
         }
 
         [Benchmark(Baseline = true, Description = "System.Drawing Tiff")]
-        public System.Drawing.Size TiffSystemDrawing()
+        public SDSize TiffSystemDrawing()
         {
-            using (MemoryStream memoryStream = new MemoryStream(this.tiffBytes))
+            using (var memoryStream = new MemoryStream(this.tiffBytes))
+            using (var image = SDImage.FromStream(memoryStream))
             {
-                using (var image = System.Drawing.Image.FromStream(memoryStream))
-                {
-                    return image.Size;
-                }
+                return image.Size;
             }
         }
 
         [Benchmark(Description = "ImageSharp Tiff")]
-        public CoreSize TiffCore()
+        public Size TiffCore()
         {
-            using (MemoryStream memoryStream = new MemoryStream(this.tiffBytes))
+            using (var memoryStream = new MemoryStream(this.tiffBytes))
+            using (var image = Image.Load<Rgba32>(memoryStream))
             {
-                using (Image<Rgba32> image = CoreImage.Load<Rgba32>(memoryStream))
-                {
-                    return new CoreSize(image.Width, image.Height);
-                }
+                return image.Size();
             }
         }
     }

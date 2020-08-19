@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -8,7 +8,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    [Trait("Category", "Tiff")]
     public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
         private static Rgba32 Gray000 = new Rgba32(255, 255, 255, 255);
@@ -126,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    new WhiteIsZeroTiffColor<Rgba32>(new[] { (uint)bitsPerSample }).Decode(inputData, pixels, left, top, width, height);
+                    new WhiteIsZeroTiffColor<Rgba32>(new[] { (ushort)bitsPerSample }).Decode(inputData, pixels, left, top, width, height);
                 });
         }
 

@@ -13,23 +13,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Formats\Tiff\__obsolete\**" />
+    <EmbeddedResource Remove="Formats\Tiff\__obsolete\**" />
+    <None Remove="Formats\Tiff\__obsolete\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="Moq" />
     <PackageReference Include="System.Drawing.Common" />
     <PackageReference Include="xunit.runner.console" />
-    <Compile Remove="Formats\Tiff\TiffDecoderIfdEntryTests.cs" />
-    <Compile Remove="Formats\Tiff\TiffDecoderIfdTests.cs" />
-    <Compile Remove="Formats\Tiff\TiffDecoderImageTests.cs" />
-    <Compile Remove="Formats\Tiff\TiffDecoderMetadataTests.cs" />
-    <Compile Remove="Formats\Tiff\TiffIfd\TiffIfdTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Formats\Tiff\TiffDecoderIfdEntryTests.cs" />
-    <None Include="Formats\Tiff\TiffDecoderIfdTests.cs" />
-    <None Include="Formats\Tiff\TiffDecoderImageTests.cs" />
-    <None Include="Formats\Tiff\TiffDecoderMetadataTests.cs" />
-    <None Include="Formats\Tiff\TiffIfd\TiffIfdTests.cs" />
-    <None Include="PixelFormats\PixelOperationsTests.Blender.cs" />
     <DotNetCliToolReference Include="dotnet-xunit" />
     <InternalsVisibleTo Include="ImageSharp.Tests.ProfilingSandbox" PublicKey="$(SixLaborsPublicKey)" />
   </ItemGroup>

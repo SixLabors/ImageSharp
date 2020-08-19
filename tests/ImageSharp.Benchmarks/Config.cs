@@ -51,9 +51,9 @@ namespace SixLabors.ImageSharp.Benchmarks
             public LongClr()
             {
                 this.Add(
-                    Job.Default.With(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(3).WithTargetCount(5),
-                    Job.Default.With(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithTargetCount(5),
-                    Job.Default.With(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(3).WithTargetCount(5));
+                    Job.Default.With(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(5),
+                    Job.Default.With(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(5),
+                    Job.Default.With(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(5));
             }
         }
 

@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests
         {
             Image<Rgba32> image = new Image<Rgba32>(100, 100);
 
-            TiffFrameMetaData tiffMetadata = image.Frames.RootFrame.Metadata.GetFormatMetadata(TiffFormat.Instance);
+            TiffFrameMetadata tiffMetadata = image.Frames.RootFrame.Metadata.GetFormatMetadata(TiffFormat.Instance);
             tiffMetadata.TextTags.Add(new TiffMetadataTag(metadataName, metadataValue));
             TiffEncoderCore encoder = new TiffEncoderCore(null);
 

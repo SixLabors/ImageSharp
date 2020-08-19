@@ -167,6 +167,48 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Fact]
+        public void MemoryStream_WriteToSpanTests()
+        {
+            using (var ms2 = new ChunkedMemoryStream(this.allocator))
+            {
+                Span<byte> bytArrRet;
+                Span<byte> bytArr = new byte[] { byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250 };
+
+                // [] Write to memoryStream, check the memoryStream
+                ms2.Write(bytArr, 0, bytArr.Length);
+
+                using var readonlyStream = new ChunkedMemoryStream(this.allocator);
+                ms2.WriteTo(readonlyStream);
+                readonlyStream.Flush();
+                readonlyStream.Position = 0;
+                bytArrRet = new byte[(int)readonlyStream.Length];
+                readonlyStream.Read(bytArrRet, 0, (int)readonlyStream.Length);
+                for (int i = 0; i < bytArr.Length; i++)
+                {
+                    Assert.Equal(bytArr[i], bytArrRet[i]);
+                }
+            }
+
+            // [] Write to memoryStream, check the memoryStream
+            using (var ms2 = new ChunkedMemoryStream(this.allocator))
+            using (var ms3 = new ChunkedMemoryStream(this.allocator))
+            {
+                Span<byte> bytArrRet;
+                Span<byte> bytArr = new byte[] { byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250 };
+
+                ms2.Write(bytArr, 0, bytArr.Length);
+                ms2.WriteTo(ms3);
+                ms3.Position = 0;
+                bytArrRet = new byte[(int)ms3.Length];
+                ms3.Read(bytArrRet, 0, (int)ms3.Length);
+                for (int i = 0; i < bytArr.Length; i++)
+                {
+                    Assert.Equal(bytArr[i], bytArrRet[i]);
+                }
+            }
+        }
+
+        [Fact]
         public void MemoryStream_WriteByteTests()
         {
             using (var ms2 = new ChunkedMemoryStream(this.allocator))

@@ -40,6 +40,7 @@ namespace SixLabors.ImageSharp.Benchmarks.IO
             this.stream5 = new MemoryStream(this.buffer);
             this.stream6 = new MemoryStream(this.buffer);
             this.stream6 = new MemoryStream(this.buffer);
+
             this.chunkedMemoryStream1 = new ChunkedMemoryStream(Configuration.Default.MemoryAllocator);
             this.chunkedMemoryStream1.Write(this.buffer);
             this.chunkedMemoryStream1.Position = 0;

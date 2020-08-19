@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.IO
         /// <summary>
         /// The default length in bytes of each buffer chunk.
         /// </summary>
-        public const int DefaultBufferLength = 4096;
+        public const int DefaultBufferLength = 81920;
 
         // The memory allocator.
         private readonly MemoryAllocator allocator;

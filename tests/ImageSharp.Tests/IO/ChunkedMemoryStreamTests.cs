@@ -300,7 +300,7 @@ namespace SixLabors.ImageSharp.Tests.IO
         public static TheoryData<string> GetAllTestImages()
         {
             IEnumerable<string> allImageFiles = Directory.EnumerateFiles(TestEnvironment.InputImagesDirectoryFullPath, "*.*", SearchOption.AllDirectories)
-                .Where(s => !s.ToLower().EndsWith("txt"));
+                .Where(s => !s.EndsWith("txt", StringComparison.OrdinalIgnoreCase));
             var result = new TheoryData<string>();
             foreach (string path in allImageFiles)
             {
@@ -314,7 +314,12 @@ namespace SixLabors.ImageSharp.Tests.IO
         [MemberData(nameof(GetAllTestImages))]
         public void DecoderIntegrationTest(string testFileFullPath)
         {
-            Image<Rgba32> expected = null;
+            if (!TestEnvironment.Is64BitProcess)
+            {
+                return;
+            }
+
+            Image<Rgba32> expected;
             try
             {
                 expected = Image.Load<Rgba32>(testFileFullPath);
@@ -326,7 +331,7 @@ namespace SixLabors.ImageSharp.Tests.IO
             }
 
             using FileStream fs = File.OpenRead(testFileFullPath);
-            using NonSeekableStream nonSeekableStream = new NonSeekableStream(fs);
+            using var nonSeekableStream = new NonSeekableStream(fs);
 
             var actual = Image.Load<Rgba32>(nonSeekableStream);
 

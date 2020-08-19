@@ -49,8 +49,8 @@ namespace SixLabors.ImageSharp.Tests.IO
             Assert.Throws<ArgumentNullException>(() => ms2.Read(null, 0, 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => ms2.Read(new byte[] { 1 }, -1, 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => ms2.Read(new byte[] { 1 }, 0, -1));
-            Assert.Throws<ArgumentException>(null, () => ms2.Read(new byte[] { 1 }, 2, 0));
-            Assert.Throws<ArgumentException>(null, () => ms2.Read(new byte[] { 1 }, 0, 2));
+            Assert.Throws<ArgumentException>(() => ms2.Read(new byte[] { 1 }, 2, 0));
+            Assert.Throws<ArgumentException>(() => ms2.Read(new byte[] { 1 }, 0, 2));
 
             ms2.Dispose();
 
@@ -58,10 +58,11 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Theory]
-        [InlineData(1024)]
-        [InlineData(1024 * 4)]
-        [InlineData(1024 * 6)]
-        [InlineData(1024 * 8)]
+        [InlineData(ChunkedMemoryStream.DefaultBufferLength)]
+        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 1.5))]
+        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 4)]
+        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 5.5))]
+        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 8)]
         public void MemoryStream_ReadByteTest(int length)
         {
             using MemoryStream ms = this.CreateTestStream(length);
@@ -78,10 +79,11 @@ namespace SixLabors.ImageSharp.Tests.IO
         }
 
         [Theory]
-        [InlineData(1024)]
-        [InlineData(1024 * 4)]
-        [InlineData(1024 * 6)]
-        [InlineData(1024 * 8)]
+        [InlineData(ChunkedMemoryStream.DefaultBufferLength)]
+        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 1.5))]
+        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 4)]
+        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 5.5))]
+        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 8)]
         public void MemoryStream_ReadByteBufferTest(int length)
         {
             using MemoryStream ms = this.CreateTestStream(length);
@@ -99,6 +101,29 @@ namespace SixLabors.ImageSharp.Tests.IO
             }
         }
 
+        [Theory]
+        [InlineData(ChunkedMemoryStream.DefaultBufferLength)]
+        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 1.5))]
+        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 4)]
+        [InlineData((int)(ChunkedMemoryStream.DefaultBufferLength * 5.5))]
+        [InlineData(ChunkedMemoryStream.DefaultBufferLength * 8)]
+        public void MemoryStream_ReadByteBufferSpanTest(int length)
+        {
+            using MemoryStream ms = this.CreateTestStream(length);
+            using var cms = new ChunkedMemoryStream(this.allocator);
+
+            ms.CopyTo(cms);
+            cms.Position = 0;
+            var expected = ms.ToArray();
+            Span<byte> buffer = new byte[2];
+            for (int i = 0; i < expected.Length; i += 2)
+            {
+                cms.Read(buffer);
+                Assert.Equal(expected[i], buffer[0]);
+                Assert.Equal(expected[i + 1], buffer[1]);
+            }
+        }
+
         [Fact]
         public void MemoryStream_WriteToTests()
         {
@@ -107,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.IO
                 byte[] bytArrRet;
                 byte[] bytArr = new byte[] { byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250 };
 
-                // [] Write to FileStream, check the filestream
+                // [] Write to memoryStream, check the memoryStream
                 ms2.Write(bytArr, 0, bytArr.Length);
 
                 using var readonlyStream = new ChunkedMemoryStream(this.allocator);

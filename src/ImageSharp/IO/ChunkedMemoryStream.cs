@@ -236,11 +236,18 @@ namespace SixLabors.ImageSharp.IO
             Guard.NotNull(buffer, nameof(buffer));
             Guard.MustBeGreaterThanOrEqualTo(offset, 0, nameof(offset));
             Guard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
-            if (buffer.Length - offset < count)
-            {
-                throw new ArgumentException($"{offset} subtracted from the buffer length is less than {count}");
-            }
+            Guard.IsFalse(buffer.Length - offset < count, nameof(buffer), $"{offset} subtracted from the buffer length is less than {count}");
 
+            return this.ReadImpl(buffer.AsSpan().Slice(offset, count));
+        }
+
+#if SUPPORTS_SPAN_STREAM
+        /// <inheritdoc/>
+        public override int Read(Span<byte> buffer) => this.ReadImpl(buffer);
+#endif
+
+        private int ReadImpl(Span<byte> buffer)
+        {
             this.EnsureNotDisposed();
 
             if (this.readChunk is null)
@@ -254,7 +261,7 @@ namespace SixLabors.ImageSharp.IO
                 this.readOffset = 0;
             }
 
-            byte[] chunkBuffer = this.readChunk.Buffer.Array;
+            Span<byte> chunkBuffer = this.readChunk.Buffer.GetSpan();
             int chunkSize = this.readChunk.Length;
             if (this.readChunk.Next is null)
             {
@@ -262,7 +269,8 @@ namespace SixLabors.ImageSharp.IO
             }
 
             int bytesRead = 0;
-
+            int offset = 0;
+            int count = buffer.Length;
             while (count > 0)
             {
                 if (this.readOffset == chunkSize)
@@ -275,7 +283,7 @@ namespace SixLabors.ImageSharp.IO
 
                     this.readChunk = this.readChunk.Next;
                     this.readOffset = 0;
-                    chunkBuffer = this.readChunk.Buffer.Array;
+                    chunkBuffer = this.readChunk.Buffer.GetSpan();
                     chunkSize = this.readChunk.Length;
                     if (this.readChunk.Next is null)
                     {
@@ -284,7 +292,7 @@ namespace SixLabors.ImageSharp.IO
                 }
 
                 int readCount = Math.Min(count, chunkSize - this.readOffset);
-                Buffer.BlockCopy(chunkBuffer, this.readOffset, buffer, offset, readCount);
+                chunkBuffer.Slice(this.readOffset, count).CopyTo(buffer.Slice(offset));
                 offset += readCount;
                 count -= readCount;
                 this.readOffset += readCount;

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -14,11 +14,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal class WhiteIsZeroTiffColor<TPixel> : TiffColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly uint bitsPerSample0;
+        private readonly ushort bitsPerSample0;
 
         private readonly float factor;
 
-        public WhiteIsZeroTiffColor(uint[] bitsPerSample)
+        public WhiteIsZeroTiffColor(ushort[] bitsPerSample)
             : base(bitsPerSample, null)
         {
             this.bitsPerSample0 = bitsPerSample[0];

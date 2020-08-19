@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal static class TiffColorDecoderFactory<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        public static TiffColorDecoder<TPixel> Create(TiffColorType colorType, uint[] bitsPerSample, uint[] colorMap)
+        public static TiffColorDecoder<TPixel> Create(TiffColorType colorType, ushort[] bitsPerSample, ushort[] colorMap)
         {
             switch (colorType)
             {
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
             }
         }
 
-        public static RgbPlanarTiffColor<TPixel> CreatePlanar(TiffColorType colorType, uint[] bitsPerSample, uint[] colorMap)
+        public static RgbPlanarTiffColor<TPixel> CreatePlanar(TiffColorType colorType, ushort[] bitsPerSample, ushort[] colorMap)
         {
             switch (colorType)
             {

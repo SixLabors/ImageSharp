@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Memory;
@@ -13,16 +13,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal abstract class TiffColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly uint[] bitsPerSample;
+        private readonly ushort[] bitsPerSample;
 
-        private readonly uint[] colorMap;
+        private readonly ushort[] colorMap;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffColorDecoder{TPixel}"/> class.
         /// </summary>
         /// <param name="bitsPerSample">The number of bits per sample for each pixel.</param>
         /// <param name="colorMap">The RGB color lookup table to use for decoding the image.</param>
-        protected TiffColorDecoder(uint[] bitsPerSample, uint[] colorMap)
+        protected TiffColorDecoder(ushort[] bitsPerSample, ushort[] colorMap)
         {
             this.bitsPerSample = bitsPerSample;
             this.colorMap = colorMap;

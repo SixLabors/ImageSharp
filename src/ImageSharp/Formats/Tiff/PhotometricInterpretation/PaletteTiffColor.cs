@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -15,11 +15,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     internal class PaletteTiffColor<TPixel> : TiffColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly uint bitsPerSample0;
+        private readonly ushort bitsPerSample0;
 
         private readonly TPixel[] palette;
 
-        public PaletteTiffColor(uint[] bitsPerSample, uint[] colorMap)
+        public PaletteTiffColor(ushort[] bitsPerSample, ushort[] colorMap)
             : base(bitsPerSample, colorMap)
         {
             this.bitsPerSample0 = bitsPerSample[0];
@@ -55,9 +55,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TPixel[] GeneratePalette(uint[] colorMap, int colorCount)
+        private static TPixel[] GeneratePalette(ushort[] colorMap, int colorCount)
         {
-            TPixel[] palette = new TPixel[colorCount];
+            var palette = new TPixel[colorCount];
 
             int rOffset = 0;
             int gOffset = colorCount;

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Enumeration representing the photometric interpretation formats defined by the Tiff file-format.
     /// </summary>
-    internal enum TiffPhotometricInterpretation : uint
+    public enum TiffPhotometricInterpretation : ushort
     {
         /// <summary>
         /// Bilevel and grayscale:  0 is imaged as white. The maximum value is imaged as black.

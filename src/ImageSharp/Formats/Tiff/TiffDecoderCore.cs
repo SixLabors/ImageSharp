@@ -1,12 +1,17 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -14,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Performs the tiff decoding operation.
     /// </summary>
-    internal class TiffDecoderCore : ITiffDecoderCoreOptions, IDisposable
+    internal class TiffDecoderCore : IImageDecoderInternals, IDisposable
     {
         /// <summary>
         /// The global configuration
@@ -65,14 +70,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         /// <summary>
+        /// Gets the input stream.
+        /// </summary>
+        public TiffStream Stream { get; }
+
+        /// <summary>
         /// Gets or sets the number of bits for each sample of the pixel format used to encode the image.
         /// </summary>
-        public uint[] BitsPerSample { get; set; }
+        public ushort[] BitsPerSample { get; set; }
 
         /// <summary>
         /// Gets or sets the lookup table for RGB palette colored images.
         /// </summary>
-        public uint[] ColorMap { get; set; }
+        public ushort[] ColorMap { get; set; }
 
         /// <summary>
         /// Gets or sets the photometric interpretation implementation to use when decoding the image.
@@ -85,11 +95,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffCompressionType CompressionType { get; set; }
 
         /// <summary>
-        /// Gets the input stream.
-        /// </summary>
-        public TiffStream Stream { get; }
-
-        /// <summary>
         /// Gets or sets the planar configuration type to use when decoding the image.
         /// </summary>
         public TiffPlanarConfiguration PlanarConfiguration { get; set; }
@@ -98,6 +103,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Gets or sets the photometric interpretation.
         /// </summary>
         public TiffPhotometricInterpretation PhotometricInterpretation { get; set; }
+
+        /// <inheritdoc/>
+        public Configuration Configuration => this.configuration;
+
+        /// <inheritdoc/>
+        public Size Dimensions { get; private set; }
 
         /// <summary>
         /// Decodes the image from the specified <see cref="Stream"/>  and sets
@@ -108,18 +119,32 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public Image<TPixel> Decode<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var header = TiffHeader.Read(this.Stream);
-            TiffIfd[] ifds = TiffFileFormatReader.ReadIfds(header, this.Stream);
+            var reader = new DirectoryReader(this.Stream);
+            IEnumerable<IExifValue[]> directories = reader.Read();
 
             var frames = new List<ImageFrame<TPixel>>();
-            foreach (TiffIfd ifd in ifds)
+            foreach (IExifValue[] ifd in directories)
             {
                 ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd);
                 frames.Add(frame);
             }
 
+            ImageMetadata metadata = frames.CreateMetadata(this.ignoreMetadata, this.Stream.ByteOrder);
+
             // todo: tiff frames can have different sizes
-            var image = new Image<TPixel>(this.configuration, new Metadata.ImageMetadata(), frames);
+            {
+                var root = frames.First();
+                this.Dimensions = root.Size();
+                foreach (var frame in frames)
+                {
+                    if (frame.Size() != root.Size())
+                    {
+                        throw new NotSupportedException("Images with different sizes are not supported");
+                    }
+                }
+            }
+
+            var image = new Image<TPixel>(this.configuration, metadata, frames);
 
             return image;
         }
@@ -136,22 +161,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Decodes the image data from a specified IFD.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="ifd">The IFD to read the image from.</param>
-        private ImageFrame<TPixel> DecodeFrame<TPixel>(TiffIfd ifd)
+        /// <param name="tags">The IFD tags.</param>
+        private ImageFrame<TPixel> DecodeFrame<TPixel>(IExifValue[] tags)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            TiffIfdEntriesContainer entries = ifd.Entries;
-            int width = (int)entries.Width;
-            int height = (int)entries.Height;
+            var coreMetadata = new ImageFrameMetadata();
+            TiffFrameMetadata metadata = coreMetadata.GetTiffMetadata();
+            metadata.Tags = tags;
 
-            var frame = new ImageFrame<TPixel>(this.configuration, width, height);
+            this.VerifyAndParseOptions(metadata);
 
-            TiffDecoderHelpers.ParseMetadata(frame.Metadata, entries, this.ignoreMetadata);
-            TiffDecoderHelpers.ParseDecodingOptions(this, entries);
+            int width = (int)metadata.Width;
+            int height = (int)metadata.Height;
+            var frame = new ImageFrame<TPixel>(this.configuration, width, height, coreMetadata);
 
-            int rowsPerStrip = (int)entries.RowsPerStrip;
-            uint[] stripOffsets = entries.StripOffsets;
-            uint[] stripByteCounts = entries.StripByteCounts;
+            int rowsPerStrip = (int)metadata.RowsPerStrip;
+            uint[] stripOffsets = metadata.StripOffsets;
+            uint[] stripByteCounts = metadata.StripByteCounts;
 
             this.DecodeImageStrips(frame, rowsPerStrip, stripOffsets, stripByteCounts);
 
@@ -249,6 +275,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     ArrayPool<byte>.Shared.Return(stripBytes[stripIndex]);
                 }
             }
+        }
+
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            throw new NotImplementedException();
+        }
+
+        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
         }
     }
 }

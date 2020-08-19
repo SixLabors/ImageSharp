@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Encapsulates the means to encode and decode Tiff images.
     /// </summary>
-    public class TiffFormat : IImageFormat<TiffMetaData, TiffFrameMetaData>
+    public class TiffFormat : IImageFormat<TiffMetadata, TiffFrameMetadata>
     {
         private TiffFormat()
         {
@@ -32,9 +32,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public IEnumerable<string> FileExtensions => TiffConstants.FileExtensions;
 
         /// <inheritdoc/>
-        public TiffMetaData CreateDefaultFormatMetadata() => new TiffMetaData();
+        public TiffMetadata CreateDefaultFormatMetadata() => new TiffMetadata();
 
         /// <inheritdoc/>
-        public TiffFrameMetaData CreateDefaultFormatFrameMetadata() => new TiffFrameMetaData();
+        public TiffFrameMetadata CreateDefaultFormatFrameMetadata() => new TiffFrameMetadata();
     }
 }

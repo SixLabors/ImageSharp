@@ -12,6 +12,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static ExifTag<uint> SubfileType { get; } = new ExifTag<uint>(ExifTagValue.SubfileType);
 
         /// <summary>
+        /// Gets the RowsPerStrip exif tag.
+        /// </summary>
+        public static ExifTag<uint> RowsPerStrip { get; } = new ExifTag<uint>(ExifTagValue.RowsPerStrip);
+
+        /// <summary>
         /// Gets the SubIFDOffset exif tag.
         /// </summary>
         public static ExifTag<uint> SubIFDOffset { get; } = new ExifTag<uint>(ExifTagValue.SubIFDOffset);

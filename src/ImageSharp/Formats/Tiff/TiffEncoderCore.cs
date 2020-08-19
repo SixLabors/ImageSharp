@@ -1,10 +1,11 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -45,7 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            using (TiffWriter writer = new TiffWriter(stream))
+            using (var writer = new TiffWriter(stream))
             {
                 long firstIfdMarker = this.WriteHeader(writer);
                 //// todo: multiframing is not support
@@ -77,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
         /// <param name="entries">The IFD entries to write to the file.</param>
         /// <returns>The marker to write the next IFD offset (if present).</returns>
-        public long WriteIfd(TiffWriter writer, List<TiffIfdEntry> entries)
+        public long WriteIfd(TiffWriter writer, List<IExifValue> entries)
         {
             if (entries.Count == 0)
             {
@@ -85,27 +86,31 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
 
             uint dataOffset = (uint)writer.Position + (uint)(6 + (entries.Count * 12));
-            List<byte[]> largeDataBlocks = new List<byte[]>();
+            var largeDataBlocks = new List<byte[]>();
 
-            entries.Sort((a, b) => a.Tag - b.Tag);
+            entries.Sort((a, b) => (ushort)a.Tag - (ushort)b.Tag);
 
             writer.Write((ushort)entries.Count);
 
-            foreach (TiffIfdEntry entry in entries)
+            foreach (ExifValue entry in entries)
             {
-                writer.Write(entry.Tag);
-                writer.Write((ushort)entry.Type);
-                writer.Write(entry.Count);
+                writer.Write((ushort)entry.Tag);
+                writer.Write((ushort)entry.DataType);
+                writer.Write(ExifWriter.GetNumberOfComponents(entry));
 
-                if (entry.RawValue.Length <= 4)
+                uint lenght = ExifWriter.GetLength(entry);
+                var raw = new byte[lenght];
+                int sz = ExifWriter.WriteValue(entry, raw, 0);
+                DebugGuard.IsTrue(sz == raw.Length, "Incorrect number of bytes written");
+                if (raw.Length <= 4)
                 {
-                    writer.WritePadded(entry.RawValue);
+                    writer.WritePadded(raw);
                 }
                 else
                 {
-                    largeDataBlocks.Add(entry.RawValue);
+                    largeDataBlocks.Add(raw);
                     writer.Write(dataOffset);
-                    dataOffset += (uint)(entry.RawValue.Length + (entry.RawValue.Length % 2));
+                    dataOffset += (uint)(raw.Length + (raw.Length % 2));
                 }
             }
 
@@ -135,10 +140,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public long WriteImage<TPixel>(TiffWriter writer, Image<TPixel> image, long ifdOffset)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            List<TiffIfdEntry> ifdEntries = new List<TiffIfdEntry>();
+            var ifdEntries = new List<IExifValue>();
 
             this.AddImageFormat(image, ifdEntries);
-            this.AddMetadata(image, ifdEntries);
 
             writer.WriteMarker(ifdOffset, (uint)writer.Position);
             long nextIfdMarker = this.WriteIfd(writer, ifdEntries);
@@ -147,81 +151,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         /// <summary>
-        /// Adds image metadata to the specified IFD.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-        /// <param name="ifdEntries">The metadata entries to add to the IFD.</param>
-        public void AddMetadata<TPixel>(Image<TPixel> image, List<TiffIfdEntry> ifdEntries)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            ifdEntries.AddUnsignedRational(TiffTagId.XResolution, new Rational(image.Metadata.HorizontalResolution));
-            ifdEntries.AddUnsignedRational(TiffTagId.YResolution, new Rational(image.Metadata.VerticalResolution));
-            ifdEntries.AddUnsignedShort(TiffTagId.ResolutionUnit, (uint)TiffResolutionUnit.Inch);
-
-            TiffFrameMetaData tiffMetadata = image.Frames.RootFrame.Metadata.GetFormatMetadata(TiffFormat.Instance);
-            foreach (TiffMetadataTag metadata in tiffMetadata.TextTags)
-            {
-                switch (metadata.Name)
-                {
-                    case TiffMetadataNames.Artist:
-                    {
-                        ifdEntries.AddAscii(TiffTagId.Artist, metadata.Value);
-                        break;
-                    }
-
-                    case TiffMetadataNames.Copyright:
-                    {
-                        ifdEntries.AddAscii(TiffTagId.Copyright, metadata.Value);
-                        break;
-                    }
-
-                    case TiffMetadataNames.DateTime:
-                    {
-                        ifdEntries.AddAscii(TiffTagId.DateTime, metadata.Value);
-                        break;
-                    }
-
-                    case TiffMetadataNames.HostComputer:
-                    {
-                        ifdEntries.AddAscii(TiffTagId.HostComputer, metadata.Value);
-                        break;
-                    }
-
-                    case TiffMetadataNames.ImageDescription:
-                    {
-                        ifdEntries.AddAscii(TiffTagId.ImageDescription, metadata.Value);
-                        break;
-                    }
-
-                    case TiffMetadataNames.Make:
-                    {
-                        ifdEntries.AddAscii(TiffTagId.Make, metadata.Value);
-                        break;
-                    }
-
-                    case TiffMetadataNames.Model:
-                    {
-                        ifdEntries.AddAscii(TiffTagId.Model, metadata.Value);
-                        break;
-                    }
-
-                    case TiffMetadataNames.Software:
-                    {
-                        ifdEntries.AddAscii(TiffTagId.Software, metadata.Value);
-                        break;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Adds image format information to the specified IFD.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="ifdEntries">The image format entries to add to the IFD.</param>
-        public void AddImageFormat<TPixel>(Image<TPixel> image, List<TiffIfdEntry> ifdEntries)
+        public void AddImageFormat<TPixel>(Image<TPixel> image, List<IExifValue> ifdEntries)
         where TPixel : unmanaged, IPixel<TPixel>
         {
             throw new NotImplementedException();

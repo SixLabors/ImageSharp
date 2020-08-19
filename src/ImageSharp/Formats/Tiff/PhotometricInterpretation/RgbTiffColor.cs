@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 
         private readonly uint bitsPerSampleB;
 
-        public RgbTiffColor(uint[] bitsPerSample)
+        public RgbTiffColor(ushort[] bitsPerSample)
           : base(bitsPerSample, null)
         {
             this.rFactor = (float)(1 << (int)bitsPerSample[0]) - 1.0f;

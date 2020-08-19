@@ -1,9 +1,17 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http.Headers;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -12,43 +20,73 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     internal static class TiffDecoderHelpers
     {
-        /// <summary>
-        /// Reads the image metadata from a specified IFD.
-        /// </summary>
-        /// <param name="frameMetadata">The frame metadata.</param>
-        /// <param name="entries">The entries.</param>
-        /// <param name="ignoreMetadata">if set to <c>true</c> [ignore metadata].</param>
-        public static void ParseMetadata(ImageFrameMetadata frameMetadata, TiffIfdEntriesContainer entries, bool ignoreMetadata)
+        public static ImageMetadata CreateMetadata<TPixel>(this IList<ImageFrame<TPixel>> frames, bool ignoreMetadata, TiffByteOrder byteOrder)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            TiffFrameMetaData metadata = frameMetadata.GetFormatMetadata(TiffFormat.Instance);
+            var coreMetadata = new ImageMetadata();
+            TiffMetadata tiffMetadata = coreMetadata.GetTiffMetadata();
+            tiffMetadata.ByteOrder = byteOrder;
 
-            TiffResolutionUnit resolutionUnit = entries.ResolutionUnit;
-
-            if (resolutionUnit != TiffResolutionUnit.None)
+            TiffFrameMetadata rootFrameMetadata = frames.First().Metadata.GetTiffMetadata();
+            switch (rootFrameMetadata.ResolutionUnit)
             {
-                double resolutionUnitFactor = resolutionUnit == TiffResolutionUnit.Centimeter ? 2.54 : 1.0;
+                case TiffResolutionUnit.None:
+                    coreMetadata.ResolutionUnits = PixelResolutionUnit.AspectRatio;
+                    break;
+                case TiffResolutionUnit.Inch:
+                    coreMetadata.ResolutionUnits = PixelResolutionUnit.PixelsPerInch;
+                    break;
+                case TiffResolutionUnit.Centimeter:
+                    coreMetadata.ResolutionUnits = PixelResolutionUnit.PixelsPerCentimeter;
+                    break;
+            }
 
-                if (entries.TryGetSingleValue(TiffTagId.XResolution, out Rational xResolution))
-                {
-                    metadata.HorizontalResolution = xResolution.ToDouble() * resolutionUnitFactor;
-                }
+            if (rootFrameMetadata.HorizontalResolution != null)
+            {
+                coreMetadata.HorizontalResolution = rootFrameMetadata.HorizontalResolution.Value;
+            }
 
-                if (entries.TryGetSingleValue(TiffTagId.YResolution, out Rational yResolution))
-                {
-                    metadata.VerticalResolution = yResolution.ToDouble() * resolutionUnitFactor;
-                }
+            if (rootFrameMetadata.VerticalResolution != null)
+            {
+                coreMetadata.VerticalResolution = rootFrameMetadata.VerticalResolution.Value;
             }
 
             if (!ignoreMetadata)
             {
-                foreach (var tag in TiffIfdEntryDefinitions.MetadataTags)
+                foreach (ImageFrame<TPixel> frame in frames)
                 {
-                    if (entries.TryGetSingleElementValue(tag.Key, out string value))
+                    TiffFrameMetadata frameMetadata = frame.Metadata.GetTiffMetadata();
+
+                    if (tiffMetadata.XmpProfile == null)
                     {
-                        metadata.TextTags.Add(new TiffMetadataTag(tag.Value, value));
+                        byte[] buf = frameMetadata.GetArrayValue<byte>(ExifTag.XMP, true);
+                        if (buf != null)
+                        {
+                            tiffMetadata.XmpProfile = buf;
+                        }
+                    }
+
+                    if (coreMetadata.IptcProfile == null)
+                    {
+                        byte[] buf = frameMetadata.GetArrayValue<byte>(ExifTag.IPTC, true);
+                        if (buf != null)
+                        {
+                            coreMetadata.IptcProfile = new IptcProfile(buf);
+                        }
+                    }
+
+                    if (coreMetadata.IccProfile == null)
+                    {
+                        byte[] buf = frameMetadata.GetArrayValue<byte>(ExifTag.IccProfile, true);
+                        if (buf != null)
+                        {
+                            coreMetadata.IccProfile = new IccProfile(buf);
+                        }
                     }
                 }
             }
+
+            return coreMetadata;
         }
 
         /// <summary>
@@ -56,8 +94,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="entries">The IFD entries container to read the image format information for.</param>
-        public static void ParseDecodingOptions(ITiffDecoderCoreOptions options, TiffIfdEntriesContainer entries)
+        public static void VerifyAndParseOptions(this TiffDecoderCore options, TiffFrameMetadata entries)
         {
+            if (entries.ExtraSamples != null)
+            {
+                throw new NotSupportedException("ExtraSamples is not supported.");
+            }
+
+            if (entries.FillOrder != TiffFillOrder.MostSignificantBitFirst)
+            {
+                throw new NotSupportedException("The lower-order bits of the byte FillOrder is not supported.");
+            }
+
+            if (entries.GetArrayValue<uint>(ExifTag.TileOffsets, true) != null)
+            {
+                throw new NotSupportedException("The Tile images is not supported.");
+            }
+
             ParseCompression(options, entries.Compression);
 
             options.PlanarConfiguration = entries.PlanarConfiguration;
@@ -69,7 +122,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ParseColorType(options, entries);
         }
 
-        private static void ParseColorType(ITiffDecoderCoreOptions options, TiffIfdEntriesContainer entries)
+        private static void ParseColorType(this TiffDecoderCore options, TiffFrameMetadata entries)
         {
             switch (options.PhotometricInterpretation)
             {
@@ -181,10 +234,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 case TiffPhotometricInterpretation.PaletteColor:
                 {
-                    if (entries.TryGetArrayValue(TiffTagId.ColorMap, out uint[] colorMap))
+                    options.ColorMap = entries.ColorMap;
+                    if (options.ColorMap != null)
                     {
-                        options.ColorMap = colorMap;
-
                         if (options.BitsPerSample.Length == 1)
                         {
                             switch (options.BitsPerSample[0])
@@ -210,22 +262,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
 
                 default:
-                    throw new NotSupportedException("The specified TIFF photometric interpretation is not supported.");
+                    throw new NotSupportedException("The specified TIFF photometric interpretation is not supported: " + options.PhotometricInterpretation);
             }
         }
 
-        private static void ParseBitsPerSample(ITiffDecoderCoreOptions options, TiffIfdEntriesContainer entries)
+        private static void ParseBitsPerSample(this TiffDecoderCore options, TiffFrameMetadata entries)
         {
-            if (entries.TryGetArrayValue(TiffTagId.BitsPerSample, out uint[] bitsPerSample))
-            {
-                options.BitsPerSample = bitsPerSample;
-            }
-            else
+            options.BitsPerSample = entries.BitsPerSample;
+            if (options.BitsPerSample == null)
             {
                 if (options.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero
                     || options.PhotometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
                 {
-                    options.BitsPerSample = new[] { 1u };
+                    options.BitsPerSample = new[] { (ushort)1 };
                 }
                 else
                 {
@@ -234,13 +283,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
         }
 
-        private static void ParsePhotometric(ITiffDecoderCoreOptions options, TiffIfdEntriesContainer entries)
+        private static void ParsePhotometric(this TiffDecoderCore options, TiffFrameMetadata entries)
         {
-            if (!entries.TryGetSingleValue(TiffTagId.PhotometricInterpretation, out TiffPhotometricInterpretation photometricInterpretation))
+            /*
+            if (!entries.TryGetSingleNumber(ExifTag.PhotometricInterpretation, out uint photometricInterpretation))
             {
                 if (entries.Compression == TiffCompression.Ccitt1D)
                 {
-                    photometricInterpretation = TiffPhotometricInterpretation.WhiteIsZero;
+                    photometricInterpretation = (uint)TiffPhotometricInterpretation.WhiteIsZero;
                 }
                 else
                 {
@@ -248,10 +298,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            options.PhotometricInterpretation = photometricInterpretation;
+            options.PhotometricInterpretation = (TiffPhotometricInterpretation)photometricInterpretation;
+            /* */
+
+            // There is no default for PhotometricInterpretation, and it is required.
+            options.PhotometricInterpretation = entries.PhotometricInterpretation;
         }
 
-        private static void ParseCompression(ITiffDecoderCoreOptions options, TiffCompression compression)
+        private static void ParseCompression(this TiffDecoderCore options, TiffCompression compression)
         {
             switch (compression)
             {

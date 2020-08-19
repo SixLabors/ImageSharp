@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Enumeration representing the resolution units defined by the Tiff file-format.
     /// </summary>
-    internal enum TiffResolutionUnit : uint
+    public enum TiffResolutionUnit : ushort
     {
         /// <summary>
         /// No absolute unit of measurement.

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// Enumeration representing the sub-file types defined by the Tiff file-format.
     /// </summary>
     [Flags]
-    internal enum TiffNewSubfileType
+    public enum TiffNewSubfileType : uint
     {
         /// <summary>
         /// A full-resolution image.

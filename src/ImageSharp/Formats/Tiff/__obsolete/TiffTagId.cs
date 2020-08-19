@@ -5,7 +5,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Constants representing tag IDs in the Tiff file-format.
-    /// todo: join with <see cref="SixLabors.ImageSharp.MetaData.Profiles.Exif.ExifTag"/>
     /// </summary>
     public enum TiffTagId : int
     {

@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Memory
     /// </summary>
     internal static class MemoryOwnerExtensions
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<T> GetSpan<T>(this IMemoryOwner<T> buffer)
             => buffer.Memory.Span;
 

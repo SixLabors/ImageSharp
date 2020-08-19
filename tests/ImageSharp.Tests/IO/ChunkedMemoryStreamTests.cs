@@ -4,8 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.IO
@@ -292,6 +295,42 @@ namespace SixLabors.ImageSharp.Tests.IO
             source.CopyTo(destination);
             Assert.InRange(source.Position, source.Length, int.MaxValue); // Copying the data should have read to the end of the stream or stayed past the end.
             Assert.Equal(expected, destination.ToArray());
+        }
+
+        public static TheoryData<string> GetAllTestImages()
+        {
+            IEnumerable<string> allImageFiles = Directory.EnumerateFiles(TestEnvironment.InputImagesDirectoryFullPath, "*.*", SearchOption.AllDirectories)
+                .Where(s => !s.ToLower().EndsWith("txt"));
+            var result = new TheoryData<string>();
+            foreach (string path in allImageFiles)
+            {
+                result.Add(path);
+            }
+
+            return result;
+        }
+
+        [Theory]
+        [MemberData(nameof(GetAllTestImages))]
+        public void DecoderIntegrationTest(string testFileFullPath)
+        {
+            Image<Rgba32> expected = null;
+            try
+            {
+                expected = Image.Load<Rgba32>(testFileFullPath);
+            }
+            catch
+            {
+                // The image is invalid
+                return;
+            }
+
+            using FileStream fs = File.OpenRead(testFileFullPath);
+            using NonSeekableStream nonSeekableStream = new NonSeekableStream(fs);
+
+            var actual = Image.Load<Rgba32>(nonSeekableStream);
+
+            ImageComparer.Exact.VerifySimilarity(expected, actual);
         }
 
         public static IEnumerable<object[]> CopyToData()

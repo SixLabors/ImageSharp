@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.IO
 
                 if (value < 0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value));
+                    ThrowArgumentOutOfRange(nameof(value));
                 }
 
                 // Back up current position in case new position is out of range
@@ -167,12 +167,13 @@ namespace SixLabors.ImageSharp.IO
                     // Position is out of range
                     this.readChunk = backupReadChunk;
                     this.readOffset = backupReadOffset;
-                    throw new ArgumentOutOfRangeException(nameof(value));
+                    ThrowArgumentOutOfRange(nameof(value));
                 }
             }
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override long Seek(long offset, SeekOrigin origin)
         {
             this.EnsureNotDisposed();
@@ -231,6 +232,7 @@ namespace SixLabors.ImageSharp.IO
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int Read(byte[] buffer, int offset, int count)
         {
             Guard.NotNull(buffer, nameof(buffer));
@@ -243,6 +245,7 @@ namespace SixLabors.ImageSharp.IO
 
 #if SUPPORTS_SPAN_STREAM
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int Read(Span<byte> buffer) => this.ReadImpl(buffer);
 #endif
 
@@ -303,6 +306,7 @@ namespace SixLabors.ImageSharp.IO
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int ReadByte()
         {
             this.EnsureNotDisposed();
@@ -342,7 +346,17 @@ namespace SixLabors.ImageSharp.IO
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Write(byte[] buffer, int offset, int count)
+            => this.WriteImpl(buffer.AsSpan().Slice(offset, count));
+
+#if SUPPORTS_SPAN_STREAM
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override void Write(ReadOnlySpan<byte> buffer) => this.WriteImpl(buffer);
+#endif
+
+        private void WriteImpl(ReadOnlySpan<byte> buffer)
         {
             this.EnsureNotDisposed();
 
@@ -353,9 +367,10 @@ namespace SixLabors.ImageSharp.IO
                 this.writeOffset = 0;
             }
 
-            byte[] chunkBuffer = this.writeChunk.Buffer.Array;
+            Span<byte> chunkBuffer = this.writeChunk.Buffer.GetSpan();
             int chunkSize = this.writeChunk.Length;
-
+            int count = buffer.Length;
+            int offset = 0;
             while (count > 0)
             {
                 if (this.writeOffset == chunkSize)
@@ -364,12 +379,13 @@ namespace SixLabors.ImageSharp.IO
                     this.writeChunk.Next = this.AllocateMemoryChunk();
                     this.writeChunk = this.writeChunk.Next;
                     this.writeOffset = 0;
-                    chunkBuffer = this.writeChunk.Buffer.Array;
+                    chunkBuffer = this.writeChunk.Buffer.GetSpan();
                     chunkSize = this.writeChunk.Length;
                 }
 
                 int copyCount = Math.Min(count, chunkSize - this.writeOffset);
-                Buffer.BlockCopy(buffer, offset, chunkBuffer, this.writeOffset, copyCount);
+                buffer.Slice(offset, copyCount).CopyTo(chunkBuffer.Slice(this.writeOffset));
+
                 offset += copyCount;
                 count -= copyCount;
                 this.writeOffset += copyCount;
@@ -493,9 +509,11 @@ namespace SixLabors.ImageSharp.IO
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void ThrowDisposed()
-        {
-            throw new ObjectDisposedException(null, "The stream is closed.");
-        }
+            => throw new ObjectDisposedException(null, "The stream is closed.");
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowArgumentOutOfRange(string value)
+            => throw new ArgumentOutOfRangeException(value);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private MemoryChunk AllocateMemoryChunk()

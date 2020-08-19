@@ -295,7 +295,7 @@ namespace SixLabors.ImageSharp.IO
                 }
 
                 int readCount = Math.Min(count, chunkSize - this.readOffset);
-                chunkBuffer.Slice(this.readOffset, count).CopyTo(buffer.Slice(offset));
+                chunkBuffer.Slice(this.readOffset, readCount).CopyTo(buffer.Slice(offset));
                 offset += readCount;
                 count -= readCount;
                 this.readOffset += readCount;

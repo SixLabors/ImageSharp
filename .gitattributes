@@ -105,6 +105,8 @@
 *.pvr               binary
 *.snk               binary
 *.tga               binary
+*.tif               binary
+*.tiff              binary
 *.ttc               binary
 *.ttf               binary
 *.webp              binary

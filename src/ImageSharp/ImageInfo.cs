@@ -1,8 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp
 {
@@ -17,13 +17,13 @@ namespace SixLabors.ImageSharp
         /// <param name="pixelType">The image pixel type information.</param>
         /// <param name="width">The width of the image in pixels.</param>
         /// <param name="height">The height of the image in pixels.</param>
-        /// <param name="metaData">The images metadata.</param>
-        public ImageInfo(PixelTypeInfo pixelType, int width, int height, ImageMetaData metaData)
+        /// <param name="metadata">The images metadata.</param>
+        public ImageInfo(PixelTypeInfo pixelType, int width, int height, ImageMetadata metadata)
         {
             this.PixelType = pixelType;
             this.Width = width;
             this.Height = height;
-            this.MetaData = metaData;
+            this.Metadata = metadata;
         }
 
         /// <inheritdoc />
@@ -36,6 +36,6 @@ namespace SixLabors.ImageSharp
         public int Height { get; }
 
         /// <inheritdoc />
-        public ImageMetaData MetaData { get; }
+        public ImageMetadata Metadata { get; }
     }
 }

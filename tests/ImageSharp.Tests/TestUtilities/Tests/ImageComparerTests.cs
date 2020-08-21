@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,7 +9,6 @@ using Moq;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using SixLabors.Primitives;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -27,15 +29,15 @@ namespace SixLabors.ImageSharp.Tests
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 0, 0)]
         public void TolerantImageComparer_ApprovesPerfectSimilarity<TPixel>(
             TestImageProvider<TPixel> provider,
-            float imageTheshold,
+            float imageThreshold,
             int pixelThreshold)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
                 using (Image<TPixel> clone = image.Clone())
                 {
-                    var comparer = ImageComparer.Tolerant(imageTheshold, pixelThreshold);
+                    var comparer = ImageComparer.Tolerant(imageThreshold, pixelThreshold);
                     comparer.VerifySimilarity(image, clone);
                 }
             }
@@ -44,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [WithTestPatternImages(110, 110, PixelTypes.Rgba32)]
         public void TolerantImageComparer_ApprovesSimilarityBelowTolerance<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -61,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void TolerantImageComparer_DoesNotApproveSimilarityAboveTolerance<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -84,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba64)]
         public void TolerantImageComparer_TestPerPixelThreshold<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -104,7 +106,7 @@ namespace SixLabors.ImageSharp.Tests
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 99, 100)]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32, 100, 99)]
         public void VerifySimilarity_ThrowsOnSizeMismatch<TPixel>(TestImageProvider<TPixel> provider, int w, int h)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -121,11 +123,10 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         public void VerifySimilarity_WhenAnImageFrameIsDifferent_Reports<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -141,11 +142,10 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
-
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void ExactComparer_ApprovesExactEquality<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void ExactComparer_DoesNotTolerateAnyPixelDifference<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {

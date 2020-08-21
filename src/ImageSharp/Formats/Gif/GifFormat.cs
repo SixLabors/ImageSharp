@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the gif format.
     /// </summary>
-    public sealed class GifFormat : IImageFormat<GifMetaData, GifFrameMetaData>
+    public sealed class GifFormat : IImageFormat<GifMetadata, GifFrameMetadata>
     {
         private GifFormat()
         {
@@ -32,9 +32,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public IEnumerable<string> FileExtensions => GifConstants.FileExtensions;
 
         /// <inheritdoc/>
-        public GifMetaData CreateDefaultFormatMetaData() => new GifMetaData();
+        public GifMetadata CreateDefaultFormatMetadata() => new GifMetadata();
 
         /// <inheritdoc/>
-        public GifFrameMetaData CreateDefaultFormatFrameMetaData() => new GifFrameMetaData();
+        public GifFrameMetadata CreateDefaultFormatFrameMetadata() => new GifFrameMetadata();
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing.Imaging;
@@ -6,6 +6,7 @@ using System.IO;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests;
 using SDImage = System.Drawing.Image;
@@ -20,12 +21,21 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         private SDImage bmpDrawing;
         private Image<Rgba32> bmpCore;
 
+        // Try to get as close to System.Drawing's output as possible
+        private readonly GifEncoder encoder = new GifEncoder
+        {
+            Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
+        };
+
+        [Params(TestImages.Bmp.Car, TestImages.Png.Rgb48Bpp)]
+        public string TestImage { get; set; }
+
         [GlobalSetup]
         public void ReadImages()
         {
             if (this.bmpStream == null)
             {
-                this.bmpStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Bmp.Car));
+                this.bmpStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage));
                 this.bmpCore = Image.Load<Rgba32>(this.bmpStream);
                 this.bmpStream.Position = 0;
                 this.bmpDrawing = SDImage.FromStream(this.bmpStream);
@@ -52,11 +62,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [Benchmark(Description = "ImageSharp Gif")]
         public void GifCore()
         {
-            // Try to get as close to System.Drawing's output as possible
-            var options = new GifEncoder { Quantizer = new WebSafePaletteQuantizer(false) };
             using (var memoryStream = new MemoryStream())
             {
-                this.bmpCore.SaveAsGif(memoryStream, options);
+                this.bmpCore.SaveAsGif(memoryStream, this.encoder);
             }
         }
     }

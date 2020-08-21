@@ -1,154 +1,163 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers;
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Advanced
 {
-    using System.Buffers;
-
-    using SixLabors.Memory;
-
     public class AdvancedImageExtensionsTests
     {
-        public class GetPixelMemory
+        public class GetPixelMemoryGroup
         {
             [Theory]
-            [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32)]
-            [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-            public void WhenMemoryIsOwned<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+            [WithBasicTestPatternImages(1, 1, PixelTypes.Rgba32)]
+            [WithBasicTestPatternImages(131, 127, PixelTypes.Rgba32)]
+            [WithBasicTestPatternImages(333, 555, PixelTypes.Bgr24)]
+            public void OwnedMemory_PixelDataIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
+                where TPixel : unmanaged, IPixel<TPixel>
             {
-                using (Image<TPixel> image0 = provider.GetImage())
-                {
-                    var targetBuffer = new TPixel[image0.Width * image0.Height];
+                provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
 
-                    // Act:
-                    Memory<TPixel> memory = image0.GetPixelMemory();
+                using Image<TPixel> image = provider.GetImage();
 
-                    // Assert:
-                    Assert.Equal(image0.Width * image0.Height, memory.Length);
-                    memory.Span.CopyTo(targetBuffer);
+                // Act:
+                IMemoryGroup<TPixel> memoryGroup = image.GetPixelMemoryGroup();
 
-                    using (Image<TPixel> image1 = provider.GetImage())
-                    {
-                        // We are using a copy of the original image for assertion
-                        image1.ComparePixelBufferTo(targetBuffer);
-                    }
-                }
+                // Assert:
+                VerifyMemoryGroupDataMatchesTestPattern(provider, memoryGroup, image.Size());
             }
-
 
             [Theory]
-            [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-            [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-            public void WhenMemoryIsConsumed<TPixel>(TestImageProvider<TPixel> provider)
-                where TPixel : struct, IPixel<TPixel>
+            [WithBlankImages(16, 16, PixelTypes.Rgba32)]
+            public void OwnedMemory_DestructiveMutate_ShouldInvalidateMemoryGroup<TPixel>(TestImageProvider<TPixel> provider)
+                where TPixel : unmanaged, IPixel<TPixel>
             {
-                using (Image<TPixel> image0 = provider.GetImage())
+                using Image<TPixel> image = provider.GetImage();
+
+                IMemoryGroup<TPixel> memoryGroup = image.GetPixelMemoryGroup();
+                Memory<TPixel> memory = memoryGroup.Single();
+
+                image.Mutate(c => c.Resize(8, 8));
+
+                Assert.False(memoryGroup.IsValid);
+                Assert.ThrowsAny<InvalidMemoryOperationException>(() => _ = memoryGroup.First());
+                Assert.ThrowsAny<InvalidMemoryOperationException>(() => _ = memory.Span);
+            }
+
+            [Theory]
+            [WithBasicTestPatternImages(1, 1, PixelTypes.Rgba32)]
+            [WithBasicTestPatternImages(131, 127, PixelTypes.Bgr24)]
+            public void ConsumedMemory_PixelDataIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
+                where TPixel : unmanaged, IPixel<TPixel>
+            {
+                using Image<TPixel> image0 = provider.GetImage();
+                var targetBuffer = new TPixel[image0.Width * image0.Height];
+
+                Assert.True(image0.TryGetSinglePixelSpan(out Span<TPixel> sourceBuffer));
+
+                sourceBuffer.CopyTo(targetBuffer);
+
+                var managerOfExternalMemory = new TestMemoryManager<TPixel>(targetBuffer);
+
+                Memory<TPixel> externalMemory = managerOfExternalMemory.Memory;
+
+                using (var image1 = Image.WrapMemory(externalMemory, image0.Width, image0.Height))
                 {
-                    var targetBuffer = new TPixel[image0.Width * image0.Height];
-                    image0.GetPixelSpan().CopyTo(targetBuffer);
+                    VerifyMemoryGroupDataMatchesTestPattern(provider, image1.GetPixelMemoryGroup(), image1.Size());
+                }
 
-                    var managerOfExeternalMemory = new TestMemoryManager<TPixel>(targetBuffer);
+                // Make sure externalMemory works after destruction:
+                VerifyMemoryGroupDataMatchesTestPattern(provider, image0.GetPixelMemoryGroup(), image0.Size());
+            }
 
-                    Memory<TPixel> externalMemory = managerOfExeternalMemory.Memory;
+            private static void VerifyMemoryGroupDataMatchesTestPattern<TPixel>(
+                TestImageProvider<TPixel> provider,
+                IMemoryGroup<TPixel> memoryGroup,
+                Size size)
+                where TPixel : unmanaged, IPixel<TPixel>
+            {
+                Assert.True(memoryGroup.IsValid);
+                Assert.Equal(size.Width * size.Height, memoryGroup.TotalLength);
+                Assert.True(memoryGroup.BufferLength % size.Width == 0);
 
-                    using (var image1 = Image.WrapMemory(externalMemory, image0.Width, image0.Height))
-                    {
-                        Memory<TPixel> internalMemory = image1.GetPixelMemory();
-                        Assert.Equal(targetBuffer.Length, internalMemory.Length);
-                        Assert.True(Unsafe.AreSame(ref targetBuffer[0], ref internalMemory.Span[0]));
+                int cnt = 0;
+                for (MemoryGroupIndex i = memoryGroup.MaxIndex(); i < memoryGroup.MaxIndex(); i += 1, cnt++)
+                {
+                    int y = cnt / size.Width;
+                    int x = cnt % size.Width;
 
-                        image0.ComparePixelBufferTo(internalMemory.Span);
-                    }
-
-                    // Make sure externalMemory works after destruction:
-                    image0.ComparePixelBufferTo(externalMemory.Span);
+                    TPixel expected = provider.GetExpectedBasicTestPatternPixelAt(x, y);
+                    TPixel actual = memoryGroup.GetElementAt(i);
+                    Assert.Equal(expected, actual);
                 }
             }
         }
 
         [Theory]
-        [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32)]
-        [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-        public void GetPixelRowMemory<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [WithBasicTestPatternImages(1, 1, PixelTypes.Rgba32)]
+        [WithBasicTestPatternImages(131, 127, PixelTypes.Rgba32)]
+        [WithBasicTestPatternImages(333, 555, PixelTypes.Bgr24)]
+        public void GetPixelRowMemory_PixelDataIsCorrect<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var targetBuffer = new TPixel[image.Width * image.Height];
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
 
+            using Image<TPixel> image = provider.GetImage();
+
+            for (int y = 0; y < image.Height; y++)
+            {
                 // Act:
-                for (int y = 0; y < image.Height; y++)
-                {
-                    Memory<TPixel> rowMemory = image.GetPixelRowMemory(y);
-                    rowMemory.Span.CopyTo(targetBuffer.AsSpan(image.Width * y));
-                }
+                Memory<TPixel> rowMemory = image.GetPixelRowMemory(y);
+                Span<TPixel> span = rowMemory.Span;
 
                 // Assert:
-                using (Image<TPixel> image1 = provider.GetImage())
+                for (int x = 0; x < image.Width; x++)
                 {
-                    // We are using a copy of the original image for assertion
-                    image1.ComparePixelBufferTo(targetBuffer);
+                    Assert.Equal(provider.GetExpectedBasicTestPatternPixelAt(x, y), span[x]);
                 }
             }
         }
 
         [Theory]
-        [WithSolidFilledImages(1, 1, "Red", PixelTypes.Rgba32)]
-        [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-        public void GetPixelRowSpan<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [WithBasicTestPatternImages(16, 16, PixelTypes.Rgba32)]
+        public void GetPixelRowMemory_DestructiveMutate_ShouldInvalidateMemory<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var targetBuffer = new TPixel[image.Width * image.Height];
+            using Image<TPixel> image = provider.GetImage();
 
-                // Act:
-                for (int y = 0; y < image.Height; y++)
-                {
-                    Span<TPixel> rowMemory = image.GetPixelRowSpan(y);
-                    rowMemory.CopyTo(targetBuffer.AsSpan(image.Width * y));
-                }
+            Memory<TPixel> memory3 = image.GetPixelRowMemory(3);
+            Memory<TPixel> memory10 = image.GetPixelRowMemory(10);
 
-                // Assert:
-                using (Image<TPixel> image1 = provider.GetImage())
-                {
-                    // We are using a copy of the original image for assertion
-                    image1.ComparePixelBufferTo(targetBuffer);
-                }
-            }
+            image.Mutate(c => c.Resize(8, 8));
+
+            Assert.ThrowsAny<InvalidMemoryOperationException>(() => _ = memory3.Span);
+            Assert.ThrowsAny<InvalidMemoryOperationException>(() => _ = memory10.Span);
         }
 
-        #pragma warning disable 0618
-
         [Theory]
-        [WithTestPatternImages(131, 127, PixelTypes.Rgba32 | PixelTypes.Bgr24)]
-        public unsafe void DangerousGetPinnableReference_CopyToBuffer<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [WithBlankImages(1, 1, PixelTypes.Rgba32)]
+        [WithBlankImages(100, 111, PixelTypes.Rgba32)]
+        [WithBlankImages(400, 600, PixelTypes.Rgba32)]
+        public void GetPixelRowSpan_ShouldReferenceSpanOfMemory<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var targetBuffer = new TPixel[image.Width * image.Height];
+            provider.LimitAllocatorBufferCapacity().InPixelsSqrt(200);
 
-                ref byte source = ref Unsafe.As<TPixel, byte>(ref targetBuffer[0]);
-                ref byte dest = ref Unsafe.As<TPixel, byte>(ref image.DangerousGetPinnableReferenceToPixelBuffer());
-                
-                fixed (byte* targetPtr = &source)
-                fixed (byte* pixelBasePtr = &dest)
-                {
-                    uint dataSizeInBytes = (uint)(image.Width * image.Height * Unsafe.SizeOf<TPixel>());
-                    Unsafe.CopyBlock(targetPtr, pixelBasePtr, dataSizeInBytes);
-                }
+            using Image<TPixel> image = provider.GetImage();
 
-                image.ComparePixelBufferTo(targetBuffer);
-            }
+            Memory<TPixel> memory = image.GetPixelRowMemory(image.Height - 1);
+            Span<TPixel> span = image.GetPixelRowSpan(image.Height - 1);
+
+            Assert.True(span == memory.Span);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <summary>
     /// Registers the image encoders, decoders and mime type detectors for the png format.
     /// </summary>
-    public sealed class PngFormat : IImageFormat<PngMetaData>
+    public sealed class PngFormat : IImageFormat<PngMetadata>
     {
         private PngFormat()
         {
@@ -32,6 +32,6 @@ namespace SixLabors.ImageSharp.Formats.Png
         public IEnumerable<string> FileExtensions => PngConstants.FileExtensions;
 
         /// <inheritdoc/>
-        public PngMetaData CreateDefaultFormatMetaData() => new PngMetaData();
+        public PngMetadata CreateDefaultFormatMetadata() => new PngMetadata();
     }
 }

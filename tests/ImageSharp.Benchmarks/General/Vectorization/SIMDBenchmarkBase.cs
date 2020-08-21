@@ -1,10 +1,13 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+using BenchmarkDotNet.Attributes;
+
 namespace ImageSharp.Benchmarks.General.Vectorization
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
-
-    using BenchmarkDotNet.Attributes;
-
     public abstract class SIMDBenchmarkBase<T>
         where T : struct
     {
@@ -16,14 +19,13 @@ namespace ImageSharp.Benchmarks.General.Vectorization
 
         protected Vector<T> testVector;
 
-        protected virtual T GetTestValue() => default(T);
+        protected virtual T GetTestValue() => default;
 
         protected virtual Vector<T> GetTestVector() => new Vector<T>(this.GetTestValue());
-        
 
         [Params(32)]
         public int InputSize { get; set; }
-        
+
         [GlobalSetup]
         public virtual void Setup()
         {
@@ -64,7 +66,5 @@ namespace ImageSharp.Benchmarks.General.Vectorization
                 }
             }
         }
-
-        
     }
 }

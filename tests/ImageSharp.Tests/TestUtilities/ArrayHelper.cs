@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Linq;
@@ -11,17 +11,18 @@ namespace SixLabors.ImageSharp.Tests
         /// Concatenates multiple arrays of the same type into one.
         /// </summary>
         /// <typeparam name="T">The array type</typeparam>
-        /// <param name="arrs">The arrays to concatenate. The order is kept</param>
+        /// <param name="arrays">The arrays to concatenate. The order is kept</param>
         /// <returns>The concatenated array</returns>
-        public static T[] Concat<T>(params T[][] arrs)
+        public static T[] Concat<T>(params T[][] arrays)
         {
-            var result = new T[arrs.Sum(t => t.Length)];
+            var result = new T[arrays.Sum(t => t.Length)];
             int offset = 0;
-            for (int i = 0; i < arrs.Length; i++)
+            for (int i = 0; i < arrays.Length; i++)
             {
-                arrs[i].CopyTo(result, offset);
-                offset += arrs[i].Length;
+                arrays[i].CopyTo(result, offset);
+                offset += arrays[i].Length;
             }
+
             return result;
         }
 
@@ -39,6 +40,7 @@ namespace SixLabors.ImageSharp.Tests
             {
                 result[i] = value;
             }
+
             return result;
         }
 
@@ -50,7 +52,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>The filled string</returns>
         public static string Fill(char value, int length)
         {
-            return "".PadRight(length, value);
+            return string.Empty.PadRight(length, value);
         }
     }
 }

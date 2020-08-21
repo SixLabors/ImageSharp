@@ -1,14 +1,12 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -30,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The stream to decode.
         /// </summary>
-        private readonly Stream stream;
+        private readonly BufferedReadStream stream;
 
         /// <summary>
         /// The prefix buffer.
@@ -53,8 +51,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// </summary>
         /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
         /// <param name="stream">The stream to read from.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="stream"/> is null.</exception>
-        public LzwDecoder(MemoryAllocator memoryAllocator, Stream stream)
+        /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
+        public LzwDecoder(MemoryAllocator memoryAllocator, BufferedReadStream stream)
         {
             this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
 
@@ -66,15 +64,15 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Decodes and decompresses all pixel indices from the stream.
         /// </summary>
-        /// <param name="width">The width of the pixel index array.</param>
-        /// <param name="height">The height of the pixel index array.</param>
         /// <param name="dataSize">Size of the data.</param>
         /// <param name="pixels">The pixel array to decode to.</param>
-        public void DecodePixels(int width, int height, int dataSize, Span<byte> pixels)
+        public void DecodePixels(int dataSize, Buffer2D<byte> pixels)
         {
             Guard.MustBeLessThan(dataSize, int.MaxValue, nameof(dataSize));
 
             // The resulting index table length.
+            int width = pixels.Width;
+            int height = pixels.Height;
             int length = width * height;
 
             // Calculate the clear code. The value of the clear code is 2 ^ dataSize
@@ -106,21 +104,28 @@ namespace SixLabors.ImageSharp.Formats.Gif
             ref int prefixRef = ref MemoryMarshal.GetReference(this.prefix.GetSpan());
             ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.GetSpan());
             ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.GetSpan());
-            ref byte pixelsRef = ref MemoryMarshal.GetReference(pixels);
 
             for (code = 0; code < clearCode; code++)
             {
                 Unsafe.Add(ref suffixRef, code) = (byte)code;
             }
 
-#if NETCOREAPP2_1
-            Span<byte> buffer = stackalloc byte[255];
-#else
-            byte[] buffer = new byte[255];
-#endif
+            Span<byte> buffer = stackalloc byte[byte.MaxValue];
 
+            int y = 0;
+            int x = 0;
+            int rowMax = width;
+            ref byte pixelsRowRef = ref MemoryMarshal.GetReference(pixels.GetRowSpan(y));
             while (xyz < length)
             {
+                // Reset row reference.
+                if (xyz == rowMax)
+                {
+                    x = 0;
+                    pixelsRowRef = ref MemoryMarshal.GetReference(pixels.GetRowSpan(++y));
+                    rowMax = (y * width) + width;
+                }
+
                 if (top == 0)
                 {
                     if (bits < codeSize)
@@ -214,7 +219,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 top--;
 
                 // Clear missing pixels
-                Unsafe.Add(ref pixelsRef, xyz++) = (byte)Unsafe.Add(ref pixelStackRef, top);
+                xyz++;
+                Unsafe.Add(ref pixelsRowRef, x++) = (byte)Unsafe.Add(ref pixelStackRef, top);
             }
         }
 
@@ -227,11 +233,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// The <see cref="int"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NETCOREAPP2_1
         private int ReadBlock(Span<byte> buffer)
-#else
-        private int ReadBlock(byte[] buffer)
-#endif
         {
             int bufferSize = this.stream.ReadByte();
 

@@ -1,4 +1,5 @@
-﻿// ReSharper disable InconsistentNaming
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -8,12 +9,13 @@ using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.PixelFormats;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {
     public class PixelConversion_ConvertFromVector4
     {
         [StructLayout(LayoutKind.Sequential)]
-        struct TestRgbaVector : ITestPixel<TestRgbaVector>
+        private struct TestRgbaVector : ITestPixel<TestRgbaVector>
         {
             private Vector4 v;
 
@@ -39,13 +41,17 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
 
             public void FromRgba32(Rgba32 source) => throw new System.NotImplementedException();
+
             public void FromRgba32(ref Rgba32 source) => throw new System.NotImplementedException();
+
             public void FromBytes(byte r, byte g, byte b, byte a) => throw new System.NotImplementedException();
+
             public Rgba32 ToRgba32() => throw new System.NotImplementedException();
+
             public void CopyToRgba32(ref Rgba32 dest) => throw new System.NotImplementedException();
         }
 
-        struct ConversionRunner<T>
+        private struct ConversionRunner<T>
             where T : struct, ITestPixel<T>
         {
             private T[] dest;
@@ -100,7 +106,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             this.nonVectorRunner = new ConversionRunner<TestArgb>(this.Count);
             this.vectorRunner = new ConversionRunner<TestRgbaVector>(this.Count);
         }
-        
+
         [Benchmark(Baseline = true)]
         public void VectorByRef()
         {
@@ -124,7 +130,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         {
             this.nonVectorRunner.RunByValConversion();
         }
-
     }
 
     /*
@@ -135,7 +140,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
      *     VectorByVal |    32 | 24.5347 ns | 0.0771 ns |   1.04 |          0.01 |
      *  NonVectorByRef |    32 | 59.0187 ns | 0.2114 ns |   2.49 |          0.01 |
      *  NonVectorByVal |    32 | 58.7529 ns | 0.2545 ns |   2.48 |          0.02 |
-     *  
+     *
      *  !!! Conclusion !!!
      *  We do not need by-ref version of ConvertFromVector4() stuff
      */

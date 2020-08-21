@@ -1,12 +1,11 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp
 {
@@ -16,6 +15,20 @@ namespace SixLabors.ImageSharp
     internal static class ImageMaths
     {
         /// <summary>
+        /// Vector for converting pixel to gray value as specified by ITU-R Recommendation BT.709.
+        /// </summary>
+        private static readonly Vector4 Bt709 = new Vector4(.2126f, .7152f, .0722f, 0.0f);
+
+        /// <summary>
+        /// Convert a pixel value to grayscale using ITU-R Recommendation BT.709.
+        /// </summary>
+        /// <param name="vector">The vector to get the luminance from.</param>
+        /// <param name="luminanceLevels">The number of luminance levels (256 for 8 bit, 65536 for 16 bit grayscale images)</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int GetBT709Luminance(ref Vector4 vector, int luminanceLevels)
+            => (int)MathF.Round(Vector4.Dot(vector, Bt709) * (luminanceLevels - 1));
+
+        /// <summary>
         /// Gets the luminance from the rgb components using the formula as specified by ITU-R Recommendation BT.709.
         /// </summary>
         /// <param name="r">The red component.</param>
@@ -24,7 +37,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="byte"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static byte Get8BitBT709Luminance(byte r, byte g, byte b) =>
-            (byte)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5f);
+            (byte)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5F);
 
         /// <summary>
         /// Gets the luminance from the rgb components using the formula as specified by ITU-R Recommendation BT.709.
@@ -35,7 +48,18 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="ushort"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static ushort Get16BitBT709Luminance(ushort r, ushort g, ushort b) =>
-            (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F));
+            (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5F);
+
+        /// <summary>
+        /// Gets the luminance from the rgb components using the formula as specified by ITU-R Recommendation BT.709.
+        /// </summary>
+        /// <param name="r">The red component.</param>
+        /// <param name="g">The green component.</param>
+        /// <param name="b">The blue component.</param>
+        /// <returns>The <see cref="ushort"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static ushort Get16BitBT709Luminance(float r, float g, float b) =>
+            (ushort)((r * .2126F) + (g * .7152F) + (b * .0722F) + 0.5F);
 
         /// <summary>
         /// Scales a value from a 16 bit <see cref="ushort"/> to it's 8 bit <see cref="byte"/> equivalent.
@@ -219,40 +243,6 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Returns the result of a B-C filter against the given value.
-        /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
-        /// </summary>
-        /// <param name="x">The value to process.</param>
-        /// <param name="b">The B-Spline curve variable.</param>
-        /// <param name="c">The Cardinal curve variable.</param>
-        /// <returns>
-        /// The <see cref="float"/>.
-        /// </returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static float GetBcValue(float x, float b, float c)
-        {
-            if (x < 0F)
-            {
-                x = -x;
-            }
-
-            float temp = x * x;
-            if (x < 1F)
-            {
-                x = ((12 - (9 * b) - (6 * c)) * (x * temp)) + ((-18 + (12 * b) + (6 * c)) * temp) + (6 - (2 * b));
-                return x / 6F;
-            }
-
-            if (x < 2F)
-            {
-                x = ((-b - (6 * c)) * (x * temp)) + (((6 * b) + (30 * c)) * temp) + (((-12 * b) - (48 * c)) * x) + ((8 * b) + (24 * c));
-                return x / 6F;
-            }
-
-            return 0F;
-        }
-
-        /// <summary>
         /// Gets the bounding <see cref="Rectangle"/> from the given points.
         /// </summary>
         /// <param name="topLeft">
@@ -279,7 +269,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="Rectangle"/>.
         /// </returns>
         public static Rectangle GetFilteredBoundingRectangle<TPixel>(ImageFrame<TPixel> bitmap, float componentValue, RgbaComponent channel = RgbaComponent.B)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int width = bitmap.Width;
             int height = bitmap.Height;
@@ -369,7 +359,7 @@ namespace SixLabors.ImageSharp
                     }
                 }
 
-                return height;
+                return width;
             }
 
             topLeft.Y = GetMinY(bitmap);

@@ -1,11 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
 
 namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
@@ -263,7 +261,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
         /// Performs the bulk conversion from <see cref="Hsl"/> into <see cref="Hsv"/>
         /// </summary>
         /// <param name="source">The span to the source colors</param>
-        /// <param name="destination">The span to the destination colors</param>
+        /// <param name="destination">The span to the destination colors.</param>
         public void Convert(ReadOnlySpan<Hsl> source, Span<Hsv> destination)
         {
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));

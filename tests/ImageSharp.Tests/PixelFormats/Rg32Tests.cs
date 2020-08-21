@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -15,10 +15,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             float x = 0xb6dc;
             float y = 0xA59f;
             Assert.Equal(0xa59fb6dc, new Rg32(x / 0xffff, y / 0xffff).PackedValue);
-            Assert.Equal((uint)6554, new Rg32(0.1f, -0.3f).PackedValue);
+            Assert.Equal(6554U, new Rg32(0.1f, -0.3f).PackedValue);
 
             // Test the limits.
-            Assert.Equal((uint)0x0, new Rg32(Vector2.Zero).PackedValue);
+            Assert.Equal(0x0U, new Rg32(Vector2.Zero).PackedValue);
             Assert.Equal(0xFFFFFFFF, new Rg32(Vector2.One).PackedValue);
         }
 
@@ -60,6 +60,20 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // assert
             Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rg32_FromBgra5551()
+        {
+            // arrange
+            var rg32 = new Rg32(Vector2.One);
+            uint expected = 0xFFFFFFFF;
+
+            // act
+            rg32.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, rg32.PackedValue);
         }
 
         [Fact]

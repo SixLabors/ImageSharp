@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -75,10 +75,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// <returns>A new <see cref="Span{T}"/> with float values</returns>
         public static float[] ConvertAllToFloat(this int[] src)
         {
-            float[] result = new float[src.Length];
+            var result = new float[src.Length];
             for (int i = 0; i < src.Length; i++)
             {
-                result[i] = (float)src[i];
+                result[i] = src[i];
             }
 
             return result;
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// <returns>A new instance of <see cref="Span{T}"/></returns>
         public static Span<float> AddScalarToAllValues(this Span<float> src, float scalar)
         {
-            float[] result = new float[src.Length];
+            var result = new float[src.Length];
             for (int i = 0; i < src.Length; i++)
             {
                 result[i] = src[i] + scalar;
@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// <returns>A new instance of <see cref="Span{T}"/></returns>
         public static Span<int> AddScalarToAllValues(this Span<int> src, int scalar)
         {
-            int[] result = new int[src.Length];
+            var result = new int[src.Length];
             for (int i = 0; i < src.Length; i++)
             {
                 result[i] = src[i] + scalar;

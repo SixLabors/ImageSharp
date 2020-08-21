@@ -1,4 +1,4 @@
-# How to contribute to ImageSharp
+# How to contribute to SixLabors.ImageSharp
 
 #### **Did you find a bug?**
 
@@ -12,13 +12,19 @@
 
 * Ensure the PR description clearly describes the problem and solution. Include the relevant issue number if applicable.
 
-* Before submitting, please ensure that your code matches the existing coding patterns and practise as demonstrated in the repository. These follow strict Stylecop rules :cop:.
+* Before submitting, please ensure that your code matches the existing coding patterns and practice as demonstrated in the repository. These follow strict Stylecop rules :cop:.
 
 #### **Do you intend to add a new feature or change an existing one?**
 
-* Suggest your change in the [ImageSharp Gitter Chat Room](https://gitter.im/ImageSharp/General) and start writing code.
+* Suggest your change in the [Ideas Discussions Channel](https://github.com/SixLabors/ImageSharp/discussions?discussions_q=category%3AIdeas) and start writing code.
 
 * Do not open an issue on GitHub until you have collected positive feedback about the change. GitHub issues are primarily intended for bug reports and fixes.
+
+#### **Building**
+
+ * When first cloning the repo, make sure to run `git submodule update --init --recursive` otherwise the submodules (e.g. `shared-infrastructure`) will be missing.
+
+ * Run `dotnet build` in the root of the repo, or open the ImageSharp.sln file in Visual Studio and build from there.
 
 #### **Running tests and Debugging**
 
@@ -27,10 +33,12 @@
 
 #### **Do you have questions about consuming the library or the source code?**
 
-* Ask any question about how to use ImageSharp in the [ImageSharp Gitter Chat Room](https://gitter.im/ImageSharp/General).
+* Ask any question about how to use SixLabors.ImageSharp in the [Help Discussions Channel](https://github.com/SixLabors/ImageSharp/discussions?discussions_q=category%3AHelp).
 
-And please remember. ImageSharp is the work of a very, very, small number of developers who struggle balancing time to contribute to the project with family time and work commitments. We encourage you to pitch in and help make our vision of simple accessible imageprocessing available to all. Open Source can only exist with your help.
+#### Code of Conduct  
+This project has adopted the code of conduct defined by the [Contributor Covenant](https://contributor-covenant.org/) to clarify expected behavior in our community.
+For more information, see the [.NET Foundation Code of Conduct](https://dotnetfoundation.org/code-of-conduct).
+
+And please remember. SixLabors.ImageSharp is the work of a very, very, small number of developers who struggle balancing time to contribute to the project with family time and work commitments. We encourage you to pitch in and help make our vision of simple accessible image processing available to all. Open Source can only exist with your help.
 
 Thanks for reading!
-
-James Jackson-South :heart:

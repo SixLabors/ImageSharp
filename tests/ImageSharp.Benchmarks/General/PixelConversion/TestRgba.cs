@@ -1,4 +1,7 @@
-﻿using System.Numerics;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -7,9 +10,12 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {
     [StructLayout(LayoutKind.Sequential)]
-    struct TestRgba : ITestPixel<TestRgba>
+    public struct TestRgba : ITestPixel<TestRgba>
     {
-        public byte R, G, B, A;
+        public byte R;
+        public byte G;
+        public byte B;
+        public byte A;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void FromRgba32(Rgba32 source)
@@ -57,7 +63,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 ToVector4()
         {
-            return new Vector4(this.R, this.G, this.B, this.A) *  new Vector4(1f / 255f);
+            return new Vector4(this.R, this.G, this.B, this.A) * new Vector4(1f / 255f);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -1,11 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
 using System.Numerics;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
 {
@@ -32,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder PrependRotationRadians(float radians)
-            => this.Prepend(size => TransformUtils.CreateRotationMatrixRadians(radians, size));
+            => this.Prepend(size => TransformUtilities.CreateRotationMatrixRadians(radians, size));
 
         /// <summary>
         /// Prepends a rotation matrix using the given rotation in degrees at the given origin.
@@ -68,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder AppendRotationRadians(float radians)
-            => this.Append(size => TransformUtils.CreateRotationMatrixRadians(radians, size));
+            => this.Append(size => TransformUtilities.CreateRotationMatrixRadians(radians, size));
 
         /// <summary>
         /// Appends a rotation matrix using the given rotation in degrees at the given origin.
@@ -143,7 +142,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder PrependSkewDegrees(float degreesX, float degreesY)
-            => this.Prepend(size => TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size));
+            => this.Prepend(size => TransformUtilities.CreateSkewMatrixDegrees(degreesX, degreesY, size));
 
         /// <summary>
         /// Prepends a centered skew matrix from the give angles in radians.
@@ -152,7 +151,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radiansY">The Y angle, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-            => this.Prepend(size => TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size));
+            => this.Prepend(size => TransformUtilities.CreateSkewMatrixRadians(radiansX, radiansY, size));
 
         /// <summary>
         /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -181,7 +180,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder AppendSkewDegrees(float degreesX, float degreesY)
-            => this.Append(size => TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size));
+            => this.Append(size => TransformUtilities.CreateSkewMatrixDegrees(degreesX, degreesY, size));
 
         /// <summary>
         /// Appends a centered skew matrix from the give angles in radians.
@@ -190,7 +189,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radiansY">The Y angle, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-            => this.Append(size => TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size));
+            => this.Append(size => TransformUtilities.CreateSkewMatrixRadians(radiansX, radiansY, size));
 
         /// <summary>
         /// Appends a skew matrix using the given angles in degrees at the given origin.
@@ -248,15 +247,33 @@ namespace SixLabors.ImageSharp.Processing
         /// Prepends a raw matrix.
         /// </summary>
         /// <param name="matrix">The matrix to prepend.</param>
+        /// <exception cref="DegenerateTransformException">
+        /// The resultant matrix is degenerate containing one or more values equivalent
+        /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+        /// for linear transforms.
+        /// </exception>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder PrependMatrix(Matrix3x2 matrix) => this.Prepend(_ => matrix);
+        public AffineTransformBuilder PrependMatrix(Matrix3x2 matrix)
+        {
+            CheckDegenerate(matrix);
+            return this.Prepend(_ => matrix);
+        }
 
         /// <summary>
         /// Appends a raw matrix.
         /// </summary>
         /// <param name="matrix">The matrix to append.</param>
+        /// <exception cref="DegenerateTransformException">
+        /// The resultant matrix is degenerate containing one or more values equivalent
+        /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+        /// for linear transforms.
+        /// </exception>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
-        public AffineTransformBuilder AppendMatrix(Matrix3x2 matrix) => this.Append(_ => matrix);
+        public AffineTransformBuilder AppendMatrix(Matrix3x2 matrix)
+        {
+            CheckDegenerate(matrix);
+            return this.Append(_ => matrix);
+        }
 
         /// <summary>
         /// Returns the combined matrix for a given source size.
@@ -269,6 +286,11 @@ namespace SixLabors.ImageSharp.Processing
         /// Returns the combined matrix for a given source rectangle.
         /// </summary>
         /// <param name="sourceRectangle">The rectangle in the source image.</param>
+        /// <exception cref="DegenerateTransformException">
+        /// The resultant matrix is degenerate containing one or more values equivalent
+        /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+        /// for linear transforms.
+        /// </exception>
         /// <returns>The <see cref="Matrix3x2"/>.</returns>
         public Matrix3x2 BuildMatrix(Rectangle sourceRectangle)
         {
@@ -285,7 +307,17 @@ namespace SixLabors.ImageSharp.Processing
                 matrix *= factory(size);
             }
 
+            CheckDegenerate(matrix);
+
             return matrix;
+        }
+
+        private static void CheckDegenerate(Matrix3x2 matrix)
+        {
+            if (TransformUtilities.IsDegenerate(matrix))
+            {
+                throw new DegenerateTransformException("Matrix is degenerate. Check input values.");
+            }
         }
 
         private AffineTransformBuilder Prepend(Func<Size, Matrix3x2> factory)

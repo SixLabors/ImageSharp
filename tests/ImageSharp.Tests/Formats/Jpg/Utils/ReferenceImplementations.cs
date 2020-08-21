@@ -1,17 +1,16 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
-
-// ReSharper disable InconsistentNaming
 
 using System;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
     /// <summary>
-    /// This class contains simplified (unefficient) reference implementations to produce verification data for unit tests
+    /// This class contains simplified (inefficient) reference implementations to produce verification data for unit tests
     /// Floating point DCT code Ported from https://github.com/norishigefukushima/dct_simd
     /// </summary>
     internal static partial class ReferenceImplementations
@@ -34,7 +33,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// <summary>
         /// Transpose 8x8 block stored linearly in a <see cref="Span{T}"/> (inplace)
         /// </summary>
-        /// <param name="data"></param>
         internal static void Transpose8x8(Span<float> data)
         {
             for (int i = 1; i < 8; i++)
@@ -43,8 +41,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 for (int j = 0; j < i; j++)
                 {
                     float tmp = data[i8 + j];
-                    data[i8 + j] = data[j * 8 + i];
-                    data[j * 8 + i] = tmp;
+                    data[i8 + j] = data[(j * 8) + i];
+                    data[(j * 8) + i] = tmp;
                 }
             }
         }
@@ -59,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 int i8 = i * 8;
                 for (int j = 0; j < 8; j++)
                 {
-                    dest[j * 8 + i] = src[i8 + j];
+                    dest[(j * 8) + i] = src[i8 + j];
                 }
             }
         }
@@ -67,9 +65,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         /// <summary>
         /// Copies color values from block to the destination image buffer.
         /// </summary>
-        /// <param name="block"></param>
-        /// <param name="buffer"></param>
-        /// <param name="stride"></param>
         internal static unsafe void CopyColorsTo(ref Block8x8F block, Span<byte> buffer, int stride)
         {
             fixed (Block8x8F* p = &block)
@@ -128,11 +123,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         }
 
         /// <summary>
-        /// Rounds a rational number defined as dividend/divisor into an integer
+        /// Rounds a rational number defined as dividend/divisor into an integer.
         /// </summary>
-        /// <param name="dividend">The dividend</param>
-        /// <param name="divisor">The divisior</param>
-        /// <returns></returns>
+        /// <param name="dividend">The dividend.</param>
+        /// <param name="divisor">The divisor.</param>
+        /// <returns>The rounded value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int RationalRound(int dividend, int divisor)
         {

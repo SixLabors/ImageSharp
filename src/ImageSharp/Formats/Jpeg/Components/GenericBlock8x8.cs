@@ -1,13 +1,11 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components
@@ -17,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe partial struct GenericBlock8x8<T>
-        where T : struct
+        where T : unmanaged
     {
         public const int Size = 64;
 
@@ -55,24 +53,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             set => this[(y * 8) + x] = value;
         }
 
-        public void LoadAndStretchEdges<TPixel>(IPixelSource<TPixel> source, int sourceX, int sourceY)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            if (source.PixelBuffer is Buffer2D<T> buffer)
-            {
-                this.LoadAndStretchEdges(buffer, sourceX, sourceY);
-            }
-            else
-            {
-                throw new InvalidOperationException("LoadAndStretchEdges<TPixels>() is only valid for TPixel == T !");
-            }
-        }
-
         /// <summary>
         /// Load a 8x8 region of an image into the block.
         /// The "outlying" area of the block will be stretched out with pixels on the right and bottom edge of the image.
         /// </summary>
-        public void LoadAndStretchEdges(Buffer2D<T> source, int sourceX, int sourceY)
+        public void LoadAndStretchEdges(Buffer2D<T> source, int sourceX, int sourceY, in RowOctet<T> currentRows)
         {
             int width = Math.Min(8, source.Width - sourceX);
             int height = Math.Min(8, source.Height - sourceY);
@@ -86,15 +71,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             int remainderXCount = 8 - width;
 
             ref byte blockStart = ref Unsafe.As<GenericBlock8x8<T>, byte>(ref this);
-            ref byte imageStart = ref Unsafe.As<T, byte>(
-                                      ref Unsafe.Add(ref MemoryMarshal.GetReference(source.GetRowSpan(sourceY)), sourceX));
-
             int blockRowSizeInBytes = 8 * Unsafe.SizeOf<T>();
-            int imageRowSizeInBytes = source.Width * Unsafe.SizeOf<T>();
 
             for (int y = 0; y < height; y++)
             {
-                ref byte s = ref Unsafe.Add(ref imageStart, y * imageRowSizeInBytes);
+                Span<T> row = currentRows[y];
+
+                ref byte s = ref Unsafe.As<T, byte>(ref row[sourceX]);
                 ref byte d = ref Unsafe.Add(ref blockStart, y * blockRowSizeInBytes);
 
                 Unsafe.CopyBlock(ref d, ref s, byteWidth);
@@ -126,6 +109,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Only for on-stack instances!
         /// </summary>
-        public Span<T> AsSpanUnsafe() => new Span<T>(Unsafe.AsPointer(ref this), Size);
+        public Span<T> AsSpanUnsafe()
+        {
+#if SUPPORTS_CREATESPAN
+            Span<GenericBlock8x8<T>> s = MemoryMarshal.CreateSpan(ref this, 1);
+            return MemoryMarshal.Cast<GenericBlock8x8<T>, T>(s);
+#else
+            return new Span<T>(Unsafe.AsPointer(ref this), Size);
+#endif
+        }
     }
 }

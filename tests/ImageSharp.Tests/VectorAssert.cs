@@ -1,10 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using SixLabors.ImageSharp;
+
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests
     public static class VectorAssert
     {
         public static void Equal<TPixel>(TPixel expected, TPixel actual, int precision = int.MaxValue)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Equal(expected.ToVector4(), actual.ToVector4(), precision);
         }
@@ -48,25 +48,23 @@ namespace SixLabors.ImageSharp.Tests
 
             public bool Equals(Vector2 x, Vector2 y)
             {
-                return Equals(x.X, y.X) &&
-                    Equals(x.Y, y.Y);
-
+                return this.Equals(x.X, y.X) &&
+                    this.Equals(x.Y, y.Y);
             }
+
             public bool Equals(Vector3 x, Vector3 y)
             {
-                return Equals(x.X, y.X) &&
-                    Equals(x.Y, y.Y) &&
-                    Equals(x.Z, y.Z);
-
+                return this.Equals(x.X, y.X) &&
+                    this.Equals(x.Y, y.Y) &&
+                    this.Equals(x.Z, y.Z);
             }
 
             public bool Equals(Vector4 x, Vector4 y)
             {
-                return Equals(x.W, y.W) &&
-                    Equals(x.X, y.X) &&
-                    Equals(x.Y, y.Y) &&
-                    Equals(x.Z, y.Z);
-
+                return this.Equals(x.W, y.W) &&
+                    this.Equals(x.X, y.X) &&
+                    this.Equals(x.Y, y.Y) &&
+                    this.Equals(x.Z, y.Z);
             }
 
             public bool Equals(float x, float y)
@@ -78,10 +76,12 @@ namespace SixLabors.ImageSharp.Tests
             {
                 return obj.GetHashCode();
             }
+
             public int GetHashCode(Vector3 obj)
             {
                 return obj.GetHashCode();
             }
+
             public int GetHashCode(Vector2 obj)
             {
                 return obj.GetHashCode();

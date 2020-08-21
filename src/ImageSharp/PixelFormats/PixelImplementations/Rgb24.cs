@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -54,6 +54,22 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
+        /// Converts an <see cref="Rgb24"/> to <see cref="Color"/>.
+        /// </summary>
+        /// <param name="source">The <see cref="Rgb24"/>.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Color(Rgb24 source) => new Color(source);
+
+        /// <summary>
+        /// Converts a <see cref="Color"/> to <see cref="Rgb24"/>.
+        /// </summary>
+        /// <param name="color">The <see cref="Color"/>.</param>
+        /// <returns>The <see cref="Rgb24"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Rgb24(Color color) => color.ToRgb24();
+
+        /// <summary>
         /// Allows the implicit conversion of an instance of <see cref="ColorSpaces.Rgb"/> to a
         /// <see cref="Rgb24"/>.
         /// </summary>
@@ -92,7 +108,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgb24 left, Rgb24 right) => !left.Equals(right);
 
         /// <inheritdoc/>
-        public PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();
+        public readonly PixelOperations<Rgb24> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -100,7 +116,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4() => this.ToVector4();
+        public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -108,7 +124,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4() => new Rgba32(this.R, this.G, this.B, byte.MaxValue).ToVector4();
+        public readonly Vector4 ToVector4() => new Rgba32(this.R, this.G, this.B, byte.MaxValue).ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -139,7 +155,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source)
+        public void FromL8(L8 source)
         {
             this.R = source.PackedValue;
             this.G = source.PackedValue;
@@ -148,7 +164,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source)
+        public void FromL16(L16 source)
         {
             byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
             this.R = rgb;
@@ -158,11 +174,44 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source)
+        {
+            this.R = source.L;
+            this.G = source.L;
+            this.B = source.L;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source)
+        {
+            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.L);
+            this.R = rgb;
+            this.G = rgb;
+            this.B = rgb;
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgb24(Rgb24 source) => this = source;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromRgba32(Rgba32 source) => this = source.Rgb;
+        public void FromRgba32(Rgba32 source)
+        {
+#if NETSTANDARD2_0
+            // See https://github.com/SixLabors/ImageSharp/issues/1275
+            this.R = source.R;
+            this.G = source.G;
+            this.B = source.B;
+#else
+            this = source.Rgb;
+#endif
+        }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -193,18 +242,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is Rgb24 other && this.Equals(other);
+        public override readonly bool Equals(object obj) => obj is Rgb24 other && this.Equals(other);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Rgb24 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
+        public readonly bool Equals(Rgb24 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => HashCode.Combine(this.R, this.B, this.G);
+        public override readonly int GetHashCode() => HashCode.Combine(this.R, this.B, this.G);
 
         /// <inheritdoc/>
-        public override string ToString() => $"Rgb24({this.R}, {this.G}, {this.B})";
+        public override readonly string ToString() => $"Rgb24({this.R}, {this.G}, {this.B})";
 
         /// <summary>
         /// Packs a <see cref="Vector4"/> into a color.
@@ -215,7 +264,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector *= MaxBytes;
             vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, MaxBytes);
 
             this.R = (byte)vector.X;
             this.G = (byte)vector.Y;

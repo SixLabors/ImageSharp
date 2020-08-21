@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Png
@@ -56,10 +56,75 @@ namespace SixLabors.ImageSharp.Formats.Png
         Text = 0x74455874U,
 
         /// <summary>
+        /// Textual information that the encoder wishes to record with the image. The zTXt and tEXt chunks are semantically equivalent,
+        /// but the zTXt chunk is recommended for storing large blocks of text. Each zTXt chunk contains a (uncompressed) keyword and
+        /// a compressed text string.
+        /// </summary>
+        CompressedText = 0x7A545874U,
+
+        /// <summary>
+        /// The iTXt chunk contains International textual data. It contains a keyword, an optional language tag, an optional translated keyword
+        /// and the actual text string, which can be compressed or uncompressed.
+        /// </summary>
+        InternationalText = 0x69545874U,
+
+        /// <summary>
         /// The tRNS chunk specifies that the image uses simple transparency:
         /// either alpha values associated with palette entries (for indexed-color images)
         /// or a single transparent color (for grayscale and true color images).
         /// </summary>
-        Transparency = 0x74524E53U
+        Transparency = 0x74524E53U,
+
+        /// <summary>
+        /// The tIME chunk gives the time of the last image modification (not the time of initial image creation).
+        /// </summary>
+        Time = 0x74494d45,
+
+        /// <summary>
+        /// The bKGD chunk specifies a default background colour to present the image against.
+        /// If there is any other preferred background, either user-specified or part of a larger page (as in a browser),
+        /// the bKGD chunk should be ignored.
+        /// </summary>
+        Background = 0x624b4744,
+
+        /// <summary>
+        /// The iCCP chunk contains a embedded color profile. If the iCCP chunk is present,
+        /// the image samples conform to the colour space represented by the embedded ICC profile as defined by the International Color Consortium.
+        /// </summary>
+        EmbeddedColorProfile = 0x69434350,
+
+        /// <summary>
+        /// The sBIT chunk defines the original number of significant bits (which can be less than or equal to the sample depth).
+        /// This allows PNG decoders to recover the original data losslessly even if the data had a sample depth not directly supported by PNG.
+        /// </summary>
+        SignificantBits = 0x73424954,
+
+        /// <summary>
+        /// If the sRGB chunk is present, the image samples conform to the sRGB colour space [IEC 61966-2-1] and should be displayed
+        /// using the specified rendering intent defined by the International Color Consortium.
+        /// </summary>
+        StandardRgbColourSpace = 0x73524742,
+
+        /// <summary>
+        /// The hIST chunk gives the approximate usage frequency of each colour in the palette.
+        /// </summary>
+        Histogram = 0x68495354,
+
+        /// <summary>
+        /// The sPLT chunk contains the suggested palette.
+        /// </summary>
+        SuggestedPalette = 0x73504c54,
+
+        /// <summary>
+        /// The cHRM chunk may be used to specify the 1931 CIE x,y chromaticities of the red,
+        /// green, and blue display primaries used in the image, and the referenced white point.
+        /// </summary>
+        Chroma = 0x6348524d,
+
+        /// <summary>
+        /// Malformed chunk named CgBI produced by apple, which is not conform to the specification.
+        /// Related issue is here https://github.com/SixLabors/ImageSharp/issues/410
+        /// </summary>
+        ProprietaryApple = 0x43674249
     }
 }

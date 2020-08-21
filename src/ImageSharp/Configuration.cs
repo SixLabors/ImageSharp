@@ -1,21 +1,23 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Provides configuration code which allows altering default behaviour or extending the library.
+    /// Provides configuration which allows altering default behaviour or extending the library.
     /// </summary>
     public sealed class Configuration
     {
@@ -23,7 +25,8 @@ namespace SixLabors.ImageSharp
         /// A lazily initialized configuration default instance.
         /// </summary>
         private static readonly Lazy<Configuration> Lazy = new Lazy<Configuration>(CreateDefaultInstance);
-
+        private const int DefaultStreamProcessingBufferSize = 8096;
+        private int streamProcessingBufferSize = DefaultStreamProcessingBufferSize;
         private int maxDegreeOfParallelism = Environment.ProcessorCount;
 
         /// <summary>
@@ -63,7 +66,7 @@ namespace SixLabors.ImageSharp
             get => this.maxDegreeOfParallelism;
             set
             {
-                if (value <= 0)
+                if (value == 0 || value < -1)
                 {
                     throw new ArgumentOutOfRangeException(nameof(this.MaxDegreeOfParallelism));
                 }
@@ -71,6 +74,30 @@ namespace SixLabors.ImageSharp
                 this.maxDegreeOfParallelism = value;
             }
         }
+
+        /// <summary>
+        /// Gets or sets the size of the buffer to use when working with streams.
+        /// Intitialized with <see cref="DefaultStreamProcessingBufferSize"/> by default.
+        /// </summary>
+        public int StreamProcessingBufferSize
+        {
+            get => this.streamProcessingBufferSize;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(this.StreamProcessingBufferSize));
+                }
+
+                this.streamProcessingBufferSize = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets a set of properties for the Congiguration.
+        /// </summary>
+        /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
+        public IDictionary<object, object> Properties { get; } = new ConcurrentDictionary<object, object>();
 
         /// <summary>
         /// Gets the currently registered <see cref="IImageFormat"/>s.
@@ -103,6 +130,16 @@ namespace SixLabors.ImageSharp
         internal IFileSystem FileSystem { get; set; } = new LocalFileSystem();
 
         /// <summary>
+        /// Gets or sets the working buffer size hint for image processors.
+        /// The default value is 1MB.
+        /// </summary>
+        /// <remarks>
+        /// Currently only used by Resize. If the working buffer is expected to be discontiguous,
+        /// min(WorkingBufferSizeHintInBytes, BufferCapacityInBytes) should be used.
+        /// </remarks>
+        internal int WorkingBufferSizeHintInBytes { get; set; } = 1 * 1024 * 1024;
+
+        /// <summary>
         /// Gets or sets the image operations provider factory.
         /// </summary>
         internal IImageProcessingContextFactory ImageOperationsProvider { get; set; } = new DefaultImageOperationsProviderFactory();
@@ -118,37 +155,41 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Creates a shallow copy of the <see cref="Configuration"/>
+        /// Creates a shallow copy of the <see cref="Configuration"/>.
         /// </summary>
-        /// <returns>A new configuration instance</returns>
+        /// <returns>A new configuration instance.</returns>
         public Configuration Clone()
         {
             return new Configuration
             {
                 MaxDegreeOfParallelism = this.MaxDegreeOfParallelism,
+                StreamProcessingBufferSize = this.StreamProcessingBufferSize,
                 ImageFormatsManager = this.ImageFormatsManager,
                 MemoryAllocator = this.MemoryAllocator,
                 ImageOperationsProvider = this.ImageOperationsProvider,
                 ReadOrigin = this.ReadOrigin,
-                FileSystem = this.FileSystem
+                FileSystem = this.FileSystem,
+                WorkingBufferSizeHintInBytes = this.WorkingBufferSizeHintInBytes,
             };
         }
 
         /// <summary>
         /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
-        /// <para><see cref="PngConfigurationModule"/></para>
-        /// <para><see cref="JpegConfigurationModule"/></para>
-        /// <para><see cref="GifConfigurationModule"/></para>
-        /// <para><see cref="BmpConfigurationModule"/></para>
+        /// <see cref="PngConfigurationModule"/>
+        /// <see cref="JpegConfigurationModule"/>
+        /// <see cref="GifConfigurationModule"/>
+        /// <see cref="BmpConfigurationModule"/>.
+        /// <see cref="TgaConfigurationModule"/>.
         /// </summary>
-        /// <returns>The default configuration of <see cref="Configuration"/></returns>
+        /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
         internal static Configuration CreateDefaultInstance()
         {
             return new Configuration(
                 new PngConfigurationModule(),
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
-                new BmpConfigurationModule());
+                new BmpConfigurationModule(),
+                new TgaConfigurationModule());
         }
     }
 }

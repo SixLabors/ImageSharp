@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -13,7 +13,6 @@ namespace SixLabors.ImageSharp.Memory
     /// </summary>
     internal static class MemoryOwnerExtensions
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<T> GetSpan<T>(this IMemoryOwner<T> buffer)
             => buffer.Memory.Span;
 
@@ -22,7 +21,7 @@ namespace SixLabors.ImageSharp.Memory
             => buffer.GetSpan().Length;
 
         /// <summary>
-        /// Gets a <see cref="Span{T}"/> to an offseted position inside the buffer.
+        /// Gets a <see cref="Span{T}"/> to an offsetted position inside the buffer.
         /// </summary>
         /// <param name="buffer">The buffer</param>
         /// <param name="start">The start</param>

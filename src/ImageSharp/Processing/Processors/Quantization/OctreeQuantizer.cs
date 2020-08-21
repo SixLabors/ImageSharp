@@ -1,88 +1,48 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
     /// <summary>
     /// Allows the quantization of images pixels using Octrees.
     /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
-    /// <para>
-    /// By default the quantizer uses <see cref="KnownDiffusers.FloydSteinberg"/> dithering and a color palette of a maximum length of <value>255</value>
-    /// </para>
     /// </summary>
     public class OctreeQuantizer : IQuantizer
     {
+        private static readonly QuantizerOptions DefaultOptions = new QuantizerOptions();
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
+        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class
+        /// using the default <see cref="QuantizerOptions"/>.
         /// </summary>
         public OctreeQuantizer()
-            : this(true)
+            : this(DefaultOptions)
         {
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
         /// </summary>
-        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
-        public OctreeQuantizer(int maxColors)
-            : this(GetDiffuser(true), maxColors)
+        /// <param name="options">The quantizer options defining quantization rules.</param>
+        public OctreeQuantizer(QuantizerOptions options)
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
-        /// </summary>
-        /// <param name="dither">Whether to apply dithering to the output image</param>
-        public OctreeQuantizer(bool dither)
-            : this(GetDiffuser(dither), QuantizerConstants.MaxColors)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
-        /// </summary>
-        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
-        public OctreeQuantizer(IErrorDiffuser diffuser)
-            : this(diffuser, QuantizerConstants.MaxColors)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="OctreeQuantizer"/> class.
-        /// </summary>
-        /// <param name="diffuser">The error diffusion algorithm, if any, to apply to the output image</param>
-        /// <param name="maxColors">The maximum number of colors to hold in the color palette</param>
-        public OctreeQuantizer(IErrorDiffuser diffuser, int maxColors)
-        {
-            this.Diffuser = diffuser;
-            this.MaxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
+            Guard.NotNull(options, nameof(options));
+            this.Options = options;
         }
 
         /// <inheritdoc />
-        public IErrorDiffuser Diffuser { get; }
+        public QuantizerOptions Options { get; }
 
-        /// <summary>
-        /// Gets the maximum number of colors to hold in the color palette.
-        /// </summary>
-        public int MaxColors { get; }
-
-        /// <param name="configuration"></param>
         /// <inheritdoc />
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
-            where TPixel : struct, IPixel<TPixel>
-            => new OctreeFrameQuantizer<TPixel>(this);
+        public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => this.CreatePixelSpecificQuantizer<TPixel>(configuration, this.Options);
 
-        /// <inheritdoc/>
-        public IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            maxColors = maxColors.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
-            return new OctreeFrameQuantizer<TPixel>(this, maxColors);
-        }
-
-        private static IErrorDiffuser GetDiffuser(bool dither) => dither ? KnownDiffusers.FloydSteinberg : null;
+        /// <inheritdoc />
+        public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => new OctreeQuantizer<TPixel>(configuration, options);
     }
 }

@@ -1,17 +1,15 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Globalization;
 using System.Numerics;
-using SixLabors.ImageSharp.MetaData.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Tests
 {
     internal static class IccTestDataNonPrimitives
     {
-        #region DateTime
-
         public static readonly DateTime DateTime_ValMin = new DateTime(1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         public static readonly DateTime DateTime_ValMax = new DateTime(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc);
         public static readonly DateTime DateTime_ValRand1 = new DateTime(1990, 11, 26, 3, 19, 47, DateTimeKind.Utc);
@@ -63,10 +61,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { DateTime_Rand1, DateTime_ValRand1 },
         };
 
-        #endregion
-
-        #region VersionNumber
-
         public static readonly IccVersion VersionNumber_ValMin = new IccVersion(0, 0, 0);
         public static readonly IccVersion VersionNumber_Val211 = new IccVersion(2, 1, 1);
         public static readonly IccVersion VersionNumber_Val430 = new IccVersion(4, 3, 0);
@@ -84,10 +78,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { VersionNumber_430, VersionNumber_Val430 },
             new object[] { VersionNumber_Max, VersionNumber_ValMax },
         };
-
-        #endregion
-
-        #region XyzNumber
 
         public static readonly Vector3 XyzNumber_ValMin = new Vector3(IccTestDataPrimitives.Fix16_ValMin, IccTestDataPrimitives.Fix16_ValMin, IccTestDataPrimitives.Fix16_ValMin);
         public static readonly Vector3 XyzNumber_Val0 = new Vector3(0, 0, 0);
@@ -113,10 +103,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { XyzNumber_Max, XyzNumber_ValMax },
         };
 
-        #endregion
-
-        #region ProfileId
-
         public static readonly IccProfileId ProfileId_ValMin = new IccProfileId(0, 0, 0, 0);
         public static readonly IccProfileId ProfileId_ValRand = new IccProfileId(IccTestDataPrimitives.UInt32_ValRand1, IccTestDataPrimitives.UInt32_ValRand2, IccTestDataPrimitives.UInt32_ValRand3, IccTestDataPrimitives.UInt32_ValRand4);
         public static readonly IccProfileId ProfileId_ValMax = new IccProfileId(uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue);
@@ -132,10 +118,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ProfileId_Max, ProfileId_ValMax },
         };
 
-        #endregion
-
-        #region PositionNumber
-
         public static readonly IccPositionNumber PositionNumber_ValMin = new IccPositionNumber(0, 0);
         public static readonly IccPositionNumber PositionNumber_ValRand = new IccPositionNumber(IccTestDataPrimitives.UInt32_ValRand1, IccTestDataPrimitives.UInt32_ValRand2);
         public static readonly IccPositionNumber PositionNumber_ValMax = new IccPositionNumber(uint.MaxValue, uint.MaxValue);
@@ -150,10 +132,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { PositionNumber_Rand, PositionNumber_ValRand },
             new object[] { PositionNumber_Max, PositionNumber_ValMax },
         };
-
-        #endregion
-
-        #region ResponseNumber
 
         public static readonly IccResponseNumber ResponseNumber_ValMin = new IccResponseNumber(0, IccTestDataPrimitives.Fix16_ValMin);
         public static readonly IccResponseNumber ResponseNumber_Val1 = new IccResponseNumber(1, 1);
@@ -187,43 +165,48 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ResponseNumber_Max, ResponseNumber_ValMax },
         };
 
-        #endregion
-
-        #region NamedColor
-
-        public static readonly IccNamedColor NamedColor_ValMin = new IccNamedColor
-        (
+        public static readonly IccNamedColor NamedColor_ValMin = new IccNamedColor(
             ArrayHelper.Fill('A', 31),
             new ushort[] { 0, 0, 0 },
-            new ushort[] { 0, 0, 0 }
-        );
-        public static readonly IccNamedColor NamedColor_ValRand = new IccNamedColor
-        (
+            new ushort[] { 0, 0, 0 });
+
+        public static readonly IccNamedColor NamedColor_ValRand = new IccNamedColor(
             ArrayHelper.Fill('5', 31),
             new ushort[] { 10794, 10794, 10794 },
-            new ushort[] { 17219, 17219, 17219, 17219, 17219 }
-        );
-        public static readonly IccNamedColor NamedColor_ValMax = new IccNamedColor
-        (
+            new ushort[] { 17219, 17219, 17219, 17219, 17219 });
+
+        public static readonly IccNamedColor NamedColor_ValMax = new IccNamedColor(
             ArrayHelper.Fill('4', 31),
             new ushort[] { ushort.MaxValue, ushort.MaxValue, ushort.MaxValue },
-            new ushort[] { ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue }
-        );
+            new ushort[] { ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue });
 
         public static readonly byte[] NamedColor_Min = CreateNamedColor(3, 0x41, 0x00, 0x00);
         public static readonly byte[] NamedColor_Rand = CreateNamedColor(5, 0x35, 42, 67);
         public static readonly byte[] NamedColor_Max = CreateNamedColor(4, 0x34, 0xFF, 0xFF);
 
-        private static byte[] CreateNamedColor(int devCoordCount, byte name, byte PCS, byte device)
+        private static byte[] CreateNamedColor(int devCoordCount, byte name, byte pCS, byte device)
         {
-            byte[] data = new byte[32 + 6 + devCoordCount * 2];
+            byte[] data = new byte[32 + 6 + (devCoordCount * 2)];
             for (int i = 0; i < data.Length; i++)
             {
-                if (i < 31) { data[i] = name; }         // Name
-                else if (i == 31) { data[i] = 0x00; }   // Name null terminator
-                else if (i < 32 + 6) { data[i] = PCS; } // PCS Coordinates
-                else { data[i] = device; }              // Device Coordinates
+                if (i < 31)
+                {
+                    data[i] = name; // Name
+                }
+                else if (i is 31)
+                {
+                    data[i] = 0x00; // Name null terminator
+                }
+                else if (i < 32 + 6)
+                {
+                    data[i] = pCS; // PCS Coordinates
+                }
+                else
+                {
+                    data[i] = device; // Device Coordinates
+                }
             }
+
             return data;
         }
 
@@ -233,10 +216,6 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { NamedColor_Rand, NamedColor_ValRand, 5u },
             new object[] { NamedColor_Max, NamedColor_ValMax, 4u },
         };
-
-        #endregion
-
-        #region ProfileDescription
 
         private static readonly CultureInfo CultureEnUs = new CultureInfo("en-US");
         private static readonly CultureInfo CultureDeAT = new CultureInfo("de-AT");
@@ -249,98 +228,78 @@ namespace SixLabors.ImageSharp.Tests
             LocalizedString_Rand1,
             LocalizedString_Rand2,
         };
-        private static readonly IccLocalizedString[] LocalizedString_RandArr2 = new IccLocalizedString[]
-        {
-            LocalizedString_Rand2,
-            LocalizedString_Rand1,
-        };
 
         private static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_RandArr1);
-        private static readonly byte[] MultiLocalizedUnicode_Arr = ArrayHelper.Concat
-        (
+        private static readonly byte[] MultiLocalizedUnicode_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt32_2,
             new byte[] { 0x00, 0x00, 0x00, 0x0C }, // 12
-
             new byte[] { (byte)'e', (byte)'n', (byte)'U', (byte)'S' },
             new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
             new byte[] { 0x00, 0x00, 0x00, 0x28 },  // 40
-
             new byte[] { (byte)'d', (byte)'e', (byte)'A', (byte)'T' },
             new byte[] { 0x00, 0x00, 0x00, 0x0E },  // 14
             new byte[] { 0x00, 0x00, 0x00, 0x34 },  // 52
-
             IccTestDataPrimitives.Unicode_Rand2,
-            IccTestDataPrimitives.Unicode_Rand3
-        );
+            IccTestDataPrimitives.Unicode_Rand3);
 
-        public static readonly IccTextDescriptionTagDataEntry TextDescription_Val1 = new IccTextDescriptionTagDataEntry
-        (
-            IccTestDataPrimitives.Ascii_ValRand, IccTestDataPrimitives.Unicode_ValRand1, ArrayHelper.Fill('A', 66),
-            1701729619, 2
-        );
-        public static readonly byte[] TextDescription_Arr1 = ArrayHelper.Concat
-        (
+        public static readonly IccTextDescriptionTagDataEntry TextDescription_Val1 = new IccTextDescriptionTagDataEntry(
+            IccTestDataPrimitives.Ascii_ValRand,
+            IccTestDataPrimitives.Unicode_ValRand1,
+            ArrayHelper.Fill('A', 66),
+            1701729619,
+            2);
+
+        public static readonly byte[] TextDescription_Arr1 = ArrayHelper.Concat(
             new byte[] { 0x00, 0x00, 0x00, 0x0B },  // 11
             IccTestDataPrimitives.Ascii_Rand,
             new byte[] { 0x00 },                    // Null terminator
-
             new byte[] { (byte)'e', (byte)'n', (byte)'U', (byte)'S' },
             new byte[] { 0x00, 0x00, 0x00, 0x07 },  // 7
             IccTestDataPrimitives.Unicode_Rand2,
             new byte[] { 0x00, 0x00 },              // Null terminator
-
             new byte[] { 0x00, 0x02, 0x43 },        // 2, 67
             ArrayHelper.Fill((byte)0x41, 66),
-            new byte[] { 0x00 }                     // Null terminator
-        );
+            new byte[] { 0x00 }); // Null terminator
 
-        public static readonly IccProfileDescription ProfileDescription_ValRand1 = new IccProfileDescription
-        (
-            1, 2,
+        public static readonly IccProfileDescription ProfileDescription_ValRand1 = new IccProfileDescription(
+            1,
+            2,
             IccDeviceAttribute.ChromaBlackWhite | IccDeviceAttribute.ReflectivityMatte,
             IccProfileTag.ProfileDescription,
             MultiLocalizedUnicode_Val.Texts,
-            MultiLocalizedUnicode_Val.Texts
-        );
+            MultiLocalizedUnicode_Val.Texts);
 
-        public static readonly IccProfileDescription ProfileDescription_ValRand2 = new IccProfileDescription
-        (
-            1, 2,
+        public static readonly IccProfileDescription ProfileDescription_ValRand2 = new IccProfileDescription(
+            1,
+            2,
             IccDeviceAttribute.ChromaBlackWhite | IccDeviceAttribute.ReflectivityMatte,
             IccProfileTag.ProfileDescription,
             new IccLocalizedString[] { LocalizedString_Rand1 },
-            new IccLocalizedString[] { LocalizedString_Rand1 }
-        );
+            new IccLocalizedString[] { LocalizedString_Rand1 });
 
-        public static readonly byte[] ProfileDescription_Rand1 = ArrayHelper.Concat
-        (
+        public static readonly byte[] ProfileDescription_Rand1 = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt32_1,
             IccTestDataPrimitives.UInt32_2,
             new byte[] { 0, 0, 0, 0, 0, 0, 0, 10 },
             new byte[] { 0x64, 0x65, 0x73, 0x63 },
-
             new byte[] { 0x6D, 0x6C, 0x75, 0x63 },
             new byte[] { 0x00, 0x00, 0x00, 0x00 },
             MultiLocalizedUnicode_Arr,
             new byte[] { 0x6D, 0x6C, 0x75, 0x63 },
             new byte[] { 0x00, 0x00, 0x00, 0x00 },
-            MultiLocalizedUnicode_Arr
-        );
+            MultiLocalizedUnicode_Arr);
 
-        public static readonly byte[] ProfileDescription_Rand2 = ArrayHelper.Concat
-        (
+        public static readonly byte[] ProfileDescription_Rand2 = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt32_1,
             IccTestDataPrimitives.UInt32_2,
             new byte[] { 0, 0, 0, 0, 0, 0, 0, 10 },
             new byte[] { 0x64, 0x65, 0x73, 0x63 },
-
             new byte[] { 0x64, 0x65, 0x73, 0x63 },
             new byte[] { 0x00, 0x00, 0x00, 0x00 },
             TextDescription_Arr1,
             new byte[] { 0x64, 0x65, 0x73, 0x63 },
             new byte[] { 0x00, 0x00, 0x00, 0x00 },
-            TextDescription_Arr1
-        );
+            TextDescription_Arr1);
 
         public static readonly object[][] ProfileDescriptionReadTestData =
         {
@@ -353,30 +312,22 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ProfileDescription_Rand1, ProfileDescription_ValRand1 },
         };
 
-        #endregion
-
-        #region ColorantTableEntry
-
         public static readonly IccColorantTableEntry ColorantTableEntry_ValRand1 = new IccColorantTableEntry(ArrayHelper.Fill('A', 31), 1, 2, 3);
         public static readonly IccColorantTableEntry ColorantTableEntry_ValRand2 = new IccColorantTableEntry(ArrayHelper.Fill('4', 31), 4, 5, 6);
 
-        public static readonly byte[] ColorantTableEntry_Rand1 = ArrayHelper.Concat
-        (
+        public static readonly byte[] ColorantTableEntry_Rand1 = ArrayHelper.Concat(
             ArrayHelper.Fill((byte)0x41, 31),
             new byte[1],    // null terminator
             IccTestDataPrimitives.UInt16_1,
             IccTestDataPrimitives.UInt16_2,
-            IccTestDataPrimitives.UInt16_3
-        );
+            IccTestDataPrimitives.UInt16_3);
 
-        public static readonly byte[] ColorantTableEntry_Rand2 = ArrayHelper.Concat
-        (
+        public static readonly byte[] ColorantTableEntry_Rand2 = ArrayHelper.Concat(
             ArrayHelper.Fill((byte)0x34, 31),
             new byte[1],    // null terminator
             IccTestDataPrimitives.UInt16_4,
             IccTestDataPrimitives.UInt16_5,
-            IccTestDataPrimitives.UInt16_6
-        );
+            IccTestDataPrimitives.UInt16_6);
 
         public static readonly object[][] ColorantTableEntryTestData =
         {
@@ -384,33 +335,23 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { ColorantTableEntry_Rand2, ColorantTableEntry_ValRand2 },
         };
 
-        #endregion
-
-        #region ScreeningChannel
-
         public static readonly IccScreeningChannel ScreeningChannel_ValRand1 = new IccScreeningChannel(4, 6, IccScreeningSpotType.Cross);
         public static readonly IccScreeningChannel ScreeningChannel_ValRand2 = new IccScreeningChannel(8, 5, IccScreeningSpotType.Diamond);
 
-        public static readonly byte[] ScreeningChannel_Rand1 = ArrayHelper.Concat
-        (
+        public static readonly byte[] ScreeningChannel_Rand1 = ArrayHelper.Concat(
             IccTestDataPrimitives.Fix16_4,
             IccTestDataPrimitives.Fix16_6,
-            IccTestDataPrimitives.Int32_7
-        );
+            IccTestDataPrimitives.Int32_7);
 
-        public static readonly byte[] ScreeningChannel_Rand2 = ArrayHelper.Concat
-        (
+        public static readonly byte[] ScreeningChannel_Rand2 = ArrayHelper.Concat(
             IccTestDataPrimitives.Fix16_8,
             IccTestDataPrimitives.Fix16_5,
-            IccTestDataPrimitives.Int32_3
-        );
+            IccTestDataPrimitives.Int32_3);
 
         public static readonly object[][] ScreeningChannelTestData =
         {
             new object[] { ScreeningChannel_Rand1, ScreeningChannel_ValRand1 },
             new object[] { ScreeningChannel_Rand2, ScreeningChannel_ValRand2 },
         };
-
-        #endregion
     }
 }

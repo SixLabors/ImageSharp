@@ -1,17 +1,15 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Drawing;
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
-using CoreSize = SixLabors.Primitives.Size;
 using SDImage = System.Drawing.Image;
+using SDSize = System.Drawing.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-
     [Config(typeof(Config.ShortClr))]
     public class DecodePng : BenchmarkBase
     {
@@ -32,7 +30,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         }
 
         [Benchmark(Baseline = true, Description = "System.Drawing Png")]
-        public Size PngSystemDrawing()
+        public SDSize PngSystemDrawing()
         {
             using (var memoryStream = new MemoryStream(this.pngBytes))
             {
@@ -44,7 +42,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         }
 
         [Benchmark(Description = "ImageSharp Png")]
-        public CoreSize PngCore()
+        public Size PngCore()
         {
             using (var memoryStream = new MemoryStream(this.pngBytes))
             {

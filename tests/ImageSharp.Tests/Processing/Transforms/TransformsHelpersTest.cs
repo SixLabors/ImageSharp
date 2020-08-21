@@ -1,7 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using Xunit;
@@ -15,17 +15,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         {
             int xy = 1;
 
-            using (var img = new Image<Alpha8>(xy, xy))
+            using (var img = new Image<A8>(xy, xy))
             {
                 var profile = new ExifProfile();
-                img.MetaData.ExifProfile = profile;
-                profile.SetValue(ExifTag.PixelXDimension, (uint)xy);
-                profile.SetValue(ExifTag.PixelYDimension, (uint)xy);
+                img.Metadata.ExifProfile = profile;
+                profile.SetValue(ExifTag.PixelXDimension, xy + ushort.MaxValue);
+                profile.SetValue(ExifTag.PixelYDimension, xy + ushort.MaxValue);
 
                 Assert.Equal(ExifDataType.Long, profile.GetValue(ExifTag.PixelXDimension).DataType);
                 Assert.Equal(ExifDataType.Long, profile.GetValue(ExifTag.PixelYDimension).DataType);
 
-                TransformProcessorHelpers.UpdateDimensionalMetData(img);
+                TransformProcessorHelpers.UpdateDimensionalMetadata(img);
 
                 Assert.Equal(ExifDataType.Short, profile.GetValue(ExifTag.PixelXDimension).DataType);
                 Assert.Equal(ExifDataType.Short, profile.GetValue(ExifTag.PixelYDimension).DataType);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -21,11 +21,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
     internal static partial class PorterDuffFunctions
     {
         /// <summary>
-        /// Source over backdrop
+        /// Returns the result of the "Normal" compositing equation.
         /// </summary>
-        /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <returns>Output color</returns>
+        /// <param name="backdrop">The backdrop vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Normal(Vector4 backdrop, Vector4 source)
         {
@@ -33,11 +33,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         }
 
         /// <summary>
-        /// Source multiplied by backdrop
+        /// Returns the result of the "Multiply" compositing equation.
         /// </summary>
-        /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <returns>Output color</returns>
+        /// <param name="backdrop">The backdrop vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Multiply(Vector4 backdrop, Vector4 source)
         {
@@ -45,11 +45,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         }
 
         /// <summary>
-        /// Source added to backdrop
+        /// Returns the result of the "Add" compositing equation.
         /// </summary>
-        /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <returns>Output color</returns>
+        /// <param name="backdrop">The backdrop vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Add(Vector4 backdrop, Vector4 source)
         {
@@ -57,11 +57,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         }
 
         /// <summary>
-        /// Source subtracted from backdrop
+        /// Returns the result of the "Subtract" compositing equation.
         /// </summary>
-        /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <returns>Output color</returns>
+        /// <param name="backdrop">The backdrop vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Subtract(Vector4 backdrop, Vector4 source)
         {
@@ -69,11 +69,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         }
 
         /// <summary>
-        /// Complement of source multiplied by the complement of backdrop
+        /// Returns the result of the "Screen" compositing equation.
         /// </summary>
-        /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <returns>Output color</returns>
+        /// <param name="backdrop">The backdrop vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Screen(Vector4 backdrop, Vector4 source)
         {
@@ -81,11 +81,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         }
 
         /// <summary>
-        /// Per element, chooses the smallest value of source and backdrop
+        /// Returns the result of the "Darken" compositing equation.
         /// </summary>
-        /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <returns>Output color</returns>
+        /// <param name="backdrop">The backdrop vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Darken(Vector4 backdrop, Vector4 source)
         {
@@ -93,11 +93,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         }
 
         /// <summary>
-        /// Per element, chooses the largest value of source and backdrop
+        /// Returns the result of the "Lighten" compositing equation.
         /// </summary>
-        /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <returns>Output color</returns>
+        /// <param name="backdrop">The backdrop vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Lighten(Vector4 backdrop, Vector4 source)
         {
@@ -105,11 +105,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         }
 
         /// <summary>
-        /// Overlays source over backdrop
+        /// Returns the result of the "Overlay" compositing equation.
         /// </summary>
-        /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <returns>Output color</returns>
+        /// <param name="backdrop">The backdrop vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Overlay(Vector4 backdrop, Vector4 source)
         {
@@ -121,11 +121,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         }
 
         /// <summary>
-        /// Hard light effect
+        /// Returns the result of the "HardLight" compositing equation.
         /// </summary>
-        /// <param name="backdrop">Backdrop color</param>
-        /// <param name="source">Source color</param>
-        /// <returns>Output color</returns>
+        /// <param name="backdrop">The backdrop vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 HardLight(Vector4 backdrop, Vector4 source)
         {
@@ -145,22 +145,29 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float OverlayValueFunction(float backdrop, float source)
         {
-            return backdrop <= 0.5f ? (2 * backdrop * source) : 1 - ((2 * (1 - source)) * (1 - backdrop));
+            return backdrop <= 0.5f ? (2 * backdrop * source) : 1 - (2 * (1 - source) * (1 - backdrop));
         }
 
+        /// <summary>
+        /// Returns the result of the "Over" compositing equation.
+        /// </summary>
+        /// <param name="destination">The destination vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <param name="blend">The amount to blend. Range 0..1</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Over(Vector4 dst, Vector4 src, Vector4 blend)
+        public static Vector4 Over(Vector4 destination, Vector4 source, Vector4 blend)
         {
             // calculate weights
-            float blendW = dst.W * src.W;
-            float dstW = dst.W - blendW;
-            float srcW = src.W - blendW;
+            float blendW = destination.W * source.W;
+            float dstW = destination.W - blendW;
+            float srcW = source.W - blendW;
 
             // calculate final alpha
-            float alpha = dstW + srcW + blendW;
+            float alpha = dstW + source.W;
 
             // calculate final color
-            Vector4 color = (dst * dstW) + (src * srcW) + (blend * blendW);
+            Vector4 color = (destination * dstW) + (source * srcW) + (blend * blendW);
 
             // unpremultiply
             color /= MathF.Max(alpha, Constants.Epsilon);
@@ -169,18 +176,25 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return color;
         }
 
+        /// <summary>
+        /// Returns the result of the "Atop" compositing equation.
+        /// </summary>
+        /// <param name="destination">The destination vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <param name="blend">The amount to blend. Range 0..1</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Atop(Vector4 dst, Vector4 src, Vector4 blend)
+        public static Vector4 Atop(Vector4 destination, Vector4 source, Vector4 blend)
         {
             // calculate weights
-            float blendW = dst.W * src.W;
-            float dstW = dst.W - blendW;
+            float blendW = destination.W * source.W;
+            float dstW = destination.W - blendW;
 
             // calculate final alpha
-            float alpha = dstW + blendW;
+            float alpha = destination.W;
 
             // calculate final color
-            Vector4 color = (dst * dstW) + (blend * blendW);
+            Vector4 color = (destination * dstW) + (blend * blendW);
 
             // unpremultiply
             color /= MathF.Max(alpha, Constants.Epsilon);
@@ -189,38 +203,56 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
             return color;
         }
 
+        /// <summary>
+        /// Returns the result of the "In" compositing equation.
+        /// </summary>
+        /// <param name="destination">The destination vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 In(Vector4 dst, Vector4 src, Vector4 blend)
+        public static Vector4 In(Vector4 destination, Vector4 source)
         {
-            float alpha = dst.W * src.W;
+            float alpha = destination.W * source.W;
 
-            Vector4 color = src * alpha;                    // premultiply
+            Vector4 color = source * alpha;                    // premultiply
             color /= MathF.Max(alpha, Constants.Epsilon);   // unpremultiply
             color.W = alpha;
 
             return color;
         }
 
+        /// <summary>
+        /// Returns the result of the "Out" compositing equation.
+        /// </summary>
+        /// <param name="destination">The destination vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Out(Vector4 dst, Vector4 src)
+        public static Vector4 Out(Vector4 destination, Vector4 source)
         {
-            float alpha = (1 - dst.W) * src.W;
+            float alpha = (1 - destination.W) * source.W;
 
-            Vector4 color = src * alpha;                    // premultiply
+            Vector4 color = source * alpha;                    // premultiply
             color /= MathF.Max(alpha, Constants.Epsilon);   // unpremultiply
             color.W = alpha;
 
             return color;
         }
 
+        /// <summary>
+        /// Returns the result of the "XOr" compositing equation.
+        /// </summary>
+        /// <param name="destination">The destination vector.</param>
+        /// <param name="source">The source vector.</param>
+        /// <returns>The <see cref="Vector4"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Xor(Vector4 dst, Vector4 src)
+        public static Vector4 Xor(Vector4 destination, Vector4 source)
         {
-            float srcW = 1 - dst.W;
-            float dstW = 1 - src.W;
+            float srcW = 1 - destination.W;
+            float dstW = 1 - source.W;
 
-            float alpha = (src.W * srcW) + (dst.W * dstW);
-            Vector4 color = (src.W * src * srcW) + (dst.W * dst * dstW);
+            float alpha = (source.W * srcW) + (destination.W * dstW);
+            Vector4 color = (source.W * source * srcW) + (destination.W * destination * dstW);
 
             // unpremultiply
             color /= MathF.Max(alpha, Constants.Epsilon);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing;
@@ -10,11 +10,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
     public class GetSetPixel : BenchmarkBase
     {
         [Benchmark(Baseline = true, Description = "System.Drawing GetSet pixel")]
-        public Color ResizeSystemDrawing()
+        public System.Drawing.Color ResizeSystemDrawing()
         {
             using (var source = new Bitmap(400, 400))
             {
-                source.SetPixel(200, 200, Color.White);
+                source.SetPixel(200, 200, System.Drawing.Color.White);
                 return source.GetPixel(200, 200);
             }
         }
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         {
             using (var image = new Image<Rgba32>(400, 400))
             {
-                image[200, 200] = Rgba32.White;
+                image[200, 200] = Color.White;
                 return image[200, 200];
             }
         }

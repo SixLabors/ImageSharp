@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -10,8 +13,8 @@ using SixLabors.ImageSharp.Tuples;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {
-    //[MonoJob]
-    //[RyuJitX64Job]
+    // [MonoJob]
+    // [RyuJitX64Job]
     public class PixelConversion_Rgba32_To_Bgra32
     {
         private Rgba32[] source;
@@ -19,19 +22,22 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         private Bgra32[] dest;
 
         [StructLayout(LayoutKind.Sequential)]
-        struct Tuple4OfUInt32
+        private struct Tuple4OfUInt32
         {
-            public uint V0, V1, V2, V3;
+            private uint v0;
+            private uint v1;
+            private uint v2;
+            private uint v3;
 
             public void ConvertMe()
             {
-                this.V0 = FromRgba32.ToBgra32(this.V0);
-                this.V1 = FromRgba32.ToBgra32(this.V1);
-                this.V2 = FromRgba32.ToBgra32(this.V2);
-                this.V3 = FromRgba32.ToBgra32(this.V3);
+                this.v0 = FromRgba32.ToBgra32(this.v0);
+                this.v1 = FromRgba32.ToBgra32(this.v1);
+                this.v2 = FromRgba32.ToBgra32(this.v2);
+                this.v3 = FromRgba32.ToBgra32(this.v3);
             }
         }
-        
+
         [Params(64)]
         public int Count { get; set; }
 
@@ -57,7 +63,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Default_GenericImpl<TPixel>(ReadOnlySpan<Rgba32> source, Span<TPixel> dest)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ref Rgba32 sBase = ref MemoryMarshal.GetReference(source);
             ref TPixel dBase = ref MemoryMarshal.GetReference(dest);
@@ -81,7 +87,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             ref Rgba32 sBase = ref this.source[0];
             ref Bgra32 dBase = ref this.dest[0];
 
-            for (int i = 0; i < this.Count; i+=2)
+            for (int i = 0; i < this.Count; i += 2)
             {
                 ref Rgba32 s0 = ref Unsafe.Add(ref sBase, i);
                 Rgba32 s1 = Unsafe.Add(ref s0, 1);
@@ -115,10 +121,10 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
                 Unsafe.Add(ref d2, 1).FromRgba32(s3);
             }
         }
-        
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void Group4GenericImpl<TPixel>(ReadOnlySpan<Rgba32> source, Span<TPixel> dest)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             ref Rgba32 sBase = ref MemoryMarshal.GetReference(source);
             ref TPixel dBase = ref MemoryMarshal.GetReference(dest);
@@ -141,13 +147,13 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
-        //[Benchmark]
+        // [Benchmark]
         public void Default_Group4_Generic()
         {
             Group4GenericImpl(this.source.AsSpan(), this.dest.AsSpan());
         }
 
-        //[Benchmark]
+        // [Benchmark]
         public void Default_Group8()
         {
             ref Rgba32 sBase = ref this.source[0];
@@ -173,7 +179,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
                 ref Bgra32 d5 = ref Unsafe.Add(ref d4, 1);
                 ref Bgra32 d6 = ref Unsafe.Add(ref d5, 1);
-
 
                 d0.FromRgba32(s0);
                 d1.FromRgba32(s1);
@@ -214,7 +219,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
-        //[Benchmark]
+        // [Benchmark]
         public void Bitops_SingleTuple()
         {
             ref Tuple4OfUInt32 sBase = ref Unsafe.As<Rgba32, Tuple4OfUInt32>(ref this.source[0]);
@@ -225,11 +230,11 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
-        //[Benchmark]
+        // [Benchmark]
         public void Bitops_Simd()
         {
-            ref Octet.OfUInt32 sBase = ref Unsafe.As<Rgba32, Octet.OfUInt32>(ref this.source[0]);
-            ref Octet.OfUInt32 dBase = ref Unsafe.As<Bgra32, Octet.OfUInt32>(ref this.dest[0]);
+            ref Octet<uint> sBase = ref Unsafe.As<Rgba32, Octet<uint>>(ref this.source[0]);
+            ref Octet<uint> dBase = ref Unsafe.As<Bgra32, Octet<uint>>(ref this.dest[0]);
 
             for (int i = 0; i < this.Count / 8; i++)
             {
@@ -237,24 +242,26 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
+#pragma warning disable SA1132 // Do not combine fields
         [StructLayout(LayoutKind.Sequential)]
-        struct B
+        private struct B
         {
-            public uint tmp2, tmp5, tmp8, tmp11, tmp14, tmp17, tmp20, tmp23;
+            public uint Tmp2, Tmp5, Tmp8, Tmp11, Tmp14, Tmp17, Tmp20, Tmp23;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        struct C
+        private struct C
         {
-            public uint tmp3, tmp6, tmp9, tmp12, tmp15, tmp18, tmp21, tmp24;
+            public uint Tmp3, Tmp6, Tmp9, Tmp12, Tmp15, Tmp18, Tmp21, Tmp24;
         }
+#pragma warning restore SA1132 // Do not combine fields
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void BitopsSimdImpl(ref Octet.OfUInt32 s, ref Octet.OfUInt32 d)
+        private static void BitopsSimdImpl(ref Octet<uint> s, ref Octet<uint> d)
         {
-            Vector<uint> sVec = Unsafe.As<Octet.OfUInt32, Vector<uint>>(ref s);
-            Vector<uint> aMask = new Vector<uint>(0xFF00FF00);
-            Vector<uint> bMask = new Vector<uint>(0x00FF00FF);
+            Vector<uint> sVec = Unsafe.As<Octet<uint>, Vector<uint>>(ref s);
+            var aMask = new Vector<uint>(0xFF00FF00);
+            var bMask = new Vector<uint>(0x00FF00FF);
 
             Vector<uint> aa = sVec & aMask;
             Vector<uint> bb = sVec & bMask;
@@ -263,22 +270,22 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
             C c = default;
 
-            c.tmp3 = (b.tmp2 << 16) | (b.tmp2 >> 16);
-            c.tmp6 = (b.tmp5 << 16) | (b.tmp5 >> 16);
-            c.tmp9 = (b.tmp8 << 16) | (b.tmp8 >> 16);
-            c.tmp12 = (b.tmp11 << 16) | (b.tmp11 >> 16);
-            c.tmp15 = (b.tmp14 << 16) | (b.tmp14 >> 16);
-            c.tmp18 = (b.tmp17 << 16) | (b.tmp17 >> 16);
-            c.tmp21 = (b.tmp20 << 16) | (b.tmp20 >> 16);
-            c.tmp24 = (b.tmp23 << 16) | (b.tmp23 >> 16);
+            c.Tmp3 = (b.Tmp2 << 16) | (b.Tmp2 >> 16);
+            c.Tmp6 = (b.Tmp5 << 16) | (b.Tmp5 >> 16);
+            c.Tmp9 = (b.Tmp8 << 16) | (b.Tmp8 >> 16);
+            c.Tmp12 = (b.Tmp11 << 16) | (b.Tmp11 >> 16);
+            c.Tmp15 = (b.Tmp14 << 16) | (b.Tmp14 >> 16);
+            c.Tmp18 = (b.Tmp17 << 16) | (b.Tmp17 >> 16);
+            c.Tmp21 = (b.Tmp20 << 16) | (b.Tmp20 >> 16);
+            c.Tmp24 = (b.Tmp23 << 16) | (b.Tmp23 >> 16);
 
             Vector<uint> cc = Unsafe.As<C, Vector<uint>>(ref c);
             Vector<uint> dd = aa + cc;
 
-            d = Unsafe.As<Vector<uint>, Octet.OfUInt32>(ref dd);
+            d = Unsafe.As<Vector<uint>, Octet<uint>>(ref dd);
         }
 
-        //[Benchmark]
+        // [Benchmark]
         public void BitOps_Group2()
         {
             ref uint sBase = ref Unsafe.As<Rgba32, uint>(ref this.source[0]);
@@ -294,7 +301,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
                 Unsafe.Add(ref d0, 1) = FromRgba32.ToBgra32(s1);
             }
         }
-        
+
         [Benchmark]
         public void BitOps_GroupAsULong()
         {
@@ -315,7 +322,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
-        //[Benchmark]
+        // [Benchmark]
         public void BitOps_GroupAsULong_V2()
         {
             ref ulong sBase = ref Unsafe.As<Rgba32, ulong>(ref this.source[0]);
@@ -350,6 +357,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             /// <summary>
             /// Converts a packed <see cref="Rgba32"/> to <see cref="Argb32"/>.
             /// </summary>
+            /// <returns>The argb value.</returns>
             [MethodImpl(InliningOptions.ShortMethod)]
             public static uint ToArgb32(uint packedRgba)
             {
@@ -361,6 +369,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             /// <summary>
             /// Converts a packed <see cref="Rgba32"/> to <see cref="Bgra32"/>.
             /// </summary>
+            /// <returns>The bgra value.</returns>
             [MethodImpl(InliningOptions.ShortMethod)]
             public static uint ToBgra32(uint packedRgba)
             {
@@ -375,7 +384,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
                 return tmp1 + tmp3;
             }
         }
-
 
         // RESULTS:
         //               Method | Count |     Mean |     Error |    StdDev | Scaled | ScaledSD |

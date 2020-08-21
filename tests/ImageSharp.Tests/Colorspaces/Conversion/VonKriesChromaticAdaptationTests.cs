@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -13,8 +13,8 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         private static readonly ApproximateColorSpaceComparer ColorSpaceComparer = new ApproximateColorSpaceComparer(.0001F);
         public static readonly TheoryData<CieXyz, CieXyz> WhitePoints = new TheoryData<CieXyz, CieXyz>
         {
-            {CieLuv.DefaultWhitePoint, CieLab.DefaultWhitePoint},
-            {CieLuv.DefaultWhitePoint, CieLuv.DefaultWhitePoint}
+            { CieLuv.DefaultWhitePoint, CieLab.DefaultWhitePoint },
+            { CieLuv.DefaultWhitePoint, CieLuv.DefaultWhitePoint }
         };
 
         [Theory]

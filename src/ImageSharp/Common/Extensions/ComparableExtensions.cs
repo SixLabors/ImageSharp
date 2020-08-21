@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Restricts a <see cref="byte"/> to be within a specified range.
         /// </summary>
-        /// <param name="value">The The value to clamp.</param>
+        /// <param name="value">The value to clamp.</param>
         /// <param name="min">The minimum value. If value is less than min, min will be returned.</param>
         /// <param name="max">The maximum value. If value is greater than max, max will be returned.</param>
         /// <returns>

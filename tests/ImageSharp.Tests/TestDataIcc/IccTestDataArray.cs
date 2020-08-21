@@ -1,12 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Tests
 {
     internal static class IccTestDataArray
     {
-        #region Byte
-
         public static readonly byte[] UInt8 = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
         public static readonly object[][] UInt8TestData =
@@ -14,14 +12,9 @@ namespace SixLabors.ImageSharp.Tests
             new object[] { UInt8, UInt8 }
         };
 
-        #endregion
-
-        #region UInt16
-
         public static readonly ushort[] UInt16_Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-        public static readonly byte[] UInt16_Arr = ArrayHelper.Concat
-        (
+        public static readonly byte[] UInt16_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt16_0,
             IccTestDataPrimitives.UInt16_1,
             IccTestDataPrimitives.UInt16_2,
@@ -31,22 +24,16 @@ namespace SixLabors.ImageSharp.Tests
             IccTestDataPrimitives.UInt16_6,
             IccTestDataPrimitives.UInt16_7,
             IccTestDataPrimitives.UInt16_8,
-            IccTestDataPrimitives.UInt16_9
-        );
+            IccTestDataPrimitives.UInt16_9);
 
         public static readonly object[][] UInt16TestData =
         {
             new object[] { UInt16_Arr, UInt16_Val }
         };
 
-        #endregion
-
-        #region Int16
-
         public static readonly short[] Int16_Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-        public static readonly byte[] Int16_Arr = ArrayHelper.Concat
-        (
+        public static readonly byte[] Int16_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.Int16_0,
             IccTestDataPrimitives.Int16_1,
             IccTestDataPrimitives.Int16_2,
@@ -56,22 +43,16 @@ namespace SixLabors.ImageSharp.Tests
             IccTestDataPrimitives.Int16_6,
             IccTestDataPrimitives.Int16_7,
             IccTestDataPrimitives.Int16_8,
-            IccTestDataPrimitives.Int16_9
-        );
+            IccTestDataPrimitives.Int16_9);
 
         public static readonly object[][] Int16TestData =
         {
             new object[] { Int16_Arr, Int16_Val }
         };
 
-        #endregion
-
-        #region UInt32
-
         public static readonly uint[] UInt32_Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-        public static readonly byte[] UInt32_Arr = ArrayHelper.Concat
-        (
+        public static readonly byte[] UInt32_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt32_0,
             IccTestDataPrimitives.UInt32_1,
             IccTestDataPrimitives.UInt32_2,
@@ -81,22 +62,16 @@ namespace SixLabors.ImageSharp.Tests
             IccTestDataPrimitives.UInt32_6,
             IccTestDataPrimitives.UInt32_7,
             IccTestDataPrimitives.UInt32_8,
-            IccTestDataPrimitives.UInt32_9
-        );
+            IccTestDataPrimitives.UInt32_9);
 
         public static readonly object[][] UInt32TestData =
         {
             new object[] { UInt32_Arr, UInt32_Val }
         };
 
-        #endregion
-
-        #region Int32
-
         public static readonly int[] Int32_Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-        public static readonly byte[] Int32_Arr = ArrayHelper.Concat
-        (
+        public static readonly byte[] Int32_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.Int32_0,
             IccTestDataPrimitives.Int32_1,
             IccTestDataPrimitives.Int32_2,
@@ -106,22 +81,16 @@ namespace SixLabors.ImageSharp.Tests
             IccTestDataPrimitives.Int32_6,
             IccTestDataPrimitives.Int32_7,
             IccTestDataPrimitives.Int32_8,
-            IccTestDataPrimitives.Int32_9
-        );
+            IccTestDataPrimitives.Int32_9);
 
         public static readonly object[][] Int32TestData =
         {
             new object[] { Int32_Arr, Int32_Val }
         };
 
-        #endregion
-
-        #region UInt64
-
         public static readonly ulong[] UInt64_Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-        public static readonly byte[] UInt64_Arr = ArrayHelper.Concat
-        (
+        public static readonly byte[] UInt64_Arr = ArrayHelper.Concat(
             IccTestDataPrimitives.UInt64_0,
             IccTestDataPrimitives.UInt64_1,
             IccTestDataPrimitives.UInt64_2,
@@ -131,14 +100,11 @@ namespace SixLabors.ImageSharp.Tests
             IccTestDataPrimitives.UInt64_6,
             IccTestDataPrimitives.UInt64_7,
             IccTestDataPrimitives.UInt64_8,
-            IccTestDataPrimitives.UInt64_9
-        );
+            IccTestDataPrimitives.UInt64_9);
 
         public static readonly object[][] UInt64TestData =
         {
             new object[] { UInt64_Arr, UInt64_Val }
         };
-
-        #endregion
     }
 }

@@ -1,9 +1,0 @@
-﻿<ProjectConfiguration>
-  <Settings>
-    <CopyReferencedAssembliesToWorkspace>False</CopyReferencedAssembliesToWorkspace>
-    <FrameworkUtilisationTypeForGallio>UseStaticAnalysis</FrameworkUtilisationTypeForGallio>
-    <ImplicitProjectDependencyPathsRelativeToSolutionDirectory />
-    <NUnit3Enabled>False</NUnit3Enabled>
-    <PreloadReferencedAssemblies>False</PreloadReferencedAssemblies>
-  </Settings>
-</ProjectConfiguration>

@@ -1,7 +1,9 @@
-﻿using BenchmarkDotNet.Attributes;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Benchmarks.Samplers
 {
@@ -11,7 +13,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
         [Benchmark]
         public Size DoRotate()
         {
-            using (var image = new Image<Rgba32>(Configuration.Default, 400, 400, Rgba32.BlanchedAlmond))
+            using (var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.BlanchedAlmond))
             {
                 image.Mutate(x => x.Rotate(37.5F));
 
@@ -21,25 +23,21 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
     }
 }
 
-// Nov 7 2018
-//BenchmarkDotNet=v0.10.14, OS=Windows 10.0.17763
-//Intel Core i7-6600U CPU 2.60GHz(Skylake), 1 CPU, 4 logical and 2 physical cores
-//.NET Core SDK = 2.1.403
-
-// [Host]     : .NET Core 2.1.5 (CoreCLR 4.6.26919.02, CoreFX 4.6.26919.02), 64bit RyuJIT
-//  Job-KKDIMW : .NET Framework 4.7.1 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.3190.0
-//  Job-IUZRFA : .NET Core 2.1.5 (CoreCLR 4.6.26919.02, CoreFX 4.6.26919.02), 64bit RyuJIT
-
-//LaunchCount=1  TargetCount=3  WarmupCount=3
-
-// #### BEFORE ####:
-//   Method | Runtime |     Mean |     Error |    StdDev | Allocated |
-//--------- |-------- |---------:|----------:|----------:|----------:|
-// DoRotate |     Clr | 85.19 ms | 13.379 ms | 0.7560 ms |      6 KB |
-// DoRotate |    Core | 53.51 ms |  9.512 ms | 0.5375 ms |   4.29 KB |
-
-// #### AFTER ####:
-//Method | Runtime |     Mean |    Error |   StdDev | Allocated |
-//--------- |-------- |---------:|---------:|---------:|----------:|
-// DoRotate |     Clr | 77.08 ms | 23.97 ms | 1.354 ms |      6 KB |
-// DoRotate |    Core | 40.36 ms | 47.43 ms | 2.680 ms |   4.36 KB |
+// #### 21th February 2020 ####
+//
+// BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18363
+// Intel Core i7-8650U CPU 1.90GHz(Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+// .NET Core SDK = 3.1.101
+//
+// [Host]     : .NET Core 3.1.1 (CoreCLR 4.700.19.60701, CoreFX 4.700.19.60801), X64 RyuJIT
+//  Job-HOGSNT : .NET Framework 4.8 (4.8.4121.0), X64 RyuJIT
+//  Job-FKDHXC : .NET Core 2.1.15 (CoreCLR 4.6.28325.01, CoreFX 4.6.28327.02), X64 RyuJIT
+//  Job-ODABAZ : .NET Core 3.1.1 (CoreCLR 4.700.19.60701, CoreFX 4.700.19.60801), X64 RyuJIT
+//
+// IterationCount=3  LaunchCount=1  WarmupCount=3
+//
+// |   Method |       Runtime |     Mean |    Error |   StdDev | Gen 0 | Gen 1 | Gen 2 | Allocated |
+// |--------- |-------------- |---------:|---------:|---------:|------:|------:|------:|----------:|
+// | DoRotate |    .NET 4.7.2 | 28.77 ms | 3.304 ms | 0.181 ms |     - |     - |     - |    6.5 KB |
+// | DoRotate | .NET Core 2.1 | 16.27 ms | 1.044 ms | 0.057 ms |     - |     - |     - |   5.25 KB |
+// | DoRotate | .NET Core 3.1 | 17.12 ms | 4.352 ms | 0.239 ms |     - |     - |     - |   6.57 KB |

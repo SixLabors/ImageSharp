@@ -1,9 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp
 {
@@ -24,7 +23,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="Buffer2D{TPixel}" />
         /// </returns>
         internal static Buffer2D<TPixel> GetRootFramePixelBuffer<TPixel>(this Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return image.Frames.RootFrame.PixelBuffer;
         }

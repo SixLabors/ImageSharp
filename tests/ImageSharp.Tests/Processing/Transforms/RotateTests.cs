@@ -1,7 +1,6 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
@@ -17,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void RotateDegreesFloatRotateProcessorWithAnglesSet(float angle)
         {
             this.operations.Rotate(angle);
-            RotateProcessor<Rgba32> processor = this.Verify<RotateProcessor<Rgba32>>();
+            RotateProcessor processor = this.Verify<RotateProcessor>();
 
             Assert.Equal(angle, processor.Degrees);
         }
@@ -30,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void RotateRotateTypeRotateProcessorWithAnglesConvertedFromEnum(RotateMode angle, float expectedAngle)
         {
             this.operations.Rotate(angle); // is this api needed ???
-            RotateProcessor<Rgba32> processor = this.Verify<RotateProcessor<Rgba32>>();
+            RotateProcessor processor = this.Verify<RotateProcessor>();
 
             Assert.Equal(expectedAngle, processor.Degrees);
         }

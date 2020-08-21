@@ -1,9 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Primitives;
-using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Primitives
@@ -19,37 +17,25 @@ namespace SixLabors.ImageSharp.Tests.Primitives
         [Fact]
         public void DenseMatrixThrowsOnNullInitializer()
         {
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                var dense = new DenseMatrix<float>(null);
-            });
+            Assert.Throws<ArgumentNullException>(() => new DenseMatrix<float>(null));
         }
 
         [Fact]
         public void DenseMatrixThrowsOnEmptyZeroWidth()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-            {
-                var dense = new DenseMatrix<float>(0, 10);
-            });
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DenseMatrix<float>(0, 10));
         }
 
         [Fact]
         public void DenseMatrixThrowsOnEmptyZeroHeight()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-            {
-                var dense = new DenseMatrix<float>(10, 0);
-            });
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DenseMatrix<float>(10, 0));
         }
 
         [Fact]
         public void DenseMatrixThrowsOnEmptyInitializer()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-            {
-                var dense = new DenseMatrix<float>(new float[0, 0]);
-            });
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DenseMatrix<float>(new float[0, 0]));
         }
 
         [Fact]
@@ -129,6 +115,26 @@ namespace SixLabors.ImageSharp.Tests.Primitives
             Assert.Equal(1, transposed[0, 0]);
             Assert.Equal(2, transposed[1, 0]);
             Assert.Equal(3, transposed[2, 0]);
+        }
+
+        [Fact]
+        public void DenseMatrixEquality()
+        {
+            var dense = new DenseMatrix<int>(3, 1);
+            var dense2 = new DenseMatrix<int>(3, 1);
+            var dense3 = new DenseMatrix<int>(1, 3);
+
+            Assert.True(dense == dense2);
+            Assert.False(dense != dense2);
+            Assert.Equal(dense, dense2);
+            Assert.Equal(dense, (object)dense2);
+            Assert.Equal(dense.GetHashCode(), dense2.GetHashCode());
+
+            Assert.False(dense == dense3);
+            Assert.True(dense != dense3);
+            Assert.NotEqual(dense, dense3);
+            Assert.NotEqual(dense, (object)dense3);
+            Assert.NotEqual(dense.GetHashCode(), dense3.GetHashCode());
         }
     }
 }

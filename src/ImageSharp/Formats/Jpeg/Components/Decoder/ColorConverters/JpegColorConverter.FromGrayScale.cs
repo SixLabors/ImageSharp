@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal class FromGrayscale : JpegColorConverter
+        internal sealed class FromGrayscale : JpegColorConverter
         {
             public FromGrayscale(int precision)
                 : base(JpegColorSpace.Grayscale, precision)
@@ -19,11 +19,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {
-                var scale = new Vector4(
-                                1 / this.MaximumValue,
-                                1 / this.MaximumValue,
-                                1 / this.MaximumValue,
-                                1F);
+                var maximum = 1 / this.MaximumValue;
+                var scale = new Vector4(maximum, maximum, maximum, 1F);
 
                 ref float sBase = ref MemoryMarshal.GetReference(values.Component0);
                 ref Vector4 dBase = ref MemoryMarshal.GetReference(result);

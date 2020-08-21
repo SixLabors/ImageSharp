@@ -1,7 +1,5 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
-
-using System;
 
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -9,8 +7,8 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public abstract partial class TestImageProvider<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private class BlankProvider : TestImageProvider<TPixel>, IXunitSerializable
         {
@@ -20,6 +18,9 @@ namespace SixLabors.ImageSharp.Tests
                 this.Height = height;
             }
 
+            /// <summary>
+            /// This parameterless constructor is needed for xUnit deserialization
+            /// </summary>
             public BlankProvider()
             {
                 this.Width = 100;
@@ -32,8 +33,7 @@ namespace SixLabors.ImageSharp.Tests
 
             protected int Width { get; private set; }
 
-            public override Image<TPixel> GetImage() => new Image<TPixel>(this.Width, this.Height);
-
+            public override Image<TPixel> GetImage() => new Image<TPixel>(this.Configuration, this.Width, this.Height);
 
             public override void Deserialize(IXunitSerializationInfo info)
             {

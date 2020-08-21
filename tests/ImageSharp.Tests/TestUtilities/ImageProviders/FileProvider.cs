@@ -1,11 +1,12 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -13,8 +14,8 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests
 {
-    public abstract partial class TestImageProvider<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         private class FileProvider : TestImageProvider<TPixel>, IXunitSerializable
         {
@@ -22,14 +23,18 @@ namespace SixLabors.ImageSharp.Tests
             // are shared between PixelTypes.Color & PixelTypes.Rgba32
             private class Key : IEquatable<Key>
             {
-                private Tuple<PixelTypes, string, Type> commonValues;
+                private readonly Tuple<PixelTypes, string, Type, int> commonValues;
 
-                private Dictionary<string, object> decoderParameters;
+                private readonly Dictionary<string, object> decoderParameters;
 
-                public Key(PixelTypes pixelType, string filePath, IImageDecoder customDecoder)
+                public Key(PixelTypes pixelType, string filePath, int allocatorBufferCapacity, IImageDecoder customDecoder)
                 {
                     Type customType = customDecoder?.GetType();
-                    this.commonValues = new Tuple<PixelTypes, string, Type>(pixelType, filePath, customType);
+                    this.commonValues = new Tuple<PixelTypes, string, Type, int>(
+                        pixelType,
+                        filePath,
+                        customType,
+                        allocatorBufferCapacity);
                     this.decoderParameters = GetDecoderParameters(customDecoder);
                 }
 
@@ -48,8 +53,10 @@ namespace SixLabors.ImageSharp.Tests
                             object value = p.GetValue(customDecoder);
                             data[key] = value;
                         }
+
                         type = type.GetTypeInfo().BaseType;
                     }
+
                     return data;
                 }
 
@@ -81,11 +88,13 @@ namespace SixLabors.ImageSharp.Tests
                         {
                             return false;
                         }
+
                         if (!object.Equals(kv.Value, otherVal))
                         {
                             return false;
                         }
                     }
+
                     return true;
                 }
 
@@ -116,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests
                 public static bool operator !=(Key left, Key right) => !Equals(left, right);
             }
 
-            private static readonly ConcurrentDictionary<Key, Image<TPixel>> cache = new ConcurrentDictionary<Key, Image<TPixel>>();
+            private static readonly ConcurrentDictionary<Key, Image<TPixel>> Cache = new ConcurrentDictionary<Key, Image<TPixel>>();
 
             // Needed for deserialization!
             // ReSharper disable once UnusedMember.Local
@@ -148,11 +157,21 @@ namespace SixLabors.ImageSharp.Tests
                     return this.LoadImage(decoder);
                 }
 
-                var key = new Key(this.PixelType, this.FilePath, decoder);
+                int bufferCapacity = this.Configuration.MemoryAllocator.GetBufferCapacityInBytes();
+                var key = new Key(this.PixelType, this.FilePath, bufferCapacity, decoder);
 
-                Image<TPixel> cachedImage = cache.GetOrAdd(key, _ => this.LoadImage(decoder));
+                Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.LoadImage(decoder));
 
-                return cachedImage.Clone();
+                return cachedImage.Clone(this.Configuration);
+            }
+
+            public override Task<Image<TPixel>> GetImageAsync(IImageDecoder decoder)
+            {
+                Guard.NotNull(decoder, nameof(decoder));
+
+                // Used in small subset of decoder tests, no caching.
+                string path = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.FilePath);
+                return Image.LoadAsync<TPixel>(this.Configuration, path, decoder);
             }
 
             public override void Deserialize(IXunitSerializationInfo info)

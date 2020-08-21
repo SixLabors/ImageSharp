@@ -1,10 +1,6 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
@@ -14,7 +10,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
     public class FlipTests : BaseImageOperationsExtensionTest
     {
-
         [Theory]
         [InlineData(FlipMode.None)]
         [InlineData(FlipMode.Horizontal)]
@@ -22,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
         public void Flip_degreesFloat_RotateProcessorWithAnglesSetAndExpandTrue(FlipMode flip)
         {
             this.operations.Flip(flip);
-            FlipProcessor<Rgba32> flipProcessor = this.Verify<FlipProcessor<Rgba32>>();
+            FlipProcessor flipProcessor = this.Verify<FlipProcessor>();
 
             Assert.Equal(flip, flipProcessor.FlipMode);
         }

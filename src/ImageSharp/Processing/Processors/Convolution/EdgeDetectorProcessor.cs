@@ -1,52 +1,42 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
-using SixLabors.ImageSharp.Processing.Processors.Filters;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 {
     /// <summary>
-    /// Defines a processor that detects edges within an image using a single two dimensional matrix.
+    /// Defines edge detection using a single 2D gradient operator.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class EdgeDetectorProcessor<TPixel> : ImageProcessor<TPixel>, IEdgeDetectorProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public sealed class EdgeDetectorProcessor : IImageProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="EdgeDetectorProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="EdgeDetectorProcessor"/> class.
         /// </summary>
-        /// <param name="kernelXY">The 2d gradient operator.</param>
-        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
-        protected EdgeDetectorProcessor(DenseMatrix<float> kernelXY, bool grayscale)
+        /// <param name="kernel">The  edge detector kernel.</param>
+        /// <param name="grayscale">
+        /// Whether to convert the image to grayscale before performing edge detection.
+        /// </param>
+        public EdgeDetectorProcessor(EdgeDetectorKernel kernel, bool grayscale)
         {
-            this.KernelXY = kernelXY;
+            this.Kernel = kernel;
             this.Grayscale = grayscale;
         }
 
-        /// <inheritdoc/>
-        public bool Grayscale { get; }
+        /// <summary>
+        /// Gets the edge detector kernel.
+        /// </summary>
+        public EdgeDetectorKernel Kernel { get; }
 
         /// <summary>
-        /// Gets the 2d gradient operator.
+        /// Gets a value indicating whether to convert the image to grayscale before performing
+        /// edge detection.
         /// </summary>
-        public DenseMatrix<float> KernelXY { get; }
+        public bool Grayscale { get; }
 
-        /// <inheritdoc/>
-        protected override void BeforeFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-        {
-            if (this.Grayscale)
-            {
-                new GrayscaleBt709Processor<TPixel>(1F).Apply(source, sourceRectangle, configuration);
-            }
-        }
-
-        /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-        {
-            new ConvolutionProcessor<TPixel>(this.KernelXY).Apply(source, sourceRectangle, configuration);
-        }
+        /// <inheritdoc />
+        public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => new EdgeDetectorProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

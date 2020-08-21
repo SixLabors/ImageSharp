@@ -1,15 +1,16 @@
-﻿using System.Numerics;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 using BenchmarkDotNet.Attributes;
-
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 {
     public class PixelConversion_ConvertToVector4
     {
-        struct ConversionRunner<T>
+        private struct ConversionRunner<T>
             where T : struct, ITestPixel<T>
         {
             private T[] source;

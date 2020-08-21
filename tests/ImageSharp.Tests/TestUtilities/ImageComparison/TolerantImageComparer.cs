@@ -1,11 +1,12 @@
-﻿using System;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
-
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 {
@@ -19,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
         /// Individual manhattan pixel difference is only added to total image difference when the individual difference is over 'perPixelManhattanThreshold'.
         /// </summary>
         /// <param name="imageThreshold">The maximal tolerated difference represented by a value between 0.0 and 1.0 scaled to 0 and 65535.</param>
-        /// <param name="perPixelManhattanThreshold">Gets the threshold of the individual pixels before they acumulate towards the overall difference.</param>
+        /// <param name="perPixelManhattanThreshold">Gets the threshold of the individual pixels before they accumulate towards the overall difference.</param>
         public TolerantImageComparer(float imageThreshold, int perPixelManhattanThreshold = 0)
         {
             Guard.MustBeGreaterThanOrEqualTo(imageThreshold, 0, nameof(imageThreshold));
@@ -49,7 +50,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
         public float ImageThreshold { get; }
 
         /// <summary>
-        /// Gets the threshold of the individual pixels before they acumulate towards the overall difference.
+        /// Gets the threshold of the individual pixels before they accumulate towards the overall difference.
         /// For an individual <see cref="Rgba64"/> pixel pair the value is the Manhattan distance of pixels:
         /// <see>
         ///     <cref>https://en.wikipedia.org/wiki/Taxicab_geometry</cref>
@@ -66,15 +67,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison
 
             int width = actual.Width;
 
-            // TODO: Comparing through Rgba64 may not robust enough because of the existance of super high precision pixel types.
-
+            // TODO: Comparing through Rgba64 may not robust enough because of the existence of super high precision pixel types.
             var aBuffer = new Rgba64[width];
             var bBuffer = new Rgba64[width];
 
             float totalDifference = 0F;
 
             var differences = new List<PixelDifference>();
-            Configuration configuration = expected.Configuration;
+            Configuration configuration = expected.GetConfiguration();
 
             for (int y = 0; y < actual.Height; y++)
             {

@@ -1,9 +1,12 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
+
+using BenchmarkDotNet.Attributes;
+
 namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 {
-    using System.Numerics;
-
-    using BenchmarkDotNet.Attributes;
-
     public class DivFloat
     {
         private float[] input;
@@ -41,11 +44,11 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         [Benchmark]
         public void Simd()
         {
-            Vector<float> v = new Vector<float>(this.testValue);
+            var v = new Vector<float>(this.testValue);
 
             for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
             {
-                Vector<float> a = new Vector<float>(this.input, i);
+                var a = new Vector<float>(this.input, i);
                 a = a / v;
                 a.CopyTo(this.result, i);
             }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// </summary>
     /// <typeparam name="TSelf">The type implementing this interface</typeparam>
     public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
-        where TSelf : struct, IPixel<TSelf>
+        where TSelf : unmanaged, IPixel<TSelf>
     {
         /// <summary>
         /// Creates a <see cref="PixelOperations{TPixel}"/> instance for this pixel type.
@@ -62,6 +62,12 @@ namespace SixLabors.ImageSharp.PixelFormats
         void FromArgb32(Argb32 source);
 
         /// <summary>
+        /// Initializes the pixel instance from an <see cref="Bgra5551"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="Bgra5551"/> value.</param>
+        void FromBgra5551(Bgra5551 source);
+
+        /// <summary>
         /// Initializes the pixel instance from an <see cref="Bgr24"/> value.
         /// </summary>
         /// <param name="source">The <see cref="Bgr24"/> value.</param>
@@ -74,16 +80,28 @@ namespace SixLabors.ImageSharp.PixelFormats
         void FromBgra32(Bgra32 source);
 
         /// <summary>
-        /// Initializes the pixel instance from an <see cref="Gray8"/> value.
+        /// Initializes the pixel instance from an <see cref="L8"/> value.
         /// </summary>
-        /// <param name="source">The <see cref="Gray8"/> value.</param>
-        void FromGray8(Gray8 source);
+        /// <param name="source">The <see cref="L8"/> value.</param>
+        void FromL8(L8 source);
 
         /// <summary>
-        /// Initializes the pixel instance from an <see cref="Gray16"/> value.
+        /// Initializes the pixel instance from an <see cref="L16"/> value.
         /// </summary>
-        /// <param name="source">The <see cref="Gray16"/> value.</param>
-        void FromGray16(Gray16 source);
+        /// <param name="source">The <see cref="L16"/> value.</param>
+        void FromL16(L16 source);
+
+        /// <summary>
+        /// Initializes the pixel instance from an <see cref="La16"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="La16"/> value.</param>
+        void FromLa16(La16 source);
+
+        /// <summary>
+        /// Initializes the pixel instance from an <see cref="La32"/> value.
+        /// </summary>
+        /// <param name="source">The <see cref="La32"/> value.</param>
+        void FromLa32(La32 source);
 
         /// <summary>
         /// Initializes the pixel instance from an <see cref="Rgb24"/> value.

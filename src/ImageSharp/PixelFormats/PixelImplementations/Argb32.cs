@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -129,7 +129,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public uint Argb
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => Unsafe.As<Argb32, uint>(ref this);
+            readonly get => Unsafe.As<Argb32, uint>(ref Unsafe.AsRef(this));
 
             [MethodImpl(InliningOptions.ShortMethod)]
             set => Unsafe.As<Argb32, uint>(ref this) = value;
@@ -138,9 +138,28 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <inheritdoc/>
         public uint PackedValue
         {
-            get => this.Argb;
+            [MethodImpl(InliningOptions.ShortMethod)]
+            readonly get => this.Argb;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
             set => this.Argb = value;
         }
+
+        /// <summary>
+        /// Converts an <see cref="Argb32"/> to <see cref="Color"/>.
+        /// </summary>
+        /// <param name="source">The <see cref="Argb32"/>.</param>
+        /// <returns>The <see cref="Color"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Color(Argb32 source) => new Color(source);
+
+        /// <summary>
+        /// Converts a <see cref="Color"/> to <see cref="Argb32"/>.
+        /// </summary>
+        /// <param name="color">The <see cref="Color"/>.</param>
+        /// <returns>The <see cref="Argb32"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static implicit operator Argb32(Color color) => color.ToArgb32();
 
         /// <summary>
         /// Compares two <see cref="Argb32"/> objects for equality.
@@ -165,7 +184,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Argb32 left, Argb32 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations();
+        public readonly PixelOperations<Argb32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -173,7 +192,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4() => this.ToVector4();
+        public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -181,11 +200,15 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
+        public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromArgb32(Argb32 source) => this.PackedValue = source.PackedValue;
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -209,7 +232,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source)
+        public void FromL8(L8 source)
         {
             this.R = source.PackedValue;
             this.G = source.PackedValue;
@@ -219,13 +242,34 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source)
+        public void FromL16(L16 source)
         {
             byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
             this.A = byte.MaxValue;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source)
+        {
+            this.R = source.L;
+            this.G = source.L;
+            this.B = source.L;
+            this.A = source.A;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source)
+        {
+            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.L);
+            this.R = rgb;
+            this.G = rgb;
+            this.B = rgb;
+            this.A = ImageMaths.DownScaleFrom16BitTo8Bit(source.A);
         }
 
         /// <inheritdoc/>
@@ -279,21 +323,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => obj is Argb32 argb32 && this.Equals(argb32);
+        public override readonly bool Equals(object obj) => obj is Argb32 argb32 && this.Equals(argb32);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Argb32 other) => this.Argb == other.Argb;
+        public readonly bool Equals(Argb32 other) => this.Argb == other.Argb;
 
         /// <summary>
         /// Gets a string representation of the packed vector.
         /// </summary>
         /// <returns>A string representation of the packed vector.</returns>
-        public override string ToString() => $"Argb({this.A}, {this.R}, {this.G}, {this.B})";
+        public override readonly string ToString() => $"Argb({this.A}, {this.R}, {this.G}, {this.B})";
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => this.Argb.GetHashCode();
+        public override readonly int GetHashCode() => this.Argb.GetHashCode();
 
         /// <summary>
         /// Packs the four floats into a color.
@@ -329,7 +373,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector *= MaxBytes;
             vector += Half;
-            vector = Vector4.Clamp(vector, Vector4.Zero, MaxBytes);
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, MaxBytes);
 
             this.R = (byte)vector.X;
             this.G = (byte)vector.Y;

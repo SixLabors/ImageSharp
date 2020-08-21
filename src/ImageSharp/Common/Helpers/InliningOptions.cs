@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 // Uncomment this for verbose profiler results. DO NOT PUSH TO MAIN!
@@ -13,8 +13,14 @@ namespace SixLabors.ImageSharp
     internal static class InliningOptions
     {
 #if PROFILING
+        public const MethodImplOptions HotPath = MethodImplOptions.NoInlining;
         public const MethodImplOptions ShortMethod = MethodImplOptions.NoInlining;
 #else
+#if SUPPORTS_HOTPATH
+        public const MethodImplOptions HotPath = MethodImplOptions.AggressiveOptimization;
+#else
+        public const MethodImplOptions HotPath = MethodImplOptions.AggressiveInlining;
+#endif
         public const MethodImplOptions ShortMethod = MethodImplOptions.AggressiveInlining;
 #endif
         public const MethodImplOptions ColdPath = MethodImplOptions.NoInlining;

@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
 using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
 
 namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
 {
@@ -28,15 +28,15 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         IEqualityComparer<CieXyChromaticityCoordinates>,
         IEqualityComparer<RgbPrimariesChromaticityCoordinates>,
         IEqualityComparer<GammaWorkingSpace>,
-        IEqualityComparer<RgbWorkingSpaceBase>
+        IEqualityComparer<RgbWorkingSpace>
     {
-        private readonly float Epsilon;
+        private readonly float epsilon;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ApproximateColorSpaceComparer"/> class.
         /// </summary>
         /// <param name="epsilon">The comparison error difference epsilon to use.</param>
-        public ApproximateColorSpaceComparer(float epsilon = 1F) => this.Epsilon = epsilon;
+        public ApproximateColorSpaceComparer(float epsilon = 1F) => this.epsilon = epsilon;
 
         /// <inheritdoc/>
         public bool Equals(Rgb x, Rgb y)
@@ -222,19 +222,19 @@ namespace SixLabors.ImageSharp.Tests.Colorspaces.Conversion
         public int GetHashCode(GammaWorkingSpace obj) => obj.GetHashCode();
 
         /// <inheritdoc/>
-        public bool Equals(RgbWorkingSpaceBase x, RgbWorkingSpaceBase y)
+        public bool Equals(RgbWorkingSpace x, RgbWorkingSpace y)
         {
             return this.Equals(x.WhitePoint, y.WhitePoint)
                 && this.Equals(x.ChromaticityCoordinates, y.ChromaticityCoordinates);
         }
 
         /// <inheritdoc/>
-        public int GetHashCode(RgbWorkingSpaceBase obj) => obj.GetHashCode();
+        public int GetHashCode(RgbWorkingSpace obj) => obj.GetHashCode();
 
         private bool Equals(float x, float y)
         {
             float d = x - y;
-            return d >= -this.Epsilon && d <= this.Epsilon;
+            return d >= -this.epsilon && d <= this.epsilon;
         }
     }
 }

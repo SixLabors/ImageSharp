@@ -1,33 +1,30 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
-
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Overlays;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
     /// <summary>
     /// Converts the colors of the image recreating an old Lomograph effect.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class LomographProcessor<TPixel> : FilterProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public sealed class LomographProcessor : FilterProcessor
     {
-        private static readonly TPixel VeryDarkGreen = ColorBuilder<TPixel>.FromRGBA(0, 10, 0, 255);
-
         /// <summary>
-        /// Initializes a new instance of the <see cref="LomographProcessor{TPixel}" /> class.
+        /// Initializes a new instance of the <see cref="LomographProcessor" /> class.
         /// </summary>
-        public LomographProcessor()
+        /// <param name="graphicsOptions">Graphics options to use within the processor.</param>
+        public LomographProcessor(GraphicsOptions graphicsOptions)
             : base(KnownFilterMatrices.LomographFilter)
         {
+            this.GraphicsOptions = graphicsOptions;
         }
 
-        /// <inheritdoc/>
-        protected override void AfterFrameApply(ImageFrame<TPixel> source, Rectangle sourceRectangle, Configuration configuration)
-        {
-            new VignetteProcessor<TPixel>(VeryDarkGreen).Apply(source, sourceRectangle, configuration);
-        }
+        /// <summary>
+        /// Gets the options effecting blending and composition
+        /// </summary>
+        public GraphicsOptions GraphicsOptions { get; }
+
+        /// <inheritdoc />
+        public override IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle) =>
+            new LomographProcessor<TPixel>(configuration, this, source, sourceRectangle);
     }
 }

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+    - name: Ask a Question
+      url: https://github.com/SixLabors/ImageSharp/discussions?discussions_q=category%3AHelp
+      about: Ask a question about this project.
+    - name: Feature Request
+      url: https://github.com/SixLabors/ImageSharp/discussions?discussions_q=category%3AIdeas
+      about: Share ideas for new features for this project.

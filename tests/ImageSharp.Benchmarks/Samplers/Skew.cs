@@ -1,7 +1,9 @@
-﻿using BenchmarkDotNet.Attributes;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Benchmarks.Samplers
 {
@@ -11,7 +13,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
         [Benchmark]
         public Size DoSkew()
         {
-            using (var image = new Image<Rgba32>(Configuration.Default, 400, 400, Rgba32.BlanchedAlmond))
+            using (var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.BlanchedAlmond))
             {
                 image.Mutate(x => x.Skew(20, 10));
 
@@ -21,25 +23,21 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
     }
 }
 
-// Nov 7 2018
-//BenchmarkDotNet=v0.10.14, OS=Windows 10.0.17763
-//Intel Core i7-6600U CPU 2.60GHz(Skylake), 1 CPU, 4 logical and 2 physical cores
-//.NET Core SDK = 2.1.403
-
-// [Host]     : .NET Core 2.1.5 (CoreCLR 4.6.26919.02, CoreFX 4.6.26919.02), 64bit RyuJIT
-//  Job-KKDIMW : .NET Framework 4.7.1 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.3190.0
-//  Job-IUZRFA : .NET Core 2.1.5 (CoreCLR 4.6.26919.02, CoreFX 4.6.26919.02), 64bit RyuJIT
-
-//LaunchCount=1  TargetCount=3  WarmupCount=3
-
-// #### BEFORE ####:
-//Method | Runtime |     Mean |    Error |    StdDev | Allocated |
-//------- |-------- |---------:|---------:|----------:|----------:|
-// DoSkew |     Clr | 78.14 ms | 8.383 ms | 0.4736 ms |      6 KB |
-// DoSkew |    Core | 44.22 ms | 4.109 ms | 0.2322 ms |   4.28 KB |
-
-// #### AFTER ####:
-//Method | Runtime |     Mean |     Error |    StdDev | Allocated |
-//------- |-------- |---------:|----------:|----------:|----------:|
-// DoSkew |     Clr | 71.63 ms | 25.589 ms | 1.4458 ms |      6 KB |
-// DoSkew |    Core | 38.99 ms |  8.640 ms | 0.4882 ms |   4.36 KB |
+// #### 21th February 2020 ####
+//
+// BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18363
+// Intel Core i7-8650U CPU 1.90GHz(Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+// .NET Core SDK = 3.1.101
+//
+// [Host]     : .NET Core 3.1.1 (CoreCLR 4.700.19.60701, CoreFX 4.700.19.60801), X64 RyuJIT
+//  Job-VKKTMF : .NET Framework 4.8 (4.8.4121.0), X64 RyuJIT
+//  Job-KTVRKR : .NET Core 2.1.15 (CoreCLR 4.6.28325.01, CoreFX 4.6.28327.02), X64 RyuJIT
+//  Job-EONWDB : .NET Core 3.1.1 (CoreCLR 4.700.19.60701, CoreFX 4.700.19.60801), X64 RyuJIT
+//
+// IterationCount=3  LaunchCount=1  WarmupCount=3
+//
+// | Method |       Runtime |     Mean |     Error |   StdDev | Gen 0 | Gen 1 | Gen 2 | Allocated |
+// |------- |-------------- |---------:|----------:|---------:|------:|------:|------:|----------:|
+// | DoSkew |    .NET 4.7.2 | 24.60 ms | 33.971 ms | 1.862 ms |     - |     - |     - |    6.5 KB |
+// | DoSkew | .NET Core 2.1 | 12.13 ms |  2.256 ms | 0.124 ms |     - |     - |     - |   5.21 KB |
+// | DoSkew | .NET Core 3.1 | 12.83 ms |  1.442 ms | 0.079 ms |     - |     - |     - |   6.57 KB |

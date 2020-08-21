@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             [InlineData(2)]
             public void ForwardThenInverse(int seed)
             {
-                float[] data = JpegFixture.Create8x8RandomFloatData(-1000, 1000, seed);
+                float[] data = Create8x8RandomFloatData(-1000, 1000, seed);
 
                 var b0 = default(Block8x8F);
                 b0.LoadFrom(data);

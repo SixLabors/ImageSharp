@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.Tests
     public class MeasureFixture
     {
         /// <summary>
-        /// Value indicating whether priniting is enabled.
+        /// Value indicating whether printing is enabled.
         /// </summary>
-        protected bool EnablePrinting = true;
+        protected bool enablePrinting = true;
 
         /// <summary>
         /// Measures and prints the execution time of an <see cref="Action{T}"/>, executed multiple times.
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <param name="operationName">The name of the operation to print to the output</param>
         public void Measure(int times, Action action, [CallerMemberName] string operationName = null)
         {
-            if (this.EnablePrinting)
+            if (this.enablePrinting)
             {
                 this.Output?.WriteLine($"{operationName} X {times} ...");
             }
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             sw.Stop();
-            if (this.EnablePrinting)
+            if (this.enablePrinting)
             {
                 this.Output?.WriteLine($"{operationName} finished in {sw.ElapsedMilliseconds} ms");
             }

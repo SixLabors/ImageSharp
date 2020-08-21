@@ -1,9 +1,12 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
+
+using BenchmarkDotNet.Attributes;
+
 namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 {
-    using System.Numerics;
-
-    using BenchmarkDotNet.Attributes;
-
     public class DivUInt32
     {
         private uint[] input;
@@ -32,6 +35,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         public void Standard()
         {
             uint v = this.testValue;
+
             for (int i = 0; i < this.input.Length; i++)
             {
                 this.result[i] = this.input[i] / v;
@@ -41,11 +45,12 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         [Benchmark]
         public void Simd()
         {
-            Vector<uint> v = new Vector<uint>(this.testValue);
+            var v = new Vector<uint>(this.testValue);
 
             for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
             {
-                Vector<uint> a = new Vector<uint>(this.input, i);
+                var a = new Vector<uint>(this.input, i);
+
                 a = a / v;
                 a.CopyTo(this.result, i);
             }

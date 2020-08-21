@@ -1,7 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
 {
@@ -26,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public static readonly IEnumerable<string> FileExtensions = new[] { "jpg", "jpeg", "jfif" };
 
         /// <summary>
-        /// Contains marker specific constants
+        /// Contains marker specific constants.
         /// </summary>
         // ReSharper disable InconsistentNaming
         internal static class Markers
@@ -219,7 +220,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         }
 
         /// <summary>
-        /// Contains Adobe specific constants
+        /// Contains Adobe specific constants.
         /// </summary>
         internal static class Adobe
         {
@@ -237,6 +238,48 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             /// The color transform is YCCK (luminance, red chroma, blue chroma, keyline)
             /// </summary>
             public const byte ColorTransformYcck = 2;
+        }
+
+        /// <summary>
+        /// Contains Huffman specific constants.
+        /// </summary>
+        internal static class Huffman
+        {
+            /// <summary>
+            /// The size of the huffman decoder register.
+            /// </summary>
+            public const int RegisterSize = 64;
+
+            /// <summary>
+            /// The number of bits to fetch when filling the <see cref="HuffmanScanBuffer"/> buffer.
+            /// </summary>
+            public const int FetchBits = 48;
+
+            /// <summary>
+            /// The number of times to read the input stream when filling the <see cref="HuffmanScanBuffer"/> buffer.
+            /// </summary>
+            public const int FetchLoop = FetchBits / 8;
+
+            /// <summary>
+            /// The minimum number of bits allowed before by the <see cref="HuffmanScanBuffer"/> before fetching.
+            /// </summary>
+            public const int MinBits = RegisterSize - FetchBits;
+
+            /// <summary>
+            /// If the next Huffman code is no more than this number of bits, we can obtain its length
+            /// and the corresponding symbol directly from this tables.
+            /// </summary>
+            public const int LookupBits = 8;
+
+            /// <summary>
+            /// If a Huffman code is this number of bits we cannot use the lookup table to determine its value.
+            /// </summary>
+            public const int SlowBits = LookupBits + 1;
+
+            /// <summary>
+            /// The size of the lookup table.
+            /// </summary>
+            public const int LookupSize = 1 << LookupBits;
         }
     }
 }

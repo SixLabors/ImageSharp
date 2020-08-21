@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         public readonly float Y;
 
         /// <summary>
-        /// Gets the Z component. Quasi-equal to blue stimulation, or the S cone response
+        /// Gets the Z component. Quasi-equal to blue stimulation, or the S cone response.
         /// <remarks>A value usually ranging between 0 and 1.</remarks>
         /// </summary>
         public readonly float Z;

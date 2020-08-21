@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public unsafe void Indexer_GetScalarAt_SetScalarAt()
         {
-            int sum = 0;
+            int sum;
             var block = default(Block8x8);
 
             for (int i = 0; i < Block8x8.Size; i++)
@@ -58,9 +58,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             {
                 sum += Block8x8.GetScalarAt(&block, i);
             }
+
             Assert.Equal(sum, 64 * 63 / 2);
         }
-
 
         [Fact]
         public void AsFloatBlock()
@@ -73,7 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             for (int i = 0; i < Block8x8F.Size; i++)
             {
-                Assert.Equal((float)data[i], dest[i]);
+                Assert.Equal(data[i], dest[i]);
             }
         }
 
@@ -119,7 +119,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public void IndexerXY()
         {
             Block8x8 block = default;
-            block[8 * 3 + 5] = 42;
+            block[(8 * 3) + 5] = 42;
 
             short value = block[5, 3];
 

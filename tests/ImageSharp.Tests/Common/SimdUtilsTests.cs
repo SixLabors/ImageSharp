@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private static Vector<float> CreateExactTestVector1()
         {
-            float[] data = new float[Vector<float>.Count];
+            var data = new float[Vector<float>.Count];
 
             data[0] = 0.1f;
             data[1] = 0.4f;
@@ -55,18 +55,19 @@ namespace SixLabors.ImageSharp.Tests.Common
             {
                 data[i] = data[i - 4] + 100f;
             }
+
             return new Vector<float>(data);
         }
 
         private static Vector<float> CreateRandomTestVector(int seed, float min, float max)
         {
-            float[] data = new float[Vector<float>.Count];
+            var data = new float[Vector<float>.Count];
 
             var rnd = new Random(seed);
 
             for (int i = 0; i < Vector<float>.Count; i++)
             {
-                float v = (float)rnd.NextDouble() * (max - min) + min;
+                float v = ((float)rnd.NextDouble() * (max - min)) + min;
                 data[i] = v;
             }
 
@@ -104,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private bool SkipOnNonAvx2([CallerMemberName] string testCaseName = null)
         {
-            if (!SimdUtils.IsAvx2CompatibleArchitecture)
+            if (!SimdUtils.HasVector8)
             {
                 this.Output.WriteLine("Skipping AVX2 specific test case: " + testCaseName);
                 return true;
@@ -128,11 +129,11 @@ namespace SixLabors.ImageSharp.Tests.Common
             float[] orig = new Random(seed).GenerateRandomRoundedFloatArray(count, 0, 256);
             float[] normalized = orig.Select(f => f / 255f).ToArray();
 
-            byte[] dest = new byte[count];
+            var dest = new byte[count];
 
             SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByte(normalized, dest);
 
-            byte[] expected = orig.Select(f => (byte)(f)).ToArray();
+            byte[] expected = orig.Select(f => (byte)f).ToArray();
 
             Assert.Equal(expected, dest);
         }
@@ -151,7 +152,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             float[] source = new Random(seed).GenerateRandomFloatArray(count, 0, 1f);
 
-            byte[] dest = new byte[count];
+            var dest = new byte[count];
 
             SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByte(source, dest);
 
@@ -177,7 +178,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             TestImpl_BulkConvertByteToNormalizedFloat(
                 count,
-                (s, d) => SimdUtils.FallbackIntrinsics128.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
+                (s, d) => SimdUtils.FallbackIntrinsics128.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
         [Theory]
@@ -191,16 +192,16 @@ namespace SixLabors.ImageSharp.Tests.Common
 
             TestImpl_BulkConvertByteToNormalizedFloat(
                 count,
-                (s, d) => SimdUtils.BasicIntrinsics256.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
+                (s, d) => SimdUtils.BasicIntrinsics256.ByteToNormalizedFloat(s.Span, d.Span));
         }
-        
+
         [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat(int count)
         {
             TestImpl_BulkConvertByteToNormalizedFloat(
                 count,
-                (s, d) => SimdUtils.ExtendedIntrinsics.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
+                (s, d) => SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
         [Theory]
@@ -209,7 +210,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             TestImpl_BulkConvertByteToNormalizedFloat(
                 count,
-                (s, d) => SimdUtils.BulkConvertByteToNormalizedFloat(s.Span, d.Span));
+                (s, d) => SimdUtils.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
         private static void TestImpl_BulkConvertByteToNormalizedFloat(
@@ -217,7 +218,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             Action<Memory<byte>, Memory<float>> convert)
         {
             byte[] source = new Random(count).GenerateRandomByteArray(count);
-            float[] result = new float[count];
+            var result = new float[count];
             float[] expected = source.Select(b => (float)b / 255f).ToArray();
 
             convert(source, result);
@@ -229,9 +230,9 @@ namespace SixLabors.ImageSharp.Tests.Common
         [MemberData(nameof(ArraySizesDivisibleBy4))]
         public void FallbackIntrinsics128_BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
-                (s, d) => SimdUtils.FallbackIntrinsics128.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
-            );
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+                count,
+                (s, d) => SimdUtils.FallbackIntrinsics128.NormalizedFloatToByteSaturate(s.Span, d.Span));
         }
 
         [Theory]
@@ -243,18 +244,16 @@ namespace SixLabors.ImageSharp.Tests.Common
                 return;
             }
 
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
-                (s, d) => SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
-                );
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count, (s, d) => SimdUtils.BasicIntrinsics256.NormalizedFloatToByteSaturate(s.Span, d.Span));
         }
 
         [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void ExtendedIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
-                (s, d) => SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
-            );
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+                count,
+                (s, d) => SimdUtils.ExtendedIntrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
         }
 
         [Theory]
@@ -278,22 +277,38 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(expected2, actual2);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+
+        [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy32))]
+        public void Avx2_BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        {
+            if (!System.Runtime.Intrinsics.X86.Avx2.IsSupported)
+            {
+                return;
+            }
+
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+                count,
+                (s, d) => SimdUtils.Avx2Intrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
+        }
+
+#endif
+
         [Theory]
         [MemberData(nameof(ArbitraryArraySizes))]
         public void BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count,
-                (s, d) => SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span)
-            );
+            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(count, (s, d) => SimdUtils.NormalizedFloatToByteSaturate(s.Span, d.Span));
 
-            // for small values, let's stress test the implementation a bit:
+            // For small values, let's stress test the implementation a bit:
             if (count > 0 && count < 10)
             {
                 for (int i = 0; i < 20; i++)
                 {
                     TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
                         count,
-                        (s, d) => SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(s.Span, d.Span),
+                        (s, d) => SimdUtils.NormalizedFloatToByteSaturate(s.Span, d.Span),
                         i + 42);
                 }
             }
@@ -301,19 +316,21 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         private static void TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
             int count,
-            Action<Memory<float>, Memory<byte>> convert, int seed = -1)
+            Action<Memory<float>,
+            Memory<byte>> convert,
+            int seed = -1)
         {
             seed = seed > 0 ? seed : count;
             float[] source = new Random(seed).GenerateRandomFloatArray(count, -0.2f, 1.2f);
             byte[] expected = source.Select(NormalizedFloatToByte).ToArray();
-            byte[] actual = new byte[count];
+            var actual = new byte[count];
 
             convert(source, actual);
 
             Assert.Equal(expected, actual);
         }
 
-        private static byte NormalizedFloatToByte(float f) => (byte)Math.Min(255f, Math.Max(0f, f * 255f + 0.5f));
+        private static byte NormalizedFloatToByte(float f) => (byte)Math.Min(255f, Math.Max(0f, (f * 255f) + 0.5f));
 
         [Theory]
         [InlineData(0)]
@@ -325,7 +342,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         private void MagicConvertToByte(float value)
         {
             byte actual = MagicConvert(value / 256f);
-            byte expected = (byte)value;
+            var expected = (byte)value;
 
             Assert.Equal(expected, actual);
         }
@@ -362,7 +379,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             var magick = new Vector<float>(32768.0f);
 
-            Vector<float> scale = new Vector<float>(255f) / new Vector<float>(256f);
+            var scale = new Vector<float>(255f) / new Vector<float>(256f);
 
             Vector<float> x = MemoryMarshal.Cast<float, Vector<float>>(source)[0];
 

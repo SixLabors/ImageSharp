@@ -1,9 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.IO;
-using System.IO.Compression;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
 {
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// Computes the checksum for the data stream.
         /// </summary>
-        private readonly Adler32 adler32 = new Adler32();
+        private uint adler = Adler32.SeedValue;
 
         /// <summary>
         /// A value indicating whether this instance of the given entity has been disposed.
@@ -38,15 +39,18 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// The stream responsible for compressing the input stream.
         /// </summary>
-        private System.IO.Compression.DeflateStream deflateStream;
+        // private DeflateStream deflateStream;
+        private DeflaterOutputStream deflateStream;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ZlibDeflateStream"/> class.
         /// </summary>
+        /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
         /// <param name="stream">The stream to compress.</param>
-        /// <param name="compressionLevel">The compression level.</param>
-        public ZlibDeflateStream(Stream stream, int compressionLevel)
+        /// <param name="level">The compression level.</param>
+        public ZlibDeflateStream(MemoryAllocator memoryAllocator, Stream stream, PngCompressionLevel level)
         {
+            int compressionLevel = (int)level;
             this.rawStream = stream;
 
             // Write the zlib header : http://tools.ietf.org/html/rfc1950
@@ -60,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             // +---+---+
             // |CMF|FLG|
             // +---+---+
-            int cmf = 0x78;
+            const int Cmf = 0x78;
             int flg = 218;
 
             // http://stackoverflow.com/a/2331025/277304
@@ -78,29 +82,17 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             }
 
             // Just in case
-            flg -= ((cmf * 256) + flg) % 31;
+            flg -= ((Cmf * 256) + flg) % 31;
 
             if (flg < 0)
             {
                 flg += 31;
             }
 
-            this.rawStream.WriteByte((byte)cmf);
+            this.rawStream.WriteByte(Cmf);
             this.rawStream.WriteByte((byte)flg);
 
-            // Initialize the deflate Stream.
-            CompressionLevel level = CompressionLevel.Optimal;
-
-            if (compressionLevel >= 1 && compressionLevel <= 5)
-            {
-                level = CompressionLevel.Fastest;
-            }
-            else if (compressionLevel == 0)
-            {
-                level = CompressionLevel.NoCompression;
-            }
-
-            this.deflateStream = new System.IO.Compression.DeflateStream(this.rawStream, level, true);
+            this.deflateStream = new DeflaterOutputStream(memoryAllocator, this.rawStream, compressionLevel);
         }
 
         /// <inheritdoc/>
@@ -110,47 +102,43 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         public override bool CanSeek => false;
 
         /// <inheritdoc/>
-        public override bool CanWrite => true;
+        public override bool CanWrite => this.rawStream.CanWrite;
 
         /// <inheritdoc/>
-        public override long Length => throw new NotSupportedException();
+        public override long Length => this.rawStream.Length;
 
         /// <inheritdoc/>
         public override long Position
         {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
+            get
+            {
+                return this.rawStream.Position;
+            }
+
+            set
+            {
+                throw new NotSupportedException();
+            }
         }
 
         /// <inheritdoc/>
-        public override void Flush()
-        {
-            this.deflateStream?.Flush();
-        }
+        public override void Flush() => this.deflateStream.Flush();
 
         /// <inheritdoc/>
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            throw new NotSupportedException();
-        }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            throw new NotSupportedException();
-        }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public override void SetLength(long value)
-        {
-            throw new NotSupportedException();
-        }
+        public override void SetLength(long value) => throw new NotSupportedException();
 
         /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override void Write(byte[] buffer, int offset, int count)
         {
             this.deflateStream.Write(buffer, offset, count);
-            this.adler32.Update(buffer.AsSpan(offset, count));
+            this.adler = Adler32.Calculate(this.adler, buffer.AsSpan(offset, count));
         }
 
         /// <inheritdoc/>
@@ -164,31 +152,19 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
             if (disposing)
             {
                 // dispose managed resources
-                if (this.deflateStream != null)
-                {
-                    this.deflateStream.Dispose();
-                    this.deflateStream = null;
-                }
-                else
-                {
-                    // Hack: empty input?
-                    this.rawStream.WriteByte(3);
-                    this.rawStream.WriteByte(0);
-                }
+                this.deflateStream.Dispose();
 
                 // Add the crc
-                uint crc = (uint)this.adler32.Value;
+                uint crc = this.adler;
                 this.rawStream.WriteByte((byte)((crc >> 24) & 0xFF));
                 this.rawStream.WriteByte((byte)((crc >> 16) & 0xFF));
                 this.rawStream.WriteByte((byte)((crc >> 8) & 0xFF));
                 this.rawStream.WriteByte((byte)(crc & 0xFF));
             }
 
-            base.Dispose(disposing);
+            this.deflateStream = null;
 
-            // Call the appropriate methods to clean up
-            // unmanaged resources here.
-            // Note disposing is done.
+            base.Dispose(disposing);
             this.isDisposed = true;
         }
     }

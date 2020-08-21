@@ -1,9 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.Primitives;
+using SixLabors.ImageSharp.Metadata;
 
 using Xunit;
 
@@ -19,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests
             var size = new Size(Width, Height);
             var rectangle = new Rectangle(0, 0, Width, Height);
             var pixelType = new PixelTypeInfo(8);
-            var meta = new ImageMetaData();
+            var meta = new ImageMetadata();
 
             var info = new ImageInfo(pixelType, Width, Height, meta);
 
@@ -28,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests
             Assert.Equal(Height, info.Height);
             Assert.Equal(size, info.Size());
             Assert.Equal(rectangle, info.Bounds());
-            Assert.Equal(meta, info.MetaData);
+            Assert.Equal(meta, info.Metadata);
         }
     }
 }

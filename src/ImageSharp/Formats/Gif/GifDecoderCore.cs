@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,19 +6,19 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using SixLabors.ImageSharp.Advanced;
+using System.Threading;
+using System.Threading.Tasks;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Memory;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
     /// <summary>
     /// Performs the gif decoding operation.
     /// </summary>
-    internal sealed class GifDecoderCore
+    internal sealed class GifDecoderCore : IImageDecoderInternals
     {
         /// <summary>
         /// The temp buffer used to reduce allocations.
@@ -26,14 +26,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private readonly byte[] buffer = new byte[16];
 
         /// <summary>
-        /// The global configuration.
-        /// </summary>
-        private readonly Configuration configuration;
-
-        /// <summary>
         /// The currently loaded stream.
         /// </summary>
-        private Stream stream;
+        private BufferedReadStream stream;
 
         /// <summary>
         /// The global color table.
@@ -63,12 +58,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// The abstract metadata.
         /// </summary>
-        private ImageMetaData metaData;
+        private ImageMetadata metadata;
 
         /// <summary>
         /// The gif specific metadata.
         /// </summary>
-        private GifMetaData gifMetaData;
+        private GifMetadata gifMetadata;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GifDecoderCore"/> class.
@@ -77,11 +72,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="options">The decoder options.</param>
         public GifDecoderCore(Configuration configuration, IGifDecoderOptions options)
         {
-            this.TextEncoding = options.TextEncoding ?? GifConstants.DefaultEncoding;
             this.IgnoreMetadata = options.IgnoreMetadata;
             this.DecodingMode = options.DecodingMode;
-            this.configuration = configuration ?? Configuration.Default;
+            this.Configuration = configuration ?? Configuration.Default;
         }
+
+        /// <inheritdoc />
+        public Configuration Configuration { get; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -89,25 +86,20 @@ namespace SixLabors.ImageSharp.Formats.Gif
         public bool IgnoreMetadata { get; internal set; }
 
         /// <summary>
-        /// Gets the text encoding
-        /// </summary>
-        public Encoding TextEncoding { get; }
-
-        /// <summary>
-        /// Gets the decoding mode for multi-frame images
+        /// Gets the decoding mode for multi-frame images.
         /// </summary>
         public FrameDecodingMode DecodingMode { get; }
 
-        private MemoryAllocator MemoryAllocator => this.configuration.MemoryAllocator;
-
         /// <summary>
-        /// Decodes the stream to the image.
+        /// Gets the dimensions of the image.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="stream">The stream containing image data. </param>
-        /// <returns>The decoded image</returns>
-        public Image<TPixel> Decode<TPixel>(Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+        public Size Dimensions => new Size(this.imageDescriptor.Width, this.imageDescriptor.Height);
+
+        private MemoryAllocator MemoryAllocator => this.Configuration.MemoryAllocator;
+
+        /// <inheritdoc />
+        public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Image<TPixel> image = null;
             ImageFrame<TPixel> previousFrame = null;
@@ -166,11 +158,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
             return image;
         }
 
-        /// <summary>
-        /// Reads the raw image information from the specified stream.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
-        public IImageInfo Identify(Stream stream)
+        /// <inheritdoc />
+        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             try
             {
@@ -223,7 +212,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 new PixelTypeInfo(this.logicalScreenDescriptor.BitsPerPixel),
                 this.logicalScreenDescriptor.Width,
                 this.logicalScreenDescriptor.Height,
-                this.metaData);
+                this.metadata);
         }
 
         /// <summary>
@@ -244,6 +233,10 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.stream.Read(this.buffer, 0, 9);
 
             this.imageDescriptor = GifImageDescriptor.Parse(this.buffer);
+            if (this.imageDescriptor.Height == 0 || this.imageDescriptor.Width == 0)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Width or height should not be 0");
+            }
         }
 
         /// <summary>
@@ -276,15 +269,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
                 {
                     this.stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
-                    this.gifMetaData.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.AsSpan(1)).RepeatCount;
+                    this.gifMetadata.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.AsSpan(1)).RepeatCount;
                     this.stream.Skip(1); // Skip the terminator.
                     return;
                 }
 
                 // Could be XMP or something else not supported yet.
-                // Back up and skip.
-                this.stream.Position -= appLength + 1;
-                this.SkipBlock(appLength);
+                // Skip the subblock and terminator.
+                this.SkipBlock(subBlockSize);
                 return;
             }
 
@@ -317,11 +309,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         {
             int length;
 
+            var stringBuilder = new StringBuilder();
             while ((length = this.stream.ReadByte()) != 0)
             {
-                if (length > GifConstants.MaxCommentLength)
+                if (length > GifConstants.MaxCommentSubBlockLength)
                 {
-                    throw new ImageFormatException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentLength}'");
+                    GifThrowHelper.ThrowInvalidImageContentException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentSubBlockLength}' of a comment data block");
                 }
 
                 if (this.IgnoreMetadata)
@@ -333,9 +326,14 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 using (IManagedByteBuffer commentsBuffer = this.MemoryAllocator.AllocateManagedByteBuffer(length))
                 {
                     this.stream.Read(commentsBuffer.Array, 0, length);
-                    string comments = this.TextEncoding.GetString(commentsBuffer.Array, 0, length);
-                    this.metaData.Properties.Add(new ImageProperty(GifConstants.Comments, comments));
+                    string commentPart = GifConstants.Encoding.GetString(commentsBuffer.Array, 0, length);
+                    stringBuilder.Append(commentPart);
                 }
+            }
+
+            if (stringBuilder.Length > 0)
+            {
+                this.gifMetadata.Comments.Add(stringBuilder.ToString());
             }
         }
 
@@ -346,27 +344,27 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="image">The image to decode the information to.</param>
         /// <param name="previousFrame">The previous frame.</param>
         private void ReadFrame<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.ReadImageDescriptor();
 
             IManagedByteBuffer localColorTable = null;
-            IManagedByteBuffer indices = null;
+            Buffer2D<byte> indices = null;
             try
             {
                 // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
                 if (this.imageDescriptor.LocalColorTableFlag)
                 {
                     int length = this.imageDescriptor.LocalColorTableSize * 3;
-                    localColorTable = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(length, AllocationOptions.Clean);
+                    localColorTable = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(length, AllocationOptions.Clean);
                     this.stream.Read(localColorTable.Array, 0, length);
                 }
 
-                indices = this.configuration.MemoryAllocator.AllocateManagedByteBuffer(this.imageDescriptor.Width * this.imageDescriptor.Height, AllocationOptions.Clean);
+                indices = this.Configuration.MemoryAllocator.Allocate2D<byte>(this.imageDescriptor.Width, this.imageDescriptor.Height, AllocationOptions.Clean);
 
-                this.ReadFrameIndices(this.imageDescriptor, indices.GetSpan());
+                this.ReadFrameIndices(indices);
                 ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>((localColorTable ?? this.globalColorTable).GetSpan());
-                this.ReadFrameColors(ref image, ref previousFrame, indices.GetSpan(), colorTable, this.imageDescriptor);
+                this.ReadFrameColors(ref image, ref previousFrame, indices, colorTable, this.imageDescriptor);
 
                 // Skip any remaining blocks
                 this.SkipBlock();
@@ -381,16 +379,13 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Reads the frame indices marking the color to use for each pixel.
         /// </summary>
-        /// <param name="imageDescriptor">The <see cref="GifImageDescriptor"/>.</param>
-        /// <param name="indices">The pixel array to write to.</param>
+        /// <param name="indices">The 2D pixel buffer to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReadFrameIndices(in GifImageDescriptor imageDescriptor, Span<byte> indices)
+        private void ReadFrameIndices(Buffer2D<byte> indices)
         {
             int dataSize = this.stream.ReadByte();
-            using (var lzwDecoder = new LzwDecoder(this.configuration.MemoryAllocator, this.stream))
-            {
-                lzwDecoder.DecodePixels(imageDescriptor.Width, imageDescriptor.Height, dataSize, indices);
-            }
+            using var lzwDecoder = new LzwDecoder(this.Configuration.MemoryAllocator, this.stream);
+            lzwDecoder.DecodePixels(dataSize, indices);
         }
 
         /// <summary>
@@ -402,10 +397,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="indices">The indexed pixels.</param>
         /// <param name="colorTable">The color table containing the available colors.</param>
         /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
-        private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Span<byte> indices, ReadOnlySpan<Rgb24> colorTable, in GifImageDescriptor descriptor)
-            where TPixel : struct, IPixel<TPixel>
+        private void ReadFrameColors<TPixel>(ref Image<TPixel> image, ref ImageFrame<TPixel> previousFrame, Buffer2D<byte> indices, ReadOnlySpan<Rgb24> colorTable, in GifImageDescriptor descriptor)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            ref byte indicesRef = ref MemoryMarshal.GetReference(indices);
             int imageWidth = this.logicalScreenDescriptor.Width;
             int imageHeight = this.logicalScreenDescriptor.Height;
 
@@ -416,9 +410,9 @@ namespace SixLabors.ImageSharp.Formats.Gif
             if (previousFrame is null)
             {
                 // This initializes the image to become fully transparent because the alpha channel is zero.
-                image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metaData);
+                image = new Image<TPixel>(this.Configuration, imageWidth, imageHeight, this.metadata);
 
-                this.SetFrameMetaData(image.Frames.RootFrame.MetaData);
+                this.SetFrameMetadata(image.Frames.RootFrame.Metadata);
 
                 imageFrame = image.Frames.RootFrame;
             }
@@ -431,20 +425,27 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
                 currentFrame = image.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection
 
-                this.SetFrameMetaData(currentFrame.MetaData);
+                this.SetFrameMetadata(currentFrame.Metadata);
 
                 imageFrame = currentFrame;
 
                 this.RestoreToBackground(imageFrame);
             }
 
-            int i = 0;
             int interlacePass = 0; // The interlace pass
             int interlaceIncrement = 8; // The interlacing line increment
             int interlaceY = 0; // The current interlaced line
+            int descriptorTop = descriptor.Top;
+            int descriptorBottom = descriptorTop + descriptor.Height;
+            int descriptorLeft = descriptor.Left;
+            int descriptorRight = descriptorLeft + descriptor.Width;
+            bool transFlag = this.graphicsControlExtension.TransparencyFlag;
+            byte transIndex = this.graphicsControlExtension.TransparencyIndex;
 
-            for (int y = descriptor.Top; y < descriptor.Top + descriptor.Height; y++)
+            for (int y = descriptorTop; y < descriptorBottom && y < imageHeight; y++)
             {
+                ref byte indicesRowRef = ref MemoryMarshal.GetReference(indices.GetRowSpan(y - descriptorTop));
+
                 // Check if this image is interlaced.
                 int writeY; // the target y offset to write to
                 if (descriptor.InterlaceFlag)
@@ -480,35 +481,29 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
 
                 ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.GetPixelRowSpan(writeY));
-                bool transFlag = this.graphicsControlExtension.TransparencyFlag;
 
                 if (!transFlag)
                 {
                     // #403 The left + width value can be larger than the image width
-                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
+                    for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                     {
-                        int index = Unsafe.Add(ref indicesRef, i);
+                        int index = Unsafe.Add(ref indicesRowRef, x - descriptorLeft);
                         ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                         Rgb24 rgb = colorTable[index];
                         pixel.FromRgb24(rgb);
-
-                        i++;
                     }
                 }
                 else
                 {
-                    byte transIndex = this.graphicsControlExtension.TransparencyIndex;
-                    for (int x = descriptor.Left; x < descriptor.Left + descriptor.Width && x < imageWidth; x++)
+                    for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                     {
-                        int index = Unsafe.Add(ref indicesRef, i);
+                        int index = Unsafe.Add(ref indicesRowRef, x - descriptorLeft);
                         if (transIndex != index)
                         {
                             ref TPixel pixel = ref Unsafe.Add(ref rowRef, x);
                             Rgb24 rgb = colorTable[index];
                             pixel.FromRgb24(rgb);
                         }
-
-                        i++;
                     }
                 }
             }
@@ -533,15 +528,15 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="frame">The frame.</param>
         private void RestoreToBackground<TPixel>(ImageFrame<TPixel> frame)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (this.restoreArea is null)
             {
                 return;
             }
 
-            BufferArea<TPixel> pixelArea = frame.PixelBuffer.GetArea(this.restoreArea.Value);
-            pixelArea.Clear();
+            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(this.restoreArea.Value);
+            pixelRegion.Clear();
 
             this.restoreArea = null;
         }
@@ -549,11 +544,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Sets the frames metadata.
         /// </summary>
-        /// <param name="meta">The meta data.</param>
+        /// <param name="meta">The metadata.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetFrameMetaData(ImageFrameMetaData meta)
+        private void SetFrameMetadata(ImageFrameMetadata meta)
         {
-            GifFrameMetaData gifMeta = meta.GetFormatMetaData(GifFormat.Instance);
+            GifFrameMetadata gifMeta = meta.GetGifMetadata();
             if (this.graphicsControlExtension.DelayTime > 0)
             {
                 gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
@@ -578,7 +573,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Reads the logical screen descriptor and global color table blocks
         /// </summary>
         /// <param name="stream">The stream containing image data. </param>
-        private void ReadLogicalScreenDescriptorAndGlobalColorTable(Stream stream)
+        private void ReadLogicalScreenDescriptorAndGlobalColorTable(BufferedReadStream stream)
         {
             this.stream = stream;
 
@@ -586,7 +581,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             this.stream.Skip(6);
             this.ReadLogicalScreenDescriptor();
 
-            var meta = new ImageMetaData();
+            var meta = new ImageMetadata();
 
             // The Pixel Aspect Ratio is defined to be the quotient of the pixel's
             // width over its height.  The value range in this field allows
@@ -614,16 +609,16 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 }
             }
 
-            this.metaData = meta;
-            this.gifMetaData = meta.GetFormatMetaData(GifFormat.Instance);
-            this.gifMetaData.ColorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
+            this.metadata = meta;
+            this.gifMetadata = meta.GetGifMetadata();
+            this.gifMetadata.ColorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
             ? GifColorTableMode.Global
             : GifColorTableMode.Local;
 
             if (this.logicalScreenDescriptor.GlobalColorTableFlag)
             {
                 int globalColorTableLength = this.logicalScreenDescriptor.GlobalColorTableSize * 3;
-                this.gifMetaData.GlobalColorTableLength = globalColorTableLength;
+                this.gifMetadata.GlobalColorTableLength = globalColorTableLength;
 
                 this.globalColorTable = this.MemoryAllocator.AllocateManagedByteBuffer(globalColorTableLength, AllocationOptions.Clean);
 

@@ -1,7 +1,5 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
-
-// ReSharper disable InconsistentNaming
 
 using System;
 using System.Buffers;
@@ -9,16 +7,23 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using BenchmarkDotNet.Attributes;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Environments;
+using BenchmarkDotNet.Jobs;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     [Config(typeof(Config.ShortClr))]
     public abstract class FromVector4<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         protected IMemoryOwner<Vector4> source;
 
@@ -26,10 +31,8 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
         protected Configuration Configuration => Configuration.Default;
 
-        [Params(
-            64,
-            2048
-            )]
+        // [Params(64, 2048)]
+        [Params(1024)]
         public int Count { get; set; }
 
         [GlobalSetup]
@@ -46,12 +49,11 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             this.source.Dispose();
         }
 
-        //[Benchmark]
+        // [Benchmark]
         public void PerElement()
         {
             ref Vector4 s = ref MemoryMarshal.GetReference(this.source.GetSpan());
             ref TPixel d = ref MemoryMarshal.GetReference(this.destination.GetSpan());
-            
             for (int i = 0; i < this.Count; i++)
             {
                 Unsafe.Add(ref d, i).FromVector4(Unsafe.Add(ref s, i));
@@ -61,13 +63,13 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void PixelOperations_Base()
         {
-            new PixelOperations<TPixel>().FromVector4(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());
+            new PixelOperations<TPixel>().FromVector4Destructive(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());
         }
 
         [Benchmark]
         public void PixelOperations_Specialized()
         {
-            PixelOperations<TPixel>.Instance.FromVector4(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());
         }
     }
 
@@ -79,52 +81,105 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
             Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
 
-            SimdUtils.FallbackIntrinsics128.BulkConvertNormalizedFloatToByteClampOverflows(sBytes, dFloats);
+            SimdUtils.FallbackIntrinsics128.NormalizedFloatToByteSaturate(sBytes, dFloats);
         }
 
-        [Benchmark(Baseline = true)]
+        [Benchmark]
         public void BasicIntrinsics256()
         {
             Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
             Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
 
-            SimdUtils.BasicIntrinsics256.BulkConvertNormalizedFloatToByteClampOverflows(sBytes, dFloats);
+            SimdUtils.BasicIntrinsics256.NormalizedFloatToByteSaturate(sBytes, dFloats);
         }
 
-        [Benchmark]
+        [Benchmark(Baseline = true)]
         public void ExtendedIntrinsic()
         {
             Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
             Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
 
-            SimdUtils.ExtendedIntrinsics.BulkConvertNormalizedFloatToByteClampOverflows(sBytes, dFloats);
+            SimdUtils.ExtendedIntrinsics.NormalizedFloatToByteSaturate(sBytes, dFloats);
         }
 
-        // RESULTS (2018 October):
-        //                       Method | Runtime | Count |         Mean |        Error |      StdDev | Scaled | ScaledSD |  Gen 0 | Allocated |
-        // ---------------------------- |-------- |------ |-------------:|-------------:|------------:|-------:|---------:|-------:|----------:|
-        //        FallbackIntrinsics128 |     Clr |    64 |    340.38 ns |    22.319 ns |   1.2611 ns |   1.41 |     0.01 |      - |       0 B |
-        //           BasicIntrinsics256 |     Clr |    64 |    240.79 ns |    11.421 ns |   0.6453 ns |   1.00 |     0.00 |      - |       0 B |
-        //            ExtendedIntrinsic |     Clr |    64 |    199.09 ns |   124.239 ns |   7.0198 ns |   0.83 |     0.02 |      - |       0 B |
-        //         PixelOperations_Base |     Clr |    64 |    647.99 ns |    24.003 ns |   1.3562 ns |   2.69 |     0.01 | 0.0067 |      24 B |
-        //  PixelOperations_Specialized |     Clr |    64 |    259.79 ns |    13.391 ns |   0.7566 ns |   1.08 |     0.00 |      - |       0 B | <--- ceremonial overhead has been minimized!
-        //                              |         |       |              |              |             |        |          |        |           |
-        //        FallbackIntrinsics128 |    Core |    64 |    234.64 ns |    12.320 ns |   0.6961 ns |   1.58 |     0.00 |      - |       0 B |
-        //           BasicIntrinsics256 |    Core |    64 |    148.87 ns |     2.794 ns |   0.1579 ns |   1.00 |     0.00 |      - |       0 B |
-        //            ExtendedIntrinsic |    Core |    64 |     94.06 ns |    10.015 ns |   0.5659 ns |   0.63 |     0.00 |      - |       0 B |
-        //         PixelOperations_Base |    Core |    64 |    573.52 ns |    31.865 ns |   1.8004 ns |   3.85 |     0.01 | 0.0067 |      24 B |
-        //  PixelOperations_Specialized |    Core |    64 |    117.21 ns |    13.264 ns |   0.7494 ns |   0.79 |     0.00 |      - |       0 B |
-        //                              |         |       |              |              |             |        |          |        |           |
-        //        FallbackIntrinsics128 |     Clr |  2048 |  6,735.93 ns | 2,139.340 ns | 120.8767 ns |   1.71 |     0.03 |      - |       0 B |
-        //           BasicIntrinsics256 |     Clr |  2048 |  3,929.29 ns |   334.027 ns |  18.8731 ns |   1.00 |     0.00 |      - |       0 B |
-        //            ExtendedIntrinsic |     Clr |  2048 |  2,226.01 ns |   130.525 ns |   7.3749 ns |!! 0.57 |     0.00 |      - |       0 B | <--- ExtendedIntrinsics rock!
-        //         PixelOperations_Base |     Clr |  2048 | 16,760.84 ns |   367.800 ns |  20.7814 ns |   4.27 |     0.02 |      - |      24 B | <--- Extra copies using "Vector4 TPixel.ToVector4()"
-        //  PixelOperations_Specialized |     Clr |  2048 |  3,986.03 ns |   237.238 ns |  13.4044 ns |   1.01 |     0.00 |      - |       0 B | <--- can't yet detect whether ExtendedIntrinsics are available :(
-        //                              |         |       |              |              |             |        |          |        |           |
-        //        FallbackIntrinsics128 |    Core |  2048 |  6,644.65 ns | 2,677.090 ns | 151.2605 ns |   1.69 |     0.05 |      - |       0 B |
-        //           BasicIntrinsics256 |    Core |  2048 |  3,923.70 ns | 1,971.760 ns | 111.4081 ns |   1.00 |     0.00 |      - |       0 B |
-        //            ExtendedIntrinsic |    Core |  2048 |  2,092.32 ns |   375.657 ns |  21.2253 ns |!! 0.53 |     0.01 |      - |       0 B | <--- ExtendedIntrinsics rock!
-        //         PixelOperations_Base |    Core |  2048 | 16,875.73 ns | 1,271.957 ns |  71.8679 ns |   4.30 |     0.10 |      - |      24 B |
-        //  PixelOperations_Specialized |    Core |  2048 |  2,129.92 ns |   262.888 ns |  14.8537 ns |!! 0.54 |     0.01 |      - |       0 B | <--- ExtendedIntrinsics rock!
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Benchmark]
+        public void UseAvx2()
+        {
+            Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
+            Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
+
+            SimdUtils.Avx2Intrinsics.NormalizedFloatToByteSaturate(sBytes, dFloats);
+        }
+
+        private static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
+
+        [Benchmark]
+        public void UseAvx2_Grouped()
+        {
+            Span<float> src = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
+            Span<byte> dest = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
+
+            int n = dest.Length / Vector<byte>.Count;
+
+            ref Vector256<float> sourceBase =
+                ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(src));
+            ref Vector256<byte> destBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(dest));
+
+            ref byte maskBase = ref MemoryMarshal.GetReference(PermuteMaskDeinterleave8x32);
+            Vector256<int> mask = Unsafe.As<byte, Vector256<int>>(ref maskBase);
+
+            var maxBytes = Vector256.Create(255f);
+
+            for (int i = 0; i < n; i++)
+            {
+                ref Vector256<float> s = ref Unsafe.Add(ref sourceBase, i * 4);
+
+                Vector256<float> f0 = s;
+                Vector256<float> f1 = Unsafe.Add(ref s, 1);
+                Vector256<float> f2 = Unsafe.Add(ref s, 2);
+                Vector256<float> f3 = Unsafe.Add(ref s, 3);
+
+                f0 = Avx.Multiply(maxBytes, f0);
+                f1 = Avx.Multiply(maxBytes, f1);
+                f2 = Avx.Multiply(maxBytes, f2);
+                f3 = Avx.Multiply(maxBytes, f3);
+
+                Vector256<int> w0 = Avx.ConvertToVector256Int32(f0);
+                Vector256<int> w1 = Avx.ConvertToVector256Int32(f1);
+                Vector256<int> w2 = Avx.ConvertToVector256Int32(f2);
+                Vector256<int> w3 = Avx.ConvertToVector256Int32(f3);
+
+                Vector256<short> u0 = Avx2.PackSignedSaturate(w0, w1);
+                Vector256<short> u1 = Avx2.PackSignedSaturate(w2, w3);
+                Vector256<byte> b = Avx2.PackUnsignedSaturate(u0, u1);
+                b = Avx2.PermuteVar8x32(b.AsInt32(), mask).AsByte();
+
+                Unsafe.Add(ref destBase, i) = b;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector256<int> ConvertToInt32(Vector256<float> vf, Vector256<float> scale)
+        {
+            vf = Avx.Multiply(scale, vf);
+            return Avx.ConvertToVector256Int32(vf);
+        }
+#endif
+
+        // *** RESULTS 2020 March: ***
+        // Intel Core i7-8650U CPU 1.90GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+        // .NET Core SDK=3.1.200-preview-014971
+        //   Job-IUZXZT : .NET Core 3.1.2 (CoreCLR 4.700.20.6602, CoreFX 4.700.20.6702), X64 RyuJIT
+        //
+        // |                      Method | Count |       Mean |       Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        // |---------------------------- |------ |-----------:|------------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        // |       FallbackIntrinsics128 |  1024 | 2,952.6 ns | 1,680.77 ns |  92.13 ns |  3.32 |    0.16 |     - |     - |     - |         - |
+        // |          BasicIntrinsics256 |  1024 | 1,664.5 ns |   928.11 ns |  50.87 ns |  1.87 |    0.09 |     - |     - |     - |         - |
+        // |           ExtendedIntrinsic |  1024 |   890.6 ns |   375.48 ns |  20.58 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        // |                     UseAvx2 |  1024 |   299.0 ns |    30.47 ns |   1.67 ns |  0.34 |    0.01 |     - |     - |     - |         - |
+        // |             UseAvx2_Grouped |  1024 |   318.1 ns |    48.19 ns |   2.64 ns |  0.36 |    0.01 |     - |     - |     - |         - |
+        // |        PixelOperations_Base |  1024 | 8,136.9 ns | 1,834.82 ns | 100.57 ns |  9.14 |    0.26 |     - |     - |     - |      24 B |
+        // | PixelOperations_Specialized |  1024 |   951.1 ns |   123.93 ns |   6.79 ns |  1.07 |    0.03 |     - |     - |     - |         - |
     }
 }

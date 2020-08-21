@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Dithering
 {
@@ -21,7 +20,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         {
             // Calculate the the logarithm of length to the base 2
             uint exponent = 0;
-            uint bayerLength = 0;
+            uint bayerLength;
             do
             {
                 exponent++;

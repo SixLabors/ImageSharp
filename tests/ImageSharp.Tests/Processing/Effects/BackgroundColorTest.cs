@@ -1,10 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Overlays;
-
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Effects
@@ -14,41 +13,41 @@ namespace SixLabors.ImageSharp.Tests.Processing.Effects
         [Fact]
         public void BackgroundColor_amount_BackgroundColorProcessorDefaultsSet()
         {
-            this.operations.BackgroundColor(Rgba32.BlanchedAlmond);
-            var processor = this.Verify<BackgroundColorProcessor<Rgba32>>();
+            this.operations.BackgroundColor(Color.BlanchedAlmond);
+            BackgroundColorProcessor processor = this.Verify<BackgroundColorProcessor>();
 
-            Assert.Equal(GraphicsOptions.Default, processor.GraphicsOptions);
-            Assert.Equal(Rgba32.BlanchedAlmond, processor.Color);
+            Assert.Equal(this.options, processor.GraphicsOptions);
+            Assert.Equal(Color.BlanchedAlmond, processor.Color);
         }
 
         [Fact]
         public void BackgroundColor_amount_rect_BackgroundColorProcessorDefaultsSet()
         {
-            this.operations.BackgroundColor(Rgba32.BlanchedAlmond, this.rect);
-            var processor = this.Verify<BackgroundColorProcessor<Rgba32>>(this.rect);
+            this.operations.BackgroundColor(Color.BlanchedAlmond, this.rect);
+            BackgroundColorProcessor processor = this.Verify<BackgroundColorProcessor>(this.rect);
 
-            Assert.Equal(GraphicsOptions.Default, processor.GraphicsOptions);
-            Assert.Equal(Rgba32.BlanchedAlmond, processor.Color);
+            Assert.Equal(this.options, processor.GraphicsOptions);
+            Assert.Equal(Color.BlanchedAlmond, processor.Color);
         }
 
         [Fact]
         public void BackgroundColor_amount_options_BackgroundColorProcessorDefaultsSet()
         {
-            this.operations.BackgroundColor(this.options, Rgba32.BlanchedAlmond);
-            var processor = this.Verify<BackgroundColorProcessor<Rgba32>>();
+            this.operations.BackgroundColor(this.options, Color.BlanchedAlmond);
+            BackgroundColorProcessor processor = this.Verify<BackgroundColorProcessor>();
 
             Assert.Equal(this.options, processor.GraphicsOptions);
-            Assert.Equal(Rgba32.BlanchedAlmond, processor.Color);
+            Assert.Equal(Color.BlanchedAlmond, processor.Color);
         }
 
         [Fact]
         public void BackgroundColor_amount_rect_options_BackgroundColorProcessorDefaultsSet()
         {
-            this.operations.BackgroundColor(this.options, Rgba32.BlanchedAlmond, this.rect);
-            var processor = this.Verify<BackgroundColorProcessor<Rgba32>>(this.rect);
+            this.operations.BackgroundColor(this.options, Color.BlanchedAlmond, this.rect);
+            BackgroundColorProcessor processor = this.Verify<BackgroundColorProcessor>(this.rect);
 
             Assert.Equal(this.options, processor.GraphicsOptions);
-            Assert.Equal(Rgba32.BlanchedAlmond, processor.Color);
+            Assert.Equal(Color.BlanchedAlmond, processor.Color);
         }
     }
 }

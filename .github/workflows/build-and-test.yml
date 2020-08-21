@@ -1,0 +1,112 @@
+name: Build
+
+on:
+    push:
+        branches:
+            - master
+        tags:
+            - "v*"
+    pull_request:
+        branches:
+            - master
+jobs:
+    Build:
+        strategy:
+            matrix:
+                options:
+                    - os: ubuntu-latest
+                      framework: netcoreapp3.1
+                      runtime: -x64
+                      codecov: false
+                    - os: windows-latest
+                      framework: netcoreapp3.1
+                      runtime: -x64
+                      codecov: true
+                    - os: windows-latest
+                      framework: netcoreapp2.1
+                      runtime: -x64
+                      codecov: false
+                    - os: windows-latest
+                      framework: net472
+                      runtime: -x64
+                      codecov: false
+                    - os: windows-latest
+                      framework: net472
+                      runtime: -x86
+                      codecov: false
+
+        runs-on: ${{matrix.options.os}}
+        if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Install NuGet
+              uses: NuGet/setup-nuget@v1
+
+            - name: Setup Git
+              shell: bash
+              run: |
+                  git config --global core.autocrlf false
+                  git config --global core.longpaths true
+                  git fetch --prune --unshallow
+                  git submodule -q update --init --recursive
+
+            - name: Setup DotNet SDK
+              uses: actions/setup-dotnet@v1
+              with:
+                  dotnet-version: "3.1.x"
+
+            - name: Build
+              shell: pwsh
+              run: ./ci-build.ps1 "${{matrix.options.framework}}"
+
+            - name: Test
+              shell: pwsh
+              run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
+              env:
+                  CI: True
+                  XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
+
+            - name: Update Codecov
+              uses: codecov/codecov-action@v1.0.7
+              if: matrix.options.codecov == true && startsWith(github.repository, 'SixLabors')
+              with:
+                  flags: unittests
+
+    Publish:
+        needs: [Build]
+
+        runs-on: windows-latest
+
+        if: (github.event_name == 'push')
+
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Install NuGet
+              uses: NuGet/setup-nuget@v1
+
+            - name: Setup Git
+              shell: bash
+              run: |
+                  git config --global core.autocrlf false
+                  git config --global core.longpaths true
+                  git fetch --prune --unshallow
+                  git submodule -q update --init --recursive
+
+            - name: Setup DotNet SDK
+              uses: actions/setup-dotnet@v1
+              with:
+                  dotnet-version: "3.1.x"
+
+            - name: Pack
+              shell: pwsh
+              run: ./ci-pack.ps1
+
+            - name: Publish to MyGet
+              shell: pwsh
+              run: |
+                  nuget.exe push .\artifacts\*.nupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v2/package
+                  nuget.exe push .\artifacts\*.snupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v3/index.json
+              # TODO: If github.ref starts with 'refs/tags' then it was tag push and we can optionally push out package to nuget.org

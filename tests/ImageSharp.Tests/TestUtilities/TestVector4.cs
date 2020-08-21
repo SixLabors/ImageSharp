@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -21,8 +21,11 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         }
 
         public float X { get; set; }
+
         public float Y { get; set; }
+
         public float Z { get; set; }
+
         public float W { get; set; }
 
         public static implicit operator Vector4(TestVector4 d)

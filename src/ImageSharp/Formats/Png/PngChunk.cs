@@ -1,7 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.Memory;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png
 {
@@ -10,12 +10,11 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// </summary>
     internal readonly struct PngChunk
     {
-        public PngChunk(int length, PngChunkType type, IManagedByteBuffer data = null, uint crc = 0)
+        public PngChunk(int length, PngChunkType type, IManagedByteBuffer data = null)
         {
             this.Length = length;
             this.Type = type;
             this.Data = data;
-            this.Crc = crc;
         }
 
         /// <summary>
@@ -39,19 +38,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         public IManagedByteBuffer Data { get; }
 
         /// <summary>
-        /// Gets a CRC (Cyclic Redundancy Check) calculated on the preceding bytes in the chunk,
-        /// including the chunk type code and chunk data fields, but not including the length field.
-        /// The CRC is always present, even for chunks containing no data
-        /// </summary>
-        public uint Crc { get; }
-
-        /// <summary>
         /// Gets a value indicating whether the given chunk is critical to decoding
         /// </summary>
         public bool IsCritical =>
             this.Type == PngChunkType.Header ||
             this.Type == PngChunkType.Palette ||
-            this.Type == PngChunkType.Data ||
-            this.Type == PngChunkType.End;
+            this.Type == PngChunkType.Data;
     }
 }

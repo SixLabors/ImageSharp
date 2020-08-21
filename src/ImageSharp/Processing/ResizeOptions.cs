@@ -1,10 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
-using System.Linq;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
 {
@@ -26,7 +23,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Gets or sets the center coordinates.
         /// </summary>
-        public IEnumerable<float> CenterCoordinates { get; set; } = Enumerable.Empty<float>();
+        public PointF? CenterCoordinates { get; set; }
 
         /// <summary>
         /// Gets or sets the target size.
@@ -43,5 +40,10 @@ namespace SixLabors.ImageSharp.Processing
         /// or expand individual pixel colors the value on processing.
         /// </summary>
         public bool Compand { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets the target rectangle to resize into.
+        /// </summary>
+        public Rectangle? TargetRectangle { get; set; }
     }
 }

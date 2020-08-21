@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     internal readonly struct BmpFileHeader
     {
         /// <summary>
-        /// Defines of the data structure in the bitmap file.
+        /// Defines the size of the data structure in the bitmap file.
         /// </summary>
         public const int Size = 14;
 
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             return MemoryMarshal.Cast<byte, BmpFileHeader>(data)[0];
         }
 
-        public unsafe void WriteTo(Span<byte> buffer)
+        public void WriteTo(Span<byte> buffer)
         {
             ref BmpFileHeader dest = ref Unsafe.As<byte, BmpFileHeader>(ref MemoryMarshal.GetReference(buffer));
 

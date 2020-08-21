@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -26,7 +26,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             public ReferenceKernel GetKernel(int destinationIndex) => this.kernels[destinationIndex];
 
-            public static ReferenceKernelMap Calculate(IResampler sampler, int destinationSize, int sourceSize, bool normalize = true)
+            public static ReferenceKernelMap Calculate<TResampler>(in TResampler sampler, int destinationSize, int sourceSize, bool normalize = true)
+                where TResampler : struct, IResampler
             {
                 double ratio = (double)sourceSize / destinationSize;
                 double scale = ratio;
@@ -39,7 +40,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                 TolerantMath tolerantMath = TolerantMath.Default;
 
                 double radius = tolerantMath.Ceiling(scale * sampler.Radius);
-                
+
                 var result = new List<ReferenceKernel>();
 
                 for (int i = 0; i < destinationSize; i++)
@@ -104,7 +105,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             public static implicit operator ReferenceKernel(ResizeKernel orig)
             {
-                return new ReferenceKernel(orig.Left, orig.Values.ToArray());
+                return new ReferenceKernel(orig.StartIndex, orig.Values.ToArray());
             }
         }
     }

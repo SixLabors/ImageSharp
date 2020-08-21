@@ -1,7 +1,6 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Filters;
 
@@ -15,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Hue_amount_HueProcessorDefaultsSet()
         {
             this.operations.Hue(34f);
-            var processor = this.Verify<HueProcessor<Rgba32>>();
+            var processor = this.Verify<HueProcessor>();
 
             Assert.Equal(34f, processor.Degrees);
         }
@@ -24,7 +23,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Hue_amount_rect_HueProcessorDefaultsSet()
         {
             this.operations.Hue(5f, this.rect);
-            var processor = this.Verify<HueProcessor<Rgba32>>(this.rect);
+            var processor = this.Verify<HueProcessor>(this.rect);
 
             Assert.Equal(5f, processor.Degrees);
         }

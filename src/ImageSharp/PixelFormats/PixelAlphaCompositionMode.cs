@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.PixelFormats
@@ -9,17 +9,17 @@ namespace SixLabors.ImageSharp.PixelFormats
     public enum PixelAlphaCompositionMode
     {
         /// <summary>
-        /// returns the destination over the source.
+        /// Returns the destination over the source.
         /// </summary>
         SrcOver = 0,
 
         /// <summary>
-        /// returns the source colors.
+        /// Returns the source colors.
         /// </summary>
         Src,
 
         /// <summary>
-        /// returns the source over the destination.
+        /// Returns the source over the destination.
         /// </summary>
         SrcAtop,
 
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         Dest,
 
         /// <summary>
-        /// The source where they don't overlap othersie dest in overlapping parts.
+        /// The source where they don't overlap otherwise dest in overlapping parts.
         /// </summary>
         DestAtop,
 

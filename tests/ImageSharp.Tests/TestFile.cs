@@ -1,12 +1,10 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -27,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests
         /// The "Formats" directory, as lazy value
         /// </summary>
         // ReSharper disable once InconsistentNaming
-        private static readonly Lazy<string> inputImagesDirectory = new Lazy<string>(() => TestEnvironment.InputImagesDirectoryFullPath);
+        private static readonly Lazy<string> InputImagesDirectoryValue = new Lazy<string>(() => TestEnvironment.InputImagesDirectoryFullPath);
 
         /// <summary>
         /// The image (lazy initialized value)
@@ -54,17 +52,17 @@ namespace SixLabors.ImageSharp.Tests
         public byte[] Bytes => this.bytes ?? (this.bytes = File.ReadAllBytes(this.FullPath));
 
         /// <summary>
-        /// The full path to file.
+        /// Gets the full path to file.
         /// </summary>
         public string FullPath { get; }
 
         /// <summary>
-        /// The file name.
+        /// Gets the file name.
         /// </summary>
         public string FileName => Path.GetFileName(this.FullPath);
 
         /// <summary>
-        /// The file name without extension.
+        /// Gets the file name without extension.
         /// </summary>
         public string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(this.FullPath);
 
@@ -76,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Gets the input image directory.
         /// </summary>
-        private static string InputImagesDirectory => inputImagesDirectory.Value;
+        private static string InputImagesDirectory => InputImagesDirectoryValue.Value;
 
         /// <summary>
         /// Gets the full qualified path to the input test file.
@@ -134,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>
         /// The <see cref="ImageSharp.Image"/>.
         /// </returns>
-        public Image<Rgba32> CreateImage()
+        public Image<Rgba32> CreateRgba32Image()
         {
             return this.Image.Clone();
         }
@@ -145,9 +143,9 @@ namespace SixLabors.ImageSharp.Tests
         /// <returns>
         /// The <see cref="ImageSharp.Image"/>.
         /// </returns>
-        public Image<Rgba32> CreateImage(IImageDecoder decoder)
+        public Image<Rgba32> CreateRgba32Image(IImageDecoder decoder)
         {
-            return ImageSharp.Image.Load(this.Image.GetConfiguration(), this.Bytes, decoder);
+            return ImageSharp.Image.Load<Rgba32>(this.Image.GetConfiguration(), this.Bytes, decoder);
         }
     }
 }

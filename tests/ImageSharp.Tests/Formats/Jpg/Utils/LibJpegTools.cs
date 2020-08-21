@@ -1,8 +1,11 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
-using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.IO;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -87,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
         {
             TestFile testFile = TestFile.Create(inputFile);
 
-            string outDir = TestEnvironment.CreateOutputDirectory(".Temp", $"JpegCoeffs");
+            string outDir = TestEnvironment.CreateOutputDirectory(".Temp", "JpegCoeffs");
             string fn = $"{Path.GetFileName(inputFile)}-{new Random().Next(1000)}.dctcoeffs";
             string coeffFileFullPath = Path.Combine(outDir, fn);
 
@@ -109,7 +112,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                         result[i] = resultComponent;
                     }
 
-                    byte[] buffer = new byte[64 * sizeof(short)];
+                    var buffer = new byte[64 * sizeof(short)];
 
                     for (int i = 0; i < result.Length; i++)
                     {

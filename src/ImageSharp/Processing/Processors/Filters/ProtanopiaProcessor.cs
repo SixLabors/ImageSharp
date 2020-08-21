@@ -1,19 +1,15 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
-
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
     /// <summary>
     /// Converts the colors of the image recreating Protanopia (Red-Blind) color blindness.
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class ProtanopiaProcessor<TPixel> : FilterProcessor<TPixel>
-        where TPixel : struct, IPixel<TPixel>
+    public sealed class ProtanopiaProcessor : FilterProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ProtanopiaProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="ProtanopiaProcessor"/> class.
         /// </summary>
         public ProtanopiaProcessor()
             : base(KnownFilterMatrices.ProtanopiaFilter)

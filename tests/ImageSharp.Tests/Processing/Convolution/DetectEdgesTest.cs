@@ -1,75 +1,201 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
-using SixLabors.ImageSharp.PixelFormats;
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
-using SixLabors.ImageSharp.Tests.TestUtilities;
-using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Convolution
 {
+    [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter", Justification = "OK. Used for TheoryData compatibility.")]
     public class DetectEdgesTest : BaseImageOperationsExtensionTest
     {
-
         [Fact]
-        public void DetectEdges_SobelProcessorDefaultsSet()
+        public void DetectEdges_EdgeDetector2DProcessorDefaultsSet()
         {
             this.operations.DetectEdges();
+            EdgeDetector2DProcessor processor = this.Verify<EdgeDetector2DProcessor>();
 
-            // TODO: Enable once we have updated the images
-            // SobelProcessor<Rgba32> processor = this.Verify<SobelProcessor<Rgba32>>();
-            // Assert.True(processor.Grayscale);
+            Assert.True(processor.Grayscale);
+            Assert.Equal(KnownEdgeDetectorKernels.Sobel, processor.Kernel);
         }
 
         [Fact]
-        public void DetectEdges_Rect_SobelProcessorDefaultsSet()
+        public void DetectEdges_Rect_EdgeDetector2DProcessorDefaultsSet()
         {
             this.operations.DetectEdges(this.rect);
+            EdgeDetector2DProcessor processor = this.Verify<EdgeDetector2DProcessor>(this.rect);
 
-            // TODO: Enable once we have updated the images
-            // SobelProcessor<Rgba32> processor = this.Verify<SobelProcessor<Rgba32>>(this.rect);
-            // Assert.True(processor.Grayscale);
-        }
-        public static IEnumerable<object[]> EdgeDetectionTheoryData => new[] {
-            new object[]{ new TestType<KayyaliProcessor<Rgba32>>(), EdgeDetectionOperators.Kayyali },
-            new object[]{ new TestType<KirschProcessor<Rgba32>>(), EdgeDetectionOperators.Kirsch },
-            new object[]{ new TestType<Laplacian3x3Processor<Rgba32>>(), EdgeDetectionOperators.Laplacian3x3 },
-            new object[]{ new TestType<Laplacian5x5Processor<Rgba32>>(), EdgeDetectionOperators.Laplacian5x5 },
-            new object[]{ new TestType<LaplacianOfGaussianProcessor<Rgba32>>(), EdgeDetectionOperators.LaplacianOfGaussian },
-            new object[]{ new TestType<PrewittProcessor<Rgba32>>(), EdgeDetectionOperators.Prewitt },
-            new object[]{ new TestType<RobertsCrossProcessor<Rgba32>>(), EdgeDetectionOperators.RobertsCross },
-            new object[]{ new TestType<RobinsonProcessor<Rgba32>>(), EdgeDetectionOperators.Robinson },
-            new object[]{ new TestType<ScharrProcessor<Rgba32>>(), EdgeDetectionOperators.Scharr },
-            new object[]{ new TestType<SobelProcessor<Rgba32>>(), EdgeDetectionOperators.Sobel },
-        };
-
-        [Theory]
-        [MemberData(nameof(EdgeDetectionTheoryData))]
-        public void DetectEdges_filter_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, EdgeDetectionOperators filter)
-            where TProcessor : IEdgeDetectorProcessor<Rgba32>
-        {
-            this.operations.DetectEdges(filter);
-
-            // TODO: Enable once we have updated the images
-            // var processor = this.Verify<TProcessor>();
-            // Assert.True(processor.Grayscale);
+            Assert.True(processor.Grayscale);
+            Assert.Equal(KnownEdgeDetectorKernels.Sobel, processor.Kernel);
         }
 
-        [Theory]
-        [MemberData(nameof(EdgeDetectionTheoryData))]
-        public void DetectEdges_filter_grayscale_SobelProcessorDefaultsSet<TProcessor>(TestType<TProcessor> type, EdgeDetectionOperators filter)
-            where TProcessor : IEdgeDetectorProcessor<Rgba32>
-        {
-            bool grey = (int)filter % 2 == 0;
-            this.operations.DetectEdges(filter, grey);
+        public static TheoryData<EdgeDetector2DKernel, bool> EdgeDetector2DKernelData =
+            new TheoryData<EdgeDetector2DKernel, bool>
+            {
+                { KnownEdgeDetectorKernels.Kayyali, true },
+                { KnownEdgeDetectorKernels.Kayyali, false },
+                { KnownEdgeDetectorKernels.Prewitt, true },
+                { KnownEdgeDetectorKernels.Prewitt, false },
+                { KnownEdgeDetectorKernels.RobertsCross, true },
+                { KnownEdgeDetectorKernels.RobertsCross, false },
+                { KnownEdgeDetectorKernels.Scharr, true },
+                { KnownEdgeDetectorKernels.Scharr, false },
+                { KnownEdgeDetectorKernels.Sobel, true },
+                { KnownEdgeDetectorKernels.Sobel, false },
+            };
 
-            // TODO: Enable once we have updated the images
-            // var processor = this.Verify<TProcessor>()
-            // Assert.Equal(grey, processor.Grayscale);
+        [Theory]
+        [MemberData(nameof(EdgeDetector2DKernelData))]
+        public void DetectEdges_EdgeDetector2DProcessor_DefaultGrayScale_Set(EdgeDetector2DKernel kernel, bool _)
+        {
+            this.operations.DetectEdges(kernel);
+            EdgeDetector2DProcessor processor = this.Verify<EdgeDetector2DProcessor>();
+
+            Assert.True(processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
+        }
+
+        [Theory]
+        [MemberData(nameof(EdgeDetector2DKernelData))]
+        public void DetectEdges_Rect_EdgeDetector2DProcessor_DefaultGrayScale_Set(EdgeDetector2DKernel kernel, bool _)
+        {
+            this.operations.DetectEdges(kernel, this.rect);
+            EdgeDetector2DProcessor processor = this.Verify<EdgeDetector2DProcessor>(this.rect);
+
+            Assert.True(processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
+        }
+
+        [Theory]
+        [MemberData(nameof(EdgeDetector2DKernelData))]
+        public void DetectEdges_EdgeDetector2DProcessorSet(EdgeDetector2DKernel kernel, bool grayscale)
+        {
+            this.operations.DetectEdges(kernel, grayscale);
+            EdgeDetector2DProcessor processor = this.Verify<EdgeDetector2DProcessor>();
+
+            Assert.Equal(grayscale, processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
+        }
+
+        [Theory]
+        [MemberData(nameof(EdgeDetector2DKernelData))]
+        public void DetectEdges_Rect_EdgeDetector2DProcessorSet(EdgeDetector2DKernel kernel, bool grayscale)
+        {
+            this.operations.DetectEdges(kernel, grayscale, this.rect);
+            EdgeDetector2DProcessor processor = this.Verify<EdgeDetector2DProcessor>(this.rect);
+
+            Assert.Equal(grayscale, processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
+        }
+
+        public static TheoryData<EdgeDetectorKernel, bool> EdgeDetectorKernelData =
+            new TheoryData<EdgeDetectorKernel, bool>
+            {
+                { KnownEdgeDetectorKernels.Laplacian3x3, true },
+                { KnownEdgeDetectorKernels.Laplacian3x3, false },
+                { KnownEdgeDetectorKernels.Laplacian5x5, true },
+                { KnownEdgeDetectorKernels.Laplacian5x5, false },
+                { KnownEdgeDetectorKernels.LaplacianOfGaussian, true },
+                { KnownEdgeDetectorKernels.LaplacianOfGaussian, false },
+            };
+
+        [Theory]
+        [MemberData(nameof(EdgeDetectorKernelData))]
+        public void DetectEdges_EdgeDetectorProcessor_DefaultGrayScale_Set(EdgeDetectorKernel kernel, bool _)
+        {
+            this.operations.DetectEdges(kernel);
+            EdgeDetectorProcessor processor = this.Verify<EdgeDetectorProcessor>();
+
+            Assert.True(processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
+        }
+
+        [Theory]
+        [MemberData(nameof(EdgeDetectorKernelData))]
+        public void DetectEdges_Rect_EdgeDetectorProcessor_DefaultGrayScale_Set(EdgeDetectorKernel kernel, bool _)
+        {
+            this.operations.DetectEdges(kernel, this.rect);
+            EdgeDetectorProcessor processor = this.Verify<EdgeDetectorProcessor>(this.rect);
+
+            Assert.True(processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
+        }
+
+        [Theory]
+        [MemberData(nameof(EdgeDetectorKernelData))]
+        public void DetectEdges_EdgeDetectorProcessorSet(EdgeDetectorKernel kernel, bool grayscale)
+        {
+            this.operations.DetectEdges(kernel, grayscale);
+            EdgeDetectorProcessor processor = this.Verify<EdgeDetectorProcessor>();
+
+            Assert.Equal(grayscale, processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
+        }
+
+        [Theory]
+        [MemberData(nameof(EdgeDetectorKernelData))]
+        public void DetectEdges_Rect_EdgeDetectorProcessorSet(EdgeDetectorKernel kernel, bool grayscale)
+        {
+            this.operations.DetectEdges(kernel, grayscale, this.rect);
+            EdgeDetectorProcessor processor = this.Verify<EdgeDetectorProcessor>(this.rect);
+
+            Assert.Equal(grayscale, processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
+        }
+
+        public static TheoryData<EdgeDetectorCompassKernel, bool> EdgeDetectorCompassKernelData =
+            new TheoryData<EdgeDetectorCompassKernel, bool>
+            {
+                { KnownEdgeDetectorKernels.Kirsch, true },
+                { KnownEdgeDetectorKernels.Kirsch, false },
+                { KnownEdgeDetectorKernels.Robinson, true },
+                { KnownEdgeDetectorKernels.Robinson, false },
+            };
+
+        [Theory]
+        [MemberData(nameof(EdgeDetectorCompassKernelData))]
+        public void DetectEdges_EdgeDetectorCompassProcessor_DefaultGrayScale_Set(EdgeDetectorCompassKernel kernel, bool _)
+        {
+            this.operations.DetectEdges(kernel);
+            EdgeDetectorCompassProcessor processor = this.Verify<EdgeDetectorCompassProcessor>();
+
+            Assert.True(processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
+        }
+
+        [Theory]
+        [MemberData(nameof(EdgeDetectorCompassKernelData))]
+        public void DetectEdges_Rect_EdgeDetectorCompassProcessor_DefaultGrayScale_Set(EdgeDetectorCompassKernel kernel, bool _)
+        {
+            this.operations.DetectEdges(kernel, this.rect);
+            EdgeDetectorCompassProcessor processor = this.Verify<EdgeDetectorCompassProcessor>(this.rect);
+
+            Assert.True(processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
+        }
+
+        [Theory]
+        [MemberData(nameof(EdgeDetectorCompassKernelData))]
+        public void DetectEdges_EdgeDetectorCompassProcessorSet(EdgeDetectorCompassKernel kernel, bool grayscale)
+        {
+            this.operations.DetectEdges(kernel, grayscale);
+            EdgeDetectorCompassProcessor processor = this.Verify<EdgeDetectorCompassProcessor>();
+
+            Assert.Equal(grayscale, processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
+        }
+
+        [Theory]
+        [MemberData(nameof(EdgeDetectorCompassKernelData))]
+        public void DetectEdges_Rect_EdgeDetectorCompassProcessorSet(EdgeDetectorCompassKernel kernel, bool grayscale)
+        {
+            this.operations.DetectEdges(kernel, grayscale, this.rect);
+            EdgeDetectorCompassProcessor processor = this.Verify<EdgeDetectorCompassProcessor>(this.rect);
+
+            Assert.Equal(grayscale, processor.Grayscale);
+            Assert.Equal(kernel, processor.Kernel);
         }
     }
 }

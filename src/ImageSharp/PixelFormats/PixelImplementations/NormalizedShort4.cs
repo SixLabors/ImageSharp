@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(NormalizedShort4 left, NormalizedShort4 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<NormalizedShort4> CreatePixelOperations() => new PixelOperations<NormalizedShort4>();
+        public readonly PixelOperations<NormalizedShort4> CreatePixelOperations() => new PixelOperations<NormalizedShort4>();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4()
+        public readonly Vector4 ToScaledVector4()
         {
             var scaled = this.ToVector4();
             scaled += Vector4.One;
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4()
+        public readonly Vector4 ToVector4()
         {
             const float MaxVal = 0x7FFF;
 
@@ -112,13 +112,25 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgra32(Bgra32 source) => this.FromScaledVector4(source.ToScaledVector4());
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source) => this.FromScaledVector4(source.ToScaledVector4());
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source) => this.FromScaledVector4(source.ToScaledVector4());
+        public void FromL8(L8 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromL16(L16 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -144,18 +156,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is NormalizedShort4 other && this.Equals(other);
+        public override readonly bool Equals(object obj) => obj is NormalizedShort4 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(NormalizedShort4 other) => this.PackedValue.Equals(other.PackedValue);
+        public readonly bool Equals(NormalizedShort4 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => this.PackedValue.GetHashCode();
+        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
         /// <inheritdoc />
-        public override string ToString()
+        public override readonly string ToString()
         {
             var vector = this.ToVector4();
             return FormattableString.Invariant($"NormalizedShort4({vector.X:#0.##}, {vector.Y:#0.##}, {vector.Z:#0.##}, {vector.W:#0.##})");
@@ -165,7 +177,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         private static ulong Pack(ref Vector4 vector)
         {
             vector *= Max;
-            vector = Vector4.Clamp(vector, Min, Max);
+            vector = Vector4Utilities.FastClamp(vector, Min, Max);
 
             // Round rather than truncate.
             ulong word4 = ((ulong)MathF.Round(vector.X) & 0xFFFF) << 0x00;

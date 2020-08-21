@@ -1,11 +1,11 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Processing
 {
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="fraction">The amount to taper.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder PrependTaper(TaperSide side, TaperCorner corner, float fraction)
-            => this.Prepend(size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction));
+            => this.Prepend(size => TransformUtilities.CreateTaperMatrix(size, side, corner, fraction));
 
         /// <summary>
         /// Appends a matrix that performs a tapering projective transform.
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="fraction">The amount to taper.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder AppendTaper(TaperSide side, TaperCorner corner, float fraction)
-            => this.Append(size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction));
+            => this.Append(size => TransformUtilities.CreateTaperMatrix(size, side, corner, fraction));
 
         /// <summary>
         /// Prepends a centered rotation matrix using the given rotation in degrees.
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder PrependRotationRadians(float radians)
-            => this.Prepend(size => new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, size)));
+            => this.Prepend(size => new Matrix4x4(TransformUtilities.CreateRotationMatrixRadians(radians, size)));
 
         /// <summary>
         /// Prepends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder AppendRotationRadians(float radians)
-            => this.Append(size => new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, size)));
+            => this.Append(size => new Matrix4x4(TransformUtilities.CreateRotationMatrixRadians(radians, size)));
 
         /// <summary>
         /// Appends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radiansY">The Y angle, in radians.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-            => this.Prepend(size => new Matrix4x4(TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size)));
+            => this.Prepend(size => new Matrix4x4(TransformUtilities.CreateSkewMatrixRadians(radiansX, radiansY, size)));
 
         /// <summary>
         /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -206,7 +206,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radiansY">The Y angle, in radians.</param>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
         public ProjectiveTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-            => this.Append(size => new Matrix4x4(TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size)));
+            => this.Append(size => new Matrix4x4(TransformUtilities.CreateSkewMatrixRadians(radiansX, radiansY, size)));
 
         /// <summary>
         /// Appends a skew matrix using the given angles in degrees at the given origin.
@@ -264,27 +264,51 @@ namespace SixLabors.ImageSharp.Processing
         /// Prepends a raw matrix.
         /// </summary>
         /// <param name="matrix">The matrix to prepend.</param>
+        /// <exception cref="DegenerateTransformException">
+        /// The resultant matrix is degenerate containing one or more values equivalent
+        /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+        /// for linear transforms.
+        /// </exception>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
-        public ProjectiveTransformBuilder PrependMatrix(Matrix4x4 matrix) => this.Prepend(_ => matrix);
+        public ProjectiveTransformBuilder PrependMatrix(Matrix4x4 matrix)
+        {
+            CheckDegenerate(matrix);
+            return this.Prepend(_ => matrix);
+        }
 
         /// <summary>
         /// Appends a raw matrix.
         /// </summary>
         /// <param name="matrix">The matrix to append.</param>
+        /// <exception cref="DegenerateTransformException">
+        /// The resultant matrix is degenerate containing one or more values equivalent
+        /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+        /// for linear transforms.
+        /// </exception>
         /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
-        public ProjectiveTransformBuilder AppendMatrix(Matrix4x4 matrix) => this.Append(_ => matrix);
+        public ProjectiveTransformBuilder AppendMatrix(Matrix4x4 matrix)
+        {
+            CheckDegenerate(matrix);
+            return this.Append(_ => matrix);
+        }
 
         /// <summary>
         /// Returns the combined matrix for a given source size.
         /// </summary>
         /// <param name="sourceSize">The source image size.</param>
         /// <returns>The <see cref="Matrix4x4"/>.</returns>
-        public Matrix4x4 BuildMatrix(Size sourceSize) => this.BuildMatrix(new Rectangle(Point.Empty, sourceSize));
+        public Matrix4x4 BuildMatrix(Size sourceSize)
+            => this.BuildMatrix(new Rectangle(Point.Empty, sourceSize));
 
         /// <summary>
         /// Returns the combined matrix for a given source rectangle.
         /// </summary>
         /// <param name="sourceRectangle">The rectangle in the source image.</param>
+        /// <exception cref="DegenerateTransformException">
+        /// The resultant matrix is degenerate containing one or more values equivalent
+        /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+        /// for linear transforms.
+        /// </exception>
         /// <returns>The <see cref="Matrix4x4"/>.</returns>
         public Matrix4x4 BuildMatrix(Rectangle sourceRectangle)
         {
@@ -301,7 +325,17 @@ namespace SixLabors.ImageSharp.Processing
                 matrix *= factory(size);
             }
 
+            CheckDegenerate(matrix);
+
             return matrix;
+        }
+
+        private static void CheckDegenerate(Matrix4x4 matrix)
+        {
+            if (TransformUtilities.IsDegenerate(matrix))
+            {
+                throw new DegenerateTransformException("Matrix is degenerate. Check input values.");
+            }
         }
 
         private ProjectiveTransformBuilder Prepend(Func<Size, Matrix4x4> factory)

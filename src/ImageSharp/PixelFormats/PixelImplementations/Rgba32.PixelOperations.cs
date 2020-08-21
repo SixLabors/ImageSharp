@@ -1,10 +1,11 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using SixLabors.Memory;
+
+using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats
 {
@@ -19,51 +20,35 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal partial class PixelOperations : PixelOperations<Rgba32>
         {
             /// <inheritdoc />
-            internal override void ToVector4(
+            public override void ToVector4(
                 Configuration configuration,
                 ReadOnlySpan<Rgba32> sourcePixels,
-                Span<Vector4> destVectors)
+                Span<Vector4> destinationVectors,
+                PixelConversionModifiers modifiers)
             {
-                Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationVectors, nameof(destinationVectors));
 
-                destVectors = destVectors.Slice(0, sourcePixels.Length);
-
-                SimdUtils.BulkConvertByteToNormalizedFloat(
+                destinationVectors = destinationVectors.Slice(0, sourcePixels.Length);
+                SimdUtils.ByteToNormalizedFloat(
                     MemoryMarshal.Cast<Rgba32, byte>(sourcePixels),
-                    MemoryMarshal.Cast<Vector4, float>(destVectors));
+                    MemoryMarshal.Cast<Vector4, float>(destinationVectors));
+                Vector4Converters.ApplyForwardConversionModifiers(destinationVectors, modifiers);
             }
 
             /// <inheritdoc />
-            internal override void FromVector4(
+            public override void FromVector4Destructive(
                 Configuration configuration,
-                ReadOnlySpan<Vector4> sourceVectors,
-                Span<Rgba32> destPixels)
+                Span<Vector4> sourceVectors,
+                Span<Rgba32> destinationPixels,
+                PixelConversionModifiers modifiers)
             {
-                Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
+                Guard.DestinationShouldNotBeTooShort(sourceVectors, destinationPixels, nameof(destinationPixels));
 
-                destPixels = destPixels.Slice(0, sourceVectors.Length);
-
-                SimdUtils.BulkConvertNormalizedFloatToByteClampOverflows(
+                destinationPixels = destinationPixels.Slice(0, sourceVectors.Length);
+                Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers);
+                SimdUtils.NormalizedFloatToByteSaturate(
                     MemoryMarshal.Cast<Vector4, float>(sourceVectors),
-                    MemoryMarshal.Cast<Rgba32, byte>(destPixels));
-            }
-
-            /// <inheritdoc />
-            internal override void ToScaledVector4(
-                Configuration configuration,
-                ReadOnlySpan<Rgba32> sourceColors,
-                Span<Vector4> destinationVectors)
-            {
-                this.ToVector4(configuration, sourceColors, destinationVectors);
-            }
-
-            /// <inheritdoc />
-            internal override void FromScaledVector4(
-                Configuration configuration,
-                ReadOnlySpan<Vector4> sourceVectors,
-                Span<Rgba32> destinationColors)
-            {
-                this.FromVector4(configuration, sourceVectors, destinationColors);
+                    MemoryMarshal.Cast<Rgba32, byte>(destinationPixels));
             }
         }
     }

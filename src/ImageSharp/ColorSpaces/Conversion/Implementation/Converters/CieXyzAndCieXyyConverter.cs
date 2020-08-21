@@ -1,13 +1,13 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Implementation
+namespace SixLabors.ImageSharp.ColorSpaces.Conversion
 {
     /// <summary>
-    /// Color converter between CIE XYZ and CIE xyY
+    /// Color converter between CIE XYZ and CIE xyY.
     /// <see href="http://www.brucelindbloom.com/"/> for formulas.
     /// </summary>
     internal sealed class CieXyzAndCieXyyConverter

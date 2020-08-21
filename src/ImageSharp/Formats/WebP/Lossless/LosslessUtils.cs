@@ -353,7 +353,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
             }
 
-            // TODO: I can't see the equivalent code in the source?
             outputSpan.CopyTo(pixelData);
         }
 

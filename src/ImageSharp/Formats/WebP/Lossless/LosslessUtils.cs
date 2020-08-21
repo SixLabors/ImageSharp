@@ -261,7 +261,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                 // First Row follows the L (mode=1) mode.
                 PredictorAdd0(input, null, 1, output);
-                PredictorAdd1(input + 1, null, width - 1, output);
+                PredictorAdd1(input + 1, null, width - 1, output + 1);
                 input += width;
                 output += width;
 

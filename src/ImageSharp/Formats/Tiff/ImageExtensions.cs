@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="Image{TPixel}"/>.
         /// </returns>
         public static Image<TPixel> SaveAsTiff<TPixel>(this Image<TPixel> source, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             return SaveAsTiff(source, stream, null);
         }
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="Image{TPixel}"/>.
         /// </returns>
         public static Image<TPixel> SaveAsTiff<TPixel>(this Image<TPixel> source, Stream stream, TiffEncoder encoder)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             encoder = encoder ?? new TiffEncoder();
             encoder.Encode(source, stream);

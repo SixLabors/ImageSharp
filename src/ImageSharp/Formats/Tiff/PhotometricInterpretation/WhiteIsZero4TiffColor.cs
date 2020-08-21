@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="height">The height of the image block.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode<TPixel>(byte[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default(TPixel);
 

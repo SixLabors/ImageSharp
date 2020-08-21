@@ -1,28 +1,48 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.1;net461</TargetFrameworks>
-    <OutputType>Exe</OutputType>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
     <AssemblyName>ImageSharp.Benchmarks</AssemblyName>
-    <LangVersion>7.3</LangVersion>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
+    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
+    <GenerateProgramFile>false</GenerateProgramFile>
+    <!--Used to hide test project from dotnet test-->
+    <IsTestProject>false</IsTestProject>
+
+    <!-- Uncomment this to run benchmarks depending on Colorful or Pfim (colorspaces and TGA): -->
+    <!--<SignAssembly>false</SignAssembly>-->
   </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)'=='net461'">
-    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="..\ImageSharp.Tests\TestImages.cs" Link="Tests\TestImages.cs" />
     <Compile Include="..\ImageSharp.Tests\TestUtilities\TestEnvironment.cs" Link="Tests\TestEnvironment.cs" />
   </ItemGroup>
-  <ItemGroup>    
-    <PackageReference Include="BenchmarkDotNet" Version="0.11.3" />
-    <PackageReference Include="Colourful" Version="2.0.0" />
-    <PackageReference Include="SixLabors.Shapes.Text" Version="1.0.0-beta0007" />
-    <PackageReference Include="System.Drawing.Common" Version="4.5.0" />
-  </ItemGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
-    <ProjectReference Include="..\..\src\ImageSharp\ImageSharp.csproj" />
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" />
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Condition="'$(OS)' == 'Windows_NT'" />
+    <PackageReference Include="Colourful" />
+    <PackageReference Include="Pfim" />
+    <PackageReference Include="SharpZipLib"  />
+    <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
+
+  <!-- Exclude benchmarks using internals, in case of unsigned benchmark execution: -->
+  <ItemGroup Condition="'$(SignAssembly)' == 'false'">
+    <Compile Remove="Codecs\Jpeg\BlockOperations\**" />
+    <Compile Remove="Codecs\Jpeg\YCbCrColorConversion.cs" />
+    <Compile Remove="Codecs\Jpeg\DecodeJpegParseStreamOnly.cs" />
+    <Compile Remove="Color\Bulk\**" />
+    <Compile Remove="Color\RgbToYCbCr.cs" />
+    <Compile Remove="Color\YCbCrToRgb.cs" />
+    <Compile Remove="General\Vectorization\**" />
+    <Compile Remove="General\PixelConversion\**" />
+    <Compile Remove="General\BasicMath\ModuloPowerOfTwoConstant.cs" />
+    <Compile Remove="General\BasicMath\ModuloPowerOfTwoVariable.cs" />
+    <Compile Remove="PixelBlenders\**" />
+    <Compile Remove="Samplers\Resize.cs" />
+  </ItemGroup>
+
 </Project>

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             var short3 = new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
             var expected = new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
 
-            // act 
+            // act
             Vector4 scaled = short3.ToScaledVector4();
             pixel.FromScaledVector4(scaled);
 
@@ -57,6 +57,22 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
             // assert
             Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void Rgb48_FromBgra5551()
+        {
+            // arrange
+            var rgb = default(Rgb48);
+            ushort expected = ushort.MaxValue;
+
+            // act
+            rgb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+
+            // assert
+            Assert.Equal(expected, rgb.R);
+            Assert.Equal(expected, rgb.G);
+            Assert.Equal(expected, rgb.B);
         }
     }
 }

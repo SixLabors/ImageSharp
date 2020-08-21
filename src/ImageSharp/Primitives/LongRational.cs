@@ -1,14 +1,14 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Globalization;
 using System.Text;
 
-namespace SixLabors.ImageSharp.Primitives
+namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Represents a number that can be expressed as a fraction
+    /// Represents a number that can be expressed as a fraction.
     /// </summary>
     /// <remarks>
     /// This is a very simplified implementation of a rational number designed for use with metadata only.

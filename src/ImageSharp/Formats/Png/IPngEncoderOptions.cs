@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Processing.Processors.Quantization;
 namespace SixLabors.ImageSharp.Formats.Png
 {
     /// <summary>
-    /// The options available for manipulating the encoder pipeline
+    /// The options available for manipulating the encoder pipeline.
     /// </summary>
     internal interface IPngEncoderOptions
     {
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         PngBitDepth? BitDepth { get; }
 
         /// <summary>
-        /// Gets the color type
+        /// Gets the color type.
         /// </summary>
         PngColorType? ColorType { get; }
 
@@ -28,12 +28,17 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         /// <summary>
         /// Gets the compression level 1-9.
-        /// <remarks>Defaults to 6.</remarks>
+        /// <remarks>Defaults to <see cref="PngCompressionLevel.DefaultCompression"/>.</remarks>
         /// </summary>
-        int CompressionLevel { get; }
+        PngCompressionLevel CompressionLevel { get; }
 
         /// <summary>
-        /// Gets the gamma value, that will be written the the image.
+        /// Gets the threshold of characters in text metadata, when compression should be used.
+        /// </summary>
+        int TextCompressionThreshold { get; }
+
+        /// <summary>
+        /// Gets the gamma value, that will be written the image.
         /// </summary>
         /// <value>The gamma value of the image.</value>
         float? Gamma { get; }
@@ -47,5 +52,27 @@ namespace SixLabors.ImageSharp.Formats.Png
         /// Gets the transparency threshold.
         /// </summary>
         byte Threshold { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance should write an Adam7 interlaced image.
+        /// </summary>
+        PngInterlaceMode? InterlaceMethod { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the metadata should be ignored when the image is being encoded.
+        /// When set to true, all ancillary chunks will be skipped.
+        /// </summary>
+        bool IgnoreMetadata { get; }
+
+        /// <summary>
+        /// Gets the chunk filter method. This allows to filter ancillary chunks.
+        /// </summary>
+        PngChunkFilter? ChunkFilter { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether fully transparent pixels that may contain R, G, B values which are not 0,
+        /// should be converted to transparent black, which can yield in better compression in some cases.
+        /// </summary>
+        PngTransparentColorMode TransparentColorMode { get; }
     }
 }

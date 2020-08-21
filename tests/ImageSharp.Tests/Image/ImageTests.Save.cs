@@ -1,13 +1,16 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-// ReSharper disable InconsistentNaming
-
 using System;
+using System.IO;
+
+using Moq;
+
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
     using SixLabors.ImageSharp.Formats;
@@ -17,17 +20,17 @@ namespace SixLabors.ImageSharp.Tests
         public class Save
         {
             [Fact]
-            public void DetecedEncoding()
+            public void DetectedEncoding()
             {
                 string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
-                string file = System.IO.Path.Combine(dir, "DetecedEncoding.png");
+                string file = System.IO.Path.Combine(dir, "DetectedEncoding.png");
 
                 using (var image = new Image<Rgba32>(10, 10))
                 {
                     image.Save(file);
                 }
 
-                using (var img = Image.Load(file, out IImageFormat mime))
+                using (Image.Load(file, out IImageFormat mime))
                 {
                     Assert.Equal("image/png", mime.DefaultMimeType);
                 }
@@ -39,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests
                 string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageTests));
                 string file = System.IO.Path.Combine(dir, "UnknownExtensionsEncoding_Throws.tmp");
 
-                NotSupportedException ex = Assert.Throws<NotSupportedException>(
+                Assert.Throws<NotSupportedException>(
                     () =>
                         {
                             using (var image = new Image<Rgba32>(10, 10))
@@ -60,9 +63,21 @@ namespace SixLabors.ImageSharp.Tests
                     image.Save(file, new PngEncoder());
                 }
 
-                using (var img = Image.Load(file, out var mime))
+                using (Image.Load(file, out var mime))
                 {
                     Assert.Equal("image/png", mime.DefaultMimeType);
+                }
+            }
+
+            [Fact]
+            public void ThrowsWhenDisposed()
+            {
+                var image = new Image<Rgba32>(5, 5);
+                image.Dispose();
+                IImageEncoder encoder = Mock.Of<IImageEncoder>();
+                using (var stream = new MemoryStream())
+                {
+                    Assert.Throws<ObjectDisposedException>(() => image.Save(stream, encoder));
                 }
             }
         }

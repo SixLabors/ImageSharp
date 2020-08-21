@@ -1,56 +1,58 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
+using Microsoft.DotNet.RemoteExecutor;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     public partial class JpegDecoderTests
     {
         [Theory]
-        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32)]
-        public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+        [WithFileCollection(nameof(BaselineTestJpegs), PixelTypes.Rgba32, false)]
+        [WithFile(TestImages.Jpeg.Baseline.Calliphora, PixelTypes.Rgba32, true)]
+        [WithFile(TestImages.Jpeg.Baseline.Turtle420, PixelTypes.Rgba32, true)]
+        public void DecodeBaselineJpeg<TPixel>(TestImageProvider<TPixel> provider, bool enforceDiscontiguousBuffers)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (SkipTest(provider))
+            static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
-                // skipping to avoid OutOfMemoryException on CI
-                return;
-            }
+                TestImageProvider<TPixel> provider =
+                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
 
-            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
-            {
-                image.DebugSave(provider);
+                if (!string.IsNullOrEmpty(nonContiguousBuffersStr))
+                {
+                    provider.LimitAllocatorBufferCapacity().InPixels(1000 * 8);
+                }
+
+                using Image<TPixel> image = provider.GetImage(JpegDecoder);
+                image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
 
                 provider.Utility.TestName = DecodeBaselineJpegOutputName;
                 image.CompareToReferenceOutput(
-                    this.GetImageComparer(provider),
+                    GetImageComparer(provider),
                     provider,
                     appendPixelTypeToFileName: false);
             }
+
+            string providerDump = BasicSerializer.Serialize(provider);
+            RunTest(providerDump, enforceDiscontiguousBuffers ? "Disco" : string.Empty);
+
+            // RemoteExecutor.Invoke(
+            //         RunTest,
+            //         providerDump,
+            //         enforceDiscontiguousBuffers ? "Disco" : string.Empty)
+            //     .Dispose();
         }
 
         [Theory]
-        [WithFile(TestImages.Jpeg.Issues.CriticalEOF214, PixelTypes.Rgba32)]
-        public void DecodeBaselineJpeg_CriticalEOF_ShouldThrow<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            // TODO: We need a public ImageDecoderException class in ImageSharp!
-            Assert.ThrowsAny<Exception>(() => provider.GetImage(JpegDecoder));
-        }
-
-        [Theory]
-        [WithFile(TestImages.Jpeg.Issues.InvalidJpegThrowsWrongException797, PixelTypes.Rgba32)]
-        public void LoadingImage_InvalidTagLength_ShouldThrow<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel> => Assert.Throws<ImageFormatException>(() => provider.GetImage());
-
-        [Theory]
-        [WithFile(TestImages.Jpeg.Issues.AccessViolationException798, PixelTypes.Rgba32)]
-        public void LoadingImage_BadHuffman_ShouldNotThrow<TPixel>(TestImageProvider<TPixel> provider)
-    where TPixel : struct, IPixel<TPixel> => Assert.NotNull(provider.GetImage());
+        [WithFileCollection(nameof(UnrecoverableTestJpegs), PixelTypes.Rgba32)]
+        public void UnrecoverableImage_Throws_InvalidImageContentException<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<InvalidImageContentException>(provider.GetImage);
     }
 }

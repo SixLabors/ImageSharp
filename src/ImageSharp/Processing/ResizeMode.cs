@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Processing
@@ -42,6 +42,11 @@ namespace SixLabors.ImageSharp.Processing
         /// <summary>
         /// Stretches the resized image to fit the bounds of its container.
         /// </summary>
-        Stretch
+        Stretch,
+
+        /// <summary>
+        /// The target location and size of the resized image has been manually set.
+        /// </summary>
+        Manual
     }
 }

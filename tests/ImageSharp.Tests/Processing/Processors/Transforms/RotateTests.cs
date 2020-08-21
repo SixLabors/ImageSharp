@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [WithTestPatternImages(nameof(RotateAngles), 100, 50, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(RotateAngles), 50, 100, PixelTypes.Rgba32)]
         public void Rotate_WithAngle<TPixel>(TestImageProvider<TPixel> provider, float value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(ctx => ctx.Rotate(value), value, appendPixelTypeToFileName: false);
         }
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         [WithTestPatternImages(nameof(RotateEnumValues), 100, 50, PixelTypes.Rgba32)]
         [WithTestPatternImages(nameof(RotateEnumValues), 50, 100, PixelTypes.Rgba32)]
         public void Rotate_WithRotateTypeEnum<TPixel>(TestImageProvider<TPixel> provider, RotateMode value)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             provider.RunValidatingProcessorTest(ctx => ctx.Rotate(value), value, appendPixelTypeToFileName: false);
         }

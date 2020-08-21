@@ -1,5 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
+
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -8,12 +11,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// Bilinear interpolation can be used where perfect image transformation with pixel matching is impossible,
     /// so that one can calculate and assign appropriate intensity values to pixels.
     /// </summary>
-    public class TriangleResampler : IResampler
+    public readonly struct TriangleResampler : IResampler
     {
         /// <inheritdoc/>
         public float Radius => 1;
 
         /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
         public float GetValue(float x)
         {
             if (x < 0F)
@@ -28,5 +32,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             return 0F;
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void ApplyTransform<TPixel>(IResamplingTransformImageProcessor<TPixel> processor)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => processor.ApplyTransform(in this);
     }
 }

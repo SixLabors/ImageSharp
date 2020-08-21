@@ -1,9 +1,11 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Collections.Generic;
 using System.Linq;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -49,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
             TestImageProvider<TPixel> provider,
             LibJpegTools.SpectralData data,
             ITestOutputHelper output = null)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             foreach (LibJpegTools.ComponentData comp in data.Components)
             {

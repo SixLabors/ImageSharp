@@ -1,10 +1,13 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Numerics;
+using System.Runtime.InteropServices;
+
+using BenchmarkDotNet.Attributes;
+
 namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
 {
-    using System.Numerics;
-    using System.Runtime.InteropServices;
-
-    using BenchmarkDotNet.Attributes;
-
     public class ReinterpretUInt32AsFloat
     {
         private uint[] input;
@@ -15,22 +18,20 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         public int InputSize { get; set; }
 
         [StructLayout(LayoutKind.Explicit)]
-        struct UIntFloatUnion
+        private struct UIntFloatUnion
         {
             [FieldOffset(0)]
-            public float f;
+            public float F;
 
             [FieldOffset(0)]
-            public uint i;
+            public uint I;
         }
-
 
         [GlobalSetup]
         public void Setup()
         {
             this.input = new uint[this.InputSize];
             this.result = new float[this.InputSize];
-            
             for (int i = 0; i < this.InputSize; i++)
             {
                 this.input[i] = (uint)i;
@@ -40,11 +41,11 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         [Benchmark(Baseline = true)]
         public void Standard()
         {
-            UIntFloatUnion u = default(UIntFloatUnion);
+            UIntFloatUnion u = default;
             for (int i = 0; i < this.input.Length; i++)
             {
-                u.i = this.input[i];
-                this.result[i] = u.f;
+                u.I = this.input[i];
+                this.result[i] = u.F;
             }
         }
 
@@ -53,8 +54,8 @@ namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization
         {
             for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
             {
-                Vector<uint> a = new Vector<uint>(this.input, i);
-                Vector<float> b = Vector.AsVectorSingle(a);
+                var a = new Vector<uint>(this.input, i);
+                var b = Vector.AsVectorSingle(a);
                 b.CopyTo(this.result, i);
             }
         }

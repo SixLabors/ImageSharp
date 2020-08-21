@@ -1,9 +1,6 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Filters
@@ -17,14 +14,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters
         public void Filter_CorrectProcessor()
         {
             this.operations.Filter(KnownFilterMatrices.AchromatomalyFilter * KnownFilterMatrices.CreateHueFilter(90F));
-            FilterProcessor<Rgba32> p = this.Verify<FilterProcessor<Rgba32>>();
+            this.Verify<FilterProcessor>();
         }
 
         [Fact]
         public void Filter_rect_CorrectProcessor()
         {
             this.operations.Filter(KnownFilterMatrices.AchromatomalyFilter * KnownFilterMatrices.CreateHueFilter(90F), this.rect);
-            FilterProcessor<Rgba32> p = this.Verify<FilterProcessor<Rgba32>>(this.rect);
+            this.Verify<FilterProcessor>(this.rect);
         }
     }
 }

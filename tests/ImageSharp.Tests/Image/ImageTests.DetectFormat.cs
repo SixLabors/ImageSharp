@@ -1,14 +1,14 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.IO;
-using Moq;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
     public partial class ImageTests
@@ -23,10 +23,6 @@ namespace SixLabors.ImageSharp.Tests
             private byte[] ActualImageBytes => TestFile.Create(TestImages.Bmp.F).Bytes;
 
             private ReadOnlySpan<byte> ActualImageSpan => this.ActualImageBytes.AsSpan();
-
-            private byte[] ByteArray => this.DataStream.ToArray();
-
-            private ReadOnlySpan<byte> ByteSpan => this.ByteArray.AsSpan();
 
             private IImageFormat LocalImageFormat => this.localImageFormatMock.Object;
 
@@ -92,6 +88,30 @@ namespace SixLabors.ImageSharp.Tests
             public void WhenNoMatchingFormatFound_ReturnsNull()
             {
                 IImageFormat type = Image.DetectFormat(new Configuration(), this.DataStream);
+                Assert.Null(type);
+            }
+
+            [Fact]
+            public async Task FromStreamAsync_GlobalConfiguration()
+            {
+                using (var stream = new MemoryStream(this.ActualImageBytes))
+                {
+                    IImageFormat type = await Image.DetectFormatAsync(new AsyncStreamWrapper(stream, () => false));
+                    Assert.Equal(ExpectedGlobalFormat, type);
+                }
+            }
+
+            [Fact]
+            public async Task FromStreamAsync_CustomConfiguration()
+            {
+                IImageFormat type = await Image.DetectFormatAsync(this.LocalConfiguration, new AsyncStreamWrapper(this.DataStream, () => false));
+                Assert.Equal(this.LocalImageFormat, type);
+            }
+
+            [Fact]
+            public async Task WhenNoMatchingFormatFoundAsync_ReturnsNull()
+            {
+                IImageFormat type = await Image.DetectFormatAsync(new Configuration(), new AsyncStreamWrapper(this.DataStream, () => false));
                 Assert.Null(type);
             }
         }

@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Text;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
 {
@@ -12,31 +11,69 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
     internal static class ProfileResolver
     {
         /// <summary>
-        /// Describes the EXIF specific markers
+        /// Gets the JFIF specific markers.
         /// </summary>
-        public static readonly byte[] JFifMarker = Encoding.ASCII.GetBytes("JFIF\0");
+        public static ReadOnlySpan<byte> JFifMarker => new[]
+        {
+            (byte)'J', (byte)'F', (byte)'I', (byte)'F', (byte)'\0'
+        };
 
         /// <summary>
-        /// Describes the EXIF specific markers
+        /// Gets the ICC specific markers.
         /// </summary>
-        public static readonly byte[] IccMarker = Encoding.ASCII.GetBytes("ICC_PROFILE\0");
+        public static ReadOnlySpan<byte> IccMarker => new[]
+        {
+            (byte)'I', (byte)'C', (byte)'C', (byte)'_',
+            (byte)'P', (byte)'R', (byte)'O', (byte)'F',
+            (byte)'I', (byte)'L', (byte)'E', (byte)'\0'
+        };
 
         /// <summary>
-        /// Describes the ICC specific markers
+        /// Gets the adobe photoshop APP13 marker which can contain IPTC meta data.
         /// </summary>
-        public static readonly byte[] ExifMarker = Encoding.ASCII.GetBytes("Exif\0\0");
+        public static ReadOnlySpan<byte> AdobePhotoshopApp13Marker => new[]
+        {
+            (byte)'P', (byte)'h', (byte)'o', (byte)'t', (byte)'o', (byte)'s', (byte)'h', (byte)'o', (byte)'p', (byte)' ', (byte)'3', (byte)'.', (byte)'0', (byte)'\0'
+        };
 
         /// <summary>
-        /// Describes Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>
+        /// Gets the 8BIM marker, which signals the start of a adobe specific image resource block.
         /// </summary>
-        public static readonly byte[] AdobeMarker = Encoding.ASCII.GetBytes("Adobe");
+        public static ReadOnlySpan<byte> AdobeImageResourceBlockMarker => new[]
+        {
+            (byte)'8', (byte)'B', (byte)'I', (byte)'M'
+        };
 
         /// <summary>
-        /// Returns a value indicating whether the passed bytes are a match to the profile identifier
+        /// Gets a IPTC Image resource ID.
         /// </summary>
-        /// <param name="bytesToCheck">The bytes to check</param>
-        /// <param name="profileIdentifier">The profile identifier</param>
-        /// <returns>The <see cref="bool"/></returns>
+        public static ReadOnlySpan<byte> AdobeIptcMarker => new[]
+        {
+            (byte)4, (byte)4
+        };
+
+        /// <summary>
+        /// Gets the EXIF specific markers.
+        /// </summary>
+        public static ReadOnlySpan<byte> ExifMarker => new[]
+        {
+            (byte)'E', (byte)'x', (byte)'i', (byte)'f', (byte)'\0', (byte)'\0'
+        };
+
+        /// <summary>
+        /// Gets the Adobe specific markers <see href="http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/JPEG.html#Adobe"/>.
+        /// </summary>
+        public static ReadOnlySpan<byte> AdobeMarker => new[]
+        {
+            (byte)'A', (byte)'d', (byte)'o', (byte)'b', (byte)'e'
+        };
+
+        /// <summary>
+        /// Returns a value indicating whether the passed bytes are a match to the profile identifier.
+        /// </summary>
+        /// <param name="bytesToCheck">The bytes to check.</param>
+        /// <param name="profileIdentifier">The profile identifier.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
         public static bool IsProfile(ReadOnlySpan<byte> bytesToCheck, ReadOnlySpan<byte> profileIdentifier)
         {
             return bytesToCheck.Length >= profileIdentifier.Length

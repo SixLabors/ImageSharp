@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Text;
-using SixLabors.ImageSharp.MetaData;
+using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -17,12 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         bool IgnoreMetadata { get; }
 
         /// <summary>
-        /// Gets the text encoding that should be used when reading comments.
-        /// </summary>
-        Encoding TextEncoding { get; }
-
-        /// <summary>
-        /// Gets the decoding mode for multi-frame images
+        /// Gets the decoding mode for multi-frame images.
         /// </summary>
         FrameDecodingMode DecodingMode { get; }
     }

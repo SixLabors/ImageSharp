@@ -1,33 +1,43 @@
-﻿using System.Buffers.Binary;
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.Text;
 
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
     public partial class PngDecoderTests
     {
+        // Represents ASCII string of "123456789"
+        private readonly byte[] check = { 49, 50, 51, 52, 53, 54, 55, 56, 57 };
+
         // Contains the png marker, IHDR and pHYs chunks of a 1x1 pixel 32bit png 1 a single black pixel.
         private static readonly byte[] Raw1X1PngIhdrAndpHYs =
             {
-                // PNG Identifier 
+                // PNG Identifier
                 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
 
                 // IHDR
                 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, 0x00,
                 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02,
                 0x00, 0x00, 0x00,
+
                 // IHDR CRC
                 0x90, 0x77, 0x53, 0xDE,
 
                 // pHYS
                 0x00, 0x00, 0x00, 0x09, 0x70, 0x48, 0x59, 0x73, 0x00,
                 0x00, 0x0E, 0xC3, 0x00, 0x00, 0x0E, 0xC3, 0x01,
+
                 // pHYS CRC
                 0xC7, 0x6F, 0xA8, 0x64
             };
@@ -53,8 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [InlineData((uint)PngChunkType.Header)] // IHDR
         [InlineData((uint)PngChunkType.Palette)] // PLTE
-        // [InlineData(PngChunkTypes.Data)] //TODO: Figure out how to test this
-        [InlineData((uint)PngChunkType.End)] // IEND
+        /* [InlineData(PngChunkTypes.Data)] TODO: Figure out how to test this */
         public void Decode_IncorrectCRCForCriticalChunk_ExceptionIsThrown(uint chunkType)
         {
             string chunkName = GetChunkTypeName(chunkType);
@@ -68,35 +77,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 var decoder = new PngDecoder();
 
                 ImageFormatException exception =
-                    Assert.Throws<ImageFormatException>(() => decoder.Decode<Rgb24>(null, memStream));
+                    Assert.Throws<InvalidImageContentException>(() => decoder.Decode<Rgb24>(Configuration.Default, memStream));
 
                 Assert.Equal($"CRC Error. PNG {chunkName} chunk is corrupt!", exception.Message);
             }
         }
 
-        [Theory]
-        [InlineData((uint)PngChunkType.Gamma)] // gAMA
-        [InlineData((uint)PngChunkType.Transparency)] // tRNS
-        [InlineData((uint)PngChunkType.Physical)] // pHYs: It's ok to test physical as we don't throw for duplicate chunks.
-        //[InlineData(PngChunkTypes.Text)] //TODO: Figure out how to test this
-        public void Decode_IncorrectCRCForNonCriticalChunk_ExceptionIsThrown(uint chunkType)
-        {
-            string chunkName = GetChunkTypeName(chunkType);
-
-            using (var memStream = new MemoryStream())
-            {
-                WriteHeaderChunk(memStream);
-                WriteChunk(memStream, chunkName);
-                WriteDataChunk(memStream);
-
-                var decoder = new PngDecoder();
-                decoder.Decode<Rgb24>(null, memStream);
-            }
-        }
-
         private static string GetChunkTypeName(uint value)
         {
-            byte[] data = new byte[4];
+            var data = new byte[4];
 
             BinaryPrimitives.WriteUInt32BigEndian(data, value);
 
@@ -105,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         private static void WriteHeaderChunk(MemoryStream memStream)
         {
-            // Writes a 1x1 32bit png header chunk containing a single black pixel
+            // Writes a 1x1 32bit png header chunk containing a single black pixel.
             memStream.Write(Raw1X1PngIhdrAndpHYs, 0, Raw1X1PngIhdrAndpHYs.Length);
         }
 
@@ -120,7 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         private static void WriteDataChunk(MemoryStream memStream)
         {
-            // Writes a 1x1 32bit png data chunk containing a single black pixel
+            // Writes a 1x1 32bit png data chunk containing a single black pixel.
             memStream.Write(Raw1X1PngIdatAndIend, 0, Raw1X1PngIdatAndIend.Length);
             memStream.Position = 0;
         }

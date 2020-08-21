@@ -1,10 +1,8 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using SixLabors.Primitives;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
@@ -17,10 +15,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             int width = 50;
             int height = 100;
             this.operations.Resize(width, height);
-            ResizeProcessor<Rgba32> resizeProcessor = this.Verify<ResizeProcessor<Rgba32>>();
+            ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
-            Assert.Equal(width, resizeProcessor.Width);
-            Assert.Equal(height, resizeProcessor.Height);
+            Assert.Equal(width, resizeProcessor.DestinationWidth);
+            Assert.Equal(height, resizeProcessor.DestinationHeight);
         }
 
         [Fact]
@@ -30,10 +28,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             int height = 100;
             IResampler sampler = KnownResamplers.Lanczos3;
             this.operations.Resize(width, height, sampler);
-            ResizeProcessor<Rgba32> resizeProcessor = this.Verify<ResizeProcessor<Rgba32>>();
+            ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
-            Assert.Equal(width, resizeProcessor.Width);
-            Assert.Equal(height, resizeProcessor.Height);
+            Assert.Equal(width, resizeProcessor.DestinationWidth);
+            Assert.Equal(height, resizeProcessor.DestinationHeight);
             Assert.Equal(sampler, resizeProcessor.Sampler);
         }
 
@@ -47,10 +45,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             this.operations.Resize(width, height, sampler, compand);
-            ResizeProcessor<Rgba32> resizeProcessor = this.Verify<ResizeProcessor<Rgba32>>();
+            ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
-            Assert.Equal(width, resizeProcessor.Width);
-            Assert.Equal(height, resizeProcessor.Height);
+            Assert.Equal(width, resizeProcessor.DestinationWidth);
+            Assert.Equal(height, resizeProcessor.DestinationHeight);
             Assert.Equal(sampler, resizeProcessor.Sampler);
             Assert.Equal(compand, resizeProcessor.Compand);
         }
@@ -73,10 +71,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             };
 
             this.operations.Resize(resizeOptions);
-            ResizeProcessor<Rgba32> resizeProcessor = this.Verify<ResizeProcessor<Rgba32>>();
+            ResizeProcessor resizeProcessor = this.Verify<ResizeProcessor>();
 
-            Assert.Equal(width, resizeProcessor.Width);
-            Assert.Equal(height, resizeProcessor.Height);
+            Assert.Equal(width, resizeProcessor.DestinationWidth);
+            Assert.Equal(height, resizeProcessor.DestinationHeight);
             Assert.Equal(sampler, resizeProcessor.Sampler);
             Assert.Equal(compand, resizeProcessor.Compand);
 

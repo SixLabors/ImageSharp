@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         [Fact]
         public void GetString_EmptyBuffer_ReturnsEmptyString()
         {
-            var buffer = new ReadOnlySpan<byte>();
+            var buffer = default(ReadOnlySpan<byte>);
 
             string result = Encoding.UTF8.GetString(buffer);
 

@@ -1,9 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 {
     using SixLabors.ImageSharp.PixelFormats;
@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [WithBlankImages(1, 1, PixelTypesToTest32, TestImages.Png.Splash)]
         [WithBlankImages(1, 1, PixelTypesToTest32, TestImages.Png.Indexed)]
         public void MagickDecode_8BitDepthImage_IsEquivalentTo_SystemDrawingResult<TPixel>(TestImageProvider<TPixel> dummyProvider, string testImage)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string path = TestFile.GetInputFileFullPath(testImage);
 
@@ -58,9 +58,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [WithBlankImages(1, 1, PixelTypesToTest48, TestImages.Png.Rgb48Bpp)]
         [WithBlankImages(1, 1, PixelTypesToTest48, TestImages.Png.Rgb48BppInterlaced)]
         [WithBlankImages(1, 1, PixelTypesToTest48, TestImages.Png.Rgb48BppTrans)]
-        [WithBlankImages(1, 1, PixelTypesToTest48, TestImages.Png.Gray16Bit)]
+        [WithBlankImages(1, 1, PixelTypesToTest48, TestImages.Png.L16Bit)]
         public void MagickDecode_16BitDepthImage_IsApproximatelyEquivalentTo_SystemDrawingResult<TPixel>(TestImageProvider<TPixel> dummyProvider, string testImage)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string path = TestFile.GetInputFileFullPath(testImage);
 

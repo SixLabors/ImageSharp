@@ -1,152 +1,72 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Encapsulates a collection of <see cref="ImageFrame{T}"/> instances that make up an <see cref="Image{T}"/>.
+    /// Encapsulates a pixel-agnostic collection of <see cref="ImageFrame"/> instances
+    /// that make up an <see cref="Image"/>.
     /// </summary>
-    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    public sealed class ImageFrameCollection<TPixel> : IEnumerable<ImageFrame<TPixel>>
-        where TPixel : struct, IPixel<TPixel>
+    public abstract class ImageFrameCollection : IEnumerable<ImageFrame>
     {
-        private readonly IList<ImageFrame<TPixel>> frames = new List<ImageFrame<TPixel>>();
-        private readonly Image<TPixel> parent;
-
-        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, TPixel backgroundColor)
-        {
-            this.parent = parent ?? throw new ArgumentNullException(nameof(parent));
-
-            // Frames are already cloned within the caller
-            this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, backgroundColor));
-        }
-
-        internal ImageFrameCollection(Image<TPixel> parent, int width, int height, MemorySource<TPixel> memorySource)
-        {
-            this.parent = parent ?? throw new ArgumentNullException(nameof(parent));
-
-            // Frames are already cloned within the caller
-            this.frames.Add(new ImageFrame<TPixel>(parent.GetConfiguration(), width, height, memorySource));
-        }
-
-        internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)
-        {
-            Guard.NotNull(parent, nameof(parent));
-            Guard.NotNull(frames, nameof(frames));
-
-            this.parent = parent;
-
-            // Frames are already cloned by the caller
-            foreach (ImageFrame<TPixel> f in frames)
-            {
-                this.ValidateFrame(f);
-                this.frames.Add(f);
-            }
-
-            // Ensure at least 1 frame was added to the frames collection
-            if (this.frames.Count == 0)
-            {
-                throw new ArgumentException("Must not be empty.", nameof(frames));
-            }
-        }
-
         /// <summary>
         /// Gets the number of frames.
         /// </summary>
-        public int Count => this.frames.Count;
+        public abstract int Count { get; }
 
         /// <summary>
         /// Gets the root frame.
         /// </summary>
-        public ImageFrame<TPixel> RootFrame => this.frames.Count > 0 ? this.frames[0] : null;
+        public ImageFrame RootFrame => this.NonGenericRootFrame;
 
         /// <summary>
-        /// Gets the <see cref="ImageFrame{TPixel}"/> at the specified index.
+        /// Gets the root frame. (Implements <see cref="RootFrame"/>.)
+        /// </summary>
+        protected abstract ImageFrame NonGenericRootFrame { get; }
+
+        /// <summary>
+        /// Gets the <see cref="ImageFrame"/> at the specified index.
         /// </summary>
         /// <value>
-        /// The <see cref="ImageFrame{TPixel}"/>.
+        /// The <see cref="ImageFrame"/>.
         /// </value>
         /// <param name="index">The index.</param>
-        /// <returns>The <see cref="ImageFrame{TPixel}"/> at the specified index.</returns>
-        public ImageFrame<TPixel> this[int index] => this.frames[index];
+        /// <returns>The <see cref="ImageFrame"/> at the specified index.</returns>
+        public ImageFrame this[int index] => this.NonGenericGetFrame(index);
 
         /// <summary>
-        /// Determines the index of a specific <paramref name="frame"/> in the <seealso cref="ImageFrameCollection{TPixel}"/>.
+        /// Determines the index of a specific <paramref name="frame"/> in the <seealso cref="ImageFrameCollection"/>.
         /// </summary>
-        /// <param name="frame">The <seealso cref="ImageFrame{TPixel}"/> to locate in the <seealso cref="ImageFrameCollection{TPixel}"/>.</param>
+        /// <param name="frame">The <seealso cref="ImageFrame"/> to locate in the <seealso cref="ImageFrameCollection"/>.</param>
         /// <returns>The index of item if found in the list; otherwise, -1.</returns>
-        public int IndexOf(ImageFrame<TPixel> frame) => this.frames.IndexOf(frame);
+        public abstract int IndexOf(ImageFrame frame);
 
         /// <summary>
-        /// Clones and inserts the <paramref name="source"/> into the <seealso cref="ImageFrameCollection{TPixel}"/> at the specified <paramref name="index"/>.
+        /// Clones and inserts the <paramref name="source"/> into the <seealso cref="ImageFrameCollection"/> at the specified <paramref name="index"/>.
         /// </summary>
         /// <param name="index">The zero-based index to insert the frame at.</param>
-        /// <param name="source">The <seealso cref="ImageFrame{TPixel}"/> to clone and insert into the <seealso cref="ImageFrameCollection{TPixel}"/>.</param>
+        /// <param name="source">The <seealso cref="ImageFrame"/> to clone and insert into the <seealso cref="ImageFrameCollection"/>.</param>
         /// <exception cref="ArgumentException">Frame must have the same dimensions as the image.</exception>
-        /// <returns>The cloned <see cref="ImageFrame{TPixel}"/>.</returns>
-        public ImageFrame<TPixel> InsertFrame(int index, ImageFrame<TPixel> source)
-        {
-            this.ValidateFrame(source);
-            ImageFrame<TPixel> clonedFrame = source.Clone(this.parent.GetConfiguration());
-            this.frames.Insert(index, clonedFrame);
-            return clonedFrame;
-        }
+        /// <returns>The cloned <see cref="ImageFrame"/>.</returns>
+        public ImageFrame InsertFrame(int index, ImageFrame source) => this.NonGenericInsertFrame(index, source);
 
         /// <summary>
         /// Clones the <paramref name="source"/> frame and appends the clone to the end of the collection.
         /// </summary>
         /// <param name="source">The raw pixel data to generate the <seealso cref="ImageFrame{TPixel}"/> from.</param>
         /// <returns>The cloned <see cref="ImageFrame{TPixel}"/>.</returns>
-        public ImageFrame<TPixel> AddFrame(ImageFrame<TPixel> source)
-        {
-            this.ValidateFrame(source);
-            ImageFrame<TPixel> clonedFrame = source.Clone(this.parent.GetConfiguration());
-            this.frames.Add(clonedFrame);
-            return clonedFrame;
-        }
-
-        /// <summary>
-        /// Creates a new frame from the pixel data with the same dimensions as the other frames and inserts the
-        /// new frame at the end of the collection.
-        /// </summary>
-        /// <param name="source">The raw pixel data to generate the <seealso cref="ImageFrame{TPixel}"/> from.</param>
-        /// <returns>The new <see cref="ImageFrame{TPixel}"/>.</returns>
-        public ImageFrame<TPixel> AddFrame(TPixel[] source)
-        {
-            Guard.NotNull(source, nameof(source));
-
-            var frame = ImageFrame.LoadPixelData(
-                this.parent.GetConfiguration(),
-                new ReadOnlySpan<TPixel>(source),
-                this.RootFrame.Width,
-                this.RootFrame.Height);
-            this.frames.Add(frame);
-            return frame;
-        }
+        public ImageFrame AddFrame(ImageFrame source) => this.NonGenericAddFrame(source);
 
         /// <summary>
         /// Removes the frame at the specified index and frees all freeable resources associated with it.
         /// </summary>
         /// <param name="index">The zero-based index of the frame to remove.</param>
         /// <exception cref="InvalidOperationException">Cannot remove last frame.</exception>
-        public void RemoveFrame(int index)
-        {
-            if (index == 0 && this.Count == 1)
-            {
-                throw new InvalidOperationException("Cannot remove last frame.");
-            }
-
-            ImageFrame<TPixel> frame = this.frames[index];
-            this.frames.RemoveAt(index);
-            frame.Dispose();
-        }
+        public abstract void RemoveFrame(int index);
 
         /// <summary>
         /// Determines whether the <seealso cref="ImageFrameCollection{TPixel}"/> contains the <paramref name="frame"/>.
@@ -155,24 +75,14 @@ namespace SixLabors.ImageSharp
         /// <returns>
         ///   <c>true</c> if the <seealso cref="ImageFrameCollection{TPixel}"/> contains the specified frame; otherwise, <c>false</c>.
         /// </returns>
-        public bool Contains(ImageFrame<TPixel> frame) => this.frames.Contains(frame);
+        public abstract bool Contains(ImageFrame frame);
 
         /// <summary>
         /// Moves an <seealso cref="ImageFrame{TPixel}"/> from <paramref name="sourceIndex"/> to <paramref name="destinationIndex"/>.
         /// </summary>
         /// <param name="sourceIndex">The zero-based index of the frame to move.</param>
         /// <param name="destinationIndex">The index to move the frame to.</param>
-        public void MoveFrame(int sourceIndex, int destinationIndex)
-        {
-            if (sourceIndex == destinationIndex)
-            {
-                return;
-            }
-
-            ImageFrame<TPixel> frameAtIndex = this.frames[sourceIndex];
-            this.frames.RemoveAt(sourceIndex);
-            this.frames.Insert(destinationIndex, frameAtIndex);
-        }
+        public abstract void MoveFrame(int sourceIndex, int destinationIndex);
 
         /// <summary>
         /// Removes the frame at the specified index and creates a new image with only the removed frame
@@ -181,19 +91,7 @@ namespace SixLabors.ImageSharp
         /// <param name="index">The zero-based index of the frame to export.</param>
         /// <exception cref="InvalidOperationException">Cannot remove last frame.</exception>
         /// <returns>The new <see cref="Image{TPixel}"/> with the specified frame.</returns>
-        public Image<TPixel> ExportFrame(int index)
-        {
-            ImageFrame<TPixel> frame = this[index];
-
-            if (this.Count == 1 && this.frames.Contains(frame))
-            {
-                throw new InvalidOperationException("Cannot remove last frame.");
-            }
-
-            this.frames.Remove(frame);
-
-            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.MetaData.DeepClone(), new[] { frame });
-        }
+        public Image ExportFrame(int index) => this.NonGenericExportFrame(index);
 
         /// <summary>
         /// Creates an <see cref="Image{T}"/> with only the frame at the specified index
@@ -201,12 +99,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="index">The zero-based index of the frame to clone.</param>
         /// <returns>The new <see cref="Image{TPixel}"/> with the specified frame.</returns>
-        public Image<TPixel> CloneFrame(int index)
-        {
-            ImageFrame<TPixel> frame = this[index];
-            ImageFrame<TPixel> clonedFrame = frame.Clone();
-            return new Image<TPixel>(this.parent.GetConfiguration(), this.parent.MetaData.DeepClone(), new[] { clonedFrame });
-        }
+        public Image CloneFrame(int index) => this.NonGenericCloneFrame(index);
 
         /// <summary>
         /// Creates a new <seealso cref="ImageFrame{TPixel}" /> and appends it to the end of the collection.
@@ -214,7 +107,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The new <see cref="ImageFrame{TPixel}" />.
         /// </returns>
-        public ImageFrame<TPixel> CreateFrame() => this.CreateFrame(default);
+        public ImageFrame CreateFrame() => this.NonGenericCreateFrame();
 
         /// <summary>
         /// Creates a new <seealso cref="ImageFrame{TPixel}" /> and appends it to the end of the collection.
@@ -223,44 +116,67 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The new <see cref="ImageFrame{TPixel}" />.
         /// </returns>
-        public ImageFrame<TPixel> CreateFrame(TPixel backgroundColor)
-        {
-            var frame = new ImageFrame<TPixel>(
-                this.parent.GetConfiguration(),
-                this.RootFrame.Width,
-                this.RootFrame.Height,
-                backgroundColor);
-            this.frames.Add(frame);
-            return frame;
-        }
+        public ImageFrame CreateFrame(Color backgroundColor) => this.NonGenericCreateFrame(backgroundColor);
+
+        /// <inheritdoc />
+        public IEnumerator<ImageFrame> GetEnumerator() => this.NonGenericGetEnumerator();
 
         /// <inheritdoc/>
-        IEnumerator<ImageFrame<TPixel>> IEnumerable<ImageFrame<TPixel>>.GetEnumerator() => this.frames.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
-        /// <inheritdoc/>
-        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)this.frames).GetEnumerator();
+        /// <summary>
+        /// Implements <see cref="GetEnumerator"/>.
+        /// </summary>
+        /// <returns>The enumerator.</returns>
+        protected abstract IEnumerator<ImageFrame> NonGenericGetEnumerator();
 
-        private void ValidateFrame(ImageFrame<TPixel> frame)
-        {
-            Guard.NotNull(frame, nameof(frame));
+        /// <summary>
+        /// Implements the getter of the indexer.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <returns>The frame.</returns>
+        protected abstract ImageFrame NonGenericGetFrame(int index);
 
-            if (this.Count != 0)
-            {
-                if (this.RootFrame.Width != frame.Width || this.RootFrame.Height != frame.Height)
-                {
-                    throw new ArgumentException("Frame must have the same dimensions as the image.", nameof(frame));
-                }
-            }
-        }
+        /// <summary>
+        /// Implements <see cref="InsertFrame"/>.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <param name="source">The frame.</param>
+        /// <returns>The new frame.</returns>
+        protected abstract ImageFrame NonGenericInsertFrame(int index, ImageFrame source);
 
-        internal void Dispose()
-        {
-            foreach (ImageFrame<TPixel> f in this.frames)
-            {
-                f.Dispose();
-            }
+        /// <summary>
+        /// Implements <see cref="AddFrame"/>.
+        /// </summary>
+        /// <param name="source">The frame.</param>
+        /// <returns>The new frame.</returns>
+        protected abstract ImageFrame NonGenericAddFrame(ImageFrame source);
 
-            this.frames.Clear();
-        }
+        /// <summary>
+        /// Implements <see cref="ExportFrame"/>.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <returns>The new image.</returns>
+        protected abstract Image NonGenericExportFrame(int index);
+
+        /// <summary>
+        /// Implements <see cref="CloneFrame"/>.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <returns>The new image.</returns>
+        protected abstract Image NonGenericCloneFrame(int index);
+
+        /// <summary>
+        /// Implements <see cref="CreateFrame()"/>.
+        /// </summary>
+        /// <returns>The new frame.</returns>
+        protected abstract ImageFrame NonGenericCreateFrame();
+
+        /// <summary>
+        /// Implements <see cref="CreateFrame()"/>.
+        /// </summary>
+        /// <param name="backgroundColor">The background color.</param>
+        /// <returns>The new frame.</returns>
+        protected abstract ImageFrame NonGenericCreateFrame(Color backgroundColor);
     }
 }

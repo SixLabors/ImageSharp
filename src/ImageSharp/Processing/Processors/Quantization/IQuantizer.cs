@@ -1,8 +1,7 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization
 {
@@ -12,27 +11,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
     public interface IQuantizer
     {
         /// <summary>
-        /// Gets the error diffusion algorithm to apply to the output image.
+        /// Gets the quantizer options defining quantization rules.
         /// </summary>
-        IErrorDiffuser Diffuser { get; }
+        QuantizerOptions Options { get; }
 
         /// <summary>
-        /// Creates the generic frame quantizer
+        /// Creates the generic frame quantizer.
         /// </summary>
         /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>The <see cref="IFrameQuantizer{TPixel}"/></returns>
-        IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration)
-            where TPixel : struct, IPixel<TPixel>;
+        /// <returns>The <see cref="IQuantizer{TPixel}"/>.</returns>
+        IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration)
+            where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
-        /// Creates the generic frame quantizer
+        /// Creates the generic frame quantizer.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
-        /// <param name="maxColors">The maximum number of colors to hold in the color palette.</param>
-        /// <returns>The <see cref="IFrameQuantizer{TPixel}"/></returns>
-        IFrameQuantizer<TPixel> CreateFrameQuantizer<TPixel>(Configuration configuration, int maxColors)
-            where TPixel : struct, IPixel<TPixel>;
+        /// <param name="options">The options to create the quantizer with.</param>
+        /// <returns>The <see cref="IQuantizer{TPixel}"/>.</returns>
+        IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
+            where TPixel : unmanaged, IPixel<TPixel>;
     }
 }

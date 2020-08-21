@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
@@ -8,172 +8,82 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// Options for influencing the drawing functions.
     /// </summary>
-    public struct GraphicsOptions
+    public class GraphicsOptions : IDeepCloneable<GraphicsOptions>
     {
-        /// <summary>
-        /// Represents the default <see cref="GraphicsOptions"/>.
-        /// </summary>
-        public static readonly GraphicsOptions Default = new GraphicsOptions(true);
-
-        private float? blendPercentage;
-
-        private int? antialiasSubpixelDepth;
-
-        private bool? antialias;
-
-        private PixelColorBlendingMode colorBlendingMode;
-
-        private PixelAlphaCompositionMode alphaCompositionMode;
+        private int antialiasSubpixelDepth = 16;
+        private float blendPercentage = 1F;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
+        /// Initializes a new instance of the <see cref="GraphicsOptions"/> class.
         /// </summary>
-        /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        public GraphicsOptions(bool enableAntialiasing)
+        public GraphicsOptions()
         {
-            this.colorBlendingMode = PixelColorBlendingMode.Normal;
-            this.alphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
-            this.blendPercentage = 1;
-            this.antialiasSubpixelDepth = 16;
-            this.antialias = enableAntialiasing;
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
-        /// </summary>
-        /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        /// <param name="opacity">blending percentage to apply to the drawing operation</param>
-        public GraphicsOptions(bool enableAntialiasing, float opacity)
+        private GraphicsOptions(GraphicsOptions source)
         {
-            Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
-
-            this.colorBlendingMode = PixelColorBlendingMode.Normal;
-            this.alphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
-            this.blendPercentage = opacity;
-            this.antialiasSubpixelDepth = 16;
-            this.antialias = enableAntialiasing;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
-        /// </summary>
-        /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        /// <param name="opacity">blending percentage to apply to the drawing operation</param>
-        /// <param name="blending">color blending mode to apply to the drawing operation</param>
-        public GraphicsOptions(bool enableAntialiasing, PixelColorBlendingMode blending, float opacity)
-        {
-            Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
-
-            this.colorBlendingMode = blending;
-            this.alphaCompositionMode = PixelAlphaCompositionMode.SrcOver;
-            this.blendPercentage = opacity;
-            this.antialiasSubpixelDepth = 16;
-            this.antialias = enableAntialiasing;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GraphicsOptions"/> struct.
-        /// </summary>
-        /// <param name="enableAntialiasing">If set to <c>true</c> [enable antialiasing].</param>
-        /// <param name="opacity">blending percentage to apply to the drawing operation</param>
-        /// <param name="blending">color blending mode to apply to the drawing operation</param>
-        /// <param name="composition">alpha composition mode to apply to the drawing operation</param>
-        public GraphicsOptions(bool enableAntialiasing, PixelColorBlendingMode blending, PixelAlphaCompositionMode composition, float opacity)
-        {
-            Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
-
-            this.colorBlendingMode = blending;
-            this.alphaCompositionMode = composition;
-            this.blendPercentage = opacity;
-            this.antialiasSubpixelDepth = 16;
-            this.antialias = enableAntialiasing;
+            this.AlphaCompositionMode = source.AlphaCompositionMode;
+            this.Antialias = source.Antialias;
+            this.AntialiasSubpixelDepth = source.AntialiasSubpixelDepth;
+            this.BlendPercentage = source.BlendPercentage;
+            this.ColorBlendingMode = source.ColorBlendingMode;
         }
 
         /// <summary>
         /// Gets or sets a value indicating whether antialiasing should be applied.
+        /// Defaults to true.
         /// </summary>
-        public bool Antialias
-        {
-            get => this.antialias ?? true;
-            set => this.antialias = value;
-        }
+        public bool Antialias { get; set; } = true;
 
         /// <summary>
         /// Gets or sets a value indicating the number of subpixels to use while rendering with antialiasing enabled.
+        /// Defaults to 16.
         /// </summary>
         public int AntialiasSubpixelDepth
         {
-            get => this.antialiasSubpixelDepth ?? 16;
-            set => this.antialiasSubpixelDepth = value;
+            get
+            {
+                return this.antialiasSubpixelDepth;
+            }
+
+            set
+            {
+                Guard.MustBeGreaterThanOrEqualTo(value, 0, nameof(this.AntialiasSubpixelDepth));
+                this.antialiasSubpixelDepth = value;
+            }
         }
 
         /// <summary>
-        /// Gets or sets a value indicating the blending percentage to apply to the drawing operation
+        /// Gets or sets a value between indicating the blending percentage to apply to the drawing operation.
+        /// Range 0..1; Defaults to 1.
         /// </summary>
         public float BlendPercentage
         {
-            get => (this.blendPercentage ?? 1).Clamp(0, 1);
-            set => this.blendPercentage = value;
-        }
+            get
+            {
+                return this.blendPercentage;
+            }
 
-        // In the future we could expose a PixelBlender<TPixel> directly on here
-        // or some forms of PixelBlender factory for each pixel type. Will need
-        // some API thought post V1.
+            set
+            {
+                Guard.MustBeBetweenOrEqualTo(value, 0, 1F, nameof(this.BlendPercentage));
+                this.blendPercentage = value;
+            }
+        }
 
         /// <summary>
-        /// Gets or sets a value indicating the color blending mode to apply to the drawing operation
+        /// Gets or sets a value indicating the color blending mode to apply to the drawing operation.
+        /// Defaults to <see cref="PixelColorBlendingMode.Normal"/>.
         /// </summary>
-        public PixelColorBlendingMode ColorBlendingMode
-        {
-            get => this.colorBlendingMode;
-            set => this.colorBlendingMode = value;
-        }
+        public PixelColorBlendingMode ColorBlendingMode { get; set; } = PixelColorBlendingMode.Normal;
 
         /// <summary>
         /// Gets or sets a value indicating the alpha composition mode to apply to the drawing operation
+        /// Defaults to <see cref="PixelAlphaCompositionMode.SrcOver"/>.
         /// </summary>
-        public PixelAlphaCompositionMode AlphaCompositionMode
-        {
-            get => this.alphaCompositionMode;
-            set => this.alphaCompositionMode = value;
-        }
+        public PixelAlphaCompositionMode AlphaCompositionMode { get; set; } = PixelAlphaCompositionMode.SrcOver;
 
-        /// <summary>
-        /// Evaluates if a given SOURCE color can completely replace a BACKDROP color given the current blending and composition settings.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format</typeparam>
-        /// <param name="color">the color</param>
-        /// <returns>true if the color can be considered opaque</returns>
-        /// <remarks>
-        /// Blending and composition is an expensive operation, in some cases, like
-        /// filling with a solid color, the blending can be avoided by a plain color replacement.
-        /// This method can be useful for such processors to select the fast path.
-        /// </remarks>
-        internal bool IsOpaqueColorWithoutBlending<TPixel>(TPixel color)
-            where TPixel : struct, IPixel<TPixel>
-        {
-            if (this.ColorBlendingMode != PixelColorBlendingMode.Normal)
-            {
-                return false;
-            }
-
-            if (this.AlphaCompositionMode != PixelAlphaCompositionMode.SrcOver &&
-                this.AlphaCompositionMode != PixelAlphaCompositionMode.Src)
-            {
-                return false;
-            }
-
-            if (this.BlendPercentage != 1f)
-            {
-                return false;
-            }
-
-            if (color.ToVector4().W != 1f)
-            {
-                return false;
-            }
-
-            return true;
-        }
+        /// <inheritdoc/>
+        public GraphicsOptions DeepClone() => new GraphicsOptions(this);
     }
 }

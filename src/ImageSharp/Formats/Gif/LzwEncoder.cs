@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
-using SixLabors.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif
 {
@@ -43,12 +42,32 @@ namespace SixLabors.ImageSharp.Formats.Gif
         private const int HashSize = 5003;
 
         /// <summary>
+        /// The amount to shift each code.
+        /// </summary>
+        private const int HashShift = 4;
+
+        /// <summary>
         /// Mask used when shifting pixel values
         /// </summary>
         private static readonly int[] Masks =
         {
-            0x0000, 0x0001, 0x0003, 0x0007, 0x000F, 0x001F, 0x003F, 0x007F, 0x00FF,
-            0x01FF, 0x03FF, 0x07FF, 0x0FFF, 0x1FFF, 0x3FFF, 0x7FFF, 0xFFFF
+            0b0,
+            0b1,
+            0b11,
+            0b111,
+            0b1111,
+            0b11111,
+            0b111111,
+            0b1111111,
+            0b11111111,
+            0b111111111,
+            0b1111111111,
+            0b11111111111,
+            0b111111111111,
+            0b1111111111111,
+            0b11111111111111,
+            0b111111111111111,
+            0b1111111111111111
         };
 
         /// <summary>
@@ -80,16 +99,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Define the storage for the packet accumulator.
         /// </summary>
         private readonly byte[] accumulators = new byte[256];
-
-        /// <summary>
-        /// For dynamic table sizing
-        /// </summary>
-        private readonly int hsize = HashSize;
-
-        /// <summary>
-        /// The current position within the pixelArray.
-        /// </summary>
-        private int position;
 
         /// <summary>
         /// Number of bits/code
@@ -178,14 +187,12 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <summary>
         /// Encodes and compresses the indexed pixels to the stream.
         /// </summary>
-        /// <param name="indexedPixels">The span of indexed pixels.</param>
+        /// <param name="indexedPixels">The 2D buffer of indexed pixels.</param>
         /// <param name="stream">The stream to write to.</param>
-        public void Encode(Span<byte> indexedPixels, Stream stream)
+        public void Encode(Buffer2D<byte> indexedPixels, Stream stream)
         {
             // Write "initial code size" byte
             stream.WriteByte((byte)this.initialCodeSize);
-
-            this.position = 0;
 
             // Compress and write the pixel data
             this.Compress(indexedPixels, this.initialCodeSize + 1, stream);
@@ -200,10 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// <param name="bitCount">The number of bits</param>
         /// <returns>See <see cref="int"/></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetMaxcode(int bitCount)
-        {
-            return (1 << bitCount) - 1;
-        }
+        private static int GetMaxcode(int bitCount) => (1 << bitCount) - 1;
 
         /// <summary>
         /// Add a character to the end of the current packet, and if it is 254 characters,
@@ -240,118 +244,99 @@ namespace SixLabors.ImageSharp.Formats.Gif
         /// Reset the code table.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ResetCodeTable()
-        {
-            this.hashTable.GetSpan().Fill(-1);
-        }
+        private void ResetCodeTable() => this.hashTable.GetSpan().Fill(-1);
 
         /// <summary>
         /// Compress the packets to the stream.
         /// </summary>
-        /// <param name="indexedPixels">The span of indexed pixels.</param>
-        /// <param name="intialBits">The initial bits.</param>
+        /// <param name="indexedPixels">The 2D buffer of indexed pixels.</param>
+        /// <param name="initialBits">The initial bits.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void Compress(Span<byte> indexedPixels, int intialBits, Stream stream)
+        private void Compress(Buffer2D<byte> indexedPixels, int initialBits, Stream stream)
         {
-            int fcode;
-            int c;
-            int ent;
-            int hsizeReg;
-            int hshift;
-
             // Set up the globals: globalInitialBits - initial number of bits
-            this.globalInitialBits = intialBits;
+            this.globalInitialBits = initialBits;
 
             // Set up the necessary values
             this.clearFlag = false;
             this.bitCount = this.globalInitialBits;
             this.maxCode = GetMaxcode(this.bitCount);
-
-            this.clearCode = 1 << (intialBits - 1);
+            this.clearCode = 1 << (initialBits - 1);
             this.eofCode = this.clearCode + 1;
             this.freeEntry = this.clearCode + 2;
+            this.accumulatorCount = 0; // Clear packet
 
-            this.accumulatorCount = 0; // clear packet
-
-            ent = this.NextPixel(indexedPixels);
-
-            // TODO: PERF: It looks likt hshift could be calculated once statically.
-            hshift = 0;
-            for (fcode = this.hsize; fcode < 65536; fcode *= 2)
-            {
-                ++hshift;
-            }
-
-            hshift = 8 - hshift; // set hash code range bound
-
-            hsizeReg = this.hsize;
-
-            this.ResetCodeTable(); // clear hash table
-
+            this.ResetCodeTable(); // Clear hash table
             this.Output(this.clearCode, stream);
 
             ref int hashTableRef = ref MemoryMarshal.GetReference(this.hashTable.GetSpan());
             ref int codeTableRef = ref MemoryMarshal.GetReference(this.codeTable.GetSpan());
 
-            while (this.position < indexedPixels.Length)
+            int entry = indexedPixels[0, 0];
+
+            for (int y = 0; y < indexedPixels.Height; y++)
             {
-                c = this.NextPixel(indexedPixels);
+                ref byte rowSpanRef = ref MemoryMarshal.GetReference(indexedPixels.GetRowSpan(y));
+                int offsetX = y == 0 ? 1 : 0;
 
-                fcode = (c << MaxBits) + ent;
-                int i = (c << hshift) ^ ent /* = 0 */;
-
-                if (Unsafe.Add(ref hashTableRef, i) == fcode)
+                for (int x = offsetX; x < indexedPixels.Width; x++)
                 {
-                    ent = Unsafe.Add(ref codeTableRef, i);
-                    continue;
-                }
+                    int code = Unsafe.Add(ref rowSpanRef, x);
+                    int freeCode = (code << MaxBits) + entry;
+                    int hashIndex = (code << HashShift) ^ entry;
 
-                // Non-empty slot
-                if (Unsafe.Add(ref hashTableRef, i) >= 0)
-                {
-                    int disp = 1;
-                    if (i != 0)
+                    if (Unsafe.Add(ref hashTableRef, hashIndex) == freeCode)
                     {
-                        disp = hsizeReg - i;
-                    }
-
-                    do
-                    {
-                        if ((i -= disp) < 0)
-                        {
-                            i += hsizeReg;
-                        }
-
-                        if (Unsafe.Add(ref hashTableRef, i) == fcode)
-                        {
-                            ent = Unsafe.Add(ref codeTableRef, i);
-                            break;
-                        }
-                    }
-                    while (Unsafe.Add(ref hashTableRef, i) >= 0);
-
-                    if (Unsafe.Add(ref hashTableRef, i) == fcode)
-                    {
+                        entry = Unsafe.Add(ref codeTableRef, hashIndex);
                         continue;
                     }
-                }
 
-                this.Output(ent, stream);
-                ent = c;
-                if (this.freeEntry < MaxMaxCode)
-                {
-                    Unsafe.Add(ref codeTableRef, i) = this.freeEntry++; // code -> hashtable
-                    Unsafe.Add(ref hashTableRef, i) = fcode;
-                }
-                else
-                {
-                    this.ClearBlock(stream);
+                    // Non-empty slot
+                    if (Unsafe.Add(ref hashTableRef, hashIndex) >= 0)
+                    {
+                        int disp = 1;
+                        if (hashIndex != 0)
+                        {
+                            disp = HashSize - hashIndex;
+                        }
+
+                        do
+                        {
+                            if ((hashIndex -= disp) < 0)
+                            {
+                                hashIndex += HashSize;
+                            }
+
+                            if (Unsafe.Add(ref hashTableRef, hashIndex) == freeCode)
+                            {
+                                entry = Unsafe.Add(ref codeTableRef, hashIndex);
+                                break;
+                            }
+                        }
+                        while (Unsafe.Add(ref hashTableRef, hashIndex) >= 0);
+
+                        if (Unsafe.Add(ref hashTableRef, hashIndex) == freeCode)
+                        {
+                            continue;
+                        }
+                    }
+
+                    this.Output(entry, stream);
+                    entry = code;
+                    if (this.freeEntry < MaxMaxCode)
+                    {
+                        Unsafe.Add(ref codeTableRef, hashIndex) = this.freeEntry++; // code -> hashtable
+                        Unsafe.Add(ref hashTableRef, hashIndex) = freeCode;
+                    }
+                    else
+                    {
+                        this.ClearBlock(stream);
+                    }
                 }
             }
 
-            // Put out the final code.
-            this.Output(ent, stream);
-
+            // Output the final code.
+            this.Output(entry, stream);
             this.Output(this.eofCode, stream);
         }
 
@@ -365,19 +350,6 @@ namespace SixLabors.ImageSharp.Formats.Gif
             outStream.WriteByte((byte)this.accumulatorCount);
             outStream.Write(this.accumulators, 0, this.accumulatorCount);
             this.accumulatorCount = 0;
-        }
-
-        /// <summary>
-        /// Reads the next pixel from the image.
-        /// </summary>
-        /// <param name="indexedPixels">The span of indexed pixels.</param>
-        /// <returns>
-        /// The <see cref="int"/>
-        /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int NextPixel(Span<byte> indexedPixels)
-        {
-            return indexedPixels[this.position++] & 0xFF;
         }
 
         /// <summary>

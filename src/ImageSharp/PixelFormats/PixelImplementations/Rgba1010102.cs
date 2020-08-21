@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgba1010102 left, Rgba1010102 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Rgba1010102> CreatePixelOperations() => new PixelOperations<Rgba1010102>();
+        public readonly PixelOperations<Rgba1010102> CreatePixelOperations() => new PixelOperations<Rgba1010102>();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4() => this.ToVector4();
+        public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4()
+        public readonly Vector4 ToVector4()
         {
             return new Vector4(
                 (this.PackedValue >> 0) & 0x03FF,
@@ -101,11 +101,23 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source) => this.FromScaledVector4(source.ToScaledVector4());
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source) => this.FromScaledVector4(source.ToScaledVector4());
+        public void FromL8(L8 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromL16(L16 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -131,14 +143,14 @@ namespace SixLabors.ImageSharp.PixelFormats
         public void FromRgba64(Rgba64 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Rgba1010102 other && this.Equals(other);
+        public override readonly bool Equals(object obj) => obj is Rgba1010102 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Rgba1010102 other) => this.PackedValue == other.PackedValue;
+        public readonly bool Equals(Rgba1010102 other) => this.PackedValue == other.PackedValue;
 
         /// <inheritdoc />
-        public override string ToString()
+        public override readonly string ToString()
         {
             var vector = this.ToVector4();
             return FormattableString.Invariant($"Rgba1010102({vector.X:#0.##}, {vector.Y:#0.##}, {vector.Z:#0.##}, {vector.W:#0.##})");
@@ -146,12 +158,12 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => this.PackedValue.GetHashCode();
+        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Pack(ref Vector4 vector)
         {
-            vector = Vector4.Clamp(vector, Vector4.Zero, Vector4.One) * Multiplier;
+            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, Vector4.One) * Multiplier;
 
             return (uint)(
                 (((int)Math.Round(vector.X) & 0x03FF) << 0)

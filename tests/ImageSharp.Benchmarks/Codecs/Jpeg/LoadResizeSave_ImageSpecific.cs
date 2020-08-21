@@ -1,18 +1,20 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using BenchmarkDotNet.Attributes;
 using System;
-using System.IO;
-using SixLabors.ImageSharp.Tests;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
-using SixLabors.ImageSharp.Processing;
-using SDImage = System.Drawing.Image;
-using SixLabors.ImageSharp.Formats.Jpeg;
-// ReSharper disable InconsistentNaming
+using System.IO;
+using BenchmarkDotNet.Attributes;
 
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests;
+
+using SDImage = System.Drawing.Image;
+
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
     [Config(typeof(Config.ShortClr))]
@@ -29,9 +31,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Params(
             TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
             TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,
-
-            TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr
-            )]
+            TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr)]
         public string TestImage { get; set; }
 
         [Params(false, true)]
@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         //   [Host]     : .NET Core 2.1.5 (CoreCLR 4.6.26919.02, CoreFX 4.6.26919.02), 64bit RyuJIT
         //   Job-ZPEZGV : .NET Framework 4.7.1 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.3190.0
         //   Job-SGOCJT : .NET Core 2.1.5 (CoreCLR 4.6.26919.02, CoreFX 4.6.26919.02), 64bit RyuJIT
-        // 
+        //
         //         Method | Runtime |                    TestImage | ParallelExec |      Mean |     Error |    StdDev | Scaled | ScaledSD |    Gen 0 | Allocated |
         // -------------- |-------- |----------------------------- |------------- |----------:|----------:|----------:|-------:|---------:|---------:|----------:|
         //  SystemDrawing |     Clr | Jpg/baseline/jpeg420exif.jpg |        False |  64.88 ms |  3.735 ms | 0.2110 ms |   1.00 |     0.00 | 250.0000 | 791.07 KB |

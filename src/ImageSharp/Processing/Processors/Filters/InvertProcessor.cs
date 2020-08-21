@@ -1,19 +1,15 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
-
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Filters
 {
     /// <summary>
     /// Applies a filter matrix that inverts the colors of an image
     /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal class InvertProcessor<TPixel> : FilterProcessor<TPixel>
-         where TPixel : struct, IPixel<TPixel>
+    public sealed class InvertProcessor : FilterProcessor
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="InvertProcessor{TPixel}"/> class.
+        /// Initializes a new instance of the <see cref="InvertProcessor"/> class.
         /// </summary>
         /// <param name="amount">The proportion of the conversion. Must be between 0 and 1.</param>
         public InvertProcessor(float amount)

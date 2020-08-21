@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,7 +9,6 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.Primitives;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 {
@@ -52,8 +51,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             internal void MakeBlock(short[] data, int y, int x)
             {
-                this.MinVal = Math.Min((short)this.MinVal, data.Min());
-                this.MaxVal = Math.Max((short)this.MaxVal, data.Max());
+                this.MinVal = Math.Min(this.MinVal, data.Min());
+                this.MaxVal = Math.Max(this.MaxVal, data.Max());
                 this.SpectralBlocks[x, y] = new Block8x8(data);
             }
 
@@ -62,8 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                 var result = new ComponentData(
                     c.WidthInBlocks,
                     c.HeightInBlocks,
-                    index
-                );
+                    index);
 
                 for (int y = 0; y < result.HeightInBlocks; y++)
                 {
@@ -89,6 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                         this.WriteToImage(bx, by, result);
                     }
                 }
+
                 return result;
             }
 
@@ -106,8 +105,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                         Rgba32 color = default;
                         color.FromVector4(v);
 
-                        int yy = by * 8 + y;
-                        int xx = bx * 8 + x;
+                        int yy = (by * 8) + y;
+                        int xx = (bx * 8) + x;
                         image[xx, yy] = color;
                     }
                 }
@@ -115,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             internal float GetBlockValue(Block8x8 block, int x, int y)
             {
-                float d = (this.MaxVal - this.MinVal);
+                float d = this.MaxVal - this.MinVal;
                 float val = block[y, x];
                 val -= this.MinVal;
                 val /= d;
@@ -136,9 +135,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
                 bool ok = this.Index == other.Index && this.HeightInBlocks == other.HeightInBlocks
                           && this.WidthInBlocks == other.WidthInBlocks;
-                //&& this.MinVal == other.MinVal
-                //&& this.MaxVal == other.MaxVal;
-                if (!ok) return false;
+                if (!ok)
+                {
+                    return false;
+                }
 
                 for (int y = 0; y < this.HeightInBlocks; y++)
                 {
@@ -146,31 +146,39 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
                     {
                         Block8x8 a = this.SpectralBlocks[x, y];
                         Block8x8 b = other.SpectralBlocks[x, y];
-                        if (!a.Equals(b)) return false;
+                        if (!a.Equals(b))
+                        {
+                            return false;
+                        }
                     }
                 }
+
                 return true;
             }
 
             public override bool Equals(object obj)
             {
-                if (obj is null) return false;
-                if (object.ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != this.GetType()) return false;
+                if (obj is null)
+                {
+                    return false;
+                }
+
+                if (object.ReferenceEquals(this, obj))
+                {
+                    return true;
+                }
+
+                if (obj.GetType() != this.GetType())
+                {
+                    return false;
+                }
+
                 return this.Equals((ComponentData)obj);
             }
 
             public override int GetHashCode()
             {
-                unchecked
-                {
-                    int hashCode = this.Index;
-                    hashCode = (hashCode * 397) ^ this.HeightInBlocks;
-                    hashCode = (hashCode * 397) ^ this.WidthInBlocks;
-                    hashCode = (hashCode * 397) ^ this.MinVal.GetHashCode();
-                    hashCode = (hashCode * 397) ^ this.MaxVal.GetHashCode();
-                    return hashCode;
-                }
+                return HashCode.Combine(this.Index, this.HeightInBlocks, this.WidthInBlocks, this.MinVal, this.MaxVal);
             }
 
             public ref Block8x8 GetBlockReference(int column, int row)
@@ -180,12 +188,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils
 
             public static bool operator ==(ComponentData left, ComponentData right)
             {
-                return Object.Equals(left, right);
+                return object.Equals(left, right);
             }
 
             public static bool operator !=(ComponentData left, ComponentData right)
             {
-                return !Object.Equals(left, right);
+                return !object.Equals(left, right);
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,8 +8,8 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.IO;
 
 using Xunit;
-// ReSharper disable InconsistentNaming
 
+// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests
 {
     /// <summary>
@@ -18,7 +18,10 @@ namespace SixLabors.ImageSharp.Tests
     public class ConfigurationTests
     {
         public Configuration ConfigurationEmpty { get; }
+
         public Configuration DefaultConfiguration { get; }
+
+        private readonly int expectedDefaultConfigurationCount = 5;
 
         public ConfigurationTests()
         {
@@ -39,13 +42,13 @@ namespace SixLabors.ImageSharp.Tests
         /// Test that the default configuration is not null.
         /// </summary>
         [Fact]
-        public void TestDefaultConfigurationIsNotNull() => Assert.True(Configuration.Default != null);
+        public void TestDefaultConfigurationIsNotNull() => Assert.True(this.DefaultConfiguration != null);
 
         /// <summary>
         /// Test that the default configuration read origin options is set to begin.
         /// </summary>
         [Fact]
-        public void TestDefaultConfigurationReadOriginIsCurrent() => Assert.True(Configuration.Default.ReadOrigin == ReadOrigin.Current);
+        public void TestDefaultConfigurationReadOriginIsCurrent() => Assert.True(this.DefaultConfiguration.ReadOrigin == ReadOrigin.Current);
 
         /// <summary>
         /// Test that the default configuration parallel options max degrees of parallelism matches the
@@ -54,21 +57,33 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void TestDefaultConfigurationMaxDegreeOfParallelism()
         {
-            Assert.True(Configuration.Default.MaxDegreeOfParallelism == Environment.ProcessorCount);
+            Assert.True(this.DefaultConfiguration.MaxDegreeOfParallelism == Environment.ProcessorCount);
 
             var cfg = new Configuration();
             Assert.True(cfg.MaxDegreeOfParallelism == Environment.ProcessorCount);
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(-42)]
-        public void Set_MaxDegreeOfParallelism_ToNonPositiveValue_Throws(int value)
+        [InlineData(-3, true)]
+        [InlineData(-2, true)]
+        [InlineData(-1, false)]
+        [InlineData(0, true)]
+        [InlineData(1, false)]
+        [InlineData(5, false)]
+        public void MaxDegreeOfParallelism_CompatibleWith_ParallelOptions(int maxDegreeOfParallelism, bool throws)
         {
             var cfg = new Configuration();
-            Assert.Throws<ArgumentOutOfRangeException>(() => cfg.MaxDegreeOfParallelism = value);
+            if (throws)
+            {
+                Assert.Throws<ArgumentOutOfRangeException>(
+                    () => cfg.MaxDegreeOfParallelism = maxDegreeOfParallelism);
+            }
+            else
+            {
+                cfg.MaxDegreeOfParallelism = maxDegreeOfParallelism;
+                Assert.Equal(maxDegreeOfParallelism, cfg.MaxDegreeOfParallelism);
+            }
         }
-
 
         [Fact]
         public void ConstructorCallConfigureOnFormatProvider()
@@ -92,22 +107,44 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConfigurationCannotAddDuplicates()
         {
-            const int count = 4;
-            Configuration config = Configuration.Default;
+            Configuration config = this.DefaultConfiguration;
 
-            Assert.Equal(count, config.ImageFormats.Count());
+            Assert.Equal(this.expectedDefaultConfigurationCount, config.ImageFormats.Count());
 
             config.ImageFormatsManager.AddImageFormat(BmpFormat.Instance);
 
-            Assert.Equal(count, config.ImageFormats.Count());
+            Assert.Equal(this.expectedDefaultConfigurationCount, config.ImageFormats.Count());
         }
 
         [Fact]
         public void DefaultConfigurationHasCorrectFormatCount()
         {
-            Configuration config = Configuration.Default;
+            var config = Configuration.CreateDefaultInstance();
 
-            Assert.Equal(4, config.ImageFormats.Count());
+            Assert.Equal(this.expectedDefaultConfigurationCount, config.ImageFormats.Count());
+        }
+
+        [Fact]
+        public void WorkingBufferSizeHint_DefaultIsCorrect()
+        {
+            Configuration config = this.DefaultConfiguration;
+            Assert.True(config.WorkingBufferSizeHintInBytes > 1024);
+        }
+
+        [Fact]
+        public void StreamBufferSize_DefaultIsCorrect()
+        {
+            Configuration config = this.DefaultConfiguration;
+            Assert.True(config.StreamProcessingBufferSize == 8096);
+        }
+
+        [Fact]
+        public void StreamBufferSize_CannotGoBelowMinimum()
+        {
+            var config = new Configuration();
+
+            Assert.Throws<ArgumentOutOfRangeException>(
+                    () => config.StreamProcessingBufferSize = 0);
         }
     }
 }

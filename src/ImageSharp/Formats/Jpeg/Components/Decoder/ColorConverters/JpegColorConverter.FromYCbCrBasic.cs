@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal class FromYCbCrBasic : JpegColorConverter
+        internal sealed class FromYCbCrBasic : JpegColorConverter
         {
             public FromYCbCrBasic(int precision)
                 : base(JpegColorSpace.YCbCr, precision)

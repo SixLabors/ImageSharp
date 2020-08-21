@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Formats.Png;
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [Theory]
         [WithTestPatternImages(20, 20, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void To32bppArgbSystemDrawingBitmap<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void From32bppArgbSystemDrawingBitmap<TPixel>(TestImageProvider<TPixel> dummyProvider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
 
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         }
 
         private static string SavePng<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> sourceImage = provider.GetImage())
             {
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
                     sourceImage.Mutate(c => c.MakeOpaque());
                 }
 
-                var encoder = new PngEncoder() { ColorType = pngColorType };
+                var encoder = new PngEncoder { ColorType = pngColorType };
                 return provider.Utility.SaveTestOutputFile(sourceImage, "png", encoder);
             }
         }
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void From32bppArgbSystemDrawingBitmap2<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (TestEnvironment.IsLinux)
             {
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgb24)]
         public void From24bppRgbSystemDrawingBitmap<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string path = SavePng(provider, PngColorType.Rgb);
 
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [Theory]
         [WithBlankImages(1, 1, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void OpenWithReferenceDecoder<TPixel>(TestImageProvider<TPixel> dummyProvider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
             using (var image = Image.Load<TPixel>(path, SystemDrawingReferenceDecoder.Instance))
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [Theory]
         [WithTestPatternImages(20, 20, PixelTypes.Rgba32 | PixelTypes.Argb32)]
         public void SaveWithReferenceEncoder<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> image = provider.GetImage())
             {

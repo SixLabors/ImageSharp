@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Short2 left, Short2 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<Short2> CreatePixelOperations() => new PixelOperations<Short2>();
+        public readonly PixelOperations<Short2> CreatePixelOperations() => new PixelOperations<Short2>();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToScaledVector4()
+        public readonly Vector4 ToScaledVector4()
         {
             var scaled = this.ToVector2();
             scaled += new Vector2(32767F);
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector4 ToVector4() => new Vector4((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10), 0, 1);
+        public readonly Vector4 ToVector4() => new Vector4((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10), 0, 1);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -113,11 +113,23 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray8(Gray8 source) => this.FromScaledVector4(source.ToScaledVector4());
+        public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromGray16(Gray16 source) => this.FromScaledVector4(source.ToScaledVector4());
+        public void FromL8(L8 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromL16(L16 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa16(La16 source) => this.FromScaledVector4(source.ToScaledVector4());
+
+        /// <inheritdoc/>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void FromLa32(La32 source) => this.FromScaledVector4(source.ToScaledVector4());
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -129,10 +141,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void ToRgba32(ref Rgba32 dest)
-        {
-            dest.FromScaledVector4(this.ToScaledVector4());
-        }
+        public void ToRgba32(ref Rgba32 dest) => dest.FromScaledVector4(this.ToScaledVector4());
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -148,21 +157,21 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         /// <returns>The <see cref="Vector2"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public Vector2 ToVector2() => new Vector2((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10));
+        public readonly Vector2 ToVector2() => new Vector2((short)(this.PackedValue & 0xFFFF), (short)(this.PackedValue >> 0x10));
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Short2 other && this.Equals(other);
-
-        /// <inheritdoc />
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Short2 other) => this.PackedValue.Equals(other.PackedValue);
+        public override readonly bool Equals(object obj) => obj is Short2 other && this.Equals(other);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override int GetHashCode() => this.PackedValue.GetHashCode();
+        public readonly bool Equals(Short2 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <inheritdoc />
-        public override string ToString()
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
+
+        /// <inheritdoc />
+        public override readonly string ToString()
         {
             var vector = this.ToVector2();
             return FormattableString.Invariant($"Short2({vector.X:#0.##}, {vector.Y:#0.##})");

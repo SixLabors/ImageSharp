@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="height">The height of the image block.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Decode<TPixel>(byte[] data, uint[] bitsPerSample, uint[] colorMap, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorCount = (int)Math.Pow(2, bitsPerSample[0]);
             TPixel[] palette = GeneratePalette<TPixel>(colorMap, colorCount);
@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static TPixel[] GeneratePalette<TPixel>(uint[] colorMap, int colorCount)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel[] palette = new TPixel[colorCount];
 

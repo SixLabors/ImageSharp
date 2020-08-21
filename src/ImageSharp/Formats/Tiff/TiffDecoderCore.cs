@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -7,10 +7,7 @@ using System.IO;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.MetaData;
-using SixLabors.ImageSharp.MetaData.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Primitives;
 
 namespace SixLabors.ImageSharp.Formats
 {
@@ -106,7 +103,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="stream">The stream, where the image should be.</param>
         /// <returns>The decoded image.</returns>
         public Image<TPixel> Decode<TPixel>(Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             this.InputStream = stream;
 
@@ -199,7 +196,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="ifd">The IFD to read the image from.</param>
         /// <returns>The decoded image.</returns>
         public Image<TPixel> DecodeImage<TPixel>(TiffIfd ifd)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (!ifd.TryGetIfdEntry(TiffTags.ImageLength, out TiffIfdEntry imageLengthEntry)
                 || !ifd.TryGetIfdEntry(TiffTags.ImageWidth, out TiffIfdEntry imageWidthEntry))
@@ -235,7 +232,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="ifd">The IFD to read the image from.</param>
         /// <param name="image">The image to write the metadata to.</param>
         public void ReadMetadata<TPixel>(TiffIfd ifd, Image<TPixel> image)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             TiffResolutionUnit resolutionUnit = (TiffResolutionUnit)this.ReadUnsignedInteger(ifd, TiffTags.ResolutionUnit, (uint)TiffResolutionUnit.Inch);
 
@@ -246,57 +243,59 @@ namespace SixLabors.ImageSharp.Formats
                 if (ifd.TryGetIfdEntry(TiffTags.XResolution, out TiffIfdEntry xResolutionEntry))
                 {
                     Rational xResolution = this.ReadUnsignedRational(ref xResolutionEntry);
-                    image.MetaData.HorizontalResolution = xResolution.ToDouble() * resolutionUnitFactor;
+                    image.Metadata.HorizontalResolution = xResolution.ToDouble() * resolutionUnitFactor;
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.YResolution, out TiffIfdEntry yResolutionEntry))
                 {
                     Rational yResolution = this.ReadUnsignedRational(ref yResolutionEntry);
-                    image.MetaData.VerticalResolution = yResolution.ToDouble() * resolutionUnitFactor;
+                    image.Metadata.VerticalResolution = yResolution.ToDouble() * resolutionUnitFactor;
                 }
             }
 
             if (!this.ignoreMetadata)
             {
+                /*
                 if (ifd.TryGetIfdEntry(TiffTags.Artist, out TiffIfdEntry artistEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Artist, this.ReadString(ref artistEntry)));
+                    image.Metadata.Properties.Add(new ImageProperty(TiffMetadataNames.Artist, this.ReadString(ref artistEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.Copyright, out TiffIfdEntry copyrightEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Copyright, this.ReadString(ref copyrightEntry)));
+                    image.Metadata.Properties.Add(new ImageProperty(TiffMetadataNames.Copyright, this.ReadString(ref copyrightEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.DateTime, out TiffIfdEntry dateTimeEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.DateTime, this.ReadString(ref dateTimeEntry)));
+                    image.Metadata.Properties.Add(new ImageProperty(TiffMetadataNames.DateTime, this.ReadString(ref dateTimeEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.HostComputer, out TiffIfdEntry hostComputerEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.HostComputer, this.ReadString(ref hostComputerEntry)));
+                    image.Metadata.Properties.Add(new ImageProperty(TiffMetadataNames.HostComputer, this.ReadString(ref hostComputerEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.ImageDescription, out TiffIfdEntry imageDescriptionEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.ImageDescription, this.ReadString(ref imageDescriptionEntry)));
+                    image.Metadata.Properties.Add(new ImageProperty(TiffMetadataNames.ImageDescription, this.ReadString(ref imageDescriptionEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.Make, out TiffIfdEntry makeEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Make, this.ReadString(ref makeEntry)));
+                    image.Metadata.Properties.Add(new ImageProperty(TiffMetadataNames.Make, this.ReadString(ref makeEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.Model, out TiffIfdEntry modelEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Model, this.ReadString(ref modelEntry)));
+                    image.Metadata.Properties.Add(new ImageProperty(TiffMetadataNames.Model, this.ReadString(ref modelEntry)));
                 }
 
                 if (ifd.TryGetIfdEntry(TiffTags.Software, out TiffIfdEntry softwareEntry))
                 {
-                    image.MetaData.Properties.Add(new ImageProperty(TiffMetadataNames.Software, this.ReadString(ref softwareEntry)));
+                    image.Metadata.Properties.Add(new ImageProperty(TiffMetadataNames.Software, this.ReadString(ref softwareEntry)));
                 }
+                */
             }
         }
 
@@ -588,7 +587,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
         public void ProcessImageBlockChunky<TPixel>(byte[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             switch (this.ColorType)
             {
@@ -641,7 +640,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
         public void ProcessImageBlockPlanar<TPixel>(byte[][] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             switch (this.ColorType)
             {
@@ -1232,7 +1231,7 @@ namespace SixLabors.ImageSharp.Formats
         /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
         /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
         private void DecodeImageStrips<TPixel>(Image<TPixel> image, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             int stripsPerPixel = this.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? 1 : this.BitsPerSample.Length;
             int stripsPerPlane = stripOffsets.Length / stripsPerPixel;

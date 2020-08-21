@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests
             Stream compressedStream = new MemoryStream();
 
             using (Stream uncompressedStream = new MemoryStream(data),
-                          deflateStream = new ZlibDeflateStream(compressedStream, 6))
+                          deflateStream = new ZlibDeflateStream(Configuration.Default.MemoryAllocator, compressedStream, ImageSharp.Formats.Png.PngCompressionLevel.Level6))
             {
                 uncompressedStream.CopyTo(deflateStream);
             }

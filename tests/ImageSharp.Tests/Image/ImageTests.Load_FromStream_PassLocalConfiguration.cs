@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -39,8 +39,19 @@ namespace SixLabors.ImageSharp.Tests
             [Fact]
             public void NonSeekableStream()
             {
-                var stream = new NoneSeekableStream(this.DataStream);
+                var stream = new NonSeekableStream(this.DataStream);
                 var img = Image.Load<Rgba32>(this.TopLevelConfiguration, stream);
+
+                Assert.NotNull(img);
+
+                this.TestFormat.VerifySpecificDecodeCall<Rgba32>(this.Marker, this.TopLevelConfiguration);
+            }
+
+            [Fact]
+            public async Task NonSeekableStreamAsync()
+            {
+                var stream = new NonSeekableStream(this.DataStream);
+                Image<Rgba32> img = await Image.LoadAsync<Rgba32>(this.TopLevelConfiguration, stream);
 
                 Assert.NotNull(img);
 

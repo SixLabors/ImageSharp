@@ -21,8 +21,12 @@ namespace SixLabors.ImageSharp.Benchmarks.IO
         private MemoryStream stream4;
         private MemoryStream stream5;
         private MemoryStream stream6;
+        private ChunkedMemoryStream chunkedMemoryStream1;
+        private ChunkedMemoryStream chunkedMemoryStream2;
         private BufferedReadStream bufferedStream1;
         private BufferedReadStream bufferedStream2;
+        private BufferedReadStream bufferedStream3;
+        private BufferedReadStream bufferedStream4;
         private BufferedReadStreamWrapper bufferedStreamWrap1;
         private BufferedReadStreamWrapper bufferedStreamWrap2;
 
@@ -35,8 +39,20 @@ namespace SixLabors.ImageSharp.Benchmarks.IO
             this.stream4 = new MemoryStream(this.buffer);
             this.stream5 = new MemoryStream(this.buffer);
             this.stream6 = new MemoryStream(this.buffer);
+            this.stream6 = new MemoryStream(this.buffer);
+
+            this.chunkedMemoryStream1 = new ChunkedMemoryStream(Configuration.Default.MemoryAllocator);
+            this.chunkedMemoryStream1.Write(this.buffer);
+            this.chunkedMemoryStream1.Position = 0;
+
+            this.chunkedMemoryStream2 = new ChunkedMemoryStream(Configuration.Default.MemoryAllocator);
+            this.chunkedMemoryStream2.Write(this.buffer);
+            this.chunkedMemoryStream2.Position = 0;
+
             this.bufferedStream1 = new BufferedReadStream(Configuration.Default, this.stream3);
             this.bufferedStream2 = new BufferedReadStream(Configuration.Default, this.stream4);
+            this.bufferedStream3 = new BufferedReadStream(Configuration.Default, this.chunkedMemoryStream1);
+            this.bufferedStream4 = new BufferedReadStream(Configuration.Default, this.chunkedMemoryStream2);
             this.bufferedStreamWrap1 = new BufferedReadStreamWrapper(this.stream5);
             this.bufferedStreamWrap2 = new BufferedReadStreamWrapper(this.stream6);
         }
@@ -46,8 +62,12 @@ namespace SixLabors.ImageSharp.Benchmarks.IO
         {
             this.bufferedStream1?.Dispose();
             this.bufferedStream2?.Dispose();
+            this.bufferedStream3?.Dispose();
+            this.bufferedStream4?.Dispose();
             this.bufferedStreamWrap1?.Dispose();
             this.bufferedStreamWrap2?.Dispose();
+            this.chunkedMemoryStream1?.Dispose();
+            this.chunkedMemoryStream2?.Dispose();
             this.stream1?.Dispose();
             this.stream2?.Dispose();
             this.stream3?.Dispose();
@@ -76,6 +96,21 @@ namespace SixLabors.ImageSharp.Benchmarks.IO
         {
             int r = 0;
             BufferedReadStream reader = this.bufferedStream1;
+            byte[] b = this.chunk2;
+
+            for (int i = 0; i < reader.Length / 2; i++)
+            {
+                r += reader.Read(b, 0, 2);
+            }
+
+            return r;
+        }
+
+        [Benchmark]
+        public int BufferedReadStreamChunkedRead()
+        {
+            int r = 0;
+            BufferedReadStream reader = this.bufferedStream3;
             byte[] b = this.chunk2;
 
             for (int i = 0; i < reader.Length / 2; i++)
@@ -130,6 +165,20 @@ namespace SixLabors.ImageSharp.Benchmarks.IO
         }
 
         [Benchmark]
+        public int BufferedReadStreamChunkedReadByte()
+        {
+            int r = 0;
+            BufferedReadStream reader = this.bufferedStream4;
+
+            for (int i = 0; i < reader.Length; i++)
+            {
+                r += reader.ReadByte();
+            }
+
+            return r;
+        }
+
+        [Benchmark]
         public int BufferedReadStreamWrapReadByte()
         {
             int r = 0;
@@ -167,40 +216,46 @@ namespace SixLabors.ImageSharp.Benchmarks.IO
     }
 
     /*
-    BenchmarkDotNet=v0.12.0, OS=Windows 10.0.19041
+    BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.450 (2004/?/20H1)
     Intel Core i7-8650U CPU 1.90GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
-    .NET Core SDK=3.1.301
-      [Host]     : .NET Core 3.1.5 (CoreCLR 4.700.20.26901, CoreFX 4.700.20.27001), X64 RyuJIT
-      Job-LKLBOT : .NET Framework 4.8 (4.8.4180.0), X64 RyuJIT
-      Job-RSTMKF : .NET Core 2.1.19 (CoreCLR 4.6.28928.01, CoreFX 4.6.28928.04), X64 RyuJIT
-      Job-PZIHIV : .NET Core 3.1.5 (CoreCLR 4.700.20.26901, CoreFX 4.700.20.27001), X64 RyuJIT
+    .NET Core SDK=3.1.401
+      [Host]     : .NET Core 3.1.7 (CoreCLR 4.700.20.36602, CoreFX 4.700.20.37001), X64 RyuJIT
+      Job-OKZLUV : .NET Framework 4.8 (4.8.4084.0), X64 RyuJIT
+      Job-CPYMXV : .NET Core 2.1.21 (CoreCLR 4.6.29130.01, CoreFX 4.6.29130.02), X64 RyuJIT
+      Job-BSGVGU : .NET Core 3.1.7 (CoreCLR 4.700.20.36602, CoreFX 4.700.20.37001), X64 RyuJIT
 
     IterationCount=3  LaunchCount=1  WarmupCount=3
 
-|                         Method |       Runtime |      Mean |       Error |     StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|------------------------------- |-------------- |----------:|------------:|-----------:|------:|--------:|------:|------:|------:|----------:|
-|             StandardStreamRead |    .NET 4.7.2 | 63.238 us |  49.7827 us |  2.7288 us |  0.66 |    0.13 |     - |     - |     - |         - |
-|         BufferedReadStreamRead |    .NET 4.7.2 | 66.092 us |   0.4273 us |  0.0234 us |  0.69 |    0.11 |     - |     - |     - |         - |
-|     BufferedReadStreamWrapRead |    .NET 4.7.2 | 26.216 us |   3.0527 us |  0.1673 us |  0.27 |    0.04 |     - |     - |     - |         - |
-|         StandardStreamReadByte |    .NET 4.7.2 | 97.900 us | 261.7204 us | 14.3458 us |  1.00 |    0.00 |     - |     - |     - |         - |
-|     BufferedReadStreamReadByte |    .NET 4.7.2 | 97.260 us |   1.2979 us |  0.0711 us |  1.01 |    0.15 |     - |     - |     - |         - |
-| BufferedReadStreamWrapReadByte |    .NET 4.7.2 | 19.170 us |   2.2296 us |  0.1222 us |  0.20 |    0.03 |     - |     - |     - |         - |
-|                  ArrayReadByte |    .NET 4.7.2 | 12.878 us |  11.1292 us |  0.6100 us |  0.13 |    0.02 |     - |     - |     - |         - |
-|                                |               |           |             |            |       |         |       |       |       |           |
-|             StandardStreamRead | .NET Core 2.1 | 60.618 us | 131.7038 us |  7.2191 us |  0.78 |    0.10 |     - |     - |     - |         - |
-|         BufferedReadStreamRead | .NET Core 2.1 | 30.006 us |  25.2499 us |  1.3840 us |  0.38 |    0.02 |     - |     - |     - |         - |
-|     BufferedReadStreamWrapRead | .NET Core 2.1 | 29.241 us |   6.5020 us |  0.3564 us |  0.37 |    0.01 |     - |     - |     - |         - |
-|         StandardStreamReadByte | .NET Core 2.1 | 78.074 us |  15.8463 us |  0.8686 us |  1.00 |    0.00 |     - |     - |     - |         - |
-|     BufferedReadStreamReadByte | .NET Core 2.1 | 14.737 us |  20.1510 us |  1.1045 us |  0.19 |    0.01 |     - |     - |     - |         - |
-| BufferedReadStreamWrapReadByte | .NET Core 2.1 | 13.234 us |   1.4711 us |  0.0806 us |  0.17 |    0.00 |     - |     - |     - |         - |
-|                  ArrayReadByte | .NET Core 2.1 |  9.373 us |   0.6108 us |  0.0335 us |  0.12 |    0.00 |     - |     - |     - |         - |
-|                                |               |           |             |            |       |         |       |       |       |           |
-|             StandardStreamRead | .NET Core 3.1 | 52.151 us |  19.9456 us |  1.0933 us |  0.65 |    0.03 |     - |     - |     - |         - |
-|         BufferedReadStreamRead | .NET Core 3.1 | 29.217 us |   0.2490 us |  0.0136 us |  0.36 |    0.01 |     - |     - |     - |         - |
-|     BufferedReadStreamWrapRead | .NET Core 3.1 | 32.962 us |   7.1382 us |  0.3913 us |  0.41 |    0.02 |     - |     - |     - |         - |
-|         StandardStreamReadByte | .NET Core 3.1 | 80.310 us |  45.0350 us |  2.4685 us |  1.00 |    0.00 |     - |     - |     - |         - |
-|     BufferedReadStreamReadByte | .NET Core 3.1 | 13.092 us |   0.6268 us |  0.0344 us |  0.16 |    0.00 |     - |     - |     - |         - |
-| BufferedReadStreamWrapReadByte | .NET Core 3.1 | 13.282 us |   3.8689 us |  0.2121 us |  0.17 |    0.01 |     - |     - |     - |         - |
-|                  ArrayReadByte | .NET Core 3.1 |  9.349 us |   2.9860 us |  0.1637 us |  0.12 |    0.00 |     - |     - |     - |         - |
+    |                            Method |        Job |       Runtime |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+    |---------------------------------- |----------- |-------------- |-----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+    |                StandardStreamRead | Job-OKZLUV |    .NET 4.7.2 |  66.785 us | 15.768 us | 0.8643 us |  0.83 |    0.01 |     - |     - |     - |         - |
+    |            BufferedReadStreamRead | Job-OKZLUV |    .NET 4.7.2 |  97.389 us | 17.658 us | 0.9679 us |  1.21 |    0.01 |     - |     - |     - |         - |
+    |     BufferedReadStreamChunkedRead | Job-OKZLUV |    .NET 4.7.2 |  96.006 us | 16.286 us | 0.8927 us |  1.20 |    0.02 |     - |     - |     - |         - |
+    |        BufferedReadStreamWrapRead | Job-OKZLUV |    .NET 4.7.2 |  37.064 us | 14.640 us | 0.8024 us |  0.46 |    0.02 |     - |     - |     - |         - |
+    |            StandardStreamReadByte | Job-OKZLUV |    .NET 4.7.2 |  80.315 us | 26.676 us | 1.4622 us |  1.00 |    0.00 |     - |     - |     - |         - |
+    |        BufferedReadStreamReadByte | Job-OKZLUV |    .NET 4.7.2 | 118.706 us | 38.013 us | 2.0836 us |  1.48 |    0.00 |     - |     - |     - |         - |
+    | BufferedReadStreamChunkedReadByte | Job-OKZLUV |    .NET 4.7.2 | 115.437 us | 33.352 us | 1.8282 us |  1.44 |    0.01 |     - |     - |     - |         - |
+    |    BufferedReadStreamWrapReadByte | Job-OKZLUV |    .NET 4.7.2 |  16.449 us | 11.400 us | 0.6249 us |  0.20 |    0.00 |     - |     - |     - |         - |
+    |                     ArrayReadByte | Job-OKZLUV |    .NET 4.7.2 |  10.416 us |  1.866 us | 0.1023 us |  0.13 |    0.00 |     - |     - |     - |         - |
+    |                                   |            |               |            |           |           |       |         |       |       |       |           |
+    |                StandardStreamRead | Job-CPYMXV | .NET Core 2.1 |  71.425 us | 50.441 us | 2.7648 us |  0.82 |    0.03 |     - |     - |     - |         - |
+    |            BufferedReadStreamRead | Job-CPYMXV | .NET Core 2.1 |  32.816 us |  6.655 us | 0.3648 us |  0.38 |    0.01 |     - |     - |     - |         - |
+    |     BufferedReadStreamChunkedRead | Job-CPYMXV | .NET Core 2.1 |  31.995 us |  7.751 us | 0.4249 us |  0.37 |    0.01 |     - |     - |     - |         - |
+    |        BufferedReadStreamWrapRead | Job-CPYMXV | .NET Core 2.1 |  31.970 us |  4.170 us | 0.2286 us |  0.37 |    0.01 |     - |     - |     - |         - |
+    |            StandardStreamReadByte | Job-CPYMXV | .NET Core 2.1 |  86.909 us | 18.565 us | 1.0176 us |  1.00 |    0.00 |     - |     - |     - |         - |
+    |        BufferedReadStreamReadByte | Job-CPYMXV | .NET Core 2.1 |  14.596 us | 10.889 us | 0.5969 us |  0.17 |    0.01 |     - |     - |     - |         - |
+    | BufferedReadStreamChunkedReadByte | Job-CPYMXV | .NET Core 2.1 |  13.629 us |  1.569 us | 0.0860 us |  0.16 |    0.00 |     - |     - |     - |         - |
+    |    BufferedReadStreamWrapReadByte | Job-CPYMXV | .NET Core 2.1 |  13.566 us |  1.743 us | 0.0956 us |  0.16 |    0.00 |     - |     - |     - |         - |
+    |                     ArrayReadByte | Job-CPYMXV | .NET Core 2.1 |   9.771 us |  6.658 us | 0.3650 us |  0.11 |    0.00 |     - |     - |     - |         - |
+    |                                   |            |               |            |           |           |       |         |       |       |       |           |
+    |                StandardStreamRead | Job-BSGVGU | .NET Core 3.1 |  53.265 us | 65.819 us | 3.6078 us |  0.81 |    0.05 |     - |     - |     - |         - |
+    |            BufferedReadStreamRead | Job-BSGVGU | .NET Core 3.1 |  33.163 us |  9.569 us | 0.5245 us |  0.51 |    0.01 |     - |     - |     - |         - |
+    |     BufferedReadStreamChunkedRead | Job-BSGVGU | .NET Core 3.1 |  33.001 us |  6.114 us | 0.3351 us |  0.50 |    0.01 |     - |     - |     - |         - |
+    |        BufferedReadStreamWrapRead | Job-BSGVGU | .NET Core 3.1 |  29.448 us |  7.120 us | 0.3902 us |  0.45 |    0.01 |     - |     - |     - |         - |
+    |            StandardStreamReadByte | Job-BSGVGU | .NET Core 3.1 |  65.619 us |  6.732 us | 0.3690 us |  1.00 |    0.00 |     - |     - |     - |         - |
+    |        BufferedReadStreamReadByte | Job-BSGVGU | .NET Core 3.1 |  13.989 us |  3.464 us | 0.1899 us |  0.21 |    0.00 |     - |     - |     - |         - |
+    | BufferedReadStreamChunkedReadByte | Job-BSGVGU | .NET Core 3.1 |  13.806 us |  1.710 us | 0.0938 us |  0.21 |    0.00 |     - |     - |     - |         - |
+    |    BufferedReadStreamWrapReadByte | Job-BSGVGU | .NET Core 3.1 |  13.690 us |  1.523 us | 0.0835 us |  0.21 |    0.00 |     - |     - |     - |         - |
+    |                     ArrayReadByte | Job-BSGVGU | .NET Core 3.1 |  10.792 us |  8.228 us | 0.4510 us |  0.16 |    0.01 |     - |     - |     - |         - |
     */
 }

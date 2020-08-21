@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests
             int resultWidth = expectedResult[0].Length;
             int resultHeight = expectedResult.Length;
             Image<Rgba32> image = new Image<Rgba32>(resultWidth, resultHeight);
-            image.Mutate(x => x.Fill(DefaultColor));
+            image.Mutate(x => x.BackgroundColor(DefaultColor));
 
             Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
             decodeAction(pixels);

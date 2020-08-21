@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing;
@@ -9,7 +9,7 @@ using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 
 using CoreImage = SixLabors.ImageSharp.Image;
-using CoreSize = SixLabors.Primitives.Size;
+using CoreSize = SixLabors.ImageSharp.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         }
 
         [Benchmark(Baseline = true, Description = "System.Drawing Tiff")]
-        public Size TiffSystemDrawing()
+        public System.Drawing.Size TiffSystemDrawing()
         {
             using (MemoryStream memoryStream = new MemoryStream(this.tiffBytes))
             {

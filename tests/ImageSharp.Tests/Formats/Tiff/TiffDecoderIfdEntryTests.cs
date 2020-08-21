@@ -11,8 +11,7 @@ namespace SixLabors.ImageSharp.Tests
     using ImageSharp.Formats;
     using ImageSharp.Formats.Tiff;
 
-    using SixLabors.ImageSharp.MetaData.Profiles.Exif;
-    using SixLabors.ImageSharp.Primitives;
+    using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
     public class TiffDecoderIfdEntryTests
     {

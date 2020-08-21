@@ -1,8 +1,9 @@
-﻿// Copyright (c) Six Labors and contributors.
+// Copyright (c) Six Labors and contributors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
+using System.Threading;
+using System.Threading.Tasks;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats
@@ -19,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats
 
         /// <inheritdoc/>
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
-            where TPixel : struct, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(stream, "stream");
 
@@ -27,6 +28,23 @@ namespace SixLabors.ImageSharp.Formats
             {
                 return decoder.Decode<TPixel>(stream);
             }
+        }
+
+        /// <inheritdoc/>
+        public Image Decode(Configuration configuration, Stream stream)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken) where TPixel : unmanaged, IPixel<TPixel>
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

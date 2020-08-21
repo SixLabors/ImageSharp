@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests
     public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private class FileProvider : TestImageProvider<TPixel>, IXunitSerializable
+        internal class FileProvider : TestImageProvider<TPixel>, IXunitSerializable
         {
             // Need PixelTypes in the dictionary key, because result images of TestImageProvider<TPixel>.FileProvider
             // are shared between PixelTypes.Color & PixelTypes.Rgba32

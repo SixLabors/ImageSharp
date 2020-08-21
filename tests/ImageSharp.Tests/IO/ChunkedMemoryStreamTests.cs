@@ -297,32 +297,36 @@ namespace SixLabors.ImageSharp.Tests.IO
             Assert.Equal(expected, destination.ToArray());
         }
 
-        public static TheoryData<string> GetAllTestImages()
+        public static IEnumerable<string> GetAllTestImages()
         {
             IEnumerable<string> allImageFiles = Directory.EnumerateFiles(TestEnvironment.InputImagesDirectoryFullPath, "*.*", SearchOption.AllDirectories)
                 .Where(s => !s.EndsWith("txt", StringComparison.OrdinalIgnoreCase));
-            var result = new TheoryData<string>();
+
+            var result = new List<string>();
             foreach (string path in allImageFiles)
             {
-                result.Add(path);
+                result.Add(path.Substring(TestEnvironment.InputImagesDirectoryFullPath.Length));
             }
 
             return result;
         }
 
+        public static IEnumerable<string> AllTestImages = GetAllTestImages();
+
         [Theory]
-        [MemberData(nameof(GetAllTestImages))]
-        public void DecoderIntegrationTest(string testFileFullPath)
+        [WithFileCollection(nameof(AllTestImages), PixelTypes.Rgba32)]
+        public void DecoderIntegrationTest<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             if (!TestEnvironment.Is64BitProcess)
             {
                 return;
             }
 
-            Image<Rgba32> expected;
+            Image<TPixel> expected;
             try
             {
-                expected = Image.Load<Rgba32>(testFileFullPath);
+                expected = provider.GetImage();
             }
             catch
             {
@@ -330,10 +334,14 @@ namespace SixLabors.ImageSharp.Tests.IO
                 return;
             }
 
-            using FileStream fs = File.OpenRead(testFileFullPath);
+            string fullPath = Path.Combine(
+                TestEnvironment.InputImagesDirectoryFullPath,
+                ((TestImageProvider<TPixel>.FileProvider)provider).FilePath);
+
+            using FileStream fs = File.OpenRead(fullPath);
             using var nonSeekableStream = new NonSeekableStream(fs);
 
-            var actual = Image.Load<Rgba32>(nonSeekableStream);
+            var actual = Image.Load<TPixel>(nonSeekableStream);
 
             ImageComparer.Exact.VerifySimilarity(expected, actual);
         }

@@ -241,13 +241,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     Span<uint> src = argb.Slice((y * width) + contextStartX, maxX + haveLeft + ((y + 1) < height ? 1 : 0));
                     Span<uint> dst = currentRow.Slice(contextStartX);
                     src.CopyTo(dst);
+
+                    // TODO: Source wraps this in conditional
+                    // WEBP_NEAR_LOSSLESS == 1
                     if (maxQuantization > 1 && y >= 1 && y + 1 < height)
                     {
                         MaxDiffsForRow(contextWidth, width, argb.Slice((y * width) + contextStartX), maxDiffs.Slice(contextStartX), usedSubtractGreen);
                     }
 
                     GetResidual(width, height, upperRow, currentRow, maxDiffs, mode, startX, startX + maxX, y, maxQuantization, exact, usedSubtractGreen, residuals);
-                    for (int relativeX = 0; relativeX < maxX; relativeX++)
+                    for (int relativeX = 0; relativeX < maxX; ++relativeX)
                     {
                         UpdateHisto(histoArgb, residuals[relativeX]);
                     }
@@ -268,6 +271,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                 if (curDiff < bestDiff)
                 {
+                    // TODO: Consider swapping references
                     for (int i = 0; i < 4; i++)
                     {
                         histoArgb[i].AsSpan().CopyTo(bestHisto[i]);
@@ -538,7 +542,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             Span<uint> currentRow = upperRow.Slice(width + 1);
             Span<byte> currentMaxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow.Slice(width + 1));
 
-            // TODO: This should be wrapped in a condition.
+            // TODO: This should be wrapped in a condition?
             Span<byte> lowerMaxDiffs = currentMaxDiffs.Slice(width);
             for (int y = 0; y < height; ++y)
             {
@@ -548,7 +552,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 Span<uint> src = argb.Slice(y * width, width + ((y + 1) < height ? 1 : 0));
                 src.CopyTo(currentRow);
 
-                // TODO: Near lossless conditional.
+                // TODO: Near lossless conditional?
                 if (maxQuantization > 1)
                 {
                     // Compute max_diffs for the lower row now, because that needs the
@@ -952,7 +956,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private static float PredictionCostSpatialHistogram(int[][] accumulated, int[][] tile)
         {
             double retVal = 0.0d;
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 4; ++i)
             {
                 double kExpValue = 0.94;
                 retVal += PredictionCostSpatial(tile[i], 1, kExpValue);

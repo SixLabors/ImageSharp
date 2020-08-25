@@ -607,12 +607,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         {
             int cacheBits = 0;
             var histogramSymbols = new short[1]; // Only one tree, one symbol.
+
+            // TODO: Can HuffmanTreeCode be struct
             var huffmanCodes = new HuffmanTreeCode[5];
             for (int i = 0; i < huffmanCodes.Length; i++)
             {
                 huffmanCodes[i] = new HuffmanTreeCode();
             }
 
+            // TODO: Can HuffmanTree be struct
             var huffTree = new HuffmanTree[3UL * WebPConstants.CodeLengthCodes];
             for (int i = 0; i < huffTree.Length; i++)
             {

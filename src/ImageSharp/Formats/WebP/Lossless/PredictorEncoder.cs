@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     /// <summary>
     /// Image transform methods for the lossless webp encoder.
     /// </summary>
-    internal static class PredictorEncoder
+    internal static unsafe class PredictorEncoder
     {
         private const int GreenRedToBlueNumAxis = 8;
 
@@ -27,27 +27,61 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// with respect to predictions. If nearLosslessQuality &lt; 100, applies
         /// near lossless processing, shaving off more bits of residuals for lower qualities.
         /// </summary>
-        public static void ResidualImage(int width, int height, int bits, Span<uint> argb, Span<uint> argbScratch, Span<uint> image, int nearLosslessQuality, bool exact, bool usedSubtractGreen)
+        public static void ResidualImage(
+            int width,
+            int height,
+            int bits,
+            Span<uint> argb,
+            Span<uint> argbScratch,
+            Span<uint> image,
+            int nearLosslessQuality,
+            bool exact,
+            bool usedSubtractGreen)
         {
             int tilesPerRow = LosslessUtils.SubSampleSize(width, bits);
             int tilesPerCol = LosslessUtils.SubSampleSize(height, bits);
             int maxQuantization = 1 << LosslessUtils.NearLosslessBits(nearLosslessQuality);
+
+            // TODO: Can we optimize this?
             var histo = new int[4][];
             for (int i = 0; i < 4; i++)
             {
                 histo[i] = new int[256];
             }
 
-            for (int tileY = 0; tileY < tilesPerCol; tileY++)
+            // TODO: Low Effort
+            for (int tileY = 0; tileY < tilesPerCol; ++tileY)
             {
-                for (int tileX = 0; tileX < tilesPerRow; tileX++)
+                for (int tileX = 0; tileX < tilesPerRow; ++tileX)
                 {
-                    int pred = GetBestPredictorForTile(width, height, tileX, tileY, bits, histo, argbScratch, argb, maxQuantization, exact, usedSubtractGreen, image);
+                    int pred = GetBestPredictorForTile(
+                        width,
+                        height,
+                        tileX,
+                        tileY,
+                        bits,
+                        histo,
+                        argbScratch,
+                        argb,
+                        maxQuantization,
+                        exact,
+                        usedSubtractGreen,
+                        image);
+
                     image[(tileY * tilesPerRow) + tileX] = (uint)(WebPConstants.ArgbBlack | (pred << 8));
                 }
             }
 
-            CopyImageWithPrediction(width, height, bits, image, argbScratch, argb, maxQuantization, exact, usedSubtractGreen);
+            CopyImageWithPrediction(
+                width,
+                height,
+                bits,
+                image,
+                argbScratch,
+                argb,
+                maxQuantization,
+                exact,
+                usedSubtractGreen);
         }
 
         public static void ColorSpaceTransform(int width, int height, int bits, int quality, Span<uint> argb, Span<uint> image)
@@ -55,8 +89,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int maxTileSize = 1 << bits;
             int tileXSize = LosslessUtils.SubSampleSize(width, bits);
             int tileYSize = LosslessUtils.SubSampleSize(height, bits);
-            int[] accumulatedRedHisto = new int[256];
-            int[] accumulatedBlueHisto = new int[256];
+            var accumulatedRedHisto = new int[256];
+            var accumulatedBlueHisto = new int[256];
             var prevX = default(Vp8LMultipliers);
             var prevY = default(Vp8LMultipliers);
             for (int tileY = 0; tileY < tileYSize; tileY++)
@@ -165,9 +199,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             Span<byte> maxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow.Slice(width + 1));
             float bestDiff = MaxDiffCost;
             int bestMode = 0;
-            uint[] residuals = new uint[1 << WebPConstants.MaxTransformBits];
-            int[][] histoArgb = new int[4][];
-            int[][] bestHisto = new int[4][];
+            var residuals = new uint[1 << WebPConstants.MaxTransformBits];
+            var histoArgb = new int[4][];
+            var bestHisto = new int[4][];
             for (int i = 0; i < 4; i++)
             {
                 histoArgb[i] = new int[256];
@@ -207,13 +241,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     Span<uint> src = argb.Slice((y * width) + contextStartX, maxX + haveLeft + ((y + 1) < height ? 1 : 0));
                     Span<uint> dst = currentRow.Slice(contextStartX);
                     src.CopyTo(dst);
+
+                    // TODO: Source wraps this in conditional
+                    // WEBP_NEAR_LOSSLESS == 1
                     if (maxQuantization > 1 && y >= 1 && y + 1 < height)
                     {
                         MaxDiffsForRow(contextWidth, width, argb.Slice((y * width) + contextStartX), maxDiffs.Slice(contextStartX), usedSubtractGreen);
                     }
 
                     GetResidual(width, height, upperRow, currentRow, maxDiffs, mode, startX, startX + maxX, y, maxQuantization, exact, usedSubtractGreen, residuals);
-                    for (int relativeX = 0; relativeX < maxX; relativeX++)
+                    for (int relativeX = 0; relativeX < maxX; ++relativeX)
                     {
                         UpdateHisto(histoArgb, residuals[relativeX]);
                     }
@@ -234,6 +271,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                 if (curDiff < bestDiff)
                 {
+                    // TODO: Consider swapping references
                     for (int i = 0; i < 4; i++)
                     {
                         histoArgb[i].AsSpan().CopyTo(bestHisto[i]);
@@ -261,113 +299,130 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// the deviation further to pixels which depend on the current pixel for their
         /// predictions.
         /// </summary>
-        private static void GetResidual(int width, int height, Span<uint> upperRow, Span<uint> currentRow, Span<byte> maxDiffs, int mode, int xStart, int xEnd, int y, int maxQuantization, bool exact, bool usedSubtractGreen, Span<uint> output)
+        private static void GetResidual(
+            int width,
+            int height,
+            Span<uint> upperRowSpan,
+            Span<uint> currentRowSpan,
+            Span<byte> maxDiffs,
+            int mode,
+            int xStart,
+            int xEnd,
+            int y,
+            int maxQuantization,
+            bool exact,
+            bool usedSubtractGreen,
+            Span<uint> output)
         {
             if (exact)
             {
-                PredictBatch(mode, xStart, y, xEnd - xStart, currentRow, upperRow, output);
+                PredictBatch(mode, xStart, y, xEnd - xStart, currentRowSpan, upperRowSpan, output);
             }
             else
             {
-                for (int x = xStart; x < xEnd; x++)
+                fixed (uint* currentRow = currentRowSpan)
+                fixed (uint* upperRow = upperRowSpan)
                 {
-                    uint predict = 0;
-                    uint residual;
-                    if (y == 0)
+                    for (int x = xStart; x < xEnd; ++x)
                     {
-                        predict = (x == 0) ? WebPConstants.ArgbBlack : currentRow[x - 1];  // Left.
-                    }
-                    else if (x == 0)
-                    {
-                        predict = upperRow[x];  // Top.
-                    }
-                    else
-                    {
-                        switch (mode)
+                        uint predict = 0;
+                        uint residual;
+                        if (y == 0)
                         {
-                            case 0:
-                                predict = WebPConstants.ArgbBlack;
-                                break;
-                            case 1:
-                                predict = currentRow[x - 1];
-                                break;
-                            case 2:
-                                predict = LosslessUtils.Predictor2(upperRow, x);
-                                break;
-                            case 3:
-                                predict = LosslessUtils.Predictor3(upperRow, x);
-                                break;
-                            case 4:
-                                predict = LosslessUtils.Predictor4(upperRow, x);
-                                break;
-                            case 5:
-                                predict = LosslessUtils.Predictor5(currentRow[x - 1], upperRow, x);
-                                break;
-                            case 6:
-                                predict = LosslessUtils.Predictor6(currentRow[x - 1], upperRow, x);
-                                break;
-                            case 7:
-                                predict = LosslessUtils.Predictor7(currentRow[x - 1], upperRow, x);
-                                break;
-                            case 8:
-                                predict = LosslessUtils.Predictor8(upperRow, x);
-                                break;
-                            case 9:
-                                predict = LosslessUtils.Predictor9(upperRow, x);
-                                break;
-                            case 10:
-                                predict = LosslessUtils.Predictor10(currentRow[x - 1], upperRow, x);
-                                break;
-                            case 11:
-                                predict = LosslessUtils.Predictor11(currentRow[x - 1], upperRow, x);
-                                break;
-                            case 12:
-                                predict = LosslessUtils.Predictor12(currentRow[x - 1], upperRow, x);
-                                break;
-                            case 13:
-                                predict = LosslessUtils.Predictor13(currentRow[x - 1], upperRow, x);
-                                break;
+                            predict = (x == 0) ? WebPConstants.ArgbBlack : currentRow[x - 1];  // Left.
                         }
-                    }
-
-                    if (maxQuantization == 1 || mode == 0 || y == 0 || y == height - 1 || x == 0 || x == width - 1)
-                    {
-                        residual = LosslessUtils.SubPixels(currentRow[x], predict);
-                    }
-                    else
-                    {
-                        residual = NearLossless(currentRow[x], predict, maxQuantization, maxDiffs[x], usedSubtractGreen);
-
-                        // Update the source image.
-                        currentRow[x] = LosslessUtils.AddPixels(predict, residual);
-
-                        // x is never 0 here so we do not need to update upperRow like below.
-                    }
-
-                    if ((currentRow[x] & MaskAlpha) == 0)
-                    {
-                        // If alpha is 0, cleanup RGB. We can choose the RGB values of the
-                        // residual for best compression. The prediction of alpha itself can be
-                        // non-zero and must be kept though. We choose RGB of the residual to be
-                        // 0.
-                        residual &= MaskAlpha;
-
-                        // Update the source image.
-                        currentRow[x] = predict & ~MaskAlpha;
-
-                        // The prediction for the rightmost pixel in a row uses the leftmost
-                        // pixel
-                        // in that row as its top-right context pixel. Hence if we change the
-                        // leftmost pixel of current_row, the corresponding change must be
-                        // applied
-                        // to upperRow as well where top-right context is being read from.
-                        if (x == 0 && y != 0)
+                        else if (x == 0)
                         {
-                            upperRow[width] = currentRow[0];
+                            predict = upperRow[x];  // Top.
                         }
-                    }
+                        else
+                        {
+                            switch (mode)
+                            {
+                                case 0:
+                                    predict = WebPConstants.ArgbBlack;
+                                    break;
+                                case 1:
+                                    predict = currentRow[x - 1];
+                                    break;
+                                case 2:
+                                    predict = LosslessUtils.Predictor2(currentRow[x - 1], upperRow + x);
+                                    break;
+                                case 3:
+                                    predict = LosslessUtils.Predictor3(currentRow[x - 1], upperRow + x);
+                                    break;
+                                case 4:
+                                    predict = LosslessUtils.Predictor4(currentRow[x - 1], upperRow + x);
+                                    break;
+                                case 5:
+                                    predict = LosslessUtils.Predictor5(currentRow[x - 1], upperRow + x);
+                                    break;
+                                case 6:
+                                    predict = LosslessUtils.Predictor6(currentRow[x - 1], upperRow + x);
+                                    break;
+                                case 7:
+                                    predict = LosslessUtils.Predictor7(currentRow[x - 1], upperRow + x);
+                                    break;
+                                case 8:
+                                    predict = LosslessUtils.Predictor8(currentRow[x - 1], upperRow + x);
+                                    break;
+                                case 9:
+                                    predict = LosslessUtils.Predictor9(currentRow[x - 1], upperRow + x);
+                                    break;
+                                case 10:
+                                    predict = LosslessUtils.Predictor10(currentRow[x - 1], upperRow + x);
+                                    break;
+                                case 11:
+                                    predict = LosslessUtils.Predictor11(currentRow[x - 1], upperRow + x);
+                                    break;
+                                case 12:
+                                    predict = LosslessUtils.Predictor12(currentRow[x - 1], upperRow + x);
+                                    break;
+                                case 13:
+                                    predict = LosslessUtils.Predictor13(currentRow[x - 1], upperRow + x);
+                                    break;
+                            }
+                        }
 
-                    output[x - xStart] = residual;
+                        if (maxQuantization == 1 || mode == 0 || y == 0 || y == height - 1 || x == 0 || x == width - 1)
+                        {
+                            residual = LosslessUtils.SubPixels(currentRow[x], predict);
+                        }
+                        else
+                        {
+                            residual = NearLossless(currentRow[x], predict, maxQuantization, maxDiffs[x], usedSubtractGreen);
+
+                            // Update the source image.
+                            currentRow[x] = LosslessUtils.AddPixels(predict, residual);
+
+                            // x is never 0 here so we do not need to update upperRow like below.
+                        }
+
+                        if ((currentRow[x] & MaskAlpha) == 0)
+                        {
+                            // If alpha is 0, cleanup RGB. We can choose the RGB values of the
+                            // residual for best compression. The prediction of alpha itself can be
+                            // non-zero and must be kept though. We choose RGB of the residual to be
+                            // 0.
+                            residual &= MaskAlpha;
+
+                            // Update the source image.
+                            currentRow[x] = predict & ~MaskAlpha;
+
+                            // The prediction for the rightmost pixel in a row uses the leftmost
+                            // pixel
+                            // in that row as its top-right context pixel. Hence if we change the
+                            // leftmost pixel of current_row, the corresponding change must be
+                            // applied
+                            // to upperRow as well where top-right context is being read from.
+                            if (x == 0 && y != 0)
+                            {
+                                upperRow[width] = currentRow[0];
+                            }
+                        }
+
+                        output[x - xStart] = residual;
+                    }
                 }
             }
         }
@@ -486,14 +541,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             Span<uint> upperRow = argbScratch;
             Span<uint> currentRow = upperRow.Slice(width + 1);
             Span<byte> currentMaxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow.Slice(width + 1));
+
+            // TODO: This should be wrapped in a condition?
             Span<byte> lowerMaxDiffs = currentMaxDiffs.Slice(width);
-            for (int y = 0; y < height; y++)
+            for (int y = 0; y < height; ++y)
             {
                 Span<uint> tmp32 = upperRow;
                 upperRow = currentRow;
                 currentRow = tmp32;
                 Span<uint> src = argb.Slice(y * width, width + ((y + 1) < height ? 1 : 0));
                 src.CopyTo(currentRow);
+
+                // TODO: Near lossless conditional?
                 if (maxQuantization > 1)
                 {
                     // Compute max_diffs for the lower row now, because that needs the
@@ -537,77 +596,90 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
-        private static void PredictBatch(int mode, int xStart, int y, int numPixels, Span<uint> current, Span<uint> upper, Span<uint> output)
+        private static void PredictBatch(
+            int mode,
+            int xStart,
+            int y,
+            int numPixels,
+            Span<uint> currentSpan,
+            Span<uint> upperSpan,
+            Span<uint> outputSpan)
         {
-            if (xStart == 0)
+            fixed (uint* current = currentSpan)
+            fixed (uint* upper = upperSpan)
+            fixed (uint* outputFixed = outputSpan)
             {
+                uint* output = outputFixed;
+                if (xStart == 0)
+                {
+                    if (y == 0)
+                    {
+                        // ARGB_BLACK.
+                        LosslessUtils.PredictorSub0(current, 1, output);
+                    }
+                    else
+                    {
+                        // Top one.
+                        LosslessUtils.PredictorSub2(current, upper, 1, output);
+                    }
+
+                    ++xStart;
+                    ++output;
+                    --numPixels;
+                }
+
                 if (y == 0)
                 {
-                    // ARGB_BLACK.
-                    LosslessUtils.PredictorSub0(current, 1, output);
+                    // Left one.
+                    LosslessUtils.PredictorSub1(current + xStart, numPixels, output);
                 }
                 else
                 {
-                    // Top one.
-                    LosslessUtils.PredictorSub2(current, 0, upper, 1, output);
-                }
-
-                xStart++;
-                output = output.Slice(1);
-                numPixels--;
-            }
-
-            if (y == 0)
-            {
-                // Left one.
-                LosslessUtils.PredictorSub1(current, xStart, numPixels, output);
-            }
-            else
-            {
-                switch (mode)
-                {
-                    case 0:
-                        LosslessUtils.PredictorSub0(current, numPixels, output);
-                        break;
-                    case 1:
-                        LosslessUtils.PredictorSub1(current, xStart, numPixels, output);
-                        break;
-                    case 2:
-                        LosslessUtils.PredictorSub2(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
-                    case 3:
-                        LosslessUtils.PredictorSub3(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
-                    case 4:
-                        LosslessUtils.PredictorSub4(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
-                    case 5:
-                        LosslessUtils.PredictorSub5(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
-                    case 6:
-                        LosslessUtils.PredictorSub6(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
-                    case 7:
-                        LosslessUtils.PredictorSub7(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
-                    case 8:
-                        LosslessUtils.PredictorSub8(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
-                    case 9:
-                        LosslessUtils.PredictorSub9(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
-                    case 10:
-                        LosslessUtils.PredictorSub10(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
-                    case 11:
-                        LosslessUtils.PredictorSub11(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
-                    case 12:
-                        LosslessUtils.PredictorSub12(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
-                    case 13:
-                        LosslessUtils.PredictorSub13(current, xStart, upper.Slice(xStart), numPixels, output);
-                        break;
+                    switch (mode)
+                    {
+                        case 0:
+                            LosslessUtils.PredictorSub0(current, numPixels, output);
+                            break;
+                        case 1:
+                            LosslessUtils.PredictorSub1(current + xStart, numPixels, output);
+                            break;
+                        case 2:
+                            LosslessUtils.PredictorSub2(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                        case 3:
+                            LosslessUtils.PredictorSub3(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                        case 4:
+                            LosslessUtils.PredictorSub4(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                        case 5:
+                            LosslessUtils.PredictorSub5(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                        case 6:
+                            LosslessUtils.PredictorSub6(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                        case 7:
+                            LosslessUtils.PredictorSub7(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                        case 8:
+                            LosslessUtils.PredictorSub8(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                        case 9:
+                            LosslessUtils.PredictorSub9(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                        case 10:
+                            LosslessUtils.PredictorSub10(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                        case 11:
+                            LosslessUtils.PredictorSub11(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                        case 12:
+                            LosslessUtils.PredictorSub12(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                        case 13:
+                            LosslessUtils.PredictorSub13(current + xStart, upper + xStart, numPixels, output);
+                            break;
+                    }
                 }
             }
         }
@@ -627,7 +699,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 right = AddGreenToBlueAndRed(right);
             }
 
-            for (int x = 1; x < width - 1; x++)
+            for (int x = 1; x < width - 1; ++x)
             {
                 uint up = argb[-stride + x];
                 uint down = argb[stride + x];
@@ -884,7 +956,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private static float PredictionCostSpatialHistogram(int[][] accumulated, int[][] tile)
         {
             double retVal = 0.0d;
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 4; ++i)
             {
                 double kExpValue = 0.94;
                 retVal += PredictionCostSpatial(tile[i], 1, kExpValue);

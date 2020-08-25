@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     /// <summary>
     /// Utility functions for the lossless decoder.
     /// </summary>
-    internal static class LosslessUtils
+    internal static unsafe class LosslessUtils
     {
         private const uint Predictor0 = WebPConstants.ArgbBlack;
 
@@ -244,104 +244,116 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         /// <param name="transform">The transform data.</param>
         /// <param name="pixelData">The pixel data to apply the inverse transform.</param>
-        /// <param name="output">The resulting pixel data with the reversed transformation data.</param>
-        public static void PredictorInverseTransform(Vp8LTransform transform, Span<uint> pixelData, Span<uint> output)
+        /// <param name="outputSpan">The resulting pixel data with the reversed transformation data.</param>
+        public static void PredictorInverseTransform(
+            Vp8LTransform transform,
+            Span<uint> pixelData,
+            Span<uint> outputSpan)
         {
-            int processedPixels = 0;
-            int width = transform.XSize;
-            Span<uint> transformData = transform.Data.GetSpan();
-
-            // First Row follows the L (mode=1) mode.
-            PredictorAdd0(pixelData, processedPixels, 1, output);
-            PredictorAdd1(pixelData, 1, width - 1, output);
-            processedPixels += width;
-
-            int y = 1;
-            int yEnd = transform.YSize;
-            int tileWidth = 1 << transform.Bits;
-            int mask = tileWidth - 1;
-            int tilesPerRow = SubSampleSize(width, transform.Bits);
-            int predictorModeIdxBase = (y >> transform.Bits) * tilesPerRow;
-            while (y < yEnd)
+            fixed (uint* inputFixed = pixelData)
+            fixed (uint* outputFixed = outputSpan)
             {
-                int predictorModeIdx = predictorModeIdxBase;
-                int x = 1;
+                uint* input = inputFixed;
+                uint* output = outputFixed;
 
-                // First pixel follows the T (mode=2) mode.
-                PredictorAdd2(pixelData, processedPixels, 1, width, output);
+                int width = transform.XSize;
+                Span<uint> transformData = transform.Data.GetSpan();
 
-                while (x < width)
+                // First Row follows the L (mode=1) mode.
+                PredictorAdd0(input, null, 1, output);
+                PredictorAdd1(input + 1, null, width - 1, output + 1);
+                input += width;
+                output += width;
+
+                int y = 1;
+                int yEnd = transform.YSize;
+                int tileWidth = 1 << transform.Bits;
+                int mask = tileWidth - 1;
+                int tilesPerRow = SubSampleSize(width, transform.Bits);
+                int predictorModeIdxBase = (y >> transform.Bits) * tilesPerRow;
+                while (y < yEnd)
                 {
-                    uint predictorMode = (transformData[predictorModeIdx++] >> 8) & 0xf;
-                    int xEnd = (x & ~mask) + tileWidth;
-                    if (xEnd > width)
+                    int predictorModeIdx = predictorModeIdxBase;
+                    int x = 1;
+
+                    // First pixel follows the T (mode=2) mode.
+                    PredictorAdd2(input, output - width, 1, output);
+
+                    // .. the rest:
+                    while (x < width)
                     {
-                        xEnd = width;
+                        uint predictorMode = (transformData[predictorModeIdx++] >> 8) & 0xf;
+                        int xEnd = (x & ~mask) + tileWidth;
+                        if (xEnd > width)
+                        {
+                            xEnd = width;
+                        }
+
+                        // There are 14 different prediction modes.
+                        // In each prediction mode, the current pixel value is predicted from one
+                        // or more neighboring pixels whose values are already known.
+                        switch (predictorMode)
+                        {
+                            case 0:
+                                PredictorAdd0(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 1:
+                                PredictorAdd1(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 2:
+                                PredictorAdd2(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 3:
+                                PredictorAdd3(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 4:
+                                PredictorAdd4(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 5:
+                                PredictorAdd5(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 6:
+                                PredictorAdd6(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 7:
+                                PredictorAdd7(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 8:
+                                PredictorAdd8(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 9:
+                                PredictorAdd9(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 10:
+                                PredictorAdd10(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 11:
+                                PredictorAdd11(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 12:
+                                PredictorAdd12(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                            case 13:
+                                PredictorAdd13(input + x, output + x - width, xEnd - x, output + x);
+                                break;
+                        }
+
+                        x = xEnd;
                     }
 
-                    // There are 14 different prediction modes.
-                    // In each prediction mode, the current pixel value is predicted from one or more neighboring pixels whose values are already known.
-                    int startIdx = processedPixels + x;
-                    int numberOfPixels = xEnd - x;
-                    switch (predictorMode)
+                    input += width;
+                    output += width;
+                    ++y;
+
+                    if ((y & mask) == 0)
                     {
-                        case 0:
-                            PredictorAdd0(pixelData, startIdx, numberOfPixels, output);
-                            break;
-                        case 1:
-                            PredictorAdd1(pixelData, startIdx, numberOfPixels, output);
-                            break;
-                        case 2:
-                            PredictorAdd2(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
-                        case 3:
-                            PredictorAdd3(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
-                        case 4:
-                            PredictorAdd4(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
-                        case 5:
-                            PredictorAdd5(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
-                        case 6:
-                            PredictorAdd6(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
-                        case 7:
-                            PredictorAdd7(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
-                        case 8:
-                            PredictorAdd8(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
-                        case 9:
-                            PredictorAdd9(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
-                        case 10:
-                            PredictorAdd10(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
-                        case 11:
-                            PredictorAdd11(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
-                        case 12:
-                            PredictorAdd12(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
-                        case 13:
-                            PredictorAdd13(pixelData, startIdx, numberOfPixels, width, output);
-                            break;
+                        // Use the same mask, since tiles are squares.
+                        predictorModeIdxBase += tilesPerRow;
                     }
-
-                    x = xEnd;
-                }
-
-                processedPixels += width;
-                ++y;
-                if ((y & mask) == 0)
-                {
-                    // Use the same mask, since tiles are squares.
-                    predictorModeIdxBase += tilesPerRow;
                 }
             }
 
-            output.CopyTo(pixelData);
+            outputSpan.CopyTo(pixelData);
         }
 
         public static void ExpandColorMap(int numColors, Span<uint> transformData, Span<uint> newColorMap)
@@ -582,374 +594,352 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return code;
         }
 
-        private static void PredictorAdd0(Span<uint> input, int startIdx, int numberOfPixels, Span<uint> output)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void PredictorAdd0(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            int endIdx = startIdx + numberOfPixels;
-            uint pred = Predictor0;
-            for (int x = startIdx; x < endIdx; ++x)
+            for (int x = 0; x < numberOfPixels; ++x)
             {
-                output[x] = AddPixels(input[x], pred);
+                output[x] = AddPixels(input[x], WebPConstants.ArgbBlack);
             }
         }
 
-        private static void PredictorAdd1(Span<uint> input, int startIdx, int numberOfPixels, Span<uint> output)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void PredictorAdd1(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            int endIdx = startIdx + numberOfPixels;
-            uint left = output[startIdx - 1];
-            for (int x = startIdx; x < endIdx; ++x)
+            uint left = output[-1];
+            for (int x = 0; x < numberOfPixels; ++x)
             {
                 output[x] = left = AddPixels(input[x], left);
             }
         }
 
-        private static void PredictorAdd2(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void PredictorAdd2(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
+            for (int x = 0; x < numberOfPixels; ++x)
             {
-                uint pred = Predictor2(output, offset++);
-                output[x] = AddPixels(input[x], pred);
-            }
-        }
-
-        private static void PredictorAdd3(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
-        {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
-            {
-                uint pred = Predictor3(output, offset++);
-                output[x] = AddPixels(input[x], pred);
-            }
-        }
-
-        private static void PredictorAdd4(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
-        {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
-            {
-                uint pred = Predictor4(output, offset++);
-                output[x] = AddPixels(input[x], pred);
-            }
-        }
-
-        private static void PredictorAdd5(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
-        {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
-            {
-                uint pred = Predictor5(output[x - 1], output, offset++);
-                output[x] = AddPixels(input[x], pred);
-            }
-        }
-
-        private static void PredictorAdd6(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
-        {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
-            {
-                uint pred = Predictor6(output[x - 1], output, offset++);
-                output[x] = AddPixels(input[x], pred);
-            }
-        }
-
-        private static void PredictorAdd7(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
-        {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
-            {
-                uint pred = Predictor7(output[x - 1], output, offset++);
-                output[x] = AddPixels(input[x], pred);
-            }
-        }
-
-        private static void PredictorAdd8(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
-        {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
-            {
-                uint pred = Predictor8(output, offset++);
-                output[x] = AddPixels(input[x], pred);
-            }
-        }
-
-        private static void PredictorAdd9(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
-        {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
-            {
-                uint pred = Predictor9(output, offset++);
-                output[x] = AddPixels(input[x], pred);
-            }
-        }
-
-        private static void PredictorAdd10(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
-        {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
-            {
-                uint pred = Predictor10(output[x - 1], output, offset++);
-                output[x] = AddPixels(input[x], pred);
-            }
-        }
-
-        private static void PredictorAdd11(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
-        {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
-            {
-                uint pred = Predictor11(output[x - 1], output, offset++);
-                output[x] = AddPixels(input[x], pred);
-            }
-        }
-
-        private static void PredictorAdd12(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
-        {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
-            {
-                uint pred = Predictor12(output[x - 1], output, offset++);
-                output[x] = AddPixels(input[x], pred);
-            }
-        }
-
-        private static void PredictorAdd13(Span<uint> input, int startIdx, int numberOfPixels, int width, Span<uint> output)
-        {
-            int endIdx = startIdx + numberOfPixels;
-            int offset = startIdx - width;
-            for (int x = startIdx; x < endIdx; ++x)
-            {
-                uint pred = Predictor13(output[x - 1], output, offset++);
+                uint pred = Predictor2(output[x - 1], upper + x);
                 output[x] = AddPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor2(Span<uint> top, int idx)
+        private static void PredictorAdd3(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            return top[idx];
+            for (int x = 0; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor3(output[x - 1], upper + x);
+                output[x] = AddPixels(input[x], pred);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor3(Span<uint> top, int idx)
+        private static void PredictorAdd4(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            return top[idx + 1];
+            for (int x = 0; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor4(output[x - 1], upper + x);
+                output[x] = AddPixels(input[x], pred);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor4(Span<uint> top, int idx)
+        private static void PredictorAdd5(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            return top[idx - 1];
+            for (int x = 0; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor5(output[x - 1], upper + x);
+                output[x] = AddPixels(input[x], pred);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor5(uint left, Span<uint> top, int idx)
+        private static void PredictorAdd6(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            uint pred = Average3(left, top[idx], top[idx + 1]);
-            return pred;
+            for (int x = 0; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor6(output[x - 1], upper + x);
+                output[x] = AddPixels(input[x], pred);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor6(uint left, Span<uint> top, int idx)
+        private static void PredictorAdd7(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            uint pred = Average2(left, top[idx - 1]);
-            return pred;
+            for (int x = 0; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor7(output[x - 1], upper + x);
+                output[x] = AddPixels(input[x], pred);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor7(uint left, Span<uint> top, int idx)
+        private static void PredictorAdd8(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            uint pred = Average2(left, top[idx]);
-            return pred;
+            for (int x = 0; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor8(output[x - 1], upper + x);
+                output[x] = AddPixels(input[x], pred);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor8(Span<uint> top, int idx)
+        private static void PredictorAdd9(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            uint pred = Average2(top[idx - 1], top[idx]);
-            return pred;
+            for (int x = 0; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor9(output[x - 1], upper + x);
+                output[x] = AddPixels(input[x], pred);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor9(Span<uint> top, int idx)
+        private static void PredictorAdd10(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            uint pred = Average2(top[idx], top[idx + 1]);
-            return pred;
+            for (int x = 0; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor10(output[x - 1], upper + x);
+                output[x] = AddPixels(input[x], pred);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor10(uint left, Span<uint> top, int idx)
+        private static void PredictorAdd11(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            uint pred = Average4(left, top[idx - 1], top[idx], top[idx + 1]);
-            return pred;
+            for (int x = 0; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor11(output[x - 1], upper + x);
+                output[x] = AddPixels(input[x], pred);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor11(uint left, Span<uint> top, int idx)
+        private static void PredictorAdd12(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            uint pred = Select(top[idx], left, top[idx - 1]);
-            return pred;
+            for (int x = 0; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor12(output[x - 1], upper + x);
+                output[x] = AddPixels(input[x], pred);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor12(uint left, Span<uint> top, int idx)
+        private static void PredictorAdd13(uint* input, uint* upper, int numberOfPixels, uint* output)
         {
-            uint pred = ClampedAddSubtractFull(left, top[idx], top[idx - 1]);
-            return pred;
+            for (int x = 0; x < numberOfPixels; ++x)
+            {
+                uint pred = Predictor13(output[x - 1], upper + x);
+                output[x] = AddPixels(input[x], pred);
+            }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor13(uint left, Span<uint> top, int idx)
+        public static uint Predictor2(uint left, uint* top)
         {
-            uint pred = ClampedAddSubtractHalf(left, top[idx], top[idx - 1]);
-            return pred;
+            return top[0];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub0(Span<uint> input, int numPixels, Span<uint> output)
+        public static uint Predictor3(uint left, uint* top)
         {
-            for (int i = 0; i < numPixels; i++)
+            return top[1];
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint Predictor4(uint left, uint* top)
+        {
+            return top[-1];
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint Predictor5(uint left, uint* top)
+        {
+            return Average3(left, top[0], top[1]);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint Predictor6(uint left, uint* top)
+        {
+            return Average2(left, top[-1]);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint Predictor7(uint left, uint* top)
+        {
+            return Average2(left, top[0]);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint Predictor8(uint left, uint* top)
+        {
+            return Average2(top[-1], top[0]);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint Predictor9(uint left, uint* top)
+        {
+            return Average2(top[0], top[1]);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint Predictor10(uint left, uint* top)
+        {
+            return Average4(left, top[-1], top[0], top[1]);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint Predictor11(uint left, uint* top)
+        {
+            return Select(top[0], left, top[-1]);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint Predictor12(uint left, uint* top)
+        {
+            return ClampedAddSubtractFull(left, top[0], top[-1]);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint Predictor13(uint left, uint* top)
+        {
+            return ClampedAddSubtractHalf(left, top[0], top[-1]);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void PredictorSub0(uint* input, int numPixels, uint* output)
+        {
+            for (int i = 0; i < numPixels; ++i)
             {
                 output[i] = SubPixels(input[i], WebPConstants.ArgbBlack);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub1(Span<uint> input, int idx, int numPixels, Span<uint> output)
+        public static void PredictorSub1(uint* input, int numPixels, uint* output)
         {
-            for (int i = 0; i < numPixels; i++)
+            for (int i = 0; i < numPixels; ++i)
             {
-                output[i] = SubPixels(input[idx + i], input[idx + i - 1]);
+                output[i] = SubPixels(input[i], input[i - 1]);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub2(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub2(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor2(upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor2(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub3(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub3(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor3(upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor3(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub4(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub4(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor4(upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor4(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub5(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub5(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor5(input[idx - 1], upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor5(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub6(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub6(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor6(input[idx - 1], upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor6(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub7(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub7(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor7(input[idx - 1], upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor7(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub8(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub8(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor8(upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor8(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub9(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub9(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor9(upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor9(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub10(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub10(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor10(input[idx - 1], upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor10(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub11(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub11(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor11(input[idx - 1], upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor11(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub12(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub12(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor12(input[idx - 1], upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor12(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void PredictorSub13(Span<uint> input, int idx, Span<uint> upper, int numPixels, Span<uint> output)
+        public static void PredictorSub13(uint* input, uint* upper, int numPixels, uint* output)
         {
-            for (int x = 0; x < numPixels; x++)
+            for (int x = 0; x < numPixels; ++x)
             {
-                uint pred = Predictor13(input[idx - 1], upper, x);
-                output[x] = SubPixels(input[idx + x], pred);
+                uint pred = Predictor13(input[x - 1], upper + x);
+                output[x] = SubPixels(input[x], pred);
             }
         }
 

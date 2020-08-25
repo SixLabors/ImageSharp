@@ -38,6 +38,7 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(metadata, nameof(metadata));
+            Guard.IsTrue(pixelMemory.Length == width * height, nameof(pixelMemory), "The length of the input memory doesn't match the specified image size");
 
             var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemory);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);
@@ -105,6 +106,7 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(metadata, nameof(metadata));
+            Guard.IsTrue(pixelMemoryOwner.Memory.Length == width * height, nameof(pixelMemoryOwner), "The length of the input memory doesn't match the specified image size");
 
             var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);
@@ -176,6 +178,9 @@ namespace SixLabors.ImageSharp
             Guard.NotNull(metadata, nameof(metadata));
 
             var memoryManager = new ByteMemoryManager<TPixel>(byteMemory);
+
+            Guard.IsTrue(memoryManager.Memory.Length == width * height, nameof(byteMemory), "The length of the input memory doesn't match the specified image size");
+
             var memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);
         }

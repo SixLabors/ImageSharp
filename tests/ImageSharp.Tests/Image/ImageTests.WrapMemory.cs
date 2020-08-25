@@ -282,6 +282,57 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
+            [Theory]
+            [InlineData(0, 5, 5)]
+            [InlineData(20, 5, 5)]
+            [InlineData(26, 5, 5)]
+            [InlineData(2, 1, 1)]
+            [InlineData(1023, 32, 32)]
+            public void WrapMemory_MemoryOfT_InvalidSize(int size, int height, int width)
+            {
+                var array = new Rgba32[size];
+                var memory = new Memory<Rgba32>(array);
+
+                Assert.Throws<ArgumentException>(() => Image.WrapMemory(memory, height, width));
+            }
+
+            private class TestMemoryOwner<T> : IMemoryOwner<T>
+            {
+                public Memory<T> Memory { get; set; }
+
+                public void Dispose()
+                {
+                }
+            }
+
+            [Theory]
+            [InlineData(0, 5, 5)]
+            [InlineData(20, 5, 5)]
+            [InlineData(26, 5, 5)]
+            [InlineData(2, 1, 1)]
+            [InlineData(1023, 32, 32)]
+            public void WrapMemory_IMemoryOwnerOfT_InvalidSize(int size, int height, int width)
+            {
+                var array = new Rgba32[size];
+                var memory = new TestMemoryOwner<Rgba32> { Memory = array };
+
+                Assert.Throws<ArgumentException>(() => Image.WrapMemory(memory, height, width));
+            }
+
+            [Theory]
+            [InlineData(0, 5, 5)]
+            [InlineData(20, 5, 5)]
+            [InlineData(26, 5, 5)]
+            [InlineData(2, 1, 1)]
+            [InlineData(1023, 32, 32)]
+            public void WrapMemory_MemoryOfByte_InvalidSize(int size, int height, int width)
+            {
+                var array = new byte[size * Unsafe.SizeOf<Rgba32>()];
+                var memory = new Memory<byte>(array);
+
+                Assert.Throws<ArgumentException>(() => Image.WrapMemory<Rgba32>(memory, height, width));
+            }
+
             private static bool ShouldSkipBitmapTest =>
                 !TestEnvironment.Is64BitProcess || (TestHelpers.ImageSharpBuiltAgainst != "netcoreapp3.1" && TestHelpers.ImageSharpBuiltAgainst != "netcoreapp2.1");
         }

@@ -238,7 +238,9 @@ namespace SixLabors.ImageSharp.IO
             Guard.NotNull(buffer, nameof(buffer));
             Guard.MustBeGreaterThanOrEqualTo(offset, 0, nameof(offset));
             Guard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
-            Guard.IsFalse(buffer.Length - offset < count, nameof(buffer), $"{offset} subtracted from the buffer length is less than {count}");
+
+            const string BufferMessage = "Offset subtracted from the buffer length is less than count.";
+            Guard.IsFalse(buffer.Length - offset < count, nameof(buffer), BufferMessage);
 
             return this.ReadImpl(buffer.AsSpan().Slice(offset, count));
         }
@@ -348,7 +350,16 @@ namespace SixLabors.ImageSharp.IO
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Write(byte[] buffer, int offset, int count)
-            => this.WriteImpl(buffer.AsSpan().Slice(offset, count));
+        {
+            Guard.NotNull(buffer, nameof(buffer));
+            Guard.MustBeGreaterThanOrEqualTo(offset, 0, nameof(offset));
+            Guard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
+
+            const string BufferMessage = "Offset subtracted from the buffer length is less than count.";
+            Guard.IsFalse(buffer.Length - offset < count, nameof(buffer), BufferMessage);
+
+            this.WriteImpl(buffer.AsSpan().Slice(offset, count));
+        }
 
 #if SUPPORTS_SPAN_STREAM
         /// <inheritdoc/>

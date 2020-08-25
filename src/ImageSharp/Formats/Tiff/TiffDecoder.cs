@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Image decoder for generating an image out of a TIFF stream.
     /// </summary>
-    public class TiffDecoder : IImageDecoder, ITiffDecoderOptions
+    public class TiffDecoder : IImageDecoder, ITiffDecoderOptions, IImageInfoDetector
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -24,17 +24,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             Guard.NotNull(stream, "stream");
 
-            using (var decoder = new TiffDecoderCore(configuration, this))
+            using (var decoder = new TiffDecoderCore(stream, configuration, this))
             {
-                return decoder.Decode<TPixel>(stream);
+                return decoder.Decode<TPixel>();
             }
         }
 
         /// <inheritdoc/>
-        public Image Decode(Configuration configuration, Stream stream)
-        {
-            throw new System.NotImplementedException();
-        }
+        public Image Decode(Configuration configuration, Stream stream) => this.Decode<Rgba32>(configuration, stream);
 
         /// <inheritdoc/>
         public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
@@ -45,6 +42,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         /// <inheritdoc/>
         public Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public IImageInfo Identify(Configuration configuration, Stream stream)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
             throw new System.NotImplementedException();
         }

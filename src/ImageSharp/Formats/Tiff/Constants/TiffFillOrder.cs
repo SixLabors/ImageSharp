@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Enumeration representing the fill orders defined by the Tiff file-format.
     /// </summary>
-    internal enum TiffFillOrder
+    internal enum TiffFillOrder : ushort
     {
         /// <summary>
         /// Pixels with lower column values are stored in the higher-order bits of the byte.

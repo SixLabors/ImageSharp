@@ -4,18 +4,18 @@
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
-    /// Enumeration representing how the components of each pixel are stored the Tiff file-format.
+    /// The tiff data stream byte order enum.
     /// </summary>
-    public enum TiffPlanarConfiguration : ushort
+    public enum TiffByteOrder
     {
         /// <summary>
-        /// Chunky format.
+        /// The big-endian byte order (Motorola).
         /// </summary>
-        Chunky = 1,
+        BigEndian,
 
         /// <summary>
-        /// Planar format.
+        /// The little-endian byte order (Intel).
         /// </summary>
-        Planar = 2
+        LittleEndian
     }
 }

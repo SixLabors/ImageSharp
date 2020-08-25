@@ -8,4 +8,4 @@ dotnet clean -c Release
 $repositoryUrl = "https://github.com/$env:GITHUB_REPOSITORY"
 
 # Building for a specific framework.
-dotnet build -c Release -f $targetFramework /p:RepositoryUrl=$repositoryUrl
+dotnet build tests/ImageSharp.Tests/ImageSharp.Tests.csproj -c Release -f $targetFramework /p:RepositoryUrl=$repositoryUrl

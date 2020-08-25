@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp
     {
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
-        /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="configuration">The <see cref="Configuration"/></param>
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
-        /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="configuration">The <see cref="Configuration"/></param>
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
-        /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// The memory is being observed, the caller remains responsible for managing it's lifecycle.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
-        /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// The ownership of the <paramref name="pixelMemoryOwner"/> is being transferred to the new <see cref="Image{TPixel}"/> instance,
         /// meaning that the caller is not allowed to dispose <paramref name="pixelMemoryOwner"/>.
         /// It will be disposed together with the result image.
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
-        /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// The ownership of the <paramref name="pixelMemoryOwner"/> is being transferred to the new <see cref="Image{TPixel}"/> instance,
         /// meaning that the caller is not allowed to dispose <paramref name="pixelMemoryOwner"/>.
         /// It will be disposed together with the result image.
@@ -136,7 +136,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
-        /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// The ownership of the <paramref name="pixelMemoryOwner"/> is being transferred to the new <see cref="Image{TPixel}"/> instance,
         /// meaning that the caller is not allowed to dispose <paramref name="pixelMemoryOwner"/>.
         /// It will be disposed together with the result image.
@@ -155,7 +155,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
-        /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="configuration">The <see cref="Configuration"/></param>
@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
-        /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type</typeparam>
         /// <param name="configuration">The <see cref="Configuration"/></param>
@@ -206,7 +206,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
-        /// allowing to view/manipulate it as an ImageSharp <see cref="Image{TPixel}"/> instance.
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// The memory is being observed, the caller remains responsible for managing it's lifecycle.
         /// </summary>
         /// <typeparam name="TPixel">The pixel type.</typeparam>

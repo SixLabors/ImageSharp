@@ -340,6 +340,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 colorCache[i].Init(i);
             }
 
+            // TODO: Don't use the enumerator here.
             // Find the cache_bits giving the lowest entropy.
             using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
             while (c.MoveNext())
@@ -363,7 +364,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     ++histos[0].Alpha[a];
 
                     // Deal with cacheBits > 0.
-                    for (int i = cacheBitsMax; i >= 1; i--, key >>= 1)
+                    for (int i = cacheBitsMax; i >= 1; --i, key >>= 1)
                     {
                         if (colorCache[i].Lookup(key) == pix)
                         {
@@ -388,6 +389,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     int len = v.Len;
                     uint bgraPrev = bgra[pos] ^ 0xffffffffu;
 
+                    // TODO: Original has this loop?
+                    // VP8LPrefixEncode(len, &code, &extra_bits, &extra_bits_value);
+                    // for (i = 0; i <= cache_bits_max; ++i)
+                    // {
+                    //    ++histos[i]->literal_[NUM_LITERAL_CODES + code];
+                    // }
                     // Update the color caches.
                     do
                     {
@@ -409,7 +416,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
             }
 
-            for (int i = 0; i <= cacheBitsMax; i++)
+            for (int i = 0; i <= cacheBitsMax; ++i)
             {
                 double entropy = histos[i].EstimateBits();
                 if (i == 0 || entropy < entropyMin)
@@ -461,7 +468,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // Add first pixel as literal.
             AddSingleLiteralWithCostModel(bgra, colorCache, costModel, 0, useColorCache, 0.0f, costManager.Costs, distArray);
 
-            for (int i = 1; i < pixCount; i++)
+            for (int i = 1; i < pixCount; ++i)
             {
                 float prevCost = costManager.Costs[i - 1];
                 int offset = hashChain.FindOffset(i);
@@ -660,7 +667,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     // [i,i+len) + [i+len, length of best match at i+len)
                     // while we check if we can use:
                     // [i,j) (where j<=i+len) + [j, length of best match at j)
-                    for (j = iLastCheck + 1; j <= jMax; j++)
+                    for (j = iLastCheck + 1; j <= jMax; ++j)
                     {
                         int lenJ = hashChain.FindLength(j);
                         int reach = j + (lenJ >= MinLength ? lenJ : 1); // 1 for single literal.
@@ -720,7 +727,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int i = pixelCount - 2;
             int countsPos = i;
             counts[countsPos + 1] = 1;
-            for (; i >= 0; i--, countsPos--)
+            for (; i >= 0; --i, --countsPos)
             {
                 if (bgra[i] == bgra[i + 1])
                 {
@@ -739,9 +746,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             // Figure out the window offsets around a pixel. They are stored in a
             // spiraling order around the pixel as defined by DistanceToPlaneCode.
-            for (int y = 0; y <= 6; y++)
+            for (int y = 0; y <= 6; ++y)
             {
-                for (int x = -6; x <= 6; x++)
+                for (int x = -6; x <= 6; ++x)
                 {
                     int offset = (y * xSize) + x;
 
@@ -762,7 +769,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             // For narrow images, not all plane codes are reached, so remove those.
-            for (i = 0; i < WindowOffsetsSizeMax; i++)
+            for (i = 0; i < WindowOffsetsSizeMax; ++i)
             {
                 if (windowOffsets[i] == 0)
                 {
@@ -774,7 +781,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             // Given a pixel P, find the offsets that reach pixels unreachable from P-1
             // with any of the offsets in windowOffsets[].
-            for (i = 0; i < windowOffsetsSize; i++)
+            for (i = 0; i < windowOffsetsSize; ++i)
             {
                 bool isReachable = false;
                 for (int j = 0; j < windowOffsetsSize && !isReachable; ++j)
@@ -785,7 +792,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 if (!isReachable)
                 {
                     windowOffsetsNew[windowOffsetsNewSize] = windowOffsets[i];
-                    windowOffsetsNewSize++;
+                    ++windowOffsetsNewSize;
                 }
             }
 
@@ -917,7 +924,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     refs.Add(PixOrCopy.CreateCopy((uint)xSize, (ushort)prevRowLen));
                     if (useColorCache)
                     {
-                        for (int k = 0; k < prevRowLen; k++)
+                        for (int k = 0; k < prevRowLen; ++k)
                         {
                             colorCache.Insert(bgra[i + k]);
                         }
@@ -943,6 +950,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         private static void BackwardRefsWithLocalCache(Span<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
         {
+            // TODO: Don't use enumerator.
             int pixelIndex = 0;
             using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
             var colorCache = new ColorCache();
@@ -969,7 +977,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 else
                 {
                     // refs was created without local cache, so it can not have cache indexes.
-                    for (int k = 0; k < v.Len; k++)
+                    for (int k = 0; k < v.Len; ++k)
                     {
                         colorCache.Insert(bgra[pixelIndex++]);
                     }

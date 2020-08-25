@@ -48,17 +48,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             get
             {
-                yield return new object[] { Rgb4_Bytes4x4, new[] { 4u, 4u, 4u }, 0, 0, 4, 4, Rgb4_Result4x4 };
-                yield return new object[] { Rgb4_Bytes4x4, new[] { 4u, 4u, 4u }, 0, 0, 4, 4, Offset(Rgb4_Result4x4, 0, 0, 6, 6) };
-                yield return new object[] { Rgb4_Bytes4x4, new[] { 4u, 4u, 4u }, 1, 0, 4, 4, Offset(Rgb4_Result4x4, 1, 0, 6, 6) };
-                yield return new object[] { Rgb4_Bytes4x4, new[] { 4u, 4u, 4u }, 0, 1, 4, 4, Offset(Rgb4_Result4x4, 0, 1, 6, 6) };
-                yield return new object[] { Rgb4_Bytes4x4, new[] { 4u, 4u, 4u }, 1, 1, 4, 4, Offset(Rgb4_Result4x4, 1, 1, 6, 6) };
+                yield return new object[] { Rgb4_Bytes4x4, new ushort[] { 4, 4, 4 }, 0, 0, 4, 4, Rgb4_Result4x4 };
+                yield return new object[] { Rgb4_Bytes4x4, new ushort[] { 4, 4, 4 }, 0, 0, 4, 4, Offset(Rgb4_Result4x4, 0, 0, 6, 6) };
+                yield return new object[] { Rgb4_Bytes4x4, new ushort[] { 4, 4, 4 }, 1, 0, 4, 4, Offset(Rgb4_Result4x4, 1, 0, 6, 6) };
+                yield return new object[] { Rgb4_Bytes4x4, new ushort[] { 4, 4, 4 }, 0, 1, 4, 4, Offset(Rgb4_Result4x4, 0, 1, 6, 6) };
+                yield return new object[] { Rgb4_Bytes4x4, new ushort[] { 4, 4, 4 }, 1, 1, 4, 4, Offset(Rgb4_Result4x4, 1, 1, 6, 6) };
 
-                yield return new object[] { Rgb4_Bytes3x4, new[] { 4u, 4u, 4u }, 0, 0, 3, 4, Rgb4_Result3x4 };
-                yield return new object[] { Rgb4_Bytes3x4, new[] { 4u, 4u, 4u }, 0, 0, 3, 4, Offset(Rgb4_Result3x4, 0, 0, 6, 6) };
-                yield return new object[] { Rgb4_Bytes3x4, new[] { 4u, 4u, 4u }, 1, 0, 3, 4, Offset(Rgb4_Result3x4, 1, 0, 6, 6) };
-                yield return new object[] { Rgb4_Bytes3x4, new[] { 4u, 4u, 4u }, 0, 1, 3, 4, Offset(Rgb4_Result3x4, 0, 1, 6, 6) };
-                yield return new object[] { Rgb4_Bytes3x4, new[] { 4u, 4u, 4u }, 1, 1, 3, 4, Offset(Rgb4_Result3x4, 1, 1, 6, 6) };
+                yield return new object[] { Rgb4_Bytes3x4, new ushort[] { 4, 4, 4 }, 0, 0, 3, 4, Rgb4_Result3x4 };
+                yield return new object[] { Rgb4_Bytes3x4, new ushort[] { 4, 4, 4 }, 0, 0, 3, 4, Offset(Rgb4_Result3x4, 0, 0, 6, 6) };
+                yield return new object[] { Rgb4_Bytes3x4, new ushort[] { 4, 4, 4 }, 1, 0, 3, 4, Offset(Rgb4_Result3x4, 1, 0, 6, 6) };
+                yield return new object[] { Rgb4_Bytes3x4, new ushort[] { 4, 4, 4 }, 0, 1, 3, 4, Offset(Rgb4_Result3x4, 0, 1, 6, 6) };
+                yield return new object[] { Rgb4_Bytes3x4, new ushort[] { 4, 4, 4 }, 1, 1, 3, 4, Offset(Rgb4_Result3x4, 1, 1, 6, 6) };
             }
         }
 
@@ -90,11 +90,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             get
             {
-                yield return new object[] { Rgb8_Bytes4x4, new[] { 8u, 8u, 8u }, 0, 0, 4, 4, Rgb8_Result4x4 };
-                yield return new object[] { Rgb8_Bytes4x4, new[] { 8u, 8u, 8u }, 0, 0, 4, 4, Offset(Rgb8_Result4x4, 0, 0, 6, 6) };
-                yield return new object[] { Rgb8_Bytes4x4, new[] { 8u, 8u, 8u }, 1, 0, 4, 4, Offset(Rgb8_Result4x4, 1, 0, 6, 6) };
-                yield return new object[] { Rgb8_Bytes4x4, new[] { 8u, 8u, 8u }, 0, 1, 4, 4, Offset(Rgb8_Result4x4, 0, 1, 6, 6) };
-                yield return new object[] { Rgb8_Bytes4x4, new[] { 8u, 8u, 8u }, 1, 1, 4, 4, Offset(Rgb8_Result4x4, 1, 1, 6, 6) };
+                yield return new object[] { Rgb8_Bytes4x4, new ushort[] { 8, 8, 8 }, 0, 0, 4, 4, Rgb8_Result4x4 };
+                yield return new object[] { Rgb8_Bytes4x4, new ushort[] { 8, 8, 8 }, 0, 0, 4, 4, Offset(Rgb8_Result4x4, 0, 0, 6, 6) };
+                yield return new object[] { Rgb8_Bytes4x4, new ushort[] { 8, 8, 8 }, 1, 0, 4, 4, Offset(Rgb8_Result4x4, 1, 0, 6, 6) };
+                yield return new object[] { Rgb8_Bytes4x4, new ushort[] { 8, 8, 8 }, 0, 1, 4, 4, Offset(Rgb8_Result4x4, 0, 1, 6, 6) };
+                yield return new object[] { Rgb8_Bytes4x4, new ushort[] { 8, 8, 8 }, 1, 1, 4, 4, Offset(Rgb8_Result4x4, 1, 1, 6, 6) };
             }
         }
 
@@ -126,11 +126,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             get
             {
-                yield return new object[] { Rgb484_Bytes4x4, new[] { 4u, 8u, 4u }, 0, 0, 4, 4, Rgb484_Result4x4 };
-                yield return new object[] { Rgb484_Bytes4x4, new[] { 4u, 8u, 4u }, 0, 0, 4, 4, Offset(Rgb484_Result4x4, 0, 0, 6, 6) };
-                yield return new object[] { Rgb484_Bytes4x4, new[] { 4u, 8u, 4u }, 1, 0, 4, 4, Offset(Rgb484_Result4x4, 1, 0, 6, 6) };
-                yield return new object[] { Rgb484_Bytes4x4, new[] { 4u, 8u, 4u }, 0, 1, 4, 4, Offset(Rgb484_Result4x4, 0, 1, 6, 6) };
-                yield return new object[] { Rgb484_Bytes4x4, new[] { 4u, 8u, 4u }, 1, 1, 4, 4, Offset(Rgb484_Result4x4, 1, 1, 6, 6) };
+                yield return new object[] { Rgb484_Bytes4x4, new ushort[] { 4, 8, 4 }, 0, 0, 4, 4, Rgb484_Result4x4 };
+                yield return new object[] { Rgb484_Bytes4x4, new ushort[] { 4, 8, 4 }, 0, 0, 4, 4, Offset(Rgb484_Result4x4, 0, 0, 6, 6) };
+                yield return new object[] { Rgb484_Bytes4x4, new ushort[] { 4, 8, 4 }, 1, 0, 4, 4, Offset(Rgb484_Result4x4, 1, 0, 6, 6) };
+                yield return new object[] { Rgb484_Bytes4x4, new ushort[] { 4, 8, 4 }, 0, 1, 4, 4, Offset(Rgb484_Result4x4, 0, 1, 6, 6) };
+                yield return new object[] { Rgb484_Bytes4x4, new ushort[] { 4, 8, 4 }, 1, 1, 4, 4, Offset(Rgb484_Result4x4, 1, 1, 6, 6) };
             }
         }
 
@@ -138,21 +138,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [MemberData(nameof(Rgb4_Data))]
         [MemberData(nameof(Rgb8_Data))]
         [MemberData(nameof(Rgb484_Data))]
-        public void Decode_WritesPixelData(byte[] inputData, uint[] bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
+        public void Decode_WritesPixelData(byte[] inputData, ushort[] bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    RgbTiffColor.Decode(inputData, bitsPerSample, pixels, left, top, width, height);
+                    new RgbTiffColor<Rgba32>(bitsPerSample).Decode(inputData, pixels, left, top, width, height);
                 });
         }
 
         [Theory]
         [MemberData(nameof(Rgb8_Data))]
-        public void Decode_WritesPixelData_8Bit(byte[] inputData, uint[] bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
+        public void Decode_WritesPixelData_8Bit(byte[] inputData, ushort[] bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    Rgb888TiffColor.Decode(inputData, pixels, left, top, width, height);
+                    new Rgb888TiffColor<Rgba32>().Decode(inputData, pixels, left, top, width, height);
                 });
         }
     }

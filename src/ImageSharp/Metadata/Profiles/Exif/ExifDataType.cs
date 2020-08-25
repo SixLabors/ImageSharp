@@ -75,6 +75,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <summary>
         /// A 64-bit double precision floating point value.
         /// </summary>
-        DoubleFloat = 12
+        DoubleFloat = 12,
+
+        /// <summary>
+        /// Reference to an IFD (32-bit (4-byte) unsigned integer).
+        /// </summary>
+        Ifd = 13
     }
 }

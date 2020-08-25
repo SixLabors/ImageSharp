@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
+using System;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -10,21 +10,24 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Implements the 'WhiteIsZero' photometric interpretation (optimised for 4-bit grayscale images).
     /// </summary>
-    internal static class WhiteIsZero4TiffColor
+    internal class WhiteIsZero4TiffColor<TPixel> : TiffColorDecoder<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
+        public WhiteIsZero4TiffColor()
+            : base(null, null)
+        {
+        }
+
         /// <summary>
         /// Decodes pixel data using the current photometric interpretation.
         /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="data">The buffer to read image data from.</param>
         /// <param name="pixels">The image buffer to write pixels to.</param>
         /// <param name="left">The x-coordinate of the left-hand side of the image block.</param>
         /// <param name="top">The y-coordinate of the  top of the image block.</param>
         /// <param name="width">The width of the image block.</param>
         /// <param name="height">The height of the image block.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decode<TPixel>(byte[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public override void Decode(byte[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
             TPixel color = default(TPixel);
 

@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             // The subsequent data is the Deflate compressed data (except for the last four bytes of checksum)
             int headerLength = fdict ? 10 : 6;
             SubStream subStream = new SubStream(stream, byteCount - headerLength);
-            using (DeflateStream deflateStream = new DeflateStream(stream, CompressionMode.Decompress, true))
+            using (DeflateStream deflateStream = new DeflateStream(subStream, CompressionMode.Decompress, true))
             {
                 deflateStream.ReadFull(buffer);
             }

@@ -1,63 +1,104 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
-    /// Data structure for holding details of each TIFF IFD.
+    /// The TIFF IFD reader class.
     /// </summary>
-    internal struct TiffIfd
+    internal class DirectoryReader
     {
-        /// <summary>
-        /// An array of the entries within this IFD.
-        /// </summary>
-        public TiffIfdEntry[] Entries;
+        private readonly TiffStream stream;
 
-        /// <summary>
-        /// Offset (in bytes) to the next IFD, or zero if this is the last IFD.
-        /// </summary>
-        public uint NextIfdOffset;
+        private readonly EntryReader tagReader;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TiffIfd"/> struct.
-        /// </summary>
-        /// <param name="entries">An array of the entries within the IFD.</param>
-        /// <param name="nextIfdOffset">Offset (in bytes) to the next IFD, or zero if this is the last IFD.</param>
-        public TiffIfd(TiffIfdEntry[] entries, uint nextIfdOffset)
+        private uint nextIfdOffset;
+
+        public DirectoryReader(TiffStream stream)
         {
-            this.Entries = entries;
-            this.NextIfdOffset = nextIfdOffset;
+            this.stream = stream;
+            this.tagReader = new EntryReader(stream);
         }
 
-        /// <summary>
-        /// Gets the child <see cref="TiffIfdEntry"/> with the specified tag ID.
-        /// </summary>
-        /// <param name="tag">The tag ID to search for.</param>
-        /// <returns>The resulting <see cref="TiffIfdEntry"/>, or null if it does not exists.</returns>
-        public TiffIfdEntry? GetIfdEntry(ushort tag)
+        public IEnumerable<IExifValue[]> Read()
         {
-            for (int i = 0; i < this.Entries.Length; i++)
+            if (this.ReadHeader())
             {
-                if (this.Entries[i].Tag == tag)
-                {
-                    return this.Entries[i];
-                }
+                return this.ReadIfds();
             }
 
             return null;
         }
 
-        /// <summary>
-        /// Gets the child <see cref="TiffIfdEntry"/> with the specified tag ID.
-        /// </summary>
-        /// <param name="tag">The tag ID to search for.</param>
-        /// <param name="entry">The resulting <see cref="TiffIfdEntry"/>, if it exists.</param>
-        /// <returns>A flag indicating whether the requested entry exists.</returns>
-        public bool TryGetIfdEntry(ushort tag, out TiffIfdEntry entry)
+        private bool ReadHeader()
         {
-            TiffIfdEntry? nullableEntry = this.GetIfdEntry(tag);
-            entry = nullableEntry ?? default(TiffIfdEntry);
-            return nullableEntry.HasValue;
+            ushort magic = this.stream.ReadUInt16();
+            if (magic != TiffConstants.HeaderMagicNumber)
+            {
+                throw new ImageFormatException("Invalid TIFF header magic number: " + magic);
+            }
+
+            uint firstIfdOffset = this.stream.ReadUInt32();
+            if (firstIfdOffset == 0)
+            {
+                throw new ImageFormatException("Invalid TIFF file header.");
+            }
+
+            this.nextIfdOffset = firstIfdOffset;
+
+            return true;
+        }
+
+        private IEnumerable<IExifValue[]> ReadIfds()
+        {
+            var list = new List<IExifValue[]>();
+            while (this.nextIfdOffset != 0)
+            {
+                this.stream.Seek(this.nextIfdOffset);
+                IExifValue[] ifd = this.ReadIfd();
+                list.Add(ifd);
+            }
+
+            this.tagReader.LoadExtendedData();
+
+            return list;
+        }
+
+        private IExifValue[] ReadIfd()
+        {
+            long pos = this.stream.Position;
+
+            ushort entryCount = this.stream.ReadUInt16();
+            var entries = new List<IExifValue>(entryCount);
+            for (int i = 0; i < entryCount; i++)
+            {
+                IExifValue tag = this.tagReader.ReadNext();
+                if (tag != null)
+                {
+                    entries.Add(tag);
+                }
+            }
+
+            this.nextIfdOffset = this.stream.ReadUInt32();
+
+            int ifdSize = 2 + (entryCount * TiffConstants.SizeOfIfdEntry) + 4;
+            int readedBytes = (int)(this.stream.Position - pos);
+            int leftBytes = ifdSize - readedBytes;
+            if (leftBytes > 0)
+            {
+                this.stream.Skip(leftBytes);
+            }
+            else if (leftBytes < 0)
+            {
+                throw new InvalidDataException("Out of range of IFD structure.");
+            }
+
+            return entries.ToArray();
         }
     }
 }

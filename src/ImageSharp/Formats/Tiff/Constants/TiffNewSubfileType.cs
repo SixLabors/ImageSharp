@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// Enumeration representing the sub-file types defined by the Tiff file-format.
     /// </summary>
     [Flags]
-    internal enum TiffNewSubfileType
+    public enum TiffNewSubfileType : uint
     {
         /// <summary>
         /// A full-resolution image.

@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -48,18 +46,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             int resultWidth = expectedResult[0].Length;
             int resultHeight = expectedResult.Length;
-            Image<Rgba32> image = new Image<Rgba32>(resultWidth, resultHeight);
-            image.Mutate(x => x.BackgroundColor(DefaultColor));
 
-            Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
-            decodeAction(pixels);
-
-            for (int y = 0; y < resultHeight; y++)
+            using (Image<Rgba32> image = new Image<Rgba32>(resultWidth, resultHeight))
             {
-                for (int x = 0; x < resultWidth; x++)
+                image.Mutate(x => x.BackgroundColor(DefaultColor));
+                Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
+
+                decodeAction(pixels);
+
+                for (int y = 0; y < resultHeight; y++)
                 {
-                    Assert.True(expectedResult[y][x] == pixels[x, y],
-                        $"Pixel ({x}, {y}) should be {expectedResult[y][x]} but was {pixels[x, y]}");
+                    for (int x = 0; x < resultWidth; x++)
+                    {
+                        Assert.True(
+                            expectedResult[y][x] == pixels[x, y],
+                            $"Pixel ({x}, {y}) should be {expectedResult[y][x]} but was {pixels[x, y]}");
+                    }
                 }
             }
         }

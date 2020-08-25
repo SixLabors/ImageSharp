@@ -12,25 +12,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     {
         public static uint[][] Palette4_ColorPalette { get => GeneratePalette(16); }
 
-        public static uint[] Palette4_ColorMap { get => GenerateColorMap(Palette4_ColorPalette); }
+        public static ushort[] Palette4_ColorMap { get => GenerateColorMap(Palette4_ColorPalette); }
 
-        private static byte[] Palette4_Bytes4x4 = new byte[] { 0x01, 0x23,
+        private static readonly byte[] Palette4_Bytes4x4 = new byte[] { 0x01, 0x23,
                                                                0x4A, 0xD2,
                                                                0x12, 0x34,
                                                                0xAB, 0xEF };
 
-        private static Rgba32[][] Palette4_Result4x4 = GenerateResult(Palette4_ColorPalette,
+        private static readonly Rgba32[][] Palette4_Result4x4 = GenerateResult(Palette4_ColorPalette,
                                                         new[] { new[] { 0x00, 0x01, 0x02, 0x03 },
                                                                 new[] { 0x04, 0x0A, 0x0D, 0x02 },
                                                                 new[] { 0x01, 0x02, 0x03, 0x04 },
                                                                 new[] { 0x0A, 0x0B, 0x0E, 0x0F }});
 
-        private static byte[] Palette4_Bytes3x4 = new byte[] { 0x01, 0x20,
+        private static readonly byte[] Palette4_Bytes3x4 = new byte[] { 0x01, 0x20,
                                                                0x4A, 0xD0,
                                                                0x12, 0x30,
                                                                0xAB, 0xE0 };
 
-        private static Rgba32[][] Palette4_Result3x4 = GenerateResult(Palette4_ColorPalette,
+        private static readonly Rgba32[][] Palette4_Result3x4 = GenerateResult(Palette4_ColorPalette,
                                                         new[] { new[] { 0x00, 0x01, 0x02 },
                                                                 new[] { 0x04, 0x0A, 0x0D },
                                                                 new[] { 0x01, 0x02, 0x03 },
@@ -57,14 +57,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         public static uint[][] Palette8_ColorPalette { get => GeneratePalette(256); }
 
-        public static uint[] Palette8_ColorMap { get => GenerateColorMap(Palette8_ColorPalette); }
+        public static ushort[] Palette8_ColorMap { get => GenerateColorMap(Palette8_ColorPalette); }
 
-        private static byte[] Palette8_Bytes4x4 = new byte[] { 000, 001, 002, 003,
+        private static readonly byte[] Palette8_Bytes4x4 = new byte[] { 000, 001, 002, 003,
                                                                100, 110, 120, 130,
                                                                000, 255, 128, 255,
                                                                050, 100, 150, 200 };
 
-        private static Rgba32[][] Palette8_Result4x4 = GenerateResult(Palette8_ColorPalette,
+        private static readonly Rgba32[][] Palette8_Result4x4 = GenerateResult(Palette8_ColorPalette,
                                                         new[] { new[] { 000, 001, 002, 003 },
                                                                 new[] { 100, 110, 120, 130 },
                                                                 new[] { 000, 255, 128, 255 },
@@ -85,11 +85,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [MemberData(nameof(Palette4_Data))]
         [MemberData(nameof(Palette8_Data))]
-        public void Decode_WritesPixelData(byte[] inputData, int bitsPerSample, uint[] colorMap, int left, int top, int width, int height, Rgba32[][] expectedResult)
+        public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, ushort[] colorMap, int left, int top, int width, int height, Rgba32[][] expectedResult)
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    PaletteTiffColor.Decode(inputData, new[] { (uint)bitsPerSample }, colorMap, pixels, left, top, width, height);
+                    new PaletteTiffColor<Rgba32>(new[] { (ushort)bitsPerSample }, colorMap).Decode(inputData, pixels, left, top, width, height);
                 });
         }
 
@@ -105,16 +105,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             return palette;
         }
 
-        private static uint[] GenerateColorMap(uint[][] colorPalette)
+        private static ushort[] GenerateColorMap(uint[][] colorPalette)
         {
             int colorCount = colorPalette.Length;
-            uint[] colorMap = new uint[colorCount * 3];
+            ushort[] colorMap = new ushort[colorCount * 3];
 
             for (int i = 0; i < colorCount; i++)
             {
-                colorMap[colorCount * 0 + i] = colorPalette[i][0];
-                colorMap[colorCount * 1 + i] = colorPalette[i][1];
-                colorMap[colorCount * 2 + i] = colorPalette[i][2];
+                colorMap[colorCount * 0 + i] = (ushort)colorPalette[i][0];
+                colorMap[colorCount * 1 + i] = (ushort)colorPalette[i][1];
+                colorMap[colorCount * 2 + i] = (ushort)colorPalette[i][2];
             }
 
             return colorMap;

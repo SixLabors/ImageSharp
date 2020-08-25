@@ -22,6 +22,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static ExifTag<byte[]> XMP => new ExifTag<byte[]>(ExifTagValue.XMP);
 
         /// <summary>
+        /// Gets the IPTC exif tag.
+        /// </summary>
+        public static ExifTag<byte[]> IPTC => new ExifTag<byte[]>(ExifTagValue.IPTC);
+
+        /// <summary>
+        /// Gets the IccProfile exif tag.
+        /// </summary>
+        public static ExifTag<byte[]> IccProfile => new ExifTag<byte[]>(ExifTagValue.IccProfile);
+
+        /// <summary>
         /// Gets the CFAPattern2 exif tag.
         /// </summary>
         public static ExifTag<byte[]> CFAPattern2 => new ExifTag<byte[]>(ExifTagValue.CFAPattern2);

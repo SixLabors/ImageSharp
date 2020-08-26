@@ -3,12 +3,12 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -27,14 +27,14 @@ namespace SixLabors.ImageSharp.Advanced
     {
         static AotCompilerTools()
         {
-            System.Runtime.CompilerServices.Unsafe.SizeOf<long>();
-            System.Runtime.CompilerServices.Unsafe.SizeOf<short>();
-            System.Runtime.CompilerServices.Unsafe.SizeOf<float>();
-            System.Runtime.CompilerServices.Unsafe.SizeOf<double>();
-            System.Runtime.CompilerServices.Unsafe.SizeOf<byte>();
-            System.Runtime.CompilerServices.Unsafe.SizeOf<int>();
-            System.Runtime.CompilerServices.Unsafe.SizeOf<Block8x8>();
-            System.Runtime.CompilerServices.Unsafe.SizeOf<Vector4>();
+            Unsafe.SizeOf<long>();
+            Unsafe.SizeOf<short>();
+            Unsafe.SizeOf<float>();
+            Unsafe.SizeOf<double>();
+            Unsafe.SizeOf<byte>();
+            Unsafe.SizeOf<int>();
+            Unsafe.SizeOf<Block8x8>();
+            Unsafe.SizeOf<Vector4>();
         }
 
         /// <summary>
@@ -90,10 +90,7 @@ namespace SixLabors.ImageSharp.Advanced
 
             Unsafe.SizeOf<TPixel>();
 
-            AotCodec<TPixel>(new Formats.Png.PngDecoder(), new Formats.Png.PngEncoder());
-            AotCodec<TPixel>(new Formats.Bmp.BmpDecoder(), new Formats.Bmp.BmpEncoder());
-            AotCodec<TPixel>(new Formats.Gif.GifDecoder(), new Formats.Gif.GifEncoder());
-            AotCodec<TPixel>(new Formats.Jpeg.JpegDecoder(), new Formats.Jpeg.JpegEncoder());
+            AotCodecs<TPixel>();
 
             // TODO: Do the discovery work to figure out what works and what doesn't.
         }
@@ -112,11 +109,9 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileOctreeQuantizer<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var test = new OctreeQuantizer<TPixel>(Configuration.Default, new OctreeQuantizer().Options))
-            {
-                var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
-                test.QuantizeFrame(frame, frame.Bounds());
-            }
+            using var test = new OctreeQuantizer<TPixel>(Configuration.Default, new OctreeQuantizer().Options);
+            var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
+            test.QuantizeFrame(frame, frame.Bounds());
         }
 
         /// <summary>
@@ -126,11 +121,9 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompileWuQuantizer<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var test = new WuQuantizer<TPixel>(Configuration.Default, new WuQuantizer().Options))
-            {
-                var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
-                test.QuantizeFrame(frame, frame.Bounds());
-            }
+            using var test = new WuQuantizer<TPixel>(Configuration.Default, new WuQuantizer().Options);
+            var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
+            test.QuantizeFrame(frame, frame.Bounds());
         }
 
         /// <summary>
@@ -140,11 +133,9 @@ namespace SixLabors.ImageSharp.Advanced
         private static void AotCompilePaletteQuantizer<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (var test = (PaletteQuantizer<TPixel>)new PaletteQuantizer(Array.Empty<Color>()).CreatePixelSpecificQuantizer<TPixel>(Configuration.Default))
-            {
-                var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
-                test.QuantizeFrame(frame, frame.Bounds());
-            }
+            using var test = (PaletteQuantizer<TPixel>)new PaletteQuantizer(Array.Empty<Color>()).CreatePixelSpecificQuantizer<TPixel>(Configuration.Default);
+            var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
+            test.QuantizeFrame(frame, frame.Bounds());
         }
 
         /// <summary>
@@ -167,26 +158,22 @@ namespace SixLabors.ImageSharp.Advanced
         /// <summary>
         /// This method pre-seeds the decoder and encoder for a given pixel format in the AoT compiler for iOS.
         /// </summary>
-        /// <param name="decoder">The image decoder to seed.</param>
-        /// <param name="encoder">The image encoder to seed.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        private static void AotCodec<TPixel>(IImageDecoder decoder, IImageEncoder encoder)
+        private static void AotCodecs<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            try
+            Configuration configuration = Configuration.Default;
+            ImageFormatManager formatsManager = configuration.ImageFormatsManager;
+            foreach (IImageFormat imageFormat in configuration.ImageFormats)
             {
-                decoder.Decode<TPixel>(Configuration.Default, null);
-            }
-            catch
-            {
-            }
+                using var ms = new MemoryStream();
+                using (var encoded = new Image<TPixel>(1, 1))
+                {
+                    encoded.Save(ms, formatsManager.FindEncoder(imageFormat));
+                    ms.Position = 0;
+                }
 
-            try
-            {
-                encoder.Encode<TPixel>(null, null);
-            }
-            catch
-            {
+                using var decoded = Image<TPixel>.Load(ms);
             }
         }
 

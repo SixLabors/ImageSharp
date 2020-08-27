@@ -2,11 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http.Headers;
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -20,14 +17,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     internal static class TiffDecoderHelpers
     {
-        public static ImageMetadata CreateMetadata<TPixel>(this IList<ImageFrame<TPixel>> frames, bool ignoreMetadata, TiffByteOrder byteOrder)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public static ImageMetadata CreateMetadata(this IList<TiffFrameMetadata> frames, bool ignoreMetadata, TiffByteOrder byteOrder)
         {
             var coreMetadata = new ImageMetadata();
             TiffMetadata tiffMetadata = coreMetadata.GetTiffMetadata();
             tiffMetadata.ByteOrder = byteOrder;
 
-            TiffFrameMetadata rootFrameMetadata = frames.First().Metadata.GetTiffMetadata();
+            TiffFrameMetadata rootFrameMetadata = frames.First();
             switch (rootFrameMetadata.ResolutionUnit)
             {
                 case TiffResolutionUnit.None:
@@ -53,13 +49,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             if (!ignoreMetadata)
             {
-                foreach (ImageFrame<TPixel> frame in frames)
+                foreach (TiffFrameMetadata frame in frames)
                 {
-                    TiffFrameMetadata frameMetadata = frame.Metadata.GetTiffMetadata();
-
                     if (tiffMetadata.XmpProfile == null)
                     {
-                        byte[] buf = frameMetadata.GetArrayValue<byte>(ExifTag.XMP, true);
+                        byte[] buf = frame.GetArray<byte>(ExifTag.XMP, true);
                         if (buf != null)
                         {
                             tiffMetadata.XmpProfile = buf;
@@ -68,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     if (coreMetadata.IptcProfile == null)
                     {
-                        byte[] buf = frameMetadata.GetArrayValue<byte>(ExifTag.IPTC, true);
+                        byte[] buf = frame.GetArray<byte>(ExifTag.IPTC, true);
                         if (buf != null)
                         {
                             coreMetadata.IptcProfile = new IptcProfile(buf);
@@ -77,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     if (coreMetadata.IccProfile == null)
                     {
-                        byte[] buf = frameMetadata.GetArrayValue<byte>(ExifTag.IccProfile, true);
+                        byte[] buf = frame.GetArray<byte>(ExifTag.IccProfile, true);
                         if (buf != null)
                         {
                             coreMetadata.IccProfile = new IccProfile(buf);
@@ -106,9 +100,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 throw new NotSupportedException("The lower-order bits of the byte FillOrder is not supported.");
             }
 
-            if (entries.GetArrayValue<uint>(ExifTag.TileOffsets, true) != null)
+            if (entries.GetArray<uint>(ExifTag.TileOffsets, true) != null)
             {
                 throw new NotSupportedException("The Tile images is not supported.");
+            }
+
+            if (entries.Predictor != TiffPredictor.None)
+            {
+                throw new NotSupportedException("At the moment support only None Predictor.");
+            }
+
+            if (entries.SampleFormat != null)
+            {
+                foreach (TiffSampleFormat format in entries.SampleFormat)
+                {
+                    if (format != TiffSampleFormat.UnsignedInteger)
+                    {
+                        throw new NotSupportedException("At the moment support only UnsignedInteger SampleFormat.");
+                    }
+                }
             }
 
             ParseCompression(options, entries.Compression);

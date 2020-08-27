@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests
                 TestImages.Png.Splash,
                 TestImages.Gif.Trans,
                 TestImages.Tga.Bit24PalRleTopRight,
-                TestImages.Tiff.RgbLzw,
+                TestImages.Tiff.RgbPackbits,
             };
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Tests
             // TestFile.Create(TestImages.Gif.Cheers), // Perf: Enable for local testing only
             // TestFile.Create(TestImages.Gif.Giphy) // Perf: Enable for local testing only
             TestFile.Create(TestImages.Tga.Bit24PalRleTopRight),
-            TestFile.Create(TestImages.Tiff.RgbLzw),
+            TestFile.Create(TestImages.Tiff.RgbPackbits),
         };
 #pragma warning restore SA1515 // Single-line comment should be preceded by blank line
     }

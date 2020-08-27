@@ -105,6 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case ExifTagValue.TileByteCounts:
                 case ExifTagValue.ColorMap:
                 case ExifTagValue.ExtraSamples:
+                case ExifTagValue.SampleFormat:
                     return true;
 
                 default:

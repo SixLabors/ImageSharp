@@ -4,6 +4,7 @@
 using System.IO;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
@@ -23,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             {
                 byte[] buffer = new byte[data.Length];
 
-                DeflateTiffCompression.Decompress(stream, (int)stream.Length, buffer);
+                new DeflateTiffCompression(null).Decompress(stream, (int)stream.Length, buffer);
 
                 Assert.Equal(data, buffer);
             }

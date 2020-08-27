@@ -502,9 +502,9 @@ namespace SixLabors.ImageSharp.Tests
 
             public const string Calliphora_GrayscaleUncompressed = "Tiff/Calliphora_grayscale_uncompressed.tiff";
             public const string Calliphora_PaletteUncompressed = "Tiff/Calliphora_palette_uncompressed.tiff";
-            public const string Calliphora_RgbDeflate = "Tiff/Calliphora_rgb_deflate.tiff";
+            public const string Calliphora_RgbDeflate_Predictor = "Tiff/Calliphora_rgb_deflate.tiff";
             public const string Calliphora_RgbJpeg = "Tiff/Calliphora_rgb_jpeg.tiff";
-            public const string Calliphora_RgbLzw = "Tiff/Calliphora_rgb_lzw.tiff";
+            public const string Calliphora_RgbLzwe_Predictor = "Tiff/Calliphora_rgb_lzw.tiff";
             public const string Calliphora_RgbPackbits = "Tiff/Calliphora_rgb_packbits.tiff";
             public const string Calliphora_RgbUncompressed = "Tiff/Calliphora_rgb_uncompressed.tiff";
 
@@ -512,32 +512,35 @@ namespace SixLabors.ImageSharp.Tests
             public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
             public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
             public const string PaletteUncompressed = "Tiff/palette_uncompressed.tiff";
-            public const string RgbDeflate = "Tiff/rgb_deflate.tiff";
+            public const string RgbDeflate_Predictor = "Tiff/rgb_deflate.tiff";
             public const string RgbDeflateMultistrip = "Tiff/rgb_deflate_multistrip.tiff";
             public const string RgbJpeg = "Tiff/rgb_jpeg.tiff";
-            public const string RgbLzw = "Tiff/rgb_lzw.tiff";
-            public const string RgbLzwMultistrip = "Tiff/rgb_lzw_multistrip.tiff";
+            public const string RgbLzw_Predictor = "Tiff/rgb_lzw.tiff";
+            public const string RgbLzwMultistrip_Predictor = "Tiff/rgb_lzw_multistrip.tiff";
             public const string RgbPackbits = "Tiff/rgb_packbits.tiff";
             public const string RgbPackbitsMultistrip = "Tiff/rgb_packbits_multistrip.tiff";
             public const string RgbUncompressed = "Tiff/rgb_uncompressed.tiff";
 
+            public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
+            public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";
+
             public const string RgbUncompressedTiled = "Tiff/rgb_uncompressed_tiled.tiff";
             public const string MultiframeDifferentSizeTiled = "Tiff/multipage_ withPreview_differentSize_tiled.tiff";
 
-            public const string MultiframeLzw = "Tiff/multipage_lzw.tiff";
+            public const string MultiframeLzw_Predictor = "Tiff/multipage_lzw.tiff";
             public const string MultiframeDeflateWithPreview = "Tiff/multipage_deflate_withPreview.tiff";
             public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
 
             public const string SampleMetadata = "Tiff/metadata_sample.tiff";
 
-            public static readonly string[] All = { Calliphora_GrayscaleUncompressed, Calliphora_PaletteUncompressed, Calliphora_RgbDeflate, Calliphora_RgbLzw, Calliphora_RgbPackbits, Calliphora_RgbUncompressed, GrayscaleDeflateMultistrip, GrayscaleUncompressed, PaletteDeflateMultistrip, PaletteUncompressed, RgbDeflate, RgbDeflateMultistrip, /*RgbJpeg,*/ RgbLzw, RgbLzwMultistrip, RgbPackbits, RgbPackbitsMultistrip, RgbUncompressed, MultiframeLzw, /*MultiFrameDifferentVariants,*/ SampleMetadata, };
+            public static readonly string[] All = { Calliphora_GrayscaleUncompressed, Calliphora_PaletteUncompressed, /*Calliphora_RgbDeflate_Predictor, Calliphora_RgbLzwe_Predictor, */ Calliphora_RgbPackbits, Calliphora_RgbUncompressed, GrayscaleDeflateMultistrip, GrayscaleUncompressed, PaletteDeflateMultistrip, PaletteUncompressed, /*RgbDeflate_Predictor,*/ RgbDeflateMultistrip, /*RgbJpeg,*/ /*RgbLzw_Predictor, RgbLzwMultistrip_Predictor,*/ RgbPackbits, RgbPackbitsMultistrip, RgbUncompressed, /* MultiframeLzw_Predictor, MultiFrameDifferentVariants, SampleMetadata,*/ SmallRgbDeflate, SmallRgbLzw };
 
-            public static readonly string[] Multiframes = { MultiframeLzw, MultiframeDeflateWithPreview /*MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
+            public static readonly string[] Multiframes = { MultiframeDeflateWithPreview /*MultiframeLzw_Predictor, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
 
             public static readonly string[] Metadata = { SampleMetadata };
 
-            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants };
+            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, Calliphora_RgbDeflate_Predictor, Calliphora_RgbLzwe_Predictor, RgbDeflate_Predictor, RgbLzw_Predictor, RgbLzwMultistrip_Predictor, RgbJpeg, RgbUncompressedTiled, MultiframeLzw_Predictor, MultiframeDifferentSize, MultiframeDifferentVariants };
         }
     }
 }

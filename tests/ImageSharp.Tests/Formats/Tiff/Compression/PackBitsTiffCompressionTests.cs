@@ -3,6 +3,7 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Formats.Tiff
@@ -25,7 +26,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Formats.Tiff
             Stream stream = new MemoryStream(inputData);
             byte[] buffer = new byte[expectedResult.Length];
 
-            PackBitsTiffCompression.Decompress(stream, inputData.Length, buffer);
+            new PackBitsTiffCompression(new ArrayPoolMemoryAllocator()).Decompress(stream, inputData.Length, buffer);
 
             Assert.Equal(expectedResult, buffer);
         }

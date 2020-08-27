@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
-using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -14,16 +14,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <remarks>
     /// Note that the 'OldDeflate' compression type is identical to the 'Deflate' compression type.
     /// </remarks>
-    internal static class DeflateTiffCompression
+    internal class DeflateTiffCompression : TiffBaseCompression
     {
-        /// <summary>
-        /// Decompresses image data into the supplied buffer.
-        /// </summary>
-        /// <param name="stream">The <see cref="Stream"/> to read image data from.</param>
-        /// <param name="byteCount">The number of bytes to read from the input stream.</param>
-        /// <param name="buffer">The output buffer for uncompressed data.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Decompress(Stream stream, int byteCount, byte[] buffer)
+        public DeflateTiffCompression(MemoryAllocator allocator)
+            : base(allocator)
+        {
+        }
+
+        /// <inheritdoc/>
+        public override void Decompress(Stream stream, int byteCount, Span<byte> buffer)
         {
             // Read the 'zlib' header information
             int cmf = stream.ReadByte();
@@ -47,8 +46,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             // The subsequent data is the Deflate compressed data (except for the last four bytes of checksum)
             int headerLength = fdict ? 10 : 6;
-            SubStream subStream = new SubStream(stream, byteCount - headerLength);
-            using (DeflateStream deflateStream = new DeflateStream(subStream, CompressionMode.Decompress, true))
+            var subStream = new SubStream(stream, byteCount - headerLength);
+            using (var deflateStream = new DeflateStream(subStream, CompressionMode.Decompress, true))
             {
                 deflateStream.ReadFull(buffer);
             }

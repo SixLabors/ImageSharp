@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             {
                 byte[] buffer = new byte[data.Length];
 
-                LzwTiffCompression.Decompress(stream, (int)stream.Length, buffer);
+                new LzwTiffCompression(null).Decompress(stream, (int)stream.Length, buffer);
 
                 Assert.Equal(data, buffer);
             }

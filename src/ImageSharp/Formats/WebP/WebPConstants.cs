@@ -114,9 +114,9 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public const int MaxPaletteSize = 256;
 
         /// <summary>
-        /// Maximum number of color cache bits is 11.
+        /// Maximum number of color cache bits is 10.
         /// </summary>
-        public const int MaxColorCacheBits = 11;
+        public const int MaxColorCacheBits = 10;
 
         /// <summary>
         /// The maximum number of allowed transforms in a VP8L bitstream.

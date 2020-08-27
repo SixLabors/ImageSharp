@@ -26,11 +26,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private const int WindowOffsetsSizeMax = 32;
 
         /// <summary>
-        /// Minimum block size for backward references.
-        /// </summary>
-        private const int MinBlockSize = 256;
-
-        /// <summary>
         /// The number of bits for the window size.
         /// </summary>
         private const int WindowSizeBits = 20;
@@ -135,7 +130,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 uint bestBgra;
                 int minPos = (basePosition > windowSize) ? basePosition - windowSize : 0;
                 int lengthMax = (maxLen < 256) ? maxLen : 256;
-                uint maxBasePosition;
                 pos = (int)chain[basePosition];
                 int currLength;
 
@@ -193,7 +187,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                 // We have the best match but in case the two intervals continue matching
                 // to the left, we have the best matches for the left-extended pixels.
-                maxBasePosition = (uint)basePosition;
+                var maxBasePosition = (uint)basePosition;
                 while (true)
                 {
                     p.OffsetLength[basePosition] = (bestDistance << MaxLengthBits) | (uint)bestLength;
@@ -432,15 +426,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private static void BackwardReferencesTraceBackwards(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refsSrc, Vp8LBackwardRefs refsDst)
         {
             int distArraySize = xSize * ySize;
-            var distArray = new short[distArraySize];
+            var distArray = new ushort[distArraySize];
 
             BackwardReferencesHashChainDistanceOnly(xSize, ySize, bgra, cacheBits, hashChain, refsSrc, distArray);
             int chosenPathSize = TraceBackwards(distArray, distArraySize);
-            Span<short> chosenPath = distArray.AsSpan(distArraySize - chosenPathSize);
+            Span<ushort> chosenPath = distArray.AsSpan(distArraySize - chosenPathSize);
             BackwardReferencesHashChainFollowChosenPath(bgra, cacheBits, chosenPath, chosenPathSize, hashChain, refsDst);
         }
 
-        private static void BackwardReferencesHashChainDistanceOnly(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refs, short[] distArray)
+        private static void BackwardReferencesHashChainDistanceOnly(int xSize, int ySize, Span<uint> bgra, int cacheBits, Vp8LHashChain hashChain, Vp8LBackwardRefs refs, ushort[] distArray)
         {
             int pixCount = xSize * ySize;
             bool useColorCache = cacheBits > 0;
@@ -502,17 +496,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                         if (i + len - 1 > reach)
                         {
-                            int offsetJ = 0;
                             int lenJ = 0;
                             int j;
                             for (j = i; j <= reach; ++j)
                             {
-                                offset = hashChain.FindOffset(j + 1);
-                                len = hashChain.FindLength(j + 1);
+                                int offsetJ = hashChain.FindOffset(j + 1);
+                                lenJ = hashChain.FindLength(j + 1);
                                 if (offsetJ != offset)
                                 {
-                                    offset = hashChain.FindOffset(j);
-                                    len = hashChain.FindLength(j);
+                                    lenJ = hashChain.FindLength(j);
                                     break;
                                 }
                             }
@@ -533,14 +525,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
-        private static int TraceBackwards(short[] distArray, int distArraySize)
+        private static int TraceBackwards(ushort[] distArray, int distArraySize)
         {
             int chosenPathSize = 0;
             int pathPos = distArraySize;
             int curPos = distArraySize - 1;
             while (curPos >= 0)
             {
-                short cur = distArray[curPos];
+                ushort cur = distArray[curPos];
                 pathPos--;
                 chosenPathSize++;
                 distArray[pathPos] = cur;
@@ -550,7 +542,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return chosenPathSize;
         }
 
-        private static void BackwardReferencesHashChainFollowChosenPath(Span<uint> bgra, int cacheBits, Span<short> chosenPath, int chosenPathSize, Vp8LHashChain hashChain, Vp8LBackwardRefs backwardRefs)
+        private static void BackwardReferencesHashChainFollowChosenPath(Span<uint> bgra, int cacheBits, Span<ushort> chosenPath, int chosenPathSize, Vp8LHashChain hashChain, Vp8LBackwardRefs backwardRefs)
         {
             bool useColorCache = cacheBits > 0;
             var colorCache = new ColorCache();
@@ -606,7 +598,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
-        private static void AddSingleLiteralWithCostModel(Span<uint> bgra, ColorCache colorCache, CostModel costModel, int idx, bool useColorCache, float prevCost, float[] cost, short[] distArray)
+        private static void AddSingleLiteralWithCostModel(Span<uint> bgra, ColorCache colorCache, CostModel costModel, int idx, bool useColorCache, float prevCost, float[] cost, ushort[] distArray)
         {
             double costVal = prevCost;
             uint color = bgra[idx];
@@ -965,7 +957,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     if (ix >= 0)
                     {
                         // Color cache contains bgraLiteral
-                        v = PixOrCopy.CreateCacheIdx(ix);
+                        PixOrCopy.CreateCacheIdx(ix);
                     }
                     else
                     {
@@ -983,8 +975,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     }
                 }
             }
-
-            // TODO: VP8LColorCacheClear(colorCache)?
         }
 
         private static void BackwardReferences2DLocality(int xSize, Vp8LBackwardRefs refs)

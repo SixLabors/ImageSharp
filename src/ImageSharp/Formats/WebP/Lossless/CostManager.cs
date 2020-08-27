@@ -14,11 +14,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     {
         private CostInterval head;
 
-        public CostManager(short[] distArray, int pixCount, CostModel costModel)
+        public CostManager(ushort[] distArray, int pixCount, CostModel costModel)
         {
             int costCacheSize = (pixCount > BackwardReferenceEncoder.MaxLength) ? BackwardReferenceEncoder.MaxLength : pixCount;
 
-            this.Intervals = new List<CostInterval>();
             this.CacheIntervals = new List<CostCacheInterval>();
             this.CostCache = new List<double>();
             this.Costs = new float[pixCount];
@@ -85,9 +84,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         public float[] Costs { get; }
 
-        public short[] DistArray { get; }
-
-        public List<CostInterval> Intervals { get; }
+        public ushort[] DistArray { get; }
 
         public List<CostCacheInterval> CacheIntervals { get; }
 
@@ -99,7 +96,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         public void UpdateCostAtIndex(int i, bool doCleanIntervals)
         {
             CostInterval current = this.head;
-            using List<CostInterval>.Enumerator intervalEnumerator = this.Intervals.GetEnumerator();
             while (current != null && current.Start <= i)
             {
                 CostInterval next = current.Next;
@@ -142,7 +138,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     if (this.Costs[j] > costTmp)
                     {
                         this.Costs[j] = costTmp;
-                        this.DistArray[j] = (short)(k + 1);
+                        this.DistArray[j] = (ushort)(k + 1);
                     }
                 }
 
@@ -150,14 +146,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             CostInterval interval = this.head;
-            for (int i = 0; i < this.CacheIntervalsSize && this.CacheIntervals[i].Start < len; i++)
+            for (int i = 0; i < this.CacheIntervalsSize && this.CacheIntervals[i].Start < len; ++i)
             {
                 // Define the intersection of the ith interval with the new one.
                 int start = position + this.CacheIntervals[i].Start;
                 int end = position + (this.CacheIntervals[i].End > len ? len : this.CacheIntervals[i].End);
                 float cost = (float)(distanceCost + this.CacheIntervals[i].Cost);
 
-                var idx = i;
                 CostInterval intervalNext;
                 for (; interval != null && interval.Start < end; interval = intervalNext)
                 {
@@ -203,7 +198,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                             // We have to split the old interval as it fully contains the new one.
                             int endOriginal = interval.End;
                             interval.End = start;
-                            this.InsertInterval(interval, interval.Cost, idx, end, endOriginal);
+                            this.InsertInterval(interval, interval.Cost, interval.Index, end, endOriginal);
                             break;
                         }
                         else
@@ -317,7 +312,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             if (this.Costs[i] > cost)
             {
                 this.Costs[i] = cost;
-                this.DistArray[i] = (short)(k + 1);
+                this.DistArray[i] = (ushort)(k + 1);
             }
         }
     }

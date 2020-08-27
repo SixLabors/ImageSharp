@@ -401,7 +401,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private void EncodeImage(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, int quality, bool useCache, CrunchConfig config, int cacheBits, int histogramBits, int initBytePosition)
         {
             int histogramImageXySize = LosslessUtils.SubSampleSize(width, histogramBits) * LosslessUtils.SubSampleSize(height, histogramBits);
-            var histogramSymbols = new short[histogramImageXySize];
+            var histogramSymbols = new ushort[histogramImageXySize];
             var huffTree = new HuffmanTree[3 * WebPConstants.CodeLengthCodes];
             for (int i = 0; i < huffTree.Length; i++)
             {
@@ -412,6 +412,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             {
                 if (cacheBits == 0)
                 {
+                    // TODO: not sure if this should be 10 or 11. Original code comment says "The maximum allowed limit is 11.", but the value itself is 10.
                     cacheBits = WebPConstants.MaxColorCacheBits;
                 }
             }
@@ -485,7 +486,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     using IMemoryOwner<uint> histogramBgraBuffer = this.memoryAllocator.Allocate<uint>(histogramImageXySize);
                     Span<uint> histogramBgra = histogramBgraBuffer.GetSpan();
                     int maxIndex = 0;
-                    for (int i = 0; i < histogramImageXySize; i++)
+                    for (int i = 0; i < histogramImageXySize; ++i)
                     {
                         int symbolIndex = histogramSymbols[i] & 0xffff;
                         histogramBgra[i] = (uint)(symbolIndex << 8);
@@ -502,7 +503,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 // Store Huffman codes.
                 // Find maximum number of symbols for the huffman tree-set.
                 int maxTokens = 0;
-                for (int i = 0; i < 5 * histogramImage.Count; i++)
+                for (int i = 0; i < 5 * histogramImage.Count; ++i)
                 {
                     HuffmanTreeCode codes = huffmanCodes[i];
                     if (maxTokens < codes.NumSymbols)
@@ -517,7 +518,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     tokens[i] = new HuffmanTreeToken();
                 }
 
-                for (int i = 0; i < 5 * histogramImage.Count; i++)
+                for (int i = 0; i < 5 * histogramImage.Count; ++i)
                 {
                     HuffmanTreeCode codes = huffmanCodes[i];
                     this.StoreHuffmanCode(huffTree, tokens, codes);
@@ -531,7 +532,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 // TODO: Keep track of the smallest image so far.
                 if (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes())
                 {
-                    // TODO : This was done in the reference by swapping references, this will be slower
+                    // TODO: This was done in the reference by swapping references, this will be slower
                     bitWriterBest = this.bitWriter.Clone();
                 }
             }
@@ -606,7 +607,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private void EncodeImageNoHuffman(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, int quality)
         {
             int cacheBits = 0;
-            var histogramSymbols = new short[1]; // Only one tree, one symbol.
+            var histogramSymbols = new ushort[1]; // Only one tree, one symbol.
 
             // TODO: Can HuffmanTreeCode be struct
             var huffmanCodes = new HuffmanTreeCode[5];
@@ -652,7 +653,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             // Find maximum number of symbols for the huffman tree-set.
             int maxTokens = 0;
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 5; ++i)
             {
                 HuffmanTreeCode codes = huffmanCodes[i];
                 if (maxTokens < codes.NumSymbols)
@@ -662,13 +663,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             var tokens = new HuffmanTreeToken[maxTokens];
-            for (int i = 0; i < tokens.Length; i++)
+            for (int i = 0; i < tokens.Length; ++i)
             {
                 tokens[i] = new HuffmanTreeToken();
             }
 
             // Store Huffman codes.
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 5; ++i)
             {
                 HuffmanTreeCode codes = huffmanCodes[i];
                 this.StoreHuffmanCode(huffTree, tokens, codes);
@@ -849,7 +850,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
-        private void StoreImageToBitMask(int width, int histoBits, Vp8LBackwardRefs backwardRefs, short[] histogramSymbols, HuffmanTreeCode[] huffmanCodes)
+        private void StoreImageToBitMask(int width, int histoBits, Vp8LBackwardRefs backwardRefs, ushort[] histogramSymbols, HuffmanTreeCode[] huffmanCodes)
         {
             int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(width, histoBits) : 1;
             int tileMask = (histoBits == 0) ? 0 : -(1 << histoBits);

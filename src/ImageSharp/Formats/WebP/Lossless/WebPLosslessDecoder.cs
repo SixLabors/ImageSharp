@@ -145,7 +145,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             if (isColorCachePresent)
             {
                 colorCacheBits = (int)this.bitReader.ReadValue(4);
-                bool colorCacheBitsIsValid = colorCacheBits >= 1 && colorCacheBits <= WebPConstants.MaxColorCacheBits;
+
+                // Note: According to webpinfo color cache bits of 11 are valid, even though 10 is defined in the source code as maximum.
+                // That is why 11 bits is also considered valid here.
+                bool colorCacheBitsIsValid = colorCacheBits >= 1 && colorCacheBits <= (WebPConstants.MaxColorCacheBits + 1);
                 if (!colorCacheBitsIsValid)
                 {
                     WebPThrowHelper.ThrowImageFormatException("Invalid color cache bits found");
@@ -162,11 +165,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 decoder.Metadata.ColorCache = new ColorCache();
                 colorCacheSize = 1 << colorCacheBits;
                 decoder.Metadata.ColorCacheSize = colorCacheSize;
-                if (!(colorCacheBits >= 1 && colorCacheBits <= WebPConstants.MaxColorCacheBits))
-                {
-                    WebPThrowHelper.ThrowImageFormatException("Invalid color cache bits found");
-                }
-
                 decoder.Metadata.ColorCache.Init(colorCacheBits);
             }
             else

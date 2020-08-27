@@ -1,24 +1,28 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Utility class to read a sequence of bits from an array
     /// </summary>
-    internal class BitReader
+    internal ref struct BitReader
     {
-        private readonly byte[] array;
+        private readonly ReadOnlySpan<byte> array;
         private int offset;
         private int bitOffset;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BitReader" /> class.
+        /// Initializes a new instance of the <see cref="BitReader" /> struct.
         /// </summary>
         /// <param name="array">The array to read data from.</param>
-        public BitReader(byte[] array)
+        public BitReader(ReadOnlySpan<byte> array)
         {
             this.array = array;
+            this.offset = 0;
+            this.bitOffset = 0;
         }
 
         /// <summary>

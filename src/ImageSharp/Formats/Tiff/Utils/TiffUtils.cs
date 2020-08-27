@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -16,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="stream">The stream to read from.</param>
         /// <param name="buffer">A buffer to store the retrieved data.</param>
         /// <param name="count">The number of bytes to read.</param>
-        public static void ReadFull(this Stream stream, byte[] buffer, int count)
+        public static void ReadFull(this Stream stream, Span<byte> buffer, int count)
         {
             int offset = 0;
 
@@ -39,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         /// <param name="stream">The stream to read from.</param>
         /// <param name="buffer">A buffer to store the retrieved data.</param>
-        public static void ReadFull(this Stream stream, byte[] buffer)
+        public static void ReadFull(this Stream stream, Span<byte> buffer)
         {
             ReadFull(stream, buffer, buffer.Length);
         }

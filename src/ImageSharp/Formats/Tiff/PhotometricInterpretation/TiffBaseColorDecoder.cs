@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -10,22 +11,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// The base class for photometric interpretation decoders.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    internal abstract class TiffColorDecoder<TPixel>
+    internal abstract class TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private readonly ushort[] bitsPerSample;
-
-        private readonly ushort[] colorMap;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TiffColorDecoder{TPixel}"/> class.
-        /// </summary>
-        /// <param name="bitsPerSample">The number of bits per sample for each pixel.</param>
-        /// <param name="colorMap">The RGB color lookup table to use for decoding the image.</param>
-        protected TiffColorDecoder(ushort[] bitsPerSample, ushort[] colorMap)
+        protected TiffBaseColorDecoder()
         {
-            this.bitsPerSample = bitsPerSample;
-            this.colorMap = colorMap;
         }
 
         /*
@@ -46,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="left">The x-coordinate of the left-hand side of the image block.</param>
         /// <param name="top">The y-coordinate of the  top of the image block.</param>
         /// <param name="width">The width of the image block.</param>
-        /// <param name="height">The height of the image block.</param>    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public abstract void Decode(byte[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height);
+        /// <param name="height">The height of the image block.</param>
+        public abstract void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height);
     }
 }

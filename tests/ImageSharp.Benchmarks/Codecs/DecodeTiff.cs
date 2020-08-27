@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
-        [Params(TestImages.Tiff.RgbLzw)]
+        [Params(TestImages.Tiff.RgbPackbits)]
         public string TestImage { get; set; }
 
         [GlobalSetup]

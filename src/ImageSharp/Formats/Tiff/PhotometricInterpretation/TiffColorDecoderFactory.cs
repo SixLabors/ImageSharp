@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     internal static class TiffColorDecoderFactory<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        public static TiffColorDecoder<TPixel> Create(TiffColorType colorType, ushort[] bitsPerSample, ushort[] colorMap)
+        public static TiffBaseColorDecoder<TPixel> Create(TiffColorType colorType, ushort[] bitsPerSample, ushort[] colorMap)
         {
             switch (colorType)
             {

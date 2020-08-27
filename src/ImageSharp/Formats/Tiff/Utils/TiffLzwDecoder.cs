@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="length">The length of the compressed data.</param>
         /// <param name="dataSize">Size of the data.</param>
         /// <param name="pixels">The pixel array to decode to.</param>
-        public void DecodePixels(int length, int dataSize, byte[] pixels)
+        public void DecodePixels(int length, int dataSize, Span<byte> pixels)
         {
             Guard.MustBeLessThan(dataSize, int.MaxValue, nameof(dataSize));
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -11,12 +11,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     internal static class TiffStreamFactory
     {
-        public static TiffStream CreateBySignature(Stream stream)
-        {
-            TiffByteOrder order = ReadByteOrder(stream);
-            return Create(order, stream);
-        }
-
         /// <summary>
         /// Creates the specified byte order.
         /// </summary>
@@ -40,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Reads the byte order of stream.
         /// </summary>
         /// <param name="stream">The stream.</param>
-        private static TiffByteOrder ReadByteOrder(Stream stream)
+        public static TiffByteOrder ReadByteOrder(Stream stream)
         {
             byte[] headerBytes = new byte[2];
             stream.Read(headerBytes, 0, 2);

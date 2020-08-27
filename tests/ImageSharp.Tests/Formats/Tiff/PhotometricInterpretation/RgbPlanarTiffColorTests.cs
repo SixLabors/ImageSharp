@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -190,7 +192,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    new RgbPlanarTiffColor<Rgba32>(bitsPerSample).Decode(inputData, pixels, left, top, width, height);
+                    var buffers = new IManagedByteBuffer[inputData.Length];
+                    for (int i = 0; i < buffers.Length; i++)
+                    {
+                        buffers[i] = Configuration.Default.MemoryAllocator.AllocateManagedByteBuffer(inputData[i].Length);
+                        ((Span<byte>)inputData[i]).CopyTo(buffers[i].GetSpan());
+                    }
+
+                    new RgbPlanarTiffColor<Rgba32>(bitsPerSample).Decode(buffers, pixels, left, top, width, height);
                 });
         }
     }

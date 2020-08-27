@@ -59,7 +59,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <summary>
         /// Gets the StripByteCounts exif tag.
         /// </summary>
-        /// </value>
         public static ExifTag<uint[]> StripByteCounts { get; } = new ExifTag<uint[]>(ExifTagValue.StripByteCounts);
 
         /// <summary>

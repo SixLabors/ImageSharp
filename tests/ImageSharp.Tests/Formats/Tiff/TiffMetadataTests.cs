@@ -8,7 +8,6 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    [Trait("Category", "Tiff.BlackBox")]
     [Trait("Category", "Tiff")]
     public class TiffMetadataTests
     {
@@ -31,6 +30,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 else
                 {
                     Assert.NotNull(meta.XmpProfile);
+                    Assert.Equal(2599, meta.XmpProfile.Length);
                 }
             }
         }
@@ -53,25 +53,33 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 TiffFrameMetadata frame = image.Frames.RootFrame.Metadata.GetTiffMetadata();
                 Assert.Equal(32u, frame.Width);
                 Assert.Equal(32u, frame.Height);
-                Assert.Equal(new ushort[] { 8, 8, 8 }, frame.BitsPerSample);
+                Assert.Equal(new ushort[] { 4 }, frame.BitsPerSample);
                 Assert.Equal(TiffCompression.Lzw, frame.Compression);
-                Assert.Equal(TiffPhotometricInterpretation.Rgb, frame.PhotometricInterpretation);
+                Assert.Equal(TiffPhotometricInterpretation.PaletteColor, frame.PhotometricInterpretation);
                 Assert.Equal("This is Название", frame.ImageDescription);
                 Assert.Equal("This is Изготовитель камеры", frame.Make);
                 Assert.Equal("This is Модель камеры", frame.Model);
                 Assert.Equal(new uint[] { 8 }, frame.StripOffsets);
+                Assert.Equal(1, frame.SamplesPerPixel);
                 Assert.Equal(32u, frame.RowsPerStrip);
-                Assert.Equal(new uint[] { 750 }, frame.StripByteCounts);
+                Assert.Equal(new uint[] { 297 }, frame.StripByteCounts);
                 Assert.Equal(10, frame.HorizontalResolution);
                 Assert.Equal(10, frame.VerticalResolution);
                 Assert.Equal(TiffPlanarConfiguration.Chunky, frame.PlanarConfiguration);
                 Assert.Equal(TiffResolutionUnit.Inch, frame.ResolutionUnit);
                 Assert.Equal("IrfanView", frame.Software);
                 Assert.Equal(null, frame.DateTime);
-                Assert.Equal("This is;Автор", frame.Artist);
+                Assert.Equal("This is author1;Author2", frame.Artist);
                 Assert.Equal(null, frame.HostComputer);
-                Assert.Equal(null, frame.ColorMap);
+                Assert.Equal(48, frame.ColorMap.Length);
+                Assert.Equal(10537, frame.ColorMap[0]);
+                Assert.Equal(14392, frame.ColorMap[1]);
+                Assert.Equal(58596, frame.ColorMap[46]);
+                Assert.Equal(3855, frame.ColorMap[47]);
+
                 Assert.Equal(null, frame.ExtraSamples);
+                Assert.Equal(TiffPredictor.None, frame.Predictor);
+                Assert.Equal(null, frame.SampleFormat);
                 Assert.Equal("This is Авторские права", frame.Copyright);
             }
         }

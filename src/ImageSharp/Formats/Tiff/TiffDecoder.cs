@@ -4,6 +4,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -24,10 +25,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             Guard.NotNull(stream, "stream");
 
-            using (var decoder = new TiffDecoderCore(stream, configuration, this))
-            {
-                return decoder.Decode<TPixel>();
-            }
+            using var decoder = new TiffDecoderCore(stream, configuration, this);
+            return decoder.Decode<TPixel>(configuration, stream);
         }
 
         /// <inheritdoc/>
@@ -37,25 +36,33 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            throw new System.NotImplementedException();
+            Guard.NotNull(stream, nameof(stream));
+
+            var decoder = new TiffDecoderCore(stream, configuration, this);
+            return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
         }
 
         /// <inheritdoc/>
-        public Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
-        {
-            throw new System.NotImplementedException();
-        }
+        public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+          => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
+            .ConfigureAwait(false);
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)
         {
-            throw new System.NotImplementedException();
+            Guard.NotNull(stream, nameof(stream));
+
+            var decoder = new TiffDecoderCore(stream, configuration, this);
+            return decoder.Identify(configuration, stream);
         }
 
         /// <inheritdoc/>
         public Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
         {
-            throw new System.NotImplementedException();
+            Guard.NotNull(stream, nameof(stream));
+
+            var decoder = new TiffDecoderCore(stream, configuration, this);
+            return decoder.IdentifyAsync(configuration, stream, cancellationToken);
         }
     }
 }

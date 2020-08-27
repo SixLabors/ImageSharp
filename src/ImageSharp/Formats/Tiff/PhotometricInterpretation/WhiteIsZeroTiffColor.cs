@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Implements the 'WhiteIsZero' photometric interpretation (for all bit depths).
     /// </summary>
-    internal class WhiteIsZeroTiffColor<TPixel> : TiffColorDecoder<TPixel>
+    internal class WhiteIsZeroTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly ushort bitsPerSample0;
@@ -19,26 +19,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private readonly float factor;
 
         public WhiteIsZeroTiffColor(ushort[] bitsPerSample)
-            : base(bitsPerSample, null)
         {
             this.bitsPerSample0 = bitsPerSample[0];
             this.factor = (float)Math.Pow(2, this.bitsPerSample0) - 1.0f;
         }
 
-        /// <summary>
-        /// Decodes pixel data using the current photometric interpretation.
-        /// </summary>
-        /// <param name="data">The buffer to read image data from.</param>
-        /// <param name="pixels">The image buffer to write pixels to.</param>
-        /// <param name="left">The x-coordinate of the left-hand side of the image block.</param>
-        /// <param name="top">The y-coordinate of the  top of the image block.</param>
-        /// <param name="width">The width of the image block.</param>
-        /// <param name="height">The height of the image block.</param>
-        public override void Decode(byte[] data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
+        /// <inheritdoc/>
+        public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {
-            TPixel color = default(TPixel);
+            var color = default(TPixel);
 
-            BitReader bitReader = new BitReader(data);
+            var bitReader = new BitReader(data);
 
             for (int y = top; y < top + height; y++)
             {

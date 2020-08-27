@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -15,6 +16,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private const TiffResolutionUnit DefaultResolutionUnit = TiffResolutionUnit.Inch;
 
         private const TiffPlanarConfiguration DefaultPlanarConfiguration = TiffPlanarConfiguration.Chunky;
+
+        private const TiffPredictor DefaultPredictor = TiffPredictor.None;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffFrameMetadata"/> class.
@@ -39,17 +42,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// Gets the number of columns in the image, i.e., the number of pixels per row.
         /// </summary>
-        public uint Width => this.GetSingleUInt(ExifTag.ImageWidth);
+        public uint Width => this.GetSingle<uint>(ExifTag.ImageWidth);
 
         /// <summary>
         /// Gets the number of rows of pixels in the image.
         /// </summary>
-        public uint Height => this.GetSingleUInt(ExifTag.ImageLength);
+        public uint Height => this.GetSingle<uint>(ExifTag.ImageLength);
 
         /// <summary>
         /// Gets the number of bits per component.
         /// </summary>
-        public ushort[] BitsPerSample => this.GetArrayValue<ushort>(ExifTag.BitsPerSample, true);
+        public ushort[] BitsPerSample => this.GetArray<ushort>(ExifTag.BitsPerSample, true);
 
         /// <summary>Gets the compression scheme used on the image data.</summary>
         /// <value>The compression scheme used on the image data.</value>
@@ -81,17 +84,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public string Model => this.GetString(ExifTag.Model);
 
         /// <summary>Gets for each strip, the byte offset of that strip..</summary>
-        public uint[] StripOffsets => this.GetArrayValue<uint>(ExifTag.StripOffsets);
+        public uint[] StripOffsets => this.GetArray<uint>(ExifTag.StripOffsets);
+
+        /// <summary>
+        /// Gets the number of components per pixel.
+        /// </summary>
+        public ushort SamplesPerPixel => this.GetSingle<ushort>(ExifTag.SamplesPerPixel);
 
         /// <summary>
         /// Gets the number of rows per strip.
         /// </summary>
-        public uint RowsPerStrip => this.GetSingleUInt(ExifTag.RowsPerStrip);
+        public uint RowsPerStrip => this.GetSingle<uint>(ExifTag.RowsPerStrip);
 
         /// <summary>
         /// Gets for each strip, the number of bytes in the strip after compression.
         /// </summary>
-        public uint[] StripByteCounts => this.GetArrayValue<uint>(ExifTag.StripByteCounts);
+        public uint[] StripByteCounts => this.GetArray<uint>(ExifTag.StripByteCounts);
 
         /// <summary>Gets the resolution of the image in x- direction.</summary>
         /// <value>The density of the image in x- direction.</value>
@@ -168,22 +176,33 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// Gets a color map for palette color images.
         /// </summary>
-        public ushort[] ColorMap => this.GetArrayValue<ushort>(ExifTag.ColorMap, true);
+        public ushort[] ColorMap => this.GetArray<ushort>(ExifTag.ColorMap, true);
 
         /// <summary>
         /// Gets the description of extra components.
         /// </summary>
-        public ushort[] ExtraSamples => this.GetArrayValue<ushort>(ExifTag.ExtraSamples, true);
+        public ushort[] ExtraSamples => this.GetArray<ushort>(ExifTag.ExtraSamples, true);
 
         /// <summary>
         /// Gets the copyright notice.
         /// </summary>
         public string Copyright => this.GetString(ExifTag.Copyright);
 
-        internal T[] GetArrayValue<T>(ExifTag tag, bool optional = false)
+        /// <summary>
+        /// Gets a mathematical operator that is applied to the image data before an encoding scheme is applied.
+        /// </summary>
+        public TiffPredictor Predictor => this.GetSingleEnum<TiffPredictor, ushort>(ExifTag.Predictor, DefaultPredictor);
+
+        /// <summary>
+        /// Gets the specifies how to interpret each data sample in a pixel.
+        /// <see cref="SamplesPerPixel"/>
+        /// </summary>
+        public TiffSampleFormat[] SampleFormat => this.GetEnumArray<TiffSampleFormat, ushort>(ExifTag.SampleFormat, true);
+
+        internal T[] GetArray<T>(ExifTag tag, bool optional = false)
             where T : struct
         {
-            if (this.TryGetArrayValue(tag, out T[] result))
+            if (this.TryGetArray(tag, out T[] result))
             {
                 return result;
             }
@@ -196,7 +215,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return null;
         }
 
-        private bool TryGetArrayValue<T>(ExifTag tag, out T[] result)
+        private bool TryGetArray<T>(ExifTag tag, out T[] result)
             where T : struct
         {
             foreach (IExifValue entry in this.Tags)
@@ -212,6 +231,24 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             result = null;
             return false;
+        }
+
+        private TEnum[] GetEnumArray<TEnum, TTagValue>(ExifTag tag, bool optional = false)
+          where TEnum : struct
+          where TTagValue : struct
+        {
+            if (this.TryGetArray(tag, out TTagValue[] result))
+            {
+                // todo: improve
+                return result.Select(a => (TEnum)(object)a).ToArray();
+            }
+
+            if (!optional)
+            {
+                throw new ArgumentException("Required tag is not founded: " + tag, nameof(tag));
+            }
+
+            return null;
         }
 
         private string GetString(ExifTag tag)
@@ -246,42 +283,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private TEnum GetSingleEnum<TEnum, TTagValue>(ExifTag tag, TEnum? defaultValue = null)
             where TEnum : struct
             where TTagValue : struct
+        => this.GetSingleEnumNullable<TEnum, TTagValue>(tag) ?? (defaultValue != null ? defaultValue.Value : throw new ArgumentException("Required tag is not founded: " + tag, nameof(tag)));
+
+        private T GetSingle<T>(ExifTag tag)
+            where T : struct
         {
-            if (!this.TryGetSingle(tag, out TTagValue value))
-            {
-                if (defaultValue != null)
-                {
-                    return defaultValue.Value;
-                }
-
-                throw new ArgumentException("Required tag is not founded: " + tag, nameof(tag));
-            }
-
-            return (TEnum)(object)value;
-        }
-
-        /*
-        private TEnum GetSingleEnum<TEnum, TEnumParent, TTagValue>(ExifTag tag, TEnum? defaultValue = null)
-       where TEnum : struct
-       where TEnumParent : struct
-       where TTagValue : struct
-        {
-            if (!this.TryGetSingle(tag, out TTagValue value))
-            {
-                if (defaultValue != null)
-                {
-                    return defaultValue.Value;
-                }
-
-                throw new ArgumentException("Required tag is not founded: " + tag, nameof(tag));
-            }
-
-            return (TEnum)(object)(TEnumParent)Convert.ChangeType(value, typeof(TEnumParent));
-        } */
-
-        private uint GetSingleUInt(ExifTag tag)
-        {
-            if (this.TryGetSingle(tag, out uint result))
+            if (this.TryGetSingle(tag, out T result))
             {
                 return result;
             }
@@ -290,7 +297,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         private bool TryGetSingle<T>(ExifTag tag, out T result)
-         where T : struct
+            where T : struct
         {
             foreach (IExifValue entry in this.Tags)
             {

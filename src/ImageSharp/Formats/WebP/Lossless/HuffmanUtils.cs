@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         public static void OptimizeHuffmanForRle(int length, bool[] goodForRle, uint[] counts)
         {
             // 1) Let's make the Huffman code more compatible with rle encoding.
-            for (; length >= 0; length--)
+            for (; length >= 0; --length)
             {
                 if (length == 0)
                 {
@@ -63,13 +63,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // Mark any seq of non-0's that is longer as 7 as a goodForRle.
             uint symbol = counts[0];
             int stride = 0;
-            for (int i = 0; i < length + 1; i++)
+            for (int i = 0; i < length + 1; ++i)
             {
                 if (i == length || counts[i] != symbol)
                 {
                     if ((symbol == 0 && stride >= 5) || (symbol != 0 && stride >= 7))
                     {
-                        for (int k = 0; k < stride; k++)
+                        for (int k = 0; k < stride; ++k)
                         {
                             goodForRle[i - k - 1] = true;
                         }
@@ -83,7 +83,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
                 else
                 {
-                    stride++;
+                    ++stride;
                 }
             }
 
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             stride = 0;
             uint limit = counts[0];
             uint sum = 0;
-            for (int i = 0; i < length; i++)
+            for (int i = 0; i < length + 1; ++i)
             {
                 var valuesShouldBeCollapsedToStrideAverage = ValuesShouldBeCollapsedToStrideAverage((int)counts[i], (int)limit);
                 if (i == length || goodForRle[i] || (i != 0 && goodForRle[i - 1]) || !valuesShouldBeCollapsedToStrideAverage)
@@ -113,7 +113,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                             count = 0;
                         }
 
-                        for (k = 0; k < stride; k++)
+                        for (k = 0; k < stride; ++k)
                         {
                             // We don't want to change value at counts[i],
                             // that is already belonging to the next stride. Thus - 1.
@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     }
                 }
 
-                stride++;
+                ++stride;
                 if (i != length)
                 {
                     sum += counts[i];
@@ -165,11 +165,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             uint countMin;
             int treeSizeOrig = 0;
 
-            for (int i = 0; i < histogramSize; i++)
+            for (int i = 0; i < histogramSize; ++i)
             {
                 if (histogram[i] != 0)
                 {
-                    treeSizeOrig++;
+                    ++treeSizeOrig;
                 }
             }
 

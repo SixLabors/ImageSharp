@@ -26,17 +26,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         private const uint NonTrivialSym = 0xffffffff;
 
-        private const short InvalidHistogramSymbol = short.MaxValue;
+        private const ushort InvalidHistogramSymbol = ushort.MaxValue;
 
-        public static void GetHistoImageSymbols(int xSize, int ySize, Vp8LBackwardRefs refs, int quality, int histoBits, int cacheBits, List<Vp8LHistogram> imageHisto, Vp8LHistogram tmpHisto, short[] histogramSymbols)
+        public static void GetHistoImageSymbols(int xSize, int ySize, Vp8LBackwardRefs refs, int quality, int histoBits, int cacheBits, List<Vp8LHistogram> imageHisto, Vp8LHistogram tmpHisto, ushort[] histogramSymbols)
         {
             int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(xSize, histoBits) : 1;
             int histoYSize = histoBits > 0 ? LosslessUtils.SubSampleSize(ySize, histoBits) : 1;
             int imageHistoRawSize = histoXSize * histoYSize;
             int entropyCombineNumBins = BinSize;
-            var mapTmp = new short[imageHistoRawSize];
-            var clusterMappings = new short[imageHistoRawSize];
-            int numUsed = imageHistoRawSize;
+            var mapTmp = new ushort[imageHistoRawSize];
+            var clusterMappings = new ushort[imageHistoRawSize];
             var origHisto = new List<Vp8LHistogram>(imageHistoRawSize);
             for (int i = 0; i < imageHistoRawSize; i++)
             {
@@ -47,13 +46,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             HistogramBuild(xSize, histoBits, refs, origHisto);
 
             // Copies the histograms and computes its bitCost. histogramSymbols is optimized.
-            HistogramCopyAndAnalyze(origHisto, imageHisto, histogramSymbols);
-            numUsed = imageHisto.Count(h => h != null);
+            int numUsed = HistogramCopyAndAnalyze(origHisto, imageHisto, histogramSymbols);
 
             var entropyCombine = (numUsed > entropyCombineNumBins * 2) && (quality < 100);
             if (entropyCombine)
             {
-                short[] binMap = mapTmp;
+                ushort[] binMap = mapTmp;
                 var numClusters = numUsed;
                 double combineCostFactor = GetCombineCostFactor(imageHistoRawSize, quality);
                 HistogramAnalyzeEntropyBin(imageHisto, binMap);
@@ -128,7 +126,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// Partition histograms to different entropy bins for three dominant (literal,
         /// red and blue) symbol costs and compute the histogram aggregate bitCost.
         /// </summary>
-        private static void HistogramAnalyzeEntropyBin(List<Vp8LHistogram> histograms, short[] binMap)
+        private static void HistogramAnalyzeEntropyBin(List<Vp8LHistogram> histograms, ushort[] binMap)
         {
             int histoSize = histograms.Count;
             var costRange = new DominantCostRange();
@@ -153,13 +151,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     continue;
                 }
 
-                binMap[i] = (short)costRange.GetHistoBinIndex(histograms[i], NumPartitions);
+                binMap[i] = (ushort)costRange.GetHistoBinIndex(histograms[i], NumPartitions);
             }
         }
 
-        private static void HistogramCopyAndAnalyze(List<Vp8LHistogram> origHistograms, List<Vp8LHistogram> histograms, short[] histogramSymbols)
+        private static int HistogramCopyAndAnalyze(List<Vp8LHistogram> origHistograms, List<Vp8LHistogram> histograms, ushort[] histogramSymbols)
         {
-            for (int clusterId = 0, i = 0; i < origHistograms.Count; i++)
+            for (int clusterId = 0, i = 0; i < origHistograms.Count; ++i)
             {
                 Vp8LHistogram origHistogram = origHistograms[i];
                 origHistogram.UpdateHistogramCost();
@@ -174,12 +172,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 else
                 {
                     histograms[i] = (Vp8LHistogram)origHistogram.DeepClone();
-                    histogramSymbols[i] = (short)clusterId++;
+                    histogramSymbols[i] = (ushort)clusterId++;
                 }
             }
+
+            int numUsed = histogramSymbols.Count(h => h != InvalidHistogramSymbol);
+            return numUsed;
         }
 
-        private static void HistogramCombineEntropyBin(List<Vp8LHistogram> histograms, short[] clusters, short[] clusterMappings, Vp8LHistogram curCombo, short[] binMap, int numBins, double combineCostFactor)
+        private static void HistogramCombineEntropyBin(List<Vp8LHistogram> histograms, ushort[] clusters, ushort[] clusterMappings, Vp8LHistogram curCombo, ushort[] binMap, int numBins, double combineCostFactor)
         {
             var binInfo = new HistogramBinInfo[BinSize];
             for (int idx = 0; idx < numBins; idx++)
@@ -191,7 +192,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // By default, a cluster matches itself.
             for (int idx = 0; idx < histograms.Count; idx++)
             {
-                clusterMappings[idx] = (short)idx;
+                clusterMappings[idx] = (ushort)idx;
             }
 
             var indicesToRemove = new List<int>();
@@ -253,7 +254,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// Given a Histogram set, the mapping of clusters 'clusterMapping' and the
         /// current assignment of the cells in 'symbols', merge the clusters and assign the smallest possible clusters values.
         /// </summary>
-        private static void OptimizeHistogramSymbols(short[] clusterMappings, int numClusters, short[] clusterMappingsTmp, short[] symbols)
+        private static void OptimizeHistogramSymbols(ushort[] clusterMappings, int numClusters, ushort[] clusterMappingsTmp, ushort[] symbols)
         {
             bool doContinue = true;
 
@@ -274,7 +275,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     if (k != clusterMappings[i])
                     {
                         doContinue = true;
-                        clusterMappings[i] = (short)k;
+                        clusterMappings[i] = (ushort)k;
                     }
                 }
             }
@@ -295,7 +296,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 if (cluster > 0 && clusterMappingsTmp[cluster] == 0)
                 {
                     clusterMax++;
-                    clusterMappingsTmp[cluster] = (short)clusterMax;
+                    clusterMappingsTmp[cluster] = (ushort)clusterMax;
                 }
 
                 symbols[i] = clusterMappingsTmp[cluster];
@@ -522,7 +523,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
         }
 
-        private static void HistogramRemap(List<Vp8LHistogram> input, List<Vp8LHistogram> output, short[] symbols)
+        private static void HistogramRemap(List<Vp8LHistogram> input, List<Vp8LHistogram> output, ushort[] symbols)
         {
             int inSize = input.Count;
             int outSize = output.Count;
@@ -549,7 +550,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                         }
                     }
 
-                    symbols[i] = (short)bestOut;
+                    symbols[i] = (ushort)bestOut;
                 }
             }
             else

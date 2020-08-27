@@ -13,6 +13,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// <summary>
         /// Number of combine failures per binId.
         /// </summary>
-        public short NumCombineFailures;
+        public ushort NumCombineFailures;
     }
 }

@@ -1,4 +1,4 @@
-﻿# ImageSharp TIFF codec
+# ImageSharp TIFF codec
 
 ## References
 - TIFF
@@ -19,7 +19,7 @@
 
 - Metadata (XMP)
   - [Adobe XMP Pages](http://www.adobe.com/products/xmp.html)
-  - [Adobe XMP Developer Centre](http://www.adobe.com/devnet/xmp.html)
+  - [Adobe XMP Developer Center](http://www.adobe.com/devnet/xmp.html)
 
 ## Implementation Status
 
@@ -78,13 +78,13 @@
 |Threshholding              |       |       |                          |
 |CellWidth                  |       |       |                          |
 |CellLength                 |       |       |                          |
-|FillOrder                  |       |       |                          |
+|FillOrder                  |       |   -   | Ignore. In practice is very uncommon, and is not recommended. |
 |ImageDescription           |       |   Y   |                          |
 |Make                       |       |   Y   |                          |
 |Model                      |       |   Y   |                          |
 |StripOffsets               |       |   Y   |                          |
-|Orientation                |       |       |                          |
-|SamplesPerPixel            |       |       | Currently ignored, as can be inferred from count of BitsPerSample |
+|Orientation                |       |   -   | Ignore. Many readers ignore this tag. |
+|SamplesPerPixel            |       |   -   | Currently ignored, as can be inferred from count of BitsPerSample |
 |RowsPerStrip               |       |   Y   |                          |
 |StripByteCounts            |       |   Y   |                          |
 |MinSampleValue             |       |       |                          |
@@ -102,7 +102,7 @@
 |Artist                     |       |   Y   |                          |
 |HostComputer               |       |   Y   |                          |
 |ColorMap                   |       |   Y   |                          |
-|ExtraSamples               |       |       |                          |
+|ExtraSamples               |       |   -   |                          |
 |Copyright                  |       |   Y   |                          |
 
 ### Extension TIFF Tags
@@ -118,24 +118,24 @@
 |T6Options                  |       |       |                          |
 |PageNumber                 |       |       |                          |
 |TransferFunction           |       |       |                          |
-|Predictor                  |       |       |                          |
+|Predictor                  |       |   -   | priority                 |
 |WhitePoint                 |       |       |                          |
 |PrimaryChromaticities      |       |       |                          |
 |HalftoneHints              |       |       |                          |
-|TileWidth                  |       |       |                          |
-|TileLength                 |       |       |                          |
-|TileOffsets                |       |       |                          |
-|TileByteCounts             |       |       |                          |
+|TileWidth                  |       |   -   |                          |
+|TileLength                 |       |   -   |                          |
+|TileOffsets                |       |   -   |                          |
+|TileByteCounts             |       |   -   |                          |
 |BadFaxLines                |       |       |                          |
 |CleanFaxData               |       |       |                          |
 |ConsecutiveBadFaxLines     |       |       |                          |
-|SubIFDs                    |       |       |                          |
+|SubIFDs                    |       |   -   |                          |
 |InkSet                     |       |       |                          |
 |InkNames                   |       |       |                          |
 |NumberOfInks               |       |       |                          |
 |DotRange                   |       |       |                          |
 |TargetPrinter              |       |       |                          |
-|SampleFormat               |       |       |                          |
+|SampleFormat               |       |   -   |                          |
 |SMinSampleValue            |       |       |                          |
 |SMaxSampleValue            |       |       |                          |
 |TransferRange              |       |       |                          |
@@ -166,8 +166,8 @@
 |YCbCrSubSampling           |       |       |                          |
 |YCbCrPositioning           |       |       |                          |
 |ReferenceBlackWhite        |       |       |                          |
-|StripRowCounts             |       |       |                          |
-|XMP                        |       |       |                          |
+|StripRowCounts             |       |   -   |                          |
+|XMP                        |       |   Y   |                          |
 |ImageID                    |       |       |                          |
 |ImageLayer                 |       |       |                          |
 
@@ -185,15 +185,15 @@
 |MD PrepTime                |       |       |                          |
 |MD FileUnits               |       |       |                          |
 |ModelPixelScaleTag         |       |       |                          |
-|IPTC                       |       |       |                          |
+|IPTC                       |       |   Y   |                          |
 |INGR Packet Data Tag       |       |       |                          |
 |INGR Flag Registers        |       |       |                          |
 |IrasB Transformation Matrix|       |       |                          |
 |ModelTiepointTag           |       |       |                          |
 |ModelTransformationTag     |       |       |                          |
 |Photoshop                  |       |       |                          |
-|Exif IFD                   |       |       |                          |
-|ICC Profile                |       |       |                          |
+|Exif IFD                   |       |   -   | 0x8769 SubExif           |
+|ICC Profile                |       |   Y   |                          |
 |GeoKeyDirectoryTag         |       |       |                          |
 |GeoDoubleParamsTag         |       |       |                          |
 |GeoAsciiParamsTag          |       |       |                          |

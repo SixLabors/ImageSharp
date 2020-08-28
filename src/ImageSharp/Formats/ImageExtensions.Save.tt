@@ -1,4 +1,4 @@
-﻿<#@ template language="C#" #>
+<#@ template language="C#" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 // Copyright (c) Six Labors.
@@ -17,6 +17,7 @@ using SixLabors.ImageSharp.Advanced;
         "Jpeg",
         "Png",
         "Tga",
+        "Tiff",
     };
 
     foreach (string fmt in formats)

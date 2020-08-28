@@ -9,10 +9,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         public static ExifValue Create(ExifTag tag) => (ExifValue)CreateValue((ExifTagValue)(ushort)tag);
 
-        public static ExifValue Create(ExifTagValue tag, ExifDataType dataType, uint numberOfComponents)
-        {
-            bool isArray = numberOfComponents != 1;
+        public static ExifValue Create(ExifTagValue tag, ExifDataType dataType, uint numberOfComponents) => Create(tag, dataType, numberOfComponents != 1);
 
+        public static ExifValue Create(ExifTagValue tag, ExifDataType dataType, bool isArray)
+        {
             switch (dataType)
             {
                 case ExifDataType.Byte: return isArray ? (ExifValue)new ExifByteArray(tag, dataType) : new ExifByte(tag, dataType);

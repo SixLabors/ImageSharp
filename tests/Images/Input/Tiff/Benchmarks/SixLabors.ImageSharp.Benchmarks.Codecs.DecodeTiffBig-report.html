@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>SixLabors.ImageSharp.Benchmarks.Codecs.DecodeTiffBig-20200824-095044</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.450 (2004/?/20H1)
+Intel Core i7-3610QM CPU 2.30GHz (Ivy Bridge), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=3.1.401
+  [Host]     : .NET Core 3.1.7 (CoreCLR 4.700.20.36602, CoreFX 4.700.20.37001), X64 RyuJIT
+  Job-MTZTUC : .NET Framework 4.8 (4.8.4200.0), X64 RyuJIT
+  Job-BGVYTJ : .NET Core 2.1.21 (CoreCLR 4.6.29130.01, CoreFX 4.6.29130.02), X64 RyuJIT
+  Job-ZDUDFU : .NET Core 3.1.7 (CoreCLR 4.700.20.36602, CoreFX 4.700.20.37001), X64 RyuJIT
+</code></pre>
+<pre><code>InvocationCount=1  IterationCount=5  LaunchCount=1  
+UnrollFactor=1  WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>         Method</th><th> Job</th><th>Runtime</th><th>                                        TestImage</th><th> Mean</th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen 0</th><th>Gen 1</th><th>Gen 2</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_grayscale_uncompressed.tiff</td><td>180.2 ms</td><td>15.21 ms</td><td>2.35 ms</td><td>1.00</td><td>0.00</td><td>85000.0000</td><td>-</td><td>-</td><td>269221840 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_grayscale_uncompressed.tiff</td><td>31,527.8 ms</td><td>4,371.70 ms</td><td>1,135.32 ms</td><td>176.11</td><td>8.81</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1342029912 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_grayscale_uncompressed.tiff</td><td>185.5 ms</td><td>15.88 ms</td><td>2.46 ms</td><td>1.00</td><td>0.00</td><td>85000.0000</td><td>-</td><td>-</td><td>268813936 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_grayscale_uncompressed.tiff</td><td>17,768.7 ms</td><td>116.03 ms</td><td>30.13 ms</td><td>95.84</td><td>1.13</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1342016464 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_grayscale_uncompressed.tiff</td><td>149.9 ms</td><td>8.23 ms</td><td>1.27 ms</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>176 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_grayscale_uncompressed.tiff</td><td>16,782.2 ms</td><td>718.14 ms</td><td>111.13 ms</td><td>111.94</td><td>0.80</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1342016440 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_palette_uncompressed.tiff</td><td>178.0 ms</td><td>7.07 ms</td><td>1.83 ms</td><td>1.00</td><td>0.00</td><td>85000.0000</td><td>-</td><td>-</td><td>269221840 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_palette_uncompressed.tiff</td><td>33,721.9 ms</td><td>78.03 ms</td><td>12.08 ms</td><td>188.96</td><td>1.80</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1342023280 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_palette_uncompressed.tiff</td><td>180.1 ms</td><td>8.81 ms</td><td>2.29 ms</td><td>1.00</td><td>0.00</td><td>85000.0000</td><td>-</td><td>-</td><td>268815616 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_palette_uncompressed.tiff</td><td>22,941.4 ms</td><td>728.12 ms</td><td>189.09 ms</td><td>127.37</td><td>1.07</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1342022368 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_palette_uncompressed.tiff</td><td>145.5 ms</td><td>3.20 ms</td><td>0.50 ms</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>176 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_palette_uncompressed.tiff</td><td>21,485.0 ms</td><td>711.10 ms</td><td>184.67 ms</td><td>148.04</td><td>0.66</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1342025632 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_rgb_deflate.tiff</td><td>2,518.2 ms</td><td>76.22 ms</td><td>19.79 ms</td><td>1.00</td><td>0.00</td><td>6000.0000</td><td>-</td><td>-</td><td>29598616 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_rgb_deflate.tiff</td><td>29,327.2 ms</td><td>102.72 ms</td><td>26.68 ms</td><td>11.65</td><td>0.10</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1124088224 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_deflate.tiff</td><td>2,500.3 ms</td><td>67.24 ms</td><td>10.41 ms</td><td>1.00</td><td>0.00</td><td>6000.0000</td><td>-</td><td>-</td><td>29528752 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_deflate.tiff</td><td>18,974.7 ms</td><td>199.58 ms</td><td>30.89 ms</td><td>7.59</td><td>0.04</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1123947608 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_deflate.tiff</td><td>2,541.1 ms</td><td>21.36 ms</td><td>5.55 ms</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>176 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_deflate.tiff</td><td>17,974.8 ms</td><td>751.73 ms</td><td>116.33 ms</td><td>7.07</td><td>0.04</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1123949960 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_rgb_lzw.tiff</td><td>3,368.4 ms</td><td>40.71 ms</td><td>6.30 ms</td><td>1.00</td><td>0.00</td><td>4000.0000</td><td>-</td><td>-</td><td>22835824 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_rgb_lzw.tiff</td><td>28,919.9 ms</td><td>705.58 ms</td><td>183.24 ms</td><td>8.57</td><td>0.04</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1123956384 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_lzw.tiff</td><td>3,365.1 ms</td><td>36.93 ms</td><td>5.72 ms</td><td>1.00</td><td>0.00</td><td>4000.0000</td><td>-</td><td>-</td><td>22789840 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_lzw.tiff</td><td>17,905.1 ms</td><td>40.08 ms</td><td>10.41 ms</td><td>5.32</td><td>0.01</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1123949072 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_lzw.tiff</td><td>3,377.6 ms</td><td>125.36 ms</td><td>32.56 ms</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>176 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_lzw.tiff</td><td>16,998.0 ms</td><td>460.59 ms</td><td>119.61 ms</td><td>5.03</td><td>0.07</td><td>1000.0000</td><td>1000.0000</td><td>1000.0000</td><td>1123952144 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_rgb_packbits.tiff</td><td>1,849.3 ms</td><td>43.52 ms</td><td>11.30 ms</td><td>1.00</td><td>0.00</td><td>255000.0000</td><td>-</td><td>-</td><td>812350880 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_rgb_packbits.tiff</td><td>29,360.0 ms</td><td>157.78 ms</td><td>40.98 ms</td><td>15.88</td><td>0.12</td><td>-</td><td>-</td><td>-</td><td>2690323752 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_packbits.tiff</td><td>1,882.7 ms</td><td>64.85 ms</td><td>16.84 ms</td><td>1.00</td><td>0.00</td><td>255000.0000</td><td>-</td><td>-</td><td>811943568 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_packbits.tiff</td><td>18,967.7 ms</td><td>445.86 ms</td><td>115.79 ms</td><td>10.08</td><td>0.09</td><td>-</td><td>-</td><td>-</td><td>2690318648 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_packbits.tiff</td><td>1,743.2 ms</td><td>78.50 ms</td><td>20.39 ms</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>176 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_packbits.tiff</td><td>17,379.6 ms</td><td>243.53 ms</td><td>63.24 ms</td><td>9.97</td><td>0.10</td><td>-</td><td>-</td><td>-</td><td>2690321912 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_rgb_uncompressed.tiff</td><td>758.5 ms</td><td>9.75 ms</td><td>2.53 ms</td><td>1.00</td><td>0.00</td><td>255000.0000</td><td>-</td><td>-</td><td>806059984 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-MTZTUC</td><td>.NET 4.7.2</td><td>Tiff/Benchmarks/jpeg444_big_rgb_uncompressed.tiff</td><td>29,198.2 ms</td><td>677.81 ms</td><td>176.03 ms</td><td>38.50</td><td>0.19</td><td>-</td><td>-</td><td>-</td><td>1878827096 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_uncompressed.tiff</td><td>760.1 ms</td><td>15.95 ms</td><td>2.47 ms</td><td>1.00</td><td>0.00</td><td>255000.0000</td><td>-</td><td>-</td><td>805652192 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-BGVYTJ</td><td>.NET Core 2.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_uncompressed.tiff</td><td>18,457.2 ms</td><td>35.60 ms</td><td>5.51 ms</td><td>24.28</td><td>0.08</td><td>-</td><td>-</td><td>-</td><td>1878821992 B</td>
+</tr><tr><td>&#39;System.Drawing Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_uncompressed.tiff</td><td>629.5 ms</td><td>11.40 ms</td><td>2.96 ms</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>176 B</td>
+</tr><tr><td>&#39;ImageSharp Tiff&#39;</td><td>Job-ZDUDFU</td><td>.NET Core 3.1</td><td>Tiff/Benchmarks/jpeg444_big_rgb_uncompressed.tiff</td><td>17,579.8 ms</td><td>371.72 ms</td><td>96.54 ms</td><td>27.93</td><td>0.11</td><td>-</td><td>-</td><td>-</td><td>1878825256 B</td>
+</tr></tbody></table>
+</body>
+</html>

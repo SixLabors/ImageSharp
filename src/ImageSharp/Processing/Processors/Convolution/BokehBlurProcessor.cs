@@ -29,8 +29,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="BokehBlurProcessor"/> class.
         /// </summary>
         public BokehBlurProcessor()
-            : this(DefaultRadius, DefaultComponents, DefaultGamma)
         {
+            this.Radius = DefaultRadius;
+            this.Components = DefaultComponents;
+            this.Gamma = DefaultGamma;
         }
 
         /// <summary>

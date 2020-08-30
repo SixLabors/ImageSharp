@@ -20,10 +20,12 @@ namespace SixLabors
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void MustBeValueType<TValue>(TValue value, string parameterName)
         {
-            if (!value.GetType().GetTypeInfo().IsValueType)
+            if (value.GetType().GetTypeInfo().IsValueType)
             {
-                ThrowHelper.ThrowArgumentException("Type must be a struct.", parameterName);
+                return;
             }
+
+            ThrowHelper.ThrowArgumentException("Type must be a struct.", parameterName);
         }
     }
 }

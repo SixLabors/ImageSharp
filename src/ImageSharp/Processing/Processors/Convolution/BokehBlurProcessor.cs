@@ -29,8 +29,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="BokehBlurProcessor"/> class.
         /// </summary>
         public BokehBlurProcessor()
-            : this(DefaultRadius, DefaultComponents, DefaultGamma)
         {
+            this.Radius = DefaultRadius;
+            this.Components = DefaultComponents;
+            this.Gamma = DefaultGamma;
         }
 
         /// <summary>
@@ -47,6 +49,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </param>
         public BokehBlurProcessor(int radius, int components, float gamma)
         {
+            Guard.MustBeGreaterThan(radius, 0, nameof(radius));
+            Guard.MustBeBetweenOrEqualTo(components, 1, 6, nameof(components));
             Guard.MustBeGreaterThanOrEqualTo(gamma, 1, nameof(gamma));
 
             this.Radius = radius;

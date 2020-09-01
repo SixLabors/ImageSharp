@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers;
-using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -19,7 +18,6 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <param name="buffer">The buffer</param>
         /// <returns>The <see cref="Span{T}"/></returns>
-        [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<T> GetSpan<T>(this IMemoryOwner<T> buffer)
         {
@@ -31,7 +29,6 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <param name="buffer">The buffer</param>
         /// <returns>The length of the buffer</returns>
-        [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Length<T>(this IMemoryOwner<T> buffer)
         {
@@ -44,7 +41,6 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="buffer">The buffer</param>
         /// <param name="start">The start</param>
         /// <returns>The <see cref="Span{T}"/></returns>
-        [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<T> Slice<T>(this IMemoryOwner<T> buffer, int start)
         {
@@ -58,7 +54,6 @@ namespace SixLabors.ImageSharp.Memory
         /// <param name="start">The start</param>
         /// <param name="length">The length of the slice</param>
         /// <returns>The <see cref="Span{T}"/></returns>
-        [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Span<T> Slice<T>(this IMemoryOwner<T> buffer, int start, int length)
         {
@@ -80,7 +75,6 @@ namespace SixLabors.ImageSharp.Memory
         /// </summary>
         /// <param name="buffer">The buffer</param>
         /// <returns>A reference to the first item within the memory wrapped by <paramref name="buffer"/></returns>
-        [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ref T GetReference<T>(this IMemoryOwner<T> buffer)
             where T : struct

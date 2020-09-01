@@ -262,7 +262,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 this.source = source;
                 this.bounds = bounds;
                 this.scale = processor.DitherScale;
-                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(processor.Palette.Span.Length);
+                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(processor.Palette.Length);
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]

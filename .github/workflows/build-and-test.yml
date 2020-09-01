@@ -64,7 +64,7 @@ jobs:
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
             - name: Update Codecov
-              uses: codecov/codecov-action@v1.0.7
+              uses: codecov/codecov-action@v1
               if: matrix.options.codecov == true && startsWith(github.repository, 'SixLabors')
               with:
                   flags: unittests

@@ -147,6 +147,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             var operation = new NNRowOperation(
                 sourceRectangle,
                 destinationRectangle,
+                interest,
                 widthFactor,
                 heightFactor,
                 source,
@@ -197,6 +198,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             private readonly Rectangle sourceBounds;
             private readonly Rectangle destinationBounds;
+            private readonly Rectangle interest;
             private readonly float widthFactor;
             private readonly float heightFactor;
             private readonly ImageFrame<TPixel> source;
@@ -206,6 +208,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             public NNRowOperation(
                 Rectangle sourceBounds,
                 Rectangle destinationBounds,
+                Rectangle interest,
                 float widthFactor,
                 float heightFactor,
                 ImageFrame<TPixel> source,
@@ -213,6 +216,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 this.sourceBounds = sourceBounds;
                 this.destinationBounds = destinationBounds;
+                this.interest = interest;
                 this.widthFactor = widthFactor;
                 this.heightFactor = heightFactor;
                 this.source = source;
@@ -224,19 +228,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 int sourceX = this.sourceBounds.X;
                 int sourceY = this.sourceBounds.Y;
-                int destX = this.destinationBounds.X;
-                int destY = this.destinationBounds.Y;
-                int destLeft = this.destinationBounds.Left;
-                int destRight = this.destinationBounds.Right;
+                int destOriginX = this.destinationBounds.X;
+                int destOriginY = this.destinationBounds.Y;
+                int destLeft = this.interest.Left;
+                int destRight = this.interest.Right;
 
                 // Y coordinates of source points
-                Span<TPixel> sourceRow = this.source.GetPixelRowSpan((int)(((y - destY) * this.heightFactor) + sourceY));
+                Span<TPixel> sourceRow = this.source.GetPixelRowSpan((int)(((y - destOriginY) * this.heightFactor) + sourceY));
                 Span<TPixel> targetRow = this.destination.GetPixelRowSpan(y);
 
                 for (int x = destLeft; x < destRight; x++)
                 {
                     // X coordinates of source points
-                    targetRow[x] = sourceRow[(int)(((x - destX) * this.widthFactor) + sourceX)];
+                    targetRow[x] = sourceRow[(int)(((x - destOriginX) * this.widthFactor) + sourceX)];
                 }
             }
         }

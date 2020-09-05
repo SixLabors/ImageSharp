@@ -1,10 +1,9 @@
-<h1 align="center">
+﻿<h1 align="center">
 
 <img src="https://github.com/SixLabors/Branding/raw/master/icons/imagesharp/sixlabors.imagesharp.svg?sanitize=true" alt="SixLabors.ImageSharp" width="256"/>
 <br/>
 SixLabors.ImageSharp
 </h1>
-
 
 <div align="center">
 
@@ -50,7 +49,7 @@ Install stable releases via Nuget; development releases are available via MyGet.
 
 | Package Name                   | Release (NuGet) | Nightly (MyGet) |
 |--------------------------------|-----------------|-----------------|
-| `SixLabors.ImageSharp`         | [![NuGet](https://img.shields.io/nuget/v/SixLabors.ImageSharp.svg)](https://www.nuget.org/packages/SixLabors.ImageSharp/) | [![MyGet](https://img.shields.io/myget/sixlabors/v/SixLabors.ImageSharp.svg)](https://www.myget.org/feed/sixlabors/package/nuget/SixLabors.ImageSharp) |
+| `SixLabors.ImageSharp`         | [![NuGet](https://img.shields.io/nuget/v/SixLabors.ImageSharp.svg)](https://www.nuget.org/packages/SixLabors.ImageSharp/) | [![MyGet](https://img.shields.io/myget/sixlabors/vpre/SixLabors.ImageSharp.svg)](https://www.myget.org/feed/sixlabors/package/nuget/SixLabors.ImageSharp) |
 
 ## Manual build
 
@@ -95,72 +94,40 @@ Please... Spread the word, contribute algorithms, submit performance improvement
 - [Scott Williams](https://github.com/tocsoft)
 - [Brian Popow](https://github.com/brianpopow)
 
-### Backers
+## Sponsor Six Labors
 
-Support us with a monthly donation and help us continue our activities. [[Become a backer](https://opencollective.com/imagesharp#backer)]
+Support the efforts of the development of the Six Labors projects. [[Become a sponsor :heart:](https://opencollective.com/sixlabors#sponsor)]
 
-<a href="https://opencollective.com/imagesharp/backer/0/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/0/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/1/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/1/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/2/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/2/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/3/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/3/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/4/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/4/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/5/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/5/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/6/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/6/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/7/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/7/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/8/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/8/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/9/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/9/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/10/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/10/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/11/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/11/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/12/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/12/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/13/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/13/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/14/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/14/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/15/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/15/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/16/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/16/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/17/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/17/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/18/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/18/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/19/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/19/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/20/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/20/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/21/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/21/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/22/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/22/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/23/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/23/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/24/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/24/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/25/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/25/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/26/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/26/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/27/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/27/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/28/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/28/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/backer/29/website" target="_blank"><img src="https://opencollective.com/imagesharp/backer/29/avatar.svg"></a>
+### Platinum Sponsors
+Become a platinum sponsor with a monthly donation of $2000 (providing 32 hours of maintenance and development) and get 2 hours of dedicated support (remote support available through chat or screen-sharing) per month.
 
-### Sponsors
+In addition you get your logo (large) on our README on GitHub and the home page (large) of sixlabors.com
 
-Become a sponsor and get your logo on our README on Github with a link to your site. [[Become a sponsor](https://opencollective.com/imagesharp#sponsor)]
+<a href="https://opencollective.com/sixlabors/tiers/platinum-sponsors/0/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/platinum-sponsors/0/avatar.svg?avatarHeight=192"></a>
 
-<a href="https://opencollective.com/imagesharp/sponsor/0/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/0/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/1/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/1/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/2/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/2/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/3/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/3/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/4/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/4/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/5/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/5/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/6/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/6/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/7/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/7/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/8/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/8/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/9/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/9/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/10/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/10/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/11/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/11/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/12/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/12/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/13/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/13/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/14/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/14/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/15/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/15/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/16/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/16/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/17/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/17/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/18/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/18/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/19/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/19/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/20/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/20/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/21/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/21/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/22/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/22/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/23/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/23/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/24/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/24/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/25/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/25/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/26/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/26/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/27/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/27/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/28/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/28/avatar.svg"></a>
-<a href="https://opencollective.com/imagesharp/sponsor/29/website" target="_blank"><img src="https://opencollective.com/imagesharp/sponsor/29/avatar.svg"></a>
+### Gold Sponsors
+Become a gold sponsor with a monthly donation of $1000 (providing 16 hours of maintenance and development) and get 1 hour of dedicated support (remote support available through chat or screen-sharing) per month.
+
+In addition you get your logo (large) on our README on GitHub and the home page (medium) of sixlabors.com
+
+<a href="https://opencollective.com/sixlabors/tiers/gold-sponsors/0/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/gold-sponsors/0/avatar.svg?avatarHeight=156"></a><a href="https://opencollective.com/sixlabors/tiers/gold-sponsors/1/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/gold-sponsors/1/avatar.svg?avatarHeight=156"></a><a href="https://opencollective.com/sixlabors/tiers/gold-sponsors/2/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/gold-sponsors/2/avatar.svg?avatarHeight=156"></a><a href="https://opencollective.com/sixlabors/tiers/gold-sponsors/3/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/gold-sponsors/3/avatar.svg?avatarHeight=156"></a><a href="https://opencollective.com/sixlabors/tiers/gold-sponsors/4/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/gold-sponsors/4/avatar.svg?avatarHeight=156"></a><a href="https://opencollective.com/sixlabors/tiers/gold-sponsors/5/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/gold-sponsors/5/avatar.svg?avatarHeight=156"></a><a href="https://opencollective.com/sixlabors/tiers/gold-sponsors/6/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/gold-sponsors/6/avatar.svg?avatarHeight=156"></a><a href="https://opencollective.com/sixlabors/tiers/gold-sponsors/7/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/gold-sponsors/7/avatar.svg?avatarHeight=156"></a><a href="https://opencollective.com/sixlabors/tiers/gold-sponsors/8/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/gold-sponsors/8/avatar.svg?avatarHeight=156"></a><a href="https://opencollective.com/sixlabors/tiers/gold-sponsors/9/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/gold-sponsors/9/avatar.svg?avatarHeight=156"></a><a href="https://opencollective.com/sixlabors/tiers/gold-sponsors/10/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/gold-sponsors/10/avatar.svg?avatarHeight=156"></a>
+
+### Silver Sponsors
+Become a silver sponsor with a monthly donation of $500 (providing 8 hours of maintenance and development) and get your logo (medium) on our README on GitHub and the product pages of sixlabors.com
+
+<a href="https://opencollective.com/sixlabors/tiers/silver-sponsors/0/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/silver-sponsors/0/avatar.svg?avatarHeight=128"></a><a href="https://opencollective.com/sixlabors/tiers/silver-sponsors/1/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/silver-sponsors/1/avatar.svg?avatarHeight=128"></a><a href="https://opencollective.com/sixlabors/tiers/silver-sponsors/2/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/silver-sponsors/2/avatar.svg?avatarHeight=128"></a><a href="https://opencollective.com/sixlabors/tiers/silver-sponsors/3/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/silver-sponsors/3/avatar.svg?avatarHeight=128"></a><a href="https://opencollective.com/sixlabors/tiers/silver-sponsors/4/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/silver-sponsors/4/avatar.svg?avatarHeight=128"></a><a href="https://opencollective.com/sixlabors/tiers/silver-sponsors/5/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/silver-sponsors/5/avatar.svg?avatarHeight=128"></a><a href="https://opencollective.com/sixlabors/tiers/silver-sponsors/6/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/silver-sponsors/6/avatar.svg?avatarHeight=128"></a><a href="https://opencollective.com/sixlabors/tiers/silver-sponsors/7/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/silver-sponsors/7/avatar.svg?avatarHeight=128"></a><a href="https://opencollective.com/sixlabors/tiers/silver-sponsors/8/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/silver-sponsors/8/avatar.svg?avatarHeight=128"></a><a href="https://opencollective.com/sixlabors/tiers/silver-sponsors/9/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/silver-sponsors/9/avatar.svg?avatarHeight=128"></a><a href="https://opencollective.com/sixlabors/tiers/silver-sponsors/10/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/silver-sponsors/10/avatar.svg?avatarHeight=128"></a>
+
+### Bronze Sponsors
+Become a bronze sponsor with a monthly donation of $100 and get your logo (small) on our README on GitHub.
+
+<a href="https://opencollective.com/sixlabors/tiers/bronze-sponsors/0/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/bronze-sponsors/0/avatar.svg?avatarHeight=96"></a>
+<a href="https://opencollective.com/sixlabors/tiers/bronze-sponsors/1/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/bronze-sponsors/1/avatar.svg?avatarHeight=96"></a>
+<a href="https://opencollective.com/sixlabors/tiers/bronze-sponsors/2/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/bronze-sponsors/2/avatar.svg?avatarHeight=96"></a>
+<a href="https://opencollective.com/sixlabors/tiers/bronze-sponsors/3/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/bronze-sponsors/3/avatar.svg?avatarHeight=96"></a>
+<a href="https://opencollective.com/sixlabors/tiers/bronze-sponsors/4/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/bronze-sponsors/4/avatar.svg?avatarHeight=96"></a>
+<a href="https://opencollective.com/sixlabors/tiers/bronze-sponsors/5/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/bronze-sponsors/5/avatar.svg?avatarHeight=96"></a>
+<a href="https://opencollective.com/sixlabors/tiers/bronze-sponsors/6/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/bronze-sponsors/6/avatar.svg?avatarHeight=96"></a>
+<a href="https://opencollective.com/sixlabors/tiers/bronze-sponsors/7/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/bronze-sponsors/7/avatar.svg?avatarHeight=96"></a>
+<a href="https://opencollective.com/sixlabors/tiers/bronze-sponsors/8/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/bronze-sponsors/8/avatar.svg?avatarHeight=96"></a>
+<a href="https://opencollective.com/sixlabors/tiers/bronze-sponsors/9/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/bronze-sponsors/9/avatar.svg?avatarHeight=96"></a>
+<a href="https://opencollective.com/sixlabors/tiers/bronze-sponsors/10/website" target="_blank"><img src="https://opencollective.com/sixlabors/tiers/bronze-sponsors/10/avatar.svg?avatarHeight=96"></a>

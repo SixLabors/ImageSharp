@@ -6,7 +6,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
+using System.Threading;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// <summary>
     /// Image encoder for writing an image to a stream as a jpeg.
     /// </summary>
-    internal sealed unsafe class JpegEncoderCore
+    internal sealed unsafe class JpegEncoderCore : IImageEncoderInternals
     {
         /// <summary>
         /// The number of quantization tables.
@@ -194,11 +194,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The image to write from.</param>
         /// <param name="stream">The stream to write to.</param>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
-        where TPixel : unmanaged, IPixel<TPixel>
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
+            cancellationToken.ThrowIfCancellationRequested();
 
             const ushort max = JpegConstants.MaxLength;
             if (image.Width >= max || image.Height >= max)
@@ -247,7 +249,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.WriteDefineHuffmanTables(componentCount);
 
             // Write the image data.
-            this.WriteStartOfScan(image);
+            this.WriteStartOfScan(image, cancellationToken);
 
             // Write the End Of Image marker.
             this.buffer[0] = JpegConstants.Markers.XFF;
@@ -396,7 +398,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void Encode444<TPixel>(Image<TPixel> pixels)
+        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
+        private void Encode444<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -418,6 +421,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             for (int y = 0; y < pixels.Height; y += 8)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var currentRows = new RowOctet<TPixel>(pixelBuffer, y);
 
                 for (int x = 0; x < pixels.Width; x += 8)
@@ -427,27 +431,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                     prevDCY = this.WriteBlock(
                         QuantIndex.Luminance,
                         prevDCY,
-                        &pixelConverter.Y,
-                        &temp1,
-                        &temp2,
-                        &onStackLuminanceQuantTable,
-                        unzig.Data);
+                        ref pixelConverter.Y,
+                        ref temp1,
+                        ref temp2,
+                        ref onStackLuminanceQuantTable,
+                        ref unzig);
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
-                        &pixelConverter.Cb,
-                        &temp1,
-                        &temp2,
-                        &onStackChrominanceQuantTable,
-                        unzig.Data);
+                        ref pixelConverter.Cb,
+                        ref temp1,
+                        ref temp2,
+                        ref onStackChrominanceQuantTable,
+                        ref unzig);
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
-                        &pixelConverter.Cr,
-                        &temp1,
-                        &temp2,
-                        &onStackChrominanceQuantTable,
-                        unzig.Data);
+                        ref pixelConverter.Cr,
+                        ref temp1,
+                        ref temp2,
+                        ref onStackChrominanceQuantTable,
+                        ref unzig);
                 }
             }
         }
@@ -512,25 +516,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="tempDest1">Temporal block to be used as FDCT Destination</param>
         /// <param name="tempDest2">Temporal block 2</param>
         /// <param name="quant">Quantization table</param>
-        /// <param name="unzigPtr">The 8x8 Unzig block pointer</param>
+        /// <param name="unZig">The 8x8 Unzig block.</param>
         /// <returns>
         /// The <see cref="int"/>
         /// </returns>
         private int WriteBlock(
             QuantIndex index,
             int prevDC,
-            Block8x8F* src,
-            Block8x8F* tempDest1,
-            Block8x8F* tempDest2,
-            Block8x8F* quant,
-            byte* unzigPtr)
+            ref Block8x8F src,
+            ref Block8x8F tempDest1,
+            ref Block8x8F tempDest2,
+            ref Block8x8F quant,
+            ref ZigZag unZig)
         {
-            FastFloatingPointDCT.TransformFDCT(ref *src, ref *tempDest1, ref *tempDest2);
+            FastFloatingPointDCT.TransformFDCT(ref src, ref tempDest1, ref tempDest2);
 
-            Block8x8F.Quantize(tempDest1, tempDest2, quant, unzigPtr);
-            float* unziggedDestPtr = (float*)tempDest2;
+            Block8x8F.Quantize(ref tempDest1, ref tempDest2, ref quant, ref unZig);
 
-            int dc = (int)unziggedDestPtr[0];
+            int dc = (int)tempDest2[0];
 
             // Emit the DC delta.
             this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
@@ -541,7 +544,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             for (int zig = 1; zig < Block8x8F.Size; zig++)
             {
-                int ac = (int)unziggedDestPtr[zig];
+                int ac = (int)tempDest2[zig];
 
                 if (ac == 0)
                 {
@@ -943,7 +946,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The pixel accessor providing access to the image pixels.</param>
-        private void WriteStartOfScan<TPixel>(Image<TPixel> image)
+        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
+        private void WriteStartOfScan<TPixel>(Image<TPixel> image, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -953,10 +957,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             switch (this.subsample)
             {
                 case JpegSubsample.Ratio444:
-                    this.Encode444(image);
+                    this.Encode444(image, cancellationToken);
                     break;
                 case JpegSubsample.Ratio420:
-                    this.Encode420(image);
+                    this.Encode420(image, cancellationToken);
                     break;
             }
 
@@ -970,16 +974,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
-        private void Encode420<TPixel>(Image<TPixel> pixels)
+        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
+        private void Encode420<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             Block8x8F b = default;
-
-            BlockQuad cb = default;
-            BlockQuad cr = default;
-            var cbPtr = (Block8x8F*)cb.Data;
-            var crPtr = (Block8x8F*)cr.Data;
+            Span<Block8x8F> cb = stackalloc Block8x8F[4];
+            Span<Block8x8F> cr = stackalloc Block8x8F[4];
 
             Block8x8F temp1 = default;
             Block8x8F temp2 = default;
@@ -998,6 +1000,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
             for (int y = 0; y < pixels.Height; y += 16)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 for (int x = 0; x < pixels.Width; x += 16)
                 {
                     for (int i = 0; i < 4; i++)
@@ -1010,38 +1013,38 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
 
                         pixelConverter.Convert(frame, x + xOff, y + yOff, currentRows);
 
-                        cbPtr[i] = pixelConverter.Cb;
-                        crPtr[i] = pixelConverter.Cr;
+                        cb[i] = pixelConverter.Cb;
+                        cr[i] = pixelConverter.Cr;
 
                         prevDCY = this.WriteBlock(
                             QuantIndex.Luminance,
                             prevDCY,
-                            &pixelConverter.Y,
-                            &temp1,
-                            &temp2,
-                            &onStackLuminanceQuantTable,
-                            unzig.Data);
+                            ref pixelConverter.Y,
+                            ref temp1,
+                            ref temp2,
+                            ref onStackLuminanceQuantTable,
+                            ref unzig);
                     }
 
-                    Block8x8F.Scale16X16To8X8(&b, cbPtr);
+                    Block8x8F.Scale16X16To8X8(ref b, cb);
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
-                        &b,
-                        &temp1,
-                        &temp2,
-                        &onStackChrominanceQuantTable,
-                        unzig.Data);
+                        ref b,
+                        ref temp1,
+                        ref temp2,
+                        ref onStackChrominanceQuantTable,
+                        ref unzig);
 
-                    Block8x8F.Scale16X16To8X8(&b, crPtr);
+                    Block8x8F.Scale16X16To8X8(ref b, cr);
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
-                        &b,
-                        &temp1,
-                        &temp2,
-                        &onStackChrominanceQuantTable,
-                        unzig.Data);
+                        ref b,
+                        ref temp1,
+                        ref temp2,
+                        ref onStackChrominanceQuantTable,
+                        ref unzig);
                 }
             }
         }

@@ -18,24 +18,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        private readonly DenseMatrix<float>[] kernels;
+        private readonly bool grayscale;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="EdgeDetectorCompassProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="kernels">Gets the kernels to use.</param>
-        /// <param name="grayscale">Whether to convert the image to grayscale before performing edge detection.</param>
+        /// <param name="definition">The <see cref="EdgeDetectorCompassProcessor"/> defining the processor parameters.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-        internal EdgeDetectorCompassProcessor(Configuration configuration, CompassKernels kernels, bool grayscale, Image<TPixel> source, Rectangle sourceRectangle)
+        internal EdgeDetectorCompassProcessor(
+            Configuration configuration,
+            EdgeDetectorCompassProcessor definition,
+            Image<TPixel> source,
+            Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
-            this.Grayscale = grayscale;
-            this.Kernels = kernels;
+            this.grayscale = definition.Grayscale;
+            this.kernels = definition.Kernel.Flatten();
         }
-
-        private CompassKernels Kernels { get; }
-
-        private bool Grayscale { get; }
 
         /// <inheritdoc/>
         protected override void BeforeImageApply()
@@ -45,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 opaque.Execute();
             }
 
-            if (this.Grayscale)
+            if (this.grayscale)
             {
                 new GrayscaleBt709Processor(1F).Execute(this.Configuration, this.Source, this.SourceRectangle);
             }
@@ -56,29 +58,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc />
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            DenseMatrix<float>[] kernels = this.Kernels.Flatten();
-
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
             // We need a clean copy for each pass to start from
             using ImageFrame<TPixel> cleanCopy = source.Clone();
 
-            using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, kernels[0], true, this.Source, interest))
+            using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, in this.kernels[0], true, this.Source, interest))
             {
                 processor.Apply(source);
             }
 
-            if (kernels.Length == 1)
+            if (this.kernels.Length == 1)
             {
                 return;
             }
 
             // Additional runs
-            for (int i = 1; i < kernels.Length; i++)
+            for (int i = 1; i < this.kernels.Length; i++)
             {
                 using ImageFrame<TPixel> pass = cleanCopy.Clone();
 
-                using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, kernels[i], true, this.Source, interest))
+                using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, in this.kernels[i], true, this.Source, interest))
                 {
                     processor.Apply(pass);
                 }

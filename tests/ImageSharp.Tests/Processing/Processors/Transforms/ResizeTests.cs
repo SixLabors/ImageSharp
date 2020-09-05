@@ -621,5 +621,29 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                         }));
             }
         }
+
+        [Theory]
+        [InlineData(1, 1)]
+        [InlineData(4, 6)]
+        [InlineData(2, 10)]
+        [InlineData(8, 1)]
+        [InlineData(3, 7)]
+        public void Issue1342(int width, int height)
+        {
+            using (var image = new Image<Rgba32>(1, 1))
+            {
+                var size = new Size(width, height);
+                image.Mutate(x => x
+                    .Resize(
+                        new ResizeOptions
+                        {
+                            Size = size,
+                            Sampler = KnownResamplers.NearestNeighbor
+                        }));
+
+                Assert.Equal(width, image.Width);
+                Assert.Equal(height, image.Height);
+            }
+        }
     }
 }

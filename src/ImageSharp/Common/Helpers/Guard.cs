@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+#if NETSTANDARD1_3
 using System.Reflection;
+#endif
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp;
 
@@ -20,10 +22,16 @@ namespace SixLabors
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void MustBeValueType<TValue>(TValue value, string parameterName)
         {
-            if (!value.GetType().GetTypeInfo().IsValueType)
+            if (value.GetType()
+#if NETSTANDARD1_3
+                .GetTypeInfo()
+#endif
+                .IsValueType)
             {
-                ThrowHelper.ThrowArgumentException("Type must be a struct.", parameterName);
+                return;
             }
+
+            ThrowHelper.ThrowArgumentException("Type must be a struct.", parameterName);
         }
     }
 }

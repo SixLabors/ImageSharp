@@ -35,6 +35,19 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
            0.02565295+0.01611732j  0.0153483+0.01605112j   0.00698622+0.01370844j
            0.00135338+0.00998296j -0.00152245+0.00604545j -0.00227282+0.002851j  ]]";
 
+        [Theory]
+        [InlineData(-10, 2, 3f)]
+        [InlineData(-1, 2, 3f)]
+        [InlineData(0, 2, 3f)]
+        [InlineData(20, -1, 3f)]
+        [InlineData(20, -0, 3f)]
+        [InlineData(20, 4, -10f)]
+        [InlineData(20, 4, 0f)]
+        public void VerifyBokehBlurProcessorArguments_Fail(int radius, int components, float gamma)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new BokehBlurProcessor(radius, components, gamma));
+        }
+
         [Fact]
         public void VerifyComplexComponents()
         {

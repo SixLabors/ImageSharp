@@ -72,6 +72,37 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
+            [Theory]
+            [InlineData("test.png", "image/png")]
+            [InlineData("test.tga", "image/tga")]
+            [InlineData("test.bmp", "image/bmp")]
+            [InlineData("test.jpg", "image/jpeg")]
+            [InlineData("test.gif", "image/gif")]
+            public async Task SaveStreamWithMime(string filename, string mimeType)
+            {
+                using (var image = new Image<Rgba32>(5, 5))
+                {
+                    string ext = Path.GetExtension(filename);
+                    IImageFormat format = image.GetConfiguration().ImageFormatsManager.FindFormatByFileExtension(ext);
+                    Assert.Equal(mimeType, format.DefaultMimeType);
+
+                    using (var stream = new MemoryStream())
+                    {
+                        var asyncStream = new AsyncStreamWrapper(stream, () => false);
+                        await image.SaveAsync(asyncStream, format);
+
+                        stream.Position = 0;
+
+                        (Image Image, IImageFormat Format) imf = await Image.LoadWithFormatAsync(stream);
+
+                        Assert.Equal(format, imf.Format);
+                        Assert.Equal(mimeType, imf.Format.DefaultMimeType);
+
+                        imf.Image.Dispose();
+                    }
+                }
+            }
+
             [Fact]
             public async Task ThrowsWhenDisposed()
             {

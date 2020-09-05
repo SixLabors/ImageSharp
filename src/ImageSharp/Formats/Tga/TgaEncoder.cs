@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -32,11 +33,11 @@ namespace SixLabors.ImageSharp.Formats.Tga
         }
 
         /// <inheritdoc/>
-        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+        public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new TgaEncoderCore(this, image.GetMemoryAllocator());
-            return encoder.EncodeAsync(image, stream);
+            return encoder.EncodeAsync(image, stream, cancellationToken);
         }
     }
 }

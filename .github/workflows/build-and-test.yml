@@ -9,7 +9,6 @@ on:
     pull_request:
         branches:
             - master
-
 jobs:
     Build:
         strategy:
@@ -37,6 +36,7 @@ jobs:
                       codecov: false
 
         runs-on: ${{matrix.options.os}}
+        if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
         steps:
             - uses: actions/checkout@v2
@@ -52,11 +52,6 @@ jobs:
                   git fetch --prune --unshallow
                   git submodule -q update --init --recursive
 
-            - name: Setup DotNet SDK
-              uses: actions/setup-dotnet@v1
-              with:
-                  dotnet-version: "3.1.x"
-
             - name: Build
               shell: pwsh
               run: ./ci-build.ps1 "${{matrix.options.framework}}"
@@ -69,7 +64,7 @@ jobs:
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
             - name: Update Codecov
-              uses: codecov/codecov-action@v1.0.7
+              uses: codecov/codecov-action@v1
               if: matrix.options.codecov == true && startsWith(github.repository, 'SixLabors')
               with:
                   flags: unittests
@@ -94,11 +89,6 @@ jobs:
                   git config --global core.longpaths true
                   git fetch --prune --unshallow
                   git submodule -q update --init --recursive
-
-            - name: Setup DotNet SDK
-              uses: actions/setup-dotnet@v1
-              with:
-                  dotnet-version: "3.1.x"
 
             - name: Pack
               shell: pwsh

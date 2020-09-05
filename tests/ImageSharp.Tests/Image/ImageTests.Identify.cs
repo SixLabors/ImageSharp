@@ -90,6 +90,29 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
+            public void FromNonSeekableStream_GlobalConfiguration()
+            {
+                using var stream = new MemoryStream(this.ActualImageBytes);
+                using var nonSeekableStream = new NonSeekableStream(stream);
+
+                IImageInfo info = Image.Identify(nonSeekableStream, out IImageFormat type);
+
+                Assert.NotNull(info);
+                Assert.Equal(ExpectedGlobalFormat, type);
+            }
+
+            [Fact]
+            public void FromNonSeekableStream_GlobalConfiguration_NoFormat()
+            {
+                using var stream = new MemoryStream(this.ActualImageBytes);
+                using var nonSeekableStream = new NonSeekableStream(stream);
+
+                IImageInfo info = Image.Identify(nonSeekableStream);
+
+                Assert.NotNull(info);
+            }
+
+            [Fact]
             public void FromStream_CustomConfiguration()
             {
                 IImageInfo info = Image.Identify(this.LocalConfiguration, this.DataStream, out IImageFormat type);
@@ -138,6 +161,31 @@ namespace SixLabors.ImageSharp.Tests
                     Assert.Equal(ExpectedImageSize, res.ImageInfo.Size());
                     Assert.Equal(ExpectedGlobalFormat, res.Format);
                 }
+            }
+
+            [Fact]
+            public async Task FromNonSeekableStreamAsync_GlobalConfiguration_NoFormat()
+            {
+                using var stream = new MemoryStream(this.ActualImageBytes);
+                using var nonSeekableStream = new NonSeekableStream(stream);
+
+                var asyncStream = new AsyncStreamWrapper(nonSeekableStream, () => false);
+                IImageInfo info = await Image.IdentifyAsync(asyncStream);
+
+                Assert.NotNull(info);
+            }
+
+            [Fact]
+            public async Task FromNonSeekableStreamAsync_GlobalConfiguration()
+            {
+                using var stream = new MemoryStream(this.ActualImageBytes);
+                using var nonSeekableStream = new NonSeekableStream(stream);
+
+                var asyncStream = new AsyncStreamWrapper(nonSeekableStream, () => false);
+                (IImageInfo ImageInfo, IImageFormat Format) res = await Image.IdentifyWithFormatAsync(asyncStream);
+
+                Assert.Equal(ExpectedImageSize, res.ImageInfo.Size());
+                Assert.Equal(ExpectedGlobalFormat, res.Format);
             }
 
             [Fact]

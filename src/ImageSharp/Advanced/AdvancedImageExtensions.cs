@@ -23,7 +23,9 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <param name="source">The source image.</param>
         /// <param name="filePath">The target file path to save the image to.</param>
-        /// <returns>The matching encoder.</returns>
+        /// <exception cref="ArgumentNullException">The file path is null.</exception>
+        /// <exception cref="NotSupportedException">No encoder available for provided path.</exception>
+        /// <returns>The matching <see cref="IImageEncoder"/>.</returns>
         public static IImageEncoder DetectEncoder(this Image source, string filePath)
         {
             Guard.NotNull(filePath, nameof(filePath));

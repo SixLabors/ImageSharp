@@ -46,10 +46,10 @@
           Condition="'$(Language)' == 'VB' or '$(Language)' == 'C#'"
           Inputs="$(MSBuildAllProjects)"
           Outputs="$(GeneratedInternalsVisibleToFile)">
-    <CreateItem Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute" AdditionalMetadata="_Parameter1=%(InternalsVisibleTo.Identity)" Condition="'%(InternalsVisibleTo.PublicKey)' == ''">
+    <CreateItem Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute" AdditionalMetadata="_Parameter1=%(InternalsVisibleTo.Identity)" Condition="'%(InternalsVisibleTo.Key)' == ''">
       <Output TaskParameter="Include" ItemName="InternalsVisibleToAttribute" />
     </CreateItem>
-    <CreateItem Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute" AdditionalMetadata="_Parameter1=%(InternalsVisibleTo.Identity), PublicKey=%(InternalsVisibleTo.PublicKey)" Condition="'%(InternalsVisibleTo.PublicKey)' != ''">
+    <CreateItem Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute" AdditionalMetadata="_Parameter1=%(InternalsVisibleTo.Identity), PublicKey=%(InternalsVisibleTo.Key)" Condition="'%(InternalsVisibleTo.Key)' != ''">
       <Output TaskParameter="Include" ItemName="InternalsVisibleToAttribute" />
     </CreateItem>
 

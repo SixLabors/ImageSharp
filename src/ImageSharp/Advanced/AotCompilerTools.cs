@@ -82,6 +82,7 @@ namespace SixLabors.ImageSharp.Advanced
              where TPixel : unmanaged, IPixel<TPixel>
         {
             // This is we actually call all the individual methods you need to seed.
+            AotPixelInterface<TPixel>();
             AotCompileOctreeQuantizer<TPixel>();
             AotCompileWuQuantizer<TPixel>();
             AotCompilePaletteQuantizer<TPixel>();
@@ -93,6 +94,30 @@ namespace SixLabors.ImageSharp.Advanced
             AotCodecs<TPixel>();
 
             // TODO: Do the discovery work to figure out what works and what doesn't.
+        }
+
+        private static void AotPixelInterface<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            TPixel pixel = default;
+            Rgba32 rgba32 = default;
+            pixel.ToRgba32(ref rgba32);
+            pixel.FromRgba32(rgba32);
+            pixel.FromScaledVector4(pixel.ToScaledVector4());
+            pixel.FromVector4(pixel.ToVector4());
+
+            pixel.FromArgb32(default);
+            pixel.FromBgr24(default);
+            pixel.FromBgra32(default);
+            pixel.FromBgra5551(default);
+            pixel.FromL16(default);
+            pixel.FromL8(default);
+            pixel.FromLa16(default);
+            pixel.FromLa32(default);
+            pixel.FromRgb24(default);
+            pixel.FromRgb48(default);
+            pixel.FromRgba64(default);
+            pixel.FromRgb24(default);
         }
 
         /// <summary>
@@ -107,7 +132,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         private static void AotCompileOctreeQuantizer<TPixel>()
-            where TPixel : unmanaged, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             using var test = new OctreeQuantizer<TPixel>(Configuration.Default, new OctreeQuantizer().Options);
             var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);

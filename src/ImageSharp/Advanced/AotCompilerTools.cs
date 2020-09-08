@@ -198,7 +198,8 @@ namespace SixLabors.ImageSharp.Advanced
                     ms.Position = 0;
                 }
 
-                using var decoded = Image<TPixel>.Load(ms);
+                using var decoded = Image.Load<TPixel>(ms);
+                Span<TPixel> span = decoded.GetPixelRowSpan(0);
             }
         }
 

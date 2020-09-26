@@ -67,7 +67,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                         ref TPixel color = ref Unsafe.Add(ref rowRef, x);
                         color.ToRgba32(ref rgb);
 
-                        sum += (ulong)(rgb.R + rgb.G + rgb.G);
+                        sum += (ulong)(rgb.R + rgb.G + rgb.B);
+
                         if (x - startX != 0)
                         {
                             intImage[x - startX, y - startY] = intImage[x - startX - 1, y - startY] + sum;

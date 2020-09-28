@@ -21,10 +21,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public override void Decompress(Stream stream, int byteCount, Span<byte> buffer)
         {
             var subStream = new SubStream(stream, byteCount);
-            using (var decoder = new TiffLzwDecoder(subStream))
-            {
-                decoder.DecodePixels(buffer.Length, 8, buffer);
-            }
+            var decoder = new TiffLzwDecoder(subStream, this.Allocator);
+            decoder.DecodePixels(buffer.Length, 8, buffer);
         }
     }
 }

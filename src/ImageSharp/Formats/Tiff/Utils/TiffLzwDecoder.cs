@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -19,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// byte indicating the length of the sub-block. In TIFF the data is written as a single block
     /// with no length indicator (this can be determined from the 'StripByteCounts' entry).
     /// </remarks>
-    internal sealed class TiffLzwDecoder : IDisposable
+    internal sealed class TiffLzwDecoder
     {
         /// <summary>
         /// The max decoder pixel stack size.
@@ -37,52 +38,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private readonly Stream stream;
 
         /// <summary>
-        /// The prefix buffer.
+        /// The memory allocator.
         /// </summary>
-        private readonly int[] prefix;
+        private readonly MemoryAllocator allocator;
 
         /// <summary>
-        /// The suffix buffer.
-        /// </summary>
-        private readonly int[] suffix;
-
-        /// <summary>
-        /// The pixel stack buffer.
-        /// </summary>
-        private readonly int[] pixelStack;
-
-        /// <summary>
-        /// A value indicating whether this instance of the given entity has been disposed.
-        /// </summary>
-        /// <value><see langword="true"/> if this instance has been disposed; otherwise, <see langword="false"/>.</value>
-        /// <remarks>
-        /// If the entity is disposed, it must not be disposed a second
-        /// time. The isDisposed field is set the first time the entity
-        /// is disposed. If the isDisposed field is true, then the Dispose()
-        /// method will not dispose again. This help not to prolong the entity's
-        /// life in the Garbage Collector.
-        /// </remarks>
-        private bool isDisposed;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TiffLzwDecoder"/> class
+        /// Initializes a new instance of the <see cref="TiffLzwDecoder" /> class
         /// and sets the stream, where the compressed data should be read from.
         /// </summary>
         /// <param name="stream">The stream to read from.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="stream"/> is null.</exception>
-        public TiffLzwDecoder(Stream stream)
+        /// <param name="allocator">The memory allocator.</param>
+        /// <exception cref="System.ArgumentNullException"><paramref name="stream" /> is null.</exception>
+        public TiffLzwDecoder(Stream stream, MemoryAllocator allocator)
         {
             Guard.NotNull(stream, nameof(stream));
 
             this.stream = stream;
-
-            this.prefix = ArrayPool<int>.Shared.Rent(MaxStackSize);
-            this.suffix = ArrayPool<int>.Shared.Rent(MaxStackSize);
-            this.pixelStack = ArrayPool<int>.Shared.Rent(MaxStackSize + 1);
-
-            Array.Clear(this.prefix, 0, MaxStackSize);
-            Array.Clear(this.suffix, 0, MaxStackSize);
-            Array.Clear(this.pixelStack, 0, MaxStackSize + 1);
+            this.allocator = allocator;
         }
 
         /// <summary>
@@ -94,6 +66,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public void DecodePixels(int length, int dataSize, Span<byte> pixels)
         {
             Guard.MustBeLessThan(dataSize, int.MaxValue, nameof(dataSize));
+
+            // Initialize buffers
+            using IMemoryOwner<int> prefixMemory = this.allocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
+            using IMemoryOwner<int> suffixMemory = this.allocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
+            using IMemoryOwner<int> pixelStackMemory = this.allocator.Allocate<int>(MaxStackSize + 1, AllocationOptions.Clean);
+
+            Span<int> prefix = prefixMemory.GetSpan();
+            Span<int> suffix = suffixMemory.GetSpan();
+            Span<int> pixelStack = pixelStackMemory.GetSpan();
 
             // Calculate the clear code. The value of the clear code is 2 ^ dataSize
             int clearCode = 1 << dataSize;
@@ -111,54 +92,39 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             int code;
             int oldCode = NullCode;
             int codeMask = (1 << codeSize) - 1;
+
+            int inputByte = 0;
             int bits = 0;
 
             int top = 0;
-            int count = 0;
-            int bi = 0;
             int xyz = 0;
 
-            int data = 0;
             int first = 0;
 
             for (code = 0; code < clearCode; code++)
             {
-                this.prefix[code] = 0;
-                this.suffix[code] = (byte)code;
+                prefix[code] = 0;
+                suffix[code] = (byte)code;
             }
 
-            byte[] buffer = new byte[255];
+            // Decoding process
             while (xyz < length)
             {
                 if (top == 0)
                 {
-                    if (bits < codeSize)
+                    // Get the next code
+                    int data = inputByte & ((1 << bits) - 1);
+
+                    while (bits < codeSize)
                     {
-                        // Load bytes until there are enough bits for a code.
-                        if (count == 0)
-                        {
-                            // Read a new data block.
-                            count = this.ReadBlock(buffer);
-                            if (count == 0)
-                            {
-                                break;
-                            }
-
-                            bi = 0;
-                        }
-
-                        data += buffer[bi] << bits;
-
+                        inputByte = this.stream.ReadByte();
+                        data = (data << 8) | inputByte;
                         bits += 8;
-                        bi++;
-                        count--;
-                        continue;
                     }
 
-                    // Get the next code
-                    code = data & codeMask;
-                    data >>= codeSize;
+                    data >>= bits - codeSize;
                     bits -= codeSize;
+                    code = data & codeMask;
 
                     // Interpret the code
                     if (code > availableCode || code == endCode)
@@ -178,7 +144,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     if (oldCode == NullCode)
                     {
-                        this.pixelStack[top++] = this.suffix[code];
+                        pixelStack[top++] = suffix[code];
                         oldCode = code;
                         first = code;
                         continue;
@@ -187,27 +153,27 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     int inCode = code;
                     if (code == availableCode)
                     {
-                        this.pixelStack[top++] = (byte)first;
+                        pixelStack[top++] = (byte)first;
 
                         code = oldCode;
                     }
 
                     while (code > clearCode)
                     {
-                        this.pixelStack[top++] = this.suffix[code];
-                        code = this.prefix[code];
+                        pixelStack[top++] = suffix[code];
+                        code = prefix[code];
                     }
 
-                    first = this.suffix[code];
+                    first = suffix[code];
 
-                    this.pixelStack[top++] = this.suffix[code];
+                    pixelStack[top++] = suffix[code];
 
                     // Fix for Gifs that have "deferred clear code" as per here :
                     // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
                     if (availableCode < MaxStackSize)
                     {
-                        this.prefix[availableCode] = oldCode;
-                        this.suffix[availableCode] = first;
+                        prefix[availableCode] = oldCode;
+                        suffix[availableCode] = first;
                         availableCode++;
                         if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
                         {
@@ -223,49 +189,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 top--;
 
                 // Clear missing pixels
-                pixels[xyz++] = (byte)this.pixelStack[top];
+                pixels[xyz++] = (byte)pixelStack[top];
             }
-        }
-
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            this.Dispose(true);
-        }
-
-        /// <summary>
-        /// Reads the next data block from the stream. For consistency with the GIF decoder,
-        /// the image is read in blocks - For TIFF this is always a maximum of 255
-        /// </summary>
-        /// <param name="buffer">The buffer to store the block in.</param>
-        /// <returns>
-        /// The <see cref="T:byte[]"/>.
-        /// </returns>
-        private int ReadBlock(byte[] buffer)
-        {
-            return this.stream.Read(buffer, 0, 255);
-        }
-
-        /// <summary>
-        /// Disposes the object and frees resources for the Garbage Collector.
-        /// </summary>
-        /// <param name="disposing">If true, the object gets disposed.</param>
-        private void Dispose(bool disposing)
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                ArrayPool<int>.Shared.Return(this.prefix);
-                ArrayPool<int>.Shared.Return(this.suffix);
-                ArrayPool<int>.Shared.Return(this.pixelStack);
-            }
-
-            this.isDisposed = true;
         }
     }
 }

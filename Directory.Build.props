@@ -77,15 +77,17 @@
     </When>
     <Otherwise>
       <!--NETCORE 3.1, NET5.0, and future versions -->
-      <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
-      <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
-      <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
-      <DefineConstants>$(DefineConstants);SUPPORTS_SPAN_STREAM</DefineConstants>
-      <DefineConstants>$(DefineConstants);SUPPORTS_ENCODING_STRING</DefineConstants>
-      <DefineConstants>$(DefineConstants);SUPPORTS_RUNTIME_INTRINSICS</DefineConstants>
-      <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
-      <DefineConstants>$(DefineConstants);SUPPORTS_HOTPATH</DefineConstants>
-      <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_SPAN_STREAM</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_ENCODING_STRING</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_RUNTIME_INTRINSICS</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_HOTPATH</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
+      </PropertyGroup>
     </Otherwise>
   </Choose>
 

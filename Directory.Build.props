@@ -17,6 +17,78 @@
     <RepositoryUrl Condition="'$(RepositoryUrl)' == ''">https://github.com/SixLabors/ImageSharp/</RepositoryUrl>
   </PropertyGroup>
 
+  <!-- Compiler Conditionals -->
+  <!-- 
+    +===================+=======+==========+=====================+=============+=================+====================+==============+=========+============|
+    | SUPPORTS          | MATHF | HASHCODE | EXTENDED_INTRINSICS | SPAN_STREAM | ENCODING_STRING | RUNTIME_INTRINSICS | CODECOVERAGE | HOTPATH | CREATESPAN |
+    +===================+=======+==========+=====================+=============+=================+====================+==============+=========|============|
+    | net472            |   N   |    N     |         Y           |      N      |        N        |        N           |      Y       |    N    |      N     |
+    | netstandard1.3    |   N   |    N     |         N           |      N      |        N        |        N           |      N       |    N    |      N     |
+    | netstandard2.0    |   N   |    N     |         N           |      N      |        N        |        N           |      Y       |    N    |      N     |
+    | netstandard2.1    |   Y   |    Y     |         N           |      Y      |        Y        |        N           |      Y       |    N    |      Y     |
+    | netcoreapp2.0     |   Y   |    N     |         N           |      N      |        N        |        N           |      Y       |    N    |      Y     |
+    | netcoreapp2.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        N           |      Y       |    N    |      Y     |
+    | netcoreapp3.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        Y           |      Y       |    Y    |      Y     |
+    | net5              |   Y   |    Y     |         Y           |      Y      |        Y        |        Y           |      Y       |    Y    |      Y     |
+    +===================+=======+==========+=====================+=============+=================+====================+==============+=========|============|
+    https://apisof.net/
+  -->
+
+  <Choose>
+    <When Condition="'$(TargetFramework)' == 'net472'">
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(TargetFramework)' == 'netstandard2.0'">
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(TargetFramework)' == 'netstandard2.1'">
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_SPAN_STREAM</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_ENCODING_STRING</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(TargetFramework)' == 'netcoreapp2.0'">
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(TargetFramework)' == 'netcoreapp2.1'">
+      <PropertyGroup>
+        <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_SPAN_STREAM</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_ENCODING_STRING</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
+        <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <!--NETCORE 3.1, NET5.0, and future versions -->
+      <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
+      <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
+      <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
+      <DefineConstants>$(DefineConstants);SUPPORTS_SPAN_STREAM</DefineConstants>
+      <DefineConstants>$(DefineConstants);SUPPORTS_ENCODING_STRING</DefineConstants>
+      <DefineConstants>$(DefineConstants);SUPPORTS_RUNTIME_INTRINSICS</DefineConstants>
+      <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
+      <DefineConstants>$(DefineConstants);SUPPORTS_HOTPATH</DefineConstants>
+      <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
+    </Otherwise>
+  </Choose>
+
   <!-- Default settings that explicitly differ from the Sdk.props defaults  -->
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -28,63 +100,7 @@
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
   </PropertyGroup>
 
-  <!--
-    https://apisof.net/
-    +===================+=======+==========+=====================+=============+=================+====================+==============+=========+============|
-    | SUPPORTS          | MATHF | HASHCODE | EXTENDED_INTRINSICS | SPAN_STREAM | ENCODING_STRING | RUNTIME_INTRINSICS | CODECOVERAGE | HOTPATH | CREATESPAN |
-    +===================+=======+==========+=====================+=============+=================+====================+==============+=========|============|
-    | netcoreapp3.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        Y           |      Y       |    Y    |      Y     |
-    | netcoreapp2.1     |   Y   |    Y     |         Y           |      Y      |        Y        |        N           |      Y       |    N    |      Y     |
-    | netcoreapp2.0     |   Y   |    N     |         N           |      N      |        N        |        N           |      Y       |    N    |      Y     |
-    | netstandard2.1    |   Y   |    Y     |         N           |      Y      |        Y        |        N           |      Y       |    N    |      Y     |
-    | netstandard2.0    |   N   |    N     |         N           |      N      |        N        |        N           |      Y       |    N    |      N     |
-    | netstandard1.3    |   N   |    N     |         N           |      N      |        N        |        N           |      N       |    N    |      N     |
-    | net472            |   N   |    N     |         Y           |      N      |        N        |        N           |      Y       |    N    |      N     |
-    +===================+=======+==========+=====================+=============+=================+====================+==============+=========|============|
-    -->
-
-  <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_SPAN_STREAM</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_ENCODING_STRING</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_RUNTIME_INTRINSICS</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_HOTPATH</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp2.1'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_SPAN_STREAM</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_ENCODING_STRING</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp2.0'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_MATHF</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_HASHCODE</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_SPAN_STREAM</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_ENCODING_STRING</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_CREATESPAN</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
-    <DefineConstants>$(DefineConstants);SUPPORTS_EXTENDED_INTRINSICS</DefineConstants>
-    <DefineConstants>$(DefineConstants);SUPPORTS_CODECOVERAGE</DefineConstants>
-  </PropertyGroup>
-
-  <!-- Default settings that explicitly differ from the Sdk.targets defaults-->
+  <!-- Default settings that explicitly differ from the Sdk.targets defaults -->
   <PropertyGroup>
     <Authors>Six Labors and contributors</Authors>
     <BaseOutputPath>$(BaseArtifactsPath)bin/$(BaseArtifactsPathSuffix)/</BaseOutputPath>
@@ -94,12 +110,6 @@
     <VersionPrefix>0.0.1</VersionPrefix>
     <VersionPrefix Condition="'$(packageversion)' != ''">$(PackageVersion)</VersionPrefix>
     <VersionSuffix></VersionSuffix>
-  </PropertyGroup>
-
-  <!--MinVer Properties for versioning-->
-  <PropertyGroup>
-    <MinVerTagPrefix>v</MinVerTagPrefix>
-    <MinVerVerbosity>normal</MinVerVerbosity>
   </PropertyGroup>
 
   <!-- Default settings that are otherwise undefined -->
@@ -136,5 +146,11 @@
     <!--NuGet package icon source-->
     <None Include="$(MSBuildThisFileDirectory)shared-infrastructure\branding\icons\imagesharp\sixlabors.imagesharp.128.png" Pack="true" PackagePath="" />
   </ItemGroup>
+
+  <!--MinVer Properties for versioning-->
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerVerbosity>normal</MinVerVerbosity>
+  </PropertyGroup>
 
 </Project>

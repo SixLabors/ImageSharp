@@ -40,6 +40,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         private Vp8LBitWriter bitWriter;
 
+        /// <summary>
+        /// The quality, that will be used to encode the image.
+        /// </summary>
+        private readonly int quality;
+
         private const int ApplyPaletteGreedyMax = 4;
 
         private const int PaletteInvSizeBits = 11;
@@ -52,11 +57,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="width">The width of the input image.</param>
         /// <param name="height">The height of the input image.</param>
-        public Vp8LEncoder(MemoryAllocator memoryAllocator, int width, int height)
+        /// <param name="quality">The encoding quality.</param>
+        public Vp8LEncoder(MemoryAllocator memoryAllocator, int width, int height, int quality)
         {
             var pixelCount = width * height;
             int initialSize = pixelCount * 2;
 
+            this.quality = quality.Clamp(1, 100);
             this.bitWriter = new Vp8LBitWriter(initialSize);
             this.Bgra = memoryAllocator.Allocate<uint>(pixelCount);
             this.Palette = memoryAllocator.Allocate<uint>(WebPConstants.MaxPaletteSize);
@@ -255,8 +262,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // Analyze image (entropy, numPalettes etc).
             CrunchConfig[] crunchConfigs = this.EncoderAnalyze(image, out bool redAndBlueAlwaysZero);
 
-            int quality = 75; // TODO: quality is hardcoded for now.
-
             // TODO : Do we want to do this multi-threaded, this will probably require a second class:
             // one which co-ordinates the threading and comparison and another which does the actual encoding
             foreach (CrunchConfig crunchConfig in crunchConfigs)
@@ -297,12 +302,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                 if (this.UsePredictorTransform)
                 {
-                    this.ApplyPredictFilter(this.CurrentWidth, height, quality, this.UseSubtractGreenTransform);
+                    this.ApplyPredictFilter(this.CurrentWidth, height, this.quality, this.UseSubtractGreenTransform);
                 }
 
                 if (this.UseCrossColorTransform)
                 {
-                    this.ApplyCrossColorFilter(this.CurrentWidth, height, quality);
+                    this.ApplyCrossColorFilter(this.CurrentWidth, height, this.quality);
                 }
 
                 this.bitWriter.PutBits(0, 1); // No more transforms.
@@ -314,7 +319,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     this.Refs,
                     this.CurrentWidth,
                     height,
-                    quality,
                     useCache,
                     crunchConfig,
                     this.CacheBits,
@@ -329,7 +333,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private CrunchConfig[] EncoderAnalyze<TPixel>(Image<TPixel> image, out bool redAndBlueAlwaysZero)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var configQuality = 75; // TODO: hardcoded quality for now
             int method = 4; // TODO: method hardcoded to 4 for now.
             int width = image.Width;
             int height = image.Height;
@@ -348,7 +351,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             bool doNotCache = false;
             var crunchConfigs = new List<CrunchConfig>();
 
-            if (method == 6 && configQuality == 100)
+            if (method == 6 && this.quality == 100)
             {
                 doNotCache = true;
 
@@ -367,7 +370,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             {
                 // Only choose the guessed best transform.
                 crunchConfigs.Add(new CrunchConfig { EntropyIdx = entropyIdx });
-                if (configQuality >= 75 && method == 5)
+                if (this.quality >= 75 && method == 5)
                 {
                     // Test with and without color cache.
                     doNotCache = true;
@@ -396,14 +399,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return crunchConfigs.ToArray();
         }
 
-        private void EncodeImage(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, int quality, bool useCache, CrunchConfig config, int cacheBits, int histogramBits, int initBytePosition)
+        private void EncodeImage(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, bool useCache, CrunchConfig config, int cacheBits, int histogramBits, int initBytePosition)
         {
             int histogramImageXySize = LosslessUtils.SubSampleSize(width, histogramBits) * LosslessUtils.SubSampleSize(height, histogramBits);
             var histogramSymbols = new ushort[histogramImageXySize];
             var huffTree = new HuffmanTree[3 * WebPConstants.CodeLengthCodes];
             for (int i = 0; i < huffTree.Length; i++)
             {
-                huffTree[i] = new HuffmanTree();
+                huffTree[i] = default;
             }
 
             if (useCache)

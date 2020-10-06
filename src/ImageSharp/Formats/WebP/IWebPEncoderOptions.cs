@@ -19,11 +19,13 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// For lossy, 0 gives the smallest size and 100 the largest. For lossless,
         /// this parameter is the amount of effort put into the compression: 0 is the fastest but gives larger
         /// files compared to the slowest, but best, 100.
+        /// Defaults to 75.
         /// </summary>
         int Quality { get; }
 
         /// <summary>
         /// Gets the encoding method to use. Its a quality/speed trade-off (0=fast, 6=slower-better).
+        /// Defaults to 4.
         /// </summary>
         int Method { get; }
 

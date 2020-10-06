@@ -45,6 +45,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         private readonly int quality;
 
+        /// <summary>
+        /// Quality/speed trade-off (0=fast, 6=slower-better).
+        /// </summary>
+        private readonly int method;
+
         private const int ApplyPaletteGreedyMax = 4;
 
         private const int PaletteInvSizeBits = 11;
@@ -58,12 +63,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// <param name="width">The width of the input image.</param>
         /// <param name="height">The height of the input image.</param>
         /// <param name="quality">The encoding quality.</param>
-        public Vp8LEncoder(MemoryAllocator memoryAllocator, int width, int height, int quality)
+        /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
+        public Vp8LEncoder(MemoryAllocator memoryAllocator, int width, int height, int quality, int method)
         {
             var pixelCount = width * height;
             int initialSize = pixelCount * 2;
 
-            this.quality = quality.Clamp(1, 100);
+            this.quality = quality.Clamp(0, 100);
+            this.method = method.Clamp(0, 6);
             this.bitWriter = new Vp8LBitWriter(initialSize);
             this.Bgra = memoryAllocator.Allocate<uint>(pixelCount);
             this.Palette = memoryAllocator.Allocate<uint>(WebPConstants.MaxPaletteSize);
@@ -302,12 +309,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                 if (this.UsePredictorTransform)
                 {
-                    this.ApplyPredictFilter(this.CurrentWidth, height, this.quality, this.UseSubtractGreenTransform);
+                    this.ApplyPredictFilter(this.CurrentWidth, height, this.UseSubtractGreenTransform);
                 }
 
                 if (this.UseCrossColorTransform)
                 {
-                    this.ApplyCrossColorFilter(this.CurrentWidth, height, this.quality);
+                    this.ApplyCrossColorFilter(this.CurrentWidth, height);
                 }
 
                 this.bitWriter.PutBits(0, 1); // No more transforms.
@@ -333,7 +340,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private CrunchConfig[] EncoderAnalyze<TPixel>(Image<TPixel> image, out bool redAndBlueAlwaysZero)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int method = 4; // TODO: method hardcoded to 4 for now.
             int width = image.Width;
             int height = image.Height;
 
@@ -341,8 +347,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             var usePalette = this.AnalyzeAndCreatePalette(image);
 
             // Empirical bit sizes.
-            this.HistoBits = GetHistoBits(method, usePalette, width, height);
-            this.TransformBits = GetTransformBits(method, this.HistoBits);
+            this.HistoBits = GetHistoBits(this.method, usePalette, width, height);
+            this.TransformBits = GetTransformBits(this.method, this.HistoBits);
 
             // Try out multiple LZ77 on images with few colors.
             var nlz77s = (this.PaletteSize > 0 && this.PaletteSize <= 16) ? 2 : 1;
@@ -351,7 +357,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             bool doNotCache = false;
             var crunchConfigs = new List<CrunchConfig>();
 
-            if (method == 6 && this.quality == 100)
+            if (this.method == 6 && this.quality == 100)
             {
                 doNotCache = true;
 
@@ -370,7 +376,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             {
                 // Only choose the guessed best transform.
                 crunchConfigs.Add(new CrunchConfig { EntropyIdx = entropyIdx });
-                if (this.quality >= 75 && method == 5)
+                if (this.quality >= 75 && this.method == 5)
                 {
                     // Test with and without color cache.
                     doNotCache = true;
@@ -423,7 +429,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             // Calculate backward references from BGRA image.
-            BackwardReferenceEncoder.HashChainFill(hashChain, bgra, quality, width, height);
+            BackwardReferenceEncoder.HashChainFill(hashChain, bgra, this.quality, width, height);
 
             Vp8LBitWriter bitWriterBest = config.SubConfigs.Count > 1 ? this.bitWriter.Clone() : this.bitWriter;
 
@@ -433,7 +439,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     width,
                     height,
                     bgra,
-                    quality,
+                    this.quality,
                     subConfig.Lz77,
                     ref cacheBits,
                     hashChain,
@@ -455,7 +461,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
 
                 // Build histogram image and symbols from backward references.
-                HistogramEncoder.GetHistoImageSymbols(width, height, refsBest, quality, histogramBits, cacheBits, histogramImage, tmpHisto, histogramSymbols);
+                HistogramEncoder.GetHistoImageSymbols(width, height, refsBest, this.quality, histogramBits, cacheBits, histogramImage, tmpHisto, histogramSymbols);
 
                 // Create Huffman bit lengths and codes for each histogram image.
                 var histogramImageSize = histogramImage.Count;
@@ -498,7 +504,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     }
 
                     this.bitWriter.PutBits((uint)(histogramBits - 2), 3);
-                    this.EncodeImageNoHuffman(histogramBgra, hashChain, refsTmp, refsArray[2], LosslessUtils.SubSampleSize(width, histogramBits), LosslessUtils.SubSampleSize(height, histogramBits), quality);
+                    this.EncodeImageNoHuffman(histogramBgra, hashChain, refsTmp, refsArray[2], LosslessUtils.SubSampleSize(width, histogramBits), LosslessUtils.SubSampleSize(height, histogramBits), this.quality);
                 }
 
                 // Store Huffman codes.
@@ -572,7 +578,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             LosslessUtils.SubtractGreenFromBlueAndRed(this.Bgra.GetSpan(), width * height);
         }
 
-        private void ApplyPredictFilter(int width, int height, int quality, bool usedSubtractGreen)
+        private void ApplyPredictFilter(int width, int height, bool usedSubtractGreen)
         {
             int nearLosslessStrength = 100; // TODO: for now always 100
             bool exact = false; // TODO: always false for now.
@@ -586,22 +592,22 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             this.bitWriter.PutBits((uint)Vp8LTransformType.PredictorTransform, 2);
             this.bitWriter.PutBits((uint)(predBits - 2), 3);
 
-            this.EncodeImageNoHuffman(this.TransformData.GetSpan(), this.HashChain, this.Refs[0], this.Refs[1], transformWidth, transformHeight, quality);
+            this.EncodeImageNoHuffman(this.TransformData.GetSpan(), this.HashChain, this.Refs[0], this.Refs[1], transformWidth, transformHeight, this.quality);
         }
 
-        private void ApplyCrossColorFilter(int width, int height, int quality)
+        private void ApplyCrossColorFilter(int width, int height)
         {
             int colorTransformBits = this.TransformBits;
             int transformWidth = LosslessUtils.SubSampleSize(width, colorTransformBits);
             int transformHeight = LosslessUtils.SubSampleSize(height, colorTransformBits);
 
-            PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, quality, this.Bgra.GetSpan(), this.TransformData.GetSpan());
+            PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.Bgra.GetSpan(), this.TransformData.GetSpan());
 
             this.bitWriter.PutBits(WebPConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.CrossColorTransform, 2);
             this.bitWriter.PutBits((uint)(colorTransformBits - 2), 3);
 
-            this.EncodeImageNoHuffman(this.TransformData.GetSpan(), this.HashChain, this.Refs[0], this.Refs[1], transformWidth, transformHeight, quality);
+            this.EncodeImageNoHuffman(this.TransformData.GetSpan(), this.HashChain, this.Refs[0], this.Refs[1], transformWidth, transformHeight, this.quality);
         }
 
         private void EncodeImageNoHuffman(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, int quality)
@@ -1488,7 +1494,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             var huffTree = new HuffmanTree[3 * maxNumSymbols];
             for (int i = 0; i < huffTree.Length; i++)
             {
-                huffTree[i] = new HuffmanTree();
+                huffTree[i] = default;
             }
 
             for (int i = 0; i < histogramImage.Count; i++)

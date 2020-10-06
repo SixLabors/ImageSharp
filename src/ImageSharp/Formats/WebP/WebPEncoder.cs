@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public bool Lossy { get; set; }
 
         /// <inheritdoc/>
-        public float Quality { get; set; }
+        public int Quality { get; set; }
 
         /// <inheritdoc/>
         public int Method { get; set; }

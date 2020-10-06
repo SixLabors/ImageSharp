@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// this parameter is the amount of effort put into the compression: 0 is the fastest but gives larger
         /// files compared to the slowest, but best, 100.
         /// </summary>
-        float Quality { get; }
+        int Quality { get; }
 
         /// <summary>
         /// Gets the encoding method to use. Its a quality/speed trade-off (0=fast, 6=slower-better).

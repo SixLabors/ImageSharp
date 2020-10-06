@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     /// <summary>
     /// Represents the tree codes (depth and bits array).
     /// </summary>
-    internal class HuffmanTreeCode
+    internal struct HuffmanTreeCode
     {
         /// <summary>
         /// Gets or sets the number of symbols.

@@ -321,12 +321,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     this.HistoBits,
                     bytePosition);
             }
-
-            // TODO: Comparison and picking of best (smallest) encoding
         }
 
         /// <summary>
-        /// Analyzes the image and decides what transforms should be used.
+        /// Analyzes the image and decides which transforms should be used.
         /// </summary>
         private CrunchConfig[] EncoderAnalyze<TPixel>(Image<TPixel> image, out bool redAndBlueAlwaysZero)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -462,7 +460,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 var huffmanCodes = new HuffmanTreeCode[bitArraySize];
                 for (int i = 0; i < huffmanCodes.Length; i++)
                 {
-                    huffmanCodes[i] = new HuffmanTreeCode();
+                    huffmanCodes[i] = default;
                 }
 
                 GetHuffBitLengthsAndCodes(histogramImage, huffmanCodes);
@@ -526,10 +524,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
 
                 // Store actual literals.
-                var hdrSizeTmp = (int)(this.bitWriter.NumBytes() - initBytePosition);
                 this.StoreImageToBitMask(width, histogramBits, refsBest, histogramSymbols, huffmanCodes);
 
-                // TODO: Keep track of the smallest image so far.
+                // Keep track of the smallest image so far.
                 if (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes())
                 {
                     // TODO: This was done in the reference by swapping references, this will be slower
@@ -609,18 +606,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int cacheBits = 0;
             var histogramSymbols = new ushort[1]; // Only one tree, one symbol.
 
-            // TODO: Can HuffmanTreeCode be struct
             var huffmanCodes = new HuffmanTreeCode[5];
             for (int i = 0; i < huffmanCodes.Length; i++)
             {
-                huffmanCodes[i] = new HuffmanTreeCode();
+                huffmanCodes[i] = default;
             }
 
-            // TODO: Can HuffmanTree be struct
             var huffTree = new HuffmanTree[3UL * WebPConstants.CodeLengthCodes];
             for (int i = 0; i < huffTree.Length; i++)
             {
-                huffTree[i] = new HuffmanTree();
+                huffTree[i] = default;
             }
 
             // Calculate backward references from the image pixels.
@@ -790,14 +785,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             {
                 if (trimmedLength == 2)
                 {
-                    this.bitWriter.PutBits(0, 3 + 2); // nbitpairs=1, trimmed_length=2
+                    this.bitWriter.PutBits(0, 3 + 2); // nbitpairs=1, trimmedLength=2
                 }
                 else
                 {
-                    int nbits = WebPCommonUtils.BitsLog2Floor((uint)trimmedLength - 2);
-                    int nbitpairs = (nbits / 2) + 1;
-                    this.bitWriter.PutBits((uint)nbitpairs - 1, 3);
-                    this.bitWriter.PutBits((uint)trimmedLength - 2, nbitpairs * 2);
+                    int nBits = WebPCommonUtils.BitsLog2Floor((uint)trimmedLength - 2);
+                    int nBitPairs = (nBits / 2) + 1;
+                    this.bitWriter.PutBits((uint)nBitPairs - 1, 3);
+                    this.bitWriter.PutBits((uint)trimmedLength - 2, nBitPairs * 2);
                 }
             }
 
@@ -1056,13 +1051,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // Let's check if the histogram of the chosen entropy mode has
             // non-zero red and blue values. If all are zero, we can later skip
             // the cross color optimization.
-            var histoPairs = new byte[][]
+            byte[][] histoPairs =
             {
-                new byte[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue },
-                new byte[] { (byte)HistoIx.HistoRedPred, (byte)HistoIx.HistoBluePred },
-                new byte[] { (byte)HistoIx.HistoRedSubGreen, (byte)HistoIx.HistoBlueSubGreen },
-                new byte[] { (byte)HistoIx.HistoRedPredSubGreen, (byte)HistoIx.HistoBluePredSubGreen },
-                new byte[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue }
+                new[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue },
+                new[] { (byte)HistoIx.HistoRedPred, (byte)HistoIx.HistoBluePred },
+                new[] { (byte)HistoIx.HistoRedSubGreen, (byte)HistoIx.HistoBlueSubGreen },
+                new[] { (byte)HistoIx.HistoRedPredSubGreen, (byte)HistoIx.HistoBluePredSubGreen },
+                new[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue }
             };
             Span<uint> redHisto = histo.Slice(256 * histoPairs[(int)minEntropyIx][0]);
             Span<uint> blueHisto = histo.Slice(256 * histoPairs[(int)minEntropyIx][1]);
@@ -1079,7 +1074,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         }
 
         /// <summary>
-        /// If number of colors in the image is less than or equal to MAX_PALETTE_SIZE,
+        /// If number of colors in the image is less than or equal to MaxPaletteSize,
         /// creates a palette and returns true, else returns false.
         /// </summary>
         /// <returns>true, if a palette should be used.</returns>
@@ -1167,7 +1162,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         }
 
         /// <summary>
-        /// Remap argb values in src[] to packed palettes entries in dst[]
+        /// Remap bgra values in src[] to packed palettes entries in dst[]
         /// using 'row' as a temporary buffer of size 'width'.
         /// We assume that all src[] values have a corresponding entry in the palette.
         /// Note: src[] can be the same as dst[]
@@ -1293,8 +1288,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                 LosslessUtils.BundleColorMap(tmpRow, width, xBits, dst);
 
-                src = src.Slice((int)srcStride);
-                dst = dst.Slice((int)dstStride);
+                src = src.Slice(srcStride);
+                dst = dst.Slice(dstStride);
             }
         }
 
@@ -1318,8 +1313,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
                 LosslessUtils.BundleColorMap(tmpRow, width, xBits, dst);
 
-                src = src.Slice((int)srcStride);
-                dst = dst.Slice((int)dstStride);
+                src = src.Slice(srcStride);
+                dst = dst.Slice(dstStride);
             }
         }
 

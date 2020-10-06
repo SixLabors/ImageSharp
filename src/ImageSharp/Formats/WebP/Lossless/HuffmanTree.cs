@@ -9,17 +9,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     /// Represents the Huffman tree.
     /// </summary>
     [DebuggerDisplay("TotalCount = {TotalCount}, Value = {Value}, Left = {PoolIndexLeft}, Right = {PoolIndexRight}")]
-    internal class HuffmanTree : IDeepCloneable
+    internal struct HuffmanTree : IDeepCloneable
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="HuffmanTree"/> class.
-        /// </summary>
-        public HuffmanTree()
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="HuffmanTree"/> class.
+        /// Initializes a new instance of the <see cref="HuffmanTree"/> struct.
         /// </summary>
         /// <param name="other">The HuffmanTree to create an instance from.</param>
         private HuffmanTree(HuffmanTree other)

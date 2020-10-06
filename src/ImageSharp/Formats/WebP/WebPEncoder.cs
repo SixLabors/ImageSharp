@@ -18,10 +18,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public bool Lossy { get; set; }
 
         /// <inheritdoc/>
-        public int Quality { get; set; }
+        public int Quality { get; set; } = 75;
 
         /// <inheritdoc/>
-        public int Method { get; set; }
+        public int Method { get; set; } = 4;
 
         /// <inheritdoc/>
         public bool AlphaCompression { get; set; }

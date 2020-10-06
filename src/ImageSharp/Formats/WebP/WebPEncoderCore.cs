@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Compression quality. Between 0 and 100.
         /// </summary>
-        private float quality;
+        private readonly int quality;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebPEncoderCore"/> class.
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
             else
             {
-                var enc = new Vp8LEncoder(this.memoryAllocator, image.Width, image.Height);
+                var enc = new Vp8LEncoder(this.memoryAllocator, image.Width, image.Height, this.quality);
                 enc.Encode(image, stream);
             }
         }

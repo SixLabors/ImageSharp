@@ -10,6 +10,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
     /// </summary>
     public sealed class WebPFormat : IImageFormat<WebPMetadata>
     {
+        private WebPFormat()
+        {
+        }
+
         /// <summary>
         /// Gets the current instance.
         /// </summary>

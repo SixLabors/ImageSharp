@@ -44,6 +44,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private readonly int quality;
 
         /// <summary>
+        /// Quality/speed trade-off (0=fast, 6=slower-better).
+        /// </summary>
+        private readonly int method;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebPEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The encoder options.</param>
@@ -54,6 +59,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.alphaCompression = options.AlphaCompression;
             this.lossy = options.Lossy;
             this.quality = options.Quality;
+            this.method = options.Method;
         }
 
         /// <summary>
@@ -78,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             }
             else
             {
-                var enc = new Vp8LEncoder(this.memoryAllocator, image.Width, image.Height, this.quality);
+                var enc = new Vp8LEncoder(this.memoryAllocator, image.Width, image.Height, this.quality, this.method);
                 enc.Encode(image, stream);
             }
         }

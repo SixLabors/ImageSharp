@@ -252,7 +252,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         {
             int width = image.Width;
             int height = image.Height;
-            int bytePosition = this.bitWriter.NumBytes();
 
             // Convert image pixels to bgra array.
             Span<uint> bgra = this.Bgra.GetSpan();
@@ -269,12 +268,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             // Analyze image (entropy, numPalettes etc).
             CrunchConfig[] crunchConfigs = this.EncoderAnalyze(image, out bool redAndBlueAlwaysZero);
 
-            // TODO : Do we want to do this multi-threaded, this will probably require a second class:
-            // one which co-ordinates the threading and comparison and another which does the actual encoding
+            int bestSize = 0;
+            Vp8LBitWriter bitWriterInit = this.bitWriter;
+            Vp8LBitWriter bitWriterBest = this.bitWriter.Clone();
+            bool isFirstConfig = true;
             foreach (CrunchConfig crunchConfig in crunchConfigs)
             {
                 bool useCache = true;
-                this.UsePalette = crunchConfig.EntropyIdx == EntropyIx.Palette || crunchConfig.EntropyIdx == EntropyIx.PaletteAndSpatial;
+                this.UsePalette = crunchConfig.EntropyIdx == EntropyIx.Palette ||
+                                  crunchConfig.EntropyIdx == EntropyIx.PaletteAndSpatial;
                 this.UseSubtractGreenTransform = (crunchConfig.EntropyIdx == EntropyIx.SubGreen) ||
                                                  (crunchConfig.EntropyIdx == EntropyIx.SpatialSubGreen);
                 this.UsePredictorTransform = (crunchConfig.EntropyIdx == EntropyIx.Spatial) ||
@@ -329,9 +331,25 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     useCache,
                     crunchConfig,
                     this.CacheBits,
-                    this.HistoBits,
-                    bytePosition);
+                    this.HistoBits);
+
+                // If we are better than what we already have.
+                if (isFirstConfig || this.bitWriter.NumBytes() < bestSize)
+                {
+                    bestSize = this.bitWriter.NumBytes();
+                    this.BitWriterSwap(ref this.bitWriter, ref bitWriterBest);
+                }
+
+                // Reset the bit writer for the following iteration if any.
+                if (crunchConfigs.Length > 1)
+                {
+                    this.bitWriter.Reset(bitWriterInit);
+                }
+
+                isFirstConfig = false;
             }
+
+            this.BitWriterSwap(ref bitWriterBest, ref this.bitWriter);
         }
 
         /// <summary>
@@ -364,8 +382,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 // Go brute force on all transforms.
                 foreach (EntropyIx entropyIx in Enum.GetValues(typeof(EntropyIx)).Cast<EntropyIx>())
                 {
-                    // We can only apply kPalette or kPaletteAndSpatial if we can indeed use
-                    // a palette.
+                    // We can only apply kPalette or kPaletteAndSpatial if we can indeed use a palette.
                     if ((entropyIx != EntropyIx.Palette && entropyIx != EntropyIx.PaletteAndSpatial) || usePalette)
                     {
                         crunchConfigs.Add(new CrunchConfig { EntropyIdx = entropyIx });
@@ -405,7 +422,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             return crunchConfigs.ToArray();
         }
 
-        private void EncodeImage(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, bool useCache, CrunchConfig config, int cacheBits, int histogramBits, int initBytePosition)
+        private void EncodeImage(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs[] refsArray, int width, int height, bool useCache, CrunchConfig config, int cacheBits, int histogramBits)
         {
             int histogramImageXySize = LosslessUtils.SubSampleSize(width, histogramBits) * LosslessUtils.SubSampleSize(height, histogramBits);
             var histogramSymbols = new ushort[histogramImageXySize];
@@ -432,7 +449,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             BackwardReferenceEncoder.HashChainFill(hashChain, bgra, this.quality, width, height);
 
             Vp8LBitWriter bitWriterBest = config.SubConfigs.Count > 1 ? this.bitWriter.Clone() : this.bitWriter;
-
+            Vp8LBitWriter bwInit = this.bitWriter;
             foreach (CrunchSubConfig subConfig in config.SubConfigs)
             {
                 Vp8LBackwardRefs refsBest = BackwardReferenceEncoder.GetBackwardReferences(
@@ -451,8 +468,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 Vp8LBackwardRefs refsTmp = refsArray[refsBest.Equals(refsArray[0]) ? 1 : 0];
 
                 // TODO : Loop based on cache/no cache
-
-                // TODO: this.bitWriter.Reset();
+                this.bitWriter.Reset(bwInit);
                 var tmpHisto = new Vp8LHistogram(cacheBits);
                 var histogramImage = new List<Vp8LHistogram>(histogramImageXySize);
                 for (int i = 0; i < histogramImageXySize; i++)
@@ -1581,6 +1597,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     dst[x] = (uint)(0xff000000 | (row[x] << 8));
                 }
             }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void BitWriterSwap(ref Vp8LBitWriter src, ref Vp8LBitWriter dst)
+        {
+            Vp8LBitWriter tmp = src;
+            src = dst;
+            dst = tmp;
         }
 
         /// <summary>

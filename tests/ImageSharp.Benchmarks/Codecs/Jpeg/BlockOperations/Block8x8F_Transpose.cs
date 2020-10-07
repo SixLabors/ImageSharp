@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
     {
         private static readonly Block8x8F Source = Create8x8FloatData();
 
-        [Benchmark]
+        [Benchmark(Baseline=true)]
         public void TransposeIntoVector4()
         {
             var dest = default(Block8x8F);

@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void TransposeInto()
+        public void TransposeIntoFallback()
         {
             float[] expected = Create8x8FloatData();
             ReferenceImplementations.Transpose8x8(expected);

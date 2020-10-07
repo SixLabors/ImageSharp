@@ -6,6 +6,10 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 using System.Text;
 
 // ReSharper disable InconsistentNaming
@@ -596,5 +600,84 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             DebugGuard.MustBeLessThan(idx, Size, nameof(idx));
             DebugGuard.MustBeGreaterThanOrEqualTo(idx, 0, nameof(idx));
         }
+
+        /// <summary>
+        /// Transpose the block into the destination block.
+        /// </summary>
+        /// <param name="d">The destination block</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void TransposeInto(ref Block8x8F d)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx.IsSupported)
+            {
+                this.TransposeIntoAvx(ref d);
+            }
+            else
+#endif
+            {
+                this.TransposeIntoFallback(ref d);
+            }
+        }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        /// <summary>
+        /// AVX-only variant for executing <see cref="TransposeInto(ref Block8x8F)"/>.
+        /// <see href="https://stackoverflow.com/questions/25622745/transpose-an-8x8-float-using-avx-avx2/25627536#25627536"/>
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void TransposeIntoAvx(ref Block8x8F d)
+        {
+            ref Vector256<float> r0 = ref Unsafe.As<Vector4, Vector256<float>>(ref this.V0L);
+            ref Vector256<float> r1 = ref Unsafe.As<Vector4, Vector256<float>>(ref this.V1L);
+            ref Vector256<float> r2 = ref Unsafe.As<Vector4, Vector256<float>>(ref this.V2L);
+            ref Vector256<float> r3 = ref Unsafe.As<Vector4, Vector256<float>>(ref this.V3L);
+            ref Vector256<float> r4 = ref Unsafe.As<Vector4, Vector256<float>>(ref this.V4L);
+            ref Vector256<float> r5 = ref Unsafe.As<Vector4, Vector256<float>>(ref this.V5L);
+            ref Vector256<float> r6 = ref Unsafe.As<Vector4, Vector256<float>>(ref this.V6L);
+            ref Vector256<float> r7 = ref Unsafe.As<Vector4, Vector256<float>>(ref this.V7L);
+
+            Vector256<float> t0 = Avx.UnpackLow(r0, r1);
+            Vector256<float> t1 = Avx.UnpackHigh(r0, r1);
+            Vector256<float> t2 = Avx.UnpackLow(r2, r3);
+            Vector256<float> t3 = Avx.UnpackHigh(r2, r3);
+            Vector256<float> t4 = Avx.UnpackLow(r4, r5);
+            Vector256<float> t5 = Avx.UnpackHigh(r4, r5);
+            Vector256<float> t6 = Avx.UnpackLow(r6, r7);
+            Vector256<float> t7 = Avx.UnpackHigh(r6, r7);
+
+            // Controls generated via
+            // _MM_SHUFFLE(fp3, fp2, fp1, fp0)(((fp3) << 6) | ((fp2) << 4) | ((fp1) << 2) | ((fp0)))
+            const byte Control1_0_1_0 = 0b1_00_01_00; // 1, 0, 1, 0
+            const byte Control3_2_3_2 = 0b11_10_11_10; // 3, 2, 3, 2
+
+            r0 = Avx.Shuffle(t0, t2, Control1_0_1_0);
+            r1 = Avx.Shuffle(t0, t2, Control3_2_3_2);
+            r2 = Avx.Shuffle(t1, t3, Control1_0_1_0);
+            r3 = Avx.Shuffle(t1, t3, Control3_2_3_2);
+            r4 = Avx.Shuffle(t4, t6, Control1_0_1_0);
+            r5 = Avx.Shuffle(t4, t6, Control3_2_3_2);
+            r6 = Avx.Shuffle(t5, t7, Control1_0_1_0);
+            r7 = Avx.Shuffle(t5, t7, Control3_2_3_2);
+
+            t0 = Avx.Permute2x128(r0, r4, 0x20);
+            t1 = Avx.Permute2x128(r1, r5, 0x20);
+            t2 = Avx.Permute2x128(r2, r6, 0x20);
+            t3 = Avx.Permute2x128(r3, r7, 0x20);
+            t4 = Avx.Permute2x128(r0, r4, 0x31);
+            t5 = Avx.Permute2x128(r1, r5, 0x31);
+            t6 = Avx.Permute2x128(r2, r6, 0x31);
+            t7 = Avx.Permute2x128(r3, r7, 0x31);
+
+            Unsafe.As<Vector4, Vector256<float>>(ref d.V0L) = t0;
+            Unsafe.As<Vector4, Vector256<float>>(ref d.V1L) = t1;
+            Unsafe.As<Vector4, Vector256<float>>(ref d.V2L) = t2;
+            Unsafe.As<Vector4, Vector256<float>>(ref d.V3L) = t3;
+            Unsafe.As<Vector4, Vector256<float>>(ref d.V4L) = t4;
+            Unsafe.As<Vector4, Vector256<float>>(ref d.V5L) = t5;
+            Unsafe.As<Vector4, Vector256<float>>(ref d.V6L) = t6;
+            Unsafe.As<Vector4, Vector256<float>>(ref d.V7L) = t7;
+        }
+#endif
     }
 }

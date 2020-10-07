@@ -10,12 +10,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 {
 	internal partial struct Block8x8F
     {
-		/// <summary>
-        /// Transpose the block into the destination block.
+        /// <summary>
+        /// Fallback method to transpose a block into the destination block on non AVX supported CPUs.
         /// </summary>
         /// <param name="d">The destination block</param>
 		[MethodImpl(InliningOptions.ShortMethod)]
-        public void TransposeInto(ref Block8x8F d)
+        public void TransposeIntoFallback(ref Block8x8F d)
         {
             d.V0L.X = V0L.X;
             d.V1L.X = V0L.Y;

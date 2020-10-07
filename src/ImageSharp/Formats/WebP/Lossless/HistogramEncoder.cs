@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 {
@@ -309,7 +310,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// <returns>true if a greedy approach needs to be performed afterwards, false otherwise.</returns>
         private static bool HistogramCombineStochastic(List<Vp8LHistogram> histograms, int minClusterSize)
         {
-            var rand = new Random();
+            uint seed = 1;
             int triesWithNoSuccess = 0;
             var numUsed = histograms.Count(h => h != null);
             int outerIters = numUsed;
@@ -350,7 +351,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 for (int j = 0; numUsed >= 2 && j < numTries; j++)
                 {
                     // Choose two different histograms at random and try to combine them.
-                    uint tmp = (uint)(rand.Next() % randRange);
+                    uint tmp = MyRand(ref seed) % randRange;
                     int idx1 = (int)(tmp / (numUsed - 1));
                     int idx2 = (int)(tmp % (numUsed - 1));
                     if (idx2 >= idx1)
@@ -385,10 +386,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 bestIdx1 = histoPriorityList[0].Idx1;
                 bestIdx2 = histoPriorityList[0].Idx2;
 
-                // TODO: Review this again, not sure why this is needed in the reference implementation.
-                // Pop bestIdx2 from mappings.
-                // var mappingIndex = Array.BinarySearch(mappings, bestIdx2);
-                // memmove(mapping_index, mapping_index + 1, sizeof(*mapping_index) *((*num_used) - (mapping_index - mappings) - 1));
+                var mappingIndex = Array.IndexOf(mappings, bestIdx2);
+                Span<int> src = mappings.AsSpan(mappingIndex + 1, numUsed - mappingIndex - 1);
+                Span<int> dst = mappings.AsSpan(mappingIndex);
+                src.CopyTo(dst);
 
                 // Merge the histograms and remove bestIdx2 from the queue.
                 HistogramAdd(histograms[bestIdx2], histograms[bestIdx1], histograms[bestIdx1]);
@@ -679,6 +680,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             return combineCostFactor;
+        }
+
+        // Implement a Lehmer random number generator with a multiplicative constant of 48271 and a modulo constant of 2^31 - 1.
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static uint MyRand(ref uint seed)
+        {
+            seed = (uint)(((ulong)seed * 48271u) % 2147483647u);
+            return seed;
         }
     }
 }

@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitReader
 
                 if (bytesToRead > 0)
                 {
-                    WebPThrowHelper.ThrowImageFormatException("image file has insufficient data");
+                    WebPThrowHelper.ThrowImageFormatException("webp image file has insufficient data");
                 }
             }
         }

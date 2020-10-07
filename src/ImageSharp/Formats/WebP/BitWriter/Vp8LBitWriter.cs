@@ -85,6 +85,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             }
         }
 
+        public void Reset(Vp8LBitWriter bwInit)
+        {
+            this.bits = bwInit.bits;
+            this.used = bwInit.used;
+            this.cur = bwInit.cur;
+        }
+
         public void WriteHuffmanCode(HuffmanTreeCode code, int codeIndex)
         {
             int depth = code.CodeLengths[codeIndex];

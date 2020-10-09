@@ -8,7 +8,7 @@ using System.Diagnostics;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -199,6 +199,34 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Assert.Equal(expected, actual);
         }
 #endif
+
+        [Fact]
+        public void TransposeInto()
+        {
+            static void RunTest()
+            {
+                // Just testing this fails in CI. RemoteExecutor is not working on my machine.
+                Assert.True(false);
+
+                float[] expected = Create8x8FloatData();
+                ReferenceImplementations.Transpose8x8(expected);
+
+                var source = default(Block8x8F);
+                source.LoadFrom(Create8x8FloatData());
+
+                var dest = default(Block8x8F);
+                source.TransposeInto(ref dest);
+
+                float[] actual = new float[64];
+                dest.ScaledCopyTo(actual);
+
+                Assert.Equal(expected, actual);
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+        }
 
         private class BufferHolder
         {

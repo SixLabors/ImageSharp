@@ -5,7 +5,6 @@
 // #define BENCHMARKING
 using System;
 using System.Diagnostics;
-
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -163,51 +162,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void TransposeIntoFallback()
-        {
-            float[] expected = Create8x8FloatData();
-            ReferenceImplementations.Transpose8x8(expected);
-
-            var source = default(Block8x8F);
-            source.LoadFrom(Create8x8FloatData());
-
-            var dest = default(Block8x8F);
-            source.TransposeIntoFallback(ref dest);
-
-            float[] actual = new float[64];
-            dest.ScaledCopyTo(actual);
-
-            Assert.Equal(expected, actual);
-        }
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [Fact]
-        public void TransposeIntoAvx()
-        {
-            float[] expected = Create8x8FloatData();
-            ReferenceImplementations.Transpose8x8(expected);
-
-            var source = default(Block8x8F);
-            source.LoadFrom(Create8x8FloatData());
-
-            var dest = default(Block8x8F);
-            source.TransposeIntoAvx(ref dest);
-
-            float[] actual = new float[64];
-            dest.ScaledCopyTo(actual);
-
-            Assert.Equal(expected, actual);
-        }
-#endif
-
-        [Fact]
         public void TransposeInto()
         {
             static void RunTest()
             {
-                // Just testing this fails in CI. RemoteExecutor is not working on my machine.
-                Assert.True(false);
-
                 float[] expected = Create8x8FloatData();
                 ReferenceImplementations.Transpose8x8(expected);
 

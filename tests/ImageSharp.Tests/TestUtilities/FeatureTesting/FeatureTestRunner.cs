@@ -174,8 +174,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         {
             // Loop through and translate the given values into COMPlus equivaluents
             var features = new List<string>();
-            var split = intrinsics.ToString("G").Split(SplitChars, StringSplitOptions.RemoveEmptyEntries).ToArray();
-            foreach (string intrinsic in split)
+            foreach (string intrinsic in intrinsics.ToString("G").Split(SplitChars, StringSplitOptions.RemoveEmptyEntries))
             {
                 switch (intrinsic)
                 {

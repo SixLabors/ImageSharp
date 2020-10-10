@@ -130,7 +130,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 uint bestBgra;
                 int minPos = (basePosition > windowSize) ? basePosition - windowSize : 0;
                 int lengthMax = (maxLen < 256) ? maxLen : 256;
-                pos = (int)chain[basePosition];
+                pos = chain[basePosition];
                 int currLength;
 
                 // Heuristic: use the comparison with the above line as an initialization.
@@ -240,7 +240,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             Vp8LBackwardRefs best,
             Vp8LBackwardRefs worst)
         {
-            var histo = new Vp8LHistogram[WebPConstants.MaxColorCacheBits];
             int lz77TypeBest = 0;
             double bitCostBest = -1;
             int cacheBitsInitial = cacheBits;
@@ -276,8 +275,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 }
 
                 // Keep the best backward references.
-                histo[0] = new Vp8LHistogram(worst, cacheBitsTmp);
-                var bitCost = histo[0].EstimateBits();
+                var histo = new Vp8LHistogram(worst, cacheBitsTmp);
+                var bitCost = histo.EstimateBits();
 
                 if (lz77TypeBest == 0 || bitCost < bitCostBest)
                 {
@@ -295,8 +294,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             {
                 Vp8LHashChain hashChainTmp = (lz77TypeBest == (int)Vp8LLz77Type.Lz77Standard) ? hashChain : hashChainBox;
                 BackwardReferencesTraceBackwards(width, height, bgra, cacheBits, hashChainTmp, best, worst);
-                histo[0] = new Vp8LHistogram(worst, cacheBits);
-                double bitCostTrace = histo[0].EstimateBits();
+                var histo = new Vp8LHistogram(worst, cacheBits);
+                double bitCostTrace = histo.EstimateBits();
                 if (bitCostTrace < bitCostBest)
                 {
                     best = worst;
@@ -335,7 +334,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             // TODO: Don't use the enumerator here.
-            // Find the cache_bits giving the lowest entropy.
+            // Find the cacheBits giving the lowest entropy.
             using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
             while (c.MoveNext())
             {
@@ -384,11 +383,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     uint bgraPrev = bgra[pos] ^ 0xffffffffu;
 
                     // TODO: Original has this loop?
-                    // VP8LPrefixEncode(len, &code, &extra_bits, &extra_bits_value);
-                    // for (i = 0; i <= cache_bits_max; ++i)
+                    // int extraBits = 0, extraBitsValue = 0;
+                    // int code = LosslessUtils.PrefixEncode(len, ref extraBits, ref extraBitsValue);
+                    // for (int i = 0; i <= cacheBitsMax; ++i)
                     // {
-                    //    ++histos[i]->literal_[NUM_LITERAL_CODES + code];
+                    //     ++histos[i].Literal[WebPConstants.NumLiteralCodes + code];
                     // }
+
                     // Update the color caches.
                     do
                     {
@@ -957,7 +958,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     if (ix >= 0)
                     {
                         // Color cache contains bgraLiteral
-                        PixOrCopy.CreateCacheIdx(ix);
+                        v.Mode = PixOrCopyMode.CacheIdx;
+                        v.BgraOrDistance = (uint)ix;
+                        v.Len = 1;
                     }
                     else
                     {

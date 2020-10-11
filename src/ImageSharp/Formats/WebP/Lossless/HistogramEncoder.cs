@@ -67,7 +67,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
             // Cubic ramp between 1 and MaxHistoGreedy:
             int thresholdSize = (int)(1 + (x * x * x * (MaxHistoGreedy - 1)));
-            RemoveEmptyHistograms(imageHisto);
             bool doGreedy = HistogramCombineStochastic(imageHisto, thresholdSize);
             if (doGreedy)
             {
@@ -83,22 +82,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private static void RemoveEmptyHistograms(List<Vp8LHistogram> histograms)
         {
             int size = 0;
-            var indicesToRemove = new List<int>();
             for (int i = 0; i < histograms.Count; i++)
             {
                 if (histograms[i] == null)
                 {
-                    indicesToRemove.Add(i);
                     continue;
                 }
 
                 histograms[size++] = histograms[i];
             }
 
-            foreach (int index in indicesToRemove.OrderByDescending(i => i))
-            {
-                histograms.RemoveAt(index);
-            }
+            histograms.RemoveRange(size, histograms.Count - size);
         }
 
         /// <summary>
@@ -321,7 +315,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 return true;
             }
 
-            // Priority queue of histogram pairs. Its size impacts the quality of the compression and the speed:
+            // Priority list of histogram pairs. Its size impacts the quality of the compression and the speed:
             // the smaller the faster but the worse for the compression.
             var histoPriorityList = new List<HistogramPair>();
             int maxSize = 9;
@@ -338,7 +332,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 mappings[j++] = iter;
             }
 
-            // Collapse similar histograms
+            // Collapse similar histograms.
             for (int iter = 0; iter < outerIters && numUsed >= minClusterSize && ++triesWithNoSuccess < numTriesNoSuccess; iter++)
             {
                 double bestCost = (histoPriorityList.Count == 0) ? 0.0d : histoPriorityList[0].CostDiff;
@@ -391,15 +385,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                 Span<int> dst = mappings.AsSpan(mappingIndex);
                 src.CopyTo(dst);
 
-                // Merge the histograms and remove bestIdx2 from the queue.
+                // Merge the histograms and remove bestIdx2 from the list.
                 HistogramAdd(histograms[bestIdx2], histograms[bestIdx1], histograms[bestIdx1]);
                 histograms.ElementAt(bestIdx1).BitCost = histoPriorityList[0].CostCombo;
-                histograms.RemoveAt(bestIdx2);
+                histograms[bestIdx2] = null;
                 numUsed--;
 
                 for (int j = 0; j < histoPriorityList.Count;)
                 {
-                    HistogramPair p = histoPriorityList.ElementAt(j);
+                    HistogramPair p = histoPriorityList[j];
                     bool isIdx1Best = p.Idx1 == bestIdx1 || p.Idx1 == bestIdx2;
                     bool isIdx2Best = p.Idx2 == bestIdx1 || p.Idx2 == bestIdx2;
                     bool doEval = false;
@@ -408,13 +402,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     // check for it all the time nevertheless.
                     if (isIdx1Best && isIdx2Best)
                     {
+                        histoPriorityList[j] = histoPriorityList[histoPriorityList.Count - 1];
                         histoPriorityList.RemoveAt(histoPriorityList.Count - 1);
-                        numUsed--;
                         continue;
                     }
 
                     // Any pair containing one of the two best indices should only refer to
-                    // best_idx1. Its cost should also be updated.
+                    // bestIdx1. Its cost should also be updated.
                     if (isIdx1Best)
                     {
                         p.Idx1 = bestIdx1;
@@ -440,8 +434,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                         HistoListUpdatePair(histograms[p.Idx1], histograms[p.Idx2], 0.0d, p);
                         if (p.CostDiff >= 0.0d)
                         {
+                            histoPriorityList[j] = histoPriorityList[histoPriorityList.Count - 1];
                             histoPriorityList.RemoveAt(histoPriorityList.Count - 1);
-                            numUsed--;
                             continue;
                         }
                     }
@@ -628,6 +622,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         private static void HistoListUpdatePair(Vp8LHistogram h1, Vp8LHistogram h2, double threshold, HistogramPair pair)
         {
             double sumCost = h1.BitCost + h2.BitCost;
+            pair.CostCombo = 0.0d;
             h1.GetCombinedHistogramEntropy(h2, sumCost + threshold, costInitial: pair.CostCombo, out var cost);
             pair.CostCombo = cost;
             pair.CostDiff = pair.CostCombo - sumCost;

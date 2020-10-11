@@ -193,6 +193,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             var riffSize = WebPConstants.TagSize + WebPConstants.ChunkHeaderSize + vp8LSize + pad;
             this.WriteRiffHeader(riffSize, vp8LSize, stream);
             this.bitWriter.WriteToStream(stream);
+            if (pad == 1)
+            {
+                stream.WriteByte(0);
+            }
         }
 
         /// <summary>

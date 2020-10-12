@@ -120,6 +120,7 @@
       https://api.nuget.org/v3/index.json;
       <!-- Contains RemoteExecutor. Taken from: https://github.com/dotnet/runtime/blob/master/NuGet.config -->
       https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/index.json;
+      https://www.myget.org/F/coverlet-dev/api/v3/index.json;
     </RestoreSources>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)shared-infrastructure/SixLabors.snk</AssemblyOriginatorKeyFile>

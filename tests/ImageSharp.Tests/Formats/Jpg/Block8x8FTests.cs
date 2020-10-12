@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void TransposeInto()
+        public void TransposeIntoFallback()
         {
             float[] expected = Create8x8FloatData();
             ReferenceImplementations.Transpose8x8(expected);
@@ -172,13 +172,33 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             source.LoadFrom(Create8x8FloatData());
 
             var dest = default(Block8x8F);
-            source.TransposeInto(ref dest);
+            source.TransposeIntoFallback(ref dest);
 
             float[] actual = new float[64];
             dest.ScaledCopyTo(actual);
 
             Assert.Equal(expected, actual);
         }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void TransposeIntoAvx()
+        {
+            float[] expected = Create8x8FloatData();
+            ReferenceImplementations.Transpose8x8(expected);
+
+            var source = default(Block8x8F);
+            source.LoadFrom(Create8x8FloatData());
+
+            var dest = default(Block8x8F);
+            source.TransposeIntoAvx(ref dest);
+
+            float[] actual = new float[64];
+            dest.ScaledCopyTo(actual);
+
+            Assert.Equal(expected, actual);
+        }
+#endif
 
         private class BufferHolder
         {

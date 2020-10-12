@@ -17,11 +17,11 @@ jobs:
                     - os: ubuntu-latest
                       framework: netcoreapp3.1
                       runtime: -x64
-                      codecov: false
-                    - os: ubuntu-latest
+                      codecov: true
+                    - os: windows-latest
                       framework: netcoreapp3.1
                       runtime: -x64
-                      codecov: true
+                      codecov: false
                     - os: windows-latest
                       framework: netcoreapp2.1
                       runtime: -x64

@@ -152,18 +152,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void Encode_16Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
+        [ActiveIssue("https://github.com/SixLabors/ImageSharp/issues/1380", TestPlatforms.Linux)]
         [Theory]
         [WithFile(WinBmpv5, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
         [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
         public void Encode_8Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
+        [ActiveIssue("https://github.com/SixLabors/ImageSharp/issues/1380", TestPlatforms.Linux)]
         [Theory]
         [WithFile(WinBmpv5, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
         [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
         public void Encode_8Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
             where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
+        [ActiveIssue("https://github.com/SixLabors/ImageSharp/issues/1380", TestPlatforms.Linux)]
         [Theory]
         [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Pixel8)]
         public void Encode_8BitGray_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
@@ -173,6 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 bitsPerPixel,
                 supportTransparency: false);
 
+        [ActiveIssue("https://github.com/SixLabors/ImageSharp/issues/1380", TestPlatforms.Linux)]
         [Theory]
         [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Pixel8)]
         public void Encode_8BitGray_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
@@ -182,6 +186,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 bitsPerPixel,
                 supportTransparency: true);
 
+        [ActiveIssue("https://github.com/SixLabors/ImageSharp/issues/1380", TestPlatforms.Linux)]
         [Theory]
         [WithFile(Bit32Rgb, PixelTypes.Rgba32)]
         public void Encode_8BitColor_WithWuQuantizer<TPixel>(TestImageProvider<TPixel> provider)
@@ -208,6 +213,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             }
         }
 
+        [ActiveIssue("https://github.com/SixLabors/ImageSharp/issues/1380", TestPlatforms.Linux)]
         [Theory]
         [WithFile(Bit32Rgb, PixelTypes.Rgba32)]
         public void Encode_8BitColor_WithOctreeQuantizer<TPixel>(TestImageProvider<TPixel> provider)

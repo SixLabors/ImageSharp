@@ -1,0 +1,6 @@
+<RunSettings>
+    <RunConfiguration>
+        <!--Used in conjunction with ActiveIssueAttribute to skip tests with known issues-->
+        <TestCaseFilter>category!=failing</TestCaseFilter>
+    </RunConfiguration>
+</RunSettings>

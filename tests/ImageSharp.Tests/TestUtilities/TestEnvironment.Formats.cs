@@ -69,7 +69,10 @@ namespace SixLabors.ImageSharp.Tests
 
             cfg.ConfigureCodecs(
                 BmpFormat.Instance,
-                IsWindows ? (IImageDecoder)SystemDrawingReferenceDecoder.Instance : MagickReferenceDecoder.Instance,
+
+                // Try SD Bitmap decoder everywhere.
+                // IsWindows ? (IImageDecoder)SystemDrawingReferenceDecoder.Instance : MagickReferenceDecoder.Instance,
+                SystemDrawingReferenceDecoder.Instance,
                 bmpEncoder,
                 new BmpImageFormatDetector());
 

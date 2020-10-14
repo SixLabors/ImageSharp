@@ -744,6 +744,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
+        [ActiveIssue("https://github.com/dotnet/arcade/issues/6393", TargetFrameworkMonikers.NetFramework)]
         [Theory]
         [WithFile(Bit24BottomLeft, PixelTypes.Rgba32)]
         [WithFile(Bit32BottomLeft, PixelTypes.Rgba32)]

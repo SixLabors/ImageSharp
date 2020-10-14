@@ -13,11 +13,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     {
         public const string DecodeProgressiveJpegOutputName = "DecodeProgressiveJpeg";
 
+        [Theory]
+        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32)]
+        public void DecodeProgressiveJpeg<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(JpegDecoder);
+            image.DebugSave(provider);
+
+            provider.Utility.TestName = DecodeProgressiveJpegOutputName;
+            image.CompareToReferenceOutput(
+                GetImageComparer(provider),
+                provider,
+                appendPixelTypeToFileName: false);
+        }
+
         [ActiveIssue("https://github.com/dotnet/arcade/issues/6393", TargetFrameworkMonikers.NetFramework)]
         [Theory]
-        [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32, false)]
-        [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, true)]
-        public void DecodeProgressiveJpeg<TPixel>(TestImageProvider<TPixel> provider, bool enforceDiscontiguousBuffers)
+        [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32)]
+        public void DecodeProgressiveJpeg_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
@@ -25,10 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestImageProvider<TPixel> provider =
                     BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
 
-                if (!string.IsNullOrEmpty(nonContiguousBuffersStr))
-                {
-                    provider.LimitAllocatorBufferCapacity().InBytesSqrt(200);
-                }
+                provider.LimitAllocatorBufferCapacity().InBytesSqrt(200);
 
                 using Image<TPixel> image = provider.GetImage(JpegDecoder);
                 image.DebugSave(provider, nonContiguousBuffersStr);
@@ -45,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             RemoteExecutor.Invoke(
                 RunTest,
                 providerDump,
-                enforceDiscontiguousBuffers ? "Disco" : string.Empty)
+                "Disco")
                 .Dispose();
         }
     }

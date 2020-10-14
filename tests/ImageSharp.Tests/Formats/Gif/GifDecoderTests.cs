@@ -209,7 +209,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
                 provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
                 using Image<TPixel> image = provider.GetImage(GifDecoder);
-                image.DebugSave(provider);
+                image.DebugSave(provider, nonContiguousBuffersStr);
                 image.CompareToOriginal(provider);
             }
 

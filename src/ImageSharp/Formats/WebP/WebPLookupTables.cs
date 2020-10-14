@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 
 namespace SixLabors.ImageSharp.Formats.WebP
@@ -16,6 +17,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public static readonly Dictionary<int, sbyte> Sclip2;
 
         public static readonly byte[,][] ModesProba = new byte[10, 10][];
+
+        public static readonly ushort[] GammaToLinearTab = new ushort[256];
+
+        public static readonly int[] LinearToGammaTab = new int[WebPConstants.GammaTabSize + 1];
 
         /// <summary>
         /// Lookup table for small values of log2(int).
@@ -764,6 +769,18 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         static WebPLookupTables()
         {
+            double scale = (double)(1 << WebPConstants.GammaTabFix) / WebPConstants.GammaScale;
+            double norm = 1.0d / 255.0d;
+            for (int v = 0; v < 256; ++v)
+            {
+                GammaToLinearTab[v] = (ushort)((Math.Pow(norm * v, WebPConstants.Gamma) * WebPConstants.GammaScale) + .5);
+            }
+
+            for (int v = 0; v <= WebPConstants.GammaTabSize; ++v)
+            {
+                LinearToGammaTab[v] = (int)((255.0d * Math.Pow(scale * v, 1.0d / WebPConstants.Gamma)) + .5);
+            }
+
             Abs0 = new Dictionary<int, byte>();
             for (int i = -255; i <= 255; ++i)
             {

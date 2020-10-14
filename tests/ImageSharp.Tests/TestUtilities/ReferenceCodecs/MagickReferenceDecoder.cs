@@ -57,6 +57,12 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         {
             var bmpReadDefines = new BmpReadDefines
             {
+                // See https://github.com/SixLabors/ImageSharp/issues/1380
+                // Validation fails on Ubuntu despite identical header generation
+                // on all platforms.
+                IgnoreFileSize = !TestEnvironment.IsWindows
+            };
+            {
                 IgnoreFileSize = true
             };
 

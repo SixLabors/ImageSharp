@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
             var settings = new MagickReadSettings();
             settings.SetDefines(bmpReadDefines);
 
-            using var magickImage = new MagickImage(stream);
+            using var magickImage = new MagickImage(stream, settings);
             var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
             MemoryGroup<TPixel> resultPixels = result.GetRootFramePixelBuffer().FastMemoryGroup;
 

@@ -401,6 +401,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
+        [ActiveIssue("https://github.com/dotnet/arcade/issues/6393", TargetFrameworkMonikers.NetFramework)]
         [Theory]
         [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32)]

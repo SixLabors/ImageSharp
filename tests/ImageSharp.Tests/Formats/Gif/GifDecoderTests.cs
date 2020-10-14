@@ -195,6 +195,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
+        [ActiveIssue("https://github.com/dotnet/arcade/issues/6393", TargetFrameworkMonikers.NetFramework)]
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         [WithFile(TestImages.Gif.Kumin, PixelTypes.Rgba32)]

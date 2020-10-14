@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
     {
         public const string DecodeProgressiveJpegOutputName = "DecodeProgressiveJpeg";
 
+        [ActiveIssue("https://github.com/dotnet/arcade/issues/6393", TargetFrameworkMonikers.NetFramework)]
         [Theory]
         [WithFileCollection(nameof(ProgressiveTestJpegs), PixelTypes.Rgba32, false)]
         [WithFile(TestImages.Jpeg.Progressive.Progress, PixelTypes.Rgba32, true)]

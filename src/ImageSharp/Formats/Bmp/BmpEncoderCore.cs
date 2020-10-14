@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
             var fileHeader = new BmpFileHeader(
                 type: BmpConstants.TypeMarkers.Bitmap,
-                fileSize: BmpFileHeader.Size + infoHeaderSize + infoHeader.ImageSize,
+                fileSize: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize + infoHeader.ImageSize,
                 reserved: 0,
                 offset: BmpFileHeader.Size + infoHeaderSize + colorPaletteSize);
 

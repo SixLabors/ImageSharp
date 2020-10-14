@@ -348,7 +348,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(BmpDecoder))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider);
+
+                // Do not validate. Reference files will fail validation.
+                image.CompareToOriginal(provider, new MagickReferenceDecoder(false));
             }
         }
 

@@ -16,6 +16,18 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
     public class MagickReferenceDecoder : IImageDecoder
     {
+        private readonly bool validate;
+
+        public MagickReferenceDecoder()
+            : this(true)
+        {
+        }
+
+        public MagickReferenceDecoder(bool validate)
+        {
+            this.validate = validate;
+        }
+
         public static MagickReferenceDecoder Instance { get; } = new MagickReferenceDecoder();
 
         private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
@@ -57,10 +69,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         {
             var bmpReadDefines = new BmpReadDefines
             {
-                // See https://github.com/SixLabors/ImageSharp/issues/1380
-                // Validation fails on Ubuntu despite identical header generation
-                // on all platforms.
-                IgnoreFileSize = !TestEnvironment.IsWindows
+                IgnoreFileSize = !this.validate
             };
 
             var settings = new MagickReadSettings();

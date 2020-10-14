@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using ImageMagick;
+using ImageMagick.Formats.Bmp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -15,6 +16,18 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 {
     public class MagickReferenceDecoder : IImageDecoder
     {
+        private readonly bool validate;
+
+        public MagickReferenceDecoder()
+            : this(true)
+        {
+        }
+
+        public MagickReferenceDecoder(bool validate)
+        {
+            this.validate = validate;
+        }
+
         public static MagickReferenceDecoder Instance { get; } = new MagickReferenceDecoder();
 
         private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
@@ -54,7 +67,15 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
         {
-            using var magickImage = new MagickImage(stream);
+            var bmpReadDefines = new BmpReadDefines
+            {
+                IgnoreFileSize = !this.validate
+            };
+
+            var settings = new MagickReadSettings();
+            settings.SetDefines(bmpReadDefines);
+
+            using var magickImage = new MagickImage(stream, settings);
             var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
             MemoryGroup<TPixel> resultPixels = result.GetRootFramePixelBuffer().FastMemoryGroup;
 

@@ -185,8 +185,23 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public const int NumCtx = 3;
 
-        // this is the common stride for enc/dec
+        // This is the common stride for enc/dec.
         public const int Bps = 32;
+
+        // gamma-compensates loss of resolution during chroma subsampling.
+        public const double Gamma = 0.80d;
+
+        public const int GammaFix = 12; // Fixed-point precision for linear values.
+
+        public const int GammaScale = (1 << GammaFix) - 1;
+
+        public const int GammaTabFix = 7; // Fixed-point fractional bits precision.
+
+        public const int GammaTabSize = 1 << (GammaFix - GammaTabFix);
+
+        public const int GammaTabScale = 1 << GammaTabFix;
+
+        public const int GammaTabRounder = GammaTabScale >> 1;
 
         /// <summary>
         /// How many extra lines are needed on the MB boundary for caching, given a filtering level.

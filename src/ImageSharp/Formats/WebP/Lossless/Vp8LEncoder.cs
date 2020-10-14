@@ -90,12 +90,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         }
 
         /// <summary>
-        /// Gets transformed image data.
+        /// Gets memory for the transformed image data.
         /// </summary>
         public IMemoryOwner<uint> Bgra { get; }
 
         /// <summary>
-        /// Gets or sets the scratch memory for bgra rows used for prediction.
+        /// Gets or sets the scratch memory for bgra rows used for predictions.
         /// </summary>
         public IMemoryOwner<uint> BgraScratch { get; set; }
 

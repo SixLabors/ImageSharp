@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using ImageMagick;
+using ImageMagick.Formats.Bmp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -54,7 +55,18 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
         public Image<TPixel> Decode<TPixel>(Configuration configuration, Stream stream)
             where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
         {
-            using var magickImage = new MagickImage(stream);
+            var bmpReadDefines = new BmpReadDefines
+            {
+                // See https://github.com/SixLabors/ImageSharp/issues/1380
+                // Validation fails on Ubuntu despite identical header generation
+                // on all platforms.
+                IgnoreFileSize = !TestEnvironment.IsWindows
+            };
+
+            var settings = new MagickReadSettings();
+            settings.SetDefines(bmpReadDefines);
+
+            using var magickImage = new MagickImage(stream, settings);
             var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
             MemoryGroup<TPixel> resultPixels = result.GetRootFramePixelBuffer().FastMemoryGroup;
 

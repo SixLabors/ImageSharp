@@ -534,6 +534,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             }
         }
 
+        [ActiveIssue("https://github.com/dotnet/arcade/issues/6393", TargetFrameworkMonikers.NetFramework)]
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void EncodeWorksWithoutSsse3Intrinsics<TPixel>(TestImageProvider<TPixel> provider)

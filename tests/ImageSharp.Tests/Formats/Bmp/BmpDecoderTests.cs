@@ -339,7 +339,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             }
         }
 
-        [ActiveIssue("https://github.com/SixLabors/ImageSharp/issues/1380", TestPlatforms.Linux)]
         [Theory]
         [WithFile(WinBmpv2, PixelTypes.Rgba32)]
         [WithFile(CoreHeader, PixelTypes.Rgba32)]

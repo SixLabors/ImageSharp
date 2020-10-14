@@ -62,9 +62,6 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
                 // on all platforms.
                 IgnoreFileSize = !TestEnvironment.IsWindows
             };
-            {
-                IgnoreFileSize = true
-            };
 
             var settings = new MagickReadSettings();
             settings.SetDefines(bmpReadDefines);

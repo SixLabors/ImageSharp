@@ -540,6 +540,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void EncodeWorksWithoutSsse3Intrinsics<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // dotnet xunit doesn't respect filter.
+            if (TestEnvironment.IsFramework)
+            {
+                return;
+            }
+
             static void RunTest(string providerDump)
             {
                 TestImageProvider<TPixel> provider =

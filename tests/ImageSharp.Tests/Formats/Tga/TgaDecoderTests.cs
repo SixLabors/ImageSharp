@@ -751,6 +751,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         public void TgaDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // dotnet xunit doesn't respect filter.
+            if (TestEnvironment.IsFramework)
+            {
+                return;
+            }
+
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
                 TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);

@@ -396,6 +396,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void PngDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // dotnet xunit doesn't respect filter.
+            if (TestEnvironment.IsFramework)
+            {
+                return;
+            }
+
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
             InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(PngDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
@@ -408,6 +414,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void PngDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // dotnet xunit doesn't respect filter.
+            if (TestEnvironment.IsFramework)
+            {
+                return;
+            }
+
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
                 TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);

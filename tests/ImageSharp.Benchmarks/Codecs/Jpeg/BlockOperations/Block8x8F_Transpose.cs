@@ -6,25 +6,17 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations
 {
+    [Config(typeof(Config.HwIntrinsics_SSE_AVX))]
     public class Block8x8F_Transpose
     {
         private static readonly Block8x8F Source = Create8x8FloatData();
 
-        [Benchmark(Baseline=true)]
-        public void TransposeIntoVector4()
+        [Benchmark(Baseline = true)]
+        public void TransposeInto()
         {
             var dest = default(Block8x8F);
-            Source.TransposeIntoFallback(ref dest);
+            Source.TransposeInto(ref dest);
         }
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        [Benchmark]
-        public void TransposeIntoAvx()
-        {
-            var dest = default(Block8x8F);
-            Source.TransposeIntoAvx(ref dest);
-        }
-#endif
 
         private static Block8x8F Create8x8FloatData()
         {

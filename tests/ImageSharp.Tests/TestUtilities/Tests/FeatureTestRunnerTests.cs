@@ -50,13 +50,40 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
                 HwIntrinsics.AllowAll);
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
-        public void CanLimitHwIntrinsicFeatures()
+        public void CanLimitHwIntrinsicSIMDFeatures()
         {
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 () => Assert.False(Vector.IsHardwareAccelerated, nameof(Vector.IsHardwareAccelerated)),
-                HwIntrinsics.DisableSIMD | HwIntrinsics.DisableHWIntrinsic);
+                HwIntrinsics.DisableSIMD);
+        }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void CanLimitHwIntrinsicBaseFeatures()
+        {
+            static void AssertDisabled()
+            {
+                Assert.False(Sse.IsSupported);
+                Assert.False(Sse2.IsSupported);
+                Assert.False(Aes.IsSupported);
+                Assert.False(Pclmulqdq.IsSupported);
+                Assert.False(Sse3.IsSupported);
+                Assert.False(Ssse3.IsSupported);
+                Assert.False(Sse41.IsSupported);
+                Assert.False(Sse42.IsSupported);
+                Assert.False(Popcnt.IsSupported);
+                Assert.False(Avx.IsSupported);
+                Assert.False(Fma.IsSupported);
+                Assert.False(Avx2.IsSupported);
+                Assert.False(Bmi1.IsSupported);
+                Assert.False(Bmi2.IsSupported);
+                Assert.False(Lzcnt.IsSupported);
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                AssertDisabled,
+                HwIntrinsics.DisableHWIntrinsic);
         }
 #endif
 

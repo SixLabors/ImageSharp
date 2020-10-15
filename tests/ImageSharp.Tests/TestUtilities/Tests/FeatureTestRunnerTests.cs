@@ -55,8 +55,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         public void CanLimitHwIntrinsicFeatures()
         {
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
-                () => Assert.False(Sse.IsSupported, nameof(Sse.IsSupported)),
-                HwIntrinsics.DisableSSE);
+                () => Assert.False(Vector.IsHardwareAccelerated, nameof(Vector.IsHardwareAccelerated)),
+                HwIntrinsics.DisableSIMD);
         }
 #endif
 

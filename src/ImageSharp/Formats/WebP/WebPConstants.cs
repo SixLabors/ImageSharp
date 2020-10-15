@@ -203,6 +203,8 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public const int GammaTabRounder = GammaTabScale >> 1;
 
+        public const int AlphaFix = 19;
+
         /// <summary>
         /// How many extra lines are needed on the MB boundary for caching, given a filtering level.
         /// Simple filter(1):  up to 2 luma samples are read and 1 is written.

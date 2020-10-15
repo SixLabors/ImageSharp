@@ -50,13 +50,15 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
                 HwIntrinsics.AllowAll);
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void CanLimitHwIntrinsicFeatures()
         {
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
-                () => Assert.False(Vector.IsHardwareAccelerated, nameof(Vector.IsHardwareAccelerated)),
-                HwIntrinsics.DisableSIMD);
+                () => Assert.False(Sse.IsSupported, nameof(Sse.IsSupported)),
+                HwIntrinsics.DisableSSE);
         }
+#endif
 
         //        [Fact]
         //        public void CanLimitHwIntrinsicFeaturesWithIntrinsicsParam()

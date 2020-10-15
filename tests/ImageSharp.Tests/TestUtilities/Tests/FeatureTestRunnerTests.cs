@@ -23,6 +23,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
                 { HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, new string[] { "EnableSSE42", "EnableAVX" } }
             };
 
+        [Fact]
+        public void TempAssertThrow()
+        {
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                () => Assert.True(false),
+                HwIntrinsics.DisableAVX);
+        }
+
         [Theory]
         [MemberData(nameof(Intrinsics))]
         public void ToFeatureCollectionReturnsExpectedResult(HwIntrinsics expectedItrinsics, string[] expectedValues)

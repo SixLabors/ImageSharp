@@ -396,37 +396,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         public void PngDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // dotnet xunit doesn't respect filter.
-            if (TestEnvironment.IsFramework)
-            {
-                return;
-            }
-
             provider.LimitAllocatorBufferCapacity().InPixelsSqrt(10);
             InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => provider.GetImage(PngDecoder));
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
-        [ActiveIssue("https://github.com/dotnet/arcade/issues/6393", TargetFrameworkMonikers.NetFramework)]
         [Theory]
         [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32)]
-        public void PngDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public void PngDecoder_CanDecode_WithLimitedAllocatorBufferCapacity(TestImageProvider<Rgba32> provider)
         {
-            // dotnet xunit doesn't respect filter.
-            if (TestEnvironment.IsFramework)
-            {
-                return;
-            }
-
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
-                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+                TestImageProvider<Rgba32> provider = BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
 
                 provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<Rgba32> image = provider.GetImage(PngDecoder);
                 image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
                 image.CompareToOriginal(provider);
             }

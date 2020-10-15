@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         {
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 () => Assert.False(Vector.IsHardwareAccelerated, nameof(Vector.IsHardwareAccelerated)),
-                HwIntrinsics.DisableSIMD);
+                HwIntrinsics.DisableSIMD | HwIntrinsics.DisableHWIntrinsic);
         }
 #endif
 

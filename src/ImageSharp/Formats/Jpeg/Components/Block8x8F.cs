@@ -611,87 +611,146 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx.IsSupported)
             {
-                this.TransposeIntoAvx(ref d);
+                // https://stackoverflow.com/questions/25622745/transpose-an-8x8-float-using-avx-avx2/25627536#25627536
+                Vector256<float> r0 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V0L).ToVector256(),
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V4L),
+                   1);
+
+                Vector256<float> r1 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V1L).ToVector256(),
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V5L),
+                   1);
+
+                Vector256<float> r2 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V2L).ToVector256(),
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V6L),
+                   1);
+
+                Vector256<float> r3 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V3L).ToVector256(),
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V7L),
+                   1);
+
+                Vector256<float> r4 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V0R).ToVector256(),
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V4R),
+                   1);
+
+                Vector256<float> r5 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V1R).ToVector256(),
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V5R),
+                   1);
+
+                Vector256<float> r6 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V2R).ToVector256(),
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V6R),
+                   1);
+
+                Vector256<float> r7 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V3R).ToVector256(),
+                   Unsafe.As<Vector4, Vector128<float>>(ref this.V7R),
+                   1);
+
+                Vector256<float> t0 = Avx.UnpackLow(r0, r1);
+                Vector256<float> t2 = Avx.UnpackLow(r2, r3);
+                Vector256<float> v = Avx.Shuffle(t0, t2, 0x4E);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V0L) = Avx.Blend(t0, v, 0xCC);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V1L) = Avx.Blend(t2, v, 0x33);
+
+                Vector256<float> t4 = Avx.UnpackLow(r4, r5);
+                Vector256<float> t6 = Avx.UnpackLow(r6, r7);
+                v = Avx.Shuffle(t4, t6, 0x4E);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V4L) = Avx.Blend(t4, v, 0xCC);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V5L) = Avx.Blend(t6, v, 0x33);
+
+                Vector256<float> t1 = Avx.UnpackHigh(r0, r1);
+                Vector256<float> t3 = Avx.UnpackHigh(r2, r3);
+                v = Avx.Shuffle(t1, t3, 0x4E);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V2L) = Avx.Blend(t1, v, 0xCC);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V3L) = Avx.Blend(t3, v, 0x33);
+
+                Vector256<float> t5 = Avx.UnpackHigh(r4, r5);
+                Vector256<float> t7 = Avx.UnpackHigh(r6, r7);
+                v = Avx.Shuffle(t5, t7, 0x4E);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V6L) = Avx.Blend(t5, v, 0xCC);
+                Unsafe.As<Vector4, Vector256<float>>(ref d.V7L) = Avx.Blend(t7, v, 0x33);
             }
             else
 #endif
             {
-                this.TransposeIntoFallback(ref d);
+                d.V0L.X = this.V0L.X;
+                d.V1L.X = this.V0L.Y;
+                d.V2L.X = this.V0L.Z;
+                d.V3L.X = this.V0L.W;
+                d.V4L.X = this.V0R.X;
+                d.V5L.X = this.V0R.Y;
+                d.V6L.X = this.V0R.Z;
+                d.V7L.X = this.V0R.W;
+
+                d.V0L.Y = this.V1L.X;
+                d.V1L.Y = this.V1L.Y;
+                d.V2L.Y = this.V1L.Z;
+                d.V3L.Y = this.V1L.W;
+                d.V4L.Y = this.V1R.X;
+                d.V5L.Y = this.V1R.Y;
+                d.V6L.Y = this.V1R.Z;
+                d.V7L.Y = this.V1R.W;
+
+                d.V0L.Z = this.V2L.X;
+                d.V1L.Z = this.V2L.Y;
+                d.V2L.Z = this.V2L.Z;
+                d.V3L.Z = this.V2L.W;
+                d.V4L.Z = this.V2R.X;
+                d.V5L.Z = this.V2R.Y;
+                d.V6L.Z = this.V2R.Z;
+                d.V7L.Z = this.V2R.W;
+
+                d.V0L.W = this.V3L.X;
+                d.V1L.W = this.V3L.Y;
+                d.V2L.W = this.V3L.Z;
+                d.V3L.W = this.V3L.W;
+                d.V4L.W = this.V3R.X;
+                d.V5L.W = this.V3R.Y;
+                d.V6L.W = this.V3R.Z;
+                d.V7L.W = this.V3R.W;
+
+                d.V0R.X = this.V4L.X;
+                d.V1R.X = this.V4L.Y;
+                d.V2R.X = this.V4L.Z;
+                d.V3R.X = this.V4L.W;
+                d.V4R.X = this.V4R.X;
+                d.V5R.X = this.V4R.Y;
+                d.V6R.X = this.V4R.Z;
+                d.V7R.X = this.V4R.W;
+
+                d.V0R.Y = this.V5L.X;
+                d.V1R.Y = this.V5L.Y;
+                d.V2R.Y = this.V5L.Z;
+                d.V3R.Y = this.V5L.W;
+                d.V4R.Y = this.V5R.X;
+                d.V5R.Y = this.V5R.Y;
+                d.V6R.Y = this.V5R.Z;
+                d.V7R.Y = this.V5R.W;
+
+                d.V0R.Z = this.V6L.X;
+                d.V1R.Z = this.V6L.Y;
+                d.V2R.Z = this.V6L.Z;
+                d.V3R.Z = this.V6L.W;
+                d.V4R.Z = this.V6R.X;
+                d.V5R.Z = this.V6R.Y;
+                d.V6R.Z = this.V6R.Z;
+                d.V7R.Z = this.V6R.W;
+
+                d.V0R.W = this.V7L.X;
+                d.V1R.W = this.V7L.Y;
+                d.V2R.W = this.V7L.Z;
+                d.V3R.W = this.V7L.W;
+                d.V4R.W = this.V7R.X;
+                d.V5R.W = this.V7R.Y;
+                d.V6R.W = this.V7R.Z;
+                d.V7R.W = this.V7R.W;
             }
         }
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        /// <summary>
-        /// AVX-only variant for executing <see cref="TransposeInto(ref Block8x8F)"/>.
-        /// <see href="https://stackoverflow.com/questions/25622745/transpose-an-8x8-float-using-avx-avx2/25627536#25627536"/>
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void TransposeIntoAvx(ref Block8x8F d)
-        {
-            Vector256<float> r0 = Avx.InsertVector128(
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V0L).ToVector256(),
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V4L),
-               1);
-
-            Vector256<float> r1 = Avx.InsertVector128(
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V1L).ToVector256(),
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V5L),
-               1);
-
-            Vector256<float> r2 = Avx.InsertVector128(
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V2L).ToVector256(),
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V6L),
-               1);
-
-            Vector256<float> r3 = Avx.InsertVector128(
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V3L).ToVector256(),
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V7L),
-               1);
-
-            Vector256<float> r4 = Avx.InsertVector128(
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V0R).ToVector256(),
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V4R),
-               1);
-
-            Vector256<float> r5 = Avx.InsertVector128(
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V1R).ToVector256(),
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V5R),
-               1);
-
-            Vector256<float> r6 = Avx.InsertVector128(
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V2R).ToVector256(),
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V6R),
-               1);
-
-            Vector256<float> r7 = Avx.InsertVector128(
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V3R).ToVector256(),
-               Unsafe.As<Vector4, Vector128<float>>(ref this.V7R),
-               1);
-
-            Vector256<float> t0 = Avx.UnpackLow(r0, r1);
-            Vector256<float> t2 = Avx.UnpackLow(r2, r3);
-            Vector256<float> v = Avx.Shuffle(t0, t2, 0x4E);
-            Unsafe.As<Vector4, Vector256<float>>(ref d.V0L) = Avx.Blend(t0, v, 0xCC);
-            Unsafe.As<Vector4, Vector256<float>>(ref d.V1L) = Avx.Blend(t2, v, 0x33);
-
-            Vector256<float> t4 = Avx.UnpackLow(r4, r5);
-            Vector256<float> t6 = Avx.UnpackLow(r6, r7);
-            v = Avx.Shuffle(t4, t6, 0x4E);
-            Unsafe.As<Vector4, Vector256<float>>(ref d.V4L) = Avx.Blend(t4, v, 0xCC);
-            Unsafe.As<Vector4, Vector256<float>>(ref d.V5L) = Avx.Blend(t6, v, 0x33);
-
-            Vector256<float> t1 = Avx.UnpackHigh(r0, r1);
-            Vector256<float> t3 = Avx.UnpackHigh(r2, r3);
-            v = Avx.Shuffle(t1, t3, 0x4E);
-            Unsafe.As<Vector4, Vector256<float>>(ref d.V2L) = Avx.Blend(t1, v, 0xCC);
-            Unsafe.As<Vector4, Vector256<float>>(ref d.V3L) = Avx.Blend(t3, v, 0x33);
-
-            Vector256<float> t5 = Avx.UnpackHigh(r4, r5);
-            Vector256<float> t7 = Avx.UnpackHigh(r6, r7);
-            v = Avx.Shuffle(t5, t7, 0x4E);
-            Unsafe.As<Vector4, Vector256<float>>(ref d.V6L) = Avx.Blend(t5, v, 0xCC);
-            Unsafe.As<Vector4, Vector256<float>>(ref d.V7L) = Avx.Blend(t7, v, 0x33);
-        }
-#endif
     }
 }

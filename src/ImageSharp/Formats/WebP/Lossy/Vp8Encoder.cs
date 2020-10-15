@@ -64,6 +64,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int uvWidth = (image.Width + 1) >> 1;
+            bool hasAlpha = this.CheckNonOpaque(image);
 
             // Temporary storage for accumulated R/G/B values during conversion to U/V.
             using (IMemoryOwner<ushort> tmpRgb = this.memoryAllocator.Allocate<ushort>(4 * uvWidth))
@@ -73,10 +74,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 for (int rowIndex = 0; rowIndex < image.Height - 1; rowIndex += 2)
                 {
                     // Downsample U/V planes, two rows at a time.
-                    // TODO: RGBA case AccumulateRgba
                     Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
                     Span<TPixel> nextRowSpan = image.GetPixelRowSpan(rowIndex + 1);
-                    this.AccumulateRgb(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
+                    if (!hasAlpha)
+                    {
+                        this.AccumulateRgb(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
+                    }
+                    else
+                    {
+                        this.AccumulateRgba(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
+                    }
+
                     this.ConvertRgbaToUv(tmpRgbSpan, this.U.Slice(uvRowIndex * uvWidth), this.V.Slice(uvRowIndex * uvWidth), uvWidth);
                     uvRowIndex++;
 
@@ -90,6 +98,36 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             throw new NotImplementedException();
         }
 
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.Y.Dispose();
+            this.U.Dispose();
+            this.V.Dispose();
+        }
+
+        // Returns true if alpha has non-0xff values.
+        private bool CheckNonOpaque<TPixel>(Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Rgba32 rgba = default;
+            for (int rowIndex = 0; rowIndex < image.Height; rowIndex++)
+            {
+                Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
+                for (int x = 0; x < image.Width; x++)
+                {
+                    TPixel color = rowSpan[x];
+                    color.ToRgba32(ref rgba);
+                    if (rgba.A != 255)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private void ConvertRgbaToY<TPixel>(Span<TPixel> rowSpan, Span<byte> y, int width)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -100,14 +138,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 color.ToRgba32(ref rgba);
                 y[x] = (byte)this.RgbToY(rgba.R, rgba.G, rgba.B, YuvHalf);
             }
-        }
-
-        /// <inheritdoc/>
-        public void Dispose()
-        {
-            this.Y.Dispose();
-            this.U.Dispose();
-            this.V.Dispose();
         }
 
         private void ConvertRgbaToUv(Span<ushort> rgb, Span<byte> u, Span<byte> v, int width)
@@ -169,6 +199,92 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 dst[dstIdx + 1] = (ushort)this.LinearToGamma(this.GammaToLinear(rgba0.G) + this.GammaToLinear(rgba1.G), 1);
                 dst[dstIdx + 2] = (ushort)this.LinearToGamma(this.GammaToLinear(rgba0.B) + this.GammaToLinear(rgba1.B), 1);
             }
+        }
+
+        private void AccumulateRgba<TPixel>(Span<TPixel> rowSpan, Span<TPixel> nextRowSpan, Span<ushort> dst, int width)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Rgba32 rgba0 = default;
+            Rgba32 rgba1 = default;
+            Rgba32 rgba2 = default;
+            Rgba32 rgba3 = default;
+            int i, j;
+            int dstIdx = 0;
+            for (i = 0, j = 0; i < (width >> 1); i += 1, j += 2, dstIdx += 4)
+            {
+                TPixel color = rowSpan[j];
+                color.ToRgba32(ref rgba0);
+                color = rowSpan[j + 1];
+                color.ToRgba32(ref rgba1);
+                color = nextRowSpan[j];
+                color.ToRgba32(ref rgba2);
+                color = nextRowSpan[j + 1];
+                color.ToRgba32(ref rgba3);
+                uint a = (uint)(rgba0.A + rgba1.A + rgba2.A + rgba3.A);
+                int r, g, b;
+                if (a == 4 * 0xff || a == 0)
+                {
+                    r = (ushort)this.LinearToGamma(
+                        this.GammaToLinear(rgba0.R) +
+                        this.GammaToLinear(rgba1.R) +
+                        this.GammaToLinear(rgba2.R) +
+                        this.GammaToLinear(rgba3.R), 0);
+                    g = (ushort)this.LinearToGamma(
+                        this.GammaToLinear(rgba0.G) +
+                        this.GammaToLinear(rgba1.G) +
+                        this.GammaToLinear(rgba2.G) +
+                        this.GammaToLinear(rgba3.G), 0);
+                    b = (ushort)this.LinearToGamma(
+                        this.GammaToLinear(rgba0.B) +
+                        this.GammaToLinear(rgba1.B) +
+                        this.GammaToLinear(rgba2.B) +
+                        this.GammaToLinear(rgba3.B), 0);
+                }
+                else
+                {
+                    r = this.LinearToGammaWeighted(rgba0.R, rgba1.R, rgba2.R, rgba3.R, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    g = this.LinearToGammaWeighted(rgba0.G, rgba1.G, rgba2.G, rgba3.G, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    b = this.LinearToGammaWeighted(rgba0.B, rgba1.B, rgba2.B, rgba3.B, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                }
+
+                dst[dstIdx] = (ushort)r;
+                dst[dstIdx + 1] = (ushort)g;
+                dst[dstIdx + 2] = (ushort)b;
+                dst[dstIdx + 3] = (ushort)a;
+            }
+
+            if ((width & 1) != 0)
+            {
+                TPixel color = rowSpan[j];
+                color.ToRgba32(ref rgba0);
+                color = nextRowSpan[j];
+                color.ToRgba32(ref rgba1);
+                uint a = (uint)(2u * (rgba0.A + rgba1.A));
+                int r, g, b;
+                if (a == 4 * 0xff || a == 0)
+                {
+                    r = (ushort)this.LinearToGamma(this.GammaToLinear(rgba0.R) + this.GammaToLinear(rgba1.R), 1);
+                    g = (ushort)this.LinearToGamma(this.GammaToLinear(rgba0.G) + this.GammaToLinear(rgba1.G), 1);
+                    b = (ushort)this.LinearToGamma(this.GammaToLinear(rgba0.B) + this.GammaToLinear(rgba1.B), 1);
+                }
+                else
+                {
+                    r = this.LinearToGammaWeighted(rgba0.R, rgba1.R, rgba2.R, rgba3.R, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    g = this.LinearToGammaWeighted(rgba0.G, rgba1.G, rgba2.G, rgba3.G, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    b = this.LinearToGammaWeighted(rgba0.B, rgba1.B, rgba2.B, rgba3.B, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                }
+
+                dst[dstIdx] = (ushort)r;
+                dst[dstIdx + 1] = (ushort)g;
+                dst[dstIdx + 2] = (ushort)b;
+                dst[dstIdx + 3] = (ushort)a;
+            }
+        }
+
+        private int LinearToGammaWeighted(byte rgb0, byte rgb1, byte rgb2, byte rgb3, byte a0, byte a1, byte a2, byte a3, uint totalA)
+        {
+            uint sum = (a0 * this.GammaToLinear(rgb0)) + (a1 * this.GammaToLinear(rgb1)) + (a2 * this.GammaToLinear(rgb2)) + (a3 * this.GammaToLinear(rgb3));
+            return this.LinearToGamma((sum * WebPLookupTables.InvAlpha[totalA]) >> (WebPConstants.AlphaFix - 2), 0);
         }
 
         // Convert a linear value 'v' to YUV_FIX+2 fixed-point precision

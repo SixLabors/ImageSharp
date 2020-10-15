@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
                 var processStartInfo = new ProcessStartInfo();
                 if (intrinsic.Key != HwIntrinsics.AllowAll)
                 {
-                    processStartInfo.Environment[$"COMPlus_{intrinsic}"] = "0";
+                    processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
 
                     RemoteExecutor.Invoke(
                         action,
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
                 var processStartInfo = new ProcessStartInfo();
                 if (intrinsic.Key != HwIntrinsics.AllowAll)
                 {
-                    processStartInfo.Environment[$"COMPlus_{intrinsic}"] = "0";
+                    processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
 
                     RemoteExecutor.Invoke(
                         action,
@@ -137,7 +137,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
                 var processStartInfo = new ProcessStartInfo();
                 if (intrinsic.Key != HwIntrinsics.AllowAll)
                 {
-                    processStartInfo.Environment[$"COMPlus_{intrinsic}"] = "0";
+                    processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
 
                     RemoteExecutor.Invoke(
                         action,
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
                 var processStartInfo = new ProcessStartInfo();
                 if (intrinsic.Key != HwIntrinsics.AllowAll)
                 {
-                    processStartInfo.Environment[$"COMPlus_{intrinsic}"] = "0";
+                    processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
 
                     RemoteExecutor.Invoke(
                         action,

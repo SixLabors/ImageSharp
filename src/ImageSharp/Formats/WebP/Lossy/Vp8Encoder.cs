@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.memoryAllocator = memoryAllocator;
 
             var pixelCount = width * height;
-            var uvSize = (width >> 1) * (height >> 1);
+            var uvSize = ((width + 1) >> 1) * ((height + 1) >> 1);
             this.Y = this.memoryAllocator.Allocate<byte>(pixelCount);
             this.U = this.memoryAllocator.Allocate<byte>(uvSize);
             this.V = this.memoryAllocator.Allocate<byte>(uvSize);
@@ -71,7 +71,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             {
                 Span<ushort> tmpRgbSpan = tmpRgb.GetSpan();
                 int uvRowIndex = 0;
-                for (int rowIndex = 0; rowIndex < image.Height - 1; rowIndex += 2)
+                int rowIndex;
+                for (rowIndex = 0; rowIndex < image.Height - 1; rowIndex += 2)
                 {
                     // Downsample U/V planes, two rows at a time.
                     Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
@@ -92,7 +93,21 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                     this.ConvertRgbaToY(nextRowSpan, this.Y.Slice((rowIndex + 1) * image.Width), image.Width);
                 }
 
-                // TODO: last row
+                // Extra last row.
+                if ((image.Height & 1) != 0)
+                {
+                    Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
+                    if (!hasAlpha)
+                    {
+                        this.AccumulateRgb(rowSpan, rowSpan, tmpRgbSpan, image.Width);
+                    }
+                    else
+                    {
+                        this.AccumulateRgba(rowSpan, rowSpan, tmpRgbSpan, image.Width);
+                    }
+
+                    this.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
+                }
             }
 
             throw new NotImplementedException();

@@ -39,22 +39,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         };
 
         [Theory]
-        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32, false)]
-        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32, true)]
-        public void BmpDecoder_CanDecode_MiscellaneousBitmaps<TPixel>(TestImageProvider<TPixel> provider, bool enforceDiscontiguousBuffers)
+        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_MiscellaneousBitmaps<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+
+            if (TestEnvironment.IsWindows)
+            {
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_MiscellaneousBitmaps_WithLimitedAllocatorBufferCapacity(
+            TestImageProvider<Rgba32> provider)
         {
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
-                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+                TestImageProvider<Rgba32> provider = BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
 
-                if (!string.IsNullOrEmpty(nonContiguousBuffersStr))
-                {
-                    provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
-                }
+                provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-                using Image<TPixel> image = provider.GetImage(BmpDecoder);
-                image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
+                using Image<Rgba32> image = provider.GetImage(BmpDecoder);
+                image.DebugSave(provider, nonContiguousBuffersStr);
 
                 if (TestEnvironment.IsWindows)
                 {
@@ -66,7 +76,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             RemoteExecutor.Invoke(
                     RunTest,
                     providerDump,
-                    enforceDiscontiguousBuffers ? "Disco" : string.Empty)
+                    "Disco")
                 .Dispose();
         }
 

@@ -536,13 +536,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
-        public void EncodeWorksWithoutSsse3Intrinsics<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public void EncodeWorksWithoutSsse3Intrinsics(TestImageProvider<Rgba32> provider)
         {
             static void RunTest(string providerDump)
             {
-                TestImageProvider<TPixel> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+                TestImageProvider<Rgba32> provider =
+                    BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
 #if SUPPORTS_RUNTIME_INTRINSICS
                 Assert.False(Ssse3.IsSupported);
 #endif

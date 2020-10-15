@@ -129,10 +129,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, 0)]
         [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 1)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 10)]
+        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 15)]
         [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 30)]
         [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 1)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 10)]
+        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 15)]
         [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 30)]
         public async Task Decode_IsCancellable(string fileName, int cancellationDelayMs)
         {

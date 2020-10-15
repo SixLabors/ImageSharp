@@ -195,26 +195,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
         }
 
-        [ActiveIssue("https://github.com/dotnet/arcade/issues/6393", TargetFrameworkMonikers.NetFramework)]
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         [WithFile(TestImages.Gif.Kumin, PixelTypes.Rgba32)]
-        public void GifDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public void GifDecoder_CanDecode_WithLimitedAllocatorBufferCapacity(
+            TestImageProvider<Rgba32> provider)
         {
-            // dotnet xunit doesn't respect filter.
-            if (TestEnvironment.IsFramework)
-            {
-                return;
-            }
-
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
-                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+                TestImageProvider<Rgba32> provider
+                    = BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
 
                 provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-                using Image<TPixel> image = provider.GetImage(GifDecoder);
+                using Image<Rgba32> image = provider.GetImage(GifDecoder);
                 image.DebugSave(provider, nonContiguousBuffersStr);
                 image.CompareToOriginal(provider);
             }

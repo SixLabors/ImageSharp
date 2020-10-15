@@ -52,26 +52,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             }
         }
 
-        [ActiveIssue("https://github.com/dotnet/arcade/issues/6393", TargetFrameworkMonikers.NetFramework)]
         [Theory]
         [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
-        public void BmpDecoder_CanDecode_MiscellaneousBitmaps_WithLimitedAllocatorBufferCapacity<TPixel>(
-            TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public void BmpDecoder_CanDecode_MiscellaneousBitmaps_WithLimitedAllocatorBufferCapacity(
+            TestImageProvider<Rgba32> provider)
         {
-            // dotnet xunit doesn't respect filter.
-            if (TestEnvironment.IsFramework)
-            {
-                return;
-            }
-
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
-                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+                TestImageProvider<Rgba32> provider = BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
 
                 provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-                using Image<TPixel> image = provider.GetImage(BmpDecoder);
+                using Image<Rgba32> image = provider.GetImage(BmpDecoder);
                 image.DebugSave(provider, nonContiguousBuffersStr);
 
                 if (TestEnvironment.IsWindows)

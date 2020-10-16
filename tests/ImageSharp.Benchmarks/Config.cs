@@ -12,7 +12,7 @@ using BenchmarkDotNet.Jobs;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    public class Config : ManualConfig
+    public partial class Config : ManualConfig
     {
         public Config()
         {

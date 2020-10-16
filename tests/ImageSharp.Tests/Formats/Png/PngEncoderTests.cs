@@ -2,13 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-#if SUPPORTS_RUNTIME_INTRINSICS
-using System.Runtime.Intrinsics.X86;
-#endif
-using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
@@ -16,7 +11,6 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
@@ -538,13 +532,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
         public void EncodeWorksWithoutSsse3Intrinsics(TestImageProvider<Rgba32> provider)
         {
-            static void RunTest(string providerDump)
+            static void RunTest(string serialized)
             {
                 TestImageProvider<Rgba32> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
-#if SUPPORTS_RUNTIME_INTRINSICS
-                Assert.False(Ssse3.IsSupported);
-#endif
+                    FeatureTestRunner.Deserialize<TestImageProvider<Rgba32>>(serialized);
 
                 foreach (PngInterlaceMode interlaceMode in InterlaceMode)
                 {
@@ -559,19 +550,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 }
             }
 
-            string providerDump = BasicSerializer.Serialize(provider);
-
-            var processStartInfo = new ProcessStartInfo();
-            processStartInfo.Environment[TestEnvironment.Features.EnableSSE3] = TestEnvironment.Features.Off;
-
-            RemoteExecutor.Invoke(
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                providerDump,
-                new RemoteInvokeOptions
-                {
-                    StartInfo = processStartInfo
-                })
-                .Dispose();
+                HwIntrinsics.DisableSSSE3,
+                provider);
         }
 
         private static void TestPngEncoderCore<TPixel>(

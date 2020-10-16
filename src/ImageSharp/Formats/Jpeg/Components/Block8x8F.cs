@@ -281,73 +281,156 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         /// <param name="value">The value to multiply by.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void MultiplyInplace(float value)
+        public void MultiplyInPlace(float value)
         {
-            this.V0L *= value;
-            this.V0R *= value;
-            this.V1L *= value;
-            this.V1R *= value;
-            this.V2L *= value;
-            this.V2R *= value;
-            this.V3L *= value;
-            this.V3R *= value;
-            this.V4L *= value;
-            this.V4R *= value;
-            this.V5L *= value;
-            this.V5R *= value;
-            this.V6L *= value;
-            this.V6R *= value;
-            this.V7L *= value;
-            this.V7R *= value;
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx.IsSupported)
+            {
+                var valueVec = Vector256.Create(value);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V0L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V0L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V1L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V1L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V2L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V2L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V3L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V3L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V4L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V4L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V5L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V5L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V6L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V6L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V7L) = Avx.Multiply(Unsafe.As<Vector4, Vector256<float>>(ref this.V7L), valueVec);
+            }
+            else
+#endif
+            {
+                var valueVec = new Vector4(value);
+                this.V0L *= valueVec;
+                this.V0R *= valueVec;
+                this.V1L *= valueVec;
+                this.V1R *= valueVec;
+                this.V2L *= valueVec;
+                this.V2R *= valueVec;
+                this.V3L *= valueVec;
+                this.V3R *= valueVec;
+                this.V4L *= valueVec;
+                this.V4R *= valueVec;
+                this.V5L *= valueVec;
+                this.V5R *= valueVec;
+                this.V6L *= valueVec;
+                this.V6R *= valueVec;
+                this.V7L *= valueVec;
+                this.V7R *= valueVec;
+            }
         }
 
         /// <summary>
         /// Multiply all elements of the block by the corresponding elements of 'other'.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void MultiplyInplace(ref Block8x8F other)
+        public unsafe void MultiplyInPlace(ref Block8x8F other)
         {
-            this.V0L *= other.V0L;
-            this.V0R *= other.V0R;
-            this.V1L *= other.V1L;
-            this.V1R *= other.V1R;
-            this.V2L *= other.V2L;
-            this.V2R *= other.V2R;
-            this.V3L *= other.V3L;
-            this.V3R *= other.V3R;
-            this.V4L *= other.V4L;
-            this.V4R *= other.V4R;
-            this.V5L *= other.V5L;
-            this.V5R *= other.V5R;
-            this.V6L *= other.V6L;
-            this.V6R *= other.V6R;
-            this.V7L *= other.V7L;
-            this.V7R *= other.V7R;
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx.IsSupported)
+            {
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V0L)
+                    = Avx.Multiply(
+                        Unsafe.As<Vector4, Vector256<float>>(ref this.V0L),
+                        Unsafe.As<Vector4, Vector256<float>>(ref other.V0L));
+
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V1L)
+                    = Avx.Multiply(
+                        Unsafe.As<Vector4, Vector256<float>>(ref this.V1L),
+                        Unsafe.As<Vector4, Vector256<float>>(ref other.V1L));
+
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V2L)
+                    = Avx.Multiply(
+                        Unsafe.As<Vector4, Vector256<float>>(ref this.V2L),
+                        Unsafe.As<Vector4, Vector256<float>>(ref other.V2L));
+
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V3L)
+                    = Avx.Multiply(
+                        Unsafe.As<Vector4, Vector256<float>>(ref this.V3L),
+                        Unsafe.As<Vector4, Vector256<float>>(ref other.V3L));
+
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V4L)
+                    = Avx.Multiply(
+                        Unsafe.As<Vector4, Vector256<float>>(ref this.V4L),
+                        Unsafe.As<Vector4, Vector256<float>>(ref other.V4L));
+
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V5L)
+                    = Avx.Multiply(
+                        Unsafe.As<Vector4, Vector256<float>>(ref this.V5L),
+                        Unsafe.As<Vector4, Vector256<float>>(ref other.V5L));
+
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V6L)
+                    = Avx.Multiply(
+                        Unsafe.As<Vector4, Vector256<float>>(ref this.V6L),
+                        Unsafe.As<Vector4, Vector256<float>>(ref other.V6L));
+
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V7L)
+                    = Avx.Multiply(
+                        Unsafe.As<Vector4, Vector256<float>>(ref this.V7L),
+                        Unsafe.As<Vector4, Vector256<float>>(ref other.V7L));
+            }
+            else
+#endif
+            {
+                this.V0L *= other.V0L;
+                this.V0R *= other.V0R;
+                this.V1L *= other.V1L;
+                this.V1R *= other.V1R;
+                this.V2L *= other.V2L;
+                this.V2R *= other.V2R;
+                this.V3L *= other.V3L;
+                this.V3R *= other.V3R;
+                this.V4L *= other.V4L;
+                this.V4R *= other.V4R;
+                this.V5L *= other.V5L;
+                this.V5R *= other.V5R;
+                this.V6L *= other.V6L;
+                this.V6R *= other.V6R;
+                this.V7L *= other.V7L;
+                this.V7R *= other.V7R;
+            }
         }
 
         /// <summary>
         /// Adds a vector to all elements of the block.
         /// </summary>
-        /// <param name="diff">The added vector</param>
+        /// <param name="value">The added vector.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void AddToAllInplace(Vector4 diff)
+        public void AddInPlace(float value)
         {
-            this.V0L += diff;
-            this.V0R += diff;
-            this.V1L += diff;
-            this.V1R += diff;
-            this.V2L += diff;
-            this.V2R += diff;
-            this.V3L += diff;
-            this.V3R += diff;
-            this.V4L += diff;
-            this.V4R += diff;
-            this.V5L += diff;
-            this.V5R += diff;
-            this.V6L += diff;
-            this.V6R += diff;
-            this.V7L += diff;
-            this.V7R += diff;
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx.IsSupported)
+            {
+                var valueVec = Vector256.Create(value);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V0L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V0L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V1L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V1L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V2L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V2L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V3L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V3L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V4L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V4L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V5L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V5L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V6L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V6L), valueVec);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V7L) = Avx.Add(Unsafe.As<Vector4, Vector256<float>>(ref this.V7L), valueVec);
+            }
+            else
+#endif
+            {
+                var valueVec = new Vector4(value);
+                this.V0L += valueVec;
+                this.V0R += valueVec;
+                this.V1L += valueVec;
+                this.V1R += valueVec;
+                this.V2L += valueVec;
+                this.V2R += valueVec;
+                this.V3L += valueVec;
+                this.V3R += valueVec;
+                this.V4L += valueVec;
+                this.V4R += valueVec;
+                this.V5L += valueVec;
+                this.V5R += valueVec;
+                this.V6L += valueVec;
+                this.V6R += valueVec;
+                this.V7L += valueVec;
+                this.V7R += valueVec;
+            }
         }
 
         /// <summary>
@@ -468,23 +551,23 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <summary>
         /// Level shift by +maximum/2, clip to [0..maximum], and round all the values in the block.
         /// </summary>
-        public void NormalizeColorsAndRoundInplace(float maximum)
+        public void NormalizeColorsAndRoundInPlace(float maximum)
         {
             if (SimdUtils.HasVector8)
             {
-                this.NormalizeColorsAndRoundInplaceVector8(maximum);
+                this.NormalizeColorsAndRoundInPlaceVector8(maximum);
             }
             else
             {
-                this.NormalizeColorsInplace(maximum);
-                this.RoundInplace();
+                this.NormalizeColorsInPlace(maximum);
+                this.RoundInPlace();
             }
         }
 
         /// <summary>
         /// Rounds all values in the block.
         /// </summary>
-        public void RoundInplace()
+        public void RoundInPlace()
         {
             for (int i = 0; i < Size; i++)
             {

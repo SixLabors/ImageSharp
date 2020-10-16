@@ -5,10 +5,9 @@
 // #define BENCHMARKING
 using System;
 using System.Diagnostics;
-
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -165,19 +164,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void TransposeInto()
         {
-            float[] expected = Create8x8FloatData();
-            ReferenceImplementations.Transpose8x8(expected);
+            static void RunTest()
+            {
+                float[] expected = Create8x8FloatData();
+                ReferenceImplementations.Transpose8x8(expected);
 
-            var source = default(Block8x8F);
-            source.LoadFrom(Create8x8FloatData());
+                var source = default(Block8x8F);
+                source.LoadFrom(Create8x8FloatData());
 
-            var dest = default(Block8x8F);
-            source.TransposeInto(ref dest);
+                var dest = default(Block8x8F);
+                source.TransposeInto(ref dest);
 
-            float[] actual = new float[64];
-            dest.ScaledCopyTo(actual);
+                float[] actual = new float[64];
+                dest.ScaledCopyTo(actual);
 
-            Assert.Equal(expected, actual);
+                Assert.Equal(expected, actual);
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
         }
 
         private class BufferHolder

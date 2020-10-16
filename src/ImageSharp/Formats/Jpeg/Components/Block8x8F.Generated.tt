@@ -24,38 +24,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 	internal partial struct Block8x8F
     {
 		/// <summary>
-        /// Transpose the block into the destination block.
-        /// </summary>
-        /// <param name="d">The destination block</param>
-		[MethodImpl(InliningOptions.ShortMethod)]
-        public void TransposeInto(ref Block8x8F d)
-        {
-            <#
-			PushIndent("            ");
-
-            for (int i = 0; i < 8; i++)
-            {
-                char destCoord = coordz[i % 4];
-                char destSide = (i / 4) % 2 == 0 ? 'L' : 'R';
-
-                for (int j = 0; j < 8; j++)
-                {
-					if(i > 0 && j == 0){
-					WriteLine("");
-					}
-
-                    char srcCoord = coordz[j % 4];
-                    char srcSide = (j / 4) % 2 == 0 ? 'L' : 'R';
-
-                    var expression = $"d.V{j}{destSide}.{destCoord} = V{i}{srcSide}.{srcCoord};\r\n";
-					Write(expression);
-                }
-            }
-			PopIndent();
-			#>
-        }
-
-		/// <summary>
         /// Level shift by +maximum/2, clip to [0, maximum]
         /// </summary>
         public void NormalizeColorsInplace(float maximum)

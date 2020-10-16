@@ -45,6 +45,11 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
         [Fact]
         public void AllowsAllHwIntrinsicFeatures()
         {
+            if (!Vector.IsHardwareAccelerated)
+            {
+                return;
+            }
+
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 () => Assert.True(Vector.IsHardwareAccelerated),
                 HwIntrinsics.AllowAll);

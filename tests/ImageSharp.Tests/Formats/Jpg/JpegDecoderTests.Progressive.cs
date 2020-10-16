@@ -54,8 +54,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             RemoteExecutor.Invoke(
                 RunTest,
                 providerDump,
-                    "Disco")
-                    .Dispose();
+                "Disco").Dispose();
         }
     }
 }

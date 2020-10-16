@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 		/// <summary>
         /// Level shift by +maximum/2, clip to [0, maximum]
         /// </summary>
-        public void NormalizeColorsInplace(float maximum)
+        public void NormalizeColorsInPlace(float maximum)
         {
             var CMin4 = new Vector4(0F);
             var CMax4 = new Vector4(maximum);
@@ -38,10 +38,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// AVX2-only variant for executing <see cref="NormalizeColorsInplace"/> and <see cref="RoundInplace"/> in one step.
+        /// AVX2-only variant for executing <see cref="NormalizeColorsInPlace"/> and <see cref="RoundInPlace"/> in one step.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void NormalizeColorsAndRoundInplaceVector8(float maximum)
+        public void NormalizeColorsAndRoundInPlaceVector8(float maximum)
         {
             var off = new Vector<float>(MathF.Ceiling(maximum / 2));
             var max = new Vector<float>(maximum);

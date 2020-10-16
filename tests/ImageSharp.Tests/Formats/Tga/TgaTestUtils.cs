@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
             Image<TPixel> image,
             bool useExactComparer = true,
             float compareTolerance = 0.01f)
-            where TPixel : unmanaged, IPixel<TPixel>
+            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
         {
             string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
             if (path == null)
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         }
 
         public static Image<TPixel> DecodeWithMagick<TPixel>(Configuration configuration, FileInfo fileInfo)
-            where TPixel : unmanaged, IPixel<TPixel>
+            where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
         {
             using (var magickImage = new MagickImage(fileInfo))
             {
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
 
                 Assert.True(result.TryGetSinglePixelSpan(out Span<TPixel> resultPixels));
 
-                using (IPixelCollection pixels = magickImage.GetPixelsUnsafe())
+                using (IUnsafePixelCollection<ushort> pixels = magickImage.GetPixelsUnsafe())
                 {
                     byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
 

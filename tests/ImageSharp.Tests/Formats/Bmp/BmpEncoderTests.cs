@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -200,10 +200,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                     Quantizer = new WuQuantizer()
                 };
                 string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
+
+                // Use the default decoder to test our encoded image. This verifies the content.
+                // We do not verify the reference image though as some are invalid.
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
                 using (var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
                 {
-                    referenceImage.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f), provider, extension: "bmp", appendPixelTypeToFileName: false);
+                    referenceImage.CompareToReferenceOutput(
+                        ImageComparer.TolerantPercentage(0.01f),
+                        provider,
+                        extension: "bmp",
+                        appendPixelTypeToFileName: false,
+                        decoder: new MagickReferenceDecoder(false));
                 }
             }
         }
@@ -226,10 +234,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                     Quantizer = new OctreeQuantizer()
                 };
                 string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
+
+                // Use the default decoder to test our encoded image. This verifies the content.
+                // We do not verify the reference image though as some are invalid.
                 IImageDecoder referenceDecoder = TestEnvironment.GetReferenceDecoder(actualOutputFile);
                 using (var referenceImage = Image.Load<TPixel>(actualOutputFile, referenceDecoder))
                 {
-                    referenceImage.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.01f), provider, extension: "bmp", appendPixelTypeToFileName: false);
+                    referenceImage.CompareToReferenceOutput(
+                        ImageComparer.TolerantPercentage(0.01f),
+                        provider,
+                        extension: "bmp",
+                        appendPixelTypeToFileName: false,
+                        decoder: new MagickReferenceDecoder(false));
                 }
             }
         }

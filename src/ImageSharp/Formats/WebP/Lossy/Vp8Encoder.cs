@@ -45,10 +45,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.memoryAllocator = memoryAllocator;
 
             var pixelCount = width * height;
+            int mbw = (width + 15) >> 4;
             var uvSize = ((width + 1) >> 1) * ((height + 1) >> 1);
             this.Y = this.memoryAllocator.Allocate<byte>(pixelCount);
             this.U = this.memoryAllocator.Allocate<byte>(uvSize);
             this.V = this.memoryAllocator.Allocate<byte>(uvSize);
+            this.YTop = this.memoryAllocator.Allocate<byte>(mbw * 16);
+            this.UvTop = this.memoryAllocator.Allocate<byte>(mbw * 16 * 2);
 
             // TODO: properly initialize the bitwriter
             this.bitWriter = new Vp8BitWriter();
@@ -60,7 +63,53 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private IMemoryOwner<byte> V { get; }
 
+        /// <summary>
+        /// Gets the top luma samples.
+        /// </summary>
+        private IMemoryOwner<byte> YTop { get; }
+
+        /// <summary>
+        /// Gets the top u/v samples. U and V are packed into 16 bytes (8 U + 8 V).
+        /// </summary>
+        private IMemoryOwner<byte> UvTop { get; }
+
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            this.ConvertRgbToYuv(image);
+            Span<byte> y = this.Y.GetSpan();
+            Span<byte> u = this.U.GetSpan();
+            Span<byte> v = this.V.GetSpan();
+
+            int mbw = (image.Width + 15) >> 4;
+            int mbh = (image.Height + 15) >> 4;
+            int yStride = image.Width;
+            int uvStride = (yStride + 1) >> 1;
+            var it = new Vp8EncIterator(this.memoryAllocator, this.YTop, this.UvTop, mbw, mbh);
+            if (!it.IsDone())
+            {
+                do
+                {
+                    it.Import(y, u, v, yStride, uvStride, image.Width, image.Height);
+                    // TODO: MBAnalyze
+                }
+                while (it.Next(mbw));
+            }
+
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.Y.Dispose();
+            this.U.Dispose();
+            this.V.Dispose();
+            this.YTop.Dispose();
+            this.UvTop.Dispose();
+        }
+
+        private void ConvertRgbToYuv<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int uvWidth = (image.Width + 1) >> 1;
@@ -109,16 +158,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                     this.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
                 }
             }
-
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc/>
-        public void Dispose()
-        {
-            this.Y.Dispose();
-            this.U.Dispose();
-            this.V.Dispose();
         }
 
         // Returns true if alpha has non-0xff values.

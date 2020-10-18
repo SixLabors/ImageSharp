@@ -16,23 +16,31 @@ jobs:
                 options:
                     - os: ubuntu-latest
                       framework: netcoreapp3.1
-                      runtime: -x64
+                      runtime: x64
                       codecov: true
                     - os: windows-latest
                       framework: netcoreapp3.1
-                      runtime: -x64
+                      runtime: x64
+                      codecov: false
+                    - os: windows-latest
+                      framework: netcoreapp3.1
+                      runtime: x86
                       codecov: false
                     - os: windows-latest
                       framework: netcoreapp2.1
-                      runtime: -x64
+                      runtime: x64
+                      codecov: false
+                    - os: windows-latest
+                      framework: netcoreapp2.1
+                      runtime: x86
                       codecov: false
                     - os: windows-latest
                       framework: net472
-                      runtime: -x64
+                      runtime: x64
                       codecov: false
                     - os: windows-latest
                       framework: net472
-                      runtime: -x86
+                      runtime: x86
                       codecov: false
 
         runs-on: ${{matrix.options.os}}
@@ -54,14 +62,13 @@ jobs:
 
             - name: Build
               shell: pwsh
-              run: ./ci-build.ps1 "${{matrix.options.framework}}"
+              run: ./ci-build.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}"
 
             - name: Test
               shell: pwsh
               run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
               env:
                   CI: True
-                  XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
             - name: Update Codecov
               uses: codecov/codecov-action@v1

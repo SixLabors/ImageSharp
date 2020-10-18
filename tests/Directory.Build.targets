@@ -16,13 +16,6 @@
 
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.targets" />
 
-  <!-- Tool versions for tool references across all projects -->
-  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
-    <!--dotnet tools does not have an x86 runner. You have to use separate SDKs-->
-    <!--https://github.com/actions/setup-dotnet/issues/72-->
-    <DotNetCliToolReference Update="dotnet-xunit" Version="2.3.1" />
-  </ItemGroup>
-
   <ItemGroup>
     <!--Test Dependencies-->
     <PackageReference Update="BenchmarkDotNet" Version="0.12.1" />

@@ -31,10 +31,6 @@ jobs:
                       runtime: x64
                       codecov: false
                     - os: windows-latest
-                      framework: netcoreapp2.1
-                      runtime: x86
-                      codecov: false
-                    - os: windows-latest
                       framework: net472
                       runtime: x64
                       codecov: false

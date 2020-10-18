@@ -1,10 +1,10 @@
 param(
   [Parameter(Mandatory, Position = 0)]
   [string]$os,
-  [Parameter(Mandatory = $true, Position = 1)]
-  [string]$targetFramework
+  [Parameter(Mandatory, Position = 1)]
+  [string]$targetFramework,
   [Parameter(Mandatory, Position = 2)]
-  [string]$platform,
+  [string]$platform
 )
 
 dotnet clean -c Release

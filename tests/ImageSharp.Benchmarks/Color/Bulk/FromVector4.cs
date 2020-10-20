@@ -104,12 +104,12 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [Benchmark]
-        public void UseAvx2()
+        public void UseHwIntrinsics()
         {
             Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
             Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
 
-            SimdUtils.Avx2Intrinsics.NormalizedFloatToByteSaturate(sBytes, dFloats);
+            SimdUtils.HwIntrinsics.NormalizedFloatToByteSaturate(sBytes, dFloats);
         }
 
         private static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };

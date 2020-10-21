@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp
         /// Bulk variant of <see cref="Premultiply(ref Vector4)"/>
         /// </summary>
         /// <param name="vectors">The span of vectors</param>
-        [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void Premultiply(Span<Vector4> vectors)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -107,7 +107,7 @@ namespace SixLabors.ImageSharp
         /// Bulk variant of <see cref="UnPremultiply(ref Vector4)"/>
         /// </summary>
         /// <param name="vectors">The span of vectors</param>
-        [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public static void UnPremultiply(Span<Vector4> vectors)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS

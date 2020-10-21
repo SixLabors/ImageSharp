@@ -5,6 +5,10 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp
 {
@@ -13,6 +17,10 @@ namespace SixLabors.ImageSharp
     /// </summary>
     internal static class Vector4Utilities
     {
+        private const int BlendAlphaControl = 0b10001000;
+
+        private static ReadOnlySpan<byte> PermuteAlphaMask8x32 => new byte[] { 3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0, 7, 0, 0, 0, 7, 0, 0, 0, 7, 0, 0, 0 };
+
         /// <summary>
         /// Restricts a vector between a minimum and a maximum value.
         /// 5x Faster then <see cref="Vector4.Clamp(Vector4, Vector4, Vector4)"/>.
@@ -56,13 +64,39 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void Premultiply(Span<Vector4> vectors)
         {
-            // TODO: This method can be AVX2 optimized using Vector<float>
-            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
-
-            for (int i = 0; i < vectors.Length; i++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported && vectors.Length >= 2)
             {
-                ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                Premultiply(ref v);
+                ref Vector256<float> vectorsBase =
+                    ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
+
+                Vector256<int> mask =
+                    Unsafe.As<byte, Vector256<int>>(ref MemoryMarshal.GetReference(PermuteAlphaMask8x32));
+
+                int n = (vectors.Length * 4) / Vector256<float>.Count;
+                for (int i = 0; i < n; i++)
+                {
+                    ref Vector256<float> source = ref Unsafe.Add(ref vectorsBase, i);
+                    Vector256<float> multiply = Avx2.PermuteVar8x32(source, mask);
+                    source = Avx.Blend(Avx.Multiply(source, multiply), source, BlendAlphaControl);
+                }
+
+                if (ImageMaths.Modulo2(vectors.Length) != 0)
+                {
+                    // Vector4 fits neatly in pairs. Any overlap has to be equal to 1.
+                    Premultiply(ref MemoryMarshal.GetReference(vectors.Slice(vectors.Length - 1)));
+                }
+            }
+            else
+#endif
+            {
+                ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+
+                for (int i = 0; i < vectors.Length; i++)
+                {
+                    ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+                    Premultiply(ref v);
+                }
             }
         }
 
@@ -73,13 +107,39 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void UnPremultiply(Span<Vector4> vectors)
         {
-            // TODO: This method can be AVX2 optimized using Vector<float>
-            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
-
-            for (int i = 0; i < vectors.Length; i++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported && vectors.Length >= 2)
             {
-                ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                UnPremultiply(ref v);
+                ref Vector256<float> vectorsBase =
+                    ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
+
+                Vector256<int> mask =
+                    Unsafe.As<byte, Vector256<int>>(ref MemoryMarshal.GetReference(PermuteAlphaMask8x32));
+
+                int n = (vectors.Length * 4) / Vector256<float>.Count;
+                for (int i = 0; i < n; i++)
+                {
+                    ref Vector256<float> source = ref Unsafe.Add(ref vectorsBase, i);
+                    Vector256<float> multiply = Avx2.PermuteVar8x32(source, mask);
+                    source = Avx.Blend(Avx.Divide(source, multiply), source, BlendAlphaControl);
+                }
+
+                if (ImageMaths.Modulo2(vectors.Length) != 0)
+                {
+                    // Vector4 fits neatly in pairs. Any overlap has to be equal to 1.
+                    UnPremultiply(ref MemoryMarshal.GetReference(vectors.Slice(vectors.Length - 1)));
+                }
+            }
+            else
+#endif
+            {
+                ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+
+                for (int i = 0; i < vectors.Length; i++)
+                {
+                    ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+                    UnPremultiply(ref v);
+                }
             }
         }
 

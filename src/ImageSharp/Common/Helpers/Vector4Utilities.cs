@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp
         /// Bulk variant of <see cref="Premultiply(ref Vector4)"/>
         /// </summary>
         /// <param name="vectors">The span of vectors</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
         public static void Premultiply(Span<Vector4> vectors)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -73,12 +73,15 @@ namespace SixLabors.ImageSharp
                 Vector256<int> mask =
                     Unsafe.As<byte, Vector256<int>>(ref MemoryMarshal.GetReference(PermuteAlphaMask8x32));
 
-                int n = (vectors.Length * 4) / Vector256<float>.Count;
-                for (int i = 0; i < n; i++)
+                // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
+                ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
+
+                while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
                 {
-                    ref Vector256<float> source = ref Unsafe.Add(ref vectorsBase, i);
+                    Vector256<float> source = vectorsBase;
                     Vector256<float> multiply = Avx2.PermuteVar8x32(source, mask);
-                    source = Avx.Blend(Avx.Multiply(source, multiply), source, BlendAlphaControl);
+                    vectorsBase = Avx.Blend(Avx.Multiply(source, multiply), source, BlendAlphaControl);
+                    vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
                 }
 
                 if (ImageMaths.Modulo2(vectors.Length) != 0)
@@ -104,7 +107,7 @@ namespace SixLabors.ImageSharp
         /// Bulk variant of <see cref="UnPremultiply(ref Vector4)"/>
         /// </summary>
         /// <param name="vectors">The span of vectors</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(InliningOptions.HotPath | InliningOptions.ShortMethod)]
         public static void UnPremultiply(Span<Vector4> vectors)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -116,12 +119,15 @@ namespace SixLabors.ImageSharp
                 Vector256<int> mask =
                     Unsafe.As<byte, Vector256<int>>(ref MemoryMarshal.GetReference(PermuteAlphaMask8x32));
 
-                int n = (vectors.Length * 4) / Vector256<float>.Count;
-                for (int i = 0; i < n; i++)
+                // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
+                ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
+
+                while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
                 {
-                    ref Vector256<float> source = ref Unsafe.Add(ref vectorsBase, i);
+                    Vector256<float> source = vectorsBase;
                     Vector256<float> multiply = Avx2.PermuteVar8x32(source, mask);
-                    source = Avx.Blend(Avx.Divide(source, multiply), source, BlendAlphaControl);
+                    vectorsBase = Avx.Blend(Avx.Divide(source, multiply), source, BlendAlphaControl);
+                    vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
                 }
 
                 if (ImageMaths.Modulo2(vectors.Length) != 0)

@@ -7,7 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Tuples;
-
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -209,9 +209,17 @@ namespace SixLabors.ImageSharp.Tests.Common
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void HwIntrinsics_BulkConvertByteToNormalizedFloat(int count)
         {
-            TestImpl_BulkConvertByteToNormalizedFloat(
-                count,
-                (s, d) => SimdUtils.HwIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
+            static void RunTest(string serialized)
+            {
+                TestImpl_BulkConvertByteToNormalizedFloat(
+                    FeatureTestRunner.Deserialize(serialized),
+                    (s, d) => SimdUtils.HwIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41,
+                count);
         }
 #endif
 
@@ -294,9 +302,17 @@ namespace SixLabors.ImageSharp.Tests.Common
         [MemberData(nameof(ArraySizesDivisibleBy32))]
         public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
-                count,
-                (s, d) => SimdUtils.HwIntrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
+            static void RunTest(string serialized)
+            {
+                TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+                    FeatureTestRunner.Deserialize(serialized),
+                    (s, d) => SimdUtils.HwIntrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2,
+                count);
         }
 
 #endif

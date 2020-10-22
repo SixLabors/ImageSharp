@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Performs the tiff decoding operation.
     /// </summary>
-    internal class TiffDecoderCore : IImageDecoderInternals, IDisposable
+    internal class TiffDecoderCore : IImageDecoderInternals
     {
         /// <summary>
         /// The global configuration
@@ -35,41 +35,21 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         private readonly bool ignoreMetadata;
 
+        private BufferedReadStream inputStream;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
         /// <param name="options">The decoder options.</param>
-        private TiffDecoderCore(Configuration configuration, ITiffDecoderOptions options)
+        public TiffDecoderCore(Configuration configuration, ITiffDecoderOptions options)
         {
-            options = options ?? new TiffDecoder();
+            options ??= new TiffDecoder();
 
             this.configuration = configuration ?? Configuration.Default;
             this.ignoreMetadata = options.IgnoreMetadata;
             this.memoryAllocator = this.configuration.MemoryAllocator;
         }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
-        /// </summary>
-        /// <param name="stream">The stream.</param>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="options">The decoder options.</param>
-        public TiffDecoderCore(Stream stream, Configuration configuration, ITiffDecoderOptions options)
-            : this(configuration, options)
-        {
-            this.ByteOrder = TiffStreamFactory.ReadByteOrder(stream);
-        }
-
-        /// <summary>
-        /// Gets the byte order.
-        /// </summary>
-        public TiffByteOrder ByteOrder { get; }
-
-        /// <summary>
-        /// Gets the input stream.
-        /// </summary>
-        public TiffStream Stream { get; private set; }
 
         /// <summary>
         /// Gets or sets the number of bits for each sample of the pixel format used to encode the image.
@@ -111,8 +91,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            this.Stream = TiffStreamFactory.Create(this.ByteOrder, stream);
-            var reader = new DirectoryReader(this.Stream);
+            this.inputStream = stream;
+            TiffStream tiffStream = CreateStream(stream);
+            var reader = new DirectoryReader(tiffStream);
 
             IEnumerable<IExifValue[]> directories = reader.Read();
 
@@ -125,7 +106,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 framesMetadata.Add(frameMetadata);
             }
 
-            ImageMetadata metadata = framesMetadata.CreateMetadata(this.ignoreMetadata, this.Stream.ByteOrder);
+            ImageMetadata metadata = framesMetadata.CreateMetadata(this.ignoreMetadata, tiffStream.ByteOrder);
 
             // todo: tiff frames can have different sizes
             {
@@ -135,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 {
                     if (frame.Size() != root.Size())
                     {
-                        throw new NotSupportedException("Images with different sizes are not supported");
+                        TiffThrowHelper.ThrowNotSupported("Images with different sizes are not supported");
                     }
                 }
             }
@@ -148,8 +129,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <inheritdoc/>
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
-            this.Stream = TiffStreamFactory.Create(this.ByteOrder, stream);
-            var reader = new DirectoryReader(this.Stream);
+            this.inputStream = stream;
+            TiffStream tiffStream = CreateStream(stream);
+            var reader = new DirectoryReader(tiffStream);
 
             IEnumerable<IExifValue[]> directories = reader.Read();
 
@@ -159,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 framesMetadata.Add(new TiffFrameMetadata() { Tags = ifd });
             }
 
-            ImageMetadata metadata = framesMetadata.CreateMetadata(this.ignoreMetadata, this.Stream.ByteOrder);
+            ImageMetadata metadata = framesMetadata.CreateMetadata(this.ignoreMetadata, tiffStream.ByteOrder);
 
             TiffFrameMetadata root = framesMetadata.First();
             int bitsPerPixel = 0;
@@ -171,10 +153,35 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return new ImageInfo(new PixelTypeInfo(bitsPerPixel), (int)root.Width, (int)root.Height, metadata);
         }
 
-        /// <inheritdoc/>
-        public void Dispose()
+        private static TiffStream CreateStream(Stream stream)
         {
-            // nothing
+            TiffByteOrder byteOrder = ReadByteOrder(stream);
+            if (byteOrder == TiffByteOrder.BigEndian)
+            {
+                return new TiffBigEndianStream(stream);
+            }
+            else if (byteOrder == TiffByteOrder.LittleEndian)
+            {
+                return new TiffLittleEndianStream(stream);
+            }
+
+            throw TiffThrowHelper.InvalidHeader();
+        }
+
+        private static TiffByteOrder ReadByteOrder(Stream stream)
+        {
+            byte[] headerBytes = new byte[2];
+            stream.Read(headerBytes, 0, 2);
+            if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
+            {
+                return TiffByteOrder.LittleEndian;
+            }
+            else if (headerBytes[0] == TiffConstants.ByteOrderBigEndian && headerBytes[1] == TiffConstants.ByteOrderBigEndian)
+            {
+                return TiffByteOrder.BigEndian;
+            }
+
+            throw TiffThrowHelper.InvalidHeader();
         }
 
         /// <summary>
@@ -283,8 +290,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     {
                         int stripIndex = (i * stripsPerPixel) + planeIndex;
 
-                        this.Stream.Seek(stripOffsets[stripIndex]);
-                        decompressor.Decompress(this.Stream.InputStream, (int)stripByteCounts[stripIndex], stripBuffers[planeIndex].GetSpan());
+                        this.inputStream.Seek(stripOffsets[stripIndex], SeekOrigin.Begin);
+                        decompressor.Decompress(this.inputStream, (int)stripByteCounts[stripIndex], stripBuffers[planeIndex].GetSpan());
                     }
 
                     colorDecoder.Decode(stripBuffers, pixels, 0, rowsPerStrip * i, frame.Width, stripHeight);
@@ -316,8 +323,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             {
                 int stripHeight = stripIndex < stripOffsets.Length - 1 || frame.Height % rowsPerStrip == 0 ? rowsPerStrip : frame.Height % rowsPerStrip;
 
-                this.Stream.Seek(stripOffsets[stripIndex]);
-                decompressor.Decompress(this.Stream.InputStream, (int)stripByteCounts[stripIndex], stripBuffer.GetSpan());
+                this.inputStream.Seek(stripOffsets[stripIndex], SeekOrigin.Begin);
+                decompressor.Decompress(this.inputStream, (int)stripByteCounts[stripIndex], stripBuffer.GetSpan());
 
                 colorDecoder.Decode(stripBuffer.GetSpan(), pixels, 0, rowsPerStrip * stripIndex, frame.Width, stripHeight);
             }

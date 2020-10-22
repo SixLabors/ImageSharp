@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             Guard.NotNull(stream, "stream");
 
-            using var decoder = new TiffDecoderCore(stream, configuration, this);
+            var decoder = new TiffDecoderCore(configuration, this);
             return decoder.Decode<TPixel>(configuration, stream);
         }
 
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new TiffDecoderCore(stream, configuration, this);
+            var decoder = new TiffDecoderCore(configuration, this);
             return decoder.DecodeAsync<TPixel>(configuration, stream, cancellationToken);
         }
 
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new TiffDecoderCore(stream, configuration, this);
+            var decoder = new TiffDecoderCore(configuration, this);
             return decoder.Identify(configuration, stream);
         }
 
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new TiffDecoderCore(stream, configuration, this);
+            var decoder = new TiffDecoderCore(configuration, this);
             return decoder.IdentifyAsync(configuration, stream, cancellationToken);
         }
     }

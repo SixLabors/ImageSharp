@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     return new PaletteTiffColor<TPixel>(bitsPerSample, colorMap);
 
                 default:
-                    throw new InvalidOperationException();
+                    throw TiffThrowHelper.InvalidColorType(colorType.ToString());
             }
         }
 
@@ -88,7 +88,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     return new RgbPlanarTiffColor<TPixel>(bitsPerSample);
 
                 default:
-                    throw new InvalidOperationException();
+                    throw TiffThrowHelper.InvalidColorType(colorType.ToString());
             }
         }
     }

@@ -92,22 +92,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             if (entries.ExtraSamples != null)
             {
-                throw new NotSupportedException("ExtraSamples is not supported.");
+                TiffThrowHelper.ThrowNotSupported("ExtraSamples is not supported.");
             }
 
             if (entries.FillOrder != TiffFillOrder.MostSignificantBitFirst)
             {
-                throw new NotSupportedException("The lower-order bits of the byte FillOrder is not supported.");
+                TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is not supported.");
             }
 
             if (entries.GetArray<uint>(ExifTag.TileOffsets, true) != null)
             {
-                throw new NotSupportedException("The Tile images is not supported.");
+                TiffThrowHelper.ThrowNotSupported("The Tile images is not supported.");
             }
 
             if (entries.Predictor != TiffPredictor.None)
             {
-                throw new NotSupportedException("At the moment support only None Predictor.");
+                TiffThrowHelper.ThrowNotSupported("At the moment support only None Predictor.");
             }
 
             if (entries.SampleFormat != null)
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 {
                     if (format != TiffSampleFormat.UnsignedInteger)
                     {
-                        throw new NotSupportedException("At the moment support only UnsignedInteger SampleFormat.");
+                        TiffThrowHelper.ThrowNotSupported("At the moment support only UnsignedInteger SampleFormat.");
                     }
                 }
             }
@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
                     else
                     {
-                        throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                     }
 
                     break;
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
                     else
                     {
-                        throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                     }
 
                     break;
@@ -236,7 +236,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
                     else
                     {
-                        throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                     }
 
                     break;
@@ -260,19 +260,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         }
                         else
                         {
-                            throw new NotSupportedException("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                            TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                         }
                     }
                     else
                     {
-                        throw new ImageFormatException("The TIFF ColorMap entry is missing for a palette color image.");
+                        TiffThrowHelper.ThrowNotSupported("The TIFF ColorMap entry is missing for a palette color image.");
                     }
 
                     break;
                 }
 
                 default:
-                    throw new NotSupportedException("The specified TIFF photometric interpretation is not supported: " + options.PhotometricInterpretation);
+                {
+                    TiffThrowHelper.ThrowNotSupported("The specified TIFF photometric interpretation is not supported: " + options.PhotometricInterpretation);
+                }
+
+                break;
             }
         }
 
@@ -288,7 +292,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
                 else
                 {
-                    throw new ImageFormatException("The TIFF BitsPerSample entry is missing.");
+                    TiffThrowHelper.ThrowNotSupported("The TIFF BitsPerSample entry is missing.");
                 }
             }
         }
@@ -304,7 +308,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
                 else
                 {
-                    throw new ImageFormatException("The TIFF photometric interpretation entry is missing.");
+                    TiffThrowHelper.ThrowNotSupported("The TIFF photometric interpretation entry is missing.");
                 }
             }
 
@@ -346,7 +350,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 default:
                 {
-                    throw new NotSupportedException("The specified TIFF compression format is not supported: " + compression);
+                    TiffThrowHelper.ThrowNotSupported("The specified TIFF compression format is not supported: " + compression);
+                    break;
                 }
             }
         }

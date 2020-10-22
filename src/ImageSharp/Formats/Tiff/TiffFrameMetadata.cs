@@ -209,7 +209,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             if (!optional)
             {
-                throw new ArgumentException("Required tag is not founded: " + tag, nameof(tag));
+                TiffThrowHelper.ThrowTagNotFound(nameof(tag));
             }
 
             return null;
@@ -245,7 +245,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             if (!optional)
             {
-                throw new ArgumentException("Required tag is not founded: " + tag, nameof(tag));
+                TiffThrowHelper.ThrowTagNotFound(nameof(tag));
             }
 
             return null;
@@ -283,7 +283,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private TEnum GetSingleEnum<TEnum, TTagValue>(ExifTag tag, TEnum? defaultValue = null)
             where TEnum : struct
             where TTagValue : struct
-        => this.GetSingleEnumNullable<TEnum, TTagValue>(tag) ?? (defaultValue != null ? defaultValue.Value : throw new ArgumentException("Required tag is not founded: " + tag, nameof(tag)));
+        => this.GetSingleEnumNullable<TEnum, TTagValue>(tag) ?? (defaultValue != null ? defaultValue.Value : throw TiffThrowHelper.TagNotFound(nameof(tag)));
 
         private T GetSingle<T>(ExifTag tag)
             where T : struct
@@ -293,7 +293,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 return result;
             }
 
-            throw new ArgumentException("Required tag is not founded: " + tag, nameof(tag));
+            throw TiffThrowHelper.TagNotFound(nameof(tag));
         }
 
         private bool TryGetSingle<T>(ExifTag tag, out T result)

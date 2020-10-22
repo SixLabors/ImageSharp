@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         private static void UnPremultiply(ref Vector4 source)
         {
             float w = source.W;
-            source *= w;
+            source /= w;
             source.W = w;
         }
 

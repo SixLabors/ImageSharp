@@ -17,9 +17,8 @@ namespace SixLabors.ImageSharp
     /// </summary>
     internal static class Vector4Utilities
     {
-        private const int BlendAlphaControl = 0b10001000;
-
-        private static ReadOnlySpan<byte> PermuteAlphaMask8x32 => new byte[] { 3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0, 7, 0, 0, 0, 7, 0, 0, 0, 7, 0, 0, 0 };
+        private const int BlendAlphaControl = 0b_10_00_10_00;
+        private const int ShuffleAlphaControl = 0b_11_11_11_11;
 
         /// <summary>
         /// Restricts a vector between a minimum and a maximum value.
@@ -70,16 +69,13 @@ namespace SixLabors.ImageSharp
                 ref Vector256<float> vectorsBase =
                     ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
 
-                Vector256<int> mask =
-                    Unsafe.As<byte, Vector256<int>>(ref MemoryMarshal.GetReference(PermuteAlphaMask8x32));
-
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
 
                 while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
                 {
                     Vector256<float> source = vectorsBase;
-                    Vector256<float> multiply = Avx2.PermuteVar8x32(source, mask);
+                    Vector256<float> multiply = Avx.Shuffle(source, source, ShuffleAlphaControl);
                     vectorsBase = Avx.Blend(Avx.Multiply(source, multiply), source, BlendAlphaControl);
                     vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
                 }
@@ -116,16 +112,13 @@ namespace SixLabors.ImageSharp
                 ref Vector256<float> vectorsBase =
                     ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
 
-                Vector256<int> mask =
-                    Unsafe.As<byte, Vector256<int>>(ref MemoryMarshal.GetReference(PermuteAlphaMask8x32));
-
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
 
                 while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
                 {
                     Vector256<float> source = vectorsBase;
-                    Vector256<float> multiply = Avx2.PermuteVar8x32(source, mask);
+                    Vector256<float> multiply = Avx.Shuffle(source, source, ShuffleAlphaControl);
                     vectorsBase = Avx.Blend(Avx.Divide(source, multiply), source, BlendAlphaControl);
                     vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
                 }

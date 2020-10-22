@@ -205,6 +205,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public const int AlphaFix = 19;
 
+        public const int MaxAlpha = 255;
+
+        public const int AlphaScale = 2 * MaxAlpha;
+
         /// <summary>
         /// How many extra lines are needed on the MB boundary for caching, given a filtering level.
         /// Simple filter(1):  up to 2 luma samples are read and 1 is written.

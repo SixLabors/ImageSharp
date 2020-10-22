@@ -46,16 +46,24 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
             var pixelCount = width * height;
             int mbw = (width + 15) >> 4;
+            int mbh = (height + 15) >> 4;
             var uvSize = ((width + 1) >> 1) * ((height + 1) >> 1);
             this.Y = this.memoryAllocator.Allocate<byte>(pixelCount);
             this.U = this.memoryAllocator.Allocate<byte>(uvSize);
             this.V = this.memoryAllocator.Allocate<byte>(uvSize);
             this.YTop = this.memoryAllocator.Allocate<byte>(mbw * 16);
             this.UvTop = this.memoryAllocator.Allocate<byte>(mbw * 16 * 2);
+            this.Preds = this.memoryAllocator.Allocate<byte>(((4 * mbw) + 1) * ((4 * mbh) + 1));
+            this.Nz = this.memoryAllocator.Allocate<uint>(mbw + 1);
 
             // TODO: properly initialize the bitwriter
             this.bitWriter = new Vp8BitWriter();
         }
+
+        /// <summary>
+        /// Gets or sets the global susceptibility.
+        /// </summary>
+        public int Alpha { get; set; }
 
         private IMemoryOwner<byte> Y { get; }
 
@@ -73,6 +81,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// </summary>
         private IMemoryOwner<byte> UvTop { get; }
 
+        /// <summary>
+        /// Gets the prediction modes: (4*mbw+1) * (4*mbh+1).
+        /// </summary>
+        private IMemoryOwner<byte> Preds { get; }
+
+        /// <summary>
+        /// Gets the non-zero pattern.
+        /// </summary>
+        private IMemoryOwner<uint> Nz { get; }
+
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -85,15 +103,30 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             int mbh = (image.Height + 15) >> 4;
             int yStride = image.Width;
             int uvStride = (yStride + 1) >> 1;
-            var it = new Vp8EncIterator(this.memoryAllocator, this.YTop, this.UvTop, mbw, mbh);
+            var mb = new Vp8MacroBlockInfo[mbw * mbh];
+            for (int i = 0; i < mb.Length; i++)
+            {
+                mb[i] = new Vp8MacroBlockInfo();
+            }
+
+            var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Preds, this.Nz, mb, mbw, mbh);
+            int method = 4; // TODO: hardcoded for now
+            int quality = 100; // TODO: hardcoded for now
+            var alphas = new int[WebPConstants.MaxAlpha + 1];
+            int uvAlpha = 0;
+            int alpha = 0;
             if (!it.IsDone())
             {
                 do
                 {
                     it.Import(y, u, v, yStride, uvStride, image.Width, image.Height);
-                    // TODO: MBAnalyze
+                    int bestAlpha = this.MbAnalyze(it, method, quality, alphas, out var bestUvAlpha);
+
+                    // Accumulate for later complexity analysis.
+                    alpha += bestAlpha;
+                    uvAlpha += bestUvAlpha;
                 }
-                while (it.Next(mbw));
+                while (it.Next());
             }
 
             throw new NotImplementedException();
@@ -107,6 +140,34 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.V.Dispose();
             this.YTop.Dispose();
             this.UvTop.Dispose();
+            this.Preds.Dispose();
+        }
+
+        private int MbAnalyze(Vp8EncIterator it, int method, int quality, int[] alphas, out int bestUvAlpha)
+        {
+            it.SetIntra16Mode(0);    // default: Intra16, DC_PRED
+            it.SetSkip(false);       // not skipped.
+            it.SetSegment(0);        // default segment, spec-wise.
+
+            int bestAlpha;
+            if (method <= 1)
+            {
+                bestAlpha = it.FastMbAnalyze(quality);
+            }
+            else
+            {
+                bestAlpha = it.MbAnalyzeBestIntra16Mode();
+            }
+
+            bestUvAlpha = it.MbAnalyzeBestUvMode();
+
+            // Final susceptibility mix.
+            bestAlpha = ((3 * bestAlpha) + bestUvAlpha + 2) >> 2;
+            bestAlpha = this.FinalAlphaValue(bestAlpha);
+            alphas[bestAlpha]++;
+            it.CurrentMacroBlockInfo.Alpha = bestAlpha;   // For later remapping.
+
+            return bestAlpha; // Mixed susceptibility (not just luma)
         }
 
         private void ConvertRgbToYuv<TPixel>(Image<TPixel> image)
@@ -394,6 +455,19 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         {
             uv = (uv + rounding + (128 << (YuvFix + 2))) >> (YuvFix + 2);
             return ((uv & ~0xff) == 0) ? uv : (uv < 0) ? 0 : 255;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private int FinalAlphaValue(int alpha)
+        {
+            alpha = WebPConstants.MaxAlpha - alpha;
+            return this.Clip(alpha, 0, WebPConstants.MaxAlpha);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private int Clip(int v, int min, int max)
+        {
+            return (v < min) ? min : (v > max) ? max : v;
         }
     }
 }

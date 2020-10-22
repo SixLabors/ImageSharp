@@ -22,6 +22,20 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public static readonly int[] LinearToGammaTab = new int[WebPConstants.GammaTabSize + 1];
 
+        // Compute susceptibility based on DCT-coeff histograms:
+        // the higher, the "easier" the macroblock is to compress.
+        public static readonly int[] Vp8DspScan =
+        {
+            // Luma
+            0 + (0 * WebPConstants.Bps),  4 + (0 * WebPConstants.Bps), 8 + (0 * WebPConstants.Bps), 12 + (0 * WebPConstants.Bps),
+            0 + (4 * WebPConstants.Bps),  4 + (4 * WebPConstants.Bps), 8 + (4 * WebPConstants.Bps), 12 + (4 * WebPConstants.Bps),
+            0 + (8 * WebPConstants.Bps),  4 + (8 * WebPConstants.Bps), 8 + (8 * WebPConstants.Bps), 12 + (8 * WebPConstants.Bps),
+            0 + (12 * WebPConstants.Bps),  4 + (12 * WebPConstants.Bps), 8 + (12 * WebPConstants.Bps), 12 + (12 * WebPConstants.Bps),
+
+            0 + (0 * WebPConstants.Bps),   4 + (0 * WebPConstants.Bps), 0 + (4 * WebPConstants.Bps),  4 + (4 * WebPConstants.Bps), // U
+            8 + (0 * WebPConstants.Bps),  12 + (0 * WebPConstants.Bps), 8 + (4 * WebPConstants.Bps), 12 + (4 * WebPConstants.Bps) // V
+        };
+
         /// <summary>
         /// Lookup table for small values of log2(int).
         /// </summary>

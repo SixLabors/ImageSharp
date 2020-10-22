@@ -1,9 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections.Generic;
-using System.IO;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -40,13 +38,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ushort magic = this.stream.ReadUInt16();
             if (magic != TiffConstants.HeaderMagicNumber)
             {
-                throw new ImageFormatException("Invalid TIFF header magic number: " + magic);
+                TiffThrowHelper.ThrowInvalidHeader();
             }
 
             uint firstIfdOffset = this.stream.ReadUInt32();
             if (firstIfdOffset == 0)
             {
-                throw new ImageFormatException("Invalid TIFF file header.");
+                TiffThrowHelper.ThrowInvalidHeader();
             }
 
             this.nextIfdOffset = firstIfdOffset;
@@ -95,7 +93,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
             else if (leftBytes < 0)
             {
-                throw new InvalidDataException("Out of range of IFD structure.");
+                TiffThrowHelper.ThrowOutOfRange("IFD");
             }
 
             return entries.ToArray();

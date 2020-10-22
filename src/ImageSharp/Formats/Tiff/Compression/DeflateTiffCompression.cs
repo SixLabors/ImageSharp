@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             if ((cmf & 0x0f) != 8)
             {
-                throw new Exception($"Bad compression method for ZLIB header: cmf={cmf}");
+                TiffThrowHelper.ThrowBadZlibHeader(cmf);
             }
 
             // If the 'fdict' flag is set then we should skip the next four bytes

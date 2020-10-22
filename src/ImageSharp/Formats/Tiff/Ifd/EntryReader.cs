@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
                 else if (leftBytes < 0)
                 {
-                    throw new InvalidDataException("Out of range of IFD entry structure.");
+                    TiffThrowHelper.ThrowOutOfRange("IFD entry");
                 }
             }
 
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                     if (buf[buf.Length - 1] != 0)
                     {
-                        throw new ImageFormatException("The retrieved string is not null terminated.");
+                        TiffThrowHelper.ThrowBadStringEntry();
                     }
 
                     return Encoding.UTF8.GetString(buf, 0, buf.Length - 1);

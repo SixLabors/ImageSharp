@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffCompressionType.Lzw:
                     return new LzwTiffCompression(allocator);
                 default:
-                    throw new InvalidOperationException();
+                    throw TiffThrowHelper.NotSupportedCompression(nameof(compressionType));
             }
         }
     }

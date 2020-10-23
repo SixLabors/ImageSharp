@@ -204,12 +204,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 in Vector256<int> vcontrol)
             {
                 Vector256<float> r0 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector256<float>>(ref r.A),
+                   Unsafe.As<Vector4, Vector128<float>>(ref r.A).ToVector256(),
                    Unsafe.As<Vector4, Vector128<float>>(ref g.A),
                    1);
 
                 Vector256<float> r1 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector256<float>>(ref b.A),
+                   Unsafe.As<Vector4, Vector128<float>>(ref b.A).ToVector256(),
                    a,
                    1);
 

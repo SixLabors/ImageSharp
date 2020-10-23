@@ -66,14 +66,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 var chromaOffset = Vector256.Create(-halfValue);
                 var scale = Vector256.Create(1 / maxValue);
                 var rCrMult = Vector256.Create(1.402F);
-                var gCbMult = Vector256.Create(0.344136F);
-                var gCrMult = Vector256.Create(0.714136F);
+                var gCbMult = Vector256.Create(-0.344136F);
+                var gCrMult = Vector256.Create(-0.714136F);
                 var bCbMult = Vector256.Create(1.772F);
 
                 // Used for packing.
-                Vector4 vo = Vector4.One;
-                Vector128<float> valpha = Unsafe.As<Vector4, Vector128<float>>(ref vo);
-                ref byte control = ref MemoryMarshal.GetReference(HwIntrinsics.PermuteMaskDeinterleave8x32);
+                var va = Vector256.Create(1F);
+                ref byte control = ref MemoryMarshal.GetReference(HwIntrinsics.PermuteMaskEvenOdd8x32);
                 Vector256<int> vcontrol = Unsafe.As<byte, Vector256<int>>(ref control);
 
                 // Walking 8 elements at one step:
@@ -87,58 +86,36 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     Vector256<float> cb = Avx.Add(Unsafe.Add(ref cbBase, i), chromaOffset);
                     Vector256<float> cr = Avx.Add(Unsafe.Add(ref crBase, i), chromaOffset);
 
+                    y = Avx2.PermuteVar8x32(y, vcontrol);
+                    cb = Avx2.PermuteVar8x32(cb, vcontrol);
+                    cr = Avx2.PermuteVar8x32(cr, vcontrol);
+
                     // r = y + (1.402F * cr);
                     // g = y - (0.344136F * cb) - (0.714136F * cr);
                     // b = y + (1.772F * cb);
                     // Adding & multiplying 8 elements at one time:
                     Vector256<float> r = HwIntrinsics.MultiplyAdd(y, cr, rCrMult);
-                    Vector256<float> g = Avx.Subtract(Avx.Subtract(y, Avx.Multiply(cb, gCbMult)), Avx.Multiply(cr, gCrMult));
+                    Vector256<float> g = HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(y, cb, gCbMult), cr, gCrMult);
                     Vector256<float> b = HwIntrinsics.MultiplyAdd(y, cb, bCbMult);
 
+                    // TODO: We should be savving to RGBA not Vector4
                     r = Avx.Multiply(Avx.RoundToNearestInteger(r), scale);
                     g = Avx.Multiply(Avx.RoundToNearestInteger(g), scale);
                     b = Avx.Multiply(Avx.RoundToNearestInteger(b), scale);
 
-                    // Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the
-                    // expected (r0,g0,g1,1), (r1,g1,g2,1) ... order:
-                    //
-                    // Left side.
-                    Vector256<float> r0 = Avx.InsertVector128(
-                       r,
-                       Unsafe.As<Vector256<float>, Vector128<float>>(ref g),
-                       1);
+                    Vector256<float> vte = Avx.UnpackLow(r, b);
+                    Vector256<float> vto = Avx.UnpackLow(g, va);
 
-                    Vector256<float> r1 = Avx.InsertVector128(
-                       b,
-                       valpha,
-                       1);
-
-                    // Right side
-                    Vector256<float> r2 = Avx.InsertVector128(
-                       Unsafe.Add(ref Unsafe.As<Vector256<float>, Vector128<float>>(ref r), 1).ToVector256(),
-                       Unsafe.Add(ref Unsafe.As<Vector256<float>, Vector128<float>>(ref g), 1),
-                       1);
-
-                    Vector256<float> r3 = Avx.InsertVector128(
-                       Unsafe.Add(ref Unsafe.As<Vector256<float>, Vector128<float>>(ref b), 1).ToVector256(),
-                       valpha,
-                       1);
-
-                    // Split into separate rows
-                    Vector256<float> t0 = Avx.UnpackLow(r0, r1);
-                    Vector256<float> t2 = Avx.UnpackHigh(r0, r1);
-
-                    // Deinterleave and set
                     ref Vector256<float> destination = ref Unsafe.Add(ref resultBase, i * 4);
-                    destination = Avx2.PermuteVar8x32(t0, vcontrol);
-                    Unsafe.Add(ref destination, 1) = Avx2.PermuteVar8x32(t2, vcontrol);
 
-                    // Repeat for right side.
-                    Vector256<float> t4 = Avx.UnpackLow(r2, r3);
-                    Vector256<float> t6 = Avx.UnpackHigh(r2, r3);
+                    destination = Avx.UnpackLow(vte, vto);
+                    Unsafe.Add(ref destination, 1) = Avx.UnpackHigh(vte, vto);
 
-                    Unsafe.Add(ref destination, 2) = Avx2.PermuteVar8x32(t4, vcontrol);
-                    Unsafe.Add(ref destination, 3) = Avx2.PermuteVar8x32(t6, vcontrol);
+                    vte = Avx.UnpackHigh(r, b);
+                    vto = Avx.UnpackHigh(g, va);
+
+                    Unsafe.Add(ref destination, 2) = Avx.UnpackLow(vte, vto);
+                    Unsafe.Add(ref destination, 3) = Avx.UnpackHigh(vte, vto);
                 }
 #else
                 ref Vector<float> yBase =

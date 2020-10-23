@@ -87,20 +87,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.YuvOut2 = new byte[WebPConstants.Bps * 16];
             this.YuvP = new byte[(32 * WebPConstants.Bps) + (16 * WebPConstants.Bps) + (8 * WebPConstants.Bps)]; // I16+Chroma+I4 preds
             this.YLeft = new byte[32];
-            this.ULeft = new byte[32];
-            this.VLeft = new byte[32];
+            this.UvLeft = new byte[32];
             this.TopNz = new int[9];
             this.LeftNz = new int[9];
 
-            // To match the C++ initial values, initialize all with 204.
+            // To match the C++ initial values of the reference implementation, initialize all with 204.
             byte defaultInitVal = 204;
             this.YuvIn.AsSpan().Fill(defaultInitVal);
             this.YuvOut.AsSpan().Fill(defaultInitVal);
             this.YuvOut2.AsSpan().Fill(defaultInitVal);
             this.YuvP.AsSpan().Fill(defaultInitVal);
             this.YLeft.AsSpan().Fill(defaultInitVal);
-            this.ULeft.AsSpan().Fill(defaultInitVal);
-            this.VLeft.AsSpan().Fill(defaultInitVal);
+            this.UvLeft.AsSpan().Fill(defaultInitVal);
 
             for (int i = -255; i <= 255 + 255; ++i)
             {
@@ -146,14 +144,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public byte[] YLeft { get; set; }
 
         /// <summary>
-        /// Gets or sets the left u samples.
+        /// Gets or sets the left uv samples.
         /// </summary>
-        public byte[] ULeft { get; set; }
-
-        /// <summary>
-        /// Gets or sets the left v samples.
-        /// </summary>
-        public byte[] VLeft { get; set; }
+        public byte[] UvLeft { get; set; }
 
         /// <summary>
         /// Gets or sets the top luma samples at position 'X'.
@@ -228,8 +221,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             else
             {
                 Span<byte> yLeft = this.YLeft.AsSpan();
-                Span<byte> uLeft = this.ULeft.AsSpan();
-                Span<byte> vLeft = this.VLeft.AsSpan();
+                Span<byte> uLeft = this.UvLeft.AsSpan(0, 16);
+                Span<byte> vLeft = this.UvLeft.AsSpan(16, 16);
                 if (this.Y == 0)
                 {
                     yLeft[0] = 127;
@@ -366,12 +359,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private void SetIntra4Mode(byte[] modes)
         {
             int modesIdx = 0;
-            Span<byte> preds = this.Preds.Slice(this.predIdx);
+            int predIdx = this.predIdx;
             for (int y = 4; y > 0; --y)
             {
-                // TODO:
-                // memcpy(preds, modes, 4 * sizeof(*modes));
-                preds = preds.Slice(this.predsWidth);
+                modes.AsSpan(modesIdx, 4).CopyTo(this.Preds.Slice(predIdx));
+                predIdx += this.predsWidth;
                 modesIdx += 4;
             }
 
@@ -457,12 +449,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private void MakeChroma8Preds()
         {
-            Span<byte> left = this.X != 0 ? this.ULeft.AsSpan() : null;
+            Span<byte> left = this.X != 0 ? this.UvLeft.AsSpan() : null;
             Span<byte> top = this.Y != 0 ? this.UvTop.Slice(this.uvTopIdx) : null;
             this.EncPredChroma8(this.YuvP, left, top);
         }
 
-        // luma 16x16 prediction (paragraph 12.3)
+        // luma 16x16 prediction (paragraph 12.3).
         private void EncPredLuma16(Span<byte> dst, Span<byte> left, Span<byte> top)
         {
             this.DcMode(dst.Slice(I16DC16), left, top, 16, 16, 5);
@@ -471,16 +463,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.TrueMotion(dst.Slice(I16TM16), left, top, 16);
         }
 
-        // Chroma 8x8 prediction (paragraph 12.2)
+        // Chroma 8x8 prediction (paragraph 12.2).
         private void EncPredChroma8(Span<byte> dst, Span<byte> left, Span<byte> top)
         {
-            // U block
+            // U block.
             this.DcMode(dst.Slice(C8DC8), left, top, 8, 8, 4);
             this.VerticalPred(dst.Slice(C8VE8), top, 8);
             this.HorizontalPred(dst.Slice(C8HE8), left, 8);
             this.TrueMotion(dst.Slice(C8TM8), left, top, 8);
 
-            // V block
+            // V block.
             dst = dst.Slice(8);
             if (top != null)
             {
@@ -529,6 +521,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             else if (left != null)
             {
                 // left but no top.
+                left = left.Slice(1); // in the reference implementation, left starts at -1.
                 for (j = 0; j < size; ++j)
                 {
                     dc += left[j];
@@ -628,16 +621,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private void ImportBlock(Span<byte> src, int srcStride, Span<byte> dst, int w, int h, int size)
         {
             int dstIdx = 0;
+            int srcIdx = 0;
             for (int i = 0; i < h; ++i)
             {
-                src.Slice(0, w).CopyTo(dst.Slice(dstIdx));
+                src.Slice(srcIdx, w).CopyTo(dst.Slice(dstIdx));
                 if (w < size)
                 {
                     dst.Slice(dstIdx, size - w).Fill(dst[dstIdx + w - 1]);
                 }
 
                 dstIdx += WebPConstants.Bps;
-                src = src.Slice(srcStride);
+                srcIdx += srcStride;
             }
 
             for (int i = h; i < size; ++i)
@@ -650,10 +644,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private void ImportLine(Span<byte> src, int srcStride, Span<byte> dst, int len, int totalLen)
         {
             int i;
+            int srcIdx = 0;
             for (i = 0; i < len; ++i)
             {
-                dst[i] = src[i];
-                src = src.Slice(srcStride);
+                dst[i] = src[srcIdx];
+                srcIdx += srcStride;
             }
 
             for (; i < totalLen; ++i)
@@ -686,30 +681,24 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.nzIdx = 0;
             this.yTopIdx = 0;
             this.uvTopIdx = 0;
+            this.predIdx = y * 4 * this.predsWidth;
 
             this.InitLeft();
-
-            // TODO:
-            // it->preds_ = enc->preds_ + y * 4 * enc->preds_w_;
         }
 
         private void InitLeft()
         {
             Span<byte> yLeft = this.YLeft.AsSpan();
-            Span<byte> uLeft = this.ULeft.AsSpan();
-            Span<byte> vLeft = this.VLeft.AsSpan();
+            Span<byte> uLeft = this.UvLeft.AsSpan(0, 16);
+            Span<byte> vLeft = this.UvLeft.AsSpan(16, 16);
             byte val = (byte)((this.Y > 0) ? 129 : 127);
             yLeft[0] = val;
             uLeft[0] = val;
             vLeft[0] = val;
-            uLeft[16] = val;
-            vLeft[16] = val;
 
             yLeft.Slice(1, 16).Fill(129);
             uLeft.Slice(1, 8).Fill(129);
             vLeft.Slice(1, 8).Fill(129);
-            uLeft.Slice(1 + 16, 8).Fill(129);
-            vLeft.Slice(1 + 16, 8).Fill(129);
 
             this.LeftNz[8] = 0;
         }

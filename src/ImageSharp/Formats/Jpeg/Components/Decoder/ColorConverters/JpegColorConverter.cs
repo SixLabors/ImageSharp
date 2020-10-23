@@ -4,12 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-#if SUPPORTS_RUNTIME_INTRINSICS
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-#endif
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tuples;
 
@@ -189,53 +183,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         {
 #pragma warning disable SA1132 // Do not combine fields
             public Vector4 V0, V1, V2, V3, V4, V5, V6, V7;
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-
-            /// <summary>
-            /// Pack (r0,r1...r7) (g0,g1...g7) (b0,b1...b7) vector values as (r0,g0,b0,1), (r1,g1,b1,1) ...
-            /// </summary>
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void PackAvx2(
-                ref Vector4Pair r,
-                ref Vector4Pair g,
-                ref Vector4Pair b,
-                in Vector128<float> a,
-                in Vector256<int> vcontrol)
-            {
-                Vector256<float> r0 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref r.A).ToVector256(),
-                   Unsafe.As<Vector4, Vector128<float>>(ref g.A),
-                   1);
-
-                Vector256<float> r1 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref b.A).ToVector256(),
-                   a,
-                   1);
-
-                Vector256<float> r2 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref r.B).ToVector256(),
-                   Unsafe.As<Vector4, Vector128<float>>(ref g.B),
-                   1);
-
-                Vector256<float> r3 = Avx.InsertVector128(
-                   Unsafe.As<Vector4, Vector128<float>>(ref b.B).ToVector256(),
-                   a,
-                   1);
-
-                Vector256<float> t0 = Avx.UnpackLow(r0, r1);
-                Vector256<float> t2 = Avx.UnpackHigh(r0, r1);
-
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V0) = Avx2.PermuteVar8x32(t0, vcontrol);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V2) = Avx2.PermuteVar8x32(t2, vcontrol);
-
-                Vector256<float> t4 = Avx.UnpackLow(r2, r3);
-                Vector256<float> t6 = Avx.UnpackHigh(r2, r3);
-
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V4) = Avx2.PermuteVar8x32(t4, vcontrol);
-                Unsafe.As<Vector4, Vector256<float>>(ref this.V6) = Avx2.PermuteVar8x32(t6, vcontrol);
-            }
-#endif
 
             /// <summary>
             /// Pack (r0,r1...r7) (g0,g1...g7) (b0,b1...b7) vector values as (r0,g0,b0,1), (r1,g1,b1,1) ...

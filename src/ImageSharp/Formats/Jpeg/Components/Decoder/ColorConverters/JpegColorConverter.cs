@@ -190,95 +190,97 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 #pragma warning disable SA1132 // Do not combine fields
             public Vector4 V0, V1, V2, V3, V4, V5, V6, V7;
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+
+            /// <summary>
+            /// Pack (r0,r1...r7) (g0,g1...g7) (b0,b1...b7) vector values as (r0,g0,b0,1), (r1,g1,b1,1) ...
+            /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void PackAvx2(
+                ref Vector4Pair r,
+                ref Vector4Pair g,
+                ref Vector4Pair b,
+                in Vector128<float> a,
+                in Vector256<int> vcontrol)
+            {
+                Vector256<float> r0 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector256<float>>(ref r.A),
+                   Unsafe.As<Vector4, Vector128<float>>(ref g.A),
+                   1);
+
+                Vector256<float> r1 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector256<float>>(ref b.A),
+                   a,
+                   1);
+
+                Vector256<float> r2 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector128<float>>(ref r.B).ToVector256(),
+                   Unsafe.As<Vector4, Vector128<float>>(ref g.B),
+                   1);
+
+                Vector256<float> r3 = Avx.InsertVector128(
+                   Unsafe.As<Vector4, Vector128<float>>(ref b.B).ToVector256(),
+                   a,
+                   1);
+
+                Vector256<float> t0 = Avx.UnpackLow(r0, r1);
+                Vector256<float> t2 = Avx.UnpackHigh(r0, r1);
+
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V0) = Avx2.PermuteVar8x32(t0, vcontrol);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V2) = Avx2.PermuteVar8x32(t2, vcontrol);
+
+                Vector256<float> t4 = Avx.UnpackLow(r2, r3);
+                Vector256<float> t6 = Avx.UnpackHigh(r2, r3);
+
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V4) = Avx2.PermuteVar8x32(t4, vcontrol);
+                Unsafe.As<Vector4, Vector256<float>>(ref this.V6) = Avx2.PermuteVar8x32(t6, vcontrol);
+            }
+#endif
+
             /// <summary>
             /// Pack (r0,r1...r7) (g0,g1...g7) (b0,b1...b7) vector values as (r0,g0,b0,1), (r1,g1,b1,1) ...
             /// </summary>
             public void Pack(ref Vector4Pair r, ref Vector4Pair g, ref Vector4Pair b)
             {
-#if SUPPORTS_RUNTIME_INTRINSICS
-                if (Avx2.IsSupported)
-                {
-                    Vector4 vo = Vector4.One;
-                    Vector128<float> valpha = Unsafe.As<Vector4, Vector128<float>>(ref vo);
+                this.V0.X = r.A.X;
+                this.V0.Y = g.A.X;
+                this.V0.Z = b.A.X;
+                this.V0.W = 1f;
 
-                    ref byte control = ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskDeinterleave8x32);
-                    Vector256<int> vcontrol = Unsafe.As<byte, Vector256<int>>(ref control);
+                this.V1.X = r.A.Y;
+                this.V1.Y = g.A.Y;
+                this.V1.Z = b.A.Y;
+                this.V1.W = 1f;
 
-                    Vector256<float> r0 = Avx.InsertVector128(
-                       Unsafe.As<Vector4, Vector128<float>>(ref r.A).ToVector256(),
-                       Unsafe.As<Vector4, Vector128<float>>(ref g.A),
-                       1);
+                this.V2.X = r.A.Z;
+                this.V2.Y = g.A.Z;
+                this.V2.Z = b.A.Z;
+                this.V2.W = 1f;
 
-                    Vector256<float> r1 = Avx.InsertVector128(
-                       Unsafe.As<Vector4, Vector128<float>>(ref b.A).ToVector256(),
-                       valpha,
-                       1);
+                this.V3.X = r.A.W;
+                this.V3.Y = g.A.W;
+                this.V3.Z = b.A.W;
+                this.V3.W = 1f;
 
-                    Vector256<float> r2 = Avx.InsertVector128(
-                       Unsafe.As<Vector4, Vector128<float>>(ref r.B).ToVector256(),
-                       Unsafe.As<Vector4, Vector128<float>>(ref g.B),
-                       1);
+                this.V4.X = r.B.X;
+                this.V4.Y = g.B.X;
+                this.V4.Z = b.B.X;
+                this.V4.W = 1f;
 
-                    Vector256<float> r3 = Avx.InsertVector128(
-                       Unsafe.As<Vector4, Vector128<float>>(ref b.B).ToVector256(),
-                       valpha,
-                       1);
+                this.V5.X = r.B.Y;
+                this.V5.Y = g.B.Y;
+                this.V5.Z = b.B.Y;
+                this.V5.W = 1f;
 
-                    Vector256<float> t0 = Avx.UnpackLow(r0, r1);
-                    Vector256<float> t2 = Avx.UnpackHigh(r0, r1);
+                this.V6.X = r.B.Z;
+                this.V6.Y = g.B.Z;
+                this.V6.Z = b.B.Z;
+                this.V6.W = 1f;
 
-                    Unsafe.As<Vector4, Vector256<float>>(ref this.V0) = Avx2.PermuteVar8x32(t0, vcontrol);
-                    Unsafe.As<Vector4, Vector256<float>>(ref this.V2) = Avx2.PermuteVar8x32(t2, vcontrol);
-
-                    Vector256<float> t4 = Avx.UnpackLow(r2, r3);
-                    Vector256<float> t6 = Avx.UnpackHigh(r2, r3);
-
-                    Unsafe.As<Vector4, Vector256<float>>(ref this.V4) = Avx2.PermuteVar8x32(t4, vcontrol);
-                    Unsafe.As<Vector4, Vector256<float>>(ref this.V6) = Avx2.PermuteVar8x32(t6, vcontrol);
-                }
-                else
-#endif
-                {
-                    this.V0.X = r.A.X;
-                    this.V0.Y = g.A.X;
-                    this.V0.Z = b.A.X;
-                    this.V0.W = 1f;
-
-                    this.V1.X = r.A.Y;
-                    this.V1.Y = g.A.Y;
-                    this.V1.Z = b.A.Y;
-                    this.V1.W = 1f;
-
-                    this.V2.X = r.A.Z;
-                    this.V2.Y = g.A.Z;
-                    this.V2.Z = b.A.Z;
-                    this.V2.W = 1f;
-
-                    this.V3.X = r.A.W;
-                    this.V3.Y = g.A.W;
-                    this.V3.Z = b.A.W;
-                    this.V3.W = 1f;
-
-                    this.V4.X = r.B.X;
-                    this.V4.Y = g.B.X;
-                    this.V4.Z = b.B.X;
-                    this.V4.W = 1f;
-
-                    this.V5.X = r.B.Y;
-                    this.V5.Y = g.B.Y;
-                    this.V5.Z = b.B.Y;
-                    this.V5.W = 1f;
-
-                    this.V6.X = r.B.Z;
-                    this.V6.Y = g.B.Z;
-                    this.V6.Z = b.B.Z;
-                    this.V6.W = 1f;
-
-                    this.V7.X = r.B.W;
-                    this.V7.Y = g.B.W;
-                    this.V7.Z = b.B.W;
-                    this.V7.W = 1f;
-                }
+                this.V7.X = r.B.W;
+                this.V7.Y = g.B.W;
+                this.V7.Z = b.B.W;
+                this.V7.W = 1f;
             }
         }
     }

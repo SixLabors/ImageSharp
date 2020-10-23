@@ -16,6 +16,8 @@ namespace SixLabors.ImageSharp
         {
             public static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
 
+            public static ReadOnlySpan<byte> PermuteMaskEvenOdd8x32 => new byte[] { 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0 };
+
             /// <summary>
             /// Performs a multiplication and an addition of the <see cref="Vector256{T}"/>.
             /// </summary>

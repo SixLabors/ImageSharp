@@ -73,7 +73,9 @@ namespace SixLabors.ImageSharp.Benchmarks
                 }
 #endif
                 this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31)
-                    .WithEnvironmentVariables(new EnvironmentVariable(EnableHWIntrinsic, Off))
+                    .WithEnvironmentVariables(
+                        new EnvironmentVariable(EnableHWIntrinsic, Off),
+                        new EnvironmentVariable(FeatureSIMD, Off))
                     .WithId("No HwIntrinsics"));
             }
         }

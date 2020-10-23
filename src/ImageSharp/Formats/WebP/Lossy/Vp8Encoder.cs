@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             alphas[bestAlpha]++;
             it.CurrentMacroBlockInfo.Alpha = bestAlpha;   // For later remapping.
 
-            return bestAlpha; // Mixed susceptibility (not just luma)
+            return bestAlpha; // Mixed susceptibility (not just luma).
         }
 
         private void ConvertRgbToYuv<TPixel>(Image<TPixel> image)
@@ -420,8 +420,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         private int Interpolate(int v)
         {
-            int tabPos = v >> (WebPConstants.GammaTabFix + 2);    // integer part
-            int x = v & ((WebPConstants.GammaTabScale << 2) - 1);  // fractional part
+            int tabPos = v >> (WebPConstants.GammaTabFix + 2);    // integer part.
+            int x = v & ((WebPConstants.GammaTabScale << 2) - 1);  // fractional part.
             int v0 = WebPLookupTables.LinearToGammaTab[tabPos];
             int v1 = WebPLookupTables.LinearToGammaTab[tabPos + 1];
             int y = (v1 * x) + (v0 * ((WebPConstants.GammaTabScale << 2) - x));   // interpolate

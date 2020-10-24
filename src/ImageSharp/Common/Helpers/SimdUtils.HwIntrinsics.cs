@@ -14,7 +14,32 @@ namespace SixLabors.ImageSharp
     {
         public static class HwIntrinsics
         {
-            private static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
+            public static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };
+
+            public static ReadOnlySpan<byte> PermuteMaskEvenOdd8x32 => new byte[] { 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0 };
+
+            /// <summary>
+            /// Performs a multiplication and an addition of the <see cref="Vector256{T}"/>.
+            /// </summary>
+            /// <param name="va">The vector to add to the intermediate result.</param>
+            /// <param name="vm0">The first vector to multiply.</param>
+            /// <param name="vm1">The second vector to multiply.</param>
+            /// <returns>The <see cref="Vector256{T}"/>.</returns>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static Vector256<float> MultiplyAdd(
+                in Vector256<float> va,
+                in Vector256<float> vm0,
+                in Vector256<float> vm1)
+            {
+                if (Fma.IsSupported)
+                {
+                    return Fma.MultiplyAdd(vm1, vm0, va);
+                }
+                else
+                {
+                    return Avx.Add(Avx.Multiply(vm0, vm1), va);
+                }
+            }
 
             /// <summary>
             /// <see cref="ByteToNormalizedFloat"/> as many elements as possible, slicing them down (keeping the remainder).

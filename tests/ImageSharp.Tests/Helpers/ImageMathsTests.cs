@@ -19,6 +19,21 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         [InlineData(100)]
         [InlineData(123)]
         [InlineData(53436353)]
+        public void Modulo2(int x)
+        {
+            int actual = ImageMaths.Modulo2(x);
+            Assert.Equal(x % 2, actual);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(100)]
+        [InlineData(123)]
+        [InlineData(53436353)]
         public void Modulo4(int x)
         {
             int actual = ImageMaths.Modulo4(x);

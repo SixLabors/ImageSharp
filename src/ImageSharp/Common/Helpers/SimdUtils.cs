@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp
             DebugGuard.IsTrue(channel2.Length == dest.Length, nameof(channel2), "Input spans must be of same length!");
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-            Avx2Intrinsics.PackBytesToUInt32SaturateChannel4Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+            HwIntrinsics.PackBytesToUInt32SaturateChannel4Reduce(ref channel0, ref channel1, ref channel2, ref dest);
 
             // I can't immediately see a way to do this operation efficiently with Vector<T> or Vector4<T>. TODO
 #elif SUPPORTS_EXTENDED_INTRINSICS
@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp
             DebugGuard.IsTrue(channel2.Length == dest.Length, nameof(channel2), "Input spans must be of same length!");
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-            Avx2Intrinsics.PackBytesToUInt24Reduce(ref channel0, ref channel1, ref channel2, ref dest);
+            HwIntrinsics.PackBytesToUInt24Reduce(ref channel0, ref channel1, ref channel2, ref dest);
 
             // I can't immediately see a way to do this operation efficiently with Vector<T> or Vector4<T>. TODO
 #elif SUPPORTS_EXTENDED_INTRINSICS
@@ -200,7 +200,7 @@ namespace SixLabors.ImageSharp
             // Deal with the remainder:
             if (channel0.Length > 0)
             {
-                PackBytesToUInt24(channel0, channel1, channel2, dest);
+                PackBytesToUInt24Remainder(channel0, channel1, channel2, dest);
             }
         }
 

@@ -313,16 +313,16 @@ namespace SixLabors.ImageSharp
 
                     if (adjustedCount > 0)
                     {
+                        PackBytesToUInt32SaturateChannel4(
+                            channel0.Slice(0, adjustedCount),
+                            channel1.Slice(0, adjustedCount),
+                            channel2.Slice(0, adjustedCount),
+                            dest.Slice(0, adjustedCount));
+
                         channel0 = channel0.Slice(adjustedCount);
                         channel1 = channel1.Slice(adjustedCount);
                         channel2 = channel2.Slice(adjustedCount);
                         dest = dest.Slice(adjustedCount);
-
-                        PackBytesToUInt32SaturateChannel4(
-                            channel0,
-                            channel1,
-                            channel2,
-                            dest);
                     }
                 }
             }
@@ -399,16 +399,16 @@ namespace SixLabors.ImageSharp
 
                     if (adjustedCount > 0)
                     {
+                        PackBytesToUInt24(
+                            channel0.Slice(0, adjustedCount),
+                            channel1.Slice(0, adjustedCount),
+                            channel2.Slice(0, adjustedCount),
+                            dest.Slice(0, adjustedCount));
+
                         channel0 = channel0.Slice(adjustedCount);
                         channel1 = channel1.Slice(adjustedCount);
                         channel2 = channel2.Slice(adjustedCount);
                         dest = dest.Slice(adjustedCount);
-
-                        PackBytesToUInt24(
-                            channel0,
-                            channel1,
-                            channel2,
-                            dest);
                     }
                 }
             }

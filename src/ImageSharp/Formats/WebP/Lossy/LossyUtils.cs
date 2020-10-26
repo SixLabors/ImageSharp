@@ -455,6 +455,44 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             Dst(dst, 3, 3, l);
         }
 
+        /// <summary>
+        /// Paragraph 14.3: Implementation of the Walsh-Hadamard transform inversion.
+        /// </summary>
+        public static void TransformWht(short[] input, short[] output)
+        {
+            var tmp = new int[16];
+            for (int i = 0; i < 4; ++i)
+            {
+                int iPlus4 = 4 + i;
+                int iPlus8 = 8 + i;
+                int iPlus12 = 12 + i;
+                int a0 = input[i] + input[iPlus12];
+                int a1 = input[iPlus4] + input[iPlus8];
+                int a2 = input[iPlus4] - input[iPlus8];
+                int a3 = input[i] - input[iPlus12];
+                tmp[i] = a0 + a1;
+                tmp[iPlus8] = a0 - a1;
+                tmp[iPlus4] = a3 + a2;
+                tmp[iPlus12] = a3 - a2;
+            }
+
+            int outputOffset = 0;
+            for (int i = 0; i < 4; ++i)
+            {
+                int imul4 = i * 4;
+                int dc = tmp[0 + imul4] + 3;
+                int a0 = dc + tmp[3 + imul4];
+                int a1 = tmp[1 + imul4] + tmp[2 + imul4];
+                int a2 = tmp[1 + imul4] - tmp[2 + imul4];
+                int a3 = dc - tmp[3 + imul4];
+                output[outputOffset + 0] = (short)((a0 + a1) >> 3);
+                output[outputOffset + 16] = (short)((a3 + a2) >> 3);
+                output[outputOffset + 32] = (short)((a0 - a1) >> 3);
+                output[outputOffset + 48] = (short)((a3 - a2) >> 3);
+                outputOffset += 64;
+            }
+        }
+
         public static void TransformTwo(Span<short> src, Span<byte> dst)
         {
             TransformOne(src, dst);
@@ -740,6 +778,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             dst[x + (y * WebPConstants.Bps)] = v;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static byte Clip8B(int v)
+        {
+            return (byte)((v & ~0xff) == 0 ? v : (v < 0) ? 0 : 255);
+        }
+
         // Complex In-loop filtering (Paragraph 15.3)
         private static void FilterLoop24(
             Span<byte> p,
@@ -931,12 +975,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private static int Mul2(int a)
         {
             return (a * 35468) >> 16;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte Clip8B(int v)
-        {
-            return (byte)((v & ~0xff) == 0 ? v : (v < 0) ? 0 : 255);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

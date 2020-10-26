@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 it.Import(y, u, v, yStride, uvStride, width, height);
                 if (!this.Decimate(it, segmentInfos, info, method))
                 {
-                    this.CodeResiduals(it);
+                    this.CodeResiduals(it, info);
                 }
                 else
                 {
@@ -180,8 +180,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private void SetSegmentProbas(Vp8SegmentInfo[] dqm)
         {
-            var p = new int[4];
-            int n;
+            // var p = new int[4];
+            // int n;
 
             // TODO: SetSegmentProbas
         }
@@ -399,9 +399,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             rd.Score = bestScore;
         }
 
-        private void CodeResiduals(Vp8EncIterator it)
+        private void CodeResiduals(Vp8EncIterator it, Vp8ModeScore rd)
         {
-
         }
 
         private int ReconstructIntra16(Vp8EncIterator it, Vp8SegmentInfo dqm, Vp8ModeScore rd, Span<byte> yuvOut, int mode)
@@ -560,9 +559,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 int b1 = a3 + a2;
                 int b2 = a3 - a2;
                 int b3 = a0 - a1;
-                output[ 0 + i] = (short)(b0 >> 1);     // 15b
-                output[ 4 + i] = (short)(b1 >> 1);
-                output[ 8 + i] = (short)(b2 >> 1);
+                output[0 + i] = (short)(b0 >> 1);     // 15b
+                output[4 + i] = (short)(b1 >> 1);
+                output[8 + i] = (short)(b2 >> 1);
                 output[12 + i] = (short)(b3 >> 1);
             }
         }
@@ -581,15 +580,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             int n;
             for (n = 0; n < 16; ++n)
             {
-                int j = zigzag[n];
+                int j = this.zigzag[n];
                 bool sign = input[j] < 0;
                 uint coeff = (uint)((sign ? -input[j] : input[j]) + mtx.Sharpen[j]);
                 if (coeff > mtx.ZThresh[j])
                 {
-                    uint Q = (uint)mtx.Q[j];
+                    uint q = (uint)mtx.Q[j];
                     uint iQ = (uint)mtx.IQ[j];
-                    uint B = mtx.Bias[j];
-                    int level = this.QuantDiv(coeff, iQ, B);
+                    uint b = mtx.Bias[j];
+                    int level = this.QuantDiv(coeff, iQ, b);
                     if (level > MaxLevel)
                     {
                         level = MaxLevel;
@@ -600,7 +599,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                         level = -level;
                     }
 
-                    input[j] = (short)(level * (int)Q);
+                    input[j] = (short)(level * (int)q);
                     output[n] = (short)level;
                     if (level != 0)
                     {
@@ -629,7 +628,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private void ITransformOne(Span<byte> reference, Span<short> input, Span<byte> dst)
         {
             int i;
+#pragma warning disable SA1312 // Variable names should begin with lower-case letter
             var C = new int[4 * 4];
+#pragma warning restore SA1312 // Variable names should begin with lower-case letter
             Span<int> tmp = C.AsSpan();
             for (i = 0; i < 4; ++i)
             {

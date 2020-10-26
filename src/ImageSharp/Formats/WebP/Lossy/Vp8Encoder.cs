@@ -34,6 +34,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private const int YuvHalf = 1 << (YuvFix - 1);
 
+        private const int KC1 = 20091 + (1 << 16);
+
+        private const int KC2 = 35468;
+
+        private const int MaxLevel = 2047;
+
+        private const int QFix = 17;
+
+        private readonly byte[] zigzag = new byte[] { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8Encoder"/> class.
         /// </summary>
@@ -117,6 +127,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 mb[i] = new Vp8MacroBlockInfo();
             }
 
+            var segmentInfos = new Vp8SegmentInfo[4];
+            for (int i = 0; i < 4; i++)
+            {
+                segmentInfos[i] = new Vp8SegmentInfo();
+            }
+
             var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Preds, this.Nz, mb, mbw, mbh);
             int method = 4; // TODO: hardcoded for now
             int quality = 100; // TODO: hardcoded for now
@@ -126,13 +142,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             // Analysis is done, proceed to actual coding.
 
             // TODO: EncodeAlpha();
+            // Compute segment probabilities.
+            this.SetSegmentProbas(segmentInfos);
+            this.SetupMatrices(segmentInfos);
             it.Init();
             it.InitFilter();
             do
             {
                 var info = new Vp8ModeScore();
                 it.Import(y, u, v, yStride, uvStride, width, height);
-                if (!this.Decimate(it, info, method))
+                if (!this.Decimate(it, segmentInfos, info, method))
                 {
                     this.CodeResiduals(it);
                 }
@@ -157,6 +176,19 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.YTop.Dispose();
             this.UvTop.Dispose();
             this.Preds.Dispose();
+        }
+
+        private void SetSegmentProbas(Vp8SegmentInfo[] dqm)
+        {
+            var p = new int[4];
+            int n;
+
+            // TODO: SetSegmentProbas
+        }
+
+        private void SetupMatrices(Vp8SegmentInfo[] dqm)
+        {
+            // TODO: SetupMatrices
         }
 
         private int MacroBlockAnalysis(int width, int height, Vp8EncIterator it, Span<byte> y, Span<byte> u, Span<byte> v, int yStride, int uvStride, int method, int quality, int[] alphas, out int uvAlpha)
@@ -207,7 +239,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             return bestAlpha; // Mixed susceptibility (not just luma).
         }
 
-        private bool Decimate(Vp8EncIterator it, Vp8ModeScore rd, int method)
+        private bool Decimate(Vp8EncIterator it, Vp8SegmentInfo[] segmentInfos, Vp8ModeScore rd, int method)
         {
             rd.InitScore();
 
@@ -219,7 +251,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             // For method >= 2, pick the best intra4/intra16 based on SSE (~tad slower).
             // For method <= 1, we don't re-examine the decision but just go ahead with
             // quantization/reconstruction.
-            this.RefineUsingDistortion(it, rd, method >= 2, method >= 1);
+            this.RefineUsingDistortion(it, segmentInfos, rd, method >= 2, method >= 1);
 
             bool isSkipped = rd.Nz == 0;
             it.SetSkip(isSkipped);
@@ -228,14 +260,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         }
 
         // Refine intra16/intra4 sub-modes based on distortion only (not rate).
-        private void RefineUsingDistortion(Vp8EncIterator it, Vp8ModeScore rd, bool tryBothModes, bool refineUvMode)
+        private void RefineUsingDistortion(Vp8EncIterator it, Vp8SegmentInfo[] segmentInfos, Vp8ModeScore rd, bool tryBothModes, bool refineUvMode)
         {
             long bestScore = Vp8ModeScore.MaxCost;
             int nz = 0;
             int mode;
             bool isI16 = tryBothModes || (it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16);
-
-            // TODO: VP8SegmentInfo* const dqm = &it->enc_->dqm_[it->mb_->segment_];
+            Vp8SegmentInfo dqm = segmentInfos[it.CurrentMacroBlockInfo.Segment];
 
             // Some empiric constants, of approximate order of magnitude.
             int lambdaDi16 = 106;
@@ -324,7 +355,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                     {
                         // Reconstruct partial block inside yuv_out2 buffer
                         Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc + WebPLookupTables.Vp8Scan[it.I4]);
-                        // TODO: nz |= ReconstructIntra4(it, rd.YAcLevels[it.I4], src, tmpDst, bestI4Mode) << it.I4;
+                        nz |= this.ReconstructIntra4(it, dqm, rd.YAcLevels[it.I4], src, tmpDst, bestI4Mode) << it.I4;
                     }
                 }
                 while (it.RotateI4(it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc)));
@@ -339,7 +370,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
             else
             {
-                // TODO: nz = ReconstructIntra16(it, rd, it.YuvOut.AsSpan(Vp8EncIterator.YOffEnc), it.Preds.GetSpan()[0]);
+                nz = this.ReconstructIntra16(it, dqm, rd, it.YuvOut.AsSpan(Vp8EncIterator.YOffEnc), it.Preds.GetSpan()[0]);
             }
 
             // ... and UV!
@@ -362,7 +393,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 it.SetIntraUvMode(bestMode);
             }
 
-            // TODO: nz |= ReconstructUv(it, rd, it.YuvOut.AsSpan(Vp8EncIterator.UOffEnc), it.CurrentMacroBlockInfo.UvMode);
+            nz |= this.ReconstructUv(it, dqm, rd, it.YuvOut.AsSpan(Vp8EncIterator.UOffEnc), it.CurrentMacroBlockInfo.UvMode);
 
             rd.Nz = (uint)nz;
             rd.Score = bestScore;
@@ -373,19 +404,263 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         }
 
-        private void ReconstructIntra16()
+        private int ReconstructIntra16(Vp8EncIterator it, Vp8SegmentInfo dqm, Vp8ModeScore rd, Span<byte> yuvOut, int mode)
         {
+            Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8I16ModeOffsets[mode]);
+            Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
+            int nz = 0;
+            int n;
+            var dcTmp = new short[16];
+            var tmp = new short[16][];
+            for (int i = 0; i < 16; i++)
+            {
+                tmp[i] = new short[16];
+            }
 
+            for (n = 0; n < 16; n += 2)
+            {
+                this.FTransform2(src.Slice(WebPLookupTables.Vp8Scan[n]), reference.Slice(WebPLookupTables.Vp8Scan[n]), tmp[n]);
+            }
+
+            this.FTransformWht(tmp[0], dcTmp);
+            nz |= this.QuantizeBlock(dcTmp, rd.YDcLevels, dqm.Y2) << 24;
+
+            for (n = 0; n < 16; n += 2)
+            {
+                // Zero-out the first coeff, so that: a) nz is correct below, and
+                // b) finding 'last' non-zero coeffs in SetResidualCoeffs() is simplified.
+                tmp[n][0] = tmp[n + 1][0] = 0;
+                nz |= this.Quantize2Blocks(tmp[n], rd.YAcLevels[n], dqm.Y1) << n;
+            }
+
+            // Transform back.
+            LossyUtils.TransformWht(dcTmp, tmp[0]);
+            for (n = 0; n < 16; n += 2)
+            {
+                this.ITransform(reference.Slice(WebPLookupTables.Vp8Scan[n]), tmp[n], yuvOut.Slice(WebPLookupTables.Vp8Scan[n]), true);
+            }
+
+            return nz;
         }
 
-        private void ReconstructIntra4()
+        private int ReconstructIntra4(Vp8EncIterator it, Vp8SegmentInfo dqm, short[] levels, Span<byte> src, Span<byte> yuvOut, int mode)
         {
+            Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8I4ModeOffsets[mode]);
+            var tmp = new short[16];
+            this.FTransform(src, reference, tmp);
+            var nz = this.QuantizeBlock(tmp, levels, dqm.Y1);
+            this.ITransform(reference, tmp, yuvOut, false);
 
+            return nz;
         }
 
-        private void ReconstructUv()
+        private int ReconstructUv(Vp8EncIterator it, Vp8SegmentInfo dqm, Vp8ModeScore rd, Span<byte> yuvOut, int mode)
         {
+            Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8UvModeOffsets[mode]);
+            Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
+            int nz = 0;
+            int n;
+            var tmp = new short[8][];
+            for (int i = 0; i < 8; i++)
+            {
+                tmp[i] = new short[16];
+            }
 
+            for (n = 0; n < 8; n += 2)
+            {
+                this.FTransform2(src.Slice(WebPLookupTables.Vp8ScanUv[n]), reference.Slice(WebPLookupTables.Vp8ScanUv[n]), tmp[n]);
+            }
+
+            /* TODO:
+             if (it->top_derr_ != NULL)
+            {
+                CorrectDCValues(it, &dqm->uv_, tmp, rd);
+            }*/
+
+            for (n = 0; n < 8; n += 2)
+            {
+                nz |= this.Quantize2Blocks(tmp[n], rd.UvLevels[n], dqm.Uv) << n;
+            }
+
+            for (n = 0; n < 8; n += 2)
+            {
+                this.ITransform(reference.Slice(WebPLookupTables.Vp8ScanUv[n]), tmp[n], yuvOut.Slice(WebPLookupTables.Vp8ScanUv[n]), true);
+            }
+
+            return nz << 16;
+        }
+
+        private void FTransform2(Span<byte> src, Span<byte> reference, short[] output)
+        {
+            this.FTransform(src, reference, output);
+            this.FTransform(src.Slice(4), reference.Slice(4), output.AsSpan(16));
+        }
+
+        private void FTransform(Span<byte> src, Span<byte> reference, Span<short> output)
+        {
+            int i;
+            var tmp = new int[16];
+            for (i = 0; i < 4; ++i)
+            {
+                int d0 = src[0] - reference[0];   // 9bit dynamic range ([-255,255])
+                int d1 = src[1] - reference[1];
+                int d2 = src[2] - reference[2];
+                int d3 = src[3] - reference[3];
+                int a0 = d0 + d3;         // 10b                      [-510,510]
+                int a1 = d1 + d2;
+                int a2 = d1 - d2;
+                int a3 = d0 - d3;
+                tmp[0 + (i * 4)] = (a0 + a1) * 8;   // 14b                      [-8160,8160]
+                tmp[1 + (i * 4)] = ((a2 * 2217) + (a3 * 5352) + 1812) >> 9;      // [-7536,7542]
+                tmp[2 + (i * 4)] = (a0 - a1) * 8;
+                tmp[3 + (i * 4)] = ((a3 * 2217) - (a2 * 5352) + 937) >> 9;
+
+                src = src.Slice(WebPConstants.Bps);
+                reference = reference.Slice(WebPConstants.Bps);
+            }
+
+            for (i = 0; i < 4; ++i)
+            {
+                int a0 = tmp[0 + i] + tmp[12 + i];  // 15b
+                int a1 = tmp[4 + i] + tmp[8 + i];
+                int a2 = tmp[4 + i] - tmp[8 + i];
+                int a3 = tmp[0 + i] - tmp[12 + i];
+                output[0 + i] = (short)((a0 + a1 + 7) >> 4);            // 12b
+                output[4 + i] = (short)((((a2 * 2217) + (a3 * 5352) + 12000) >> 16) + (a3 != 0 ? 1 : 0));
+                output[8 + i] = (short)((a0 - a1 + 7) >> 4);
+                output[12 + i] = (short)(((a3 * 2217) - (a2 * 5352) + 51000) >> 16);
+            }
+        }
+
+        private void FTransformWht(Span<short> input, Span<short> output)
+        {
+            var tmp = new int[16];
+            int i;
+            for (i = 0; i < 4; ++i)
+            {
+                int a0 = input[0 * 16] + input[2 * 16];  // 13b
+                int a1 = input[1 * 16] + input[3 * 16];
+                int a2 = input[1 * 16] - input[3 * 16];
+                int a3 = input[0 * 16] - input[2 * 16];
+                tmp[0 + (i * 4)] = a0 + a1;   // 14b
+                tmp[1 + (i * 4)] = a3 + a2;
+                tmp[2 + (i * 4)] = a3 - a2;
+                tmp[3 + (i * 4)] = a0 - a1;
+
+                input = input.Slice(64);
+            }
+
+            for (i = 0; i < 4; ++i)
+            {
+                int a0 = tmp[0 + i] + tmp[8 + i];  // 15b
+                int a1 = tmp[4 + i] + tmp[12 + i];
+                int a2 = tmp[4 + i] - tmp[12 + i];
+                int a3 = tmp[0 + i] - tmp[8 + i];
+                int b0 = a0 + a1;    // 16b
+                int b1 = a3 + a2;
+                int b2 = a3 - a2;
+                int b3 = a0 - a1;
+                output[ 0 + i] = (short)(b0 >> 1);     // 15b
+                output[ 4 + i] = (short)(b1 >> 1);
+                output[ 8 + i] = (short)(b2 >> 1);
+                output[12 + i] = (short)(b3 >> 1);
+            }
+        }
+
+        private int Quantize2Blocks(Span<short> input, Span<short> output, Vp8Matrix mtx)
+        {
+            int nz;
+            nz = this.QuantizeBlock(input, output, mtx) << 0;
+            nz |= this.QuantizeBlock(input.Slice(1 * 16), output.Slice(1 * 16), mtx) << 1;
+            return nz;
+        }
+
+        private int QuantizeBlock(Span<short> input, Span<short> output, Vp8Matrix mtx)
+        {
+            int last = -1;
+            int n;
+            for (n = 0; n < 16; ++n)
+            {
+                int j = zigzag[n];
+                bool sign = input[j] < 0;
+                uint coeff = (uint)((sign ? -input[j] : input[j]) + mtx.Sharpen[j]);
+                if (coeff > mtx.ZThresh[j])
+                {
+                    uint Q = (uint)mtx.Q[j];
+                    uint iQ = (uint)mtx.IQ[j];
+                    uint B = mtx.Bias[j];
+                    int level = this.QuantDiv(coeff, iQ, B);
+                    if (level > MaxLevel)
+                    {
+                        level = MaxLevel;
+                    }
+
+                    if (sign)
+                    {
+                        level = -level;
+                    }
+
+                    input[j] = (short)(level * (int)Q);
+                    output[n] = (short)level;
+                    if (level != 0)
+                    {
+                        last = n;
+                    }
+                }
+                else
+                {
+                    output[n] = 0;
+                    input[j] = 0;
+                }
+            }
+
+            return (last >= 0) ? 1 : 0;
+        }
+
+        private void ITransform(Span<byte> reference, short[] input, Span<byte> dst, bool doTwo)
+        {
+            this.ITransformOne(reference, input, dst);
+            if (doTwo)
+            {
+                this.ITransformOne(reference.Slice(4), input.AsSpan(16), dst.Slice(4));
+            }
+        }
+
+        private void ITransformOne(Span<byte> reference, Span<short> input, Span<byte> dst)
+        {
+            int i;
+            var C = new int[4 * 4];
+            Span<int> tmp = C.AsSpan();
+            for (i = 0; i < 4; ++i)
+            {
+                // vertical pass.
+                int a = input[0] + input[8];
+                int b = input[0] - input[8];
+                int c = this.Mul(input[4], KC2) - this.Mul(input[12], KC1);
+                int d = this.Mul(input[4], KC1) + this.Mul(input[12], KC2);
+                tmp[0] = a + d;
+                tmp[1] = b + c;
+                tmp[2] = b - c;
+                tmp[3] = a - d;
+                tmp = tmp.Slice(4);
+                input = input.Slice(1);
+            }
+
+            tmp = C.AsSpan();
+            for (i = 0; i < 4; ++i)
+            {
+                // horizontal pass.
+                int dc = tmp[0] + 4;
+                int a = dc + tmp[8];
+                int b = dc - tmp[8];
+                int c = this.Mul(tmp[4], KC2) - this.Mul(tmp[12], KC1);
+                int d = this.Mul(tmp[4], KC1) + this.Mul(tmp[12], KC2);
+                this.Store(dst, reference, 0, i, (byte)(a + d));
+                this.Store(dst, reference, 1, i, (byte)(b + c));
+                this.Store(dst, reference, 2, i, (byte)(b - c));
+                this.Store(dst, reference, 3, i, (byte)(a - d));
+                tmp = tmp.Slice(1);
+            }
         }
 
         private void ConvertRgbToYuv<TPixel>(Image<TPixel> image)
@@ -741,6 +1016,24 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
 
             return true;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private int QuantDiv(uint n, uint iQ, uint b)
+        {
+            return (int)(((n * iQ) + b) >> QFix);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void Store(Span<byte> dst, Span<byte> reference, int x, int y, byte v)
+        {
+            dst[x + (y * WebPConstants.Bps)] = LossyUtils.Clip8B(reference[x + (y * WebPConstants.Bps)] + (v >> 3));
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private int Mul(int a, int b)
+        {
+            return (a * b) >> 16;
         }
     }
 }

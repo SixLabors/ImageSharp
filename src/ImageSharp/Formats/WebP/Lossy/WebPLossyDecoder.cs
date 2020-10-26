@@ -890,7 +890,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 if (nz > 1)
                 {
                     // More than just the DC -> perform the full transform.
-                    this.TransformWht(dc, dst);
+                    LossyUtils.TransformWht(dc, dst);
                 }
                 else
                 {
@@ -1076,44 +1076,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
 
             return v;
-        }
-
-        /// <summary>
-        /// Paragraph 14.3: Implementation of the Walsh-Hadamard transform inversion.
-        /// </summary>
-        private void TransformWht(short[] input, short[] output)
-        {
-            var tmp = new int[16];
-            for (int i = 0; i < 4; ++i)
-            {
-                int iPlus4 = 4 + i;
-                int iPlus8 = 8 + i;
-                int iPlus12 = 12 + i;
-                int a0 = input[i] + input[iPlus12];
-                int a1 = input[iPlus4] + input[iPlus8];
-                int a2 = input[iPlus4] - input[iPlus8];
-                int a3 = input[i] - input[iPlus12];
-                tmp[i] = a0 + a1;
-                tmp[iPlus8] = a0 - a1;
-                tmp[iPlus4] = a3 + a2;
-                tmp[iPlus12] = a3 - a2;
-            }
-
-            int outputOffset = 0;
-            for (int i = 0; i < 4; ++i)
-            {
-                int imul4 = i * 4;
-                int dc = tmp[0 + imul4] + 3;
-                int a0 = dc + tmp[3 + imul4];
-                int a1 = tmp[1 + imul4] + tmp[2 + imul4];
-                int a2 = tmp[1 + imul4] - tmp[2 + imul4];
-                int a3 = dc - tmp[3 + imul4];
-                output[outputOffset + 0] = (short)((a0 + a1) >> 3);
-                output[outputOffset + 16] = (short)((a3 + a2) >> 3);
-                output[outputOffset + 32] = (short)((a0 - a1) >> 3);
-                output[outputOffset + 48] = (short)((a3 - a2) >> 3);
-                outputOffset += 64;
-            }
         }
 
         private Vp8SegmentHeader ParseSegmentHeader(Vp8Proba proba)

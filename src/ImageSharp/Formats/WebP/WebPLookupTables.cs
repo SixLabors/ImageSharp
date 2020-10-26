@@ -45,6 +45,12 @@ namespace SixLabors.ImageSharp.Formats.WebP
             0 + (12 * WebPConstants.Bps),  4 + (12 * WebPConstants.Bps), 8 + (12 * WebPConstants.Bps), 12 + (12 * WebPConstants.Bps),
         };
 
+        public static readonly short[] Vp8ScanUv =
+        {
+            0 + (0 * WebPConstants.Bps),   4 + (0 * WebPConstants.Bps), 0 + (4 * WebPConstants.Bps),  4 + (4 * WebPConstants.Bps),    // U
+            8 + (0 * WebPConstants.Bps),  12 + (0 * WebPConstants.Bps), 8 + (4 * WebPConstants.Bps), 12 + (4 * WebPConstants.Bps)     // V
+        };
+
         public static readonly short[,][] Vp8FixedCostsI4 = new short[10, 10][];
 
         /// <summary>

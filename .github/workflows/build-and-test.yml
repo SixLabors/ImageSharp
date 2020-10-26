@@ -18,6 +18,10 @@ jobs:
                       framework: netcoreapp3.1
                       runtime: -x64
                       codecov: true
+                    - os: macos-latest
+                      framework: netcoreapp3.1
+                      runtime: -x64
+                      codecov: false
                     - os: windows-latest
                       framework: netcoreapp3.1
                       runtime: -x64
@@ -51,6 +55,16 @@ jobs:
                   git config --global core.longpaths true
                   git fetch --prune --unshallow
                   git submodule -q update --init --recursive
+
+            - name: Setup DotNet SDK
+              uses: actions/setup-dotnet@v1
+              with:
+                  dotnet-version: "3.1.x"
+
+            - name: Install macos dependencies
+              shell: pwsh
+              if: startsWith(matrix.options.os, 'macos')
+              run: brew install mono-libgdiplus
 
             - name: Build
               shell: pwsh

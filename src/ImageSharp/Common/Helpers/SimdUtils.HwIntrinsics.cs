@@ -19,6 +19,86 @@ namespace SixLabors.ImageSharp
             public static ReadOnlySpan<byte> PermuteMaskEvenOdd8x32 => new byte[] { 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0 };
 
             /// <summary>
+            /// Shuffle single-precision (32-bit) floating-point elements in <paramref name="source"/>
+            /// using the control and store the results in <paramref name="dest"/>.
+            /// </summary>
+            /// <param name="source">The source span of floats</param>
+            /// <param name="dest">The destination span of float</param>
+            /// <param name="control">The byte control.</param>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static void Shuffle4ChannelReduce(
+                ref ReadOnlySpan<float> source,
+                ref Span<float> dest,
+                byte control)
+            {
+                if (Avx.IsSupported || Sse.IsSupported)
+                {
+                    int remainder;
+                    if (Avx.IsSupported)
+                    {
+                        remainder = ImageMaths.ModuloP2(source.Length, Vector256<float>.Count);
+                    }
+                    else
+                    {
+                        remainder = ImageMaths.ModuloP2(source.Length, Vector128<float>.Count);
+                    }
+
+                    int adjustedCount = source.Length - remainder;
+
+                    if (adjustedCount > 0)
+                    {
+                        Shuffle4Channel(
+                            source.Slice(0, adjustedCount),
+                            dest.Slice(0, adjustedCount),
+                            control);
+
+                        source = source.Slice(adjustedCount);
+                        dest = dest.Slice(adjustedCount);
+                    }
+                }
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private static void Shuffle4Channel(
+                ReadOnlySpan<float> source,
+                Span<float> dest,
+                byte control)
+            {
+                if (Avx.IsSupported)
+                {
+                    int n = dest.Length / Vector256<float>.Count;
+
+                    ref Vector256<float> sourceBase =
+                        ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
+
+                    ref Vector256<float> destBase =
+                        ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
+
+                    for (int i = 0; i < n; i++)
+                    {
+                        Unsafe.Add(ref destBase, i) = Avx.Permute(Unsafe.Add(ref sourceBase, i), control);
+                    }
+                }
+                else
+                {
+                    // Sse
+                    int n = dest.Length / Vector128<float>.Count;
+
+                    ref Vector128<float> sourceBase =
+                        ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
+
+                    ref Vector128<float> destBase =
+                        ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
+
+                    for (int i = 0; i < n; i++)
+                    {
+                        Vector128<float> vs = Unsafe.Add(ref sourceBase, i);
+                        Unsafe.Add(ref destBase, i) = Sse.Shuffle(vs, vs, control);
+                    }
+                }
+            }
+
+            /// <summary>
             /// Performs a multiplication and an addition of the <see cref="Vector256{T}"/>.
             /// </summary>
             /// <param name="va">The vector to add to the intermediate result.</param>

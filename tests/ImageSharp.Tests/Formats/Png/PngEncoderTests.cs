@@ -535,7 +535,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             static void RunTest(string serialized)
             {
                 TestImageProvider<Rgba32> provider =
-                    FeatureTestRunner.Deserialize<TestImageProvider<Rgba32>>(serialized);
+                    FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(serialized);
 
                 foreach (PngInterlaceMode interlaceMode in InterlaceMode)
                 {

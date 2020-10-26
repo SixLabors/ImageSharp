@@ -26,7 +26,9 @@
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Condition="'$(OS)' == 'Windows_NT'" />
     <PackageReference Include="Colourful" />
     <PackageReference Include="Pfim" />
-    <PackageReference Include="SharpZipLib"  />
+    <!-- Enable support for using libgdiplus on macOS -->
+    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Version="5.8.64" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
+    <PackageReference Include="SharpZipLib" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 

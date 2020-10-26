@@ -32,62 +32,62 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         }
 
         /// <summary>
-        /// Distortion.
+        /// Gets or sets the distortion.
         /// </summary>
         public long D { get; set; }
 
         /// <summary>
-        /// Spectral distortion.
+        /// Gets or sets the spectral distortion.
         /// </summary>
         public long SD { get; set; }
 
         /// <summary>
-        /// Header bits.
+        /// Gets or sets the header bits.
         /// </summary>
         public long H { get; set; }
 
         /// <summary>
-        /// Rate.
+        /// Gets or sets the rate.
         /// </summary>
         public long R { get; set; }
 
         /// <summary>
-        /// Score.
+        /// Gets or sets the score.
         /// </summary>
         public long Score { get; set; }
 
         /// <summary>
-        /// Quantized levels for luma-DC.
+        /// Gets the quantized levels for luma-DC.
         /// </summary>
         public short[] YDcLevels { get; }
 
         /// <summary>
-        /// Quantized levels for luma-AC.
+        /// Gets the quantized levels for luma-AC.
         /// </summary>
         public short[][] YAcLevels { get; }
 
         /// <summary>
-        /// Quantized levels for chroma.
+        /// Gets the quantized levels for chroma.
         /// </summary>
         public short[][] UvLevels { get; }
 
         /// <summary>
-        /// Mode number for intra16 prediction.
+        /// Gets or sets the mode number for intra16 prediction.
         /// </summary>
         public int ModeI16 { get; set; }
 
         /// <summary>
-        /// Mode numbers for intra4 predictions.
+        /// Gets the mode numbers for intra4 predictions.
         /// </summary>
         public byte[] ModesI4 { get; }
 
         /// <summary>
-        /// Mode number of chroma prediction.
+        /// Gets or sets the mode number of chroma prediction.
         /// </summary>
         public int ModeUv { get; set; }
 
         /// <summary>
-        /// Non-zero blocks.
+        /// Gets or sets the Non-zero blocks.
         /// </summary>
         public uint Nz { get; set; }
 

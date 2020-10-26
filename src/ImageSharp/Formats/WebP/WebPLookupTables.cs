@@ -39,16 +39,16 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public static readonly short[] Vp8Scan =
         {
             // Luma
-            0 + (0 * WebPConstants.Bps),  4 + (0 * WebPConstants.Bps), 8 + (0 * WebPConstants.Bps), 12 + (0 * WebPConstants.Bps),
-            0 + (4 * WebPConstants.Bps),  4 + (4 * WebPConstants.Bps), 8 + (4 * WebPConstants.Bps), 12 + (4 * WebPConstants.Bps),
-            0 + (8 * WebPConstants.Bps),  4 + (8 * WebPConstants.Bps), 8 + (8 * WebPConstants.Bps), 12 + (8 * WebPConstants.Bps),
-            0 + (12 * WebPConstants.Bps),  4 + (12 * WebPConstants.Bps), 8 + (12 * WebPConstants.Bps), 12 + (12 * WebPConstants.Bps),
+            0 + (0 * WebPConstants.Bps), 4 + (0 * WebPConstants.Bps), 8 + (0 * WebPConstants.Bps), 12 + (0 * WebPConstants.Bps),
+            0 + (4 * WebPConstants.Bps), 4 + (4 * WebPConstants.Bps), 8 + (4 * WebPConstants.Bps), 12 + (4 * WebPConstants.Bps),
+            0 + (8 * WebPConstants.Bps), 4 + (8 * WebPConstants.Bps), 8 + (8 * WebPConstants.Bps), 12 + (8 * WebPConstants.Bps),
+            0 + (12 * WebPConstants.Bps), 4 + (12 * WebPConstants.Bps), 8 + (12 * WebPConstants.Bps), 12 + (12 * WebPConstants.Bps),
         };
 
         public static readonly short[] Vp8ScanUv =
         {
-            0 + (0 * WebPConstants.Bps),   4 + (0 * WebPConstants.Bps), 0 + (4 * WebPConstants.Bps),  4 + (4 * WebPConstants.Bps),    // U
-            8 + (0 * WebPConstants.Bps),  12 + (0 * WebPConstants.Bps), 8 + (4 * WebPConstants.Bps), 12 + (4 * WebPConstants.Bps)     // V
+            0 + (0 * WebPConstants.Bps), 4 + (0 * WebPConstants.Bps), 0 + (4 * WebPConstants.Bps),  4 + (4 * WebPConstants.Bps), // U
+            8 + (0 * WebPConstants.Bps), 12 + (0 * WebPConstants.Bps), 8 + (4 * WebPConstants.Bps), 12 + (4 * WebPConstants.Bps) // V
         };
 
         public static readonly short[,][] Vp8FixedCostsI4 = new short[10, 10][];

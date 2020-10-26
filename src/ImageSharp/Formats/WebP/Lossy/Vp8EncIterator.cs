@@ -152,9 +152,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public int Y { get; set; }
 
         /// <summary>
-        /// Gets or sets the input samples.
+        /// Gets the input samples.
         /// </summary>
-        public byte[] YuvIn { get; set; }
+        public byte[] YuvIn { get; }
 
         /// <summary>
         /// Gets or sets the output samples.
@@ -167,39 +167,39 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public byte[] YuvOut2 { get; set; }
 
         /// <summary>
-        /// Gets or sets the scratch buffer for prediction.
+        /// Gets the scratch buffer for prediction.
         /// </summary>
-        public byte[] YuvP { get; set; }
+        public byte[] YuvP { get; }
 
         /// <summary>
-        /// Gets or sets the left luma samples.
+        /// Gets the left luma samples.
         /// </summary>
-        public byte[] YLeft { get; set; }
+        public byte[] YLeft { get; }
 
         /// <summary>
-        /// Gets or sets the left uv samples.
+        /// Gets the left uv samples.
         /// </summary>
-        public byte[] UvLeft { get; set; }
+        public byte[] UvLeft { get; }
 
         /// <summary>
-        /// Gets or sets the top luma samples at position 'X'.
+        /// Gets the top luma samples at position 'X'.
         /// </summary>
-        public IMemoryOwner<byte> YTop { get; set; }
+        public IMemoryOwner<byte> YTop { get; }
 
         /// <summary>
-        /// Gets or sets the top u/v samples at position 'X', packed as 16 bytes.
+        /// Gets the top u/v samples at position 'X', packed as 16 bytes.
         /// </summary>
-        public IMemoryOwner<byte> UvTop { get; set; }
+        public IMemoryOwner<byte> UvTop { get; }
 
         /// <summary>
-        /// Gets or sets the intra mode predictors (4x4 blocks).
+        /// Gets the intra mode predictors (4x4 blocks).
         /// </summary>
-        public IMemoryOwner<byte> Preds { get; set; }
+        public IMemoryOwner<byte> Preds { get; }
 
         /// <summary>
-        /// Gets or sets the non-zero pattern.
+        /// Gets the non-zero pattern.
         /// </summary>
-        public IMemoryOwner<uint> Nz { get; set; }
+        public IMemoryOwner<uint> Nz { get; }
 
         /// <summary>
         /// Gets 32+5 boundary samples needed by intra4x4.
@@ -217,12 +217,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public int I4 { get; set; }
 
         /// <summary>
-        /// Gets or sets the top-non-zero context.
+        /// Gets the top-non-zero context.
         /// </summary>
         public int[] TopNz { get; }
 
         /// <summary>
-        /// Gets or sets the left-non-zero. leftNz[8] is independent.
+        /// Gets the left-non-zero. leftNz[8] is independent.
         /// </summary>
         public int[] LeftNz { get; }
 
@@ -288,7 +288,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 }
             }
 
-            NzToBytes();  // import the non-zero context.
+            this.NzToBytes();  // import the non-zero context.
         }
 
         // Import uncompressed samples from source.
@@ -864,9 +864,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             byte[] vals =
             {
                 LossyUtils.Avg3(top[-1], top[0], top[1]),
-                LossyUtils.Avg3(top[ 0], top[1], top[2]),
-                LossyUtils.Avg3(top[ 1], top[2], top[3]),
-                LossyUtils.Avg3(top[ 2], top[3], top[4])
+                LossyUtils.Avg3(top[0], top[1], top[2]),
+                LossyUtils.Avg3(top[1], top[2], top[3]),
+                LossyUtils.Avg3(top[2], top[3], top[4])
             };
 
             for (int i = 0; i < 4; ++i)
@@ -878,223 +878,223 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private void He4(Span<byte> dst, Span<byte> top)
         {
             // horizontal
-            byte X = top[-1];
-            byte I = top[-2];
-            byte J = top[-3];
-            byte K = top[-4];
-            byte L = top[-5];
+            byte x = top[-1];
+            byte i = top[-2];
+            byte j = top[-3];
+            byte k = top[-4];
+            byte l = top[-5];
 
-            uint val = 0x01010101U * LossyUtils.Avg3(X, I, J);
+            uint val = 0x01010101U * LossyUtils.Avg3(x, i, j);
             BinaryPrimitives.WriteUInt32BigEndian(dst, val);
-            val = 0x01010101U * LossyUtils.Avg3(I, J, K);
+            val = 0x01010101U * LossyUtils.Avg3(i, j, k);
             BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(1 * WebPConstants.Bps), val);
-            val = 0x01010101U * LossyUtils.Avg3(J, K, L);
+            val = 0x01010101U * LossyUtils.Avg3(j, k, l);
             BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(2 * WebPConstants.Bps), val);
-            val = 0x01010101U * LossyUtils.Avg3(K, L, L);
+            val = 0x01010101U * LossyUtils.Avg3(k, l, l);
             BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(1 * WebPConstants.Bps), val);
         }
 
         private void Rd4(Span<byte> dst, Span<byte> top)
         {
-            byte X = top[-1];
-            byte I = top[-2];
-            byte J = top[-3];
-            byte K = top[-4];
-            byte L = top[-5];
-            byte A = top[0];
-            byte B = top[1];
-            byte C = top[2];
-            byte D = top[3];
+            byte x = top[-1];
+            byte i = top[-2];
+            byte j = top[-3];
+            byte k = top[-4];
+            byte l = top[-5];
+            byte a = top[0];
+            byte b = top[1];
+            byte c = top[2];
+            byte d = top[3];
 
-            LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg3(J, K, L));
-            var ijk = LossyUtils.Avg3(I, J, K);
+            LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg3(j, k, l));
+            var ijk = LossyUtils.Avg3(i, j, k);
             LossyUtils.Dst(dst, 0, 2, ijk);
             LossyUtils.Dst(dst, 1, 3, ijk);
-            var xij = LossyUtils.Avg3(X, I, J);
+            var xij = LossyUtils.Avg3(x, i, j);
             LossyUtils.Dst(dst, 0, 1, xij);
             LossyUtils.Dst(dst, 1, 2, xij);
             LossyUtils.Dst(dst, 2, 3, xij);
-            var axi = LossyUtils.Avg3(A, X, I);
+            var axi = LossyUtils.Avg3(a, x, i);
             LossyUtils.Dst(dst, 0, 0, axi);
             LossyUtils.Dst(dst, 1, 1, axi);
             LossyUtils.Dst(dst, 2, 2, axi);
             LossyUtils.Dst(dst, 3, 3, axi);
-            var bax = LossyUtils.Avg3(B, A, X);
+            var bax = LossyUtils.Avg3(b, a, x);
             LossyUtils.Dst(dst, 1, 0, bax);
             LossyUtils.Dst(dst, 2, 1, bax);
             LossyUtils.Dst(dst, 3, 2, bax);
-            var cba = LossyUtils.Avg3(C, B, A);
+            var cba = LossyUtils.Avg3(c, b, a);
             LossyUtils.Dst(dst, 2, 0, cba);
             LossyUtils.Dst(dst, 3, 1, cba);
-            LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg3(D, C, B));
+            LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg3(d, c, b));
         }
 
         private void Vr4(Span<byte> dst, Span<byte> top)
         {
-            byte X = top[-1];
-            byte I = top[-2];
-            byte J = top[-3];
-            byte K = top[-4];
-            byte A = top[0];
-            byte B = top[1];
-            byte C = top[2];
-            byte D = top[3];
+            byte x = top[-1];
+            byte i = top[-2];
+            byte j = top[-3];
+            byte k = top[-4];
+            byte a = top[0];
+            byte b = top[1];
+            byte c = top[2];
+            byte d = top[3];
 
-            var xa = LossyUtils.Avg2(X, A);
+            var xa = LossyUtils.Avg2(x, a);
             LossyUtils.Dst(dst, 0, 0, xa);
             LossyUtils.Dst(dst, 1, 2, xa);
-            var ab = LossyUtils.Avg2(A, B);
+            var ab = LossyUtils.Avg2(a, b);
             LossyUtils.Dst(dst, 1, 0, ab);
             LossyUtils.Dst(dst, 2, 2, ab);
-            var bc = LossyUtils.Avg2(B, C);
+            var bc = LossyUtils.Avg2(b, c);
             LossyUtils.Dst(dst, 2, 0, bc);
             LossyUtils.Dst(dst, 3, 2, bc);
-            LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg2(C, D));
-            LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg3(K, J, I));
-            LossyUtils.Dst(dst, 0, 2, LossyUtils.Avg3(J, I, X));
-            var ixa = LossyUtils.Avg3(I, X, A);
+            LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg2(c, d));
+            LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg3(k, j, i));
+            LossyUtils.Dst(dst, 0, 2, LossyUtils.Avg3(j, i, x));
+            var ixa = LossyUtils.Avg3(i, x, a);
             LossyUtils.Dst(dst, 0, 1, ixa);
             LossyUtils.Dst(dst, 1, 3, ixa);
-            var xab = LossyUtils.Avg3(X, A, B);
+            var xab = LossyUtils.Avg3(x, a, b);
             LossyUtils.Dst(dst, 1, 1, xab);
             LossyUtils.Dst(dst, 2, 3, xab);
-            var abc = LossyUtils.Avg3(A, B, C);
+            var abc = LossyUtils.Avg3(a, b, c);
             LossyUtils.Dst(dst, 2, 1, abc);
             LossyUtils.Dst(dst, 3, 3, abc);
-            LossyUtils.Dst(dst, 3, 1, LossyUtils.Avg3(B, C, D));
+            LossyUtils.Dst(dst, 3, 1, LossyUtils.Avg3(b, c, d));
         }
 
         private void Ld4(Span<byte> dst, Span<byte> top)
         {
-            byte A = top[0];
-            byte B = top[1];
-            byte C = top[2];
-            byte D = top[3];
-            byte E = top[4];
-            byte F = top[5];
-            byte G = top[6];
-            byte H = top[7];
+            byte a = top[0];
+            byte b = top[1];
+            byte c = top[2];
+            byte d = top[3];
+            byte e = top[4];
+            byte f = top[5];
+            byte g = top[6];
+            byte h = top[7];
 
-            LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg3(A, B, C));
-            var bcd = LossyUtils.Avg3(B, C, D);
+            LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg3(a, b, c));
+            var bcd = LossyUtils.Avg3(b, c, d);
             LossyUtils.Dst(dst, 1, 0, bcd);
             LossyUtils.Dst(dst, 0, 1, bcd);
-            var cde = LossyUtils.Avg3(C, D, E);
+            var cde = LossyUtils.Avg3(c, d, e);
             LossyUtils.Dst(dst, 2, 0, cde);
             LossyUtils.Dst(dst, 1, 1, cde);
             LossyUtils.Dst(dst, 0, 2, cde);
-            var def = LossyUtils.Avg3(D, E, F);
+            var def = LossyUtils.Avg3(d, e, f);
             LossyUtils.Dst(dst, 3, 0, def);
             LossyUtils.Dst(dst, 2, 1, def);
             LossyUtils.Dst(dst, 1, 2, def);
             LossyUtils.Dst(dst, 0, 3, def);
-            var efg = LossyUtils.Avg3(E, F, G);
+            var efg = LossyUtils.Avg3(e, f, g);
             LossyUtils.Dst(dst, 3, 1, efg);
             LossyUtils.Dst(dst, 2, 2, efg);
             LossyUtils.Dst(dst, 1, 3, efg);
-            var fgh = LossyUtils.Avg3(F, G, H);
+            var fgh = LossyUtils.Avg3(f, g, h);
             LossyUtils.Dst(dst, 3, 2, fgh);
             LossyUtils.Dst(dst, 2, 3, fgh);
-            LossyUtils.Dst(dst, 3, 3, LossyUtils.Avg3(G, H, H));
+            LossyUtils.Dst(dst, 3, 3, LossyUtils.Avg3(g, h, h));
         }
 
         private void Vl4(Span<byte> dst, Span<byte> top)
         {
-            byte A = top[0];
-            byte B = top[1];
-            byte C = top[2];
-            byte D = top[3];
-            byte E = top[4];
-            byte F = top[5];
-            byte G = top[6];
-            byte H = top[7];
+            byte a = top[0];
+            byte b = top[1];
+            byte c = top[2];
+            byte d = top[3];
+            byte e = top[4];
+            byte f = top[5];
+            byte g = top[6];
+            byte h = top[7];
 
-            LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg2(A, B));
-            var bc = LossyUtils.Avg2(B, C);
+            LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg2(a, b));
+            var bc = LossyUtils.Avg2(b, c);
             LossyUtils.Dst(dst, 1, 0, bc);
             LossyUtils.Dst(dst, 0, 2, bc);
-            var cd = LossyUtils.Avg2(C, D);
+            var cd = LossyUtils.Avg2(c, d);
             LossyUtils.Dst(dst, 2, 0, cd);
             LossyUtils.Dst(dst, 1, 2, cd);
-            var de = LossyUtils.Avg2(D, E);
+            var de = LossyUtils.Avg2(d, e);
             LossyUtils.Dst(dst, 3, 0, de);
             LossyUtils.Dst(dst, 2, 2, de);
-            LossyUtils.Dst(dst, 0, 1, LossyUtils.Avg3(A, B, C));
-            var bcd = LossyUtils.Avg3(B,C,D);
+            LossyUtils.Dst(dst, 0, 1, LossyUtils.Avg3(a, b, c));
+            var bcd = LossyUtils.Avg3(b, c, d);
             LossyUtils.Dst(dst, 1, 1, bcd);
             LossyUtils.Dst(dst, 0, 3, bcd);
-            var cde = LossyUtils.Avg3(C, D, E);
+            var cde = LossyUtils.Avg3(c, d, e);
             LossyUtils.Dst(dst, 2, 1, cde);
             LossyUtils.Dst(dst, 1, 3, cde);
-            var def = LossyUtils.Avg3(D, E, F);
+            var def = LossyUtils.Avg3(d, e, f);
             LossyUtils.Dst(dst, 3, 1, def);
             LossyUtils.Dst(dst, 2, 3, def);
-            LossyUtils.Dst(dst, 3,2, LossyUtils.Avg3(E, F, G));
-            LossyUtils.Dst(dst, 3, 3, LossyUtils.Avg3(F, G, H));
+            LossyUtils.Dst(dst, 3, 2, LossyUtils.Avg3(e, f, g));
+            LossyUtils.Dst(dst, 3, 3, LossyUtils.Avg3(f, g, h));
         }
 
         private void Hd4(Span<byte> dst, Span<byte> top)
         {
-            byte X = top[-1];
-            byte I = top[-2];
-            byte J = top[-3];
-            byte K = top[-4];
-            byte L = top[-5];
-            byte A = top[0];
-            byte B = top[1];
-            byte C = top[2];
+            byte x = top[-1];
+            byte i = top[-2];
+            byte j = top[-3];
+            byte k = top[-4];
+            byte l = top[-5];
+            byte a = top[0];
+            byte b = top[1];
+            byte c = top[2];
 
-            var ix = LossyUtils.Avg2(I, X);
+            var ix = LossyUtils.Avg2(i, x);
             LossyUtils.Dst(dst, 0, 0, ix);
             LossyUtils.Dst(dst, 2, 1, ix);
-            var ji = LossyUtils.Avg2(J,I);
+            var ji = LossyUtils.Avg2(j, i);
             LossyUtils.Dst(dst, 0, 1, ji);
             LossyUtils.Dst(dst, 2, 2, ji);
-            var kj = LossyUtils.Avg2(K, J);
+            var kj = LossyUtils.Avg2(k, j);
             LossyUtils.Dst(dst, 0, 2, kj);
             LossyUtils.Dst(dst, 2, 3, kj);
-            LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg2(L, K));
-            LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg3(A, B, C));
-            LossyUtils.Dst(dst, 2, 0, LossyUtils.Avg3(X, A, B));
-            var ixa = LossyUtils.Avg3(I, X, A);
+            LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg2(l, k));
+            LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg3(a, b, c));
+            LossyUtils.Dst(dst, 2, 0, LossyUtils.Avg3(x, a, b));
+            var ixa = LossyUtils.Avg3(i, x, a);
             LossyUtils.Dst(dst, 1, 0, ixa);
             LossyUtils.Dst(dst, 3, 1, ixa);
-            var jix = LossyUtils.Avg3(J, I, X);
+            var jix = LossyUtils.Avg3(j, i, x);
             LossyUtils.Dst(dst, 1, 1, jix);
             LossyUtils.Dst(dst, 3, 2, jix);
-            var kji = LossyUtils.Avg3(K, J, I);
+            var kji = LossyUtils.Avg3(k, j, i);
             LossyUtils.Dst(dst, 1, 2, kji);
             LossyUtils.Dst(dst, 3, 3, kji);
-            LossyUtils.Dst(dst, 1, 3, LossyUtils.Avg3(L, K, J));
+            LossyUtils.Dst(dst, 1, 3, LossyUtils.Avg3(l, k, j));
         }
 
         private void Hu4(Span<byte> dst, Span<byte> top)
         {
-            byte I = top[-2];
-            byte J = top[-3];
-            byte K = top[-4];
-            byte L = top[-5];
+            byte i = top[-2];
+            byte j = top[-3];
+            byte k = top[-4];
+            byte l = top[-5];
 
-            LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg2(I, J));
-            var jk = LossyUtils.Avg2(J, K);
+            LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg2(i, j));
+            var jk = LossyUtils.Avg2(j, k);
             LossyUtils.Dst(dst, 2, 0, jk);
             LossyUtils.Dst(dst, 0, 1, jk);
-            var kl = LossyUtils.Avg2(K, L);
+            var kl = LossyUtils.Avg2(k, l);
             LossyUtils.Dst(dst, 2, 1, kl);
             LossyUtils.Dst(dst, 0, 2, kl);
-            LossyUtils.Dst(dst, 1, 0, LossyUtils.Avg3(I, J, K));
-            var jkl = LossyUtils.Avg3(J, K, L);
+            LossyUtils.Dst(dst, 1, 0, LossyUtils.Avg3(i, j, k));
+            var jkl = LossyUtils.Avg3(j, k, l);
             LossyUtils.Dst(dst, 3, 0, jkl);
             LossyUtils.Dst(dst, 1, 1, jkl);
-            var kll = LossyUtils.Avg3(K, L, L);
+            var kll = LossyUtils.Avg3(k, l, l);
             LossyUtils.Dst(dst, 3, 1, kll);
             LossyUtils.Dst(dst, 1, 2, kll);
-            LossyUtils.Dst(dst, 3, 2, L);
-            LossyUtils.Dst(dst, 2, 2, L);
-            LossyUtils.Dst(dst, 0, 3, L);
-            LossyUtils.Dst(dst, 1, 3, L);
-            LossyUtils.Dst(dst, 2, 3, L);
-            LossyUtils.Dst(dst, 3, 3, L);
+            LossyUtils.Dst(dst, 3, 2, l);
+            LossyUtils.Dst(dst, 2, 2, l);
+            LossyUtils.Dst(dst, 0, 3, l);
+            LossyUtils.Dst(dst, 1, 3, l);
+            LossyUtils.Dst(dst, 2, 3, l);
+            LossyUtils.Dst(dst, 3, 3, l);
         }
 
         private void Fill(Span<byte> dst, int value, int size)

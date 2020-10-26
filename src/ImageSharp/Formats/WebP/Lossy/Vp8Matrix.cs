@@ -18,27 +18,27 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         }
 
         /// <summary>
-        /// quantizer steps.
+        /// Gets the quantizer steps.
         /// </summary>
         public short[] Q { get; }
 
         /// <summary>
-        /// reciprocals, fixed point.
+        /// Gets the reciprocals, fixed point.
         /// </summary>
         public short[] IQ { get; }
 
         /// <summary>
-        /// rounding bias.
+        /// Gets the rounding bias.
         /// </summary>
         public uint[] Bias { get; }
 
         /// <summary>
-        /// value below which a coefficient is zeroed.
+        /// Gets the value below which a coefficient is zeroed.
         /// </summary>
         public uint[] ZThresh { get; }
 
         /// <summary>
-        /// frequency boosters for slight sharpening.
+        /// Gets the frequency boosters for slight sharpening.
         /// </summary>
         public short[] Sharpen { get; }
     }

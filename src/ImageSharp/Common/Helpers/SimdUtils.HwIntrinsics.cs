@@ -148,24 +148,12 @@ namespace SixLabors.ImageSharp
                 {
                     int n = dest.Length / Vector256<byte>.Count;
 
-                    Vector256<byte> vcm;
-                    switch (control)
-                    {
-                        case Shuffle.WXYZ:
-                            vcm = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(Shuffle.WXYZ_256));
-                            break;
-                        case Shuffle.XYZW:
-                            vcm = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(Shuffle.XYZW_256));
-                            break;
-                        case Shuffle.ZYXW:
-                            vcm = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(Shuffle.ZYXW_256));
-                            break;
-                        default:
-                            Span<byte> bytes = stackalloc byte[Vector256<byte>.Count];
-                            Shuffle.MmShuffleSpan(ref bytes, control);
-                            vcm = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(bytes));
-                            break;
-                    }
+                    // I've chosen to do this for convenience while we determine what
+                    // shuffle controls to add to the library.
+                    // We can add static ROS instances if need be in the future.
+                    Span<byte> bytes = stackalloc byte[Vector256<byte>.Count];
+                    Shuffle.MmShuffleSpan(ref bytes, control);
+                    Vector256<byte> vcm = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                     ref Vector256<byte> sourceBase =
                         ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(source));
@@ -183,24 +171,9 @@ namespace SixLabors.ImageSharp
                     // Ssse3
                     int n = dest.Length / Vector128<byte>.Count;
 
-                    Vector128<byte> vcm;
-                    switch (control)
-                    {
-                        case Shuffle.WXYZ:
-                            vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(Shuffle.WXYZ_128));
-                            break;
-                        case Shuffle.XYZW:
-                            vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(Shuffle.XYZW_128));
-                            break;
-                        case Shuffle.ZYXW:
-                            vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(Shuffle.ZYXW_128));
-                            break;
-                        default:
-                            Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
-                            Shuffle.MmShuffleSpan(ref bytes, control);
-                            vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
-                            break;
-                    }
+                    Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
+                    Shuffle.MmShuffleSpan(ref bytes, control);
+                    Vector128<byte> vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
                     ref Vector128<byte> sourceBase =
                         ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(source));

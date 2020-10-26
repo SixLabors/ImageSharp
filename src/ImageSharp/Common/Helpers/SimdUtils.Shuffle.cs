@@ -107,32 +107,6 @@ namespace SixLabors.ImageSharp
             public const byte XYZW = (3 << 6) | (2 << 4) | (1 << 2) | 0;
             public const byte ZYXW = (3 << 6) | (0 << 4) | (1 << 2) | 2;
 
-            public static ReadOnlySpan<byte> WXYZ_128 => MmShuffleSpan128(WXYZ);
-
-            public static ReadOnlySpan<byte> XYZW_128 => MmShuffleSpan128(XYZW);
-
-            public static ReadOnlySpan<byte> ZYXW_128 => MmShuffleSpan128(ZYXW);
-
-            public static ReadOnlySpan<byte> WXYZ_256 => MmShuffleSpan256(WXYZ);
-
-            public static ReadOnlySpan<byte> XYZW_256 => MmShuffleSpan256(XYZW);
-
-            public static ReadOnlySpan<byte> ZYXW_256 => MmShuffleSpan256(ZYXW);
-
-            private static ReadOnlySpan<byte> MmShuffleSpan128(byte control)
-            {
-                Span<byte> buffer = new byte[16];
-                MmShuffleSpan(ref buffer, control);
-                return buffer;
-            }
-
-            private static ReadOnlySpan<byte> MmShuffleSpan256(byte control)
-            {
-                Span<byte> buffer = new byte[32];
-                MmShuffleSpan(ref buffer, control);
-                return buffer;
-            }
-
             [MethodImpl(InliningOptions.ShortMethod)]
             public static byte MmShuffle(int p3, int p2, int p1, int p0)
                 => (byte)((p3 << 6) | (p2 << 4) | (p1 << 2) | p0);

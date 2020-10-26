@@ -14,8 +14,8 @@ namespace SixLabors.ImageSharp
         /// Shuffle single-precision (32-bit) floating-point elements in <paramref name="source"/>
         /// using the control and store the results in <paramref name="dest"/>.
         /// </summary>
-        /// <param name="source">The source span of floats</param>
-        /// <param name="dest">The destination span of float</param>
+        /// <param name="source">The source span of floats.</param>
+        /// <param name="dest">The destination span of floats.</param>
         /// <param name="control">The byte control.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void Shuffle4Channel(
@@ -38,14 +38,43 @@ namespace SixLabors.ImageSharp
             }
         }
 
-        [MethodImpl(InliningOptions.ColdPath)]
-        public static void ShuffleRemainder4Channel(
-            ReadOnlySpan<float> source,
-            Span<float> dest,
+        /// <summary>
+        /// Shuffle 8-bit integers in a within 128-bit lanes in <paramref name="source"/>
+        /// using the control and store the results in <paramref name="dest"/>.
+        /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
+        /// <param name="control">The byte control.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void Shuffle4Channel(
+            ReadOnlySpan<byte> source,
+            Span<byte> dest,
             byte control)
         {
-            ref float sBase = ref MemoryMarshal.GetReference(source);
-            ref float dBase = ref MemoryMarshal.GetReference(dest);
+            VerifyShuffleSpanInput(source, dest);
+
+            // TODO: There doesn't seem to be any APIs for
+            // System.Numerics that allow shuffling.
+#if SUPPORTS_RUNTIME_INTRINSICS
+            HwIntrinsics.Shuffle4ChannelReduce(ref source, ref dest, control);
+#endif
+
+            // Deal with the remainder:
+            if (source.Length > 0)
+            {
+                ShuffleRemainder4Channel(source, dest, control);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static void ShuffleRemainder4Channel<T>(
+            ReadOnlySpan<T> source,
+            Span<T> dest,
+            byte control)
+            where T : struct
+        {
+            ref T sBase = ref MemoryMarshal.GetReference(source);
+            ref T dBase = ref MemoryMarshal.GetReference(dest);
             Shuffle.InverseMmShuffle(control, out int p3, out int p2, out int p1, out int p0);
 
             for (int i = 0; i < source.Length; i += 4)
@@ -58,7 +87,8 @@ namespace SixLabors.ImageSharp
         }
 
         [Conditional("DEBUG")]
-        private static void VerifyShuffleSpanInput(ReadOnlySpan<float> source, Span<float> dest)
+        private static void VerifyShuffleSpanInput<T>(ReadOnlySpan<T> source, Span<T> dest)
+            where T : struct
         {
             DebugGuard.IsTrue(
                 source.Length == dest.Length,
@@ -77,49 +107,64 @@ namespace SixLabors.ImageSharp
             public const byte XYZW = (3 << 6) | (2 << 4) | (1 << 2) | 0;
             public const byte ZYXW = (3 << 6) | (0 << 4) | (1 << 2) | 2;
 
-            public static ReadOnlySpan<byte> WXYZ_128 => MmShuffleByte128(2, 1, 0, 3);
+            public static ReadOnlySpan<byte> WXYZ_128 => MmShuffleSpan128(WXYZ);
 
-            public static ReadOnlySpan<byte> XYZW_128 => MmShuffleByte128(3, 2, 1, 0);
+            public static ReadOnlySpan<byte> XYZW_128 => MmShuffleSpan128(XYZW);
 
-            public static ReadOnlySpan<byte> ZYXW_128 => MmShuffleByte128(3, 0, 1, 2);
+            public static ReadOnlySpan<byte> ZYXW_128 => MmShuffleSpan128(ZYXW);
 
-            public static ReadOnlySpan<byte> WXYZ_256 => MmShuffleByte256(2, 1, 0, 3);
+            public static ReadOnlySpan<byte> WXYZ_256 => MmShuffleSpan256(WXYZ);
 
-            public static ReadOnlySpan<byte> XYZW_256 => MmShuffleByte256(3, 2, 1, 0);
+            public static ReadOnlySpan<byte> XYZW_256 => MmShuffleSpan256(XYZW);
 
-            public static ReadOnlySpan<byte> ZYXW_256 => MmShuffleByte256(3, 0, 1, 2);
+            public static ReadOnlySpan<byte> ZYXW_256 => MmShuffleSpan256(ZYXW);
 
-            private static byte[] MmShuffleByte128(int p3, int p2, int p1, int p0)
+            private static ReadOnlySpan<byte> MmShuffleSpan128(byte control)
             {
-                byte[] result = new byte[16];
-
-                for (int i = 0; i < result.Length; i += 4)
-                {
-                    result[i] = (byte)(p0 + i);
-                    result[i + 1] = (byte)(p1 + i);
-                    result[i + 2] = (byte)(p2 + i);
-                    result[i + 3] = (byte)(p3 + i);
-                }
-
-                return result;
+                Span<byte> buffer = new byte[16];
+                MmShuffleSpan(ref buffer, control);
+                return buffer;
             }
 
-            private static byte[] MmShuffleByte256(int p3, int p2, int p1, int p0)
+            private static ReadOnlySpan<byte> MmShuffleSpan256(byte control)
             {
-                byte[] result = new byte[32];
-
-                for (int i = 0; i < result.Length; i += 4)
-                {
-                    result[i] = (byte)(p0 + i);
-                    result[i + 1] = (byte)(p1 + i);
-                    result[i + 2] = (byte)(p2 + i);
-                    result[i + 3] = (byte)(p3 + i);
-                }
-
-                return result;
+                Span<byte> buffer = new byte[32];
+                MmShuffleSpan(ref buffer, control);
+                return buffer;
             }
 
-            public static void InverseMmShuffle(byte control, out int p3, out int p2, out int p1, out int p0)
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static byte MmShuffle(int p3, int p2, int p1, int p0)
+                => (byte)((p3 << 6) | (p2 << 4) | (p1 << 2) | p0);
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static void MmShuffleSpan(ref Span<byte> span, byte control)
+            {
+                InverseMmShuffle(
+                     control,
+                     out int p3,
+                     out int p2,
+                     out int p1,
+                     out int p0);
+
+                ref byte spanBase = ref MemoryMarshal.GetReference(span);
+
+                for (int i = 0; i < span.Length; i += 4)
+                {
+                    Unsafe.Add(ref spanBase, i) = (byte)(p0 + i);
+                    Unsafe.Add(ref spanBase, i + 1) = (byte)(p1 + i);
+                    Unsafe.Add(ref spanBase, i + 2) = (byte)(p2 + i);
+                    Unsafe.Add(ref spanBase, i + 3) = (byte)(p3 + i);
+                }
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static void InverseMmShuffle(
+                byte control,
+                out int p3,
+                out int p2,
+                out int p1,
+                out int p0)
             {
                 p3 = control >> 6 & 0x3;
                 p2 = control >> 4 & 0x3;

@@ -722,6 +722,24 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             return Clip8(MultHi(y, 19077) + MultHi(v, 26149) - 14234);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static byte Avg2(byte a, byte b)
+        {
+            return (byte)((a + b + 1) >> 1);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static byte Avg3(byte a, byte b, byte c)
+        {
+            return (byte)((a + (2 * b) + c + 2) >> 2);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void Dst(Span<byte> dst, int x, int y, byte v)
+        {
+            dst[x + (y * WebPConstants.Bps)] = v;
+        }
+
         // Complex In-loop filtering (Paragraph 15.3)
         private static void FilterLoop24(
             Span<byte> p,
@@ -947,24 +965,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             {
                 dst[i] = value;
             }
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte Avg2(byte a, byte b)
-        {
-            return (byte)((a + b + 1) >> 1);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte Avg3(byte a, byte b, byte c)
-        {
-            return (byte)((a + (2 * b) + c + 2) >> 2);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void Dst(Span<byte> dst, int x, int y, byte v)
-        {
-            dst[x + (y * WebPConstants.Bps)] = v;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -55,6 +55,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.UvTop = this.memoryAllocator.Allocate<byte>(mbw * 16 * 2);
             this.Preds = this.memoryAllocator.Allocate<byte>(((4 * mbw) + 1) * ((4 * mbh) + 1));
             this.Nz = this.memoryAllocator.Allocate<uint>(mbw + 1);
+            this.MbHeaderLimit = 256 * 510 * 8 * 1024 / (mbw * mbh);
 
             // TODO: properly initialize the bitwriter
             this.bitWriter = new Vp8BitWriter();
@@ -91,17 +92,24 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// </summary>
         private IMemoryOwner<uint> Nz { get; }
 
+        /// <summary>
+        /// Gets a rough limit for header bits per MB.
+        /// </summary>
+        private int MbHeaderLimit { get; }
+
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            int width = image.Width;
+            int height = image.Height;
             this.ConvertRgbToYuv(image);
             Span<byte> y = this.Y.GetSpan();
             Span<byte> u = this.U.GetSpan();
             Span<byte> v = this.V.GetSpan();
 
-            int mbw = (image.Width + 15) >> 4;
-            int mbh = (image.Height + 15) >> 4;
-            int yStride = image.Width;
+            int mbw = (width + 15) >> 4;
+            int mbh = (height + 15) >> 4;
+            int yStride = width;
             int uvStride = (yStride + 1) >> 1;
             var mb = new Vp8MacroBlockInfo[mbw * mbh];
             for (int i = 0; i < mb.Length; i++)
@@ -113,21 +121,29 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             int method = 4; // TODO: hardcoded for now
             int quality = 100; // TODO: hardcoded for now
             var alphas = new int[WebPConstants.MaxAlpha + 1];
-            int uvAlpha = 0;
-            int alpha = 0;
-            if (!it.IsDone())
-            {
-                do
-                {
-                    it.Import(y, u, v, yStride, uvStride, image.Width, image.Height);
-                    int bestAlpha = this.MbAnalyze(it, method, quality, alphas, out var bestUvAlpha);
+            int alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, method, quality, alphas, out int uvAlpha);
 
-                    // Accumulate for later complexity analysis.
-                    alpha += bestAlpha;
-                    uvAlpha += bestUvAlpha;
+            // Analysis is done, proceed to actual coding.
+
+            // TODO: EncodeAlpha();
+            it.Init();
+            it.InitFilter();
+            do
+            {
+                var info = new Vp8ModeScore();
+                it.Import(y, u, v, yStride, uvStride, width, height);
+                if (!this.Decimate(it, info, method))
+                {
+                    this.CodeResiduals(it);
                 }
-                while (it.Next());
+                else
+                {
+                    it.ResetAfterSkip();
+                }
+
+                it.SaveBoundary();
             }
+            while (it.Next());
 
             throw new NotImplementedException();
         }
@@ -141,6 +157,27 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.YTop.Dispose();
             this.UvTop.Dispose();
             this.Preds.Dispose();
+        }
+
+        private int MacroBlockAnalysis(int width, int height, Vp8EncIterator it, Span<byte> y, Span<byte> u, Span<byte> v, int yStride, int uvStride, int method, int quality, int[] alphas, out int uvAlpha)
+        {
+            int alpha = 0;
+            uvAlpha = 0;
+            if (!it.IsDone())
+            {
+                do
+                {
+                    it.Import(y, u, v, yStride, uvStride, width, height);
+                    int bestAlpha = this.MbAnalyze(it, method, quality, alphas, out var bestUvAlpha);
+
+                    // Accumulate for later complexity analysis.
+                    alpha += bestAlpha;
+                    uvAlpha += bestUvAlpha;
+                }
+                while (it.Next());
+            }
+
+            return alpha;
         }
 
         private int MbAnalyze(Vp8EncIterator it, int method, int quality, int[] alphas, out int bestUvAlpha)
@@ -168,6 +205,187 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             it.CurrentMacroBlockInfo.Alpha = bestAlpha;   // For later remapping.
 
             return bestAlpha; // Mixed susceptibility (not just luma).
+        }
+
+        private bool Decimate(Vp8EncIterator it, Vp8ModeScore rd, int method)
+        {
+            rd.InitScore();
+
+            it.MakeLuma16Preds();
+            it.MakeChroma8Preds();
+
+            // TODO: add support for Rate-distortion optimization levels
+            // At this point we have heuristically decided intra16 / intra4.
+            // For method >= 2, pick the best intra4/intra16 based on SSE (~tad slower).
+            // For method <= 1, we don't re-examine the decision but just go ahead with
+            // quantization/reconstruction.
+            this.RefineUsingDistortion(it, rd, method >= 2, method >= 1);
+
+            bool isSkipped = rd.Nz == 0;
+            it.SetSkip(isSkipped);
+
+            return isSkipped;
+        }
+
+        // Refine intra16/intra4 sub-modes based on distortion only (not rate).
+        private void RefineUsingDistortion(Vp8EncIterator it, Vp8ModeScore rd, bool tryBothModes, bool refineUvMode)
+        {
+            long bestScore = Vp8ModeScore.MaxCost;
+            int nz = 0;
+            int mode;
+            bool isI16 = tryBothModes || (it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16);
+
+            // TODO: VP8SegmentInfo* const dqm = &it->enc_->dqm_[it->mb_->segment_];
+
+            // Some empiric constants, of approximate order of magnitude.
+            int lambdaDi16 = 106;
+            int lambdaDi4 = 11;
+            int lambdaDuv = 120;
+            long scoreI4 = 676000; // TODO: hardcoded for now: long scoreI4 = dqm->i4_penalty_;
+            long i4BitSum = 0;
+            long bitLimit = tryBothModes
+                ? this.MbHeaderLimit
+                : Vp8ModeScore.MaxCost; // no early-out allowed.
+            int numPredModes = 4;
+            int numBModes = 10;
+
+            if (isI16)
+            {
+                int bestMode = -1;
+                Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
+                for (mode = 0; mode < numPredModes; ++mode)
+                {
+                    Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8I16ModeOffsets[mode]);
+                    long score = (this.Vp8Sse16X16(src, reference) * WebPConstants.RdDistoMult) + (WebPConstants.Vp8FixedCostsI16[mode] * lambdaDi16);
+
+                    if (mode > 0 && WebPConstants.Vp8FixedCostsI16[mode] > bitLimit)
+                    {
+                        continue;
+                    }
+
+                    if (score < bestScore)
+                    {
+                        bestMode = mode;
+                        bestScore = score;
+                    }
+                }
+
+                if (it.X == 0 || it.Y == 0)
+                {
+                    // Avoid starting a checkerboard resonance from the border. See bug #432 of libwebp.
+                    if (this.IsFlatSource16(src))
+                    {
+                        bestMode = (it.X == 0) ? 0 : 2;
+                        tryBothModes = false; // Stick to i16.
+                    }
+                }
+
+                it.SetIntra16Mode(bestMode);
+
+                // We'll reconstruct later, if i16 mode actually gets selected.
+            }
+
+            // Next, evaluate Intra4.
+            if (tryBothModes || !isI16)
+            {
+                // We don't evaluate the rate here, but just account for it through a
+                // constant penalty (i4 mode usually needs more bits compared to i16).
+                isI16 = false;
+                it.StartI4();
+                do
+                {
+                    int bestI4Mode = -1;
+                    long bestI4Score = Vp8ModeScore.MaxCost;
+                    Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc + WebPLookupTables.Vp8Scan[it.I4]);
+                    short[] modeCosts = it.GetCostModeI4(rd.ModesI4);
+
+                    it.MakeIntra4Preds();
+                    for (mode = 0; mode < numBModes; ++mode)
+                    {
+                        Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8I4ModeOffsets[mode]);
+                        long score = (this.Vp8Sse4X4(src, reference) * WebPConstants.RdDistoMult) + (modeCosts[mode] * lambdaDi4);
+                        if (score < bestI4Score)
+                        {
+                            bestI4Mode = mode;
+                            bestI4Score = score;
+                        }
+                    }
+
+                    i4BitSum += modeCosts[bestI4Mode];
+                    rd.ModesI4[it.I4] = (byte)bestI4Mode;
+                    scoreI4 += bestI4Score;
+                    if (scoreI4 >= bestScore || i4BitSum > bitLimit)
+                    {
+                        // Intra4 won't be better than Intra16. Bail out and pick Intra16.
+                        isI16 = true;
+                        break;
+                    }
+                    else
+                    {
+                        // Reconstruct partial block inside yuv_out2 buffer
+                        Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc + WebPLookupTables.Vp8Scan[it.I4]);
+                        // TODO: nz |= ReconstructIntra4(it, rd.YAcLevels[it.I4], src, tmpDst, bestI4Mode) << it.I4;
+                    }
+                }
+                while (it.RotateI4(it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc)));
+            }
+
+            // Final reconstruction, depending on which mode is selected.
+            if (!isI16)
+            {
+                it.SetIntra4Mode(rd.ModesI4);
+                it.SwapOut();
+                bestScore = scoreI4;
+            }
+            else
+            {
+                // TODO: nz = ReconstructIntra16(it, rd, it.YuvOut.AsSpan(Vp8EncIterator.YOffEnc), it.Preds.GetSpan()[0]);
+            }
+
+            // ... and UV!
+            if (refineUvMode)
+            {
+                int bestMode = -1;
+                long bestUvScore = Vp8ModeScore.MaxCost;
+                Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.UOffEnc);
+                for (mode = 0; mode < numPredModes; ++mode)
+                {
+                    Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8UvModeOffsets[mode]);
+                    long score = (this.Vp8Sse16X8(src, reference) * WebPConstants.RdDistoMult) + (WebPConstants.Vp8FixedCostsUv[mode] * lambdaDuv);
+                    if (score < bestUvScore)
+                    {
+                        bestMode = mode;
+                        bestUvScore = score;
+                    }
+                }
+
+                it.SetIntraUvMode(bestMode);
+            }
+
+            // TODO: nz |= ReconstructUv(it, rd, it.YuvOut.AsSpan(Vp8EncIterator.UOffEnc), it.CurrentMacroBlockInfo.UvMode);
+
+            rd.Nz = (uint)nz;
+            rd.Score = bestScore;
+        }
+
+        private void CodeResiduals(Vp8EncIterator it)
+        {
+
+        }
+
+        private void ReconstructIntra16()
+        {
+
+        }
+
+        private void ReconstructIntra4()
+        {
+
+        }
+
+        private void ReconstructUv()
+        {
+
         }
 
         private void ConvertRgbToYuv<TPixel>(Image<TPixel> image)
@@ -468,6 +686,61 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private int Clip(int v, int min, int max)
         {
             return (v < min) ? min : (v > max) ? max : v;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private int Vp8Sse16X16(Span<byte> a, Span<byte> b)
+        {
+            return this.GetSse(a, b, 16, 16);
+        }
+
+        private int Vp8Sse16X8(Span<byte> a, Span<byte> b)
+        {
+            return this.GetSse(a, b, 16, 8);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private int Vp8Sse4X4(Span<byte> a, Span<byte> b)
+        {
+            return this.GetSse(a, b, 4, 4);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private int GetSse(Span<byte> a, Span<byte> b, int w, int h)
+        {
+            int count = 0;
+            for (int y = 0; y < h; ++y)
+            {
+                for (int x = 0; x < w; ++x)
+                {
+                    int diff = a[x] - b[x];
+                    count += diff * diff;
+                }
+
+                a = a.Slice(WebPConstants.Bps);
+                b = b.Slice(WebPConstants.Bps);
+            }
+
+            return count;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private bool IsFlatSource16(Span<byte> src)
+        {
+            uint v = src[0] * 0x01010101u;
+            Span<byte> vSpan = BitConverter.GetBytes(v).AsSpan();
+            for (int i = 0; i < 16; ++i)
+            {
+                if (src.Slice(0, 4).SequenceEqual(vSpan) || src.Slice(4, 4).SequenceEqual(vSpan) ||
+                    src.Slice(0, 8).SequenceEqual(vSpan) || src.Slice(12, 4).SequenceEqual(vSpan))
+                {
+                    return false;
+                }
+
+                src = src.Slice(WebPConstants.Bps);
+            }
+
+            return true;
         }
     }
 }

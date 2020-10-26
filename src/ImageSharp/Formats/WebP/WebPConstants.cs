@@ -209,6 +209,15 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public const int AlphaScale = 2 * MaxAlpha;
 
+        public static readonly short[] Vp8FixedCostsUv = { 302, 984, 439, 642 };
+
+        public static readonly short[] Vp8FixedCostsI16 = { 663, 919, 872, 919 };
+
+        /// <summary>
+        /// Distortion multiplier (equivalent of lambda).
+        /// </summary>
+        public const int RdDistoMult = 256;
+
         /// <summary>
         /// How many extra lines are needed on the MB boundary for caching, given a filtering level.
         /// Simple filter(1):  up to 2 luma samples are read and 1 is written.

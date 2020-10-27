@@ -13,7 +13,9 @@ namespace SixLabors.ImageSharp.Tests.Common
             new TheoryData<byte>
             {
                 SimdUtils.Shuffle.WXYZ,
+                SimdUtils.Shuffle.WZYX,
                 SimdUtils.Shuffle.XYZW,
+                SimdUtils.Shuffle.YZWX,
                 SimdUtils.Shuffle.ZYXW,
                 SimdUtils.Shuffle.MmShuffle(2, 1, 3, 0),
                 SimdUtils.Shuffle.MmShuffle(1, 1, 1, 1),

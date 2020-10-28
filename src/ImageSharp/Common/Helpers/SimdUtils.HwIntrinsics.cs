@@ -106,34 +106,72 @@ namespace SixLabors.ImageSharp
             {
                 if (Avx.IsSupported)
                 {
-                    int n = dest.Length / Vector256<float>.Count;
-
                     ref Vector256<float> sourceBase =
                         ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
 
                     ref Vector256<float> destBase =
                         ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
 
-                    for (int i = 0; i < n; i++)
+                    int n = dest.Length / Vector256<float>.Count;
+                    int m = ImageMaths.Modulo4(n);
+                    int u = n - m;
+
+                    for (int i = 0; i < u; i += 4)
                     {
-                        Unsafe.Add(ref destBase, i) = Avx.Permute(Unsafe.Add(ref sourceBase, i), control);
+                        ref Vector256<float> vd0 = ref Unsafe.Add(ref destBase, i);
+                        ref Vector256<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
+
+                        vd0 = Avx.Permute(vs0, control);
+                        Unsafe.Add(ref vd0, 1) = Avx.Permute(Unsafe.Add(ref vs0, 1), control);
+                        Unsafe.Add(ref vd0, 2) = Avx.Permute(Unsafe.Add(ref vs0, 2), control);
+                        Unsafe.Add(ref vd0, 3) = Avx.Permute(Unsafe.Add(ref vs0, 3), control);
+                    }
+
+                    if (m > 0)
+                    {
+                        for (int i = u; i < n; i++)
+                        {
+                            Unsafe.Add(ref destBase, i) = Avx.Permute(Unsafe.Add(ref sourceBase, i), control);
+                        }
                     }
                 }
                 else
                 {
                     // Sse
-                    int n = dest.Length / Vector128<float>.Count;
-
                     ref Vector128<float> sourceBase =
                         ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
 
                     ref Vector128<float> destBase =
                         ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
 
-                    for (int i = 0; i < n; i++)
+                    int n = dest.Length / Vector128<float>.Count;
+                    int m = ImageMaths.Modulo4(n);
+                    int u = n - m;
+
+                    for (int i = 0; i < u; i += 4)
                     {
-                        Vector128<float> vs = Unsafe.Add(ref sourceBase, i);
-                        Unsafe.Add(ref destBase, i) = Sse.Shuffle(vs, vs, control);
+                        ref Vector128<float> vd0 = ref Unsafe.Add(ref destBase, i);
+                        ref Vector128<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
+
+                        vd0 = Sse.Shuffle(vs0, vs0, control);
+
+                        Vector128<float> vs1 = Unsafe.Add(ref vs0, 1);
+                        Unsafe.Add(ref vd0, 1) = Sse.Shuffle(vs1, vs1, control);
+
+                        Vector128<float> vs2 = Unsafe.Add(ref vs0, 2);
+                        Unsafe.Add(ref vd0, 2) = Sse.Shuffle(vs2, vs2, control);
+
+                        Vector128<float> vs3 = Unsafe.Add(ref vs0, 3);
+                        Unsafe.Add(ref vd0, 3) = Sse.Shuffle(vs3, vs3, control);
+                    }
+
+                    if (m > 0)
+                    {
+                        for (int i = u; i < n; i++)
+                        {
+                            Vector128<float> vs = Unsafe.Add(ref sourceBase, i);
+                            Unsafe.Add(ref destBase, i) = Sse.Shuffle(vs, vs, control);
+                        }
                     }
                 }
             }
@@ -146,8 +184,6 @@ namespace SixLabors.ImageSharp
             {
                 if (Avx2.IsSupported)
                 {
-                    int n = dest.Length / Vector256<byte>.Count;
-
                     // I've chosen to do this for convenience while we determine what
                     // shuffle controls to add to the library.
                     // We can add static ROS instances if need be in the future.
@@ -161,16 +197,32 @@ namespace SixLabors.ImageSharp
                     ref Vector256<byte> destBase =
                         ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                    for (int i = 0; i < n; i++)
+                    int n = dest.Length / Vector256<byte>.Count;
+                    int m = ImageMaths.Modulo4(n);
+                    int u = n - m;
+
+                    for (int i = 0; i < u; i += 4)
                     {
-                        Unsafe.Add(ref destBase, i) = Avx2.Shuffle(Unsafe.Add(ref sourceBase, i), vcm);
+                        ref Vector256<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                        ref Vector256<byte> vd0 = ref Unsafe.Add(ref destBase, i);
+
+                        vd0 = Avx2.Shuffle(vs0, vcm);
+                        Unsafe.Add(ref vd0, 1) = Avx2.Shuffle(Unsafe.Add(ref vs0, 1), vcm);
+                        Unsafe.Add(ref vd0, 2) = Avx2.Shuffle(Unsafe.Add(ref vs0, 2), vcm);
+                        Unsafe.Add(ref vd0, 3) = Avx2.Shuffle(Unsafe.Add(ref vs0, 3), vcm);
+                    }
+
+                    if (m > 0)
+                    {
+                        for (int i = u; i < n; i++)
+                        {
+                            Unsafe.Add(ref destBase, i) = Avx2.Shuffle(Unsafe.Add(ref sourceBase, i), vcm);
+                        }
                     }
                 }
                 else
                 {
                     // Ssse3
-                    int n = dest.Length / Vector128<byte>.Count;
-
                     Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
                     Shuffle.MmShuffleSpan(ref bytes, control);
                     Vector128<byte> vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
@@ -181,10 +233,27 @@ namespace SixLabors.ImageSharp
                     ref Vector128<byte> destBase =
                         ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
 
-                    for (int i = 0; i < n; i++)
+                    int n = dest.Length / Vector128<byte>.Count;
+                    int m = ImageMaths.Modulo4(n);
+                    int u = n - m;
+
+                    for (int i = 0; i < u; i += 4)
                     {
-                        Vector128<byte> vs = Unsafe.Add(ref sourceBase, i);
-                        Unsafe.Add(ref destBase, i) = Ssse3.Shuffle(vs, vcm);
+                        ref Vector128<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                        ref Vector128<byte> vd0 = ref Unsafe.Add(ref destBase, i);
+
+                        vd0 = Ssse3.Shuffle(vs0, vcm);
+                        Unsafe.Add(ref vd0, 1) = Ssse3.Shuffle(Unsafe.Add(ref vs0, 1), vcm);
+                        Unsafe.Add(ref vd0, 2) = Ssse3.Shuffle(Unsafe.Add(ref vs0, 2), vcm);
+                        Unsafe.Add(ref vd0, 3) = Ssse3.Shuffle(Unsafe.Add(ref vs0, 3), vcm);
+                    }
+
+                    if (m > 0)
+                    {
+                        for (int i = u; i < n; i++)
+                        {
+                            Unsafe.Add(ref destBase, i) = Ssse3.Shuffle(Unsafe.Add(ref sourceBase, i), vcm);
+                        }
                     }
                 }
             }

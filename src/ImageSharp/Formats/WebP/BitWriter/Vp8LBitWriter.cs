@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
     /// <summary>
     /// A bit writer for writing lossless webp streams.
     /// </summary>
-    internal class Vp8LBitWriter
+    internal class Vp8LBitWriter : BitWriterBase
     {
         /// <summary>
         /// This is the minimum amount of size the memory buffer is guaranteed to grow when extra space is needed.
@@ -33,11 +33,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         private int used;
 
         /// <summary>
-        /// Buffer to write to.
-        /// </summary>
-        private byte[] buffer;
-
-        /// <summary>
         /// Current write position.
         /// </summary>
         private int cur;
@@ -49,10 +44,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         /// </summary>
         /// <param name="expectedSize">The expected size in bytes.</param>
         public Vp8LBitWriter(int expectedSize)
+            : base(expectedSize)
         {
-            // TODO: maybe use memory allocator here.
-            this.buffer = new byte[expectedSize];
-            this.end = this.buffer.Length;
+            this.end = this.Buffer.Length;
         }
 
         /// <summary>
@@ -60,8 +54,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         /// Used internally for cloning.
         /// </summary>
         private Vp8LBitWriter(byte[] buffer, ulong bits, int used, int cur)
+            : base(buffer)
         {
-            this.buffer = buffer;
             this.bits = bits;
             this.used = used;
             this.cur = cur;
@@ -113,8 +107,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
 
         public Vp8LBitWriter Clone()
         {
-            var clonedBuffer = new byte[this.buffer.Length];
-            Buffer.BlockCopy(this.buffer, 0, clonedBuffer, 0, this.cur);
+            var clonedBuffer = new byte[this.Buffer.Length];
+            System.Buffer.BlockCopy(this.Buffer, 0, clonedBuffer, 0, this.cur);
             return new Vp8LBitWriter(clonedBuffer, this.bits, this.used, this.cur);
         }
 
@@ -124,7 +118,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         /// <param name="stream">The stream to write to.</param>
         public void WriteToStream(Stream stream)
         {
-            stream.Write(this.buffer.AsSpan(0, this.NumBytes()));
+            stream.Write(this.Buffer.AsSpan(0, this.NumBytes()));
         }
 
         /// <summary>
@@ -135,7 +129,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             this.BitWriterResize((this.used + 7) >> 3);
             while (this.used > 0)
             {
-                this.buffer[this.cur++] = (byte)this.bits;
+                this.Buffer[this.cur++] = (byte)this.bits;
                 this.bits >>= 8;
                 this.used -= 8;
             }
@@ -155,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                 this.BitWriterResize(extraSize);
             }
 
-            BinaryPrimitives.WriteUInt64LittleEndian(this.buffer.AsSpan(this.cur), this.bits);
+            BinaryPrimitives.WriteUInt64LittleEndian(this.Buffer.AsSpan(this.cur), this.bits);
             this.cur += WriterBytes;
             this.bits >>= WriterBits;
             this.used -= WriterBits;
@@ -165,30 +159,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         /// Resizes the buffer to write to.
         /// </summary>
         /// <param name="extraSize">The extra size in bytes needed.</param>
-        private void BitWriterResize(int extraSize)
+        public override void BitWriterResize(int extraSize)
         {
-            int maxBytes = this.end + this.buffer.Length;
+            // TODO: review again if this works as intended. Probably needs a unit test ...
+            int maxBytes = this.end + this.Buffer.Length;
             int sizeRequired = this.cur + extraSize;
 
-            if (maxBytes > 0 && sizeRequired < maxBytes)
+            if (this.ResizeBuffer(maxBytes, sizeRequired))
             {
                 return;
             }
 
-            int newSize = (3 * maxBytes) >> 1;
-            if (newSize < sizeRequired)
-            {
-                newSize = sizeRequired;
-            }
-
-            // make new size multiple of 1k
-            newSize = ((newSize >> 10) + 1) << 10;
-            if (this.cur > 0)
-            {
-                Array.Resize(ref this.buffer, newSize);
-            }
-
-            this.end = this.buffer.Length;
+            this.end = this.Buffer.Length;
         }
     }
 }

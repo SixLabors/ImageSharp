@@ -44,6 +44,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private readonly byte[] zigzag = new byte[] { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
 
+        private readonly byte[] averageBytesPerMb = { 50, 24, 16, 9, 7, 5, 3, 2 };
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8Encoder"/> class.
         /// </summary>
@@ -67,8 +69,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.Nz = this.memoryAllocator.Allocate<uint>(mbw + 1);
             this.MbHeaderLimit = 256 * 510 * 8 * 1024 / (mbw * mbh);
 
-            // TODO: properly initialize the bitwriter
-            this.bitWriter = new Vp8BitWriter();
+            // Initialize the bitwriter.
+            var baseQuant = 36; // TODO: hardCoded for now.
+            int averageBytesPerMacroBlock = this.averageBytesPerMb[baseQuant >> 4];
+            int expectedSize = mbw * mbh * averageBytesPerMacroBlock;
+            this.bitWriter = new Vp8BitWriter(expectedSize);
         }
 
         /// <summary>
@@ -401,6 +406,63 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private void CodeResiduals(Vp8EncIterator it, Vp8ModeScore rd)
         {
+            int x, y, ch;
+            var residual = new Vp8Residual();
+            bool i16 = it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16;
+            int segment = it.CurrentMacroBlockInfo.Segment;
+
+            it.NzToBytes();
+
+            var pos1 = this.bitWriter.Pos;
+            if (i16)
+            {
+                residual.Init(0, 1);
+                residual.SetCoeffs(rd.YDcLevels);
+                int res = this.bitWriter.PutCoeffs(it.TopNz[8] + it.LeftNz[8], residual);
+                it.TopNz[8] = it.LeftNz[8] = res;
+                residual.Init(1, 0);
+            }
+            else
+            {
+                residual.Init(0, 3);
+            }
+
+            // luma-AC
+            for (y = 0; y < 4; ++y)
+            {
+                for (x = 0; x < 4; ++x)
+                {
+                    int ctx = it.TopNz[x] + it.LeftNz[y];
+                    residual.SetCoeffs(rd.YAcLevels[x + (y * 4)]);
+                    int res = this.bitWriter.PutCoeffs(ctx, residual);
+                    it.TopNz[x] = it.LeftNz[y] = res;
+                }
+            }
+
+            var pos2 = this.bitWriter.Pos;
+
+            // U/V
+            residual.Init(0, 2);
+            for (ch = 0; ch <= 2; ch += 2)
+            {
+                for (y = 0; y < 2; ++y)
+                {
+                    for (x = 0; x < 2; ++x)
+                    {
+                        int ctx = it.TopNz[4 + ch + x] + it.LeftNz[4 + ch + y];
+                        residual.SetCoeffs(rd.UvLevels[(ch * 2) + x + (y * 2)]);
+                        var res = this.bitWriter.PutCoeffs(ctx, residual);
+                        it.TopNz[4 + ch + x] = it.LeftNz[4 + ch + y] = res;
+                    }
+                }
+            }
+
+            var pos3 = this.bitWriter.Pos;
+            it.LumaBits = pos2 - pos1;
+            it.UvBits = pos3 - pos2;
+            it.BitCount[segment, i16 ? 1 : 0] += it.LumaBits;
+            it.BitCount[segment, 2] += it.UvBits;
+            it.BytesToNz();
         }
 
         private int ReconstructIntra16(Vp8EncIterator it, Vp8SegmentInfo dqm, Vp8ModeScore rd, Span<byte> yuvOut, int mode)

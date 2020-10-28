@@ -34,6 +34,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
             => BasicSerializer.Deserialize<T>(value);
 
         /// <summary>
+        /// Allows the deserialization of integers passed to the feature test.
+        /// </summary>
+        /// <param name="value">The string value to deserialize.</param>
+        /// <returns>The <see cref="int"/> value.</returns>
+        public static int Deserialize(string value)
+            => Convert.ToInt32(value);
+
+        /// <summary>
         /// Runs the given test <paramref name="action"/> within an environment
         /// where the given <paramref name="intrinsics"/> features.
         /// </summary>
@@ -197,6 +205,48 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
                     // Since we are running using the default architecture there is no
                     // point creating the overhead of running the action in a separate process.
                     action(BasicSerializer.Serialize(serializable), intrinsic.Key.ToString());
+                }
+            }
+        }
+
+        /// <summary>
+        /// Runs the given test <paramref name="action"/> within an environment
+        /// where the given <paramref name="intrinsics"/> features.
+        /// </summary>
+        /// <param name="action">The test action to run.</param>
+        /// <param name="intrinsics">The intrinsics features.</param>
+        /// <param name="serializable">The value to pass as a parameter to the test action.</param>
+        public static void RunWithHwIntrinsicsFeature(
+            Action<string> action,
+            HwIntrinsics intrinsics,
+            int serializable)
+        {
+            if (!RemoteExecutor.IsSupported)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<HwIntrinsics, string> intrinsic in intrinsics.ToFeatureKeyValueCollection())
+            {
+                var processStartInfo = new ProcessStartInfo();
+                if (intrinsic.Key != HwIntrinsics.AllowAll)
+                {
+                    processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
+
+                    RemoteExecutor.Invoke(
+                        action,
+                        serializable.ToString(),
+                        new RemoteInvokeOptions
+                        {
+                            StartInfo = processStartInfo
+                        })
+                        .Dispose();
+                }
+                else
+                {
+                    // Since we are running using the default architecture there is no
+                    // point creating the overhead of running the action in a separate process.
+                    action(serializable.ToString());
                 }
             }
         }

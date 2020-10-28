@@ -7,7 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Tuples;
-
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -204,6 +204,25 @@ namespace SixLabors.ImageSharp.Tests.Common
                 (s, d) => SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy32))]
+        public void HwIntrinsics_BulkConvertByteToNormalizedFloat(int count)
+        {
+            static void RunTest(string serialized)
+            {
+                TestImpl_BulkConvertByteToNormalizedFloat(
+                    FeatureTestRunner.Deserialize(serialized),
+                    (s, d) => SimdUtils.HwIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41,
+                count);
+        }
+#endif
+
         [Theory]
         [MemberData(nameof(ArbitraryArraySizes))]
         public void BulkConvertByteToNormalizedFloat(int count)
@@ -281,16 +300,19 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy32))]
-        public void Avx2_BulkConvertNormalizedFloatToByteClampOverflows(int count)
+        public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
         {
-            if (!System.Runtime.Intrinsics.X86.Avx2.IsSupported)
+            static void RunTest(string serialized)
             {
-                return;
+                TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
+                    FeatureTestRunner.Deserialize(serialized),
+                    (s, d) => SimdUtils.HwIntrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
             }
 
-            TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
-                count,
-                (s, d) => SimdUtils.Avx2Intrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2,
+                count);
         }
 
 #endif

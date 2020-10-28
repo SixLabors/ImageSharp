@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             if (this.lossy)
             {
-                var enc = new Vp8Encoder(this.memoryAllocator, image.Width, image.Height);
+                var enc = new Vp8Encoder(this.memoryAllocator, image.Width, image.Height, this.quality, this.method);
                 enc.Encode(image, stream);
             }
             else

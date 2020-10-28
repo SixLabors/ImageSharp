@@ -28,6 +28,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private readonly Vp8BitWriter bitWriter;
 
         /// <summary>
+        /// The quality, that will be used to encode the image.
+        /// </summary>
+        private readonly int quality;
+
+        /// <summary>
+        /// Quality/speed trade-off (0=fast, 6=slower-better).
+        /// </summary>
+        private readonly int method;
+
+        /// <summary>
         /// Fixed-point precision for RGB->YUV.
         /// </summary>
         private const int YuvFix = 16;
@@ -42,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private const int QFix = 17;
 
-        private readonly byte[] zigzag = new byte[] { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
+        private readonly byte[] zigzag = { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
 
         private readonly byte[] averageBytesPerMb = { 50, 24, 16, 9, 7, 5, 3, 2 };
 
@@ -52,9 +62,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="width">The width of the input image.</param>
         /// <param name="height">The height of the input image.</param>
-        public Vp8Encoder(MemoryAllocator memoryAllocator, int width, int height)
+        /// <param name="quality">The encoding quality.</param>
+        /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
+        public Vp8Encoder(MemoryAllocator memoryAllocator, int width, int height, int quality, int method)
         {
             this.memoryAllocator = memoryAllocator;
+            this.quality = quality.Clamp(0, 100);
+            this.method = method.Clamp(0, 6);
 
             var pixelCount = width * height;
             int mbw = (width + 15) >> 4;
@@ -81,10 +95,19 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// </summary>
         public int Alpha { get; set; }
 
+        /// <summary>
+        /// Gets the luma component.
+        /// </summary>
         private IMemoryOwner<byte> Y { get; }
 
+        /// <summary>
+        /// Gets the chroma U component.
+        /// </summary>
         private IMemoryOwner<byte> U { get; }
 
+        /// <summary>
+        /// Gets the chroma U component.
+        /// </summary>
         private IMemoryOwner<byte> V { get; }
 
         /// <summary>
@@ -112,6 +135,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// </summary>
         private int MbHeaderLimit { get; }
 
+        /// <summary>
+        /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
+        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -139,10 +168,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
 
             var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Preds, this.Nz, mb, mbw, mbh);
-            int method = 4; // TODO: hardcoded for now
-            int quality = 100; // TODO: hardcoded for now
             var alphas = new int[WebPConstants.MaxAlpha + 1];
-            int alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, method, quality, alphas, out int uvAlpha);
+            int alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out int uvAlpha);
 
             // Analysis is done, proceed to actual coding.
 
@@ -156,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             {
                 var info = new Vp8ModeScore();
                 it.Import(y, u, v, yStride, uvStride, width, height);
-                if (!this.Decimate(it, segmentInfos, info, method))
+                if (!this.Decimate(it, segmentInfos, info))
                 {
                     this.CodeResiduals(it, info);
                 }
@@ -196,7 +223,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             // TODO: SetupMatrices
         }
 
-        private int MacroBlockAnalysis(int width, int height, Vp8EncIterator it, Span<byte> y, Span<byte> u, Span<byte> v, int yStride, int uvStride, int method, int quality, int[] alphas, out int uvAlpha)
+        private int MacroBlockAnalysis(int width, int height, Vp8EncIterator it, Span<byte> y, Span<byte> u, Span<byte> v, int yStride, int uvStride, int[] alphas, out int uvAlpha)
         {
             int alpha = 0;
             uvAlpha = 0;
@@ -205,7 +232,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 do
                 {
                     it.Import(y, u, v, yStride, uvStride, width, height);
-                    int bestAlpha = this.MbAnalyze(it, method, quality, alphas, out var bestUvAlpha);
+                    int bestAlpha = this.MbAnalyze(it, alphas, out var bestUvAlpha);
 
                     // Accumulate for later complexity analysis.
                     alpha += bestAlpha;
@@ -217,16 +244,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             return alpha;
         }
 
-        private int MbAnalyze(Vp8EncIterator it, int method, int quality, int[] alphas, out int bestUvAlpha)
+        private int MbAnalyze(Vp8EncIterator it, int[] alphas, out int bestUvAlpha)
         {
             it.SetIntra16Mode(0);    // default: Intra16, DC_PRED
             it.SetSkip(false);       // not skipped.
             it.SetSegment(0);        // default segment, spec-wise.
 
             int bestAlpha;
-            if (method <= 1)
+            if (this.method <= 1)
             {
-                bestAlpha = it.FastMbAnalyze(quality);
+                bestAlpha = it.FastMbAnalyze(this.quality);
             }
             else
             {
@@ -244,7 +271,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             return bestAlpha; // Mixed susceptibility (not just luma).
         }
 
-        private bool Decimate(Vp8EncIterator it, Vp8SegmentInfo[] segmentInfos, Vp8ModeScore rd, int method)
+        private bool Decimate(Vp8EncIterator it, Vp8SegmentInfo[] segmentInfos, Vp8ModeScore rd)
         {
             rd.InitScore();
 
@@ -256,7 +283,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             // For method >= 2, pick the best intra4/intra16 based on SSE (~tad slower).
             // For method <= 1, we don't re-examine the decision but just go ahead with
             // quantization/reconstruction.
-            this.RefineUsingDistortion(it, segmentInfos, rd, method >= 2, method >= 1);
+            this.RefineUsingDistortion(it, segmentInfos, rd, this.method >= 2, this.method >= 1);
 
             bool isSkipped = rd.Nz == 0;
             it.SetSkip(isSkipped);

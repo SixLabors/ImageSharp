@@ -123,6 +123,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.TopNz = new int[9];
             this.LeftNz = new int[9];
             this.I4Boundary = new byte[37];
+            this.BitCount = new long[4, 3];
 
             // To match the C++ initial values of the reference implementation, initialize all with 204.
             byte defaultInitVal = 204;
@@ -225,6 +226,21 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// Gets the left-non-zero. leftNz[8] is independent.
         /// </summary>
         public int[] LeftNz { get; }
+
+        /// <summary>
+        /// Gets or sets the macroblock bit-cost for luma.
+        /// </summary>
+        public long LumaBits { get; set; }
+
+        /// <summary>
+        /// Gets the bit counters for coded levels.
+        /// </summary>
+        public long[,] BitCount { get; }
+
+        /// <summary>
+        /// Gets or sets the macroblock bit-cost for chroma.
+        /// </summary>
+        public long UvBits { get; set; }
 
         /// <summary>
         /// Gets or sets the number of mb still to be processed.
@@ -639,6 +655,67 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             byte[] tmp = this.YuvOut;
             this.YuvOut = this.YuvOut2;
             this.YuvOut2 = tmp;
+        }
+
+        public void NzToBytes()
+        {
+            Span<uint> nz = this.Nz.GetSpan();
+            uint tnz = nz[0];
+            uint lnz = nz[-1]; // TODO: -1?
+            Span<int> topNz = this.TopNz;
+            Span<int> leftNz = this.LeftNz;
+
+            // Top-Y
+            topNz[0] = this.Bit(tnz, 12);
+            topNz[1] = this.Bit(tnz, 13);
+            topNz[2] = this.Bit(tnz, 14);
+            topNz[3] = this.Bit(tnz, 15);
+
+            // Top-U
+            topNz[4] = this.Bit(tnz, 18);
+            topNz[5] = this.Bit(tnz, 19);
+
+            // Top-V
+            topNz[6] = this.Bit(tnz, 22);
+            topNz[7] = this.Bit(tnz, 23);
+
+            // DC
+            topNz[8] = this.Bit(tnz, 24);
+
+            // left-Y
+            leftNz[0] = this.Bit(lnz, 3);
+            leftNz[1] = this.Bit(lnz, 7);
+            leftNz[2] = this.Bit(lnz, 11);
+            leftNz[3] = this.Bit(lnz, 15);
+
+            // left-U
+            leftNz[4] = this.Bit(lnz, 17);
+            leftNz[5] = this.Bit(lnz, 19);
+
+            // left-V
+            leftNz[6] = this.Bit(lnz, 21);
+            leftNz[7] = this.Bit(lnz, 23);
+
+            // left-DC is special, iterated separately.
+        }
+
+        public void BytesToNz()
+        {
+            uint nz = 0;
+            int[] topNz = this.TopNz;
+            int[] leftNz = this.LeftNz;
+
+            // top
+            nz |= (uint)((topNz[0] << 12) | (topNz[1] << 13));
+            nz |= (uint)((topNz[2] << 14) | (topNz[3] << 15));
+            nz |= (uint)((topNz[4] << 18) | (topNz[5] << 19));
+            nz |= (uint)((topNz[6] << 22) | (topNz[7] << 23));
+            nz |= (uint)(topNz[8] << 24);  // we propagate the top bit, esp. for intra4
+
+            // left
+            nz |= (uint)((leftNz[0] << 3) | (leftNz[1] << 7));
+            nz |= (uint)(leftNz[2] << 11);
+            nz |= (uint)((leftNz[4] << 17) | (leftNz[6] << 21));
         }
 
         private void Mean16x4(Span<byte> input, Span<uint> dc)
@@ -1195,48 +1272,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             int topSize = this.mbw * 16;
             this.YTop.Slice(0, topSize).Fill(127);
             this.Nz.GetSpan().Fill(0);
-        }
-
-        private void NzToBytes()
-        {
-            Span<uint> nz = this.Nz.GetSpan();
-            uint tnz = nz[0];
-            uint lnz = nz[-1]; // TODO: -1?
-            Span<int> topNz = this.TopNz;
-            Span<int> leftNz = this.LeftNz;
-
-            // Top-Y
-            topNz[0] = this.Bit(tnz, 12);
-            topNz[1] = this.Bit(tnz, 13);
-            topNz[2] = this.Bit(tnz, 14);
-            topNz[3] = this.Bit(tnz, 15);
-
-            // Top-U
-            topNz[4] = this.Bit(tnz, 18);
-            topNz[5] = this.Bit(tnz, 19);
-
-            // Top-V
-            topNz[6] = this.Bit(tnz, 22);
-            topNz[7] = this.Bit(tnz, 23);
-
-            // DC
-            topNz[8] = this.Bit(tnz, 24);
-
-            // left-Y
-            leftNz[0] = this.Bit(lnz, 3);
-            leftNz[1] = this.Bit(lnz, 7);
-            leftNz[2] = this.Bit(lnz, 11);
-            leftNz[3] = this.Bit(lnz, 15);
-
-            // left-U
-            leftNz[4] = this.Bit(lnz, 17);
-            leftNz[5] = this.Bit(lnz, 19);
-
-            // left-V
-            leftNz[6] = this.Bit(lnz, 21);
-            leftNz[7] = this.Bit(lnz, 23);
-
-            // left-DC is special, iterated separately.
         }
 
         // Convert packed context to byte array.

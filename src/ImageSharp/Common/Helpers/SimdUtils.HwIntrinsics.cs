@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp
                 if (Avx2.IsSupported || Ssse3.IsSupported)
                 {
                     int remainder;
-                    if (Avx.IsSupported)
+                    if (Avx2.IsSupported)
                     {
                         remainder = ImageMaths.ModuloP2(source.Length, Vector256<byte>.Count);
                     }

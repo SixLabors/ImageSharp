@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 control,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE);
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE);
         }
 
         [Theory]

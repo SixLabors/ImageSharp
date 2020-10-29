@@ -29,17 +29,19 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         /// <typeparam name="T">The type to deserialize to.</typeparam>
         /// <param name="value">The string value to deserialize.</param>
         /// <returns>The <see cref="T"/> value.</returns>
-        public static T Deserialize<T>(string value)
+        public static T DeserializeForXunit<T>(string value)
             where T : IXunitSerializable
             => BasicSerializer.Deserialize<T>(value);
 
         /// <summary>
-        /// Allows the deserialization of integers passed to the feature test.
+        /// Allows the deserialization of types implementing <see cref="IConvertible"/>
+        /// passed to the feature test.
         /// </summary>
         /// <param name="value">The string value to deserialize.</param>
-        /// <returns>The <see cref="int"/> value.</returns>
-        public static int Deserialize(string value)
-            => Convert.ToInt32(value);
+        /// <returns>The <typeparamref name="T"/> value.</returns>
+        public static T Deserialize<T>(string value)
+            where T : IConvertible
+            => (T)Convert.ChangeType(value, typeof(T));
 
         /// <summary>
         /// Runs the given test <paramref name="action"/> within an environment
@@ -214,12 +216,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         /// where the given <paramref name="intrinsics"/> features.
         /// </summary>
         /// <param name="action">The test action to run.</param>
-        /// <param name="intrinsics">The intrinsics features.</param>
         /// <param name="serializable">The value to pass as a parameter to the test action.</param>
-        public static void RunWithHwIntrinsicsFeature(
+        /// <param name="intrinsics">The intrinsics features.</param>
+        public static void RunWithHwIntrinsicsFeature<T>(
             Action<string> action,
-            HwIntrinsics intrinsics,
-            int serializable)
+            T serializable,
+            HwIntrinsics intrinsics)
+            where T : IConvertible
         {
             if (!RemoteExecutor.IsSupported)
             {

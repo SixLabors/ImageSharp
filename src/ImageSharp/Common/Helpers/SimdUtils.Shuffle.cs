@@ -25,8 +25,6 @@ namespace SixLabors.ImageSharp
         {
             VerifyShuffleSpanInput(source, dest);
 
-            // TODO: There doesn't seem to be any APIs for
-            // System.Numerics that allow shuffling.
 #if SUPPORTS_RUNTIME_INTRINSICS
             HwIntrinsics.Shuffle4ChannelReduce(ref source, ref dest, control);
 #endif

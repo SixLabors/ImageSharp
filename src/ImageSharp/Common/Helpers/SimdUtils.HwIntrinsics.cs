@@ -33,15 +33,9 @@ namespace SixLabors.ImageSharp
             {
                 if (Avx.IsSupported || Sse.IsSupported)
                 {
-                    int remainder;
-                    if (Avx.IsSupported)
-                    {
-                        remainder = ImageMaths.ModuloP2(source.Length, Vector256<float>.Count);
-                    }
-                    else
-                    {
-                        remainder = ImageMaths.ModuloP2(source.Length, Vector128<float>.Count);
-                    }
+                    int remainder = Avx.IsSupported
+                        ? ImageMaths.ModuloP2(source.Length, Vector256<float>.Count)
+                        : ImageMaths.ModuloP2(source.Length, Vector128<float>.Count);
 
                     int adjustedCount = source.Length - remainder;
 
@@ -73,15 +67,9 @@ namespace SixLabors.ImageSharp
             {
                 if (Avx2.IsSupported || Ssse3.IsSupported)
                 {
-                    int remainder;
-                    if (Avx2.IsSupported)
-                    {
-                        remainder = ImageMaths.ModuloP2(source.Length, Vector256<byte>.Count);
-                    }
-                    else
-                    {
-                        remainder = ImageMaths.ModuloP2(source.Length, Vector128<byte>.Count);
-                    }
+                    int remainder = Avx2.IsSupported
+                        ? ImageMaths.ModuloP2(source.Length, Vector256<byte>.Count)
+                        : ImageMaths.ModuloP2(source.Length, Vector128<byte>.Count);
 
                     int adjustedCount = source.Length - remainder;
 

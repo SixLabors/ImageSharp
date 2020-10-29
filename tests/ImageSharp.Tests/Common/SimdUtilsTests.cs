@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Common
 {
-    public class SimdUtilsTests
+    public partial class SimdUtilsTests
     {
         private ITestOutputHelper Output { get; }
 
@@ -212,14 +212,14 @@ namespace SixLabors.ImageSharp.Tests.Common
             static void RunTest(string serialized)
             {
                 TestImpl_BulkConvertByteToNormalizedFloat(
-                    FeatureTestRunner.Deserialize(serialized),
+                    FeatureTestRunner.Deserialize<int>(serialized),
                     (s, d) => SimdUtils.HwIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
             }
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41,
-                count);
+                count,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41);
         }
 #endif
 
@@ -305,14 +305,14 @@ namespace SixLabors.ImageSharp.Tests.Common
             static void RunTest(string serialized)
             {
                 TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
-                    FeatureTestRunner.Deserialize(serialized),
+                    FeatureTestRunner.Deserialize<int>(serialized),
                     (s, d) => SimdUtils.HwIntrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
             }
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2,
-                count);
+                count,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
         }
 
 #endif

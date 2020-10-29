@@ -58,25 +58,26 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             public HwIntrinsics_SSE_AVX()
             {
+                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31)
+                    .WithEnvironmentVariables(
+                        new EnvironmentVariable(EnableHWIntrinsic, Off),
+                        new EnvironmentVariable(FeatureSIMD, Off))
+                    .WithId("1. No HwIntrinsics").AsBaseline());
+
 #if SUPPORTS_RUNTIME_INTRINSICS
                 if (Avx.IsSupported)
                 {
                     this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31)
-                        .WithId("AVX").AsBaseline());
+                        .WithId("2. AVX"));
                 }
 
                 if (Sse.IsSupported)
                 {
                     this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31)
                         .WithEnvironmentVariables(new EnvironmentVariable(EnableAVX, Off))
-                        .WithId("SSE"));
+                        .WithId("3. SSE"));
                 }
 #endif
-                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31)
-                    .WithEnvironmentVariables(
-                        new EnvironmentVariable(EnableHWIntrinsic, Off),
-                        new EnvironmentVariable(FeatureSIMD, Off))
-                    .WithId("No HwIntrinsics"));
             }
         }
     }

@@ -19,6 +19,234 @@ namespace SixLabors.ImageSharp
             public static ReadOnlySpan<byte> PermuteMaskEvenOdd8x32 => new byte[] { 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0 };
 
             /// <summary>
+            /// Shuffle single-precision (32-bit) floating-point elements in <paramref name="source"/>
+            /// using the control and store the results in <paramref name="dest"/>.
+            /// </summary>
+            /// <param name="source">The source span of floats.</param>
+            /// <param name="dest">The destination span of floats.</param>
+            /// <param name="control">The byte control.</param>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static void Shuffle4ChannelReduce(
+                ref ReadOnlySpan<float> source,
+                ref Span<float> dest,
+                byte control)
+            {
+                if (Avx.IsSupported || Sse.IsSupported)
+                {
+                    int remainder = Avx.IsSupported
+                        ? ImageMaths.ModuloP2(source.Length, Vector256<float>.Count)
+                        : ImageMaths.ModuloP2(source.Length, Vector128<float>.Count);
+
+                    int adjustedCount = source.Length - remainder;
+
+                    if (adjustedCount > 0)
+                    {
+                        Shuffle4Channel(
+                            source.Slice(0, adjustedCount),
+                            dest.Slice(0, adjustedCount),
+                            control);
+
+                        source = source.Slice(adjustedCount);
+                        dest = dest.Slice(adjustedCount);
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Shuffle 8-bit integers in a within 128-bit lanes in <paramref name="source"/>
+            /// using the control and store the results in <paramref name="dest"/>.
+            /// </summary>
+            /// <param name="source">The source span of bytes.</param>
+            /// <param name="dest">The destination span of bytes.</param>
+            /// <param name="control">The byte control.</param>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static void Shuffle4ChannelReduce(
+                ref ReadOnlySpan<byte> source,
+                ref Span<byte> dest,
+                byte control)
+            {
+                if (Avx2.IsSupported || Ssse3.IsSupported)
+                {
+                    int remainder = Avx2.IsSupported
+                        ? ImageMaths.ModuloP2(source.Length, Vector256<byte>.Count)
+                        : ImageMaths.ModuloP2(source.Length, Vector128<byte>.Count);
+
+                    int adjustedCount = source.Length - remainder;
+
+                    if (adjustedCount > 0)
+                    {
+                        Shuffle4Channel(
+                            source.Slice(0, adjustedCount),
+                            dest.Slice(0, adjustedCount),
+                            control);
+
+                        source = source.Slice(adjustedCount);
+                        dest = dest.Slice(adjustedCount);
+                    }
+                }
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private static void Shuffle4Channel(
+                ReadOnlySpan<float> source,
+                Span<float> dest,
+                byte control)
+            {
+                if (Avx.IsSupported)
+                {
+                    ref Vector256<float> sourceBase =
+                        ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
+
+                    ref Vector256<float> destBase =
+                        ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
+
+                    int n = dest.Length / Vector256<float>.Count;
+                    int m = ImageMaths.Modulo4(n);
+                    int u = n - m;
+
+                    for (int i = 0; i < u; i += 4)
+                    {
+                        ref Vector256<float> vd0 = ref Unsafe.Add(ref destBase, i);
+                        ref Vector256<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
+
+                        vd0 = Avx.Permute(vs0, control);
+                        Unsafe.Add(ref vd0, 1) = Avx.Permute(Unsafe.Add(ref vs0, 1), control);
+                        Unsafe.Add(ref vd0, 2) = Avx.Permute(Unsafe.Add(ref vs0, 2), control);
+                        Unsafe.Add(ref vd0, 3) = Avx.Permute(Unsafe.Add(ref vs0, 3), control);
+                    }
+
+                    if (m > 0)
+                    {
+                        for (int i = u; i < n; i++)
+                        {
+                            Unsafe.Add(ref destBase, i) = Avx.Permute(Unsafe.Add(ref sourceBase, i), control);
+                        }
+                    }
+                }
+                else
+                {
+                    // Sse
+                    ref Vector128<float> sourceBase =
+                        ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
+
+                    ref Vector128<float> destBase =
+                        ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
+
+                    int n = dest.Length / Vector128<float>.Count;
+                    int m = ImageMaths.Modulo4(n);
+                    int u = n - m;
+
+                    for (int i = 0; i < u; i += 4)
+                    {
+                        ref Vector128<float> vd0 = ref Unsafe.Add(ref destBase, i);
+                        ref Vector128<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
+
+                        vd0 = Sse.Shuffle(vs0, vs0, control);
+
+                        Vector128<float> vs1 = Unsafe.Add(ref vs0, 1);
+                        Unsafe.Add(ref vd0, 1) = Sse.Shuffle(vs1, vs1, control);
+
+                        Vector128<float> vs2 = Unsafe.Add(ref vs0, 2);
+                        Unsafe.Add(ref vd0, 2) = Sse.Shuffle(vs2, vs2, control);
+
+                        Vector128<float> vs3 = Unsafe.Add(ref vs0, 3);
+                        Unsafe.Add(ref vd0, 3) = Sse.Shuffle(vs3, vs3, control);
+                    }
+
+                    if (m > 0)
+                    {
+                        for (int i = u; i < n; i++)
+                        {
+                            Vector128<float> vs = Unsafe.Add(ref sourceBase, i);
+                            Unsafe.Add(ref destBase, i) = Sse.Shuffle(vs, vs, control);
+                        }
+                    }
+                }
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private static void Shuffle4Channel(
+                ReadOnlySpan<byte> source,
+                Span<byte> dest,
+                byte control)
+            {
+                if (Avx2.IsSupported)
+                {
+                    // I've chosen to do this for convenience while we determine what
+                    // shuffle controls to add to the library.
+                    // We can add static ROS instances if need be in the future.
+                    Span<byte> bytes = stackalloc byte[Vector256<byte>.Count];
+                    Shuffle.MmShuffleSpan(ref bytes, control);
+                    Vector256<byte> vcm = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(bytes));
+
+                    ref Vector256<byte> sourceBase =
+                        ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(source));
+
+                    ref Vector256<byte> destBase =
+                        ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(dest));
+
+                    int n = dest.Length / Vector256<byte>.Count;
+                    int m = ImageMaths.Modulo4(n);
+                    int u = n - m;
+
+                    for (int i = 0; i < u; i += 4)
+                    {
+                        ref Vector256<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                        ref Vector256<byte> vd0 = ref Unsafe.Add(ref destBase, i);
+
+                        vd0 = Avx2.Shuffle(vs0, vcm);
+                        Unsafe.Add(ref vd0, 1) = Avx2.Shuffle(Unsafe.Add(ref vs0, 1), vcm);
+                        Unsafe.Add(ref vd0, 2) = Avx2.Shuffle(Unsafe.Add(ref vs0, 2), vcm);
+                        Unsafe.Add(ref vd0, 3) = Avx2.Shuffle(Unsafe.Add(ref vs0, 3), vcm);
+                    }
+
+                    if (m > 0)
+                    {
+                        for (int i = u; i < n; i++)
+                        {
+                            Unsafe.Add(ref destBase, i) = Avx2.Shuffle(Unsafe.Add(ref sourceBase, i), vcm);
+                        }
+                    }
+                }
+                else
+                {
+                    // Ssse3
+                    Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
+                    Shuffle.MmShuffleSpan(ref bytes, control);
+                    Vector128<byte> vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
+
+                    ref Vector128<byte> sourceBase =
+                        ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(source));
+
+                    ref Vector128<byte> destBase =
+                        ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
+
+                    int n = dest.Length / Vector128<byte>.Count;
+                    int m = ImageMaths.Modulo4(n);
+                    int u = n - m;
+
+                    for (int i = 0; i < u; i += 4)
+                    {
+                        ref Vector128<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
+                        ref Vector128<byte> vd0 = ref Unsafe.Add(ref destBase, i);
+
+                        vd0 = Ssse3.Shuffle(vs0, vcm);
+                        Unsafe.Add(ref vd0, 1) = Ssse3.Shuffle(Unsafe.Add(ref vs0, 1), vcm);
+                        Unsafe.Add(ref vd0, 2) = Ssse3.Shuffle(Unsafe.Add(ref vs0, 2), vcm);
+                        Unsafe.Add(ref vd0, 3) = Ssse3.Shuffle(Unsafe.Add(ref vs0, 3), vcm);
+                    }
+
+                    if (m > 0)
+                    {
+                        for (int i = u; i < n; i++)
+                        {
+                            Unsafe.Add(ref destBase, i) = Ssse3.Shuffle(Unsafe.Add(ref sourceBase, i), vcm);
+                        }
+                    }
+                }
+            }
+
+            /// <summary>
             /// Performs a multiplication and an addition of the <see cref="Vector256{T}"/>.
             /// </summary>
             /// <param name="va">The vector to add to the intermediate result.</param>

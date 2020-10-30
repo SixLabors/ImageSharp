@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
             public static void ToArgb32(ReadOnlySpan<byte> source, Span<byte> dest)
-                => SimdUtils.Shuffle4Channel<WXYZShuffle4>(source, dest, default);
+                => SimdUtils.Shuffle4<WXYZShuffle4>(source, dest, default);
 
             /// <summary>
             /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
             public static void ToBgra32(ReadOnlySpan<byte> source, Span<byte> dest)
-                => SimdUtils.Shuffle4Channel<ZYXWShuffle4>(source, dest, default);
+                => SimdUtils.Shuffle4<ZYXWShuffle4>(source, dest, default);
         }
 
         public static class FromArgb32
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
             public static void ToRgba32(ReadOnlySpan<byte> source, Span<byte> dest)
-                => SimdUtils.Shuffle4Channel<YZWXShuffle4>(source, dest, default);
+                => SimdUtils.Shuffle4<YZWXShuffle4>(source, dest, default);
 
             /// <summary>
             /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
             public static void ToBgra32(ReadOnlySpan<byte> source, Span<byte> dest)
-                => SimdUtils.Shuffle4Channel<WZYXShuffle4>(source, dest, default);
+                => SimdUtils.Shuffle4<WZYXShuffle4>(source, dest, default);
         }
 
         public static class FromBgra32
@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
             public static void ToArgb32(ReadOnlySpan<byte> source, Span<byte> dest)
-                => SimdUtils.Shuffle4Channel<WZYXShuffle4>(source, dest, default);
+                => SimdUtils.Shuffle4<WZYXShuffle4>(source, dest, default);
 
             /// <summary>
             /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             /// </summary>
             [MethodImpl(InliningOptions.ShortMethod)]
             public static void ToRgba32(ReadOnlySpan<byte> source, Span<byte> dest)
-                => SimdUtils.Shuffle4Channel<ZYXWShuffle4>(source, dest, default);
+                => SimdUtils.Shuffle4<ZYXWShuffle4>(source, dest, default);
         }
     }
 }

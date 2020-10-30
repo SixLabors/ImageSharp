@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void Shuffle4Channel()
         {
-            SimdUtils.Shuffle4Channel(this.source, this.destination, control);
+            SimdUtils.Shuffle4(this.source, this.destination, control);
         }
     }
 

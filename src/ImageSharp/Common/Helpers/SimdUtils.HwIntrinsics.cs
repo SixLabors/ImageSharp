@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp
             /// <param name="dest">The destination span of floats.</param>
             /// <param name="control">The byte control.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public static void Shuffle4ChannelReduce(
+            public static void Shuffle4Reduce(
                 ref ReadOnlySpan<float> source,
                 ref Span<float> dest,
                 byte control)
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp
 
                     if (adjustedCount > 0)
                     {
-                        Shuffle4Channel(
+                        Shuffle4(
                             source.Slice(0, adjustedCount),
                             dest.Slice(0, adjustedCount),
                             control);
@@ -53,14 +53,14 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
-            /// Shuffle 8-bit integers in a within 128-bit lanes in <paramref name="source"/>
+            /// Shuffle 8-bit integers within 128-bit lanes in <paramref name="source"/>
             /// using the control and store the results in <paramref name="dest"/>.
             /// </summary>
             /// <param name="source">The source span of bytes.</param>
             /// <param name="dest">The destination span of bytes.</param>
             /// <param name="control">The byte control.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public static void Shuffle4ChannelReduce(
+            public static void Shuffle4Reduce(
                 ref ReadOnlySpan<byte> source,
                 ref Span<byte> dest,
                 byte control)
@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp
 
                     if (adjustedCount > 0)
                     {
-                        Shuffle4Channel(
+                        Shuffle4(
                             source.Slice(0, adjustedCount),
                             dest.Slice(0, adjustedCount),
                             control);
@@ -86,8 +86,41 @@ namespace SixLabors.ImageSharp
                 }
             }
 
+            /// <summary>
+            /// Pads then shuffles 8-bit integers within 128-bit lanes in <paramref name="source"/>
+            /// using the control and store the results in <paramref name="dest"/>.
+            /// </summary>
+            /// <param name="source">The source span of bytes.</param>
+            /// <param name="dest">The destination span of bytes.</param>
+            /// <param name="control">The byte control.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            private static void Shuffle4Channel(
+            public static unsafe void Pad3Shuffle4Reduce(
+                ref ReadOnlySpan<byte> source,
+                ref Span<byte> dest,
+                byte control)
+            {
+                if (Ssse3.IsSupported)
+                {
+                    int remainder = ImageMaths.ModuloP2(source.Length, Vector128<byte>.Count);
+
+                    int adjustedCount = source.Length - remainder;
+                    int sourceSlice = (int)(adjustedCount * (3 / 4F));
+
+                    if (adjustedCount > 0)
+                    {
+                        Pad3Shuffle4(
+                            source.Slice(0, adjustedCount),
+                            dest.Slice(0, adjustedCount),
+                            control);
+
+                        source = source.Slice(sourceSlice);
+                        dest = dest.Slice(adjustedCount);
+                    }
+                }
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private static void Shuffle4(
                 ReadOnlySpan<float> source,
                 Span<float> dest,
                 byte control)
@@ -165,7 +198,7 @@ namespace SixLabors.ImageSharp
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            private static void Shuffle4Channel(
+            private static void Shuffle4(
                 ReadOnlySpan<byte> source,
                 Span<byte> dest,
                 byte control)
@@ -241,6 +274,43 @@ namespace SixLabors.ImageSharp
                         for (int i = u; i < n; i++)
                         {
                             Unsafe.Add(ref destBase, i) = Ssse3.Shuffle(Unsafe.Add(ref sourceBase, i), vcm);
+                        }
+                    }
+                }
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private static unsafe void Pad3Shuffle4(
+                ReadOnlySpan<byte> source,
+                Span<byte> dest,
+                byte control)
+            {
+                if (Ssse3.IsSupported)
+                {
+                    Vector128<byte> wMask = Vector128.Create(0xff000000u).AsByte();
+                    Vector128<byte> padMask = Vector128.Create(0, 1, 2, -1, 3, 4, 5, -1, 6, 7, 8, -1, 9, 10, 11, -1).AsByte();
+
+                    Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
+                    Shuffle.MmShuffleSpan(ref bytes, control);
+                    Vector128<byte> vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
+
+                    fixed (byte* sBase = &source.GetPinnableReference())
+                    fixed (byte* dBase = &dest.GetPinnableReference())
+                    {
+                        byte* s = sBase;
+                        byte* d = dBase;
+
+                        // TODO: Consider unrolling and shuffling 4 at a time using Ssse3.AlignRight
+                        // See https://stackoverflow.com/questions/2973708/fast-24-bit-array-32-bit-array-conversion
+                        for (int i = 0; i < source.Length; i += 16)
+                        {
+                            Vector128<byte> vs0 = Sse2.LoadVector128(s);
+                            Vector128<byte> val = Sse2.Or(wMask, Ssse3.Shuffle(vs0, padMask));
+                            val = Ssse3.Shuffle(val, vcm);
+                            Sse2.Store(d, val);
+
+                            s += 12;
+                            d += 16;
                         }
                     }
                 }

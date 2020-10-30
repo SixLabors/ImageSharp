@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp
         /// <param name="dest">The destination span of floats.</param>
         /// <param name="control">The byte control.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void Shuffle4Channel(
+        public static void Shuffle4(
             ReadOnlySpan<float> source,
             Span<float> dest,
             byte control)
@@ -26,13 +26,13 @@ namespace SixLabors.ImageSharp
             VerifyShuffleSpanInput(source, dest);
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-            HwIntrinsics.Shuffle4ChannelReduce(ref source, ref dest, control);
+            HwIntrinsics.Shuffle4Reduce(ref source, ref dest, control);
 #endif
 
             // Deal with the remainder:
             if (source.Length > 0)
             {
-                ShuffleRemainder4Channel(source, dest, control);
+                Shuffle4Remainder(source, dest, control);
             }
         }
 
@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp
         /// <param name="dest">The destination span of bytes.</param>
         /// <param name="shuffle">The type of shuffle to perform.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void Shuffle4Channel<TShuffle>(
+        public static void Shuffle4<TShuffle>(
             ReadOnlySpan<byte> source,
             Span<byte> dest,
             TShuffle shuffle)
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp
             VerifyShuffleSpanInput(source, dest);
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-            HwIntrinsics.Shuffle4ChannelReduce(ref source, ref dest, shuffle.Control);
+            HwIntrinsics.Shuffle4Reduce(ref source, ref dest, shuffle.Control);
 #endif
 
             // Deal with the remainder:
@@ -63,7 +63,26 @@ namespace SixLabors.ImageSharp
             }
         }
 
-        public static void ShuffleRemainder4Channel(
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void Pad3Shuffle4(
+            ReadOnlySpan<byte> source,
+            Span<byte> dest,
+            byte control)
+        {
+            VerifyPadShuffleSpanInput(source, dest);
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, control);
+#endif
+
+            // Deal with the remainder:
+            if (source.Length > 0)
+            {
+                Pad3Shuffle4Remainder(source, dest, control);
+            }
+        }
+
+        public static void Shuffle4Remainder(
             ReadOnlySpan<float> source,
             Span<float> dest,
             byte control)
@@ -81,6 +100,24 @@ namespace SixLabors.ImageSharp
             }
         }
 
+        public static void Pad3Shuffle4Remainder(
+            ReadOnlySpan<byte> source,
+            Span<byte> dest,
+            byte control)
+        {
+            ref byte sBase = ref MemoryMarshal.GetReference(source);
+            ref byte dBase = ref MemoryMarshal.GetReference(dest);
+            Shuffle.InverseMmShuffle(control, out int p3, out int p2, out int p1, out int p0);
+
+            for (int i = 0, j = 0; i < dest.Length; i += 4, j += 3)
+            {
+                Unsafe.Add(ref dBase, p0 + i) = Unsafe.Add(ref sBase, j);
+                Unsafe.Add(ref dBase, p1 + i) = Unsafe.Add(ref sBase, j + 1);
+                Unsafe.Add(ref dBase, p2 + i) = Unsafe.Add(ref sBase, j + 2);
+                Unsafe.Add(ref dBase, p3 + i) = byte.MaxValue;
+            }
+        }
+
         [Conditional("DEBUG")]
         private static void VerifyShuffleSpanInput<T>(ReadOnlySpan<T> source, Span<T> dest)
             where T : struct
@@ -94,6 +131,20 @@ namespace SixLabors.ImageSharp
                 source.Length % 4 == 0,
                 nameof(source),
                 "Input spans must be divisiable by 4!");
+        }
+
+        [Conditional("DEBUG")]
+        private static void VerifyPadShuffleSpanInput(ReadOnlySpan<byte> source, Span<byte> dest)
+        {
+            DebugGuard.IsTrue(
+                source.Length == (int)(dest.Length * 3 / 4F),
+                nameof(source),
+                "Input spans must be 3/4 the length of the output span!");
+
+            DebugGuard.IsTrue(
+                source.Length % 3 == 0,
+                nameof(source),
+                "Input spans must be divisiable by 3!");
         }
 
         public static class Shuffle

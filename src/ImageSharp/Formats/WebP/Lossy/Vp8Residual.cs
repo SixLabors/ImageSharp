@@ -10,18 +10,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
     /// </summary>
     internal class Vp8Residual
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Vp8Residual"/> class.
-        /// </summary>
-        public Vp8Residual()
-        {
-            this.Prob = new Vp8ProbaArray[3][];
-            for (int i = 0; i < 3; i++)
-            {
-                this.Prob[i] = new Vp8ProbaArray[11];
-            }
-        }
-
         public int First { get; set; }
 
         public int Last { get; set; }
@@ -30,15 +18,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         public short[] Coeffs { get; set; }
 
-        public Vp8ProbaArray[][] Prob { get; }
+        public Vp8BandProbas[] Prob { get; set; }
 
-        public void Init(int first, int coeffType)
+        public void Init(int first, int coeffType, Vp8EncProba prob)
         {
             this.First = first;
             this.CoeffType = coeffType;
+            this.Prob = prob.Coeffs[this.CoeffType];
 
             // TODO:
-            // res->prob = enc->proba_.coeffs_[coeff_type];
             // res->stats = enc->proba_.stats_[coeff_type];
             // res->costs = enc->proba_.remapped_costs_[coeff_type];
         }

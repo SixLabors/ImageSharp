@@ -16,17 +16,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public Vp8ModeScore()
         {
             this.YDcLevels = new short[16];
-            this.YAcLevels = new short[16][];
-            for (int i = 0; i < 16; i++)
-            {
-                this.YAcLevels[i] = new short[16];
-            }
-
-            this.UvLevels = new short[4 + 4][];
-            for (int i = 0; i < 8; i++)
-            {
-                this.UvLevels[i] = new short[16];
-            }
+            this.YAcLevels = new short[16 * 16];
+            this.UvLevels = new short[4 + (4 * 16)];
 
             this.ModesI4 = new byte[16];
         }
@@ -64,12 +55,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// <summary>
         /// Gets the quantized levels for luma-AC.
         /// </summary>
-        public short[][] YAcLevels { get; }
+        public short[] YAcLevels { get; }
 
         /// <summary>
         /// Gets the quantized levels for chroma.
         /// </summary>
-        public short[][] UvLevels { get; }
+        public short[] UvLevels { get; }
 
         /// <summary>
         /// Gets or sets the mode number for intra16 prediction.

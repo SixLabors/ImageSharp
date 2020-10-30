@@ -133,6 +133,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.YuvP.AsSpan().Fill(defaultInitVal);
             this.YLeft.AsSpan().Fill(defaultInitVal);
             this.UvLeft.AsSpan().Fill(defaultInitVal);
+            this.Preds.GetSpan().Fill(defaultInitVal);
 
             for (int i = -255; i <= 255 + 255; ++i)
             {
@@ -196,6 +197,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// Gets the intra mode predictors (4x4 blocks).
         /// </summary>
         public IMemoryOwner<byte> Preds { get; }
+
+        /// <summary>
+        /// Gets the current start index of the intra mode predictors.
+        /// </summary>
+        public int PredIdx
+        {
+            get
+            {
+                return this.predIdx;
+            }
+        }
 
         /// <summary>
         /// Gets the non-zero pattern.
@@ -277,7 +289,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             for (i = 0; i < 17; ++i)
             {
                 // left
-                this.I4Boundary[i] = this.YLeft[15 - i];
+                this.I4Boundary[i] = this.YLeft[15 - i + 1];
             }
 
             Span<byte> yTop = this.YTop.GetSpan();
@@ -287,7 +299,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 this.I4Boundary[17 + i] = yTop[i];
             }
 
-            // top-right samples have a special case on the far right of the picture
+            // top-right samples have a special case on the far right of the picture.
             if (this.X < this.mbw - 1)
             {
                 for (i = 16; i < 16 + 4; ++i)
@@ -487,10 +499,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public short[] GetCostModeI4(byte[] modes)
         {
             int predsWidth = this.predsWidth;
+            int predIdx = this.predIdx;
             int x = this.I4 & 3;
             int y = this.I4 >> 2;
-            int left = (int)((x == 0) ? this.Preds.GetSpan()[(y * predsWidth) - 1] : modes[this.I4 - 1]);
-            int top = (int)((y == 0) ? this.Preds.GetSpan()[-predsWidth + x] : modes[this.I4 - 4]);
+            int left = (x == 0) ? this.Preds.Slice(predIdx)[(y * predsWidth) - 1] : modes[this.I4 - 1];
+            int top = (y == 0) ? this.Preds.Slice(predIdx)[-predsWidth + x] : modes[this.I4 - 4];
             return WebPLookupTables.Vp8FixedCostsI4[top, left];
         }
 
@@ -660,8 +673,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public void NzToBytes()
         {
             Span<uint> nz = this.Nz.GetSpan();
+
+            uint lnz = 0; // TODO: -1?
             uint tnz = nz[0];
-            uint lnz = nz[-1]; // TODO: -1?
             Span<int> topNz = this.TopNz;
             Span<int> leftNz = this.LeftNz;
 
@@ -1245,7 +1259,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.nzIdx = 0;
             this.yTopIdx = 0;
             this.uvTopIdx = 0;
-            this.predIdx = y * 4 * this.predsWidth;
+            this.predIdx = this.predsWidth + (y * 4 * this.predsWidth);
 
             this.InitLeft();
         }

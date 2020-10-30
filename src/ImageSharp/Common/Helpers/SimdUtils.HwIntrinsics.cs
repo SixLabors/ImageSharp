@@ -363,18 +363,6 @@ namespace SixLabors.ImageSharp
                     Shuffle.MmShuffleSpan(ref bytes, control);
                     Vector128<byte> vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
-                    // var control = MmShuffle(3, 0, 1, 2);
-                    // Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
-                    // MmShuffleSpan(ref bytes, control);
-                    // Vector128<byte> vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
-                    //
-                    // Vector128<byte> s0 = Vector128.Create((byte)1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1).Dump("s0");
-                    // Vector128<byte> padded = Ssse3.Shuffle(s0, padMask).Dump("padded");
-                    //
-                    // padded = Sse3.Or(Vector128.Create(0xff000000u).AsByte(), padded).Dump("0r");
-                    //
-                    // var shuffled = Ssse3.Shuffle(padded, vcm).Dump("shuffled");
-                    // var d0 = Ssse3.Shuffle(shuffled, sliceMask).Dump("d0");
                     fixed (byte* sBase = &source.GetPinnableReference())
                     fixed (byte* dBase = &dest.GetPinnableReference())
                     {

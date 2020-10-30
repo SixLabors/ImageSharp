@@ -7,7 +7,7 @@ using BenchmarkDotNet.Attributes;
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
     [Config(typeof(Config.HwIntrinsics_SSE_AVX))]
-    public class ShuffleByte4Channel
+    public class Pad3Shuffle4Channel
     {
         private byte[] source;
         private byte[] destination;
@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             this.destination = new byte[this.Count];
         }
 
-        [Params(128, 256, 512, 1024, 2048)]
+        [Params(96, 384, 768, 1536)]
         public int Count { get; set; }
 
         [Benchmark]

@@ -163,6 +163,8 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         public static readonly TheoryData<int> ArraySizesDivisibleBy8 = new TheoryData<int> { 0, 8, 16, 1024 };
         public static readonly TheoryData<int> ArraySizesDivisibleBy4 = new TheoryData<int> { 0, 4, 8, 28, 1020 };
+        public static readonly TheoryData<int> ArraySizesDivisibleBy3 = new TheoryData<int> { 0, 3, 9, 36, 957 };
+
 
         public static readonly TheoryData<int> ArraySizesDivisibleBy32 = new TheoryData<int> { 0, 32, 512 };
 

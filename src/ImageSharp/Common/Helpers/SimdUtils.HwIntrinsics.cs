@@ -119,6 +119,39 @@ namespace SixLabors.ImageSharp
                 }
             }
 
+            /// <summary>
+            /// Shuffles then slices 8-bit integers within 128-bit lanes in <paramref name="source"/>
+            /// using the control and store the results in <paramref name="dest"/>.
+            /// </summary>
+            /// <param name="source">The source span of bytes.</param>
+            /// <param name="dest">The destination span of bytes.</param>
+            /// <param name="control">The byte control.</param>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static unsafe void Shuffle4Slice3Reduce(
+                ref ReadOnlySpan<byte> source,
+                ref Span<byte> dest,
+                byte control)
+            {
+                if (Ssse3.IsSupported)
+                {
+                    int remainder = ImageMaths.ModuloP2(dest.Length, Vector128<byte>.Count);
+
+                    int adjustedCount = dest.Length - remainder;
+                    int destSlice = (int)(adjustedCount * (3 / 4F));
+
+                    if (adjustedCount > 0)
+                    {
+                        Shuffle4Slice3(
+                            source.Slice(0, adjustedCount),
+                            dest.Slice(0, adjustedCount),
+                            control);
+
+                        source = source.Slice(adjustedCount);
+                        dest = dest.Slice(destSlice);
+                    }
+                }
+            }
+
             [MethodImpl(InliningOptions.ShortMethod)]
             private static void Shuffle4(
                 ReadOnlySpan<float> source,
@@ -311,6 +344,50 @@ namespace SixLabors.ImageSharp
 
                             s += 12;
                             d += 16;
+                        }
+                    }
+                }
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private static unsafe void Shuffle4Slice3(
+                ReadOnlySpan<byte> source,
+                Span<byte> dest,
+                byte control)
+            {
+                if (Ssse3.IsSupported)
+                {
+                    Vector128<byte> sliceMask = Vector128.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, -1, -1, -1, -1).AsByte();
+
+                    Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
+                    Shuffle.MmShuffleSpan(ref bytes, control);
+                    Vector128<byte> vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
+
+                    // var control = MmShuffle(3, 0, 1, 2);
+                    // Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
+                    // MmShuffleSpan(ref bytes, control);
+                    // Vector128<byte> vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
+                    //
+                    // Vector128<byte> s0 = Vector128.Create((byte)1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1).Dump("s0");
+                    // Vector128<byte> padded = Ssse3.Shuffle(s0, padMask).Dump("padded");
+                    //
+                    // padded = Sse3.Or(Vector128.Create(0xff000000u).AsByte(), padded).Dump("0r");
+                    //
+                    // var shuffled = Ssse3.Shuffle(padded, vcm).Dump("shuffled");
+                    // var d0 = Ssse3.Shuffle(shuffled, sliceMask).Dump("d0");
+                    fixed (byte* sBase = &source.GetPinnableReference())
+                    fixed (byte* dBase = &dest.GetPinnableReference())
+                    {
+                        byte* s = sBase;
+                        byte* d = dBase;
+
+                        for (int i = 0; i < source.Length; i += 16)
+                        {
+                            Vector128<byte> vs0 = Ssse3.Shuffle(Sse2.LoadVector128(s), vcm);
+                            Sse2.Store(d, Ssse3.Shuffle(vs0, sliceMask));
+
+                            s += 16;
+                            d += 12;
                         }
                     }
                 }

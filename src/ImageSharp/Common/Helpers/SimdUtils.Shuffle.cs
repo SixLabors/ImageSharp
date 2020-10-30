@@ -69,7 +69,7 @@ namespace SixLabors.ImageSharp
             Span<byte> dest,
             byte control)
         {
-            VerifyPadShuffleSpanInput(source, dest);
+            VerifyPad3Shuffle4SpanInput(source, dest);
 
 #if SUPPORTS_RUNTIME_INTRINSICS
             HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, control);
@@ -79,6 +79,25 @@ namespace SixLabors.ImageSharp
             if (source.Length > 0)
             {
                 Pad3Shuffle4Remainder(source, dest, control);
+            }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static void Shuffle4Slice3(
+            ReadOnlySpan<byte> source,
+            Span<byte> dest,
+            byte control)
+        {
+            VerifyShuffle4Slice3SpanInput(source, dest);
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            HwIntrinsics.Shuffle4Slice3Reduce(ref source, ref dest, control);
+#endif
+
+            // Deal with the remainder:
+            if (source.Length > 0)
+            {
+                Shuffle4Slice3Remainder(source, dest, control);
             }
         }
 
@@ -118,6 +137,23 @@ namespace SixLabors.ImageSharp
             }
         }
 
+        public static void Shuffle4Slice3Remainder(
+            ReadOnlySpan<byte> source,
+            Span<byte> dest,
+            byte control)
+        {
+            ref byte sBase = ref MemoryMarshal.GetReference(source);
+            ref byte dBase = ref MemoryMarshal.GetReference(dest);
+            Shuffle.InverseMmShuffle(control, out int _, out int p2, out int p1, out int p0);
+
+            for (int i = 0, j = 0; i < dest.Length; i += 3, j += 4)
+            {
+                Unsafe.Add(ref dBase, i) = Unsafe.Add(ref sBase, p0 + j);
+                Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + j);
+                Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + j);
+            }
+        }
+
         [Conditional("DEBUG")]
         private static void VerifyShuffleSpanInput<T>(ReadOnlySpan<T> source, Span<T> dest)
             where T : struct
@@ -130,21 +166,45 @@ namespace SixLabors.ImageSharp
             DebugGuard.IsTrue(
                 source.Length % 4 == 0,
                 nameof(source),
-                "Input spans must be divisiable by 4!");
+                "Input spans must be divisable by 4!");
         }
 
         [Conditional("DEBUG")]
-        private static void VerifyPadShuffleSpanInput(ReadOnlySpan<byte> source, Span<byte> dest)
+        private static void VerifyPad3Shuffle4SpanInput(ReadOnlySpan<byte> source, Span<byte> dest)
         {
-            DebugGuard.IsTrue(
-                source.Length == (int)(dest.Length * 3 / 4F),
-                nameof(source),
-                "Input spans must be 3/4 the length of the output span!");
-
             DebugGuard.IsTrue(
                 source.Length % 3 == 0,
                 nameof(source),
-                "Input spans must be divisiable by 3!");
+                "Input span must be divisable by 3!");
+
+            DebugGuard.IsTrue(
+                dest.Length % 4 == 0,
+                nameof(dest),
+                "Output span must be divisable by 4!");
+
+            DebugGuard.IsTrue(
+                source.Length == (int)(dest.Length * 3 / 4F),
+                nameof(source),
+                "Input span must be 3/4 the length of the output span!");
+        }
+
+        [Conditional("DEBUG")]
+        private static void VerifyShuffle4Slice3SpanInput(ReadOnlySpan<byte> source, Span<byte> dest)
+        {
+            DebugGuard.IsTrue(
+                source.Length % 4 == 0,
+                nameof(source),
+                "Input span must be divisable by 4!");
+
+            DebugGuard.IsTrue(
+                dest.Length % 3 == 0,
+                nameof(dest),
+                "Output span must be divisable by 3!");
+
+            DebugGuard.IsTrue(
+                source.Length == (int)(dest.Length * 4 / 3F),
+                nameof(source),
+                "Output span must be 3/4 the length of the input span!");
         }
 
         public static class Shuffle

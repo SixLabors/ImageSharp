@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
                 TestShuffleFloat4Channel(
                     size,
-                    (s, d) => SimdUtils.Shuffle4Channel(s.Span, d.Span, control),
+                    (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, control),
                     control);
             }
 
@@ -49,43 +49,43 @@ namespace SixLabors.ImageSharp.Tests.Common
                         WXYZShuffle4 wxyz = default;
                         TestShuffleByte4Channel(
                             size,
-                            (s, d) => SimdUtils.Shuffle4Channel(s.Span, d.Span, wxyz),
+                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wxyz),
                             wxyz.Control);
 
                         WZYXShuffle4 wzyx = default;
                         TestShuffleByte4Channel(
                             size,
-                            (s, d) => SimdUtils.Shuffle4Channel(s.Span, d.Span, wzyx),
+                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wzyx),
                             wzyx.Control);
 
                         YZWXShuffle4 yzwx = default;
                         TestShuffleByte4Channel(
                             size,
-                            (s, d) => SimdUtils.Shuffle4Channel(s.Span, d.Span, yzwx),
+                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, yzwx),
                             yzwx.Control);
 
                         ZYXWShuffle4 zyxw = default;
                         TestShuffleByte4Channel(
                             size,
-                            (s, d) => SimdUtils.Shuffle4Channel(s.Span, d.Span, zyxw),
+                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, zyxw),
                             zyxw.Control);
 
                         var xwyz = new DefaultShuffle4(2, 1, 3, 0);
                         TestShuffleByte4Channel(
                             size,
-                            (s, d) => SimdUtils.Shuffle4Channel(s.Span, d.Span, xwyz),
+                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, xwyz),
                             xwyz.Control);
 
                         var yyyy = new DefaultShuffle4(1, 1, 1, 1);
                         TestShuffleByte4Channel(
                             size,
-                            (s, d) => SimdUtils.Shuffle4Channel(s.Span, d.Span, yyyy),
+                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, yyyy),
                             yyyy.Control);
 
                         var wwww = new DefaultShuffle4(3, 3, 3, 3);
                         TestShuffleByte4Channel(
                             size,
-                            (s, d) => SimdUtils.Shuffle4Channel(s.Span, d.Span, wwww),
+                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wwww),
                             wwww.Control);
                     }
                 }
@@ -95,6 +95,29 @@ namespace SixLabors.ImageSharp.Tests.Common
                 RunTest,
                 count,
                 HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE);
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy3))]
+        public void BulkPad3Shuffle4Channel(int count)
+        {
+            static void RunTest(string serialized)
+            {
+                // No need to test multiple shuffle controls as the
+                // pipeline is always the same.
+                int size = FeatureTestRunner.Deserialize<int>(serialized);
+                byte control = default(WZYXShuffle4).Control;
+
+                TestPad3Shuffle4Channel(
+                    size,
+                    (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, control),
+                    control);
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                count,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE);
         }
 
         private static void TestShuffleFloat4Channel(
@@ -151,6 +174,38 @@ namespace SixLabors.ImageSharp.Tests.Common
                 expected[i + 1] = source[p1 + i];
                 expected[i + 2] = source[p2 + i];
                 expected[i + 3] = source[p3 + i];
+            }
+
+            convert(source, result);
+
+            Assert.Equal(expected, result);
+        }
+
+        private static void TestPad3Shuffle4Channel(
+            int count,
+            Action<Memory<byte>, Memory<byte>> convert,
+            byte control)
+        {
+            byte[] source = new byte[count];
+            new Random(count).NextBytes(source);
+
+            var result = new byte[(int)(count * (4 / 3F))];
+
+            byte[] expected = new byte[result.Length];
+
+            SimdUtils.Shuffle.InverseMmShuffle(
+                control,
+                out int p3,
+                out int p2,
+                out int p1,
+                out int p0);
+
+            for (int i = 0, j = 0; i < expected.Length; i += 4, j += 3)
+            {
+                expected[p0 + i] = source[j];
+                expected[p1 + i] = source[j + 1];
+                expected[p2 + i] = source[j + 2];
+                expected[p3 + i] = byte.MaxValue;
             }
 
             convert(source, result);

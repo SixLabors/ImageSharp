@@ -54,7 +54,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
 
         public int PutCoeffs(int ctx, Vp8Residual residual)
         {
-            int tabIdx = 0;
             int n = residual.First;
             Vp8ProbaArray p = residual.Prob[n][ctx];
             if (!this.PutBit(residual.Last >= 0, p.Probabilities[0]))
@@ -102,6 +101,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                     {
                         int mask;
                         byte[] tab;
+                        var tabIdx = 0;
                         if (v < 3 + (8 << 1))
                         {
                             // VP8Cat3  (3b)
@@ -161,6 +161,37 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             }
 
             return 1;
+        }
+
+        /// <summary>
+        /// Resizes the buffer to write to.
+        /// </summary>
+        /// <param name="extraSize">The extra size in bytes needed.</param>
+        public override void BitWriterResize(int extraSize)
+        {
+            // TODO: review again if this works as intended. Probably needs a unit test ...
+            var neededSize = this.pos + extraSize;
+            if (neededSize <= this.maxPos)
+            {
+                return;
+            }
+
+            this.ResizeBuffer(this.maxPos, (int)neededSize);
+        }
+
+        public void Finish()
+        {
+           this.PutBits(0, 9 - this.nbBits);
+           this.nbBits = 0;   // pad with zeroes.
+           this.Flush();
+        }
+
+        private void PutBits(uint value, int nbBits)
+        {
+            for (uint mask = 1u << (nbBits - 1); mask != 0; mask >>= 1)
+            {
+                this.PutBitUniform((int)(value & mask));
+            }
         }
 
         private bool PutBit(bool bit, int prob)
@@ -260,22 +291,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             {
                 this.run++;   // Delay writing of bytes 0xff, pending eventual carry.
             }
-        }
-
-        /// <summary>
-        /// Resizes the buffer to write to.
-        /// </summary>
-        /// <param name="extraSize">The extra size in bytes needed.</param>
-        public override void BitWriterResize(int extraSize)
-        {
-            // TODO: review again if this works as intended. Probably needs a unit test ...
-            var neededSize = this.pos + extraSize;
-            if (neededSize <= this.maxPos)
-            {
-                return;
-            }
-
-            this.ResizeBuffer(this.maxPos, (int)neededSize);
         }
     }
 }

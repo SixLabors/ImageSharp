@@ -458,7 +458,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// <summary>
         /// Paragraph 14.3: Implementation of the Walsh-Hadamard transform inversion.
         /// </summary>
-        public static void TransformWht(short[] input, short[] output)
+        public static void TransformWht(Span<short> input, Span<short> output)
         {
             var tmp = new int[16];
             for (int i = 0; i < 4; ++i)

@@ -205,9 +205,41 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public const int AlphaFix = 19;
 
+        /// <summary>
+        /// 8b of precision for susceptibilities.
+        /// </summary>
         public const int MaxAlpha = 255;
 
+        /// <summary>
+        /// Scaling factor for alpha.
+        /// </summary>
         public const int AlphaScale = 2 * MaxAlpha;
+
+        /// <summary>
+        /// Neutral value for susceptibility.
+        /// </summary>
+        public const int QuantEncMidAlpha = 64;
+
+        /// <summary>
+        /// Lowest usable value for susceptibility.
+        /// </summary>
+        public const int QuantEncMinAlpha = 30;
+
+        /// <summary>
+        /// Higher meaningful value for susceptibility.
+        /// </summary>
+        public const int QuantEncMaxAlpha = 100;
+
+        /// <summary>
+        /// Scaling constant between the sns (Spatial Noise Shaping) value and the QP power-law modulation. Must be strictly less than 1.
+        /// </summary>
+        public const double SnsToDq = 0.9;
+
+        public const int QuantEncMaxDqUv = 6;
+
+        public const int QuantEncMinDqUv = -4;
+
+        public const int QFix = 17;
 
         public static readonly short[] Vp8FixedCostsUv = { 302, 984, 439, 642 };
 

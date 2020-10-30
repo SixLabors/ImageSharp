@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             // res->costs = enc->proba_.remapped_costs_[coeff_type];
         }
 
-        public void SetCoeffs(short[] coeffs)
+        public void SetCoeffs(Span<short> coeffs)
         {
             int n;
             this.Last = -1;
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 }
             }
 
-            this.Coeffs = coeffs;
+            this.Coeffs = coeffs.ToArray();
         }
     }
 }

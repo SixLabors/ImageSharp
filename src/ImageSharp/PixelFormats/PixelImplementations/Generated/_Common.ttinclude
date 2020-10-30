@@ -88,35 +88,31 @@ using System.Runtime.InteropServices;
     {
 #>
             /// <inheritdoc />
-            public override void To<#=otherPixelType#>(Configuration configuration, ReadOnlySpan<<#=thisPixelType#>> sourcePixels, Span<<#=otherPixelType#>> destinationPixels)
+            public override void To<#=otherPixelType#>(
+                Configuration configuration,
+                ReadOnlySpan<<#=thisPixelType#>> sourcePixels,
+                Span<<#=otherPixelType#>> destinationPixels)
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
 
-                ref uint sourceRef = ref Unsafe.As<<#=thisPixelType#>,uint>(ref MemoryMarshal.GetReference(sourcePixels));
-                ref uint destRef = ref Unsafe.As<<#=otherPixelType#>, uint>(ref MemoryMarshal.GetReference(destinationPixels));
-
-                for (int i = 0; i < sourcePixels.Length; i++)
-                {
-                    uint sp = Unsafe.Add(ref sourceRef, i);
-                    Unsafe.Add(ref destRef, i) = PixelConverter.From<#=thisPixelType#>.To<#=otherPixelType#>(sp);
-                }
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<<#=thisPixelType#>, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<<#=otherPixelType#>, byte>(destinationPixels);
+                PixelConverter.From<#=thisPixelType#>.To<#=otherPixelType#>(source, dest);
             }
 
             /// <inheritdoc />
-            public override void From<#=otherPixelType#>(Configuration configuration, ReadOnlySpan<<#=otherPixelType#>> sourcePixels, Span<<#=thisPixelType#>> destinationPixels)
+            public override void From<#=otherPixelType#>(
+                Configuration configuration,
+                ReadOnlySpan<<#=otherPixelType#>> sourcePixels,
+                Span<<#=thisPixelType#>> destinationPixels)
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
 
-                ref uint sourceRef = ref Unsafe.As<<#=otherPixelType#>,uint>(ref MemoryMarshal.GetReference(sourcePixels));
-                ref uint destRef = ref Unsafe.As<<#=thisPixelType#>, uint>(ref MemoryMarshal.GetReference(destinationPixels));
-
-                for (int i = 0; i < sourcePixels.Length; i++)
-                {
-                    uint sp = Unsafe.Add(ref sourceRef, i);
-                    Unsafe.Add(ref destRef, i) = PixelConverter.From<#=otherPixelType#>.To<#=thisPixelType#>(sp);
-                }
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<<#=otherPixelType#>, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<<#=thisPixelType#>, byte>(destinationPixels);
+                PixelConverter.From<#=otherPixelType#>.To<#=thisPixelType#>(source, dest);
             }
 <#+
     }

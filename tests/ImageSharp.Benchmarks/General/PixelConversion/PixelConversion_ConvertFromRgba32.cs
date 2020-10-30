@@ -168,49 +168,27 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         [Benchmark]
         public void PixelConverter_Rgba32_ToArgb32()
         {
-            ref uint sBase = ref Unsafe.As<Rgba32, uint>(ref this.PermutedRunnerRgbaToArgb.Source[0]);
-            ref uint dBase = ref Unsafe.As<TestArgb, uint>(ref this.PermutedRunnerRgbaToArgb.Dest[0]);
+            Span<byte> source = MemoryMarshal.Cast<Rgba32, byte>(this.PermutedRunnerRgbaToArgb.Source);
+            Span<byte> dest = MemoryMarshal.Cast<TestArgb, byte>(this.PermutedRunnerRgbaToArgb.Dest);
 
-            for (int i = 0; i < this.Count; i++)
-            {
-                uint s = Unsafe.Add(ref sBase, i);
-                Unsafe.Add(ref dBase, i) = PixelConverter.FromRgba32.ToArgb32(s);
-            }
-        }
-
-        [Benchmark]
-        public void PixelConverter_Rgba32_ToArgb32_CopyThenWorkOnSingleBuffer()
-        {
-            Span<uint> source = MemoryMarshal.Cast<Rgba32, uint>(this.PermutedRunnerRgbaToArgb.Source);
-            Span<uint> dest = MemoryMarshal.Cast<TestArgb, uint>(this.PermutedRunnerRgbaToArgb.Dest);
-            source.CopyTo(dest);
-
-            ref uint dBase = ref MemoryMarshal.GetReference(dest);
-
-            for (int i = 0; i < this.Count; i++)
-            {
-                uint s = Unsafe.Add(ref dBase, i);
-                Unsafe.Add(ref dBase, i) = PixelConverter.FromRgba32.ToArgb32(s);
-            }
+            PixelConverter.FromRgba32.ToArgb32(source, dest);
         }
 
         /*
         RESULTS:
-                                                            Method | Count |       Mean |      Error |     StdDev | Scaled | ScaledSD |
-        ---------------------------------------------------------- |------ |-----------:|-----------:|-----------:|-------:|---------:|
-                                                             ByRef |   256 |   328.7 ns |  6.6141 ns |  6.1868 ns |   1.00 |     0.00 |
-                                                             ByVal |   256 |   322.0 ns |  4.3541 ns |  4.0728 ns |   0.98 |     0.02 |
-                                                         FromBytes |   256 |   321.5 ns |  3.3499 ns |  3.1335 ns |   0.98 |     0.02 |
-                                                     InlineShuffle |   256 |   330.7 ns |  4.2525 ns |  3.9778 ns |   1.01 |     0.02 |
-                                    PixelConverter_Rgba32_ToArgb32 |   256 |   167.4 ns |  0.6357 ns |  0.5309 ns |   0.51 |     0.01 |
-         PixelConverter_Rgba32_ToArgb32_CopyThenWorkOnSingleBuffer |   256 |   196.6 ns |  0.8929 ns |  0.7915 ns |   0.60 |     0.01 |
-                                                                   |       |            |            |            |        |          |
-                                                             ByRef |  2048 | 2,534.4 ns |  8.2947 ns |  6.9265 ns |   1.00 |     0.00 |
-                                                             ByVal |  2048 | 2,638.5 ns | 52.6843 ns | 70.3320 ns |   1.04 |     0.03 |
-                                                         FromBytes |  2048 | 2,517.2 ns | 40.8055 ns | 38.1695 ns |   0.99 |     0.01 |
-                                                     InlineShuffle |  2048 | 2,546.5 ns | 21.2506 ns | 19.8778 ns |   1.00 |     0.01 |
-                                    PixelConverter_Rgba32_ToArgb32 |  2048 | 1,265.7 ns |  5.1397 ns |  4.5562 ns |   0.50 |     0.00 |
-         PixelConverter_Rgba32_ToArgb32_CopyThenWorkOnSingleBuffer |  2048 | 1,410.3 ns | 11.1939 ns |  9.9231 ns |   0.56 |     0.00 |
-         */
+        |                         Method | Count |        Mean |     Error |    StdDev |      Median | Ratio | RatioSD |
+        |------------------------------- |------ |------------:|----------:|----------:|------------:|------:|--------:|
+        |                          ByRef |   256 |   288.84 ns | 19.601 ns | 52.319 ns |   268.10 ns |  1.00 |    0.00 |
+        |                          ByVal |   256 |   267.97 ns |  1.831 ns |  1.713 ns |   267.85 ns |  0.77 |    0.18 |
+        |                      FromBytes |   256 |   266.81 ns |  2.427 ns |  2.270 ns |   266.47 ns |  0.76 |    0.18 |
+        |                  InlineShuffle |   256 |   291.41 ns |  5.820 ns |  5.444 ns |   290.17 ns |  0.83 |    0.19 |
+        | PixelConverter_Rgba32_ToArgb32 |   256 |    38.62 ns |  0.431 ns |  0.403 ns |    38.68 ns |  0.11 |    0.03 |
+        |                                |       |             |           |           |             |       |         |
+        |                          ByRef |  2048 | 2,197.69 ns | 15.826 ns | 14.804 ns | 2,197.25 ns |  1.00 |    0.00 |
+        |                          ByVal |  2048 | 2,226.81 ns | 44.266 ns | 62.054 ns | 2,197.17 ns |  1.03 |    0.04 |
+        |                      FromBytes |  2048 | 2,181.35 ns | 18.033 ns | 16.868 ns | 2,185.97 ns |  0.99 |    0.01 |
+        |                  InlineShuffle |  2048 | 2,233.10 ns | 27.673 ns | 24.531 ns | 2,229.78 ns |  1.02 |    0.01 |
+        | PixelConverter_Rgba32_ToArgb32 |  2048 |   139.90 ns |  2.152 ns |  3.825 ns |   138.70 ns |  0.06 |    0.00 |
+        */
     }
 }

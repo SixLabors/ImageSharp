@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 
@@ -33,30 +34,28 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             [MemberData(nameof(RgbaData))]
             public void ToArgb32(byte r, byte g, byte b, byte a)
             {
-                Rgba32 s = ReferenceImplementations.MakeRgba32(r, g, b, a);
+                byte[] source = ReferenceImplementations.MakeRgba32ByteArray(r, g, b, a);
+                var actual = new byte[source.Length];
 
-                // Act:
-                uint actualPacked = PixelConverter.FromRgba32.ToArgb32(s.PackedValue);
+                PixelConverter.FromRgba32.ToArgb32(source, actual);
 
-                // Assert:
-                uint expectedPacked = ReferenceImplementations.MakeArgb32(r, g, b, a).PackedValue;
+                byte[] expected = ReferenceImplementations.MakeArgb32ByteArray(r, g, b, a);
 
-                Assert.Equal(expectedPacked, actualPacked);
+                Assert.Equal(expected, actual);
             }
 
             [Theory]
             [MemberData(nameof(RgbaData))]
             public void ToBgra32(byte r, byte g, byte b, byte a)
             {
-                Rgba32 s = ReferenceImplementations.MakeRgba32(r, g, b, a);
+                byte[] source = ReferenceImplementations.MakeRgba32ByteArray(r, g, b, a);
+                var actual = new byte[source.Length];
 
-                // Act:
-                uint actualPacked = PixelConverter.FromRgba32.ToBgra32(s.PackedValue);
+                PixelConverter.FromRgba32.ToBgra32(source, actual);
 
-                // Assert:
-                uint expectedPacked = ReferenceImplementations.MakeBgra32(r, g, b, a).PackedValue;
+                byte[] expected = ReferenceImplementations.MakeBgra32ByteArray(r, g, b, a);
 
-                Assert.Equal(expectedPacked, actualPacked);
+                Assert.Equal(expected, actual);
             }
         }
 
@@ -66,30 +65,28 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             [MemberData(nameof(RgbaData))]
             public void ToRgba32(byte r, byte g, byte b, byte a)
             {
-                Argb32 s = ReferenceImplementations.MakeArgb32(r, g, b, a);
+                byte[] source = ReferenceImplementations.MakeArgb32ByteArray(r, g, b, a);
+                var actual = new byte[source.Length];
 
-                // Act:
-                uint actualPacked = PixelConverter.FromArgb32.ToRgba32(s.PackedValue);
+                PixelConverter.FromArgb32.ToRgba32(source, actual);
 
-                // Assert:
-                uint expectedPacked = ReferenceImplementations.MakeRgba32(r, g, b, a).PackedValue;
+                byte[] expected = ReferenceImplementations.MakeRgba32ByteArray(r, g, b, a);
 
-                Assert.Equal(expectedPacked, actualPacked);
+                Assert.Equal(expected, actual);
             }
 
             [Theory]
             [MemberData(nameof(RgbaData))]
             public void ToBgra32(byte r, byte g, byte b, byte a)
             {
-                Argb32 s = ReferenceImplementations.MakeArgb32(r, g, b, a);
+                byte[] source = ReferenceImplementations.MakeArgb32ByteArray(r, g, b, a);
+                var actual = new byte[source.Length];
 
-                // Act:
-                uint actualPacked = PixelConverter.FromArgb32.ToBgra32(s.PackedValue);
+                PixelConverter.FromArgb32.ToBgra32(source, actual);
 
-                // Assert:
-                uint expectedPacked = ReferenceImplementations.MakeBgra32(r, g, b, a).PackedValue;
+                byte[] expected = ReferenceImplementations.MakeBgra32ByteArray(r, g, b, a);
 
-                Assert.Equal(expectedPacked, actualPacked);
+                Assert.Equal(expected, actual);
             }
         }
 
@@ -99,30 +96,28 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             [MemberData(nameof(RgbaData))]
             public void ToArgb32(byte r, byte g, byte b, byte a)
             {
-                Bgra32 s = ReferenceImplementations.MakeBgra32(r, g, b, a);
+                byte[] source = ReferenceImplementations.MakeBgra32ByteArray(r, g, b, a);
+                var actual = new byte[source.Length];
 
-                // Act:
-                uint actualPacked = PixelConverter.FromBgra32.ToArgb32(s.PackedValue);
+                PixelConverter.FromBgra32.ToArgb32(source, actual);
 
-                // Assert:
-                uint expectedPacked = ReferenceImplementations.MakeArgb32(r, g, b, a).PackedValue;
+                byte[] expected = ReferenceImplementations.MakeArgb32ByteArray(r, g, b, a);
 
-                Assert.Equal(expectedPacked, actualPacked);
+                Assert.Equal(expected, actual);
             }
 
             [Theory]
             [MemberData(nameof(RgbaData))]
             public void ToRgba32(byte r, byte g, byte b, byte a)
             {
-                Bgra32 s = ReferenceImplementations.MakeBgra32(r, g, b, a);
+                byte[] source = ReferenceImplementations.MakeBgra32ByteArray(r, g, b, a);
+                var actual = new byte[source.Length];
 
-                // Act:
-                uint actualPacked = PixelConverter.FromBgra32.ToRgba32(s.PackedValue);
+                PixelConverter.FromBgra32.ToRgba32(source, actual);
 
-                // Assert:
-                uint expectedPacked = ReferenceImplementations.MakeRgba32(r, g, b, a).PackedValue;
+                byte[] expected = ReferenceImplementations.MakeRgba32ByteArray(r, g, b, a);
 
-                Assert.Equal(expectedPacked, actualPacked);
+                Assert.Equal(expected, actual);
             }
         }
     }

@@ -17,6 +17,7 @@
   <ItemGroup>
     <Compile Include="..\ImageSharp.Tests\TestImages.cs" Link="Tests\TestImages.cs" />
     <Compile Include="..\ImageSharp.Tests\TestUtilities\TestEnvironment.cs" Link="Tests\TestEnvironment.cs" />
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\TestDataGenerator.cs" Link="Tests\TestDataGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>

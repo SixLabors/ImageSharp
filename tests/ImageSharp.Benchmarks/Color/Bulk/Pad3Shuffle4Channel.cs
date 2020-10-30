@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
     [Config(typeof(Config.HwIntrinsics_SSE_AVX))]
     public class Pad3Shuffle4Channel
     {
+        private static readonly byte Control = default(WXYZShuffle4).Control;
         private byte[] source;
         private byte[] destination;
 
@@ -17,20 +18,20 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         {
             this.source = new byte[this.Count];
             new Random(this.Count).NextBytes(this.source);
-            this.destination = new byte[this.Count];
+            this.destination = new byte[(int)(this.Count * (4 / 3F))];
         }
 
         [Params(96, 384, 768, 1536)]
         public int Count { get; set; }
 
         [Benchmark]
-        public void Shuffle4Channel()
+        public void Pad3Shuffle4()
         {
-            SimdUtils.Shuffle4<WXYZShuffle4>(this.source, this.destination, default);
+            SimdUtils.Pad3Shuffle4(this.source, this.destination, Control);
         }
     }
 
-    // 2020-10-29
+    // 2020-10-30
     // ##########
     //
     // BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.572 (2004/?/20H1)
@@ -43,25 +44,21 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
     //
     // Runtime=.NET Core 3.1
     //
-    // |          Method |                Job |                              EnvironmentVariables | Count |      Mean |    Error |   StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-    // |---------------- |------------------- |-------------------------------------------------- |------ |----------:|---------:|---------:|------:|--------:|------:|------:|------:|----------:|
-    // | Shuffle4Channel | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   128 |  17.39 ns | 0.187 ns | 0.175 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             2. AVX |                                             Empty |   128 |  21.72 ns | 0.299 ns | 0.279 ns |  1.25 |    0.02 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             3. SSE |                               COMPlus_EnableAVX=0 |   128 |  18.10 ns | 0.346 ns | 0.289 ns |  1.04 |    0.02 |     - |     - |     - |         - |
-    // |                 |                    |                                                   |       |           |          |          |       |         |       |       |       |           |
-    // | Shuffle4Channel | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   256 |  35.51 ns | 0.711 ns | 0.790 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             2. AVX |                                             Empty |   256 |  23.90 ns | 0.508 ns | 0.820 ns |  0.69 |    0.02 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             3. SSE |                               COMPlus_EnableAVX=0 |   256 |  20.40 ns | 0.133 ns | 0.111 ns |  0.57 |    0.01 |     - |     - |     - |         - |
-    // |                 |                    |                                                   |       |           |          |          |       |         |       |       |       |           |
-    // | Shuffle4Channel | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   512 |  73.39 ns | 0.310 ns | 0.259 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             2. AVX |                                             Empty |   512 |  26.10 ns | 0.418 ns | 0.391 ns |  0.36 |    0.01 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             3. SSE |                               COMPlus_EnableAVX=0 |   512 |  27.59 ns | 0.556 ns | 0.571 ns |  0.38 |    0.01 |     - |     - |     - |         - |
-    // |                 |                    |                                                   |       |           |          |          |       |         |       |       |       |           |
-    // | Shuffle4Channel | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |  1024 | 150.64 ns | 2.903 ns | 2.716 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             2. AVX |                                             Empty |  1024 |  38.67 ns | 0.801 ns | 1.889 ns |  0.24 |    0.02 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             3. SSE |                               COMPlus_EnableAVX=0 |  1024 |  47.13 ns | 0.948 ns | 1.054 ns |  0.31 |    0.01 |     - |     - |     - |         - |
-    // |                 |                    |                                                   |       |           |          |          |       |         |       |       |       |           |
-    // | Shuffle4Channel | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |  2048 | 315.29 ns | 5.206 ns | 6.583 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             2. AVX |                                             Empty |  2048 |  57.37 ns | 1.152 ns | 1.078 ns |  0.18 |    0.01 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             3. SSE |                               COMPlus_EnableAVX=0 |  2048 |  65.75 ns | 1.198 ns | 1.600 ns |  0.21 |    0.01 |     - |     - |     - |         - |
+    // |       Method |                Job |                              EnvironmentVariables | Count |      Mean |    Error |   StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+    // |------------- |------------------- |-------------------------------------------------- |------ |----------:|---------:|---------:|------:|--------:|------:|------:|------:|----------:|
+    // | Pad3Shuffle4 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |    96 |  62.91 ns | 1.240 ns | 1.569 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // | Pad3Shuffle4 |             2. AVX |                                             Empty |    96 |  44.34 ns | 0.371 ns | 0.329 ns |  0.70 |    0.02 |     - |     - |     - |         - |
+    // | Pad3Shuffle4 |             3. SSE |                               COMPlus_EnableAVX=0 |    96 |  44.46 ns | 0.617 ns | 0.515 ns |  0.70 |    0.02 |     - |     - |     - |         - |
+    // |              |                    |                                                   |       |           |          |          |       |         |       |       |       |           |
+    // | Pad3Shuffle4 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   384 | 247.93 ns | 2.640 ns | 2.470 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // | Pad3Shuffle4 |             2. AVX |                                             Empty |   384 |  92.91 ns | 1.204 ns | 1.127 ns |  0.37 |    0.01 |     - |     - |     - |         - |
+    // | Pad3Shuffle4 |             3. SSE |                               COMPlus_EnableAVX=0 |   384 |  91.42 ns | 1.234 ns | 1.094 ns |  0.37 |    0.01 |     - |     - |     - |         - |
+    // |              |                    |                                                   |       |           |          |          |       |         |       |       |       |           |
+    // | Pad3Shuffle4 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   768 | 444.79 ns | 5.094 ns | 4.254 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // | Pad3Shuffle4 |             2. AVX |                                             Empty |   768 | 162.92 ns | 1.046 ns | 0.873 ns |  0.37 |    0.00 |     - |     - |     - |         - |
+    // | Pad3Shuffle4 |             3. SSE |                               COMPlus_EnableAVX=0 |   768 | 166.22 ns | 1.728 ns | 1.443 ns |  0.37 |    0.00 |     - |     - |     - |         - |
+    // |              |                    |                                                   |       |           |          |          |       |         |       |       |       |           |
+    // | Pad3Shuffle4 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |  1536 | 882.51 ns | 6.936 ns | 5.792 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+    // | Pad3Shuffle4 |             2. AVX |                                             Empty |  1536 | 309.72 ns | 3.777 ns | 3.533 ns |  0.35 |    0.01 |     - |     - |     - |         - |
+    // | Pad3Shuffle4 |             3. SSE |                               COMPlus_EnableAVX=0 |  1536 | 323.18 ns | 4.079 ns | 3.816 ns |  0.37 |    0.00 |     - |     - |     - |         - |
 }

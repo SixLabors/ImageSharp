@@ -120,6 +120,29 @@ namespace SixLabors.ImageSharp.Tests.Common
                 HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE);
         }
 
+        [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy4))]
+        public void BulkShuffle4Slice3Channel(int count)
+        {
+            static void RunTest(string serialized)
+            {
+                // No need to test multiple shuffle controls as the
+                // pipeline is always the same.
+                int size = FeatureTestRunner.Deserialize<int>(serialized);
+                byte control = default(WZYXShuffle4).Control;
+
+                TestShuffle4Slice3Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, control),
+                    control);
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                count,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE);
+        }
+
         private static void TestShuffleFloat4Channel(
             int count,
             Action<Memory<float>, Memory<float>> convert,
@@ -209,6 +232,47 @@ namespace SixLabors.ImageSharp.Tests.Common
             }
 
             convert(source, result);
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i], result[i]);
+            }
+
+            Assert.Equal(expected, result);
+        }
+
+        private static void TestShuffle4Slice3Channel(
+            int count,
+            Action<Memory<byte>, Memory<byte>> convert,
+            byte control)
+        {
+            byte[] source = new byte[count];
+            new Random(count).NextBytes(source);
+
+            var result = new byte[(int)(count * (3 / 4F))];
+
+            byte[] expected = new byte[result.Length];
+
+            SimdUtils.Shuffle.InverseMmShuffle(
+                control,
+                out int _,
+                out int p2,
+                out int p1,
+                out int p0);
+
+            for (int i = 0, j = 0; i < expected.Length; i += 3, j += 4)
+            {
+                expected[i] = source[p0 + j];
+                expected[i + 1] = source[p1 + j];
+                expected[i + 2] = source[p2 + j];
+            }
+
+            convert(source, result);
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i], result[i]);
+            }
 
             Assert.Equal(expected, result);
         }

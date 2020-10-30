@@ -62,6 +62,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// </summary>
         private Vp8MacroBlockInfo[] mbInfo;
 
+        /// <summary>
+        /// Probabilities.
+        /// </summary>
+        private Vp8EncProba proba;
+
         private int dqUvDc;
 
         private int dqUvAc;
@@ -129,6 +134,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             {
                 this.mbInfo[i] = new Vp8MacroBlockInfo();
             }
+
+            this.proba = new Vp8EncProba();
 
             // this.Preds = this.memoryAllocator.Allocate<byte>(predSize);
             this.Preds = this.memoryAllocator.Allocate<byte>(predSize * 2); // TODO: figure out how much mem we need here. This is too much.
@@ -223,6 +230,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.AssignSegments(segmentInfos, alphas);
             this.SetSegmentParams(segmentInfos);
             this.SetSegmentProbas(segmentInfos);
+            this.ResetStats();
             it.Init();
             it.InitFilter();
             do
@@ -288,10 +296,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             var distAccum = new int[NumMbSegments];
 
             // Bracket the input.
-            for (n = 0; n <= WebPConstants.MaxAlpha && alphas[n] == 0; ++n) { }
+            for (n = 0; n <= WebPConstants.MaxAlpha && alphas[n] == 0; ++n)
+            {
+            }
 
             minA = n;
-            for (n = WebPConstants.MaxAlpha; n > minA && alphas[n] == 0; --n) { }
+            for (n = WebPConstants.MaxAlpha; n > minA && alphas[n] == 0; --n)
+            {
+            }
 
             maxA = n;
             rangeA = maxA - minA;
@@ -407,8 +419,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             int nb = this.segmentHeader.NumSegments;
             int snsStrength = 50; // TODO: Spatial Noise Shaping, hardcoded for now.
             double amp = WebPConstants.SnsToDq * snsStrength / 100.0d / 128.0d;
-            double Q = this.quality / 100.0d;
-            double cBase = this.QualityToCompression(Q);
+            double cBase = this.QualityToCompression(this.quality / 100.0d);
             for (int i = 0; i < nb; ++i)
             {
                 // We modulate the base coefficient to accommodate for the quantization
@@ -430,6 +441,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             // and make it safe.
             this.dqUvAc = this.Clip(this.dqUvAc, WebPConstants.QuantEncMinDqUv, WebPConstants.QuantEncMaxDqUv);
 
+            // We also boost the dc-uv-quant a little, based on sns-strength, since
+            // U/V channels are quite more reactive to high quants (flat DC-blocks
+            // tend to appear, and are unpleasant).
+            this.dqUvDc = -4 * snsStrength / 100;
+            this.dqUvDc = this.Clip(this.dqUvDc, -15, 15);   // 4bit-signed max allowed
+
             this.SetupMatrices(dqm);
         }
 
@@ -439,6 +456,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             // int n;
 
             // TODO: SetSegmentProbas
+        }
+
+        private void ResetStats()
+        {
+            Vp8EncProba proba = this.proba;
+            proba.CalculateLevelCosts();
+            proba.NbSkip = 0;
         }
 
         private void SetupMatrices(Vp8SegmentInfo[] dqm)
@@ -687,15 +711,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             var pos1 = this.bitWriter.Pos;
             if (i16)
             {
-                residual.Init(0, 1);
+                residual.Init(0, 1, this.proba);
                 residual.SetCoeffs(rd.YDcLevels);
                 int res = this.bitWriter.PutCoeffs(it.TopNz[8] + it.LeftNz[8], residual);
                 it.TopNz[8] = it.LeftNz[8] = res;
-                residual.Init(1, 0);
+                residual.Init(1, 0, this.proba);
             }
             else
             {
-                residual.Init(0, 3);
+                residual.Init(0, 3, this.proba);
             }
 
             // luma-AC
@@ -713,7 +737,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             var pos2 = this.bitWriter.Pos;
 
             // U/V
-            residual.Init(0, 2);
+            residual.Init(0, 2, this.proba);
             for (ch = 0; ch <= 2; ch += 2)
             {
                 for (y = 0; y < 2; ++y)
@@ -789,11 +813,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
             int nz = 0;
             int n;
-            var tmp = new short[8* 16];
+            var tmp = new short[8 * 16];
 
             for (n = 0; n < 8; n += 2)
             {
-                this.FTransform2(src.Slice(WebPLookupTables.Vp8ScanUv[n]),
+                this.FTransform2(
+                    src.Slice(WebPLookupTables.Vp8ScanUv[n]),
                     reference.Slice(WebPLookupTables.Vp8ScanUv[n]),
                     tmp.AsSpan(n * 16, 16),
                     tmp.AsSpan((n + 1) * 16, 16));

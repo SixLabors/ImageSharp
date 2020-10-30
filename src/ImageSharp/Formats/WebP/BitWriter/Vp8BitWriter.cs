@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         public int PutCoeffs(int ctx, Vp8Residual residual)
         {
             int n = residual.First;
-            Vp8ProbaArray p = residual.Prob[n][ctx];
+            Vp8ProbaArray p = residual.Prob[n].Probabilities[ctx];
             if (!this.PutBit(residual.Last >= 0, p.Probabilities[0]))
             {
                 return 0;
@@ -68,13 +68,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                 int v = sign ? -c : c;
                 if (!this.PutBit(v != 0, p.Probabilities[1]))
                 {
-                    p = residual.Prob[WebPConstants.Bands[n]][0];
+                    p = residual.Prob[WebPConstants.Bands[n]].Probabilities[0];
                     continue;
                 }
 
                 if (!this.PutBit(v > 1, p.Probabilities[2]))
                 {
-                    p = residual.Prob[WebPConstants.Bands[n]][1];
+                    p = residual.Prob[WebPConstants.Bands[n]].Probabilities[1];
                 }
                 else
                 {
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                         }
                     }
 
-                    p = residual.Prob[WebPConstants.Bands[n]][2];
+                    p = residual.Prob[WebPConstants.Bands[n]].Probabilities[2];
                 }
 
                 this.PutBitUniform(sign ? 1 : 0);

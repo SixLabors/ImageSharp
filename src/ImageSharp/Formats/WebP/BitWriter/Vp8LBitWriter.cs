@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers.Binary;
-using System.IO;
 using SixLabors.ImageSharp.Formats.WebP.Lossless;
 
 namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
@@ -100,7 +99,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             this.PutBits((uint)((bits << depth) | symbol), depth + nBits);
         }
 
-        public int NumBytes()
+        /// <inheritdoc/>
+        public override int NumBytes()
         {
             return this.cur + ((this.used + 7) >> 3);
         }
@@ -112,19 +112,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             return new Vp8LBitWriter(clonedBuffer, this.bits, this.used, this.cur);
         }
 
-        /// <summary>
-        /// Writes the encoded bytes of the image to the stream. Call BitWriterFinish() before this.
-        /// </summary>
-        /// <param name="stream">The stream to write to.</param>
-        public void WriteToStream(Stream stream)
-        {
-            stream.Write(this.Buffer.AsSpan(0, this.NumBytes()));
-        }
-
-        /// <summary>
-        /// Flush leftover bits.
-        /// </summary>
-        public void BitWriterFinish()
+        /// <inheritdoc/>
+        public override void Finish()
         {
             this.BitWriterResize((this.used + 7) >> 3);
             while (this.used > 0)

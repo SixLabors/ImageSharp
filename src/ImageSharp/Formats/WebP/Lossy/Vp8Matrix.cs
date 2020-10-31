@@ -74,10 +74,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 this.IQ[i] = (ushort)((1 << WebPConstants.QFix) / this.Q[i]);
                 this.Bias[i] = (uint)this.BIAS(bias);
 
-                // zthresh_ is the exact value such that QUANTDIV(coeff, iQ, B) is:
+                // zthresh is the exact value such that QUANTDIV(coeff, iQ, B) is:
                 //   * zero if coeff <= zthresh
                 //   * non-zero if coeff > zthresh
-                this.ZThresh[i] = (uint)(((1 << WebPConstants.QFix) - 1 - this.Bias[i]) / this.IQ[i]);
+                this.ZThresh[i] = ((1 << WebPConstants.QFix) - 1 - this.Bias[i]) / this.IQ[i];
             }
 
             for (i = 2; i < 16; ++i)

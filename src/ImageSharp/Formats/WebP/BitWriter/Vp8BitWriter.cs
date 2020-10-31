@@ -47,9 +47,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             // this.error = false;
         }
 
-        public uint Pos
+        /// <inheritdoc/>
+        public override int NumBytes()
         {
-            get { return this.pos; }
+            return (int)this.pos;
         }
 
         public int PutCoeffs(int ctx, Vp8Residual residual)
@@ -179,7 +180,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             this.ResizeBuffer(this.maxPos, (int)neededSize);
         }
 
-        public void Finish()
+        /// <inheritdoc/>
+        public override void Finish()
         {
            this.PutBits(0, 9 - this.nbBits);
            this.nbBits = 0;   // pad with zeroes.

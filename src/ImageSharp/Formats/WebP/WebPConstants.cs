@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Header bytes identifying a lossless image.
         /// </summary>
-        public static readonly byte[] Vp8LTag =
+        public static readonly byte[] Vp8LMagicBytes =
         {
             0x56, // V
             0x50, // P

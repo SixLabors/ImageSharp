@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 
@@ -250,7 +251,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
             while (it.Next());
 
-            this.bitWriter.Finish();
+            // Write bytes from the bitwriter buffer to the stream.
+            this.bitWriter.WriteEncodedImageToStream(lossy: true, stream);
         }
 
         /// <inheritdoc/>
@@ -708,7 +710,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
             it.NzToBytes();
 
-            var pos1 = this.bitWriter.Pos;
+            int pos1 = this.bitWriter.NumBytes();
             if (i16)
             {
                 residual.Init(0, 1, this.proba);
@@ -734,7 +736,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 }
             }
 
-            var pos2 = this.bitWriter.Pos;
+            int pos2 = this.bitWriter.NumBytes();
 
             // U/V
             residual.Init(0, 2, this.proba);
@@ -752,7 +754,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 }
             }
 
-            var pos3 = this.bitWriter.Pos;
+            int pos3 = this.bitWriter.NumBytes();
             it.LumaBits = pos2 - pos1;
             it.UvBits = pos3 - pos2;
             it.BitCount[segment, i16 ? 1 : 0] += it.LumaBits;
@@ -942,8 +944,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 uint coeff = (uint)((sign ? -input[j] : input[j]) + mtx.Sharpen[j]);
                 if (coeff > mtx.ZThresh[j])
                 {
-                    uint q = (uint)mtx.Q[j];
-                    uint iQ = (uint)mtx.IQ[j];
+                    uint q = mtx.Q[j];
+                    uint iQ = mtx.IQ[j];
                     uint b = mtx.Bias[j];
                     int level = this.QuantDiv(coeff, iQ, b);
                     if (level > MaxLevel)
@@ -1342,16 +1344,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private int GetSse(Span<byte> a, Span<byte> b, int w, int h)
         {
             int count = 0;
+            int aOffset = 0;
+            int bOffset = 0;
             for (int y = 0; y < h; ++y)
             {
                 for (int x = 0; x < w; ++x)
                 {
-                    int diff = a[x] - b[x];
+                    int diff = a[aOffset + x] - b[bOffset + x];
                     count += diff * diff;
                 }
 
-                a = a.Slice(WebPConstants.Bps);
-                b = b.Slice(WebPConstants.Bps);
+                aOffset += WebPConstants.Bps;
+                bOffset += WebPConstants.Bps;
             }
 
             return count;

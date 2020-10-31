@@ -376,7 +376,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             else
             {
                 this.ImportLine(y.Slice(yStartIdx - yStride), 1, yTop, w, 16);
-                this.ImportLine(u.Slice(uvStartIdx - uvStride), 1, this.UvTop.GetSpan(), uvw, 8);
+                this.ImportLine(u.Slice(uvStartIdx - uvStride), 1, this.UvTop.GetSpan().Slice(8), uvw, 8);
                 this.ImportLine(v.Slice(uvStartIdx - uvStride), 1, this.UvTop.GetSpan().Slice(8), uvw, 8);
             }
         }
@@ -502,8 +502,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             int predIdx = this.predIdx;
             int x = this.I4 & 3;
             int y = this.I4 >> 2;
-            int left = (x == 0) ? this.Preds.Slice(predIdx)[(y * predsWidth) - 1] : modes[this.I4 - 1];
-            int top = (y == 0) ? this.Preds.Slice(predIdx)[-predsWidth + x] : modes[this.I4 - 4];
+            int left = (x == 0) ? this.Preds.Slice(predIdx + (y * predsWidth) - 1)[0] : modes[this.I4 - 1];
+            int top = (y == 0) ? this.Preds.Slice(predIdx - predsWidth + x)[0] : modes[this.I4 - 4];
             return WebPLookupTables.Vp8FixedCostsI4[top, left];
         }
 
@@ -590,13 +590,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public bool RotateI4(Span<byte> yuvOut)
         {
             Span<byte> blk = yuvOut.Slice(WebPLookupTables.Vp8Scan[this.I4]);
-            Span<byte> top = this.I4Boundary.AsSpan(this.I4BoundaryIdx);
+            Span<byte> top = this.I4Boundary.AsSpan();
+            int topOffset = this.I4BoundaryIdx;
             int i;
 
             // Update the cache with 7 fresh samples.
             for (i = 0; i <= 3; ++i)
             {
-                top[-4 + i] = blk[i + (3 * WebPConstants.Bps)];   // Store future top samples.
+                top[topOffset - 4 + i] = blk[i + (3 * WebPConstants.Bps)];   // Store future top samples.
             }
 
             if ((this.I4 & 3) != 3)
@@ -605,7 +606,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 for (i = 0; i <= 2; ++i)
                 {
                     // store future left samples
-                    top[i] = blk[3 + ((2 - i) * WebPConstants.Bps)];
+                    top[topOffset + i] = blk[3 + ((2 - i) * WebPConstants.Bps)];
                 }
             }
             else
@@ -613,7 +614,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 // else replicate top-right samples, as says the specs.
                 for (i = 0; i <= 3; ++i)
                 {
-                    top[i] = top[i + 4];
+                    top[topOffset + i] = top[topOffset + i + 4];
                 }
             }
 
@@ -660,7 +661,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         public void MakeIntra4Preds()
         {
-            this.EncPredLuma4(this.YuvP, this.I4Boundary.AsSpan(this.I4BoundaryIdx));
+            this.EncPredLuma4(this.YuvP, this.I4Boundary, this.I4BoundaryIdx);
         }
 
         public void SwapOut()
@@ -788,18 +789,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         // Left samples are top[-5 .. -2], top_left is top[-1], top are
         // located at top[0..3], and top right is top[4..7]
-        private void EncPredLuma4(Span<byte> dst, Span<byte> top)
+        private void EncPredLuma4(Span<byte> dst, Span<byte> top, int topOffset)
         {
-            this.Dc4(dst.Slice(I4DC4), top);
-            this.Tm4(dst.Slice(I4TM4), top);
-            this.Ve4(dst.Slice(I4VE4), top);
-            this.He4(dst.Slice(I4HE4), top);
-            this.Rd4(dst.Slice(I4RD4), top);
-            this.Vr4(dst.Slice(I4VR4), top);
+            this.Dc4(dst, top, topOffset);
+            this.Tm4(dst.Slice(I4TM4), top, topOffset);
+            this.Ve4(dst.Slice(I4VE4), top, topOffset);
+            this.He4(dst.Slice(I4HE4), top, topOffset);
+            this.Rd4(dst.Slice(I4RD4), top, topOffset);
+            this.Vr4(dst.Slice(I4VR4), top, topOffset);
             this.Ld4(dst.Slice(I4LD4), top);
             this.Vl4(dst.Slice(I4VL4), top);
-            this.Hd4(dst.Slice(I4HD4), top);
-            this.Hu4(dst.Slice(I4HU4), top);
+            this.Hd4(dst.Slice(I4HD4), top, topOffset);
+            this.Hu4(dst.Slice(I4HU4), top, topOffset);
         }
 
         private void DcMode(Span<byte> dst, Span<byte> left, Span<byte> top, int size, int round, int shift)
@@ -922,42 +923,42 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
         }
 
-        private void Dc4(Span<byte> dst, Span<byte> top)
+        private void Dc4(Span<byte> dst, Span<byte> top, int topOffset)
         {
             uint dc = 4;
             int i;
             for (i = 0; i < 4; ++i)
             {
-                dc += (uint)(top[i] + top[-5 + i]);
+                dc += (uint)(top[topOffset + i] + top[topOffset - 5 + i]);
             }
 
             this.Fill(dst, (int)(dc >> 3), 4);
         }
 
-        private void Tm4(Span<byte> dst, Span<byte> top)
+        private void Tm4(Span<byte> dst, Span<byte> top, int topOffset)
         {
-            Span<byte> clip = this.clip1.AsSpan(255 - top[-1]);
+            Span<byte> clip = this.clip1.AsSpan(255 - top[topOffset - 1]);
             for (int y = 0; y < 4; ++y)
             {
-                Span<byte> clipTable = clip.Slice(top[-2 - y]);
+                Span<byte> clipTable = clip.Slice(top[topOffset - 2 - y]);
                 for (int x = 0; x < 4; ++x)
                 {
-                    dst[x] = clipTable[top[x]];
+                    dst[x] = clipTable[top[topOffset + x]];
                 }
 
                 dst = dst.Slice(WebPConstants.Bps);
             }
         }
 
-        private void Ve4(Span<byte> dst, Span<byte> top)
+        private void Ve4(Span<byte> dst, Span<byte> top, int topOffset)
         {
             // vertical
             byte[] vals =
             {
-                LossyUtils.Avg3(top[-1], top[0], top[1]),
-                LossyUtils.Avg3(top[0], top[1], top[2]),
-                LossyUtils.Avg3(top[1], top[2], top[3]),
-                LossyUtils.Avg3(top[2], top[3], top[4])
+                LossyUtils.Avg3(top[topOffset - 1], top[topOffset], top[topOffset + 1]),
+                LossyUtils.Avg3(top[topOffset], top[topOffset + 1], top[topOffset + 2]),
+                LossyUtils.Avg3(top[topOffset + 1], top[topOffset + 2], top[topOffset + 3]),
+                LossyUtils.Avg3(top[topOffset + 2], top[topOffset + 3], top[topOffset + 4])
             };
 
             for (int i = 0; i < 4; ++i)
@@ -966,14 +967,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
         }
 
-        private void He4(Span<byte> dst, Span<byte> top)
+        private void He4(Span<byte> dst, Span<byte> top, int topOffset)
         {
             // horizontal
-            byte x = top[-1];
-            byte i = top[-2];
-            byte j = top[-3];
-            byte k = top[-4];
-            byte l = top[-5];
+            byte x = top[topOffset - 1];
+            byte i = top[topOffset - 2];
+            byte j = top[topOffset - 3];
+            byte k = top[topOffset - 4];
+            byte l = top[topOffset - 5];
 
             uint val = 0x01010101U * LossyUtils.Avg3(x, i, j);
             BinaryPrimitives.WriteUInt32BigEndian(dst, val);
@@ -985,17 +986,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(1 * WebPConstants.Bps), val);
         }
 
-        private void Rd4(Span<byte> dst, Span<byte> top)
+        private void Rd4(Span<byte> dst, Span<byte> top, int topOffset)
         {
-            byte x = top[-1];
-            byte i = top[-2];
-            byte j = top[-3];
-            byte k = top[-4];
-            byte l = top[-5];
-            byte a = top[0];
-            byte b = top[1];
-            byte c = top[2];
-            byte d = top[3];
+            byte x = top[topOffset - 1];
+            byte i = top[topOffset - 2];
+            byte j = top[topOffset - 3];
+            byte k = top[topOffset - 4];
+            byte l = top[topOffset - 5];
+            byte a = top[topOffset];
+            byte b = top[topOffset + 1];
+            byte c = top[topOffset + 2];
+            byte d = top[topOffset + 3];
 
             LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg3(j, k, l));
             var ijk = LossyUtils.Avg3(i, j, k);
@@ -1020,16 +1021,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg3(d, c, b));
         }
 
-        private void Vr4(Span<byte> dst, Span<byte> top)
+        private void Vr4(Span<byte> dst, Span<byte> top, int topOffset)
         {
-            byte x = top[-1];
-            byte i = top[-2];
-            byte j = top[-3];
-            byte k = top[-4];
-            byte a = top[0];
-            byte b = top[1];
-            byte c = top[2];
-            byte d = top[3];
+            byte x = top[topOffset - 1];
+            byte i = top[topOffset - 2];
+            byte j = top[topOffset - 3];
+            byte k = top[topOffset - 4];
+            byte a = top[topOffset];
+            byte b = top[topOffset + 1];
+            byte c = top[topOffset + 2];
+            byte d = top[topOffset + 3];
 
             var xa = LossyUtils.Avg2(x, a);
             LossyUtils.Dst(dst, 0, 0, xa);
@@ -1124,16 +1125,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             LossyUtils.Dst(dst, 3, 3, LossyUtils.Avg3(f, g, h));
         }
 
-        private void Hd4(Span<byte> dst, Span<byte> top)
+        private void Hd4(Span<byte> dst, Span<byte> top, int topOffset)
         {
-            byte x = top[-1];
-            byte i = top[-2];
-            byte j = top[-3];
-            byte k = top[-4];
-            byte l = top[-5];
-            byte a = top[0];
-            byte b = top[1];
-            byte c = top[2];
+            byte x = top[topOffset - 1];
+            byte i = top[topOffset - 2];
+            byte j = top[topOffset - 3];
+            byte k = top[topOffset - 4];
+            byte l = top[topOffset - 5];
+            byte a = top[topOffset];
+            byte b = top[topOffset + 1];
+            byte c = top[topOffset + 2];
 
             var ix = LossyUtils.Avg2(i, x);
             LossyUtils.Dst(dst, 0, 0, ix);
@@ -1159,12 +1160,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             LossyUtils.Dst(dst, 1, 3, LossyUtils.Avg3(l, k, j));
         }
 
-        private void Hu4(Span<byte> dst, Span<byte> top)
+        private void Hu4(Span<byte> dst, Span<byte> top, int topOffset)
         {
-            byte i = top[-2];
-            byte j = top[-3];
-            byte k = top[-4];
-            byte l = top[-5];
+            byte i = top[topOffset - 2];
+            byte j = top[topOffset - 3];
+            byte k = top[topOffset - 4];
+            byte l = top[topOffset - 5];
 
             LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg2(i, j));
             var jk = LossyUtils.Avg2(j, k);
@@ -1285,6 +1286,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         {
             int topSize = this.mbw * 16;
             this.YTop.Slice(0, topSize).Fill(127);
+            this.UvTop.GetSpan().Fill(127);
             this.Nz.GetSpan().Fill(0);
         }
 

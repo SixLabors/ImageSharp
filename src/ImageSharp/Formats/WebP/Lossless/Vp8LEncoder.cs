@@ -186,17 +186,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             this.EncodeStream(image);
 
             // Write bytes from the bitwriter buffer to the stream.
-            this.bitWriter.BitWriterFinish();
-            var numBytes = this.bitWriter.NumBytes();
-            var vp8LSize = 1 + numBytes; // One byte extra for the VP8L signature.
-            var pad = vp8LSize & 1;
-            var riffSize = WebPConstants.TagSize + WebPConstants.ChunkHeaderSize + vp8LSize + pad;
-            this.WriteRiffHeader(riffSize, vp8LSize, stream);
-            this.bitWriter.WriteToStream(stream);
-            if (pad == 1)
-            {
-                stream.WriteByte(0);
-            }
+            this.bitWriter.WriteEncodedImageToStream(lossy: false, stream);
         }
 
         /// <summary>
@@ -224,26 +214,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         {
             this.bitWriter.PutBits(hasAlpha ? 1U : 0, 1);
             this.bitWriter.PutBits(WebPConstants.Vp8LVersion, WebPConstants.Vp8LVersionBits);
-        }
-
-        /// <summary>
-        /// Writes the RIFF header to the stream.
-        /// </summary>
-        /// <param name="riffSize">The block length.</param>
-        /// <param name="vp8LSize">The size in bytes of the compressed image.</param>
-        /// <param name="stream">The stream to write to.</param>
-        private void WriteRiffHeader(int riffSize, int vp8LSize, Stream stream)
-        {
-            Span<byte> buffer = stackalloc byte[4];
-
-            stream.Write(WebPConstants.RiffFourCc);
-            BinaryPrimitives.WriteUInt32LittleEndian(buffer, (uint)riffSize);
-            stream.Write(buffer);
-            stream.Write(WebPConstants.WebPHeader);
-            stream.Write(WebPConstants.Vp8LTag);
-            BinaryPrimitives.WriteUInt32LittleEndian(buffer, (uint)vp8LSize);
-            stream.Write(buffer);
-            stream.WriteByte(WebPConstants.Vp8LMagicByte);
         }
 
         /// <summary>

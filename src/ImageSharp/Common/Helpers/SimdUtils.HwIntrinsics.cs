@@ -327,8 +327,8 @@ namespace SixLabors.ImageSharp
                     Shuffle.MmShuffleSpan(ref bytes, control);
                     Vector128<byte> vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
-                    fixed (byte* sBase = &source.GetPinnableReference())
-                    fixed (byte* dBase = &dest.GetPinnableReference())
+                    fixed (byte* sBase = source)
+                    fixed (byte* dBase = dest)
                     {
                         byte* s = sBase;
                         byte* d = dBase;
@@ -363,8 +363,8 @@ namespace SixLabors.ImageSharp
                     Shuffle.MmShuffleSpan(ref bytes, control);
                     Vector128<byte> vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
-                    fixed (byte* sBase = &source.GetPinnableReference())
-                    fixed (byte* dBase = &dest.GetPinnableReference())
+                    fixed (byte* sBase = source)
+                    fixed (byte* dBase = dest)
                     {
                         byte* s = sBase;
                         byte* d = dBase;

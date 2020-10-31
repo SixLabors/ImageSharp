@@ -44,25 +44,25 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
     //
     // Runtime=.NET Core 3.1
     //
-    // |          Method |                Job |                              EnvironmentVariables | Count |      Mean |    Error |   StdDev |    Median | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-    // |---------------- |------------------- |-------------------------------------------------- |------ |----------:|---------:|---------:|----------:|------:|--------:|------:|------:|------:|----------:|
-    // | Shuffle4Channel | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   128 |  50.09 ns | 1.018 ns | 1.460 ns |  49.16 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             2. AVX |                                             Empty |   128 |  35.28 ns | 0.106 ns | 0.089 ns |  35.30 ns |  0.69 |    0.02 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             3. SSE |                               COMPlus_EnableAVX=0 |   128 |  35.13 ns | 0.247 ns | 0.231 ns |  35.22 ns |  0.69 |    0.02 |     - |     - |     - |         - |
-    // |                 |                    |                                                   |       |           |          |          |           |       |         |       |       |       |           |
-    // | Shuffle4Channel | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   256 | 101.48 ns | 0.875 ns | 0.819 ns | 101.60 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             2. AVX |                                             Empty |   256 |  53.25 ns | 0.518 ns | 0.433 ns |  53.21 ns |  0.52 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             3. SSE |                               COMPlus_EnableAVX=0 |   256 |  57.21 ns | 0.508 ns | 0.451 ns |  57.38 ns |  0.56 |    0.01 |     - |     - |     - |         - |
-    // |                 |                    |                                                   |       |           |          |          |           |       |         |       |       |       |           |
-    // | Shuffle4Channel | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   512 | 202.53 ns | 0.884 ns | 0.827 ns | 202.40 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             2. AVX |                                             Empty |   512 |  82.55 ns | 0.418 ns | 0.391 ns |  82.59 ns |  0.41 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             3. SSE |                               COMPlus_EnableAVX=0 |   512 |  82.89 ns | 1.057 ns | 0.989 ns |  82.48 ns |  0.41 |    0.00 |     - |     - |     - |         - |
-    // |                 |                    |                                                   |       |           |          |          |           |       |         |       |       |       |           |
-    // | Shuffle4Channel | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |  1024 | 398.79 ns | 7.807 ns | 6.921 ns | 395.67 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             2. AVX |                                             Empty |  1024 | 144.51 ns | 1.033 ns | 0.966 ns | 144.42 ns |  0.36 |    0.01 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             3. SSE |                               COMPlus_EnableAVX=0 |  1024 | 143.77 ns | 0.820 ns | 0.684 ns | 143.62 ns |  0.36 |    0.01 |     - |     - |     - |         - |
-    // |                 |                    |                                                   |       |           |          |          |           |       |         |       |       |       |           |
-    // | Shuffle4Channel | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |  2048 | 798.44 ns | 4.447 ns | 3.472 ns | 799.39 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             2. AVX |                                             Empty |  2048 | 277.12 ns | 1.723 ns | 1.612 ns | 276.93 ns |  0.35 |    0.00 |     - |     - |     - |         - |
-    // | Shuffle4Channel |             3. SSE |                               COMPlus_EnableAVX=0 |  2048 | 275.70 ns | 1.796 ns | 1.500 ns | 275.51 ns |  0.35 |    0.00 |     - |     - |     - |         - ||
+    // |         Method |                Job |                              EnvironmentVariables | Count |      Mean |    Error |   StdDev | Ratio | Gen 0 | Gen 1 | Gen 2 | Allocated |
+    // |--------------- |------------------- |-------------------------------------------------- |------ |----------:|---------:|---------:|------:|------:|------:|------:|----------:|
+    // | Shuffle4Slice3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   128 |  52.24 ns | 1.081 ns | 1.062 ns |  1.00 |     - |     - |     - |         - |
+    // | Shuffle4Slice3 |             2. AVX |                                             Empty |   128 |  25.52 ns | 0.189 ns | 0.158 ns |  0.49 |     - |     - |     - |         - |
+    // | Shuffle4Slice3 |             3. SSE |                               COMPlus_EnableAVX=0 |   128 |  26.11 ns | 0.524 ns | 0.644 ns |  0.50 |     - |     - |     - |         - |
+    // |                |                    |                                                   |       |           |          |          |       |       |       |       |           |
+    // | Shuffle4Slice3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   256 | 101.09 ns | 0.733 ns | 0.612 ns |  1.00 |     - |     - |     - |         - |
+    // | Shuffle4Slice3 |             2. AVX |                                             Empty |   256 |  32.65 ns | 0.674 ns | 1.198 ns |  0.33 |     - |     - |     - |         - |
+    // | Shuffle4Slice3 |             3. SSE |                               COMPlus_EnableAVX=0 |   256 |  32.76 ns | 0.656 ns | 0.853 ns |  0.32 |     - |     - |     - |         - |
+    // |                |                    |                                                   |       |           |          |          |       |       |       |       |           |
+    // | Shuffle4Slice3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   512 | 209.58 ns | 3.826 ns | 5.957 ns |  1.00 |     - |     - |     - |         - |
+    // | Shuffle4Slice3 |             2. AVX |                                             Empty |   512 |  46.32 ns | 0.729 ns | 1.296 ns |  0.22 |     - |     - |     - |         - |
+    // | Shuffle4Slice3 |             3. SSE |                               COMPlus_EnableAVX=0 |   512 |  46.97 ns | 0.196 ns | 0.183 ns |  0.22 |     - |     - |     - |         - |
+    // |                |                    |                                                   |       |           |          |          |       |       |       |       |           |
+    // | Shuffle4Slice3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |  1024 | 406.39 ns | 7.493 ns | 6.257 ns |  1.00 |     - |     - |     - |         - |
+    // | Shuffle4Slice3 |             2. AVX |                                             Empty |  1024 |  74.53 ns | 1.509 ns | 1.678 ns |  0.18 |     - |     - |     - |         - |
+    // | Shuffle4Slice3 |             3. SSE |                               COMPlus_EnableAVX=0 |  1024 |  74.04 ns | 0.703 ns | 0.657 ns |  0.18 |     - |     - |     - |         - |
+    // |                |                    |                                                   |       |           |          |          |       |       |       |       |           |
+    // | Shuffle4Slice3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |  2048 | 796.80 ns | 6.476 ns | 5.741 ns |  1.00 |     - |     - |     - |         - |
+    // | Shuffle4Slice3 |             2. AVX |                                             Empty |  2048 | 130.70 ns | 2.512 ns | 2.227 ns |  0.16 |     - |     - |     - |         - |
+    // | Shuffle4Slice3 |             3. SSE |                               COMPlus_EnableAVX=0 |  2048 | 129.42 ns | 2.555 ns | 2.133 ns |  0.16 |     - |     - |     - |         - |
 }

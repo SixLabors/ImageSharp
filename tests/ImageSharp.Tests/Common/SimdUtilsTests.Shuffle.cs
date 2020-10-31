@@ -212,7 +212,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             byte[] source = new byte[count];
             new Random(count).NextBytes(source);
 
-            var result = new byte[(int)(count * (4 / 3F))];
+            var result = new byte[(int)(count * (4 / 3D))];
 
             byte[] expected = new byte[result.Length];
 
@@ -249,7 +249,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             byte[] source = new byte[count];
             new Random(count).NextBytes(source);
 
-            var result = new byte[(int)(count * (3 / 4F))];
+            var result = new byte[(int)(count * (3 / 4D))];
 
             byte[] expected = new byte[result.Length];
 

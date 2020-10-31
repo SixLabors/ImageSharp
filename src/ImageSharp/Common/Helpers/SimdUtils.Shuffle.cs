@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp
                 "Output span must be divisable by 4!");
 
             DebugGuard.IsTrue(
-                source.Length == (int)(dest.Length * 3 / 4F),
+                source.Length == (int)(dest.Length * 3 / 4D),
                 nameof(source),
                 "Input span must be 3/4 the length of the output span!");
         }

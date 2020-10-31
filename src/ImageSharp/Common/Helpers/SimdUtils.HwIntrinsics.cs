@@ -101,20 +101,20 @@ namespace SixLabors.ImageSharp
             {
                 if (Ssse3.IsSupported)
                 {
-                    int remainder = ImageMaths.ModuloP2(source.Length, Vector128<byte>.Count);
+                    int remainder = source.Length % (Vector128<byte>.Count * 3);
 
-                    int adjustedCount = source.Length - remainder;
-                    int sourceSlice = (int)(adjustedCount * (3 / 4F));
+                    int sourceCount = source.Length - remainder;
+                    int destCount = (int)(sourceCount * (4 / 3D));
 
-                    if (adjustedCount > 0)
+                    if (sourceCount > 0)
                     {
                         Pad3Shuffle4(
-                            source.Slice(0, adjustedCount),
-                            dest.Slice(0, adjustedCount),
+                            source.Slice(0, sourceCount),
+                            dest.Slice(0, destCount),
                             control);
 
-                        source = source.Slice(sourceSlice);
-                        dest = dest.Slice(adjustedCount);
+                        source = source.Slice(sourceCount);
+                        dest = dest.Slice(destCount);
                     }
                 }
             }
@@ -320,31 +320,37 @@ namespace SixLabors.ImageSharp
             {
                 if (Ssse3.IsSupported)
                 {
-                    Vector128<byte> wMask = Vector128.Create(0xff000000u).AsByte();
-                    Vector128<byte> padMask = Vector128.Create(0, 1, 2, -1, 3, 4, 5, -1, 6, 7, 8, -1, 9, 10, 11, -1).AsByte();
+                    Vector128<byte> vmask = Vector128.Create(0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80).AsByte();
+                    Vector128<byte> vfill = Vector128.Create(0xff000000ff000000ul).AsByte();
 
                     Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
                     Shuffle.MmShuffleSpan(ref bytes, control);
-                    Vector128<byte> vcm = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
+                    Vector128<byte> vshuffle = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
 
-                    fixed (byte* sBase = source)
-                    fixed (byte* dBase = dest)
+                    ref Vector128<byte> sourceBase =
+                        ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(source));
+
+                    ref Vector128<byte> destBase =
+                        ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
+
+                    int n = source.Length / Vector128<byte>.Count;
+
+                    for (int i = 0, j = 0; i < n; i += 3, j += 4)
                     {
-                        byte* s = sBase;
-                        byte* d = dBase;
+                        ref Vector128<byte> v0 = ref Unsafe.Add(ref sourceBase, i);
+                        Vector128<byte> v1 = Unsafe.Add(ref v0, 1);
+                        Vector128<byte> v2 = Unsafe.Add(ref v0, 2);
+                        Vector128<byte> v3 = Sse2.ShiftRightLogical128BitLane(v2, 4);
 
-                        // TODO: Consider unrolling and shuffling 4 at a time using Ssse3.AlignRight
-                        // See https://stackoverflow.com/questions/2973708/fast-24-bit-array-32-bit-array-conversion
-                        for (int i = 0; i < source.Length; i += 16)
-                        {
-                            Vector128<byte> vs0 = Sse2.LoadVector128(s);
-                            Vector128<byte> val = Sse2.Or(wMask, Ssse3.Shuffle(vs0, padMask));
-                            val = Ssse3.Shuffle(val, vcm);
-                            Sse2.Store(d, val);
+                        v2 = Ssse3.AlignRight(v2, v1, 8);
+                        v1 = Ssse3.AlignRight(v1, v0, 12);
 
-                            s += 12;
-                            d += 16;
-                        }
+                        ref Vector128<byte> vd = ref Unsafe.Add(ref destBase, j);
+
+                        vd = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v0, vmask), vfill), vshuffle);
+                        Unsafe.Add(ref vd, 1) = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v1, vmask), vfill), vshuffle);
+                        Unsafe.Add(ref vd, 2) = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v2, vmask), vfill), vshuffle);
+                        Unsafe.Add(ref vd, 3) = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v3, vmask), vfill), vshuffle);
                     }
                 }
             }

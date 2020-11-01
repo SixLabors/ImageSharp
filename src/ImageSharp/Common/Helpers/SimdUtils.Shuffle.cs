@@ -63,45 +63,61 @@ namespace SixLabors.ImageSharp
             }
         }
 
+        /// <summary>
+        /// Pads then shuffles 8-bit integers within 128-bit lanes in <paramref name="source"/>
+        /// using the control and store the results in <paramref name="dest"/>.
+        /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
+        /// <param name="shuffle">The type of shuffle to perform.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void Pad3Shuffle4(
+        public static void Pad3Shuffle4<TShuffle>(
             ReadOnlySpan<byte> source,
             Span<byte> dest,
-            byte control)
+            TShuffle shuffle)
+            where TShuffle : struct, IPad3Shuffle4
         {
             VerifyPad3Shuffle4SpanInput(source, dest);
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-            HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, control);
+            HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, shuffle.Control);
 #endif
 
             // Deal with the remainder:
             if (source.Length > 0)
             {
-                Pad3Shuffle4Remainder(source, dest, control);
+                shuffle.RunFallbackShuffle(source, dest);
             }
         }
 
+        /// <summary>
+        /// Shuffles then slices 8-bit integers within 128-bit lanes in <paramref name="source"/>
+        /// using the control and store the results in <paramref name="dest"/>.
+        /// </summary>
+        /// <param name="source">The source span of bytes.</param>
+        /// <param name="dest">The destination span of bytes.</param>
+        /// <param name="shuffle">The type of shuffle to perform.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static void Shuffle4Slice3(
+        public static void Shuffle4Slice3<TShuffle>(
             ReadOnlySpan<byte> source,
             Span<byte> dest,
-            byte control)
+            TShuffle shuffle)
+            where TShuffle : struct, IShuffle4Slice3
         {
             VerifyShuffle4Slice3SpanInput(source, dest);
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-            HwIntrinsics.Shuffle4Slice3Reduce(ref source, ref dest, control);
+            HwIntrinsics.Shuffle4Slice3Reduce(ref source, ref dest, shuffle.Control);
 #endif
 
             // Deal with the remainder:
             if (source.Length > 0)
             {
-                Shuffle4Slice3Remainder(source, dest, control);
+                shuffle.RunFallbackShuffle(source, dest);
             }
         }
 
-        public static void Shuffle4Remainder(
+        private static void Shuffle4Remainder(
             ReadOnlySpan<float> source,
             Span<float> dest,
             byte control)
@@ -116,41 +132,6 @@ namespace SixLabors.ImageSharp
                 Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
                 Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
                 Unsafe.Add(ref dBase, i + 3) = Unsafe.Add(ref sBase, p3 + i);
-            }
-        }
-
-        public static void Pad3Shuffle4Remainder(
-            ReadOnlySpan<byte> source,
-            Span<byte> dest,
-            byte control)
-        {
-            ref byte sBase = ref MemoryMarshal.GetReference(source);
-            ref byte dBase = ref MemoryMarshal.GetReference(dest);
-            Shuffle.InverseMmShuffle(control, out int p3, out int p2, out int p1, out int p0);
-
-            for (int i = 0, j = 0; i < dest.Length; i += 4, j += 3)
-            {
-                Unsafe.Add(ref dBase, p0 + i) = Unsafe.Add(ref sBase, j);
-                Unsafe.Add(ref dBase, p1 + i) = Unsafe.Add(ref sBase, j + 1);
-                Unsafe.Add(ref dBase, p2 + i) = Unsafe.Add(ref sBase, j + 2);
-                Unsafe.Add(ref dBase, p3 + i) = byte.MaxValue;
-            }
-        }
-
-        public static void Shuffle4Slice3Remainder(
-            ReadOnlySpan<byte> source,
-            Span<byte> dest,
-            byte control)
-        {
-            ref byte sBase = ref MemoryMarshal.GetReference(source);
-            ref byte dBase = ref MemoryMarshal.GetReference(dest);
-            Shuffle.InverseMmShuffle(control, out int _, out int p2, out int p1, out int p0);
-
-            for (int i = 0, j = 0; i < dest.Length; i += 3, j += 4)
-            {
-                Unsafe.Add(ref dBase, i) = Unsafe.Add(ref sBase, p0 + j);
-                Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + j);
-                Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + j);
             }
         }
 

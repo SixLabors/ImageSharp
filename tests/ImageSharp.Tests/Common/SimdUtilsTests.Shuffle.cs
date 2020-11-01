@@ -39,56 +39,51 @@ namespace SixLabors.ImageSharp.Tests.Common
             static void RunTest(string serialized)
             {
                 int size = FeatureTestRunner.Deserialize<int>(serialized);
-                foreach (var item in ArraySizesDivisibleBy4)
-                {
-                    // These cannot be expressed as a theory as you cannot
-                    // use RemoteExecutor within generic methods nor pass
-                    // IComponentShuffle to the generic utils method.
-                    foreach (var count in item)
-                    {
-                        WXYZShuffle4 wxyz = default;
-                        TestShuffleByte4Channel(
-                            size,
-                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wxyz),
-                            wxyz.Control);
 
-                        WZYXShuffle4 wzyx = default;
-                        TestShuffleByte4Channel(
-                            size,
-                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wzyx),
-                            wzyx.Control);
+                // These cannot be expressed as a theory as you cannot
+                // use RemoteExecutor within generic methods nor pass
+                // IComponentShuffle to the generic utils method.
+                WXYZShuffle4 wxyz = default;
+                TestShuffleByte4Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wxyz),
+                    wxyz.Control);
 
-                        YZWXShuffle4 yzwx = default;
-                        TestShuffleByte4Channel(
-                            size,
-                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, yzwx),
-                            yzwx.Control);
+                WZYXShuffle4 wzyx = default;
+                TestShuffleByte4Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wzyx),
+                    wzyx.Control);
 
-                        ZYXWShuffle4 zyxw = default;
-                        TestShuffleByte4Channel(
-                            size,
-                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, zyxw),
-                            zyxw.Control);
+                YZWXShuffle4 yzwx = default;
+                TestShuffleByte4Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, yzwx),
+                    yzwx.Control);
 
-                        var xwyz = new DefaultShuffle4(2, 1, 3, 0);
-                        TestShuffleByte4Channel(
-                            size,
-                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, xwyz),
-                            xwyz.Control);
+                ZYXWShuffle4 zyxw = default;
+                TestShuffleByte4Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, zyxw),
+                    zyxw.Control);
 
-                        var yyyy = new DefaultShuffle4(1, 1, 1, 1);
-                        TestShuffleByte4Channel(
-                            size,
-                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, yyyy),
-                            yyyy.Control);
+                var xwyz = new DefaultShuffle4(2, 1, 3, 0);
+                TestShuffleByte4Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, xwyz),
+                    xwyz.Control);
 
-                        var wwww = new DefaultShuffle4(3, 3, 3, 3);
-                        TestShuffleByte4Channel(
-                            size,
-                            (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wwww),
-                            wwww.Control);
-                    }
-                }
+                var yyyy = new DefaultShuffle4(1, 1, 1, 1);
+                TestShuffleByte4Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, yyyy),
+                    yyyy.Control);
+
+                var wwww = new DefaultShuffle4(3, 3, 3, 3);
+                TestShuffleByte4Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wwww),
+                    wwww.Control);
             }
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -103,21 +98,40 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             static void RunTest(string serialized)
             {
-                // No need to test multiple shuffle controls as the
-                // pipeline is always the same.
                 int size = FeatureTestRunner.Deserialize<int>(serialized);
-                byte control = default(WZYXShuffle4).Control;
 
+                // These cannot be expressed as a theory as you cannot
+                // use RemoteExecutor within generic methods nor pass
+                // IComponentShuffle to the generic utils method.
+                XYZWPad3Shuffle4 xyzw = default;
                 TestPad3Shuffle4Channel(
                     size,
-                    (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, control),
-                    control);
+                    (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, xyzw),
+                    xyzw.Control);
+
+                var xwyz = new DefaultPad3Shuffle4(2, 1, 3, 0);
+                TestPad3Shuffle4Channel(
+                    size,
+                    (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, xwyz),
+                    xwyz.Control);
+
+                var yyyy = new DefaultPad3Shuffle4(1, 1, 1, 1);
+                TestPad3Shuffle4Channel(
+                    size,
+                    (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, yyyy),
+                    yyyy.Control);
+
+                var wwww = new DefaultPad3Shuffle4(3, 3, 3, 3);
+                TestPad3Shuffle4Channel(
+                    size,
+                    (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, wwww),
+                    wwww.Control);
             }
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 count,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE);
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE);
         }
 
         [Theory]
@@ -126,15 +140,34 @@ namespace SixLabors.ImageSharp.Tests.Common
         {
             static void RunTest(string serialized)
             {
-                // No need to test multiple shuffle controls as the
-                // pipeline is always the same.
                 int size = FeatureTestRunner.Deserialize<int>(serialized);
-                byte control = default(WZYXShuffle4).Control;
 
+                // These cannot be expressed as a theory as you cannot
+                // use RemoteExecutor within generic methods nor pass
+                // IComponentShuffle to the generic utils method.
+                XYZWShuffle4Slice3 xyzw = default;
                 TestShuffle4Slice3Channel(
                     size,
-                    (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, control),
-                    control);
+                    (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, xyzw),
+                    xyzw.Control);
+
+                var xwyz = new DefaultShuffle4Slice3(2, 1, 3, 0);
+                TestShuffle4Slice3Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, xwyz),
+                    xwyz.Control);
+
+                var yyyy = new DefaultShuffle4Slice3(1, 1, 1, 1);
+                TestShuffle4Slice3Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, yyyy),
+                    yyyy.Control);
+
+                var wwww = new DefaultShuffle4Slice3(3, 3, 3, 3);
+                TestShuffle4Slice3Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, wwww),
+                    wwww.Control);
             }
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -212,7 +245,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             byte[] source = new byte[count];
             new Random(count).NextBytes(source);
 
-            var result = new byte[(int)(count * (4 / 3D))];
+            var result = new byte[count * 4 / 3];
 
             byte[] expected = new byte[result.Length];
 
@@ -229,6 +262,20 @@ namespace SixLabors.ImageSharp.Tests.Common
                 expected[p1 + i] = source[j + 1];
                 expected[p2 + i] = source[j + 2];
                 expected[p3 + i] = byte.MaxValue;
+            }
+
+            Span<byte> temp = stackalloc byte[4];
+            for (int i = 0, j = 0; i < expected.Length; i += 4, j += 3)
+            {
+                temp[0] = source[j];
+                temp[1] = source[j + 1];
+                temp[2] = source[j + 2];
+                temp[3] = byte.MaxValue;
+
+                expected[i] = temp[p0];
+                expected[i + 1] = temp[p1];
+                expected[i + 2] = temp[p2];
+                expected[i + 3] = temp[p3];
             }
 
             convert(source, result);
@@ -249,7 +296,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             byte[] source = new byte[count];
             new Random(count).NextBytes(source);
 
-            var result = new byte[(int)(count * (3 / 4D))];
+            var result = new byte[count * 3 / 4];
 
             byte[] expected = new byte[result.Length];
 

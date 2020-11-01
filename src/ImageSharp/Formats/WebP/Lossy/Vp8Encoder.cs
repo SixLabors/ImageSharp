@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             var alphas = new int[WebPConstants.MaxAlpha + 1];
             this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
 
-            // Analysis is done, proceed to actual coding.
+            // Analysis is done, proceed to actual encoding.
 
             // TODO: EncodeAlpha();
             this.segmentHeader = new Vp8EncSegmentHeader(4);

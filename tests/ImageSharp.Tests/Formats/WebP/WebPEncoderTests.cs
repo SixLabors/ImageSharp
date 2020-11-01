@@ -24,11 +24,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
                 Quality = quality
             };
 
-            using (Image<TPixel> image = provider.GetImage())
-            {
-                var testOutputDetails = string.Concat("lossless", "_q", quality);
-                image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
-            }
+            using Image<TPixel> image = provider.GetImage();
+            var testOutputDetails = string.Concat("lossless", "_q", quality);
+            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
         }
 
         [Theory]
@@ -46,14 +44,53 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             {
                 Lossy = false,
                 Method = method,
-                Quality = 100
+                Quality = 75
             };
 
-            using (Image<TPixel> image = provider.GetImage())
+            using Image<TPixel> image = provider.GetImage();
+            var testOutputDetails = string.Concat("lossless", "_m", method);
+            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
+        }
+
+        [Theory]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 100)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 75)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 20)]
+        public void Encode_Lossy_WithDifferentQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int quality)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new WebPEncoder()
             {
-                var testOutputDetails = string.Concat("lossless", "_m", method);
-                image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
-            }
+                Lossy = true,
+                Quality = quality
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            var testOutputDetails = string.Concat("lossy", "_q", quality);
+            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
+        }
+
+        [Theory]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 0)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 1)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 2)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 3)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 4)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 5)]
+        [WithFile(Lossy.NoFilter06, PixelTypes.Rgba32, 6)]
+        public void Encode_Lossy_WithDifferentMethods_Works<TPixel>(TestImageProvider<TPixel> provider, int method)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new WebPEncoder()
+            {
+                Lossy = true,
+                Method = method,
+                Quality = 75
+            };
+
+            using Image<TPixel> image = provider.GetImage();
+            var testOutputDetails = string.Concat("lossy", "_m", method);
+            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
         }
     }
 }

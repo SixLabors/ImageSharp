@@ -367,17 +367,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 this.ImportLine(v.Slice(uvStartIdx - 1), uvStride, vLeft.Slice(1), uvh, 8);
             }
 
-            Span<byte> yTop = this.YTop.Slice(this.yTopIdx);
+            Span<byte> yTop = this.YTop.Slice(this.yTopIdx, 16);
             if (this.Y == 0)
             {
                 yTop.Fill(127);
-                this.UvTop.GetSpan().Fill(127);
+                this.UvTop.Slice(this.uvTopIdx, 16).Fill(127);
             }
             else
             {
                 this.ImportLine(y.Slice(yStartIdx - yStride), 1, yTop, w, 16);
-                this.ImportLine(u.Slice(uvStartIdx - uvStride), 1, this.UvTop.GetSpan().Slice(8), uvw, 8);
-                this.ImportLine(v.Slice(uvStartIdx - uvStride), 1, this.UvTop.GetSpan().Slice(8), uvw, 8);
+                this.ImportLine(u.Slice(uvStartIdx - uvStride), 1, this.UvTop.Slice(this.uvTopIdx, 8), uvw, 8);
+                this.ImportLine(v.Slice(uvStartIdx - uvStride), 1, this.UvTop.Slice(this.uvTopIdx + 8, 8), uvw, 8);
             }
         }
 

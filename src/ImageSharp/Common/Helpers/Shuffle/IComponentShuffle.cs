@@ -6,6 +6,9 @@ using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+// The JIT can detect and optimize rotation idioms ROTL (Rotate Left)
+// and ROTR (Rotate Right) emitting efficient CPU instructions:
+// https://github.com/dotnet/coreclr/pull/1830
 namespace SixLabors.ImageSharp
 {
     /// <summary>
@@ -76,15 +79,11 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
         {
-            ReadOnlySpan<uint> s = MemoryMarshal.Cast<byte, uint>(source);
-            Span<uint> d = MemoryMarshal.Cast<byte, uint>(dest);
-            ref uint sBase = ref MemoryMarshal.GetReference(s);
-            ref uint dBase = ref MemoryMarshal.GetReference(d);
+            ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
+            ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+            int n = source.Length / 4;
 
-            // The JIT can detect and optimize rotation idioms ROTL (Rotate Left)
-            // and ROTR (Rotate Right) emitting efficient CPU instructions:
-            // https://github.com/dotnet/coreclr/pull/1830
-            for (int i = 0; i < s.Length; i++)
+            for (int i = 0; i < n; i++)
             {
                 uint packed = Unsafe.Add(ref sBase, i);
 
@@ -104,12 +103,11 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
         {
-            ReadOnlySpan<uint> s = MemoryMarshal.Cast<byte, uint>(source);
-            Span<uint> d = MemoryMarshal.Cast<byte, uint>(dest);
-            ref uint sBase = ref MemoryMarshal.GetReference(s);
-            ref uint dBase = ref MemoryMarshal.GetReference(d);
+            ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
+            ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+            int n = source.Length / 4;
 
-            for (int i = 0; i < s.Length; i++)
+            for (int i = 0; i < n; i++)
             {
                 uint packed = Unsafe.Add(ref sBase, i);
 
@@ -129,12 +127,11 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
         {
-            ReadOnlySpan<uint> s = MemoryMarshal.Cast<byte, uint>(source);
-            Span<uint> d = MemoryMarshal.Cast<byte, uint>(dest);
-            ref uint sBase = ref MemoryMarshal.GetReference(s);
-            ref uint dBase = ref MemoryMarshal.GetReference(d);
+            ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
+            ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+            int n = source.Length / 4;
 
-            for (int i = 0; i < s.Length; i++)
+            for (int i = 0; i < n; i++)
             {
                 uint packed = Unsafe.Add(ref sBase, i);
 
@@ -154,12 +151,11 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
         {
-            ReadOnlySpan<uint> s = MemoryMarshal.Cast<byte, uint>(source);
-            Span<uint> d = MemoryMarshal.Cast<byte, uint>(dest);
-            ref uint sBase = ref MemoryMarshal.GetReference(s);
-            ref uint dBase = ref MemoryMarshal.GetReference(d);
+            ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
+            ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+            int n = source.Length / 4;
 
-            for (int i = 0; i < s.Length; i++)
+            for (int i = 0; i < n; i++)
             {
                 uint packed = Unsafe.Add(ref sBase, i);
 

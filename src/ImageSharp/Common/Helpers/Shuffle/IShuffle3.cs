@@ -20,9 +20,9 @@ namespace SixLabors.ImageSharp
 
         public DefaultShuffle3(byte p2, byte p1, byte p0)
         {
-            Guard.MustBeBetweenOrEqualTo<byte>(p2, 0, 2, nameof(p2));
-            Guard.MustBeBetweenOrEqualTo<byte>(p1, 0, 2, nameof(p1));
-            Guard.MustBeBetweenOrEqualTo<byte>(p0, 0, 2, nameof(p0));
+            DebugGuard.MustBeBetweenOrEqualTo<byte>(p2, 0, 2, nameof(p2));
+            DebugGuard.MustBeBetweenOrEqualTo<byte>(p1, 0, 2, nameof(p1));
+            DebugGuard.MustBeBetweenOrEqualTo<byte>(p0, 0, 2, nameof(p0));
 
             this.p2 = p2;
             this.p1 = p1;
@@ -49,42 +49,5 @@ namespace SixLabors.ImageSharp
                 Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
             }
         }
-    }
-
-    internal readonly struct ZYXShuffle3 : IShuffle3
-    {
-        private static readonly byte ZYX = SimdUtils.Shuffle.MmShuffle(3, 0, 1, 2);
-
-        public byte Control => ZYX;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
-        {
-            ref Byte3 sBase = ref Unsafe.As<byte, Byte3>(ref MemoryMarshal.GetReference(source));
-            ref Byte3 dBase = ref Unsafe.As<byte, Byte3>(ref MemoryMarshal.GetReference(dest));
-            int n = source.Length / 3;
-
-            for (int i = 0; i < n; i++)
-            {
-                uint packed = Unsafe.As<Byte3, uint>(ref Unsafe.Add(ref sBase, i));
-
-                // packed              = [W Z Y X]
-                // tmp1                = [W 0 Y 0]
-                // tmp2                = [0 Z 0 X]
-                // tmp3=ROTL(16, tmp2) = [0 X 0 Z]
-                // tmp1 + tmp3         = [W X Y Z]
-                uint tmp1 = packed & 0xFF00FF00;
-                uint tmp2 = packed & 0x00FF00FF;
-                uint tmp3 = (tmp2 << 16) | (tmp2 >> 16);
-                packed = tmp1 + tmp3;
-
-                Unsafe.Add(ref dBase, i) = Unsafe.As<uint, Byte3>(ref packed);
-            }
-        }
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 3)]
-    internal readonly struct Byte3
-    {
     }
 }

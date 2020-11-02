@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
                 // These cannot be expressed as a theory as you cannot
                 // use RemoteExecutor within generic methods nor pass
-                // IComponentShuffle to the generic utils method.
+                // IShuffle4 to the generic utils method.
                 WXYZShuffle4 wxyz = default;
                 TestShuffleByte4Channel(
                     size,
@@ -103,7 +103,7 @@ namespace SixLabors.ImageSharp.Tests.Common
                 // These cannot be expressed as a theory as you cannot
                 // use RemoteExecutor within generic methods nor pass
                 // IShuffle3 to the generic utils method.
-                ZYXShuffle3 zyx = default;
+                var zyx = new DefaultShuffle3(0, 1, 2);
                 TestShuffleByte3Channel(
                     size,
                     (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, zyx),

@@ -40,6 +40,11 @@ namespace SixLabors.ImageSharp
 
         public DefaultShuffle4(byte p3, byte p2, byte p1, byte p0)
         {
+            Guard.MustBeBetweenOrEqualTo<byte>(p3, 0, 3, nameof(p3));
+            Guard.MustBeBetweenOrEqualTo<byte>(p2, 0, 3, nameof(p2));
+            Guard.MustBeBetweenOrEqualTo<byte>(p1, 0, 3, nameof(p1));
+            Guard.MustBeBetweenOrEqualTo<byte>(p0, 0, 3, nameof(p0));
+
             this.p3 = p3;
             this.p2 = p2;
             this.p1 = p1;

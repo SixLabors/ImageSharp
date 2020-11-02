@@ -87,6 +87,38 @@ namespace SixLabors.ImageSharp
             }
 
             /// <summary>
+            /// Shuffles 8-bit integer triplets within 128-bit lanes in <paramref name="source"/>
+            /// using the control and store the results in <paramref name="dest"/>.
+            /// </summary>
+            /// <param name="source">The source span of bytes.</param>
+            /// <param name="dest">The destination span of bytes.</param>
+            /// <param name="control">The byte control.</param>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static void Shuffle3Reduce(
+                ref ReadOnlySpan<byte> source,
+                ref Span<byte> dest,
+                byte control)
+            {
+                if (Ssse3.IsSupported)
+                {
+                    int remainder = source.Length % (Vector128<byte>.Count * 3);
+
+                    int adjustedCount = source.Length - remainder;
+
+                    if (adjustedCount > 0)
+                    {
+                        Shuffle3(
+                            source.Slice(0, adjustedCount),
+                            dest.Slice(0, adjustedCount),
+                            control);
+
+                        source = source.Slice(adjustedCount);
+                        dest = dest.Slice(adjustedCount);
+                    }
+                }
+            }
+
+            /// <summary>
             /// Pads then shuffles 8-bit integers within 128-bit lanes in <paramref name="source"/>
             /// using the control and store the results in <paramref name="dest"/>.
             /// </summary>
@@ -94,7 +126,7 @@ namespace SixLabors.ImageSharp
             /// <param name="dest">The destination span of bytes.</param>
             /// <param name="control">The byte control.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public static unsafe void Pad3Shuffle4Reduce(
+            public static void Pad3Shuffle4Reduce(
                 ref ReadOnlySpan<byte> source,
                 ref Span<byte> dest,
                 byte control)
@@ -127,7 +159,7 @@ namespace SixLabors.ImageSharp
             /// <param name="dest">The destination span of bytes.</param>
             /// <param name="control">The byte control.</param>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public static unsafe void Shuffle4Slice3Reduce(
+            public static void Shuffle4Slice3Reduce(
                 ref ReadOnlySpan<byte> source,
                 ref Span<byte> dest,
                 byte control)
@@ -313,7 +345,69 @@ namespace SixLabors.ImageSharp
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            private static unsafe void Pad3Shuffle4(
+            private static void Shuffle3(
+                ReadOnlySpan<byte> source,
+                Span<byte> dest,
+                byte control)
+            {
+                if (Ssse3.IsSupported)
+                {
+                    Vector128<byte> vmask = Vector128.Create(0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80).AsByte();
+                    Vector128<byte> vfill = Vector128.Create(0xff000000ff000000ul).AsByte();
+                    Vector128<byte> vmasko = Vector128.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15).AsByte();
+                    Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12).AsByte();
+
+                    Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
+                    Shuffle.MmShuffleSpan(ref bytes, control);
+                    Vector128<byte> vshuffle = Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(bytes));
+
+                    ref Vector128<byte> sourceBase =
+                        ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(source));
+
+                    ref Vector128<byte> destBase =
+                        ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
+
+                    int n = source.Length / Vector128<byte>.Count;
+
+                    for (int i = 0; i < n; i += 3)
+                    {
+                        ref Vector128<byte> v0 = ref Unsafe.Add(ref sourceBase, i);
+                        Vector128<byte> v1 = Unsafe.Add(ref v0, 1);
+                        Vector128<byte> v2 = Unsafe.Add(ref v0, 2);
+                        Vector128<byte> v3 = Sse2.ShiftRightLogical128BitLane(v2, 4);
+
+                        v2 = Ssse3.AlignRight(v2, v1, 8);
+                        v1 = Ssse3.AlignRight(v1, v0, 12);
+
+                        v0 = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v0, vmask), vfill), vshuffle);
+                        v1 = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v1, vmask), vfill), vshuffle);
+                        v2 = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v2, vmask), vfill), vshuffle);
+                        v3 = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v3, vmask), vfill), vshuffle);
+
+                        v0 = Ssse3.Shuffle(v0, vmaske);
+                        v1 = Ssse3.Shuffle(v1, vmasko);
+                        v2 = Ssse3.Shuffle(v2, vmaske);
+                        v3 = Ssse3.Shuffle(v3, vmasko);
+
+                        v0 = Ssse3.AlignRight(v1, v0, 4);
+                        v3 = Ssse3.AlignRight(v3, v2, 12);
+
+                        v1 = Sse2.ShiftLeftLogical128BitLane(v1, 4);
+                        v2 = Sse2.ShiftRightLogical128BitLane(v2, 4);
+
+                        v1 = Ssse3.AlignRight(v2, v1, 8);
+
+                        ref Vector128<byte> vd = ref Unsafe.Add(ref destBase, i);
+
+                        vd = v0;
+                        Unsafe.Add(ref vd, 1) = v1;
+                        Unsafe.Add(ref vd, 2) = v3;
+                    }
+                }
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private static void Pad3Shuffle4(
                 ReadOnlySpan<byte> source,
                 Span<byte> dest,
                 byte control)
@@ -356,7 +450,7 @@ namespace SixLabors.ImageSharp
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            private static unsafe void Shuffle4Slice3(
+            private static void Shuffle4Slice3(
                 ReadOnlySpan<byte> source,
                 Span<byte> dest,
                 byte control)

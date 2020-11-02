@@ -42,6 +42,10 @@ jobs:
         runs-on: ${{matrix.options.os}}
         if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
+        defaults:
+            run:
+                shell: powershell
+
         steps:
             - uses: actions/checkout@v2
 
@@ -49,32 +53,28 @@ jobs:
               uses: NuGet/setup-nuget@v1
 
             - name: Setup Git
-              shell: bash
               run: |
                   git config --global core.autocrlf false
                   git config --global core.longpaths true
                   git fetch --prune --unshallow
                   git submodule -q update --init --recursive
 
-            # - name: Setup nuget cache
-            #   uses: actions/cache@v2
-            #   id: nuget-cache
-            #   with:
-            #       path: ~/.nuget
-            #       key: ${{ runner.os }}-nuget-${{ hashFiles('**/src/ImageSharp/*.csproj') }}
-            #       restore-keys: ${{ runner.os }}-nuget-
+            - name: Setup nuget cache
+              uses: actions/cache@v2
+              id: nuget-cache
+              with:
+                  path: ~/.nuget
+                  key: ${{ runner.os }}-nuget-${{ hashFiles('**/src/ImageSharp/*.csproj') }}
+                  restore-keys: ${{ runner.os }}-nuget-
 
             - name: Install macos dependencies
-              shell: pwsh
               if: startsWith(matrix.options.os, 'macos')
               run: brew install mono-libgdiplus
 
             - name: Build
-              shell: pwsh
               run: ./ci-build.ps1 "${{matrix.options.framework}}"
 
             - name: Test
-              shell: pwsh
               run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
               env:
                   CI: True
@@ -90,6 +90,9 @@ jobs:
         needs: [Build]
 
         runs-on: windows-latest
+        defaults:
+            run:
+                shell: powershell
 
         if: (github.event_name == 'push')
 
@@ -100,7 +103,6 @@ jobs:
               uses: NuGet/setup-nuget@v1
 
             - name: Setup Git
-              shell: bash
               run: |
                   git config --global core.autocrlf false
                   git config --global core.longpaths true
@@ -108,11 +110,9 @@ jobs:
                   git submodule -q update --init --recursive
 
             - name: Pack
-              shell: pwsh
               run: ./ci-pack.ps1
 
             - name: Publish to MyGet
-              shell: pwsh
               run: |
                   nuget.exe push .\artifacts\*.nupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v2/package
                   nuget.exe push .\artifacts\*.snupkg ${{secrets.MYGET_TOKEN}} -Source https://www.myget.org/F/sixlabors/api/v3/index.json

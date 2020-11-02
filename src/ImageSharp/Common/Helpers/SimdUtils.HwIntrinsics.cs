@@ -371,9 +371,11 @@ namespace SixLabors.ImageSharp
 
                     for (int i = 0; i < n; i += 3)
                     {
-                        ref Vector128<byte> v0 = ref Unsafe.Add(ref sourceBase, i);
-                        Vector128<byte> v1 = Unsafe.Add(ref v0, 1);
-                        Vector128<byte> v2 = Unsafe.Add(ref v0, 2);
+                        ref Vector128<byte> vs = ref Unsafe.Add(ref sourceBase, i);
+
+                        Vector128<byte> v0 = vs;
+                        Vector128<byte> v1 = Unsafe.Add(ref vs, 1);
+                        Vector128<byte> v2 = Unsafe.Add(ref vs, 2);
                         Vector128<byte> v3 = Sse2.ShiftRightLogical128BitLane(v2, 4);
 
                         v2 = Ssse3.AlignRight(v2, v1, 8);
@@ -474,10 +476,12 @@ namespace SixLabors.ImageSharp
 
                     for (int i = 0, j = 0; i < n; i += 4, j += 3)
                     {
-                        ref Vector128<byte> v0 = ref Unsafe.Add(ref sourceBase, i);
-                        Vector128<byte> v1 = Unsafe.Add(ref v0, 1);
-                        Vector128<byte> v2 = Unsafe.Add(ref v0, 2);
-                        Vector128<byte> v3 = Unsafe.Add(ref v0, 3);
+                        ref Vector128<byte> vs = ref Unsafe.Add(ref sourceBase, i);
+
+                        Vector128<byte> v0 = vs;
+                        Vector128<byte> v1 = Unsafe.Add(ref vs, 1);
+                        Vector128<byte> v2 = Unsafe.Add(ref vs, 2);
+                        Vector128<byte> v3 = Unsafe.Add(ref vs, 3);
 
                         v0 = Ssse3.Shuffle(Ssse3.Shuffle(v0, vshuffle), vmaske);
                         v1 = Ssse3.Shuffle(Ssse3.Shuffle(v1, vshuffle), vmasko);

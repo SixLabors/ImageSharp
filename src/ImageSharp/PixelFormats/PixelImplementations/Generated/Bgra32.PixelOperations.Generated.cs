@@ -106,23 +106,59 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<byte> dest = MemoryMarshal.Cast<Bgra32, byte>(destinationPixels);
                 PixelConverter.FromArgb32.ToBgra32(source, dest);
             }
-
             /// <inheritdoc />
-            public override void ToBgr24(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Bgr24> destinationPixels)
+            public override void ToRgb24(
+                Configuration configuration,
+                ReadOnlySpan<Bgra32> sourcePixels,
+                Span<Rgb24> destinationPixels)
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
 
-                ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
-                ref Bgr24 destRef = ref MemoryMarshal.GetReference(destinationPixels);
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<Bgra32, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<Rgb24, byte>(destinationPixels);
+                PixelConverter.FromBgra32.ToRgb24(source, dest);
+            }
 
-                for (int i = 0; i < sourcePixels.Length; i++)
-                {
-                    ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref Bgr24 dp = ref Unsafe.Add(ref destRef, i);
+            /// <inheritdoc />
+            public override void FromRgb24(
+                Configuration configuration,
+                ReadOnlySpan<Rgb24> sourcePixels,
+                Span<Bgra32> destinationPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
 
-                    dp.FromBgra32(sp);
-                }
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<Rgb24, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<Bgra32, byte>(destinationPixels);
+                PixelConverter.FromRgb24.ToBgra32(source, dest);
+            }
+            /// <inheritdoc />
+            public override void ToBgr24(
+                Configuration configuration,
+                ReadOnlySpan<Bgra32> sourcePixels,
+                Span<Bgr24> destinationPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<Bgra32, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<Bgr24, byte>(destinationPixels);
+                PixelConverter.FromBgra32.ToBgr24(source, dest);
+            }
+
+            /// <inheritdoc />
+            public override void FromBgr24(
+                Configuration configuration,
+                ReadOnlySpan<Bgr24> sourcePixels,
+                Span<Bgra32> destinationPixels)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+
+                ReadOnlySpan<byte> source = MemoryMarshal.Cast<Bgr24, byte>(sourcePixels);
+                Span<byte> dest = MemoryMarshal.Cast<Bgra32, byte>(destinationPixels);
+                PixelConverter.FromBgr24.ToBgra32(source, dest);
             }
 
             /// <inheritdoc />
@@ -192,24 +228,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                 {
                     ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
                     ref La32 dp = ref Unsafe.Add(ref destRef, i);
-
-                    dp.FromBgra32(sp);
-                }
-            }
-
-            /// <inheritdoc />
-            public override void ToRgb24(Configuration configuration, ReadOnlySpan<Bgra32> sourcePixels, Span<Rgb24> destinationPixels)
-            {
-                Guard.NotNull(configuration, nameof(configuration));
-                Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
-
-                ref Bgra32 sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
-                ref Rgb24 destRef = ref MemoryMarshal.GetReference(destinationPixels);
-
-                for (int i = 0; i < sourcePixels.Length; i++)
-                {
-                    ref Bgra32 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref Rgb24 dp = ref Unsafe.Add(ref destRef, i);
 
                     dp.FromBgra32(sp);
                 }

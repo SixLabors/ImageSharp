@@ -62,12 +62,12 @@ namespace SixLabors.ImageSharp
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
         {
             ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-            ref byte dBase = ref MemoryMarshal.GetReference(dest);
+            ref Byte3 dBase = ref Unsafe.As<byte, Byte3>(ref MemoryMarshal.GetReference(dest));
 
             int n = source.Length / 4;
-            for (int i = 0, j = 0; i < n; i++, j += 3)
+            for (int i = 0; i < n; i++)
             {
-                Unsafe.As<byte, Byte3>(ref Unsafe.Add(ref dBase, j)) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, i));
+                Unsafe.Add(ref dBase, i) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, i));
             }
         }
     }

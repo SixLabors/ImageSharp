@@ -1278,7 +1278,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
                 for (int b = 0; b < 16 + 1; ++b)
                 {
-                    proba.BandsPtr[t][b] = proba.Bands[t, WebPConstants.Bands[b]];
+                    proba.BandsPtr[t][b] = proba.Bands[t, WebPConstants.Vp8EncBands[b]];
                 }
             }
 

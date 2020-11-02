@@ -49,6 +49,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
         private readonly int method;
 
         /// <summary>
+        /// The number of entropy-analysis passes (in [1..10]).
+        /// </summary>
+        private readonly int entropyPasses;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebPEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The encoder options.</param>
@@ -60,6 +65,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
             this.lossy = options.Lossy;
             this.quality = options.Quality;
             this.method = options.Method;
+            this.entropyPasses = options.EntropyPasses;
         }
 
         /// <summary>
@@ -79,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             if (this.lossy)
             {
-                var enc = new Vp8Encoder(this.memoryAllocator, image.Width, image.Height, this.quality, this.method);
+                var enc = new Vp8Encoder(this.memoryAllocator, image.Width, image.Height, this.quality, this.method, this.entropyPasses);
                 enc.Encode(image, stream);
             }
             else

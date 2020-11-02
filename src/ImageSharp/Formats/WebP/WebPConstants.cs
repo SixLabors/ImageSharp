@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace SixLabors.ImageSharp.Formats.WebP
 {
     /// <summary>
-    /// Constants used for decoding VP8 and VP8L bitstreams.
+    /// Constants used for encoding and decoding VP8 and VP8L bitstreams.
     /// </summary>
     internal static class WebPConstants
     {
@@ -79,9 +79,19 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public const int Vp8LImageSizeBits = 14;
 
         /// <summary>
+        /// Size of the frame header within VP8 data.
+        /// </summary>
+        public const int Vp8FrameHeaderSize = 10;
+
+        /// <summary>
         /// Size of a chunk header.
         /// </summary>
         public const int ChunkHeaderSize = 8;
+
+        /// <summary>
+        /// Size of the RIFF header ("RIFFnnnnWEBP").
+        /// </summary>
+        public const int RiffHeaderSize = 12;
 
         /// <summary>
         /// Size of a chunk tag (e.g. "VP8L").
@@ -241,6 +251,11 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
         public const int QFix = 17;
 
+        /// <summary>
+        /// Max size of mode partition.
+        /// </summary>
+        public const int Vp8MaxPartition0Size = 1 << 19;
+
         public static readonly short[] Vp8FixedCostsUv = { 302, 984, 439, 642 };
 
         public static readonly short[] Vp8FixedCostsI16 = { 663, 919, 872, 919 };
@@ -258,7 +273,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public static readonly byte[] FilterExtraRows = { 0, 2, 8 };
 
         // Paragraph 9.9
-        public static readonly int[] Bands =
+        public static readonly int[] Vp8EncBands =
         {
             0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7, 0
         };

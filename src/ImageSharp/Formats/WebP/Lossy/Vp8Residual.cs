@@ -10,6 +10,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
     /// </summary>
     internal class Vp8Residual
     {
+        private const int MaxVariableLevel = 67;
+
         public int First { get; set; }
 
         public int Last { get; set; }
@@ -20,14 +22,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         public Vp8BandProbas[] Prob { get; set; }
 
+        public Vp8Stats[] Stats { get; set; }
+
         public void Init(int first, int coeffType, Vp8EncProba prob)
         {
             this.First = first;
             this.CoeffType = coeffType;
             this.Prob = prob.Coeffs[this.CoeffType];
+            this.Stats = prob.Stats[this.CoeffType];
 
             // TODO:
-            // res->stats = enc->proba_.stats_[coeff_type];
             // res->costs = enc->proba_.remapped_costs_[coeff_type];
         }
 
@@ -45,6 +49,80 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
 
             this.Coeffs = coeffs.ToArray();
+        }
+
+        // Simulate block coding, but only record statistics.
+        // Note: no need to record the fixed probas.
+        public int RecordCoeffs(int ctx)
+        {
+            int n = this.First;
+            Vp8StatsArray s = this.Stats[n].Stats[ctx];
+            if (this.Last < 0)
+            {
+                this.RecordStats(0, s,  0);
+                return 0;
+            }
+
+            while (n <= this.Last)
+            {
+                int v;
+                this.RecordStats(1, s, 0);  // order of record doesn't matter
+                while ((v = this.Coeffs[n++]) == 0)
+                {
+                    this.RecordStats(0, s, 1);
+                    s = this.Stats[WebPConstants.Vp8EncBands[n]].Stats[0];
+                    this.RecordStats(1, s, 1);
+                    if (this.RecordStats((v + 1) > 2u ? 1 : 0, s, 2) == 0)
+                    {
+                        // v = -1 or 1
+                        s = this.Stats[WebPConstants.Vp8EncBands[n]].Stats[1];
+                    }
+                    else
+                    {
+                        v = Math.Abs(v);
+                        if (v > MaxVariableLevel)
+                        {
+                            v = MaxVariableLevel;
+                        }
+
+                        int bits = WebPLookupTables.Vp8LevelCodes[v - 1][1];
+                        int pattern = WebPLookupTables.Vp8LevelCodes[v - 1][0];
+                        int i;
+                        for (i = 0; (pattern >>= 1) != 0; ++i)
+                        {
+                            int mask = 2 << i;
+                            if ((pattern & 1) != 0)
+                            {
+                                this.RecordStats(bits & mask, s, 3 + i);
+                            }
+                        }
+
+                        s = this.Stats[WebPConstants.Vp8EncBands[n]].Stats[2];
+                    }
+                }
+            }
+
+            if (n < 16)
+            {
+                this.RecordStats(0, s,  0);
+            }
+
+            return 1;
+        }
+
+        private int RecordStats(int bit, Vp8StatsArray statsArr, int idx)
+        {
+            // An overflow is inbound. Note we handle this at 0xfffe0000u instead of
+            // 0xffff0000u to make sure p + 1u does not overflow.
+            if (statsArr.Stats[idx] >= 0xfffe0000u)
+            {
+                statsArr.Stats[idx] = ((statsArr.Stats[idx] + 1u) >> 1) & 0x7fff7fffu;  // -> divide the stats by 2.
+            }
+
+            // record bit count (lower 16 bits) and increment total count (upper 16 bits).
+            statsArr.Stats[idx] += 0x00010000u + (uint)bit;
+
+            return bit;
         }
     }
 }

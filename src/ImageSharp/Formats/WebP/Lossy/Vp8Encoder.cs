@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers;
-using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 
@@ -39,19 +38,24 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private readonly int method;
 
         /// <summary>
+        /// Number of entropy-analysis passes (in [1..10]).
+        /// </summary>
+        private readonly int entropyPasses;
+
+        /// <summary>
         /// Stride of the prediction plane (=4*mb_w + 1)
         /// </summary>
-        private int predsWidth;
+        private readonly int predsWidth;
 
         /// <summary>
         /// Macroblock width.
         /// </summary>
-        private int mbw;
+        private readonly int mbw;
 
         /// <summary>
         /// Macroblock height.
         /// </summary>
-        private int mbh;
+        private readonly int mbh;
 
         /// <summary>
         /// The segment features.
@@ -61,16 +65,20 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// <summary>
         /// Contextual macroblock infos.
         /// </summary>
-        private Vp8MacroBlockInfo[] mbInfo;
+        private readonly Vp8MacroBlockInfo[] mbInfo;
 
         /// <summary>
         /// Probabilities.
         /// </summary>
-        private Vp8EncProba proba;
+        private readonly Vp8EncProba proba;
+
+        private readonly Vp8RdLevel rdOptLevel;
 
         private int dqUvDc;
 
         private int dqUvAc;
+
+        private int maxI4HeaderBits;
 
         /// <summary>
         /// Global susceptibility.
@@ -103,6 +111,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private const int MaxItersKMeans = 6;
 
+        // Convergence is considered reached if dq < DqLimit
+        private const float DqLimit = 0.4f;
+
+        private const ulong Partition0SizeLimit = (WebPConstants.Vp8MaxPartition0Size - 2048UL) << 11;
+
+        private const long HeaderSizeEstimate = WebPConstants.RiffHeaderSize + WebPConstants.ChunkHeaderSize + WebPConstants.Vp8FrameHeaderSize;
+
+        private const int QMin = 0;
+
+        private const int QMax = 100;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8Encoder"/> class.
         /// </summary>
@@ -111,11 +130,17 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// <param name="height">The height of the input image.</param>
         /// <param name="quality">The encoding quality.</param>
         /// <param name="method">Quality/speed trade-off (0=fast, 6=slower-better).</param>
-        public Vp8Encoder(MemoryAllocator memoryAllocator, int width, int height, int quality, int method)
+        /// <param name="entropyPasses">Number of entropy-analysis passes (in [1..10]).</param>
+        public Vp8Encoder(MemoryAllocator memoryAllocator, int width, int height, int quality, int method, int entropyPasses)
         {
             this.memoryAllocator = memoryAllocator;
             this.quality = quality.Clamp(0, 100);
             this.method = method.Clamp(0, 6);
+            this.entropyPasses = entropyPasses.Clamp(1, 10);
+            this.rdOptLevel = (method >= 6) ? Vp8RdLevel.RdOptTrellisAll
+                : (method >= 5) ? Vp8RdLevel.RdOptTrellis
+                : (method >= 3) ? Vp8RdLevel.RdOptBasic
+                : Vp8RdLevel.RdOptNone;
 
             var pixelCount = width * height;
             this.mbw = (width + 15) >> 4;
@@ -129,6 +154,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.Nz = this.memoryAllocator.Allocate<uint>(this.mbw + 1);
             this.MbHeaderLimit = 256 * 510 * 8 * 1024 / (this.mbw * this.mbh);
             int predSize = (((4 * this.mbw) + 1) * ((4 * this.mbh) + 1)) + this.predsWidth + 1;
+
+            // TODO: make partition_limit configurable?
+            int limit = 100; // original code: limit = 100 - config->partition_limit;
+            this.maxI4HeaderBits =
+                256 * 16 * 16 * // upper bound: up to 16bit per 4x4 block
+                (limit * limit) / (100 * 100);  // ... modulated with a quadratic curve.
 
             this.mbInfo = new Vp8MacroBlockInfo[this.mbw * this.mbh];
             for (int i = 0; i < this.mbInfo.Length; i++)
@@ -225,20 +256,22 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
 
             // Analysis is done, proceed to actual encoding.
-
-            // TODO: EncodeAlpha();
             this.segmentHeader = new Vp8EncSegmentHeader(4);
             this.AssignSegments(segmentInfos, alphas);
-            this.SetSegmentParams(segmentInfos);
+            this.SetSegmentParams(segmentInfos, this.quality);
             this.SetSegmentProbas(segmentInfos);
             this.ResetStats();
+
+            // TODO: EncodeAlpha();
+            // Stats-collection loop.
+            this.StatLoop(width, height, yStride, uvStride, segmentInfos);
             it.Init();
             it.InitFilter();
             do
             {
                 var info = new Vp8ModeScore();
                 it.Import(y, u, v, yStride, uvStride, width, height);
-                if (!this.Decimate(it, segmentInfos, info))
+                if (!this.Decimate(it, segmentInfos, info, this.rdOptLevel))
                 {
                     this.CodeResiduals(it, info);
                 }
@@ -264,6 +297,139 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.YTop.Dispose();
             this.UvTop.Dispose();
             this.Preds.Dispose();
+        }
+
+        /// <summary>
+        /// Only collect statistics(number of skips, token usage, ...).
+        /// This is used for deciding optimal probabilities. It also modifies the
+        /// quantizer value if some target (size, PSNR) was specified.
+        /// </summary>
+        private void StatLoop(int width, int height, int yStride, int uvStride, Vp8SegmentInfo[] segmentInfos)
+        {
+            int targetSize = 0; // TODO: target size is hardcoded.
+            float targetPsnr = 0.0f; // TDOO: targetPsnr is hardcoded.
+            int method = this.method;
+            bool doSearch = false; // TODO: doSearch hardcoded for now.
+            bool fastProbe = (method == 0 || method == 3) && !doSearch;
+            int numPassLeft = this.entropyPasses;
+            Vp8RdLevel rdOpt = (method >= 3 || doSearch) ? Vp8RdLevel.RdOptBasic : Vp8RdLevel.RdOptNone;
+            int nbMbs = this.mbw * this.mbh;
+
+            var stats = new PassStats(targetSize, targetPsnr, QMin, QMax, this.quality);
+            this.proba.ResetTokenStats();
+
+            // Fast mode: quick analysis pass over few mbs. Better than nothing.
+            if (fastProbe)
+            {
+                if (method == 3)
+                {
+                    // We need more stats for method 3 to be reliable.
+                    nbMbs = (nbMbs > 200) ? nbMbs >> 1 : 100;
+                }
+                else
+                {
+                    nbMbs = (nbMbs > 200) ? nbMbs >> 2 : 50;
+                }
+            }
+
+            while (numPassLeft-- > 0)
+            {
+                bool isLastPass = (MathF.Abs(stats.Dq) <= DqLimit) || (numPassLeft == 0) || (this.maxI4HeaderBits == 0);
+                var sizeP0 = this.OneStatPass(width, height, yStride, uvStride, rdOpt, nbMbs, stats, segmentInfos);
+                if (sizeP0 == 0)
+                {
+                    return;
+                }
+
+                if (this.maxI4HeaderBits > 0 && sizeP0 > (long)Partition0SizeLimit)
+                {
+                    ++numPassLeft;
+                    this.maxI4HeaderBits >>= 1;  // strengthen header bit limitation...
+                    continue;                        // ...and start over
+                }
+
+                if (isLastPass)
+                {
+                    break;
+                }
+
+                // If no target size: just do several pass without changing 'q'
+                if (doSearch)
+                {
+                    stats.ComputeNextQ();
+                    if (MathF.Abs(stats.Dq) <= DqLimit)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (!doSearch || !stats.DoSizeSearch)
+            {
+                // Need to finalize probas now, since it wasn't done during the search.
+                this.proba.FinalizeSkipProba(this.mbw, this.mbh);
+                this.proba.FinalizeTokenProbas();
+            }
+
+            this.proba.CalculateLevelCosts();  // finalize costs
+        }
+
+        private long OneStatPass(int width, int height, int yStride, int uvStride, Vp8RdLevel rdOpt, int nbMbs, PassStats stats, Vp8SegmentInfo[] segmentInfos)
+        {
+            Span<byte> y = this.Y.GetSpan();
+            Span<byte> u = this.U.GetSpan();
+            Span<byte> v = this.V.GetSpan();
+            var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Preds, this.Nz, this.mbInfo, this.mbw, this.mbh);
+            long size = 0;
+            long sizeP0 = 0;
+            long distortion = 0;
+            long pixelCount = nbMbs * 384;
+
+            this.SetLoopParams(segmentInfos, stats.Q);
+            do
+            {
+                var info = new Vp8ModeScore();
+                it.Import(y, u, v, yStride, uvStride, width, height);
+                if (this.Decimate(it, segmentInfos, info, rdOpt))
+                {
+                    // Just record the number of skips and act like skipProba is not used.
+                    ++this.proba.NbSkip;
+                }
+
+                this.RecordResiduals(it, info);
+                size += info.R + info.H;
+                sizeP0 += info.H;
+                distortion += info.D;
+
+                it.SaveBoundary();
+            }
+            while (it.Next());
+
+            sizeP0 += this.segmentHeader.Size;
+            if (stats.DoSizeSearch)
+            {
+                size += this.proba.FinalizeSkipProba(this.mbw, this.mbh);
+                size += this.proba.FinalizeTokenProbas();
+                size = ((size + sizeP0 + 1024) >> 11) + HeaderSizeEstimate;
+                stats.Value = size;
+            }
+            else
+            {
+                stats.Value = this.GetPsnr(distortion, pixelCount);
+            }
+
+            return sizeP0;
+        }
+
+        private void SetLoopParams(Vp8SegmentInfo[] dqm, float q)
+        {
+            // Setup segment quantizations and filters.
+            this.SetSegmentParams(dqm, q);
+
+            // Compute segment probabilities.
+            this.SetSegmentProbas(dqm);
+
+            this.ResetStats();
         }
 
         private void ResetBoundaryPredictions()
@@ -416,12 +582,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
         }
 
-        private void SetSegmentParams(Vp8SegmentInfo[] dqm)
+        private void SetSegmentParams(Vp8SegmentInfo[] dqm, float quality)
         {
             int nb = this.segmentHeader.NumSegments;
             int snsStrength = 50; // TODO: Spatial Noise Shaping, hardcoded for now.
             double amp = WebPConstants.SnsToDq * snsStrength / 100.0d / 128.0d;
-            double cBase = this.QualityToCompression(this.quality / 100.0d);
+            double cBase = this.QualityToCompression(quality / 100.0d);
             for (int i = 0; i < nb; ++i)
             {
                 // We modulate the base coefficient to accommodate for the quantization
@@ -488,6 +654,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 m.Uv.Q[1] = WebPLookupTables.AcTable[this.Clip(q + this.dqUvAc, 0, 127)];
 
                 var qi4 = m.Y1.Expand(0);
+                var qi16 = m.Y2.Expand(1);
+                var quv = m.Uv.Expand(2);
 
                 m.I4Penalty = 1000 * qi4 * qi4;
             }
@@ -541,7 +709,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             return bestAlpha; // Mixed susceptibility (not just luma).
         }
 
-        private bool Decimate(Vp8EncIterator it, Vp8SegmentInfo[] segmentInfos, Vp8ModeScore rd)
+        private bool Decimate(Vp8EncIterator it, Vp8SegmentInfo[] segmentInfos, Vp8ModeScore rd, Vp8RdLevel rdOpt)
         {
             rd.InitScore();
 
@@ -730,7 +898,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 for (x = 0; x < 4; ++x)
                 {
                     int ctx = it.TopNz[x] + it.LeftNz[y];
-                    residual.SetCoeffs(rd.YAcLevels.AsSpan(x + (y * 4), 16));
+                    residual.SetCoeffs(rd.YAcLevels.AsSpan(16 * (x + (y * 4)), 16));
                     int res = this.bitWriter.PutCoeffs(ctx, residual);
                     it.TopNz[x] = it.LeftNz[y] = res;
                 }
@@ -747,7 +915,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                     for (x = 0; x < 2; ++x)
                     {
                         int ctx = it.TopNz[4 + ch + x] + it.LeftNz[4 + ch + y];
-                        residual.SetCoeffs(rd.UvLevels.AsSpan((ch * 2) + x + (y * 2), 16));
+                        residual.SetCoeffs(rd.UvLevels.AsSpan(16 * ((ch * 2) + x + (y * 2)), 16));
                         var res = this.bitWriter.PutCoeffs(ctx, residual);
                         it.TopNz[4 + ch + x] = it.LeftNz[4 + ch + y] = res;
                     }
@@ -759,6 +927,67 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             it.UvBits = pos3 - pos2;
             it.BitCount[segment, i16 ? 1 : 0] += it.LumaBits;
             it.BitCount[segment, 2] += it.UvBits;
+            it.BytesToNz();
+        }
+
+        /// <summary>
+        /// Same as CodeResiduals, but doesn't actually write anything.
+        /// Instead, it just records the event distribution.
+        /// </summary>
+        private void RecordResiduals(Vp8EncIterator it, Vp8ModeScore rd)
+        {
+            int x, y, ch;
+            var residual = new Vp8Residual();
+            bool i16 = it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16;
+            int segment = it.CurrentMacroBlockInfo.Segment;
+
+            it.NzToBytes();
+
+            if (i16)
+            {
+                // i16x16
+                residual.Init(0, 1, this.proba);
+                residual.SetCoeffs(rd.YDcLevels);
+                var res = residual.RecordCoeffs(it.TopNz[8] + it.LeftNz[8]);
+                it.TopNz[8] = res;
+                it.LeftNz[8] = res;
+                residual.Init(1, 0, this.proba);
+            }
+            else
+            {
+                residual.Init(0, 3, this.proba);
+            }
+
+            // luma-AC
+            for (y = 0; y < 4; ++y)
+            {
+                for (x = 0; x < 4; ++x)
+                {
+                    int ctx = it.TopNz[x] + it.LeftNz[y];
+                    residual.SetCoeffs(rd.YAcLevels.AsSpan(16 * (x + (y * 4)), 16));
+                    var res = residual.RecordCoeffs(ctx);
+                    it.TopNz[x] = res;
+                    it.LeftNz[y] = res;
+                }
+            }
+
+            // U/V
+            residual.Init(0, 2, this.proba);
+            for (ch = 0; ch <= 2; ch += 2)
+            {
+                for (y = 0; y < 2; ++y)
+                {
+                    for (x = 0; x < 2; ++x)
+                    {
+                        int ctx = it.TopNz[4 + ch + x] + it.LeftNz[4 + ch + y];
+                        residual.SetCoeffs(rd.UvLevels.AsSpan(16 * ((ch * 2) + x + (y * 2)), 16));
+                        var res = residual.RecordCoeffs(ctx);
+                        it.TopNz[4 + ch + x] = res;
+                        it.LeftNz[4 + ch + y] = res;
+                    }
+                }
+            }
+
             it.BytesToNz();
         }
 
@@ -785,7 +1014,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 // Zero-out the first coeff, so that: a) nz is correct below, and
                 // b) finding 'last' non-zero coeffs in SetResidualCoeffs() is simplified.
                 tmp[n * 16] = tmp[(n + 1) * 16] = 0;
-                nz |= this.Quantize2Blocks(tmpSpan.Slice(n * 16), rd.YAcLevels.AsSpan(n, 32), dqm.Y1) << n;
+                nz |= this.Quantize2Blocks(tmpSpan.Slice(n * 16), rd.YAcLevels.AsSpan(n * 16, 32), dqm.Y1) << n;
             }
 
             // Transform back.
@@ -1398,6 +1627,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             double v = Math.Pow(linearC, 1 / 3.0d);
 
             return v;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private double GetPsnr(long mse, long size)
+        {
+            return (mse > 0 && size > 0) ? 10.0f * Math.Log10(255.0f * 255.0f * size / mse) : 99;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

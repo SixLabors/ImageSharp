@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp
             ReadOnlySpan<byte> source,
             Span<byte> dest,
             TShuffle shuffle)
-            where TShuffle : struct, IComponentShuffle
+            where TShuffle : struct, IShuffle4
         {
             VerifyShuffle4SpanInput(source, dest);
 

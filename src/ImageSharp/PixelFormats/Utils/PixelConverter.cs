@@ -164,7 +164,14 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             public static void ToBgra32(ReadOnlySpan<byte> source, Span<byte> dest)
                 => SimdUtils.Pad3Shuffle4(source, dest, new DefaultPad3Shuffle4(3, 0, 1, 2));
 
-            // TODO: Bgr24
+            /// <summary>
+            /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
+            /// <see cref="Rgb24"/> pixels to a <see cref="Span{Byte}"/> representing
+            /// a collection of <see cref="Bgr24"/> pixels.
+            /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static void ToBgr24(ReadOnlySpan<byte> source, Span<byte> dest)
+                => SimdUtils.Shuffle3(source, dest, new DefaultShuffle3(0, 1, 2));
         }
 
         public static class FromBgr24
@@ -196,7 +203,14 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
             public static void ToBgra32(ReadOnlySpan<byte> source, Span<byte> dest)
                 => SimdUtils.Pad3Shuffle4<XYZWPad3Shuffle4>(source, dest, default);
 
-            // TODO: Rgb24
+            /// <summary>
+            /// Converts a <see cref="ReadOnlySpan{Byte}"/> representing a collection of
+            /// <see cref="Bgr24"/> pixels to a <see cref="Span{Byte}"/> representing
+            /// a collection of <see cref="Rgb24"/> pixels.
+            /// </summary>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public static void ToRgb24(ReadOnlySpan<byte> source, Span<byte> dest)
+                => SimdUtils.Shuffle3(source, dest, new DefaultShuffle3(0, 1, 2));
         }
     }
 }

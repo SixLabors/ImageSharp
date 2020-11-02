@@ -31,7 +31,12 @@ namespace SixLabors.ImageSharp
         void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest);
     }
 
-    internal readonly struct DefaultShuffle4 : IComponentShuffle
+    /// <inheritdoc/>
+    internal interface IShuffle4 : IComponentShuffle
+    {
+    }
+
+    internal readonly struct DefaultShuffle4 : IShuffle4
     {
         private readonly byte p3;
         private readonly byte p2;
@@ -40,10 +45,10 @@ namespace SixLabors.ImageSharp
 
         public DefaultShuffle4(byte p3, byte p2, byte p1, byte p0)
         {
-            Guard.MustBeBetweenOrEqualTo<byte>(p3, 0, 3, nameof(p3));
-            Guard.MustBeBetweenOrEqualTo<byte>(p2, 0, 3, nameof(p2));
-            Guard.MustBeBetweenOrEqualTo<byte>(p1, 0, 3, nameof(p1));
-            Guard.MustBeBetweenOrEqualTo<byte>(p0, 0, 3, nameof(p0));
+            DebugGuard.MustBeBetweenOrEqualTo<byte>(p3, 0, 3, nameof(p3));
+            DebugGuard.MustBeBetweenOrEqualTo<byte>(p2, 0, 3, nameof(p2));
+            DebugGuard.MustBeBetweenOrEqualTo<byte>(p1, 0, 3, nameof(p1));
+            DebugGuard.MustBeBetweenOrEqualTo<byte>(p0, 0, 3, nameof(p0));
 
             this.p3 = p3;
             this.p2 = p2;
@@ -75,7 +80,7 @@ namespace SixLabors.ImageSharp
         }
     }
 
-    internal readonly struct WXYZShuffle4 : IComponentShuffle
+    internal readonly struct WXYZShuffle4 : IShuffle4
     {
         private static readonly byte WXYZ = SimdUtils.Shuffle.MmShuffle(2, 1, 0, 3);
 
@@ -99,7 +104,7 @@ namespace SixLabors.ImageSharp
         }
     }
 
-    internal readonly struct WZYXShuffle4 : IComponentShuffle
+    internal readonly struct WZYXShuffle4 : IShuffle4
     {
         private static readonly byte WZYX = SimdUtils.Shuffle.MmShuffle(0, 1, 2, 3);
 
@@ -123,7 +128,7 @@ namespace SixLabors.ImageSharp
         }
     }
 
-    internal readonly struct YZWXShuffle4 : IComponentShuffle
+    internal readonly struct YZWXShuffle4 : IShuffle4
     {
         private static readonly byte YZWX = SimdUtils.Shuffle.MmShuffle(0, 3, 2, 1);
 
@@ -147,7 +152,7 @@ namespace SixLabors.ImageSharp
         }
     }
 
-    internal readonly struct ZYXWShuffle4 : IComponentShuffle
+    internal readonly struct ZYXWShuffle4 : IShuffle4
     {
         private static readonly byte ZYXW = SimdUtils.Shuffle.MmShuffle(3, 0, 1, 2);
 

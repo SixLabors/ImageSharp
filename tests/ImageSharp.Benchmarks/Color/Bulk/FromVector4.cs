@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         protected Configuration Configuration => Configuration.Default;
 
         // [Params(64, 2048)]
-        [Params(1024)]
+        [Params(64, 256, 2048)]
         public int Count { get; set; }
 
         [GlobalSetup]
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             }
         }
 
-        [Benchmark]
+        [Benchmark(Baseline = true)]
         public void PixelOperations_Base()
         {
             new PixelOperations<TPixel>().FromVector4Destructive(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());

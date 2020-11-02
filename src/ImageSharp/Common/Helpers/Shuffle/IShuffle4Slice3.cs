@@ -20,6 +20,11 @@ namespace SixLabors.ImageSharp
 
         public DefaultShuffle4Slice3(byte p3, byte p2, byte p1, byte p0)
         {
+            Guard.MustBeBetweenOrEqualTo<byte>(p3, 0, 3, nameof(p3));
+            Guard.MustBeBetweenOrEqualTo<byte>(p2, 0, 3, nameof(p2));
+            Guard.MustBeBetweenOrEqualTo<byte>(p1, 0, 3, nameof(p1));
+            Guard.MustBeBetweenOrEqualTo<byte>(p0, 0, 3, nameof(p0));
+
             this.p2 = p2;
             this.p1 = p1;
             this.p0 = p0;
@@ -62,13 +67,8 @@ namespace SixLabors.ImageSharp
             int n = source.Length / 4;
             for (int i = 0, j = 0; i < n; i++, j += 3)
             {
-                Unsafe.As<byte, Xyz24>(ref Unsafe.Add(ref dBase, j)) = Unsafe.As<uint, Xyz24>(ref Unsafe.Add(ref sBase, i));
+                Unsafe.As<byte, Byte3>(ref Unsafe.Add(ref dBase, j)) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, i));
             }
         }
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 3)]
-    internal readonly struct Xyz24
-    {
     }
 }

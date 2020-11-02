@@ -94,6 +94,48 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         [Theory]
         [MemberData(nameof(ArraySizesDivisibleBy3))]
+        public void BulkShuffleByte3Channel(int count)
+        {
+            static void RunTest(string serialized)
+            {
+                int size = FeatureTestRunner.Deserialize<int>(serialized);
+
+                // These cannot be expressed as a theory as you cannot
+                // use RemoteExecutor within generic methods nor pass
+                // IShuffle3 to the generic utils method.
+                ZYXShuffle3 zyx = default;
+                TestShuffleByte3Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, zyx),
+                    zyx.Control);
+
+                var xyz = new DefaultShuffle3(2, 1, 0);
+                TestShuffleByte3Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, xyz),
+                    xyz.Control);
+
+                var yyy = new DefaultShuffle3(1, 1, 1);
+                TestShuffleByte3Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, yyy),
+                    yyy.Control);
+
+                var zzz = new DefaultShuffle3(2, 2, 2);
+                TestShuffleByte3Channel(
+                    size,
+                    (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, zzz),
+                    zzz.Control);
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                count,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE);
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySizesDivisibleBy3))]
         public void BulkPad3Shuffle4Channel(int count)
         {
             static void RunTest(string serialized)
@@ -102,7 +144,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
                 // These cannot be expressed as a theory as you cannot
                 // use RemoteExecutor within generic methods nor pass
-                // IComponentShuffle to the generic utils method.
+                // IPad3Shuffle4 to the generic utils method.
                 XYZWPad3Shuffle4 xyzw = default;
                 TestPad3Shuffle4Channel(
                     size,
@@ -144,7 +186,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
                 // These cannot be expressed as a theory as you cannot
                 // use RemoteExecutor within generic methods nor pass
-                // IComponentShuffle to the generic utils method.
+                // IShuffle4Slice3 to the generic utils method.
                 XYZWShuffle4Slice3 xyzw = default;
                 TestShuffle4Slice3Channel(
                     size,
@@ -230,6 +272,36 @@ namespace SixLabors.ImageSharp.Tests.Common
                 expected[i + 1] = source[p1 + i];
                 expected[i + 2] = source[p2 + i];
                 expected[i + 3] = source[p3 + i];
+            }
+
+            convert(source, result);
+
+            Assert.Equal(expected, result);
+        }
+
+        private static void TestShuffleByte3Channel(
+            int count,
+            Action<Memory<byte>, Memory<byte>> convert,
+            byte control)
+        {
+            byte[] source = new byte[count];
+            new Random(count).NextBytes(source);
+            var result = new byte[count];
+
+            byte[] expected = new byte[count];
+
+            SimdUtils.Shuffle.InverseMmShuffle(
+                control,
+                out int _,
+                out int p2,
+                out int p1,
+                out int p0);
+
+            for (int i = 0; i < expected.Length; i += 3)
+            {
+                expected[i] = source[p0 + i];
+                expected[i + 1] = source[p1 + i];
+                expected[i + 2] = source[p2 + i];
             }
 
             convert(source, result);

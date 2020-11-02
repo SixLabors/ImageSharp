@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         {
             this.YDcLevels = new short[16];
             this.YAcLevels = new short[16 * 16];
-            this.UvLevels = new short[4 + (4 * 16)];
+            this.UvLevels = new short[(4 + 4) * 16];
 
             this.ModesI4 = new byte[16];
         }

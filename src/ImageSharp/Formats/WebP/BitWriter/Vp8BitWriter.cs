@@ -28,8 +28,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
 
         private int maxPos;
 
-        // private bool error;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8BitWriter"/> class.
         /// </summary>
@@ -43,8 +41,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             this.nbBits = -8;
             this.pos = 0;
             this.maxPos = 0;
-
-            // this.error = false;
         }
 
         /// <inheritdoc/>
@@ -69,13 +65,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                 int v = sign ? -c : c;
                 if (!this.PutBit(v != 0, p.Probabilities[1]))
                 {
-                    p = residual.Prob[WebPConstants.Bands[n]].Probabilities[0];
+                    p = residual.Prob[WebPConstants.Vp8EncBands[n]].Probabilities[0];
                     continue;
                 }
 
                 if (!this.PutBit(v > 1, p.Probabilities[2]))
                 {
-                    p = residual.Prob[WebPConstants.Bands[n]].Probabilities[1];
+                    p = residual.Prob[WebPConstants.Vp8EncBands[n]].Probabilities[1];
                 }
                 else
                 {
@@ -102,7 +98,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                     {
                         int mask;
                         byte[] tab;
-                        var tabIdx = 0;
                         if (v < 3 + (8 << 1))
                         {
                             // VP8Cat3  (3b)
@@ -111,7 +106,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                             v -= 3 + (8 << 0);
                             mask = 1 << 2;
                             tab = WebPConstants.Cat3;
-                            tabIdx = 0;
                         }
                         else if (v < 3 + (8 << 2))
                         {
@@ -121,7 +115,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                             v -= 3 + (8 << 1);
                             mask = 1 << 3;
                             tab = WebPConstants.Cat4;
-                            tabIdx = 0;
                         }
                         else if (v < 3 + (8 << 3))
                         {
@@ -131,7 +124,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                             v -= 3 + (8 << 2);
                             mask = 1 << 4;
                             tab = WebPConstants.Cat5;
-                            tabIdx = 0;
                         }
                         else
                         {
@@ -141,9 +133,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                             v -= 3 + (8 << 3);
                             mask = 1 << 10;
                             tab = WebPConstants.Cat6;
-                            tabIdx = 0;
                         }
 
+                        var tabIdx = 0;
                         while (mask != 0)
                         {
                             this.PutBit(v & mask, tab[tabIdx++]);
@@ -151,7 +143,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                         }
                     }
 
-                    p = residual.Prob[WebPConstants.Bands[n]].Probabilities[2];
+                    p = residual.Prob[WebPConstants.Vp8EncBands[n]].Probabilities[2];
                 }
 
                 this.PutBitUniform(sign ? 1 : 0);

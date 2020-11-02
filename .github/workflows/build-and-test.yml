@@ -44,7 +44,7 @@ jobs:
 
         defaults:
             run:
-                shell: powershell
+                shell: pwsh
 
         steps:
             - uses: actions/checkout@v2
@@ -92,7 +92,7 @@ jobs:
         runs-on: windows-latest
         defaults:
             run:
-                shell: powershell
+                shell: pwsh
 
         if: (github.event_name == 'push')
 

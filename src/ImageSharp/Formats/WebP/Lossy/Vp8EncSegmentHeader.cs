@@ -22,13 +22,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public int NumSegments { get; }
 
         /// <summary>
-        /// Gets a value indicating whether to update the segment map or not. Must be false if there's only 1 segment.
+        /// Gets or sets a value indicating whether to update the segment map or not. Must be false if there's only 1 segment.
         /// </summary>
-        public bool UpdateMap { get; }
+        public bool UpdateMap { get; set; }
 
         /// <summary>
-        /// Gets the bit-cost for transmitting the segment map.
+        /// Gets or sets the bit-cost for transmitting the segment map.
         /// </summary>
-        public int Size { get; }
+        public int Size { get; set; }
     }
 }

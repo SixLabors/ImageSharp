@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 var actual = new Rgb(rgba.X, rgba.Y, rgba.Z);
                 var expected = new Rgb(v.X, v.Y, v.Z);
 
-                Assert.Equal(expected, actual);
+                Assert.Equal(expected, actual, ColorSpaceComparer);
                 Assert.Equal(1, rgba.W);
             }
         }

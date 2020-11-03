@@ -21,17 +21,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             {
                 // 8-bit converters
                 GetYCbCrConverter(8),
-                new FromYccK(8),
-                new FromCmyk(8),
-                new FromGrayscale(8),
-                new FromRgb(8),
+                GetYccKConverter(8),
+                GetCmykConverter(8),
+                GetGrayScaleConverter(8),
+                GetRgbConverter(8),
 
                 // 12-bit converters
                 GetYCbCrConverter(12),
-                new FromYccK(12),
-                new FromCmyk(12),
-                new FromGrayscale(12),
-                new FromRgb(12),
+                GetYccKConverter(12),
+                GetCmykConverter(12),
+                GetGrayScaleConverter(12),
+                GetRgbConverter(12),
             };
 
         /// <summary>
@@ -93,6 +93,30 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         private static JpegColorConverter GetYCbCrConverter(int precision) =>
             FromYCbCrSimdVector8.IsAvailable ? (JpegColorConverter)new FromYCbCrSimdVector8(precision) : new FromYCbCrSimd(precision);
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/> for the YccK colorspace that matches the current CPU architecture.
+        /// </summary>
+        private static JpegColorConverter GetYccKConverter(int precision) =>
+            FromYccKVector8.IsAvailable ? (JpegColorConverter)new FromYccKVector8(precision) : new FromYccKBasic(precision);
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/> for the CMYK colorspace that matches the current CPU architecture.
+        /// </summary>
+        private static JpegColorConverter GetCmykConverter(int precision) =>
+            FromCmykVector8.IsAvailable ? (JpegColorConverter)new FromCmykVector8(precision) : new FromCmykBasic(precision);
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/> for the gray scale colorspace that matches the current CPU architecture.
+        /// </summary>
+        private static JpegColorConverter GetGrayScaleConverter(int precision) =>
+            FromGrayscaleVector8.IsAvailable ? (JpegColorConverter)new FromGrayscaleVector8(precision) : new FromGrayscaleBasic(precision);
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/> for the RGB colorspace that matches the current CPU architecture.
+        /// </summary>
+        private static JpegColorConverter GetRgbConverter(int precision) =>
+            FromRgbVector8.IsAvailable ? (JpegColorConverter)new FromRgbVector8(precision) : new FromRgbBasic(precision);
 
         /// <summary>
         /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.
@@ -227,6 +251,52 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 this.V7.X = r.B.W;
                 this.V7.Y = g.B.W;
                 this.V7.Z = b.B.W;
+                this.V7.W = 1f;
+            }
+
+            /// <summary>
+            /// Pack (g0,g1...g7) vector values as (g0,g0,g0,1), (g1,g1,g1,1) ...
+            /// </summary>
+            public void Pack(ref Vector4Pair g)
+            {
+                this.V0.X = g.A.X;
+                this.V0.Y = g.A.X;
+                this.V0.Z = g.A.X;
+                this.V0.W = 1f;
+
+                this.V1.X = g.A.Y;
+                this.V1.Y = g.A.Y;
+                this.V1.Z = g.A.Y;
+                this.V1.W = 1f;
+
+                this.V2.X = g.A.Z;
+                this.V2.Y = g.A.Z;
+                this.V2.Z = g.A.Z;
+                this.V2.W = 1f;
+
+                this.V3.X = g.A.W;
+                this.V3.Y = g.A.W;
+                this.V3.Z = g.A.W;
+                this.V3.W = 1f;
+
+                this.V4.X = g.B.X;
+                this.V4.Y = g.B.X;
+                this.V4.Z = g.B.X;
+                this.V4.W = 1f;
+
+                this.V5.X = g.B.Y;
+                this.V5.Y = g.B.Y;
+                this.V5.Z = g.B.Y;
+                this.V5.W = 1f;
+
+                this.V6.X = g.B.Z;
+                this.V6.Y = g.B.Z;
+                this.V6.Z = g.B.Z;
+                this.V6.W = 1f;
+
+                this.V7.X = g.B.W;
+                this.V7.Y = g.B.W;
+                this.V7.Z = g.B.W;
                 this.V7.W = 1f;
             }
         }

@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public byte SkipProba { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to use the skip probability. Note: we always use SkipProba for now.
+        /// Gets or sets a value indicating whether to use the skip probability.
         /// </summary>
         public bool UseSkipProba { get; set; }
 
@@ -131,13 +131,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                     {
                         Vp8ProbaArray p = this.Coeffs[ctype][band].Probabilities[ctx];
                         Span<ushort> table = this.LevelCost[ctype][band].Costs.AsSpan(ctx * MaxVariableLevel);
-                        int cost0 = (ctx > 0) ? this.BitCost(1, p.Probabilities[0]) : 0;
-                        int costBase = this.BitCost(1, p.Probabilities[1]) + cost0;
+                        int cost0 = (ctx > 0) ? LossyUtils.Vp8BitCost(1, p.Probabilities[0]) : 0;
+                        int costBase = LossyUtils.Vp8BitCost(1, p.Probabilities[1]) + cost0;
                         int v;
-                        table[0] = (ushort)(this.BitCost(0, p.Probabilities[1]) + cost0);
+                        table[0] = (ushort)(LossyUtils.Vp8BitCost(0, p.Probabilities[1]) + cost0);
                         for (v = 1; v <= MaxVariableLevel; ++v)
                         {
-                            table[v] = (ushort)(costBase + this.VariableLevelCost(v, p.Probabilities));
+                            table[v] = (ushort)(costBase + VariableLevelCost(v, p.Probabilities));
                         }
 
                         // Starting at level 67 and up, the variable part of the cost is actually constant.
@@ -175,11 +175,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                             int total = (int)((stats >> 16) & 0xffff);
                             int updateProba = WebPLookupTables.CoeffsUpdateProba[t, b, c, p];
                             int oldP = WebPLookupTables.DefaultCoeffsProba[t, b, c, p];
-                            int newP = this.CalcTokenProba(nb, total);
-                            int oldCost = this.BranchCost(nb, total, oldP) + this.BitCost(0, (byte)updateProba);
-                            int newCost = this.BranchCost(nb, total, newP) + this.BitCost(1, (byte)updateProba) + (8 * 256);
+                            int newP = CalcTokenProba(nb, total);
+                            int oldCost = BranchCost(nb, total, oldP) + LossyUtils.Vp8BitCost(0, (byte)updateProba);
+                            int newCost = BranchCost(nb, total, newP) + LossyUtils.Vp8BitCost(1, (byte)updateProba) + (8 * 256);
                             bool useNewP = oldCost > newCost;
-                            size += this.BitCost(useNewP ? 1 : 0, (byte)updateProba);
+                            size += LossyUtils.Vp8BitCost(useNewP ? 1 : 0, (byte)updateProba);
                             if (useNewP)
                             {
                                 // Only use proba that seem meaningful enough.
@@ -204,13 +204,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         {
             int nbMbs = mbw * mbh;
             int nbEvents = this.NbSkip;
-            this.SkipProba = (byte)this.CalcSkipProba(nbEvents, nbMbs);
+            this.SkipProba = (byte)CalcSkipProba(nbEvents, nbMbs);
             this.UseSkipProba = this.SkipProba < SkipProbaThreshold;
 
             int size = 256;
             if (this.UseSkipProba)
             {
-                size += (nbEvents * this.BitCost(1, this.SkipProba)) + ((nbMbs - nbEvents) * this.BitCost(0, this.SkipProba));
+                size += (nbEvents * LossyUtils.Vp8BitCost(1, this.SkipProba)) + ((nbMbs - nbEvents) * LossyUtils.Vp8BitCost(0, this.SkipProba));
                 size += 8 * 256;   // cost of signaling the skipProba itself.
             }
 
@@ -234,12 +234,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
         }
 
-        private int CalcSkipProba(long nb, long total)
+        private static int CalcSkipProba(long nb, long total)
         {
             return (int)(total != 0 ? (total - nb) * 255 / total : 255);
         }
 
-        private int VariableLevelCost(int level, Span<byte> probas)
+        private static int VariableLevelCost(int level, Span<byte> probas)
         {
             int pattern = WebPLookupTables.Vp8LevelCodes[level - 1][0];
             int bits = WebPLookupTables.Vp8LevelCodes[level - 1][1];
@@ -248,7 +248,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             {
                 if ((pattern & 1) != 0)
                 {
-                    cost += this.BitCost(bits & 1, probas[i]);
+                    cost += LossyUtils.Vp8BitCost(bits & 1, probas[i]);
                 }
 
                 bits >>= 1;
@@ -260,21 +260,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         // Collect statistics and deduce probabilities for next coding pass.
         // Return the total bit-cost for coding the probability updates.
-        private int CalcTokenProba(int nb, int total)
+        private static int CalcTokenProba(int nb, int total)
         {
             return nb != 0 ? (255 - (nb * 255 / total)) : 255;
         }
 
         // Cost of coding 'nb' 1's and 'total-nb' 0's using 'proba' probability.
-        private int BranchCost(int nb, int total, int proba)
+        private static int BranchCost(int nb, int total, int proba)
         {
-            return (nb * this.BitCost(1, (byte)proba)) + ((total - nb) * this.BitCost(0, (byte)proba));
-        }
-
-        // Cost of coding one event with probability 'proba'.
-        private int BitCost(int bit, byte proba)
-        {
-            return bit == 0 ? WebPLookupTables.Vp8EntropyCost[proba] : WebPLookupTables.Vp8EntropyCost[255 - proba];
+            return (nb * LossyUtils.Vp8BitCost(1, (byte)proba)) + ((total - nb) * LossyUtils.Vp8BitCost(0, (byte)proba));
         }
     }
 }

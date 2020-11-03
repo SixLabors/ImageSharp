@@ -784,6 +784,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             return (byte)((v & ~0xff) == 0 ? v : (v < 0) ? 0 : 255);
         }
 
+        // Cost of coding one event with probability 'proba'.
+        public static int Vp8BitCost(int bit, byte proba)
+        {
+            return bit == 0 ? WebPLookupTables.Vp8EntropyCost[proba] : WebPLookupTables.Vp8EntropyCost[255 - proba];
+        }
+
         // Complex In-loop filtering (Paragraph 15.3)
         private static void FilterLoop24(
             Span<byte> p,

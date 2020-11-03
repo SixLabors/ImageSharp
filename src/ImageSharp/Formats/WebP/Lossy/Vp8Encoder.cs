@@ -258,9 +258,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             // Analysis is done, proceed to actual encoding.
             this.segmentHeader = new Vp8EncSegmentHeader(4);
             this.AssignSegments(segmentInfos, alphas);
-            this.SetSegmentParams(segmentInfos, this.quality);
-            this.SetSegmentProbas(segmentInfos);
-            this.ResetStats();
+            this.SetLoopParams(segmentInfos, this.quality);
 
             // TODO: EncodeAlpha();
             // Stats-collection loop.
@@ -415,7 +413,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
             else
             {
-                stats.Value = this.GetPsnr(distortion, pixelCount);
+                stats.Value = GetPsnr(distortion, pixelCount);
             }
 
             return sizeP0;
@@ -427,7 +425,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.SetSegmentParams(dqm, q);
 
             // Compute segment probabilities.
-            this.SetSegmentProbas(dqm);
+            this.SetSegmentProbas();
 
             this.ResetStats();
         }
@@ -577,8 +575,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             {
                 int alpha = 255 * (centers[n] - mid) / (max - min);
                 int beta = 255 * (centers[n] - min) / (max - min);
-                dqm[n].Alpha = this.Clip(alpha, -127, 127);
-                dqm[n].Beta = this.Clip(beta, 0, 255);
+                dqm[n].Alpha = Clip(alpha, -127, 127);
+                dqm[n].Beta = Clip(beta, 0, 255);
             }
         }
 
@@ -587,7 +585,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             int nb = this.segmentHeader.NumSegments;
             int snsStrength = 50; // TODO: Spatial Noise Shaping, hardcoded for now.
             double amp = WebPConstants.SnsToDq * snsStrength / 100.0d / 128.0d;
-            double cBase = this.QualityToCompression(quality / 100.0d);
+            double cBase = QualityToCompression(quality / 100.0d);
             for (int i = 0; i < nb; ++i)
             {
                 // We modulate the base coefficient to accommodate for the quantization
@@ -595,7 +593,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 double expn = 1.0d - (amp * dqm[i].Alpha);
                 double c = Math.Pow(cBase, expn);
                 int q = (int)(127.0d * (1.0d - c));
-                dqm[i].Quant = this.Clip(q, 0, 127);
+                dqm[i].Quant = Clip(q, 0, 127);
             }
 
             // uvAlpha is normally spread around ~60. The useful range is
@@ -607,23 +605,60 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.dqUvAc = this.dqUvAc * snsStrength / 100;
 
             // and make it safe.
-            this.dqUvAc = this.Clip(this.dqUvAc, WebPConstants.QuantEncMinDqUv, WebPConstants.QuantEncMaxDqUv);
+            this.dqUvAc = Clip(this.dqUvAc, WebPConstants.QuantEncMinDqUv, WebPConstants.QuantEncMaxDqUv);
 
             // We also boost the dc-uv-quant a little, based on sns-strength, since
             // U/V channels are quite more reactive to high quants (flat DC-blocks
             // tend to appear, and are unpleasant).
             this.dqUvDc = -4 * snsStrength / 100;
-            this.dqUvDc = this.Clip(this.dqUvDc, -15, 15);   // 4bit-signed max allowed
+            this.dqUvDc = Clip(this.dqUvDc, -15, 15);   // 4bit-signed max allowed
 
             this.SetupMatrices(dqm);
         }
 
-        private void SetSegmentProbas(Vp8SegmentInfo[] dqm)
+        private void SetSegmentProbas()
         {
-            // var p = new int[4];
-            // int n;
+            var p = new int[NumMbSegments];
+            int n;
 
-            // TODO: SetSegmentProbas
+            for (n = 0; n < this.mbw * this.mbh; ++n)
+            {
+                Vp8MacroBlockInfo mb = this.mbInfo[n];
+                ++p[mb.Segment];
+            }
+
+            if (this.segmentHeader.NumSegments > 1)
+            {
+                byte[] probas = this.proba.Segments;
+                probas[0] = (byte)GetProba(p[0] + p[1], p[2] + p[3]);
+                probas[1] = (byte)GetProba(p[0], p[1]);
+                probas[2] = (byte)GetProba(p[2], p[3]);
+
+                this.segmentHeader.UpdateMap = (probas[0] != 255) || (probas[1] != 255) || (probas[2] != 255);
+                if (!this.segmentHeader.UpdateMap)
+                {
+                   this.ResetSegments();
+                }
+
+                this.segmentHeader.Size = (p[0] * (LossyUtils.Vp8BitCost(0, probas[0]) + LossyUtils.Vp8BitCost(0, probas[1]))) +
+                                          (p[1] * (LossyUtils.Vp8BitCost(0, probas[0]) + LossyUtils.Vp8BitCost(1, probas[1]))) +
+                                          (p[2] * (LossyUtils.Vp8BitCost(1, probas[0]) + LossyUtils.Vp8BitCost(0, probas[2]))) +
+                                          (p[3] * (LossyUtils.Vp8BitCost(1, probas[0]) + LossyUtils.Vp8BitCost(1, probas[2])));
+            }
+            else
+            {
+                this.segmentHeader.UpdateMap = false;
+                this.segmentHeader.Size = 0;
+            }
+        }
+
+        private void ResetSegments()
+        {
+            int n;
+            for (n = 0; n < this.mbw * this.mbh; ++n)
+            {
+                this.mbInfo[n].Segment = 0;
+            }
         }
 
         private void ResetStats()
@@ -644,14 +679,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 m.Y2 = new Vp8Matrix();
                 m.Uv = new Vp8Matrix();
 
-                m.Y1.Q[0] = WebPLookupTables.DcTable[this.Clip(q, 0, 127)];
-                m.Y1.Q[1] = WebPLookupTables.AcTable[this.Clip(q, 0, 127)];
+                m.Y1.Q[0] = WebPLookupTables.DcTable[Clip(q, 0, 127)];
+                m.Y1.Q[1] = WebPLookupTables.AcTable[Clip(q, 0, 127)];
 
-                m.Y2.Q[0] = (ushort)(WebPLookupTables.DcTable[this.Clip(q, 0, 127)] * 2);
-                m.Y2.Q[1] = WebPLookupTables.AcTable2[this.Clip(q, 0, 127)];
+                m.Y2.Q[0] = (ushort)(WebPLookupTables.DcTable[Clip(q, 0, 127)] * 2);
+                m.Y2.Q[1] = WebPLookupTables.AcTable2[Clip(q, 0, 127)];
 
-                m.Uv.Q[0] = WebPLookupTables.DcTable[this.Clip(q + this.dqUvDc, 0, 117)];
-                m.Uv.Q[1] = WebPLookupTables.AcTable[this.Clip(q + this.dqUvAc, 0, 127)];
+                m.Uv.Q[0] = WebPLookupTables.DcTable[Clip(q + this.dqUvDc, 0, 117)];
+                m.Uv.Q[1] = WebPLookupTables.AcTable[Clip(q + this.dqUvAc, 0, 127)];
 
                 var qi4 = m.Y1.Expand(0);
                 var qi16 = m.Y2.Expand(1);
@@ -702,7 +737,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
             // Final susceptibility mix.
             bestAlpha = ((3 * bestAlpha) + bestUvAlpha + 2) >> 2;
-            bestAlpha = this.FinalAlphaValue(bestAlpha);
+            bestAlpha = FinalAlphaValue(bestAlpha);
             alphas[bestAlpha]++;
             it.CurrentMacroBlockInfo.Alpha = bestAlpha;   // For later remapping.
 
@@ -757,7 +792,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 for (mode = 0; mode < numPredModes; ++mode)
                 {
                     Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8I16ModeOffsets[mode]);
-                    long score = (this.Vp8Sse16X16(src, reference) * WebPConstants.RdDistoMult) + (WebPConstants.Vp8FixedCostsI16[mode] * lambdaDi16);
+                    long score = (Vp8Sse16X16(src, reference) * WebPConstants.RdDistoMult) + (WebPConstants.Vp8FixedCostsI16[mode] * lambdaDi16);
 
                     if (mode > 0 && WebPConstants.Vp8FixedCostsI16[mode] > bitLimit)
                     {
@@ -774,7 +809,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 if (it.X == 0 || it.Y == 0)
                 {
                     // Avoid starting a checkerboard resonance from the border. See bug #432 of libwebp.
-                    if (this.IsFlatSource16(src))
+                    if (IsFlatSource16(src))
                     {
                         bestMode = (it.X == 0) ? 0 : 2;
                         tryBothModes = false; // Stick to i16.
@@ -804,7 +839,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                     for (mode = 0; mode < numBModes; ++mode)
                     {
                         Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8I4ModeOffsets[mode]);
-                        long score = (this.Vp8Sse4X4(src, reference) * WebPConstants.RdDistoMult) + (modeCosts[mode] * lambdaDi4);
+                        long score = (Vp8Sse4X4(src, reference) * WebPConstants.RdDistoMult) + (modeCosts[mode] * lambdaDi4);
                         if (score < bestI4Score)
                         {
                             bestI4Mode = mode;
@@ -852,7 +887,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 for (mode = 0; mode < numPredModes; ++mode)
                 {
                     Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8UvModeOffsets[mode]);
-                    long score = (this.Vp8Sse16X8(src, reference) * WebPConstants.RdDistoMult) + (WebPConstants.Vp8FixedCostsUv[mode] * lambdaDuv);
+                    long score = (Vp8Sse16X8(src, reference) * WebPConstants.RdDistoMult) + (WebPConstants.Vp8FixedCostsUv[mode] * lambdaDuv);
                     if (score < bestUvScore)
                     {
                         bestMode = mode;
@@ -1041,7 +1076,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private int ReconstructUv(Vp8EncIterator it, Vp8SegmentInfo dqm, Vp8ModeScore rd, Span<byte> yuvOut, int mode)
         {
             Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8UvModeOffsets[mode]);
-            Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
+            Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.UOffEnc);
             int nz = 0;
             int n;
             var tmp = new short[8 * 16];
@@ -1063,7 +1098,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
             for (n = 0; n < 8; n += 2)
             {
-                nz |= this.Quantize2Blocks(tmp.AsSpan(n * 16, 32), rd.UvLevels.AsSpan(n, 32), dqm.Uv) << n;
+                nz |= this.Quantize2Blocks(tmp.AsSpan(n * 16, 32), rd.UvLevels.AsSpan(n * 16, 32), dqm.Uv) << n;
             }
 
             for (n = 0; n < 8; n += 2)
@@ -1176,7 +1211,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                     uint q = mtx.Q[j];
                     uint iQ = mtx.IQ[j];
                     uint b = mtx.Bias[j];
-                    int level = this.QuantDiv(coeff, iQ, b);
+                    int level = QuantDiv(coeff, iQ, b);
                     if (level > MaxLevel)
                     {
                         level = MaxLevel;
@@ -1225,8 +1260,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 // vertical pass.
                 int a = input[0] + input[8];
                 int b = input[0] - input[8];
-                int c = this.Mul(input[4], KC2) - this.Mul(input[12], KC1);
-                int d = this.Mul(input[4], KC1) + this.Mul(input[12], KC2);
+                int c = Mul(input[4], KC2) - Mul(input[12], KC1);
+                int d = Mul(input[4], KC1) + Mul(input[12], KC2);
                 tmp[0] = a + d;
                 tmp[1] = b + c;
                 tmp[2] = b - c;
@@ -1242,12 +1277,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 int dc = tmp[0] + 4;
                 int a = dc + tmp[8];
                 int b = dc - tmp[8];
-                int c = this.Mul(tmp[4], KC2) - this.Mul(tmp[12], KC1);
-                int d = this.Mul(tmp[4], KC1) + this.Mul(tmp[12], KC2);
-                this.Store(dst, reference, 0, i, (byte)(a + d));
-                this.Store(dst, reference, 1, i, (byte)(b + c));
-                this.Store(dst, reference, 2, i, (byte)(b - c));
-                this.Store(dst, reference, 3, i, (byte)(a - d));
+                int c = Mul(tmp[4], KC2) - Mul(tmp[12], KC1);
+                int d = Mul(tmp[4], KC1) + Mul(tmp[12], KC2);
+                Store(dst, reference, 0, i, (byte)(a + d));
+                Store(dst, reference, 1, i, (byte)(b + c));
+                Store(dst, reference, 2, i, (byte)(b - c));
+                Store(dst, reference, 3, i, (byte)(a - d));
                 tmp = tmp.Slice(1);
             }
         }
@@ -1259,47 +1294,45 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             bool hasAlpha = this.CheckNonOpaque(image);
 
             // Temporary storage for accumulated R/G/B values during conversion to U/V.
-            using (IMemoryOwner<ushort> tmpRgb = this.memoryAllocator.Allocate<ushort>(4 * uvWidth))
+            using IMemoryOwner<ushort> tmpRgb = this.memoryAllocator.Allocate<ushort>(4 * uvWidth);
+            Span<ushort> tmpRgbSpan = tmpRgb.GetSpan();
+            int uvRowIndex = 0;
+            int rowIndex;
+            for (rowIndex = 0; rowIndex < image.Height - 1; rowIndex += 2)
             {
-                Span<ushort> tmpRgbSpan = tmpRgb.GetSpan();
-                int uvRowIndex = 0;
-                int rowIndex;
-                for (rowIndex = 0; rowIndex < image.Height - 1; rowIndex += 2)
+                // Downsample U/V planes, two rows at a time.
+                Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
+                Span<TPixel> nextRowSpan = image.GetPixelRowSpan(rowIndex + 1);
+                if (!hasAlpha)
                 {
-                    // Downsample U/V planes, two rows at a time.
-                    Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
-                    Span<TPixel> nextRowSpan = image.GetPixelRowSpan(rowIndex + 1);
-                    if (!hasAlpha)
-                    {
-                        this.AccumulateRgb(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
-                    }
-                    else
-                    {
-                        this.AccumulateRgba(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
-                    }
-
-                    this.ConvertRgbaToUv(tmpRgbSpan, this.U.Slice(uvRowIndex * uvWidth), this.V.Slice(uvRowIndex * uvWidth), uvWidth);
-                    uvRowIndex++;
-
-                    this.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
-                    this.ConvertRgbaToY(nextRowSpan, this.Y.Slice((rowIndex + 1) * image.Width), image.Width);
+                    this.AccumulateRgb(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
+                }
+                else
+                {
+                    this.AccumulateRgba(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
                 }
 
-                // Extra last row.
-                if ((image.Height & 1) != 0)
-                {
-                    Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
-                    if (!hasAlpha)
-                    {
-                        this.AccumulateRgb(rowSpan, rowSpan, tmpRgbSpan, image.Width);
-                    }
-                    else
-                    {
-                        this.AccumulateRgba(rowSpan, rowSpan, tmpRgbSpan, image.Width);
-                    }
+                this.ConvertRgbaToUv(tmpRgbSpan, this.U.Slice(uvRowIndex * uvWidth), this.V.Slice(uvRowIndex * uvWidth), uvWidth);
+                uvRowIndex++;
 
-                    this.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
+                this.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
+                this.ConvertRgbaToY(nextRowSpan, this.Y.Slice((rowIndex + 1) * image.Width), image.Width);
+            }
+
+            // Extra last row.
+            if ((image.Height & 1) != 0)
+            {
+                Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
+                if (!hasAlpha)
+                {
+                    this.AccumulateRgb(rowSpan, rowSpan, tmpRgbSpan, image.Width);
                 }
+                else
+                {
+                    this.AccumulateRgba(rowSpan, rowSpan, tmpRgbSpan, image.Width);
+                }
+
+                this.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
             }
         }
 
@@ -1333,7 +1366,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             {
                 TPixel color = rowSpan[x];
                 color.ToRgba32(ref rgba);
-                y[x] = (byte)this.RgbToY(rgba.R, rgba.G, rgba.B, YuvHalf);
+                y[x] = (byte)RgbToY(rgba.R, rgba.G, rgba.B, YuvHalf);
             }
         }
 
@@ -1343,8 +1376,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             for (int i = 0; i < width; i += 1, rgbIdx += 4)
             {
                 int r = rgb[rgbIdx], g = rgb[rgbIdx + 1], b = rgb[rgbIdx + 2];
-                u[i] = (byte)this.RgbToU(r, g, b, YuvHalf << 2);
-                v[i] = (byte)this.RgbToV(r, g, b, YuvHalf << 2);
+                u[i] = (byte)RgbToU(r, g, b, YuvHalf << 2);
+                v[i] = (byte)RgbToV(r, g, b, YuvHalf << 2);
             }
         }
 
@@ -1368,21 +1401,21 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 color = nextRowSpan[j + 1];
                 color.ToRgba32(ref rgba3);
 
-                dst[dstIdx] = (ushort)this.LinearToGamma(
-                    this.GammaToLinear(rgba0.R) +
-                            this.GammaToLinear(rgba1.R) +
-                            this.GammaToLinear(rgba2.R) +
-                            this.GammaToLinear(rgba3.R), 0);
-                dst[dstIdx + 1] = (ushort)this.LinearToGamma(
-                    this.GammaToLinear(rgba0.G) +
-                            this.GammaToLinear(rgba1.G) +
-                            this.GammaToLinear(rgba2.G) +
-                            this.GammaToLinear(rgba3.G), 0);
-                dst[dstIdx + 2] = (ushort)this.LinearToGamma(
-                    this.GammaToLinear(rgba0.B) +
-                            this.GammaToLinear(rgba1.B) +
-                            this.GammaToLinear(rgba2.B) +
-                            this.GammaToLinear(rgba3.B), 0);
+                dst[dstIdx] = (ushort)LinearToGamma(
+                    GammaToLinear(rgba0.R) +
+                            GammaToLinear(rgba1.R) +
+                            GammaToLinear(rgba2.R) +
+                            GammaToLinear(rgba3.R), 0);
+                dst[dstIdx + 1] = (ushort)LinearToGamma(
+                    GammaToLinear(rgba0.G) +
+                            GammaToLinear(rgba1.G) +
+                            GammaToLinear(rgba2.G) +
+                            GammaToLinear(rgba3.G), 0);
+                dst[dstIdx + 2] = (ushort)LinearToGamma(
+                    GammaToLinear(rgba0.B) +
+                            GammaToLinear(rgba1.B) +
+                            GammaToLinear(rgba2.B) +
+                            GammaToLinear(rgba3.B), 0);
             }
 
             if ((width & 1) != 0)
@@ -1392,9 +1425,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 color = nextRowSpan[j];
                 color.ToRgba32(ref rgba1);
 
-                dst[dstIdx] = (ushort)this.LinearToGamma(this.GammaToLinear(rgba0.R) + this.GammaToLinear(rgba1.R), 1);
-                dst[dstIdx + 1] = (ushort)this.LinearToGamma(this.GammaToLinear(rgba0.G) + this.GammaToLinear(rgba1.G), 1);
-                dst[dstIdx + 2] = (ushort)this.LinearToGamma(this.GammaToLinear(rgba0.B) + this.GammaToLinear(rgba1.B), 1);
+                dst[dstIdx] = (ushort)LinearToGamma(GammaToLinear(rgba0.R) + GammaToLinear(rgba1.R), 1);
+                dst[dstIdx + 1] = (ushort)LinearToGamma(GammaToLinear(rgba0.G) + GammaToLinear(rgba1.G), 1);
+                dst[dstIdx + 2] = (ushort)LinearToGamma(GammaToLinear(rgba0.B) + GammaToLinear(rgba1.B), 1);
             }
         }
 
@@ -1421,27 +1454,27 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 int r, g, b;
                 if (a == 4 * 0xff || a == 0)
                 {
-                    r = (ushort)this.LinearToGamma(
-                        this.GammaToLinear(rgba0.R) +
-                        this.GammaToLinear(rgba1.R) +
-                        this.GammaToLinear(rgba2.R) +
-                        this.GammaToLinear(rgba3.R), 0);
-                    g = (ushort)this.LinearToGamma(
-                        this.GammaToLinear(rgba0.G) +
-                        this.GammaToLinear(rgba1.G) +
-                        this.GammaToLinear(rgba2.G) +
-                        this.GammaToLinear(rgba3.G), 0);
-                    b = (ushort)this.LinearToGamma(
-                        this.GammaToLinear(rgba0.B) +
-                        this.GammaToLinear(rgba1.B) +
-                        this.GammaToLinear(rgba2.B) +
-                        this.GammaToLinear(rgba3.B), 0);
+                    r = (ushort)LinearToGamma(
+                        GammaToLinear(rgba0.R) +
+                        GammaToLinear(rgba1.R) +
+                        GammaToLinear(rgba2.R) +
+                        GammaToLinear(rgba3.R), 0);
+                    g = (ushort)LinearToGamma(
+                        GammaToLinear(rgba0.G) +
+                        GammaToLinear(rgba1.G) +
+                        GammaToLinear(rgba2.G) +
+                        GammaToLinear(rgba3.G), 0);
+                    b = (ushort)LinearToGamma(
+                        GammaToLinear(rgba0.B) +
+                        GammaToLinear(rgba1.B) +
+                        GammaToLinear(rgba2.B) +
+                        GammaToLinear(rgba3.B), 0);
                 }
                 else
                 {
-                    r = this.LinearToGammaWeighted(rgba0.R, rgba1.R, rgba2.R, rgba3.R, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    g = this.LinearToGammaWeighted(rgba0.G, rgba1.G, rgba2.G, rgba3.G, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    b = this.LinearToGammaWeighted(rgba0.B, rgba1.B, rgba2.B, rgba3.B, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    r = LinearToGammaWeighted(rgba0.R, rgba1.R, rgba2.R, rgba3.R, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    g = LinearToGammaWeighted(rgba0.G, rgba1.G, rgba2.G, rgba3.G, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    b = LinearToGammaWeighted(rgba0.B, rgba1.B, rgba2.B, rgba3.B, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
                 }
 
                 dst[dstIdx] = (ushort)r;
@@ -1460,15 +1493,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 int r, g, b;
                 if (a == 4 * 0xff || a == 0)
                 {
-                    r = (ushort)this.LinearToGamma(this.GammaToLinear(rgba0.R) + this.GammaToLinear(rgba1.R), 1);
-                    g = (ushort)this.LinearToGamma(this.GammaToLinear(rgba0.G) + this.GammaToLinear(rgba1.G), 1);
-                    b = (ushort)this.LinearToGamma(this.GammaToLinear(rgba0.B) + this.GammaToLinear(rgba1.B), 1);
+                    r = (ushort)LinearToGamma(GammaToLinear(rgba0.R) + GammaToLinear(rgba1.R), 1);
+                    g = (ushort)LinearToGamma(GammaToLinear(rgba0.G) + GammaToLinear(rgba1.G), 1);
+                    b = (ushort)LinearToGamma(GammaToLinear(rgba0.B) + GammaToLinear(rgba1.B), 1);
                 }
                 else
                 {
-                    r = this.LinearToGammaWeighted(rgba0.R, rgba1.R, rgba2.R, rgba3.R, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    g = this.LinearToGammaWeighted(rgba0.G, rgba1.G, rgba2.G, rgba3.G, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    b = this.LinearToGammaWeighted(rgba0.B, rgba1.B, rgba2.B, rgba3.B, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    r = LinearToGammaWeighted(rgba0.R, rgba1.R, rgba2.R, rgba3.R, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    g = LinearToGammaWeighted(rgba0.G, rgba1.G, rgba2.G, rgba3.G, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
+                    b = LinearToGammaWeighted(rgba0.B, rgba1.B, rgba2.B, rgba3.B, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
                 }
 
                 dst[dstIdx] = (ushort)r;
@@ -1478,29 +1511,29 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
         }
 
-        private int LinearToGammaWeighted(byte rgb0, byte rgb1, byte rgb2, byte rgb3, byte a0, byte a1, byte a2, byte a3, uint totalA)
+        private static int LinearToGammaWeighted(byte rgb0, byte rgb1, byte rgb2, byte rgb3, byte a0, byte a1, byte a2, byte a3, uint totalA)
         {
-            uint sum = (a0 * this.GammaToLinear(rgb0)) + (a1 * this.GammaToLinear(rgb1)) + (a2 * this.GammaToLinear(rgb2)) + (a3 * this.GammaToLinear(rgb3));
-            return this.LinearToGamma((sum * WebPLookupTables.InvAlpha[totalA]) >> (WebPConstants.AlphaFix - 2), 0);
+            uint sum = (a0 * GammaToLinear(rgb0)) + (a1 * GammaToLinear(rgb1)) + (a2 * GammaToLinear(rgb2)) + (a3 * GammaToLinear(rgb3));
+            return LinearToGamma((sum * WebPLookupTables.InvAlpha[totalA]) >> (WebPConstants.AlphaFix - 2), 0);
         }
 
         // Convert a linear value 'v' to YUV_FIX+2 fixed-point precision
         // U/V value, suitable for RGBToU/V calls.
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int LinearToGamma(uint baseValue, int shift)
+        private static int LinearToGamma(uint baseValue, int shift)
         {
-            int y = this.Interpolate((int)(baseValue << shift));   // Final uplifted value.
+            int y = Interpolate((int)(baseValue << shift));   // Final uplifted value.
             return (y + WebPConstants.GammaTabRounder) >> WebPConstants.GammaTabFix;    // Descale.
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private uint GammaToLinear(byte v)
+        private static uint GammaToLinear(byte v)
         {
             return WebPLookupTables.GammaToLinearTab[v];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int Interpolate(int v)
+        private static int Interpolate(int v)
         {
             int tabPos = v >> (WebPConstants.GammaTabFix + 2);    // integer part.
             int x = v & ((WebPConstants.GammaTabScale << 2) - 1);  // fractional part.
@@ -1512,65 +1545,65 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int RgbToY(byte r, byte g, byte b, int rounding)
+        private static int RgbToY(byte r, byte g, byte b, int rounding)
         {
             int luma = (16839 * r) + (33059 * g) + (6420 * b);
             return (luma + rounding + (16 << YuvFix)) >> YuvFix;  // No need to clip.
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int RgbToU(int r, int g, int b, int rounding)
+        private static int RgbToU(int r, int g, int b, int rounding)
         {
             int u = (-9719 * r) - (19081 * g) + (28800 * b);
-            return this.ClipUv(u, rounding);
+            return ClipUv(u, rounding);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int RgbToV(int r, int g, int b, int rounding)
+        private static int RgbToV(int r, int g, int b, int rounding)
         {
             int v = (+28800 * r) - (24116 * g) - (4684 * b);
-            return this.ClipUv(v, rounding);
+            return ClipUv(v, rounding);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int ClipUv(int uv, int rounding)
+        private static int ClipUv(int uv, int rounding)
         {
             uv = (uv + rounding + (128 << (YuvFix + 2))) >> (YuvFix + 2);
             return ((uv & ~0xff) == 0) ? uv : (uv < 0) ? 0 : 255;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int FinalAlphaValue(int alpha)
+        private static int FinalAlphaValue(int alpha)
         {
             alpha = WebPConstants.MaxAlpha - alpha;
-            return this.Clip(alpha, 0, WebPConstants.MaxAlpha);
+            return Clip(alpha, 0, WebPConstants.MaxAlpha);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int Clip(int v, int min, int max)
+        private static int Clip(int v, int min, int max)
         {
             return (v < min) ? min : (v > max) ? max : v;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int Vp8Sse16X16(Span<byte> a, Span<byte> b)
+        private static int Vp8Sse16X16(Span<byte> a, Span<byte> b)
         {
-            return this.GetSse(a, b, 16, 16);
+            return GetSse(a, b, 16, 16);
         }
 
-        private int Vp8Sse16X8(Span<byte> a, Span<byte> b)
+        private static int Vp8Sse16X8(Span<byte> a, Span<byte> b)
         {
-            return this.GetSse(a, b, 16, 8);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private int Vp8Sse4X4(Span<byte> a, Span<byte> b)
-        {
-            return this.GetSse(a, b, 4, 4);
+            return GetSse(a, b, 16, 8);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int GetSse(Span<byte> a, Span<byte> b, int w, int h)
+        private static int Vp8Sse4X4(Span<byte> a, Span<byte> b)
+        {
+            return GetSse(a, b, 4, 4);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int GetSse(Span<byte> a, Span<byte> b, int w, int h)
         {
             int count = 0;
             int aOffset = 0;
@@ -1591,7 +1624,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private bool IsFlatSource16(Span<byte> src)
+        private static bool IsFlatSource16(Span<byte> src)
         {
             uint v = src[0] * 0x01010101u;
             Span<byte> vSpan = BitConverter.GetBytes(v).AsSpan();
@@ -1614,7 +1647,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// is around q=75. Internally, our "good" middle is around c=50. So we
         /// map accordingly using linear piece-wise function
         /// </summary>
-        private double QualityToCompression(double c)
+        private static double QualityToCompression(double c)
         {
             double linearC = (c < 0.75) ? c * (2.0d / 3.0d) : (2.0d * c) - 1.0d;
 
@@ -1630,27 +1663,35 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private double GetPsnr(long mse, long size)
+        private static double GetPsnr(long mse, long size)
         {
             return (mse > 0 && size > 0) ? 10.0f * Math.Log10(255.0f * 255.0f * size / mse) : 99;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int QuantDiv(uint n, uint iQ, uint b)
+        private static int QuantDiv(uint n, uint iQ, uint b)
         {
             return (int)(((n * iQ) + b) >> WebPConstants.QFix);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void Store(Span<byte> dst, Span<byte> reference, int x, int y, byte v)
+        private static void Store(Span<byte> dst, Span<byte> reference, int x, int y, byte v)
         {
             dst[x + (y * WebPConstants.Bps)] = LossyUtils.Clip8B(reference[x + (y * WebPConstants.Bps)] + (v >> 3));
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private int Mul(int a, int b)
+        private static int Mul(int a, int b)
         {
             return (a * b) >> 16;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static int GetProba(int a, int b)
+        {
+            int total = a + b;
+            return (total == 0) ? 255 // that's the default probability.
+                : ((255 * a) + (total / 2)) / total;  // rounded proba
         }
     }
 }

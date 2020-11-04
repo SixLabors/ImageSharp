@@ -82,9 +82,11 @@ namespace SixLabors.ImageSharp
 
     internal readonly struct WXYZShuffle4 : IShuffle4
     {
-        private static readonly byte WXYZ = SimdUtils.Shuffle.MmShuffle(2, 1, 0, 3);
-
-        public byte Control => WXYZ;
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(2, 1, 0, 3);
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
@@ -106,9 +108,11 @@ namespace SixLabors.ImageSharp
 
     internal readonly struct WZYXShuffle4 : IShuffle4
     {
-        private static readonly byte WZYX = SimdUtils.Shuffle.MmShuffle(0, 1, 2, 3);
-
-        public byte Control => WZYX;
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(0, 1, 2, 3);
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
@@ -130,9 +134,11 @@ namespace SixLabors.ImageSharp
 
     internal readonly struct YZWXShuffle4 : IShuffle4
     {
-        private static readonly byte YZWX = SimdUtils.Shuffle.MmShuffle(0, 3, 2, 1);
-
-        public byte Control => YZWX;
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(0, 3, 2, 1);
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
@@ -154,9 +160,11 @@ namespace SixLabors.ImageSharp
 
     internal readonly struct ZYXWShuffle4 : IShuffle4
     {
-        private static readonly byte ZYXW = SimdUtils.Shuffle.MmShuffle(3, 0, 1, 2);
-
-        public byte Control => ZYXW;
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(3, 0, 1, 2);
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)

@@ -68,24 +68,26 @@ namespace SixLabors.ImageSharp
             int m = ImageMaths.Modulo4(n);
             int u = n - m;
 
-            ref Byte3 dEnd = ref Unsafe.Add(ref dBase, u);
+            ref uint sLoopEnd = ref Unsafe.Add(ref sBase, u);
+            ref uint sEnd = ref Unsafe.Add(ref sBase, n);
 
-            while (Unsafe.IsAddressLessThan(ref dBase, ref dEnd))
+            while (Unsafe.IsAddressLessThan(ref sBase, ref sLoopEnd))
             {
                 Unsafe.Add(ref dBase, 0) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 0));
                 Unsafe.Add(ref dBase, 1) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 1));
                 Unsafe.Add(ref dBase, 2) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 2));
                 Unsafe.Add(ref dBase, 3) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 3));
-                dBase = ref Unsafe.Add(ref dBase, 4);
+
                 sBase = ref Unsafe.Add(ref sBase, 4);
+                dBase = ref Unsafe.Add(ref dBase, 4);
             }
 
-            if (m > 0)
+            while (Unsafe.IsAddressLessThan(ref sBase, ref sEnd))
             {
-                for (int i = u; i < n; i++)
-                {
-                    Unsafe.Add(ref dBase, i) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, i));
-                }
+                Unsafe.Add(ref dBase, 0) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 0));
+
+                sBase = ref Unsafe.Add(ref sBase, 1);
+                dBase = ref Unsafe.Add(ref dBase, 1);
             }
         }
     }

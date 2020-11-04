@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             SimdUtils.BasicIntrinsics256.NormalizedFloatToByteSaturate(sBytes, dFloats);
         }
 
-        [Benchmark(Baseline = true)]
+        [Benchmark]
         public void ExtendedIntrinsic()
         {
             Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());

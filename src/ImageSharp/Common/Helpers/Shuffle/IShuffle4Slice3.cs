@@ -54,9 +54,11 @@ namespace SixLabors.ImageSharp
 
     internal readonly struct XYZWShuffle4Slice3 : IShuffle4Slice3
     {
-        private static readonly byte XYZW = SimdUtils.Shuffle.MmShuffle(3, 2, 1, 0);
-
-        public byte Control => XYZW;
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(3, 2, 1, 0);
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)

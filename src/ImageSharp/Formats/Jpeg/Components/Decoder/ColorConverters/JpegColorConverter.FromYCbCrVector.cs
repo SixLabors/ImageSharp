@@ -5,36 +5,22 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Tuples;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal sealed class FromYCbCrSimd : JpegColorConverter
+        internal sealed class FromYCbCrVector : VectorizedJpegColorConverter
         {
-            public FromYCbCrSimd(int precision)
-                : base(JpegColorSpace.YCbCr, precision)
+            public FromYCbCrVector(int precision)
+                : base(JpegColorSpace.YCbCr, precision, 8)
             {
             }
 
-            public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
-            {
-                int remainder = result.Length % 8;
-                int simdCount = result.Length - remainder;
-                if (simdCount > 0)
-                {
-                    ConvertCore(values.Slice(0, simdCount), result.Slice(0, simdCount), this.MaximumValue, this.HalfValue);
-                }
+            protected override bool IsAvailable => true;
 
-                FromYCbCrBasic.ConvertCore(values.Slice(simdCount, remainder), result.Slice(simdCount, remainder), this.MaximumValue, this.HalfValue);
-            }
-
-            /// <summary>
-            /// SIMD convert using buffers of sizes divisible by 8.
-            /// </summary>
-            internal static void ConvertCore(in ComponentValues values, Span<Vector4> result, float maxValue, float halfValue)
+            protected override void ConvertCoreVectorized(in ComponentValues values, Span<Vector4> result)
             {
                 DebugGuard.IsTrue(result.Length % 8 == 0, nameof(result), "result.Length should be divisible by 8!");
 
@@ -48,7 +34,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 ref Vector4Octet resultBase =
                     ref Unsafe.As<Vector4, Vector4Octet>(ref MemoryMarshal.GetReference(result));
 
-                var chromaOffset = new Vector4(-halfValue);
+                var chromaOffset = new Vector4(-this.HalfValue);
+                var maxValue = this.MaximumValue;
 
                 // Walking 8 elements at one step:
                 int n = result.Length / 8;
@@ -112,6 +99,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     destination.Pack(ref r, ref g, ref b);
                 }
             }
+
+            protected override void ConvertCore(in ComponentValues values, Span<Vector4> result) =>
+                FromYCbCrBasic.ConvertCore(values, result, this.MaximumValue, this.HalfValue);
         }
     }
 }

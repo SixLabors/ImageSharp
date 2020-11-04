@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tuples;
@@ -17,22 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// <summary>
         /// The available converters
         /// </summary>
-        private static readonly JpegColorConverter[] Converters =
-            {
-                // 8-bit converters
-                GetYCbCrConverter(8),
-                GetYccKConverter(8),
-                GetCmykConverter(8),
-                GetGrayScaleConverter(8),
-                GetRgbConverter(8),
-
-                // 12-bit converters
-                GetYCbCrConverter(12),
-                GetYccKConverter(12),
-                GetCmykConverter(12),
-                GetGrayScaleConverter(12),
-                GetRgbConverter(12),
-            };
+        private static readonly JpegColorConverter[] Converters = CreateConverters();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegColorConverter"/> class.
@@ -44,6 +30,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             this.MaximumValue = MathF.Pow(2, precision) - 1;
             this.HalfValue = MathF.Ceiling(this.MaximumValue / 2);
         }
+
+        /// <summary>
+        /// Gets a value indicating whether this <see cref="JpegColorConverter"/> is available
+        /// on the current runtime and CPU architecture.
+        /// </summary>
+        protected abstract bool IsAvailable { get; }
 
         /// <summary>
         /// Gets the <see cref="JpegColorSpace"/> of this converter.
@@ -89,34 +81,79 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         public abstract void ConvertToRgba(in ComponentValues values, Span<Vector4> result);
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/> for the YCbCr colorspace that matches the current CPU architecture.
+        /// Returns the <see cref="JpegColorConverter"/>s for all supported colorspaces and precisions.
         /// </summary>
-        private static JpegColorConverter GetYCbCrConverter(int precision) =>
-            FromYCbCrSimdVector8.IsAvailable ? (JpegColorConverter)new FromYCbCrSimdVector8(precision) : new FromYCbCrSimd(precision);
+        private static JpegColorConverter[] CreateConverters()
+        {
+            var converters = new List<JpegColorConverter>();
+
+            // 8-bit converters
+            converters.AddRange(GetYCbCrConverters(8));
+            converters.AddRange(GetYccKConverters(8));
+            converters.AddRange(GetCmykConverters(8));
+            converters.AddRange(GetGrayScaleConverters(8));
+            converters.AddRange(GetRgbConverters(8));
+
+            // 8-bit converters
+            converters.AddRange(GetYCbCrConverters(12));
+            converters.AddRange(GetYccKConverters(12));
+            converters.AddRange(GetCmykConverters(12));
+            converters.AddRange(GetGrayScaleConverters(12));
+            converters.AddRange(GetRgbConverters(12));
+
+            return converters.Where(x => x.IsAvailable).ToArray();
+        }
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/> for the YccK colorspace that matches the current CPU architecture.
+        /// Returns the <see cref="JpegColorConverter"/>s for the YCbCr colorspace.
         /// </summary>
-        private static JpegColorConverter GetYccKConverter(int precision) =>
-            FromYccKVector8.IsAvailable ? (JpegColorConverter)new FromYccKVector8(precision) : new FromYccKBasic(precision);
+        private static IEnumerable<JpegColorConverter> GetYCbCrConverters(int precision)
+        {
+            yield return new FromYCbCrAvx2(precision);
+            yield return new FromYCbCrVector8(precision);
+            yield return new FromYCbCrVector(precision);
+            yield return new FromYCbCrBasic(precision);
+        }
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/> for the CMYK colorspace that matches the current CPU architecture.
+        /// Returns the <see cref="JpegColorConverter"/>s for the YccK colorspace.
         /// </summary>
-        private static JpegColorConverter GetCmykConverter(int precision) =>
-            FromCmykVector8.IsAvailable ? (JpegColorConverter)new FromCmykVector8(precision) : new FromCmykBasic(precision);
+        private static IEnumerable<JpegColorConverter> GetYccKConverters(int precision)
+        {
+            yield return new FromYccKAvx2(precision);
+            yield return new FromYccKVector8(precision);
+            yield return new FromYccKBasic(precision);
+        }
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/> for the gray scale colorspace that matches the current CPU architecture.
+        /// Returns the <see cref="JpegColorConverter"/>s for the CMYK colorspace.
         /// </summary>
-        private static JpegColorConverter GetGrayScaleConverter(int precision) =>
-            FromGrayscaleVector8.IsAvailable ? (JpegColorConverter)new FromGrayscaleVector8(precision) : new FromGrayscaleBasic(precision);
+        private static IEnumerable<JpegColorConverter> GetCmykConverters(int precision)
+        {
+            yield return new FromCmykAvx2(precision);
+            yield return new FromCmykVector8(precision);
+            yield return new FromCmykBasic(precision);
+        }
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/> for the RGB colorspace that matches the current CPU architecture.
+        /// Returns the <see cref="JpegColorConverter"/>s for the gray scale colorspace.
         /// </summary>
-        private static JpegColorConverter GetRgbConverter(int precision) =>
-            FromRgbVector8.IsAvailable ? (JpegColorConverter)new FromRgbVector8(precision) : new FromRgbBasic(precision);
+        private static IEnumerable<JpegColorConverter> GetGrayScaleConverters(int precision)
+        {
+            yield return new FromGrayscaleAvx2(precision);
+            yield return new FromGrayscaleVector8(precision);
+            yield return new FromGrayscaleBasic(precision);
+        }
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/>s for the RGB colorspace.
+        /// </summary>
+        private static IEnumerable<JpegColorConverter> GetRgbConverters(int precision)
+        {
+            yield return new FromRgbAvx2(precision);
+            yield return new FromRgbVector8(precision);
+            yield return new FromRgbBasic(precision);
+        }
 
         /// <summary>
         /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.

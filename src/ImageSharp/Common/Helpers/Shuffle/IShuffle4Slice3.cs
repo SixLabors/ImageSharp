@@ -65,9 +65,27 @@ namespace SixLabors.ImageSharp
             ref Byte3 dBase = ref Unsafe.As<byte, Byte3>(ref MemoryMarshal.GetReference(dest));
 
             int n = source.Length / 4;
-            for (int i = 0; i < n; i++)
+            int m = ImageMaths.Modulo4(n);
+            int u = n - m;
+
+            ref Byte3 dEnd = ref Unsafe.Add(ref dBase, u);
+
+            while (Unsafe.IsAddressLessThan(ref dBase, ref dEnd))
             {
-                Unsafe.Add(ref dBase, i) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, i));
+                Unsafe.Add(ref dBase, 0) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 0));
+                Unsafe.Add(ref dBase, 1) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 1));
+                Unsafe.Add(ref dBase, 2) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 2));
+                Unsafe.Add(ref dBase, 3) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 3));
+                dBase = ref Unsafe.Add(ref dBase, 4);
+                sBase = ref Unsafe.Add(ref sBase, 4);
+            }
+
+            if (m > 0)
+            {
+                for (int i = u; i < n; i++)
+                {
+                    Unsafe.Add(ref dBase, i) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, i));
+                }
             }
         }
     }

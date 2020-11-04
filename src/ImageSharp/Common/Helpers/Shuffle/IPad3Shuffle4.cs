@@ -72,29 +72,29 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
         {
-            ref byte rs = ref MemoryMarshal.GetReference(source);
-            ref byte rd = ref MemoryMarshal.GetReference(dest);
+            ref byte sBase = ref MemoryMarshal.GetReference(source);
+            ref byte dBase = ref MemoryMarshal.GetReference(dest);
 
-            ref byte rsEnd = ref Unsafe.Add(ref rs, source.Length);
-            ref byte rsLoopEnd = ref Unsafe.Subtract(ref rsEnd, 4);
+            ref byte sEnd = ref Unsafe.Add(ref sBase, source.Length);
+            ref byte sLoopEnd = ref Unsafe.Subtract(ref sEnd, 4);
 
-            while (Unsafe.IsAddressLessThan(ref rs, ref rsLoopEnd))
+            while (Unsafe.IsAddressLessThan(ref sBase, ref sLoopEnd))
             {
-                Unsafe.As<byte, uint>(ref rd) = Unsafe.As<byte, uint>(ref rs) | 0xFF000000;
+                Unsafe.As<byte, uint>(ref dBase) = Unsafe.As<byte, uint>(ref sBase) | 0xFF000000;
 
-                rs = ref Unsafe.Add(ref rs, 3);
-                rd = ref Unsafe.Add(ref rd, 4);
+                sBase = ref Unsafe.Add(ref sBase, 3);
+                dBase = ref Unsafe.Add(ref dBase, 4);
             }
 
-            while (Unsafe.IsAddressLessThan(ref rs, ref rsEnd))
+            while (Unsafe.IsAddressLessThan(ref sBase, ref sEnd))
             {
-                Unsafe.Add(ref rd, 0) = Unsafe.Add(ref rs, 0);
-                Unsafe.Add(ref rd, 1) = Unsafe.Add(ref rs, 1);
-                Unsafe.Add(ref rd, 2) = Unsafe.Add(ref rs, 2);
-                Unsafe.Add(ref rd, 3) = byte.MaxValue;
+                Unsafe.Add(ref dBase, 0) = Unsafe.Add(ref sBase, 0);
+                Unsafe.Add(ref dBase, 1) = Unsafe.Add(ref sBase, 1);
+                Unsafe.Add(ref dBase, 2) = Unsafe.Add(ref sBase, 2);
+                Unsafe.Add(ref dBase, 3) = byte.MaxValue;
 
-                rs = ref Unsafe.Add(ref rs, 3);
-                rd = ref Unsafe.Add(ref rd, 4);
+                sBase = ref Unsafe.Add(ref sBase, 3);
+                dBase = ref Unsafe.Add(ref dBase, 4);
             }
         }
     }

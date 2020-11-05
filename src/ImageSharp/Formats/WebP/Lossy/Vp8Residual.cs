@@ -71,34 +71,36 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 {
                     this.RecordStats(0, s, 1);
                     s = this.Stats[WebPConstants.Vp8EncBands[n]].Stats[0];
-                    this.RecordStats(1, s, 1);
-                    if (this.RecordStats((v + 1) > 2u ? 1 : 0, s, 2) == 0)
-                    {
-                        // v = -1 or 1
-                        s = this.Stats[WebPConstants.Vp8EncBands[n]].Stats[1];
-                    }
-                    else
-                    {
-                        v = Math.Abs(v);
-                        if (v > MaxVariableLevel)
-                        {
-                            v = MaxVariableLevel;
-                        }
+                }
 
-                        int bits = WebPLookupTables.Vp8LevelCodes[v - 1][1];
-                        int pattern = WebPLookupTables.Vp8LevelCodes[v - 1][0];
-                        int i;
-                        for (i = 0; (pattern >>= 1) != 0; ++i)
-                        {
-                            int mask = 2 << i;
-                            if ((pattern & 1) != 0)
-                            {
-                                this.RecordStats(bits & mask, s, 3 + i);
-                            }
-                        }
-
-                        s = this.Stats[WebPConstants.Vp8EncBands[n]].Stats[2];
+                this.RecordStats(1, s, 1);
+                var bit = 2u < (uint)(v + 1);
+                if (this.RecordStats(bit ? 1 : 0, s, 2) == 0)
+                {
+                    // v = -1 or 1
+                    s = this.Stats[WebPConstants.Vp8EncBands[n]].Stats[1];
+                }
+                else
+                {
+                    v = Math.Abs(v);
+                    if (v > MaxVariableLevel)
+                    {
+                        v = MaxVariableLevel;
                     }
+
+                    int bits = WebPLookupTables.Vp8LevelCodes[v - 1][1];
+                    int pattern = WebPLookupTables.Vp8LevelCodes[v - 1][0];
+                    int i;
+                    for (i = 0; (pattern >>= 1) != 0; ++i)
+                    {
+                        int mask = 2 << i;
+                        if ((pattern & 1) != 0)
+                        {
+                            this.RecordStats((bits & mask) != 0 ? 1 : 0, s, 3 + i);
+                        }
+                    }
+
+                    s = this.Stats[WebPConstants.Vp8EncBands[n]].Stats[2];
                 }
             }
 
@@ -119,7 +121,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 statsArr.Stats[idx] = ((statsArr.Stats[idx] + 1u) >> 1) & 0x7fff7fffu;  // -> divide the stats by 2.
             }
 
-            // record bit count (lower 16 bits) and increment total count (upper 16 bits).
+            // Record bit count (lower 16 bits) and increment total count (upper 16 bits).
             statsArr.Stats[idx] += 0x00010000u + (uint)bit;
 
             return bit;

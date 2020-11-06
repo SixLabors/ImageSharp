@@ -159,7 +159,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         private static IEnumerable<JpegColorConverter> GetRgbConverters(int precision)
         {
+#if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromRgbAvx2(precision);
+#endif
             yield return new FromRgbVector8(precision);
             yield return new FromRgbBasic(precision);
         }

@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Memory;
@@ -21,7 +24,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [GlobalSetup]
         public void Setup()
         {
-            this.input = CreateRandomValues(componentCount, Count);
+            this.input = CreateRandomValues(this.componentCount, Count);
             this.output = new Vector4[Count];
         }
 

@@ -86,6 +86,12 @@ jobs:
               with:
                   flags: unittests
 
+            - name: Store Output Images after failed tests
+              uses: actions/upload-artifact@v2
+              if: ${{ failure() }}
+                name: actual_output_${{ matrix.options.os }}.zip
+                path: tests/Images/ActualOutput/
+
     Publish:
         needs: [Build]
 

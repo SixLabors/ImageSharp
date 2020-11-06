@@ -358,7 +358,6 @@ namespace SixLabors.ImageSharp
                 {
                     ref byte vmaskBase = ref MemoryMarshal.GetReference(ShuffleMaskPad4Nx16);
                     Vector128<byte> vmask = Unsafe.As<byte, Vector128<byte>>(ref vmaskBase);
-                    Vector128<byte> vfill = Vector128.Create(0xff000000ff000000ul).AsByte();
                     ref byte vmaskoBase = ref MemoryMarshal.GetReference(ShuffleMaskSlice4Nx16);
                     Vector128<byte> vmasko = Unsafe.As<byte, Vector128<byte>>(ref vmaskoBase);
                     Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12);
@@ -398,8 +397,12 @@ namespace SixLabors.ImageSharp
                         v3 = Ssse3.Shuffle(v3, vmasko);
 
                         v0 = Ssse3.AlignRight(v1, v0, 4);
-                        v1 = Sse2.Or(Sse2.ShiftRightLogical128BitLane(v1, 4), Sse2.ShiftLeftLogical128BitLane(v2, 4));
-                        v2 = Ssse3.AlignRight(v3, v2, 12);
+                        v3 = Ssse3.AlignRight(v3, v2, 12);
+
+                        v1 = Sse2.ShiftLeftLogical128BitLane(v1, 4);
+                        v2 = Sse2.ShiftRightLogical128BitLane(v2, 4);
+
+                        v1 = Ssse3.AlignRight(v2, v1, 8);
 
                         ref Vector128<byte> vd = ref Unsafe.Add(ref destBase, i);
 
@@ -493,8 +496,12 @@ namespace SixLabors.ImageSharp
                         v3 = Ssse3.Shuffle(Ssse3.Shuffle(v3, vshuffle), vmasko);
 
                         v0 = Ssse3.AlignRight(v1, v0, 4);
-                        v1 = Sse2.Or(Sse2.ShiftRightLogical128BitLane(v1, 4), Sse2.ShiftLeftLogical128BitLane(v2, 4));
-                        v2 = Ssse3.AlignRight(v3, v2, 12);
+                        v3 = Ssse3.AlignRight(v3, v2, 12);
+
+                        v1 = Sse2.ShiftLeftLogical128BitLane(v1, 4);
+                        v2 = Sse2.ShiftRightLogical128BitLane(v2, 4);
+
+                        v1 = Ssse3.AlignRight(v2, v1, 8);
 
                         ref Vector128<byte> vd = ref Unsafe.Add(ref destBase, j);
 

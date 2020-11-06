@@ -20,14 +20,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         }
 
         [Benchmark]
-        public void SimdVector8()
-        {
-            var values = new JpegColorConverter.ComponentValues(this.input, 0);
-
-            new JpegColorConverter.FromGrayscaleVector8(8).ConvertToRgba(values, this.output);
-        }
-
-        [Benchmark]
         public void SimdVectorAvx2()
         {
             var values = new JpegColorConverter.ComponentValues(this.input, 0);

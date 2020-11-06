@@ -13,15 +13,13 @@ using System.Runtime.Intrinsics.X86;
 #endif
 
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Environments;
-using BenchmarkDotNet.Jobs;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.ShortCore31))]
     public abstract class FromVector4<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -32,7 +30,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         protected Configuration Configuration => Configuration.Default;
 
         // [Params(64, 2048)]
-        [Params(1024)]
+        [Params(64, 256, 2048)]
         public int Count { get; set; }
 
         [GlobalSetup]
@@ -60,7 +58,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             }
         }
 
-        [Benchmark]
+        [Benchmark(Baseline = true)]
         public void PixelOperations_Base()
         {
             new PixelOperations<TPixel>().FromVector4Destructive(this.Configuration, this.source.GetSpan(), this.destination.GetSpan());
@@ -93,7 +91,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
             SimdUtils.BasicIntrinsics256.NormalizedFloatToByteSaturate(sBytes, dFloats);
         }
 
-        [Benchmark(Baseline = true)]
+        [Benchmark]
         public void ExtendedIntrinsic()
         {
             Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
@@ -104,12 +102,12 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [Benchmark]
-        public void UseAvx2()
+        public void UseHwIntrinsics()
         {
             Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.source.GetSpan());
             Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.destination.GetSpan());
 
-            SimdUtils.Avx2Intrinsics.NormalizedFloatToByteSaturate(sBytes, dFloats);
+            SimdUtils.HwIntrinsics.NormalizedFloatToByteSaturate(sBytes, dFloats);
         }
 
         private static ReadOnlySpan<byte> PermuteMaskDeinterleave8x32 => new byte[] { 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 2, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0 };

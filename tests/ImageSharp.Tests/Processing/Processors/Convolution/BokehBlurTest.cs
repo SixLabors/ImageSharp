@@ -138,21 +138,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         public void BokehBlurFilterProcessor<TPixel>(TestImageProvider<TPixel> provider, BokehBlurInfo value)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            static void RunTest(string providerDump, string infoDump)
-            {
-                TestImageProvider<TPixel> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
-                BokehBlurInfo value = BasicSerializer.Deserialize<BokehBlurInfo>(infoDump);
-
-                provider.RunValidatingProcessorTest(
-                    x => x.BokehBlur(value.Radius, value.Components, value.Gamma),
-                    testOutputDetails: value.ToString(),
-                    appendPixelTypeToFileName: false);
-            }
-
-            RemoteExecutor
-                .Invoke(RunTest, BasicSerializer.Serialize(provider), BasicSerializer.Serialize(value))
-                .Dispose();
+            provider.RunValidatingProcessorTest(
+                x => x.BokehBlur(value.Radius, value.Components, value.Gamma),
+                testOutputDetails: value.ToString(),
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]
@@ -164,18 +153,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         public void BokehBlurFilterProcessor_WorksWithAllPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            static void RunTest(string providerDump)
-            {
-                TestImageProvider<TPixel> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
-                provider.RunValidatingProcessorTest(
+            provider.RunValidatingProcessorTest(
                     x => x.BokehBlur(8, 2, 3),
                     appendSourceFileOrDescription: false);
-            }
-
-            RemoteExecutor
-                .Invoke(RunTest, BasicSerializer.Serialize(provider))
-                .Dispose();
         }
 
         [Theory]
@@ -183,26 +163,15 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         public void BokehBlurFilterProcessor_Bounded<TPixel>(TestImageProvider<TPixel> provider, BokehBlurInfo value)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            static void RunTest(string providerDump, string infoDump)
-            {
-                TestImageProvider<TPixel> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
-                BokehBlurInfo value = BasicSerializer.Deserialize<BokehBlurInfo>(infoDump);
-
-                provider.RunValidatingProcessorTest(
-                    x =>
-                    {
-                        Size size = x.GetCurrentSize();
-                        var bounds = new Rectangle(10, 10, size.Width / 2, size.Height / 2);
-                        x.BokehBlur(value.Radius, value.Components, value.Gamma, bounds);
-                    },
-                    testOutputDetails: value.ToString(),
-                    appendPixelTypeToFileName: false);
-            }
-
-            RemoteExecutor
-                .Invoke(RunTest, BasicSerializer.Serialize(provider), BasicSerializer.Serialize(value))
-                .Dispose();
+            provider.RunValidatingProcessorTest(
+                x =>
+                {
+                    Size size = x.GetCurrentSize();
+                    var bounds = new Rectangle(10, 10, size.Width / 2, size.Height / 2);
+                    x.BokehBlur(value.Radius, value.Components, value.Gamma, bounds);
+                },
+                testOutputDetails: value.ToString(),
+                appendPixelTypeToFileName: false);
         }
 
         [Theory]

@@ -489,12 +489,8 @@ namespace SixLabors.ImageSharp
                         v3 = Ssse3.Shuffle(Ssse3.Shuffle(v3, vshuffle), vmasko);
 
                         v0 = Ssse3.AlignRight(v1, v0, 4);
-                        v3 = Ssse3.AlignRight(v3, v2, 12);
-
-                        v1 = Sse2.ShiftLeftLogical128BitLane(v1, 4);
-                        v2 = Sse2.ShiftRightLogical128BitLane(v2, 4);
-
-                        v1 = Ssse3.AlignRight(v2, v1, 8);
+                        v1 = Sse2.Or(Sse2.ShiftRightLogical128BitLane(v1, 4), Sse2.ShiftLeftLogical128BitLane(v2, 4));
+                        v2 = Ssse3.AlignRight(v3, v2, 12);
 
                         ref Vector128<byte> vd = ref Unsafe.Add(ref destBase, j);
 

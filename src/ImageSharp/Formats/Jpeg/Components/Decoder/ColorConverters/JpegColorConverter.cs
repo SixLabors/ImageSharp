@@ -141,7 +141,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         private static IEnumerable<JpegColorConverter> GetGrayScaleConverters(int precision)
         {
             yield return new FromGrayscaleAvx2(precision);
-            yield return new FromGrayscaleVector8(precision);
             yield return new FromGrayscaleBasic(precision);
         }
 

@@ -186,24 +186,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromGrayscaleVector8(int inputBufferLength, int resultBufferLength, int seed)
-        {
-            if (!SimdUtils.HasVector8)
-            {
-                this.Output.WriteLine("No AVX2 present, skipping test!");
-                return;
-            }
-
-            ValidateConversion(
-                new JpegColorConverter.FromGrayscaleVector8(8),
-                1,
-                inputBufferLength,
-                resultBufferLength,
-                seed);
-        }
-
-        [Theory]
-        [MemberData(nameof(CommonConversionData))]
         public void FromGrayscaleAvx2(int inputBufferLength, int resultBufferLength, int seed)
         {
             if (!SimdUtils.HasAvx2)

@@ -535,7 +535,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             static void RunTest(string serialized)
             {
                 TestImageProvider<Rgba32> provider =
-                    FeatureTestRunner.Deserialize<TestImageProvider<Rgba32>>(serialized);
+                    FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(serialized);
 
                 foreach (PngInterlaceMode interlaceMode in InterlaceMode)
                 {
@@ -554,6 +554,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 RunTest,
                 HwIntrinsics.DisableSSSE3,
                 provider);
+        }
+
+        [Fact]
+        public void EncodeFixesInvalidOptions()
+        {
+            // https://github.com/SixLabors/ImageSharp/issues/935
+            using var ms = new MemoryStream();
+            var testFile = TestFile.Create(TestImages.Png.Issue935);
+            using Image<Rgba32> image = testFile.CreateRgba32Image(new PngDecoder());
+
+            image.Save(ms, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
         }
 
         private static void TestPngEncoderCore<TPixel>(

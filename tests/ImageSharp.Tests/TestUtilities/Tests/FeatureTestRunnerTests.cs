@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
             static void AssertHwIntrinsicsFeatureDisabled(string serializable)
             {
                 Assert.NotNull(serializable);
-                Assert.NotNull(FeatureTestRunner.Deserialize<FakeSerializable>(serializable));
+                Assert.NotNull(FeatureTestRunner.DeserializeForXunit<FakeSerializable>(serializable));
 
 #if SUPPORTS_RUNTIME_INTRINSICS
                 Assert.False(Sse.IsSupported);
@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
             static void AssertHwIntrinsicsFeatureDisabled(string serializable, string intrinsic)
             {
                 Assert.NotNull(serializable);
-                Assert.NotNull(FeatureTestRunner.Deserialize<FakeSerializable>(serializable));
+                Assert.NotNull(FeatureTestRunner.DeserializeForXunit<FakeSerializable>(serializable));
 
                 switch ((HwIntrinsics)Enum.Parse(typeof(HwIntrinsics), intrinsic))
                 {

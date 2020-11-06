@@ -133,6 +133,12 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Calculates <paramref name="x"/> % 2
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int Modulo2(int x) => x & 1;
+
+        /// <summary>
         /// Calculates <paramref name="x"/> % 4
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]

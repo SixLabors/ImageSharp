@@ -170,7 +170,10 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             string testProjectConfigPath = TestAssemblyFile.FullName + ".config";
-            File.Copy(testProjectConfigPath, remoteExecutorConfigPath);
+            if (File.Exists(testProjectConfigPath))
+            {
+                File.Copy(testProjectConfigPath, remoteExecutorConfigPath);
+            }
 
             if (Is64BitProcess)
             {

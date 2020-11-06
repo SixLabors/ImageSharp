@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Common
 {
-    public class SimdUtilsTests
+    public partial class SimdUtilsTests
     {
         private ITestOutputHelper Output { get; }
 
@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.Tests.Common
 
         public static readonly TheoryData<int> ArraySizesDivisibleBy8 = new TheoryData<int> { 0, 8, 16, 1024 };
         public static readonly TheoryData<int> ArraySizesDivisibleBy4 = new TheoryData<int> { 0, 4, 8, 28, 1020 };
-
+        public static readonly TheoryData<int> ArraySizesDivisibleBy3 = new TheoryData<int> { 0, 3, 9, 36, 957 };
         public static readonly TheoryData<int> ArraySizesDivisibleBy32 = new TheoryData<int> { 0, 32, 512 };
 
         public static readonly TheoryData<int> ArbitraryArraySizes =
@@ -212,14 +212,14 @@ namespace SixLabors.ImageSharp.Tests.Common
             static void RunTest(string serialized)
             {
                 TestImpl_BulkConvertByteToNormalizedFloat(
-                    FeatureTestRunner.Deserialize(serialized),
+                    FeatureTestRunner.Deserialize<int>(serialized),
                     (s, d) => SimdUtils.HwIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
             }
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41,
-                count);
+                count,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41);
         }
 #endif
 
@@ -305,14 +305,14 @@ namespace SixLabors.ImageSharp.Tests.Common
             static void RunTest(string serialized)
             {
                 TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
-                    FeatureTestRunner.Deserialize(serialized),
+                    FeatureTestRunner.Deserialize<int>(serialized),
                     (s, d) => SimdUtils.HwIntrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
             }
 
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2,
-                count);
+                count,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
         }
 
 #endif

@@ -54,10 +54,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         [Theory]
         [MemberData(nameof(CommonConversionData))]
-        public void FromYCbCrVector(int inputBufferLength, int resultBufferLength, int seed)
+        public void FromYCbCrVector4(int inputBufferLength, int resultBufferLength, int seed)
         {
+            if (!SimdUtils.HasVector4)
+            {
+                this.Output.WriteLine("No SSE present, skipping test!");
+                return;
+            }
+
             ValidateConversion(
-                new JpegColorConverter.FromYCbCrVector(8),
+                new JpegColorConverter.FromYCbCrVector4(8),
                 3,
                 inputBufferLength,
                 resultBufferLength,
@@ -346,7 +352,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             JpegColorConverter.ComponentValues values = CreateRandomValues(3, count, 1);
             var result = new Vector4[count];
 
-            JpegColorConverter converter = simd ? (JpegColorConverter)new JpegColorConverter.FromYCbCrVector(8) : new JpegColorConverter.FromYCbCrBasic(8);
+            JpegColorConverter converter = simd ? (JpegColorConverter)new JpegColorConverter.FromYCbCrVector4(8) : new JpegColorConverter.FromYCbCrBasic(8);
 
             // Warm up:
             converter.ConvertToRgba(values, result);

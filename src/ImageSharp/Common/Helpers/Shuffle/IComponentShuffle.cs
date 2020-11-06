@@ -6,6 +6,9 @@ using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+// The JIT can detect and optimize rotation idioms ROTL (Rotate Left)
+// and ROTR (Rotate Right) emitting efficient CPU instructions:
+// https://github.com/dotnet/coreclr/pull/1830
 namespace SixLabors.ImageSharp
 {
     /// <summary>
@@ -28,14 +31,31 @@ namespace SixLabors.ImageSharp
         void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest);
     }
 
-    internal readonly struct DefaultShuffle4 : IComponentShuffle
+    /// <inheritdoc/>
+    internal interface IShuffle4 : IComponentShuffle
     {
-        public DefaultShuffle4(byte p3, byte p2, byte p1, byte p0)
-            : this(SimdUtils.Shuffle.MmShuffle(p3, p2, p1, p0))
-        {
-        }
+    }
 
-        public DefaultShuffle4(byte control) => this.Control = control;
+    internal readonly struct DefaultShuffle4 : IShuffle4
+    {
+        private readonly byte p3;
+        private readonly byte p2;
+        private readonly byte p1;
+        private readonly byte p0;
+
+        public DefaultShuffle4(byte p3, byte p2, byte p1, byte p0)
+        {
+            DebugGuard.MustBeBetweenOrEqualTo<byte>(p3, 0, 3, nameof(p3));
+            DebugGuard.MustBeBetweenOrEqualTo<byte>(p2, 0, 3, nameof(p2));
+            DebugGuard.MustBeBetweenOrEqualTo<byte>(p1, 0, 3, nameof(p1));
+            DebugGuard.MustBeBetweenOrEqualTo<byte>(p0, 0, 3, nameof(p0));
+
+            this.p3 = p3;
+            this.p2 = p2;
+            this.p1 = p1;
+            this.p0 = p0;
+            this.Control = SimdUtils.Shuffle.MmShuffle(p3, p2, p1, p0);
+        }
 
         public byte Control { get; }
 
@@ -44,12 +64,11 @@ namespace SixLabors.ImageSharp
         {
             ref byte sBase = ref MemoryMarshal.GetReference(source);
             ref byte dBase = ref MemoryMarshal.GetReference(dest);
-            SimdUtils.Shuffle.InverseMmShuffle(
-                this.Control,
-                out int p3,
-                out int p2,
-                out int p1,
-                out int p0);
+
+            int p3 = this.p3;
+            int p2 = this.p2;
+            int p1 = this.p1;
+            int p0 = this.p0;
 
             for (int i = 0; i < source.Length; i += 4)
             {
@@ -61,22 +80,22 @@ namespace SixLabors.ImageSharp
         }
     }
 
-    internal readonly struct WXYZShuffle4 : IComponentShuffle
+    internal readonly struct WXYZShuffle4 : IShuffle4
     {
-        public byte Control => SimdUtils.Shuffle.MmShuffle(2, 1, 0, 3);
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(2, 1, 0, 3);
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
         {
-            ReadOnlySpan<uint> s = MemoryMarshal.Cast<byte, uint>(source);
-            Span<uint> d = MemoryMarshal.Cast<byte, uint>(dest);
-            ref uint sBase = ref MemoryMarshal.GetReference(s);
-            ref uint dBase = ref MemoryMarshal.GetReference(d);
+            ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
+            ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+            int n = source.Length / 4;
 
-            // The JIT can detect and optimize rotation idioms ROTL (Rotate Left)
-            // and ROTR (Rotate Right) emitting efficient CPU instructions:
-            // https://github.com/dotnet/coreclr/pull/1830
-            for (int i = 0; i < s.Length; i++)
+            for (int i = 0; i < n; i++)
             {
                 uint packed = Unsafe.Add(ref sBase, i);
 
@@ -87,19 +106,22 @@ namespace SixLabors.ImageSharp
         }
     }
 
-    internal readonly struct WZYXShuffle4 : IComponentShuffle
+    internal readonly struct WZYXShuffle4 : IShuffle4
     {
-        public byte Control => SimdUtils.Shuffle.MmShuffle(0, 1, 2, 3);
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(0, 1, 2, 3);
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
         {
-            ReadOnlySpan<uint> s = MemoryMarshal.Cast<byte, uint>(source);
-            Span<uint> d = MemoryMarshal.Cast<byte, uint>(dest);
-            ref uint sBase = ref MemoryMarshal.GetReference(s);
-            ref uint dBase = ref MemoryMarshal.GetReference(d);
+            ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
+            ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+            int n = source.Length / 4;
 
-            for (int i = 0; i < s.Length; i++)
+            for (int i = 0; i < n; i++)
             {
                 uint packed = Unsafe.Add(ref sBase, i);
 
@@ -110,19 +132,22 @@ namespace SixLabors.ImageSharp
         }
     }
 
-    internal readonly struct YZWXShuffle4 : IComponentShuffle
+    internal readonly struct YZWXShuffle4 : IShuffle4
     {
-        public byte Control => SimdUtils.Shuffle.MmShuffle(0, 3, 2, 1);
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(0, 3, 2, 1);
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
         {
-            ReadOnlySpan<uint> s = MemoryMarshal.Cast<byte, uint>(source);
-            Span<uint> d = MemoryMarshal.Cast<byte, uint>(dest);
-            ref uint sBase = ref MemoryMarshal.GetReference(s);
-            ref uint dBase = ref MemoryMarshal.GetReference(d);
+            ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
+            ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+            int n = source.Length / 4;
 
-            for (int i = 0; i < s.Length; i++)
+            for (int i = 0; i < n; i++)
             {
                 uint packed = Unsafe.Add(ref sBase, i);
 
@@ -133,19 +158,22 @@ namespace SixLabors.ImageSharp
         }
     }
 
-    internal readonly struct ZYXWShuffle4 : IComponentShuffle
+    internal readonly struct ZYXWShuffle4 : IShuffle4
     {
-        public byte Control => SimdUtils.Shuffle.MmShuffle(3, 0, 1, 2);
+        public byte Control
+        {
+            [MethodImpl(InliningOptions.ShortMethod)]
+            get => SimdUtils.Shuffle.MmShuffle(3, 0, 1, 2);
+        }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
         {
-            ReadOnlySpan<uint> s = MemoryMarshal.Cast<byte, uint>(source);
-            Span<uint> d = MemoryMarshal.Cast<byte, uint>(dest);
-            ref uint sBase = ref MemoryMarshal.GetReference(s);
-            ref uint dBase = ref MemoryMarshal.GetReference(d);
+            ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
+            ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(dest));
+            int n = source.Length / 4;
 
-            for (int i = 0; i < s.Length; i++)
+            for (int i = 0; i < n; i++)
             {
                 uint packed = Unsafe.Add(ref sBase, i);
 

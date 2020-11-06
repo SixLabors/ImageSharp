@@ -18,6 +18,10 @@ namespace SixLabors.ImageSharp
 
             public static ReadOnlySpan<byte> PermuteMaskEvenOdd8x32 => new byte[] { 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 7, 0, 0, 0 };
 
+            private static ReadOnlySpan<byte> ShuffleMaskPad4Nx16 => new byte[] { 0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80 };
+
+            private static ReadOnlySpan<byte> ShuffleMaskSlice4Nx16 => new byte[] { 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80 };
+
             /// <summary>
             /// Shuffle single-precision (32-bit) floating-point elements in <paramref name="source"/>
             /// using the control and store the results in <paramref name="dest"/>.
@@ -352,10 +356,12 @@ namespace SixLabors.ImageSharp
             {
                 if (Ssse3.IsSupported)
                 {
-                    Vector128<byte> vmask = Vector128.Create(0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80).AsByte();
+                    ref byte vmaskBase = ref MemoryMarshal.GetReference(ShuffleMaskPad4Nx16);
+                    Vector128<byte> vmask = Unsafe.As<byte, Vector128<byte>>(ref vmaskBase);
                     Vector128<byte> vfill = Vector128.Create(0xff000000ff000000ul).AsByte();
-                    Vector128<byte> vmasko = Vector128.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15).AsByte();
-                    Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12).AsByte();
+                    ref byte vmaskoBase = ref MemoryMarshal.GetReference(ShuffleMaskSlice4Nx16);
+                    Vector128<byte> vmasko = Unsafe.As<byte, Vector128<byte>>(ref vmaskoBase);
+                    Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12);
 
                     Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
                     Shuffle.MmShuffleSpan(ref bytes, control);
@@ -381,10 +387,10 @@ namespace SixLabors.ImageSharp
                         v2 = Ssse3.AlignRight(v2, v1, 8);
                         v1 = Ssse3.AlignRight(v1, v0, 12);
 
-                        v0 = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v0, vmask), vfill), vshuffle);
-                        v1 = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v1, vmask), vfill), vshuffle);
-                        v2 = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v2, vmask), vfill), vshuffle);
-                        v3 = Ssse3.Shuffle(Sse2.Or(Ssse3.Shuffle(v3, vmask), vfill), vshuffle);
+                        v0 = Ssse3.Shuffle(Ssse3.Shuffle(v0, vmask), vshuffle);
+                        v1 = Ssse3.Shuffle(Ssse3.Shuffle(v1, vmask), vshuffle);
+                        v2 = Ssse3.Shuffle(Ssse3.Shuffle(v2, vmask), vshuffle);
+                        v3 = Ssse3.Shuffle(Ssse3.Shuffle(v3, vmask), vshuffle);
 
                         v0 = Ssse3.Shuffle(v0, vmaske);
                         v1 = Ssse3.Shuffle(v1, vmasko);
@@ -392,12 +398,8 @@ namespace SixLabors.ImageSharp
                         v3 = Ssse3.Shuffle(v3, vmasko);
 
                         v0 = Ssse3.AlignRight(v1, v0, 4);
-                        v3 = Ssse3.AlignRight(v3, v2, 12);
-
-                        v1 = Sse2.ShiftLeftLogical128BitLane(v1, 4);
-                        v2 = Sse2.ShiftRightLogical128BitLane(v2, 4);
-
-                        v1 = Ssse3.AlignRight(v2, v1, 8);
+                        v1 = Sse2.Or(Sse2.ShiftRightLogical128BitLane(v1, 4), Sse2.ShiftLeftLogical128BitLane(v2, 4));
+                        v2 = Ssse3.AlignRight(v3, v2, 12);
 
                         ref Vector128<byte> vd = ref Unsafe.Add(ref destBase, i);
 
@@ -416,7 +418,8 @@ namespace SixLabors.ImageSharp
             {
                 if (Ssse3.IsSupported)
                 {
-                    Vector128<byte> vmask = Vector128.Create(0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80).AsByte();
+                    ref byte vmaskBase = ref MemoryMarshal.GetReference(ShuffleMaskPad4Nx16);
+                    Vector128<byte> vmask = Unsafe.As<byte, Vector128<byte>>(ref vmaskBase);
                     Vector128<byte> vfill = Vector128.Create(0xff000000ff000000ul).AsByte();
 
                     Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
@@ -459,8 +462,9 @@ namespace SixLabors.ImageSharp
             {
                 if (Ssse3.IsSupported)
                 {
-                    Vector128<byte> vmasko = Vector128.Create(0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15).AsByte();
-                    Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12).AsByte();
+                    ref byte vmaskoBase = ref MemoryMarshal.GetReference(ShuffleMaskSlice4Nx16);
+                    Vector128<byte> vmasko = Unsafe.As<byte, Vector128<byte>>(ref vmaskoBase);
+                    Vector128<byte> vmaske = Ssse3.AlignRight(vmasko, vmasko, 12);
 
                     Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
                     Shuffle.MmShuffleSpan(ref bytes, control);

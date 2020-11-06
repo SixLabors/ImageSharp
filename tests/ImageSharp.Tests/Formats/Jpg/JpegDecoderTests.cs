@@ -141,17 +141,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestEnvironment.InputImagesDirectoryFullPath,
                 fileName);
 
-            var cts = new CancellationTokenSource();
-            if (cancellationDelayMs == 0)
+            const int NumberOfRuns = 5;
+
+            for (int i = 0; i < NumberOfRuns; i++)
             {
-                cts.Cancel();
-            }
-            else
-            {
-                cts.CancelAfter(cancellationDelayMs);
+                var cts = new CancellationTokenSource();
+                if (cancellationDelayMs == 0)
+                {
+                    cts.Cancel();
+                }
+                else
+                {
+                    cts.CancelAfter(cancellationDelayMs);
+                }
+
+                try
+                {
+                    using var image = await Image.LoadAsync(hugeFile, cts.Token);
+                }
+                catch (TaskCanceledException)
+                {
+                    // Succesfully observed a cancellation
+                    return;
+                }
             }
 
-            await Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync(hugeFile, cts.Token));
+            throw new Exception($"No cancellation happened out of {NumberOfRuns} runs!");
         }
 
         [Theory(Skip = "Identify is too fast, doesn't work reliably.")]

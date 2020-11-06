@@ -62,8 +62,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         public static JpegColorConverter GetConverter(JpegColorSpace colorSpace, int precision)
         {
-            JpegColorConverter converter = Array.Find(Converters, c => c.ColorSpace == colorSpace
-                                                                    && c.Precision == precision);
+            JpegColorConverter converter = Array.Find(
+                Converters,
+                c => c.ColorSpace == colorSpace
+                && c.Precision == precision);
 
             if (converter is null)
             {
@@ -94,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             converters.AddRange(GetGrayScaleConverters(8));
             converters.AddRange(GetRgbConverters(8));
 
-            // 8-bit converters
+            // 12-bit converters
             converters.AddRange(GetYCbCrConverters(12));
             converters.AddRange(GetYccKConverters(12));
             converters.AddRange(GetCmykConverters(12));
@@ -109,9 +111,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         private static IEnumerable<JpegColorConverter> GetYCbCrConverters(int precision)
         {
+#if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromYCbCrAvx2(precision);
+#endif
             yield return new FromYCbCrVector8(precision);
-            yield return new FromYCbCrVector(precision);
+            yield return new FromYCbCrVector4(precision);
             yield return new FromYCbCrBasic(precision);
         }
 
@@ -120,7 +124,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         private static IEnumerable<JpegColorConverter> GetYccKConverters(int precision)
         {
+#if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromYccKAvx2(precision);
+#endif
             yield return new FromYccKVector8(precision);
             yield return new FromYccKBasic(precision);
         }
@@ -130,7 +136,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         private static IEnumerable<JpegColorConverter> GetCmykConverters(int precision)
         {
+#if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromCmykAvx2(precision);
+#endif
             yield return new FromCmykVector8(precision);
             yield return new FromCmykBasic(precision);
         }
@@ -140,7 +148,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         private static IEnumerable<JpegColorConverter> GetGrayScaleConverters(int precision)
         {
+#if SUPPORTS_RUNTIME_INTRINSICS
             yield return new FromGrayscaleAvx2(precision);
+#endif
             yield return new FromGrayscaleBasic(precision);
         }
 

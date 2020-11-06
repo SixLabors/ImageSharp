@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             var values = new JpegColorConverter.ComponentValues(this.input, 0);
 
-            new JpegColorConverter.FromYCbCrVector(8).ConvertToRgba(values, this.output);
+            new JpegColorConverter.FromYCbCrVector4(8).ConvertToRgba(values, this.output);
         }
 
         [Benchmark]

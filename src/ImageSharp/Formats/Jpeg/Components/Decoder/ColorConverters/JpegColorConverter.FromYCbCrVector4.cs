@@ -11,14 +11,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal sealed class FromYCbCrVector : VectorizedJpegColorConverter
+        internal sealed class FromYCbCrVector4 : VectorizedJpegColorConverter
         {
-            public FromYCbCrVector(int precision)
+            public FromYCbCrVector4(int precision)
                 : base(JpegColorSpace.YCbCr, precision, 8)
             {
             }
 
-            protected override bool IsAvailable => true;
+            protected override bool IsAvailable => SimdUtils.HasVector4;
 
             protected override void ConvertCoreVectorized(in ComponentValues values, Span<Vector4> result)
             {
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     tmp.MultiplyInplace(1.772F);
                     b.AddInplace(ref tmp);
 
-                    if (Vector<float>.Count == 4)
+                    if (SimdUtils.HasVector4)
                     {
                         // TODO: Find a way to properly run & test this path on AVX2 PC-s! (Have I already mentioned that Vector<T> is terrible?)
                         r.RoundAndDownscalePreVector8(maxValue);

@@ -79,8 +79,9 @@ namespace SixLabors.ImageSharp
         internal static void ByteToNormalizedFloat(ReadOnlySpan<byte> source, Span<float> dest)
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
-
-#if SUPPORTS_EXTENDED_INTRINSICS
+#if SUPPORTS_RUNTIME_INTRINSICS
+            HwIntrinsics.ByteToNormalizedFloatReduce(ref source, ref dest);
+#elif SUPPORTS_EXTENDED_INTRINSICS
             ExtendedIntrinsics.ByteToNormalizedFloatReduce(ref source, ref dest);
 #else
             BasicIntrinsics256.ByteToNormalizedFloatReduce(ref source, ref dest);
@@ -110,7 +111,7 @@ namespace SixLabors.ImageSharp
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-            Avx2Intrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
+            HwIntrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
 #elif SUPPORTS_EXTENDED_INTRINSICS
             ExtendedIntrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref dest);
 #else

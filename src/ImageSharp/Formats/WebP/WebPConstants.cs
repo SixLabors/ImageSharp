@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Signature which identifies a VP8 header.
         /// </summary>
-        public static readonly byte[] Vp8MagicBytes =
+        public static readonly byte[] Vp8HeaderMagicBytes =
         {
             0x9D,
             0x01,
@@ -33,10 +33,21 @@ namespace SixLabors.ImageSharp.Formats.WebP
         /// <summary>
         /// Signature byte which identifies a VP8L header.
         /// </summary>
-        public const byte Vp8LMagicByte = 0x2F;
+        public const byte Vp8LHeaderMagicByte = 0x2F;
 
         /// <summary>
-        /// Header bytes identifying a lossless image.
+        /// Signature bytes identifying a lossy image.
+        /// </summary>
+        public static readonly byte[] Vp8MagicBytes =
+        {
+            0x56, // V
+            0x50, // P
+            0x38, // 8
+            0x20 // ' '
+        };
+
+        /// <summary>
+        /// Signature bytes identifying a lossless image.
         /// </summary>
         public static readonly byte[] Vp8LMagicBytes =
         {
@@ -250,6 +261,14 @@ namespace SixLabors.ImageSharp.Formats.WebP
         public const int QuantEncMinDqUv = -4;
 
         public const int QFix = 17;
+
+        public const int MaxDelzaSize = 64;
+
+        /// <summary>
+        /// Very small filter-strength values have close to no visual effect. So we can
+        /// save a little decoding-CPU by turning filtering off for these.
+        /// </summary>
+        public const int FilterStrengthCutoff = 2;
 
         /// <summary>
         /// Max size of mode partition.

@@ -53,6 +53,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the filtering type is: 0=complex, 1=simple.
+        /// </summary>
+        public bool Simple { get; set; }
+
+        /// <summary>
+        /// Gets or sets delta filter level for i4x4 relative to i16x16.
+        /// </summary>
+        public int I4x4LfDelta { get; set; }
+
         public bool UseLfDelta { get; set; }
 
         public int[] RefLfDelta { get; }

@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers.Binary;
+using System.IO;
 using SixLabors.ImageSharp.Formats.WebP.Lossless;
 
 namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
@@ -124,6 +125,33 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             }
 
             this.used = 0;
+        }
+
+        /// <inheritdoc/>
+        public override void WriteEncodedImageToStream(Stream stream)
+        {
+            Span<byte> buffer = stackalloc byte[4];
+
+            this.Finish();
+            uint size = (uint)this.NumBytes();
+            size++; // One byte extra for the VP8L signature.
+
+            // Write RIFF header.
+            uint pad = size & 1;
+            uint riffSize = WebPConstants.TagSize + WebPConstants.ChunkHeaderSize + size + pad;
+            this.WriteRiffHeader(stream, riffSize);
+            stream.Write(WebPConstants.Vp8LMagicBytes);
+
+            // Write Vp8 Header.
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer, size);
+            stream.Write(buffer);
+            stream.WriteByte(WebPConstants.Vp8LHeaderMagicByte);
+
+            this.WriteToStream(stream);
+            if (pad == 1)
+            {
+                stream.WriteByte(0);
+            }
         }
 
         /// <summary>

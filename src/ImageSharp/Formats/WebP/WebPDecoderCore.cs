@@ -307,7 +307,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // Check for VP8 magic bytes.
             this.currentStream.Read(this.buffer, 0, 3);
-            if (!this.buffer.AsSpan().Slice(0, 3).SequenceEqual(WebPConstants.Vp8MagicBytes))
+            if (!this.buffer.AsSpan().Slice(0, 3).SequenceEqual(WebPConstants.Vp8HeaderMagicBytes))
             {
                 WebPThrowHelper.ThrowImageFormatException("VP8 magic bytes not found");
             }
@@ -341,8 +341,10 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 this.currentStream,
                 remaining,
                 this.memoryAllocator,
-                partitionLength);
-            bitReader.Remaining = remaining;
+                partitionLength)
+            {
+                Remaining = remaining
+            };
 
             return new WebPImageInfo()
             {
@@ -375,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
 
             // One byte signature, should be 0x2f.
             uint signature = bitReader.ReadValue(8);
-            if (signature != WebPConstants.Vp8LMagicByte)
+            if (signature != WebPConstants.Vp8LHeaderMagicByte)
             {
                 WebPThrowHelper.ThrowImageFormatException("Invalid VP8L signature");
             }

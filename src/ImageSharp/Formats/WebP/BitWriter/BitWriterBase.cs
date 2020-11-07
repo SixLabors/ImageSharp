@@ -61,6 +61,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         /// </summary>
         public abstract void Finish();
 
+        /// <summary>
+        /// Writes the encoded image to the stream.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        public abstract void WriteEncodedImageToStream(Stream stream);
+
         protected bool ResizeBuffer(int maxBytes, int sizeRequired)
         {
             if (maxBytes > 0 && sizeRequired < maxBytes)
@@ -84,58 +90,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         }
 
         /// <summary>
-        /// Writes the encoded image to the stream.
-        /// </summary>
-        /// <param name="lossy">If true, lossy tag will be written, otherwise a lossless tag.</param>
-        /// <param name="stream">The stream to write to.</param>
-        public void WriteEncodedImageToStream(bool lossy, Stream stream)
-        {
-            this.Finish();
-            var numBytes = this.NumBytes();
-            var size = numBytes;
-            if (!lossy)
-            {
-                size++; // One byte extra for the VP8L signature.
-            }
-
-            var pad = size & 1;
-            var riffSize = WebPConstants.TagSize + WebPConstants.ChunkHeaderSize + size + pad;
-            this.WriteRiffHeader(riffSize, size, lossy, stream);
-            this.WriteToStream(stream);
-            if (pad == 1)
-            {
-                stream.WriteByte(0);
-            }
-        }
-
-        /// <summary>
         /// Writes the RIFF header to the stream.
         /// </summary>
-        /// <param name="riffSize">The block length.</param>
-        /// <param name="size">The size in bytes of the encoded image.</param>
-        /// <param name="lossy">If true, lossy tag will be written, otherwise a lossless tag.</param>
         /// <param name="stream">The stream to write to.</param>
-        private void WriteRiffHeader(int riffSize, int size, bool lossy, Stream stream)
+        /// <param name="riffSize">The block length.</param>
+        protected void WriteRiffHeader(Stream stream, uint riffSize)
         {
             Span<byte> buffer = stackalloc byte[4];
 
             stream.Write(WebPConstants.RiffFourCc);
-            BinaryPrimitives.WriteUInt32LittleEndian(buffer, (uint)riffSize);
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer, riffSize);
             stream.Write(buffer);
             stream.Write(WebPConstants.WebPHeader);
-
-            if (lossy)
-            {
-                stream.Write(WebPConstants.Vp8MagicBytes);
-            }
-            else
-            {
-                stream.Write(WebPConstants.Vp8LMagicBytes);
-            }
-
-            BinaryPrimitives.WriteUInt32LittleEndian(buffer, (uint)size);
-            stream.Write(buffer);
-            stream.WriteByte(WebPConstants.Vp8LMagicByte);
         }
     }
 }

@@ -10,16 +10,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal sealed class FromGrayscale : JpegColorConverter
+        internal sealed class FromGrayscaleBasic : BasicJpegColorConverter
         {
-            public FromGrayscale(int precision)
+            public FromGrayscaleBasic(int precision)
                 : base(JpegColorSpace.Grayscale, precision)
             {
             }
 
             public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
             {
-                var maximum = 1 / this.MaximumValue;
+                ConvertCore(values, result, this.MaximumValue);
+            }
+
+            internal static void ConvertCore(in ComponentValues values, Span<Vector4> result, float maxValue)
+            {
+                var maximum = 1 / maxValue;
                 var scale = new Vector4(maximum, maximum, maximum, 1F);
 
                 ref float sBase = ref MemoryMarshal.GetReference(values.Component0);

@@ -42,16 +42,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 int n = result.Length / 8;
                 for (int i = 0; i < n; i++)
                 {
-                    Vector256<float> g = Avx2.PermuteVar8x32(Unsafe.Add(ref gBase, i), vcontrol);
+                    Vector256<float> g = Avx.Multiply(Unsafe.Add(ref gBase, i), scale);
 
-                    g = Avx.Multiply(g, scale);
+                    g = Avx2.PermuteVar8x32(g, vcontrol);
 
                     ref Vector256<float> destination = ref Unsafe.Add(ref resultBase, i * 4);
 
                     destination = Avx.Blend(Avx.Permute(g, 0b00_00_00_00), one, 0b1000_1000);
-                    Unsafe.Add(ref destination, 1) = Avx.Blend(Avx.Permute(g, 0b01_01_01_01), one, 0b1000_1000);
-                    Unsafe.Add(ref destination, 2) = Avx.Blend(Avx.Permute(g, 0b10_10_10_10), one, 0b1000_1000);
-                    Unsafe.Add(ref destination, 3) = Avx.Blend(Avx.Permute(g, 0b11_11_11_11), one, 0b1000_1000);
+                    Unsafe.Add(ref destination, 1) = Avx.Blend(Avx.Shuffle(g, g, 0b01_01_01_01), one, 0b1000_1000);
+                    Unsafe.Add(ref destination, 2) = Avx.Blend(Avx.Shuffle(g, g, 0b10_10_10_10), one, 0b1000_1000);
+                    Unsafe.Add(ref destination, 3) = Avx.Blend(Avx.Shuffle(g, g, 0b11_11_11_11), one, 0b1000_1000);
                 }
 #endif
             }

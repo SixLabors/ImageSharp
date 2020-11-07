@@ -22,6 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 
             protected override void ConvertCoreVectorized(in ComponentValues values, Span<Vector4> result)
             {
+                // TODO: Find a way to properly run & test this path on AVX2 PC-s! (Have I already mentioned that Vector<T> is terrible?)
                 DebugGuard.IsTrue(result.Length % 8 == 0, nameof(result), "result.Length should be divisible by 8!");
 
                 ref Vector4Pair yBase =
@@ -74,25 +75,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     tmp.MultiplyInplace(1.772F);
                     b.AddInplace(ref tmp);
 
-                    if (SimdUtils.HasVector4)
-                    {
-                        // TODO: Find a way to properly run & test this path on AVX2 PC-s! (Have I already mentioned that Vector<T> is terrible?)
-                        r.RoundAndDownscalePreVector8(maxValue);
-                        g.RoundAndDownscalePreVector8(maxValue);
-                        b.RoundAndDownscalePreVector8(maxValue);
-                    }
-                    else if (SimdUtils.HasVector8)
-                    {
-                        r.RoundAndDownscaleVector8(maxValue);
-                        g.RoundAndDownscaleVector8(maxValue);
-                        b.RoundAndDownscaleVector8(maxValue);
-                    }
-                    else
-                    {
-                        // TODO: Run fallback scalar code here
-                        // However, no issues expected before someone implements this: https://github.com/dotnet/coreclr/issues/12007
-                        JpegThrowHelper.ThrowNotImplementedException("Your CPU architecture is too modern!");
-                    }
+                    r.RoundAndDownscalePreVector8(maxValue);
+                    g.RoundAndDownscalePreVector8(maxValue);
+                    b.RoundAndDownscalePreVector8(maxValue);
 
                     // Collect (r0,r1...r8) (g0,g1...g8) (b0,b1...b8) vector values in the expected (r0,g0,g1,1), (r1,g1,g2,1) ... order:
                     ref Vector4Octet destination = ref Unsafe.Add(ref resultBase, i);

@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 }
 
                 this.RecordStats(1, s, 1);
-                var bit = 2u < (uint)(v + 1);
+                var bit = (uint)(v + 1) > 2u;
                 if (this.RecordStats(bit ? 1 : 0, s, 2) == 0)
                 {
                     // v = -1 or 1

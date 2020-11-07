@@ -63,6 +63,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private Vp8EncSegmentHeader segmentHeader;
 
         /// <summary>
+        /// The filter header info's.
+        /// </summary>
+        private Vp8FilterHeader filterHeader;
+
+        /// <summary>
+        /// The segment infos.
+        /// </summary>
+        private Vp8SegmentInfo[] segmentInfos;
+
+        /// <summary>
         /// Contextual macroblock infos.
         /// </summary>
         private readonly Vp8MacroBlockInfo[] mbInfo;
@@ -73,6 +83,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private readonly Vp8EncProba proba;
 
         private readonly Vp8RdLevel rdOptLevel;
+
+        private int dqY1Dc;
+
+        private int dqY2Dc;
+
+        private int dqY2Ac;
 
         private int dqUvDc;
 
@@ -122,6 +138,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private const int QMax = 100;
 
+        // TODO: filterStrength is hardcoded, should be configurable.
+        private const int FilterStrength = 60;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8Encoder"/> class.
         /// </summary>
@@ -133,6 +152,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// <param name="entropyPasses">Number of entropy-analysis passes (in [1..10]).</param>
         public Vp8Encoder(MemoryAllocator memoryAllocator, int width, int height, int quality, int method, int entropyPasses)
         {
+            this.Width = width;
+            this.Height = height;
             this.memoryAllocator = memoryAllocator;
             this.quality = quality.Clamp(0, 100);
             this.method = method.Clamp(0, 6);
@@ -167,8 +188,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 this.mbInfo[i] = new Vp8MacroBlockInfo();
             }
 
-            this.proba = new Vp8EncProba();
+            this.segmentInfos = new Vp8SegmentInfo[4];
+            for (int i = 0; i < 4; i++)
+            {
+                this.segmentInfos[i] = new Vp8SegmentInfo();
+            }
 
+            this.filterHeader = new Vp8FilterHeader();
+            this.proba = new Vp8EncProba();
             this.Preds = new byte[predSize * 2]; // TODO: figure out how much mem we need here. This is too much.
             this.predsWidth = (4 * this.mbw) + 1;
 
@@ -180,16 +207,108 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.ResetBoundaryPredictions();
 
             // Initialize the bitwriter.
-            var baseQuant = 36; // TODO: hardCoded for now.
-            int averageBytesPerMacroBlock = this.averageBytesPerMb[baseQuant >> 4];
+            this.BaseQuant = 36; // TODO: hardCoded for now.
+            int averageBytesPerMacroBlock = this.averageBytesPerMb[this.BaseQuant >> 4];
             int expectedSize = this.mbw * this.mbh * averageBytesPerMacroBlock;
-            this.bitWriter = new Vp8BitWriter(expectedSize);
+            this.bitWriter = new Vp8BitWriter(expectedSize, this);
+        }
+
+        public int BaseQuant { get; }
+
+        /// <summary>
+        /// Gets the probabilities.
+        /// </summary>
+        public Vp8EncProba Proba
+        {
+            get => this.proba;
+        }
+
+        /// <summary>
+        /// Gets the segment features.
+        /// </summary>
+        public Vp8EncSegmentHeader SegmentHeader
+        {
+            get => this.segmentHeader;
+        }
+
+        /// <summary>
+        /// Gets the segment infos.
+        /// </summary>
+        public Vp8SegmentInfo[] SegmentInfos
+        {
+            get => this.segmentInfos;
+        }
+
+        /// <summary>
+        /// Gets the macro block info's.
+        /// </summary>
+        public Vp8MacroBlockInfo[] MbInfo
+        {
+            get => this.mbInfo;
+        }
+
+        /// <summary>
+        /// Gets the filter header.
+        /// </summary>
+        public Vp8FilterHeader FilterHeader
+        {
+            get => this.filterHeader;
         }
 
         /// <summary>
         /// Gets or sets the global susceptibility.
         /// </summary>
         public int Alpha { get; set; }
+
+        /// <summary>
+        /// Gets the width of the image.
+        /// </summary>
+        public int Width { get; }
+
+        /// <summary>
+        /// Gets the height of the image.
+        /// </summary>
+        public int Height { get; }
+
+        public int PredsWidth
+        {
+            get => this.predsWidth;
+        }
+
+        public int Mbw
+        {
+            get => this.mbw;
+        }
+
+        public int Mbh
+        {
+            get => this.mbh;
+        }
+
+        public int DqY1Dc
+        {
+            get => this.dqY1Dc;
+        }
+
+        public int DqY2Ac
+        {
+            get => this.dqY2Ac;
+        }
+
+        public int DqY2Dc
+        {
+            get => this.dqY2Dc;
+        }
+
+        public int DqUvAc
+        {
+            get => this.dqUvAc;
+        }
+
+        public int DqUvDc
+        {
+            get => this.dqUvDc;
+        }
 
         /// <summary>
         /// Gets the luma component.
@@ -209,22 +328,22 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// <summary>
         /// Gets the top luma samples.
         /// </summary>
-        private byte[] YTop { get; }
+        public byte[] YTop { get; }
 
         /// <summary>
         /// Gets the top u/v samples. U and V are packed into 16 bytes (8 U + 8 V).
         /// </summary>
-        private byte[] UvTop { get; }
+        public byte[] UvTop { get; }
 
         /// <summary>
         /// Gets the non-zero pattern.
         /// </summary>
-        private uint[] Nz { get; }
+        public uint[] Nz { get; }
 
         /// <summary>
         /// Gets the prediction modes: (4*mbw+1) * (4*mbh+1).
         /// </summary>
-        private byte[] Preds { get; }
+        public byte[] Preds { get; }
 
         /// <summary>
         /// Gets a rough limit for header bits per MB.
@@ -249,11 +368,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
             int yStride = width;
             int uvStride = (yStride + 1) >> 1;
-            var segmentInfos = new Vp8SegmentInfo[4];
-            for (int i = 0; i < 4; i++)
-            {
-                segmentInfos[i] = new Vp8SegmentInfo();
-            }
 
             var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.mbInfo, this.Preds, this.mbw, this.mbh);
             var alphas = new int[WebPConstants.MaxAlpha + 1];
@@ -261,19 +375,19 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
             // Analysis is done, proceed to actual encoding.
             this.segmentHeader = new Vp8EncSegmentHeader(4);
-            this.AssignSegments(segmentInfos, alphas);
-            this.SetLoopParams(segmentInfos, this.quality);
+            this.AssignSegments(alphas);
+            this.SetLoopParams(this.quality);
 
             // TODO: EncodeAlpha();
             // Stats-collection loop.
-            this.StatLoop(width, height, yStride, uvStride, segmentInfos);
+            this.StatLoop(width, height, yStride, uvStride);
             it.Init();
             it.InitFilter();
             do
             {
                 var info = new Vp8ModeScore();
                 it.Import(y, u, v, yStride, uvStride, width, height, false);
-                if (!this.Decimate(it, segmentInfos, info, this.rdOptLevel))
+                if (!this.Decimate(it, info, this.rdOptLevel))
                 {
                     this.CodeResiduals(it, info);
                 }
@@ -286,8 +400,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
             while (it.Next());
 
+            // Store filter stats.
+            this.AdjustFilterStrength();
+
             // Write bytes from the bitwriter buffer to the stream.
-            this.bitWriter.WriteEncodedImageToStream(lossy: true, stream);
+            this.bitWriter.WriteEncodedImageToStream(stream);
         }
 
         /// <inheritdoc/>
@@ -303,7 +420,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// This is used for deciding optimal probabilities. It also modifies the
         /// quantizer value if some target (size, PSNR) was specified.
         /// </summary>
-        private void StatLoop(int width, int height, int yStride, int uvStride, Vp8SegmentInfo[] segmentInfos)
+        private void StatLoop(int width, int height, int yStride, int uvStride)
         {
             int targetSize = 0; // TODO: target size is hardcoded.
             float targetPsnr = 0.0f; // TODO: targetPsnr is hardcoded.
@@ -334,7 +451,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             while (numPassLeft-- > 0)
             {
                 bool isLastPass = (MathF.Abs(stats.Dq) <= DqLimit) || (numPassLeft == 0) || (this.maxI4HeaderBits == 0);
-                var sizeP0 = this.OneStatPass(width, height, yStride, uvStride, rdOpt, nbMbs, stats, segmentInfos);
+                var sizeP0 = this.OneStatPass(width, height, yStride, uvStride, rdOpt, nbMbs, stats);
                 if (sizeP0 == 0)
                 {
                     return;
@@ -373,23 +490,23 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.proba.CalculateLevelCosts();  // finalize costs
         }
 
-        private long OneStatPass(int width, int height, int yStride, int uvStride, Vp8RdLevel rdOpt, int nbMbs, PassStats stats, Vp8SegmentInfo[] segmentInfos)
+        private long OneStatPass(int width, int height, int yStride, int uvStride, Vp8RdLevel rdOpt, int nbMbs, PassStats stats)
         {
             Span<byte> y = this.Y.GetSpan();
             Span<byte> u = this.U.GetSpan();
             Span<byte> v = this.V.GetSpan();
-            var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.mbInfo, this.Preds, this.mbw, this.mbh);
+            var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.mbInfo, this.Preds, this.Mbw, this.Mbh);
             long size = 0;
             long sizeP0 = 0;
             long distortion = 0;
             long pixelCount = nbMbs * 384;
 
-            this.SetLoopParams(segmentInfos, stats.Q);
+            this.SetLoopParams(stats.Q);
             do
             {
                 var info = new Vp8ModeScore();
                 it.Import(y, u, v, yStride, uvStride, width, height, false);
-                if (this.Decimate(it, segmentInfos, info, rdOpt))
+                if (this.Decimate(it, info, rdOpt))
                 {
                     // Just record the number of skips and act like skipProba is not used.
                     ++this.proba.NbSkip;
@@ -420,15 +537,42 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             return sizeP0;
         }
 
-        private void SetLoopParams(Vp8SegmentInfo[] dqm, float q)
+        private void SetLoopParams(float q)
         {
             // Setup segment quantizations and filters.
-            this.SetSegmentParams(dqm, q);
+            this.SetSegmentParams(q);
 
             // Compute segment probabilities.
             this.SetSegmentProbas();
 
             this.ResetStats();
+        }
+
+        private void AdjustFilterStrength()
+        {
+            if (FilterStrength > 0)
+            {
+                int maxLevel = 0;
+                for (int s = 0; s < WebPConstants.NumMbSegments; s++)
+                {
+                    Vp8SegmentInfo dqm = this.SegmentInfos[s];
+
+                    // this '>> 3' accounts for some inverse WHT scaling
+                    int delta = (dqm.MaxEdge * dqm.Y2.Q[1]) >> 3;
+                    int level = this.FilterStrengthFromDelta(this.filterHeader.Sharpness, delta);
+                    if (level > dqm.FStrength)
+                    {
+                        dqm.FStrength = level;
+                    }
+
+                    if (maxLevel < dqm.FStrength)
+                    {
+                        maxLevel = dqm.FStrength;
+                    }
+                }
+
+                this.filterHeader.FilterLevel = maxLevel;
+            }
         }
 
         private void ResetBoundaryPredictions()
@@ -449,16 +593,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         }
 
         // Simplified k-Means, to assign Nb segments based on alpha-histogram.
-        private void AssignSegments(Vp8SegmentInfo[] dqm, int[] alphas)
+        private void AssignSegments(int[] alphas)
         {
             int nb = (this.segmentHeader.NumSegments < NumMbSegments) ? this.segmentHeader.NumSegments : NumMbSegments;
             var centers = new int[NumMbSegments];
             int weightedAverage = 0;
             var map = new int[WebPConstants.MaxAlpha + 1];
             int a, n, k;
-            int minA;
-            int maxA;
-            int rangeA;
             var accum = new int[NumMbSegments];
             var distAccum = new int[NumMbSegments];
 
@@ -467,13 +608,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             {
             }
 
-            minA = n;
+            var minA = n;
             for (n = WebPConstants.MaxAlpha; n > minA && alphas[n] == 0; --n)
             {
             }
 
-            maxA = n;
-            rangeA = maxA - minA;
+            var maxA = n;
+            var rangeA = maxA - minA;
 
             // Spread initial centers evenly.
             for (k = 0, n = 1; k < nb; ++k, n += 2)
@@ -542,12 +683,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
 
             // TODO: add possibility for SmoothSegmentMap
-            this.SetSegmentAlphas(dqm, centers, weightedAverage);
+            this.SetSegmentAlphas(centers, weightedAverage);
         }
 
-        private void SetSegmentAlphas(Vp8SegmentInfo[] dqm, int[] centers, int mid)
+        private void SetSegmentAlphas(int[] centers, int mid)
         {
             int nb = this.segmentHeader.NumSegments;
+            Vp8SegmentInfo[] dqm = this.segmentInfos;
             int min = centers[0], max = centers[0];
             int n;
 
@@ -581,9 +723,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
         }
 
-        private void SetSegmentParams(Vp8SegmentInfo[] dqm, float quality)
+        private void SetSegmentParams(float quality)
         {
             int nb = this.segmentHeader.NumSegments;
+            Vp8SegmentInfo[] dqm = this.SegmentInfos;
             int snsStrength = 50; // TODO: Spatial Noise Shaping, hardcoded for now.
             double amp = WebPConstants.SnsToDq * snsStrength / 100.0d / 128.0d;
             double cBase = QualityToCompression(quality / 100.0d);
@@ -614,7 +757,40 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.dqUvDc = -4 * snsStrength / 100;
             this.dqUvDc = Clip(this.dqUvDc, -15, 15);   // 4bit-signed max allowed
 
+            this.dqY1Dc = 0;
+            this.dqY2Dc = 0;
+            this.dqY2Ac = 0;
+
+            // Initialize segments' filtering
+            this.SetupFilterStrength();
+
             this.SetupMatrices(dqm);
+        }
+
+        private void SetupFilterStrength()
+        {
+            var filterSharpness = 0; // TODO: filterSharpness is hardcoded
+            var filterType = 1; // TODO: filterType is hardcoded
+
+            // level0 is in [0..500]. Using '-f 50' as filter_strength is mid-filtering.
+            int level0 = 5 * FilterStrength;
+            for (int i = 0; i < WebPConstants.NumMbSegments; ++i)
+            {
+                Vp8SegmentInfo m = this.SegmentInfos[i];
+
+                // We focus on the quantization of AC coeffs.
+                int qstep = WebPLookupTables.AcTable[Clip(m.Quant, 0, 127)] >> 2;
+                int baseStrength = this.FilterStrengthFromDelta(this.filterHeader.Sharpness, qstep);
+
+                // Segments with lower complexity ('beta') will be less filtered.
+                int f = baseStrength * level0 / (256 + m.Beta);
+                m.FStrength = (f < WebPConstants.FilterStrengthCutoff) ? 0 : (f > 63) ? 63 : f;
+            }
+
+            // We record the initial strength (mainly for the case of 1-segment only).
+            this.filterHeader.FilterLevel = this.SegmentInfos[0].FStrength;
+            this.filterHeader.Simple = filterType == 0;
+            this.filterHeader.Sharpness = filterSharpness;
         }
 
         private void SetSegmentProbas()
@@ -745,7 +921,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             return bestAlpha; // Mixed susceptibility (not just luma).
         }
 
-        private bool Decimate(Vp8EncIterator it, Vp8SegmentInfo[] segmentInfos, Vp8ModeScore rd, Vp8RdLevel rdOpt)
+        private bool Decimate(Vp8EncIterator it, Vp8ModeScore rd, Vp8RdLevel rdOpt)
         {
             rd.InitScore();
 
@@ -757,7 +933,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             // For method >= 2, pick the best intra4/intra16 based on SSE (~tad slower).
             // For method <= 1, we don't re-examine the decision but just go ahead with
             // quantization/reconstruction.
-            this.RefineUsingDistortion(it, segmentInfos, rd, this.method >= 2, this.method >= 1);
+            this.RefineUsingDistortion(it, rd, this.method >= 2, this.method >= 1);
 
             bool isSkipped = rd.Nz == 0;
             it.SetSkip(isSkipped);
@@ -766,13 +942,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         }
 
         // Refine intra16/intra4 sub-modes based on distortion only (not rate).
-        private void RefineUsingDistortion(Vp8EncIterator it, Vp8SegmentInfo[] segmentInfos, Vp8ModeScore rd, bool tryBothModes, bool refineUvMode)
+        private void RefineUsingDistortion(Vp8EncIterator it, Vp8ModeScore rd, bool tryBothModes, bool refineUvMode)
         {
             long bestScore = Vp8ModeScore.MaxCost;
             int nz = 0;
             int mode;
             bool isI16 = tryBothModes || (it.CurrentMacroBlockInfo.MacroBlockType == Vp8MacroBlockType.I16X16);
-            Vp8SegmentInfo dqm = segmentInfos[it.CurrentMacroBlockInfo.Segment];
+            Vp8SegmentInfo dqm = this.segmentInfos[it.CurrentMacroBlockInfo.Segment];
 
             // Some empiric constants, of approximate order of magnitude.
             int lambdaDi16 = 106;
@@ -1280,10 +1456,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 int b = dc - tmp[8];
                 int c = Mul(tmp[4], KC2) - Mul(tmp[12], KC1);
                 int d = Mul(tmp[4], KC1) + Mul(tmp[12], KC2);
-                Store(dst, reference, 0, i, (a + d));
-                Store(dst, reference, 1, i, (b + c));
-                Store(dst, reference, 2, i, (b - c));
-                Store(dst, reference, 3, i, (a - d));
+                Store(dst, reference, 0, i, a + d);
+                Store(dst, reference, 1, i, b + c);
+                Store(dst, reference, 2, i, b - c);
+                Store(dst, reference, 3, i, a - d);
                 tmp = tmp.Slice(1);
             }
         }
@@ -1661,6 +1837,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             double v = Math.Pow(linearC, 1 / 3.0d);
 
             return v;
+        }
+
+        private int FilterStrengthFromDelta(int sharpness, int delta)
+        {
+            int pos = (delta < WebPConstants.MaxDelzaSize) ? delta : WebPConstants.MaxDelzaSize - 1;
+            return WebPLookupTables.LevelsFromDelta[sharpness, pos];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

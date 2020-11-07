@@ -10,6 +10,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
     {
         private const int NumMbSegments = 4;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Vp8SegmentHeader"/> class.
+        /// </summary>
         public Vp8SegmentHeader()
         {
             this.Quantizer = new byte[NumMbSegments];

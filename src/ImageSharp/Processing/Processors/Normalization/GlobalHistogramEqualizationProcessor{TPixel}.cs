@@ -115,6 +115,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 #endif
             public void Invoke(int y)
             {
+                ref int histogramBase = ref MemoryMarshal.GetReference(this.histogramBuffer.GetSpan());
                 ref TPixel pixelBase = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
                 int levels = this.luminanceLevels;
 
@@ -123,8 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     // TODO: We should bulk convert here.
                     var vector = Unsafe.Add(ref pixelBase, x).ToVector4();
                     int luminance = ImageMaths.GetBT709Luminance(ref vector, levels);
-                    ref int histogramAtLuminance = ref MemoryMarshal.GetReference(this.histogramBuffer.Slice(luminance));
-                    Interlocked.Increment(ref histogramAtLuminance);
+                    Interlocked.Increment(ref Unsafe.Add(ref histogramBase, luminance));
                 }
             }
         }

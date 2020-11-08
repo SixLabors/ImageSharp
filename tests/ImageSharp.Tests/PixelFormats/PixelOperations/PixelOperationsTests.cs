@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 null;
 #endif
 
-        protected bool HasAlpha { get; set; } = true;
+        protected bool HasUnassociatedAlpha { get; set; } = true;
 
         protected PixelOperationsTests(ITestOutputHelper output)
             : base(output)
@@ -168,7 +168,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         {
             void SourceAction(ref Vector4 v)
             {
-                if (this.HasAlpha)
+                if (this.HasUnassociatedAlpha)
                 {
                     Vector4Utilities.Premultiply(ref v);
                 }
@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
             void ExpectedAction(ref Vector4 v)
             {
-                if (this.HasAlpha)
+                if (this.HasUnassociatedAlpha)
                 {
                     Vector4Utilities.UnPremultiply(ref v);
                 }
@@ -188,7 +188,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4Destructive(this.Configuration, s, d.GetSpan(), PixelConversionModifiers.Premultiply));
+                (s, d) =>
+                {
+                    PixelConversionModifiers modifiers = this.HasUnassociatedAlpha
+                        ? PixelConversionModifiers.Premultiply
+                        : PixelConversionModifiers.None;
+
+                    Operations.FromVector4Destructive(this.Configuration, s, d.GetSpan(), modifiers);
+                });
         }
 
         [Theory]
@@ -197,7 +204,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         {
             void SourceAction(ref Vector4 v)
             {
-                if (this.HasAlpha)
+                if (this.HasUnassociatedAlpha)
                 {
                     Vector4Utilities.Premultiply(ref v);
                 }
@@ -205,7 +212,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
             void ExpectedAction(ref Vector4 v)
             {
-                if (this.HasAlpha)
+                if (this.HasUnassociatedAlpha)
                 {
                     Vector4Utilities.UnPremultiply(ref v);
                 }
@@ -217,11 +224,18 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4Destructive(
-                    this.Configuration,
-                    s,
-                    d.GetSpan(),
-                    PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale));
+                (s, d) =>
+                {
+                    PixelConversionModifiers modifiers = this.HasUnassociatedAlpha
+                        ? PixelConversionModifiers.Premultiply
+                        : PixelConversionModifiers.None;
+
+                    Operations.FromVector4Destructive(
+                                        this.Configuration,
+                                        s,
+                                        d.GetSpan(),
+                                        modifiers | PixelConversionModifiers.Scale);
+                });
         }
 
         [Theory]
@@ -232,7 +246,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             {
                 SRgbCompanding.Expand(ref v);
 
-                if (this.HasAlpha)
+                if (this.HasUnassociatedAlpha)
                 {
                     Vector4Utilities.Premultiply(ref v);
                 }
@@ -240,7 +254,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
             void ExpectedAction(ref Vector4 v)
             {
-                if (this.HasAlpha)
+                if (this.HasUnassociatedAlpha)
                 {
                     Vector4Utilities.UnPremultiply(ref v);
                 }
@@ -254,11 +268,18 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             TestOperation(
                 source,
                 expected,
-                (s, d) => Operations.FromVector4Destructive(
-                    this.Configuration,
-                    s,
-                    d.GetSpan(),
-                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale));
+                (s, d) =>
+                {
+                    PixelConversionModifiers modifiers = this.HasUnassociatedAlpha
+                        ? PixelConversionModifiers.Premultiply
+                        : PixelConversionModifiers.None;
+
+                    Operations.FromVector4Destructive(
+                                        this.Configuration,
+                                        s,
+                                        d.GetSpan(),
+                                        modifiers | PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale);
+                });
         }
 
         [Theory]

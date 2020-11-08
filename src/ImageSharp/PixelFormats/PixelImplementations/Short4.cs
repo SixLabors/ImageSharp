@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool Equals(Short4 other) => this.PackedValue.Equals(other);
+        public readonly bool Equals(Short4 other) => this.PackedValue.Equals(other.PackedValue);
 
         /// <summary>
         /// Gets the hash code for the current instance.

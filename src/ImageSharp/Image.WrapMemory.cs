@@ -242,6 +242,7 @@ namespace SixLabors.ImageSharp
             ImageMetadata metadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Guard.IsFalse(pointer == null, nameof(pointer), "Pointer must be not null");
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(metadata, nameof(metadata));
 

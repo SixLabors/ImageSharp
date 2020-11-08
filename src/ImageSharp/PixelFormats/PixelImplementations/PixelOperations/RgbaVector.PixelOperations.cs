@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
             /// <inheritdoc />
-            public override PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<NormalizedShort4>(PixelAlphaRepresentation.Unassociated);
+            public override PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<RgbaVector>(PixelAlphaRepresentation.Unassociated);
 
             /// <inheritdoc />
             public override void FromVector4Destructive(

@@ -2,10 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.WebP.Lossless;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 {
@@ -66,11 +64,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private const int I4RD4 = I4DC4 + 16;
 
-        private const int I4VR4 = I4RD4 + 20;
+        private const int I4VR4 = I4DC4 + 20;
 
-        private const int I4LD4 = I4RD4 + 24;
+        private const int I4LD4 = I4DC4 + 24;
 
-        private const int I4VL4 = I4RD4 + 28;
+        private const int I4VL4 = I4DC4 + 28;
 
         private const int I4HD4 = (3 * 16 * WebPConstants.Bps) + (4 * WebPConstants.Bps);
 
@@ -797,14 +795,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         // located at top[0..3], and top right is top[4..7]
         private void EncPredLuma4(Span<byte> dst, Span<byte> top, int topOffset)
         {
-            this.Dc4(dst, top, topOffset);
+            this.Dc4(dst.Slice(I4DC4), top, topOffset);
             this.Tm4(dst.Slice(I4TM4), top, topOffset);
             this.Ve4(dst.Slice(I4VE4), top, topOffset);
             this.He4(dst.Slice(I4HE4), top, topOffset);
             this.Rd4(dst.Slice(I4RD4), top, topOffset);
             this.Vr4(dst.Slice(I4VR4), top, topOffset);
-            this.Ld4(dst.Slice(I4LD4), top);
-            this.Vl4(dst.Slice(I4VL4), top);
+            this.Ld4(dst.Slice(I4LD4), top, topOffset);
+            this.Vl4(dst.Slice(I4VL4), top, topOffset);
             this.Hd4(dst.Slice(I4HD4), top, topOffset);
             this.Hu4(dst.Slice(I4HU4), top, topOffset);
         }
@@ -989,7 +987,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             val = 0x01010101U * LossyUtils.Avg3(j, k, l);
             BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(2 * WebPConstants.Bps), val);
             val = 0x01010101U * LossyUtils.Avg3(k, l, l);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(1 * WebPConstants.Bps), val);
+            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(3 * WebPConstants.Bps), val);
         }
 
         private void Rd4(Span<byte> dst, Span<byte> top, int topOffset)
@@ -1062,16 +1060,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             LossyUtils.Dst(dst, 3, 1, LossyUtils.Avg3(b, c, d));
         }
 
-        private void Ld4(Span<byte> dst, Span<byte> top)
+        private void Ld4(Span<byte> dst, Span<byte> top, int topOffset)
         {
-            byte a = top[0];
-            byte b = top[1];
-            byte c = top[2];
-            byte d = top[3];
-            byte e = top[4];
-            byte f = top[5];
-            byte g = top[6];
-            byte h = top[7];
+            byte a = top[topOffset + 0];
+            byte b = top[topOffset + 1];
+            byte c = top[topOffset + 2];
+            byte d = top[topOffset + 3];
+            byte e = top[topOffset + 4];
+            byte f = top[topOffset + 5];
+            byte g = top[topOffset + 6];
+            byte h = top[topOffset + 7];
 
             LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg3(a, b, c));
             var bcd = LossyUtils.Avg3(b, c, d);
@@ -1096,16 +1094,16 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             LossyUtils.Dst(dst, 3, 3, LossyUtils.Avg3(g, h, h));
         }
 
-        private void Vl4(Span<byte> dst, Span<byte> top)
+        private void Vl4(Span<byte> dst, Span<byte> top, int topOffset)
         {
-            byte a = top[0];
-            byte b = top[1];
-            byte c = top[2];
-            byte d = top[3];
-            byte e = top[4];
-            byte f = top[5];
-            byte g = top[6];
-            byte h = top[7];
+            byte a = top[topOffset + 0];
+            byte b = top[topOffset + 1];
+            byte c = top[topOffset + 2];
+            byte d = top[topOffset + 3];
+            byte e = top[topOffset + 4];
+            byte f = top[topOffset + 5];
+            byte g = top[topOffset + 6];
+            byte h = top[topOffset + 7];
 
             LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg2(a, b));
             var bc = LossyUtils.Avg2(b, c);
@@ -1294,6 +1292,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.YTop.AsSpan(0, topSize).Fill(127);
             this.UvTop.AsSpan().Fill(127);
             this.Nz.AsSpan().Fill(0);
+
+            int predsW = (4 * this.mbw) + 1;
+            int predsH = (4 * this.mbh) + 1;
+            int predsSize = predsW * predsH;
+            this.Preds.AsSpan(predsSize + this.predsWidth, this.mbw).Fill(0);
         }
 
         private int Bit(uint nz, int n)

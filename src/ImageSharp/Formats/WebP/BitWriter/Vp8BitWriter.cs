@@ -561,6 +561,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             }
         }
 
+        // Writes the partition #0 modes (that is: all intra modes)
         private void CodeIntraModes(Vp8BitWriter bitWriter)
         {
             var it = new Vp8EncIterator(this.enc.YTop, this.enc.UvTop, this.enc.Nz, this.enc.MbInfo, this.enc.Preds, this.enc.Mbw, this.enc.Mbh);
@@ -569,7 +570,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
             do
             {
                 Vp8MacroBlockInfo mb = it.CurrentMacroBlockInfo;
-                Span<byte> preds = it.Preds.AsSpan(it.PredIdx);
+                int predIdx = it.PredIdx;
+                Span<byte> preds = it.Preds.AsSpan(predIdx);
                 if (this.enc.SegmentHeader.UpdateMap)
                 {
                     bitWriter.PutSegment(mb.Segment, this.enc.Proba.Segments);
@@ -587,19 +589,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                 }
                 else
                 {
-                    Span<byte> topPred = it.Preds.AsSpan(it.PredIdx);
-                    int x, y;
-                    for (y = 0; y < 4; ++y)
+                    Span<byte> topPred = it.Preds.AsSpan(predIdx - predsWidth);
+                    for (int y = 0; y < 4; ++y)
                     {
-                        int left = preds[it.PredIdx - 1];
-                        for (x = 0; x < 4; ++x)
+                        int left = it.Preds[predIdx - 1];
+                        for (int x = 0; x < 4; ++x)
                         {
                             byte[] probas = WebPLookupTables.ModesProba[topPred[x], left];
-                            left = bitWriter.PutI4Mode(preds[x], probas);
+                            left = bitWriter.PutI4Mode(it.Preds[predIdx + x], probas);
                         }
 
-                        topPred = preds;
-                        preds = preds.Slice(predsWidth);
+                        topPred = it.Preds.AsSpan(predIdx);
+                        predIdx += predsWidth;
                     }
                 }
 

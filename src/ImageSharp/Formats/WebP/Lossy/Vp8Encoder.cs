@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Formats.WebP.BitWriter;
@@ -21,11 +22,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// The <see cref="MemoryAllocator"/> to use for buffer allocations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;
-
-        /// <summary>
-        /// A bit writer for writing lossy webp streams.
-        /// </summary>
-        private readonly Vp8BitWriter bitWriter;
 
         /// <summary>
         /// The quality, that will be used to encode the image.
@@ -56,6 +52,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// Macroblock height.
         /// </summary>
         private readonly int mbh;
+
+        /// <summary>
+        /// A bit writer for writing lossy webp streams.
+        /// </summary>
+        private Vp8BitWriter bitWriter;
 
         /// <summary>
         /// The segment features.
@@ -205,15 +206,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.Nz.AsSpan().Fill(3452816845);
 
             this.ResetBoundaryPredictions();
-
-            // Initialize the bitwriter.
-            this.BaseQuant = 36; // TODO: hardCoded for now.
-            int averageBytesPerMacroBlock = this.averageBytesPerMb[this.BaseQuant >> 4];
-            int expectedSize = this.mbw * this.mbh * averageBytesPerMacroBlock;
-            this.bitWriter = new Vp8BitWriter(expectedSize, this);
         }
 
-        public int BaseQuant { get; }
+        public int BaseQuant { get; set; }
 
         /// <summary>
         /// Gets the probabilities.
@@ -377,6 +372,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.segmentHeader = new Vp8EncSegmentHeader(4);
             this.AssignSegments(alphas);
             this.SetLoopParams(this.quality);
+
+            // Initialize the bitwriter.
+            int averageBytesPerMacroBlock = this.averageBytesPerMb[this.BaseQuant >> 4];
+            int expectedSize = this.mbw * this.mbh * averageBytesPerMacroBlock;
+            this.bitWriter = new Vp8BitWriter(expectedSize, this);
 
             // TODO: EncodeAlpha();
             // Stats-collection loop.
@@ -589,6 +589,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 left[i * this.predsWidth] = (int)IntraPredictionMode.DcPrediction;
             }
 
+            int predsW = (4 * this.mbw) + 1;
+            int predsH = (4 * this.mbh) + 1;
+            int predsSize = predsW * predsH;
+            this.Preds.AsSpan(predsSize + this.predsWidth - 4, 4).Fill(0);
+
             this.Nz[0] = 0;   // constant
         }
 
@@ -739,6 +744,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 int q = (int)(127.0d * (1.0d - c));
                 dqm[i].Quant = Clip(q, 0, 127);
             }
+
+            // Purely indicative in the bitstream (except for the 1-segment case).
+            this.BaseQuant = dqm[0].Quant;
 
             // uvAlpha is normally spread around ~60. The useful range is
             // typically ~30 (quite bad) to ~100 (ok to decimate UV more).
@@ -1035,9 +1043,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                     }
                     else
                     {
-                        // Reconstruct partial block inside yuv_out2 buffer
+                        // Reconstruct partial block inside YuvOut2 buffer
                         Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc + WebPLookupTables.Vp8Scan[it.I4]);
-                        nz |= this.ReconstructIntra4(it, dqm, rd.YAcLevels.AsSpan(it.I4, 16), src, tmpDst, bestI4Mode) << it.I4;
+                        nz |= this.ReconstructIntra4(it, dqm, rd.YAcLevels.AsSpan(it.I4 * 16, 16), src, tmpDst, bestI4Mode) << it.I4;
                     }
                 }
                 while (it.RotateI4(it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc)));
@@ -1111,7 +1119,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 for (x = 0; x < 4; ++x)
                 {
                     int ctx = it.TopNz[x] + it.LeftNz[y];
-                    residual.SetCoeffs(rd.YAcLevels.AsSpan(16 * (x + (y * 4)), 16));
+                    Span<short> coeffs = rd.YAcLevels.AsSpan(16 * (x + (y * 4)), 16);
+                    residual.SetCoeffs(coeffs);
                     int res = this.bitWriter.PutCoeffs(ctx, residual);
                     it.TopNz[x] = it.LeftNz[y] = res;
                 }
@@ -1176,7 +1185,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 for (x = 0; x < 4; ++x)
                 {
                     int ctx = it.TopNz[x] + it.LeftNz[y];
-                    residual.SetCoeffs(rd.YAcLevels.AsSpan(16 * (x + (y * 4)), 16));
+                    Span<short> coeffs = rd.YAcLevels.AsSpan(16 * (x + (y * 4)), 16);
+                    residual.SetCoeffs(coeffs);
                     var res = residual.RecordCoeffs(ctx);
                     it.TopNz[x] = res;
                     it.LeftNz[y] = res;

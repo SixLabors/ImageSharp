@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 using SixLabors.ImageSharp.Formats.WebP.BitWriter;
@@ -142,6 +141,13 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         // TODO: filterStrength is hardcoded, should be configurable.
         private const int FilterStrength = 60;
 
+        // Diffusion weights. We under-correct a bit (15/16th of the error is actually
+        // diffused) to avoid 'rainbow' chessboard pattern of blocks at q~=0.
+        private const int C1 = 7;    // fraction of error sent to the 4x4 block below
+        private const int C2 = 8;    // fraction of error sent to the 4x4 block on the right
+        private const int DSHIFT = 4;
+        private const int DSCALE = 1;   // storage descaling, needed to make the error fit byte
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8Encoder"/> class.
         /// </summary>
@@ -175,7 +181,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.UvTop = new byte[this.mbw * 16 * 2];
             this.Nz = new uint[this.mbw + 1];
             this.MbHeaderLimit = 256 * 510 * 8 * 1024 / (this.mbw * this.mbh);
-            int predSize = (((4 * this.mbw) + 1) * ((4 * this.mbh) + 1)) + this.predsWidth + 1;
+            this.TopDerr = new sbyte[this.mbw * 4];
 
             // TODO: make partition_limit configurable?
             int limit = 100; // original code: limit = 100 - config->partition_limit;
@@ -196,6 +202,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
 
             this.filterHeader = new Vp8FilterHeader();
+            int predSize = (((4 * this.mbw) + 1) * ((4 * this.mbh) + 1)) + this.predsWidth + 1;
             this.proba = new Vp8EncProba();
             this.Preds = new byte[predSize * 2]; // TODO: figure out how much mem we need here. This is too much.
             this.predsWidth = (4 * this.mbw) + 1;
@@ -341,6 +348,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public byte[] Preds { get; }
 
         /// <summary>
+        /// Gets the diffusion error.
+        /// </summary>
+        public sbyte[] TopDerr { get; }
+
+        /// <summary>
         /// Gets a rough limit for header bits per MB.
         /// </summary>
         private int MbHeaderLimit { get; }
@@ -364,7 +376,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             int yStride = width;
             int uvStride = (yStride + 1) >> 1;
 
-            var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.mbInfo, this.Preds, this.mbw, this.mbh);
+            var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.mbInfo, this.Preds, this.TopDerr, this.mbw, this.mbh);
             var alphas = new int[WebPConstants.MaxAlpha + 1];
             this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
 
@@ -487,7 +499,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 this.proba.FinalizeTokenProbas();
             }
 
-            this.proba.CalculateLevelCosts();  // finalize costs
+            this.proba.CalculateLevelCosts();  // Finalize costs.
         }
 
         private long OneStatPass(int width, int height, int yStride, int uvStride, Vp8RdLevel rdOpt, int nbMbs, PassStats stats)
@@ -495,7 +507,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             Span<byte> y = this.Y.GetSpan();
             Span<byte> u = this.U.GetSpan();
             Span<byte> v = this.V.GetSpan();
-            var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.mbInfo, this.Preds, this.Mbw, this.Mbh);
+            var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.mbInfo, this.Preds, this.TopDerr, this.Mbw, this.Mbh);
             long size = 0;
             long sizeP0 = 0;
             long distortion = 0;
@@ -1277,11 +1289,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                     tmp.AsSpan((n + 1) * 16, 16));
             }
 
-            /* TODO:
-             if (it->top_derr_ != NULL)
-            {
-                CorrectDCValues(it, &dqm->uv_, tmp, rd);
-            }*/
+            this.CorrectDCValues(it, dqm.Uv, tmp, rd);
 
             for (n = 0; n < 8; n += 2)
             {
@@ -1338,6 +1346,62 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 output[8 + i] = (short)((a0 - a1 + 7) >> 4);
                 output[12 + i] = (short)(((a3 * 2217) - (a2 * 5352) + 51000) >> 16);
             }
+        }
+
+        private void CorrectDCValues(Vp8EncIterator it, Vp8Matrix mtx, short[] tmp, Vp8ModeScore rd)
+        {
+#pragma warning disable SA1005 // Single line comments should begin with single space
+            //         | top[0] | top[1]
+            // --------+--------+---------
+            // left[0] | tmp[0]   tmp[1]  <->   err0 err1
+            // left[1] | tmp[2]   tmp[3]        err2 err3
+            //
+            // Final errors {err1,err2,err3} are preserved and later restored
+            // as top[]/left[] on the next block.
+#pragma warning restore SA1005 // Single line comments should begin with single space
+            for (int ch = 0; ch <= 1; ++ch)
+            {
+                Span<sbyte> top = it.TopDerr.AsSpan((it.X * 4) + ch, 2);
+                Span<sbyte> left = it.LeftDerr.AsSpan(ch, 2);
+                int err0, err1, err2, err3;
+                Span<short> c = tmp.AsSpan(ch * 4 * 16, 4 * 16);
+                c[0] += (short)(((C1 * top[0]) + (C2 * left[0])) >> (DSHIFT - DSCALE));
+                err0 = QuantizeSingle(c, mtx);
+                c[1 * 16] += (short)(((C1 * top[1]) + (C2 * err0)) >> (DSHIFT - DSCALE));
+                err1 = QuantizeSingle(c.Slice(1 * 16), mtx);
+                c[2 * 16] += (short)(((C1 * err0) + (C2 * left[1])) >> (DSHIFT - DSCALE));
+                err2 = QuantizeSingle(c.Slice(2 * 16), mtx);
+                c[3 * 16] += (short)(((C1 * err1) + (C2 * err2)) >> (DSHIFT - DSCALE));
+                err3 = QuantizeSingle(c.Slice(3 * 16), mtx);
+
+                // TODO: set errors in rd
+                // rd->derr[ch][0] = (int8_t)err1;
+                // rd->derr[ch][1] = (int8_t)err2;
+                // rd->derr[ch][2] = (int8_t)err3;
+            }
+        }
+
+        // Quantize as usual, but also compute and return the quantization error.
+        // Error is already divided by DSHIFT.
+        private static int QuantizeSingle(Span<short> v, Vp8Matrix mtx)
+        {
+            int v0 = v[0];
+            bool sign = v0 < 0;
+            if (sign)
+            {
+                v0 = -v0;
+            }
+
+            if (v0 > (int)mtx.ZThresh[0])
+            {
+                int qV = QuantDiv((uint)v0, mtx.IQ[0], mtx.Bias[0]) * mtx.Q[0];
+                int err = v0 - qV;
+                v[0] = (short)(sign ? -qV : qV);
+                return (sign ? -err : err) >> DSCALE;
+            }
+
+            v[0] = 0;
+            return (sign ? -v0 : v0) >> DSCALE;
         }
 
         private void FTransformWht(Span<short> input, Span<short> output)

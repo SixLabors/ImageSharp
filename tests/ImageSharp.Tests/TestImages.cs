@@ -497,6 +497,9 @@ namespace SixLabors.ImageSharp.Tests
 
         public static class WebP
         {
+            // Reference image as png
+            public const string Peak = "WebP/Peak.png";
+
             public static class Animated
             {
                 public const string Animated1 = "WebP/animated-webp.webp";

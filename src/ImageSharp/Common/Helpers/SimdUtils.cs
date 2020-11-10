@@ -26,6 +26,25 @@ namespace SixLabors.ImageSharp
             Vector.IsHardwareAccelerated && Vector<float>.Count == 8 && Vector<int>.Count == 8;
 
         /// <summary>
+        /// Gets a value indicating whether <see cref="Vector{T}"/> code is being JIT-ed to SSE instructions
+        /// where float and integer registers are of size 128 byte.
+        /// </summary>
+        public static bool HasVector4 { get; } =
+            Vector.IsHardwareAccelerated && Vector<float>.Count == 4;
+
+        public static bool HasAvx2
+        {
+            get
+            {
+#if SUPPORTS_RUNTIME_INTRINSICS
+                return Avx2.IsSupported;
+#else
+                return false;
+#endif
+            }
+        }
+
+        /// <summary>
         /// Transform all scalars in 'v' in a way that converting them to <see cref="int"/> would have rounding semantics.
         /// </summary>
         /// <param name="v">The vector</param>

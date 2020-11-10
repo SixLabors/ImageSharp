@@ -564,7 +564,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         // Writes the partition #0 modes (that is: all intra modes)
         private void CodeIntraModes(Vp8BitWriter bitWriter)
         {
-            var it = new Vp8EncIterator(this.enc.YTop, this.enc.UvTop, this.enc.Nz, this.enc.MbInfo, this.enc.Preds, this.enc.Mbw, this.enc.Mbh);
+            var it = new Vp8EncIterator(this.enc.YTop, this.enc.UvTop, this.enc.Nz, this.enc.MbInfo, this.enc.Preds, this.enc.TopDerr, this.enc.Mbw, this.enc.Mbh);
             int predsWidth = this.enc.PredsWidth;
 
             do

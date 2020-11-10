@@ -97,19 +97,21 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private int uvTopIdx;
 
-        public Vp8EncIterator(byte[] yTop, byte[] uvTop, uint[] nz, Vp8MacroBlockInfo[] mb, byte[] preds, int mbw, int mbh)
+        public Vp8EncIterator(byte[] yTop, byte[] uvTop, uint[] nz, Vp8MacroBlockInfo[] mb, byte[] preds, sbyte[] topDerr, int mbw, int mbh)
         {
+            this.YTop = yTop;
+            this.UvTop = uvTop;
+            this.Nz = nz;
+            this.Mb = mb;
+            this.Preds = preds;
+            this.TopDerr = topDerr;
+            this.LeftDerr = new sbyte[2 * 2];
             this.mbw = mbw;
             this.mbh = mbh;
-            this.Mb = mb;
             this.currentMbIdx = 0;
             this.nzIdx = 1;
             this.yTopIdx = 0;
             this.uvTopIdx = 0;
-            this.YTop = yTop;
-            this.UvTop = uvTop;
-            this.Nz = nz;
-            this.Preds = preds;
             this.predsWidth = (4 * mbw) + 1;
             this.predIdx = this.predsWidth;
             this.YuvIn = new byte[WebPConstants.Bps * 16];
@@ -181,6 +183,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public byte[] UvLeft { get; }
 
         /// <summary>
+        /// Gets the left error diffusion (u/v).
+        /// </summary>
+        public sbyte[] LeftDerr { get; }
+
+        /// <summary>
         /// Gets the top luma samples at position 'X'.
         /// </summary>
         public byte[] YTop { get; }
@@ -210,6 +217,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// Gets the non-zero pattern.
         /// </summary>
         public uint[] Nz { get; }
+
+        /// <summary>
+        /// Gets the diffusion error.
+        /// </summary>
+        public sbyte[] TopDerr { get; }
 
         /// <summary>
         /// Gets 32+5 boundary samples needed by intra4x4.
@@ -1284,6 +1296,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             vLeft.Slice(1, 8).Fill(129);
 
             this.LeftNz[8] = 0;
+
+            this.LeftDerr.AsSpan().Fill(0);
         }
 
         private void InitTop()
@@ -1297,6 +1311,8 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             int predsH = (4 * this.mbh) + 1;
             int predsSize = predsW * predsH;
             this.Preds.AsSpan(predsSize + this.predsWidth, this.mbw).Fill(0);
+
+            this.TopDerr.AsSpan().Fill(0);
         }
 
         private int Bit(uint nz, int n)

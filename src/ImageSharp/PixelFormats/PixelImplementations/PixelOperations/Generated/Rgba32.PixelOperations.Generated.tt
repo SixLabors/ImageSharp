@@ -12,7 +12,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal partial class PixelOperations : PixelOperations<Rgba32>
         {
-            <# GeneratePixelTypeInfo("Rgba32"); #>
             <# GenerateAllDefaultConversionMethods("Rgba32"); #>
         }
     }

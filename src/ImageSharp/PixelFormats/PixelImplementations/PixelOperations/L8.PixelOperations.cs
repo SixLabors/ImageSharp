@@ -1,5 +1,8 @@
-<#@include file="_Common.ttinclude" #>
-<#@ output extension=".cs" #>
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using SixLabors.ImageSharp.Formats;
+
 namespace SixLabors.ImageSharp.PixelFormats
 {
     /// <content>
@@ -12,7 +15,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal partial class PixelOperations : PixelOperations<L8>
         {
-            <# GenerateAllDefaultConversionMethods("L8"); #>
+            /// <inheritdoc />
+            public override PixelTypeInfo GetPixelTypeInfo()
+                => PixelTypeInfo.Create<L8>(PixelAlphaRepresentation.None);
         }
     }
 }

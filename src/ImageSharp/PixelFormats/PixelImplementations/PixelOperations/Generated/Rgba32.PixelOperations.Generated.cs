@@ -7,7 +7,6 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats
@@ -22,9 +21,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal partial class PixelOperations : PixelOperations<Rgba32>
         {
-            
-            /// <inheritdoc />
-            public override PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba32>(PixelAlphaRepresentation.Unassociated);
             
             /// <inheritdoc />
             public override void FromRgba32(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<Rgba32> destinationPixels)
@@ -43,7 +39,6 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 sourcePixels.CopyTo(destinationPixels);
             }
-
 
             /// <inheritdoc />
             public override void ToArgb32(

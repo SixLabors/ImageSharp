@@ -7,7 +7,6 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.PixelFormats
@@ -20,11 +19,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <summary>
         /// Provides optimized overrides for bulk operations.
         /// </summary>
-        internal class PixelOperations : PixelOperations<L8>
+        internal partial class PixelOperations : PixelOperations<L8>
         {
-            
-            /// <inheritdoc />
-            public override PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<L8>(PixelAlphaRepresentation.None);
             
             /// <inheritdoc />
             public override void FromL8(Configuration configuration, ReadOnlySpan<L8> source, Span<L8> destinationPixels)
@@ -43,7 +39,6 @@ namespace SixLabors.ImageSharp.PixelFormats
 
                 sourcePixels.CopyTo(destinationPixels);
             }
-
 
             /// <inheritdoc />
             public override void ToArgb32(

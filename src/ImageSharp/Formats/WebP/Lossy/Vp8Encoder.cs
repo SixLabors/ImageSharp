@@ -379,6 +379,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.mbInfo, this.Preds, this.TopDerr, this.mbw, this.mbh);
             var alphas = new int[WebPConstants.MaxAlpha + 1];
             this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
+            int totalMb = this.mbw * this.mbw;
+            this.alpha = this.alpha / totalMb;
+            this.uvAlpha = this.uvAlpha / totalMb;
 
             // Analysis is done, proceed to actual encoding.
             this.segmentHeader = new Vp8EncSegmentHeader(4);

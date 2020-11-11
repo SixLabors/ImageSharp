@@ -62,11 +62,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PixelOperations{TPixel}.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\A8.PixelOperations.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>A8.PixelOperations.Generated.tt</DependentUpon>
-    </Compile>
     <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Argb32.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -77,55 +72,25 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Bgr24.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Bgr565.PixelOperations.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Bgr565.PixelOperations.Generated.tt</DependentUpon>
-    </Compile>
     <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Bgra32.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Bgra32.PixelOperations.Generated.tt</DependentUpon>
-    </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Bgra4444.PixelOperations.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Bgra4444.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Bgra5551.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Bgra5551.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Byte4.PixelOperations.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Byte4.PixelOperations.Generated.tt</DependentUpon>
-    </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\HalfSingle.PixelOperations.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>HalfSingle.PixelOperations.Generated.tt</DependentUpon>
-    </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\HalfVector2.PixelOperations.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>HalfVector2.PixelOperations.Generated.tt</DependentUpon>
-    </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\HalfVector4.PixelOperations.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>HalfVector4.PixelOperations.Generated.tt</DependentUpon>
-    </Compile> 
-    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\L8.PixelOperations.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>L8.PixelOperations.Generated.tt</DependentUpon>
-    </Compile>
     <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\L16.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>L16.PixelOperations.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\L8.PixelOperations.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>L8.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\La16.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
@@ -142,20 +107,15 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Rgb24.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Rg32.PixelOperations.Generated.cs">
+    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Rgb48.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Rg32.PixelOperations.Generated.tt</DependentUpon>
+      <DependentUpon>Rgb48.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Rgba32.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Rgba32.PixelOperations.Generated.tt</DependentUpon>
-    </Compile>
-    <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Rgb48.PixelOperations.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Rgb48.PixelOperations.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Rgba64.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>

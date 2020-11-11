@@ -12,31 +12,8 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 <#+
-    private static readonly string[] UnassociatedAlphaPixelTypes =
-    {
-        "A8",
-        "Argb32",
-        "Bgra32",
-        "Bgra4444",
-        "Bgra5551",
-        "Byte4",
-        "HalfVector4",
-        "La16",
-        "La32",
-        "NormalizedByte4",
-        "NormalizedShort4",
-        "Rgba1010102",
-        "Rgba32",
-        "Rgba64",
-        "RgbaVector",
-        "Short4"
-    };
-
-    private static readonly string[] AssociatedAlphaPixelTypes = Array.Empty<string>();
-
     private static readonly string[] CommonPixelTypes =
     {
         "Argb32",
@@ -70,23 +47,6 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         "Rgb24",
         "Bgr24"
     };
-
-    void GeneratePixelTypeInfo(string pixelType)
-    {
-        string alpha = "PixelAlphaRepresentation.None";
-        if (AssociatedAlphaPixelTypes.Contains(pixelType))
-        {
-            alpha = "PixelAlphaRepresentation.Associated";
-        }
-        else if (UnassociatedAlphaPixelTypes.Contains(pixelType))
-        {
-            alpha = "PixelAlphaRepresentation.Unassociated";
-        }
-#>
-            /// <inheritdoc />
-            public override PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<<#=pixelType#>>(<#=alpha#>);
-<#+
-    }
 
     void GenerateGenericConverterMethods(string pixelType)
     {
@@ -123,7 +83,6 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
 
                 sourcePixels.CopyTo(destinationPixels);
             }
-
 <#+
     }
 

@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.WebP
                 var bitReader = new Vp8LBitReader(data);
                 this.LosslessDecoder = new WebPLosslessDecoder(bitReader, memoryAllocator, configuration);
                 this.LosslessDecoder.DecodeImageStream(this.Vp8LDec, width, height, true);
-                this.Use8BDecode = Is8BOptimizable(this.Vp8LDec.Metadata);
+                this.Use8BDecode = this.Vp8LDec.Transforms.Count > 0 && Is8BOptimizable(this.Vp8LDec.Metadata);
             }
         }
 

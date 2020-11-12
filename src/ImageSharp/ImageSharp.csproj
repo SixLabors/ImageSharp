@@ -28,14 +28,6 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
   </ItemGroup>
 
-  <!-- Enable support for using libgdiplus on macOS -->
-  <ItemGroup Condition="$(TargetFramework.StartsWith('netcoreapp')) AND $([MSBuild]::IsOSPlatform('OSX'))">
-    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Version="5.8.64" />
-  </ItemGroup>
-  <ItemGroup Condition="$(TargetFramework.StartsWith('netstandard2')) AND $([MSBuild]::IsOSPlatform('OSX'))">
-    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Version="5.8.64" />
-  </ItemGroup>
-
   <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) OR '$(TargetFramework)' == 'net472'">
     <PackageReference Include="System.Numerics.Vectors" />
     <PackageReference Include="System.Buffers" />

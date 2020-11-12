@@ -22,8 +22,6 @@
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Moq" />
-    <!-- Enable support for using libgdiplus on macOS -->
-    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Version="5.8.64" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
     <PackageReference Include="SharpZipLib" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>

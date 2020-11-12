@@ -14,6 +14,11 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
     internal class Vp8LBitWriter : BitWriterBase
     {
         /// <summary>
+        /// A scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly byte[] scratchBuffer = new byte[8];
+
+        /// <summary>
         /// This is the minimum amount of size the memory buffer is guaranteed to grow when extra space is needed.
         /// </summary>
         private const int MinExtraSize = 32768;
@@ -166,7 +171,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
                 this.BitWriterResize(extraSize);
             }
 
-            BinaryPrimitives.WriteUInt64LittleEndian(this.Buffer.AsSpan(this.cur), this.bits);
+            BinaryPrimitives.WriteUInt64LittleEndian(this.scratchBuffer, this.bits);
+            this.scratchBuffer.AsSpan(0, 4).CopyTo(this.Buffer.AsSpan(this.cur));
+
             this.cur += WriterBytes;
             this.bits >>= WriterBits;
             this.used -= WriterBits;

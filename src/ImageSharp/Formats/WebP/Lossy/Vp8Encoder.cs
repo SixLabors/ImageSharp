@@ -400,9 +400,14 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             it.InitFilter();
             do
             {
+                bool dontUseSkip = !this.Proba.UseSkipProba;
+
                 var info = new Vp8ModeScore();
                 it.Import(y, u, v, yStride, uvStride, width, height, false);
-                if (!this.Decimate(it, info, this.rdOptLevel))
+
+                // Warning! order is important: first call VP8Decimate() and
+                // *then* decide how to code the skip decision if there's one.
+                if (!this.Decimate(it, info, this.rdOptLevel) || dontUseSkip)
                 {
                     this.CodeResiduals(it, info);
                 }

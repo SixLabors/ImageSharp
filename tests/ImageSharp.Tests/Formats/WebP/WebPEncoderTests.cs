@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.WebP;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.WebP
@@ -67,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
 
             using Image<TPixel> image = provider.GetImage();
             var testOutputDetails = string.Concat("lossy", "_q", quality);
-            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
+            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(quality));
         }
 
         [Theory]
@@ -81,16 +82,29 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void Encode_Lossy_WithDifferentMethods_Works<TPixel>(TestImageProvider<TPixel> provider, int method)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            int quality = 75;
             var encoder = new WebPEncoder()
             {
                 Lossy = true,
                 Method = method,
-                Quality = 75
+                Quality = quality
             };
 
             using Image<TPixel> image = provider.GetImage();
             var testOutputDetails = string.Concat("lossy", "_m", method);
-            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
+            image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(quality));
+        }
+
+        private static ImageComparer GetComparer(int quality)
+        {
+            float tolerance = 0.01f; // ~1.0%
+
+            if (quality < 30)
+            {
+                tolerance = 0.02f; // ~2.0%
+            }
+
+            return ImageComparer.Tolerant(tolerance);
         }
     }
 }

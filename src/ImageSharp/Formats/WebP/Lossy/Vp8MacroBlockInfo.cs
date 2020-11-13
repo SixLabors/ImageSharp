@@ -1,8 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
+
 namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 {
+    [DebuggerDisplay("Type: {MacroBlockType}, Alpha: {Alpha}, UvMode: {UvMode}")]
     internal class Vp8MacroBlockInfo
     {
         public Vp8MacroBlockType MacroBlockType { get; set; }

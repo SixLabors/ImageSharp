@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
     /// <summary>
     /// Encoder for lossless webp images.
     /// </summary>
-    internal class Vp8LEncoder : IDisposable
+    internal partial class Vp8LEncoder : IDisposable
     {
         /// <summary>
         /// Maximum number of reference blocks the image will be segmented into.
@@ -420,7 +419,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             // Calculate backward references from BGRA image.
-            BackwardReferenceEncoder.HashChainFill(hashChain, bgra, this.quality, width, height);
+            hashChain.Fill(this.memoryAllocator, bgra, this.quality, width, height);
 
             Vp8LBitWriter bitWriterBest = config.SubConfigs.Count > 1 ? this.bitWriter.Clone() : this.bitWriter;
             Vp8LBitWriter bwInit = this.bitWriter;
@@ -618,7 +617,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             // Calculate backward references from the image pixels.
-            BackwardReferenceEncoder.HashChainFill(hashChain, bgra, quality, width, height);
+            hashChain.Fill(this.memoryAllocator, bgra, quality, width, height);
 
             Vp8LBackwardRefs refs = BackwardReferenceEncoder.GetBackwardReferences(
                 width,
@@ -1711,22 +1710,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             this.BgraScratch.Dispose();
             this.Palette.Dispose();
             this.TransformData.Dispose();
-        }
-
-        // TODO : Not a fan of private classes
-        private class CrunchConfig
-        {
-            public EntropyIx EntropyIdx { get; set; }
-
-            public List<CrunchSubConfig> SubConfigs { get; } = new List<CrunchSubConfig>();
-        }
-
-        // TODO : Not a fan of private classes
-        private class CrunchSubConfig
-        {
-            public int Lz77 { get; set; }
-
-            public bool DoNotCache { get; set; }
         }
     }
 }

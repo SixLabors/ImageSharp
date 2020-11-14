@@ -65,12 +65,12 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// <summary>
         /// The filter header info's.
         /// </summary>
-        private Vp8FilterHeader filterHeader;
+        private readonly Vp8FilterHeader filterHeader;
 
         /// <summary>
         /// The segment infos.
         /// </summary>
-        private Vp8SegmentInfo[] segmentInfos;
+        private readonly Vp8SegmentInfo[] segmentInfos;
 
         /// <summary>
         /// Contextual macroblock infos.
@@ -106,21 +106,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// </summary>
         private int uvAlpha;
 
-        /// <summary>
-        /// Fixed-point precision for RGB->YUV.
-        /// </summary>
-        private const int YuvFix = 16;
-
-        private const int YuvHalf = 1 << (YuvFix - 1);
-
-        private const int KC1 = 20091 + (1 << 16);
-
-        private const int KC2 = 35468;
-
-        private const int MaxLevel = 2047;
-
-        private readonly byte[] zigzag = { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
-
         private readonly byte[] averageBytesPerMb = { 50, 24, 16, 9, 7, 5, 3, 2 };
 
         private const int NumMbSegments = 4;
@@ -140,13 +125,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         // TODO: filterStrength is hardcoded, should be configurable.
         private const int FilterStrength = 60;
-
-        // Diffusion weights. We under-correct a bit (15/16th of the error is actually
-        // diffused) to avoid 'rainbow' chessboard pattern of blocks at q~=0.
-        private const int C1 = 7;    // fraction of error sent to the 4x4 block below
-        private const int C2 = 8;    // fraction of error sent to the 4x4 block on the right
-        private const int DSHIFT = 4;
-        private const int DSCALE = 1;   // storage descaling, needed to make the error fit byte
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8Encoder"/> class.
@@ -444,11 +422,10 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         {
             int targetSize = 0; // TODO: target size is hardcoded.
             float targetPsnr = 0.0f; // TODO: targetPsnr is hardcoded.
-            int method = this.method;
             bool doSearch = false; // TODO: doSearch hardcoded for now.
-            bool fastProbe = (method == 0 || method == 3) && !doSearch;
+            bool fastProbe = (this.method == 0 || this.method == 3) && !doSearch;
             int numPassLeft = this.entropyPasses;
-            Vp8RdLevel rdOpt = (method >= 3 || doSearch) ? Vp8RdLevel.RdOptBasic : Vp8RdLevel.RdOptNone;
+            Vp8RdLevel rdOpt = (this.method >= 3 || doSearch) ? Vp8RdLevel.RdOptBasic : Vp8RdLevel.RdOptNone;
             int nbMbs = this.mbw * this.mbh;
 
             var stats = new PassStats(targetSize, targetPsnr, QMin, QMax, this.quality);
@@ -457,7 +434,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             // Fast mode: quick analysis pass over few mbs. Better than nothing.
             if (fastProbe)
             {
-                if (method == 3)
+                if (this.method == 3)
                 {
                     // We need more stats for method 3 to be reliable.
                     nbMbs = (nbMbs > 200) ? nbMbs >> 1 : 100;
@@ -996,7 +973,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
                 for (mode = 0; mode < numPredModes; ++mode)
                 {
-                    Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8I16ModeOffsets[mode]);
+                    Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]);
                     long score = (Vp8Sse16X16(src, reference) * WebPConstants.RdDistoMult) + (WebPConstants.Vp8FixedCostsI16[mode] * lambdaDi16);
 
                     if (mode > 0 && WebPConstants.Vp8FixedCostsI16[mode] > bitLimit)
@@ -1043,7 +1020,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                     it.MakeIntra4Preds();
                     for (mode = 0; mode < numBModes; ++mode)
                     {
-                        Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8I4ModeOffsets[mode]);
+                        Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]);
                         long score = (Vp8Sse4X4(src, reference) * WebPConstants.RdDistoMult) + (modeCosts[mode] * lambdaDi4);
                         if (score < bestI4Score)
                         {
@@ -1092,7 +1069,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.UOffEnc);
                 for (mode = 0; mode < numPredModes; ++mode)
                 {
-                    Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8UvModeOffsets[mode]);
+                    Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8UvModeOffsets[mode]);
                     long score = (Vp8Sse16X8(src, reference) * WebPConstants.RdDistoMult) + (WebPConstants.Vp8FixedCostsUv[mode] * lambdaDuv);
                     if (score < bestUvScore)
                     {
@@ -1235,7 +1212,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private int ReconstructIntra16(Vp8EncIterator it, Vp8SegmentInfo dqm, Vp8ModeScore rd, Span<byte> yuvOut, int mode)
         {
-            Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8I16ModeOffsets[mode]);
+            Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]);
             Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
             int nz = 0;
             int n;
@@ -1245,25 +1222,25 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
             for (n = 0; n < 16; n += 2)
             {
-                this.FTransform2(src.Slice(WebPLookupTables.Vp8Scan[n]), reference.Slice(WebPLookupTables.Vp8Scan[n]), tmpSpan.Slice(n * 16, 16), tmpSpan.Slice((n + 1) * 16, 16));
+                Vp8Encoding.FTransform2(src.Slice(WebPLookupTables.Vp8Scan[n]), reference.Slice(WebPLookupTables.Vp8Scan[n]), tmpSpan.Slice(n * 16, 16), tmpSpan.Slice((n + 1) * 16, 16));
             }
 
-            this.FTransformWht(tmp, dcTmp);
-            nz |= this.QuantizeBlock(dcTmp, rd.YDcLevels, dqm.Y2) << 24;
+            Vp8Encoding.FTransformWht(tmp, dcTmp);
+            nz |= QuantEnc.QuantizeBlock(dcTmp, rd.YDcLevels, dqm.Y2) << 24;
 
             for (n = 0; n < 16; n += 2)
             {
                 // Zero-out the first coeff, so that: a) nz is correct below, and
                 // b) finding 'last' non-zero coeffs in SetResidualCoeffs() is simplified.
                 tmp[n * 16] = tmp[(n + 1) * 16] = 0;
-                nz |= this.Quantize2Blocks(tmpSpan.Slice(n * 16, 32), rd.YAcLevels.AsSpan(n * 16, 32), dqm.Y1) << n;
+                nz |= QuantEnc.Quantize2Blocks(tmpSpan.Slice(n * 16, 32), rd.YAcLevels.AsSpan(n * 16, 32), dqm.Y1) << n;
             }
 
             // Transform back.
             LossyUtils.TransformWht(dcTmp, tmpSpan);
             for (n = 0; n < 16; n += 2)
             {
-                this.ITransform(reference.Slice(WebPLookupTables.Vp8Scan[n]), tmpSpan.Slice(n * 16, 32), yuvOut.Slice(WebPLookupTables.Vp8Scan[n]), true);
+                Vp8Encoding.ITransform(reference.Slice(WebPLookupTables.Vp8Scan[n]), tmpSpan.Slice(n * 16, 32), yuvOut.Slice(WebPLookupTables.Vp8Scan[n]), true);
             }
 
             return nz;
@@ -1271,18 +1248,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private int ReconstructIntra4(Vp8EncIterator it, Vp8SegmentInfo dqm, Span<short> levels, Span<byte> src, Span<byte> yuvOut, int mode)
         {
-            Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8I4ModeOffsets[mode]);
+            Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]);
             var tmp = new short[16];
-            this.FTransform(src, reference, tmp);
-            var nz = this.QuantizeBlock(tmp, levels, dqm.Y1);
-            this.ITransform(reference, tmp, yuvOut, false);
+            Vp8Encoding.FTransform(src, reference, tmp);
+            var nz = QuantEnc.QuantizeBlock(tmp, levels, dqm.Y1);
+            Vp8Encoding.ITransform(reference, tmp, yuvOut, false);
 
             return nz;
         }
 
         private int ReconstructUv(Vp8EncIterator it, Vp8SegmentInfo dqm, Vp8ModeScore rd, Span<byte> yuvOut, int mode)
         {
-            Span<byte> reference = it.YuvP.AsSpan(Vp8EncIterator.Vp8UvModeOffsets[mode]);
+            Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8UvModeOffsets[mode]);
             Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.UOffEnc);
             int nz = 0;
             int n;
@@ -1290,267 +1267,38 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
             for (n = 0; n < 8; n += 2)
             {
-                this.FTransform2(
+                Vp8Encoding.FTransform2(
                     src.Slice(WebPLookupTables.Vp8ScanUv[n]),
                     reference.Slice(WebPLookupTables.Vp8ScanUv[n]),
                     tmp.AsSpan(n * 16, 16),
                     tmp.AsSpan((n + 1) * 16, 16));
             }
 
-            this.CorrectDCValues(it, dqm.Uv, tmp, rd);
+            QuantEnc.CorrectDcValues(it, dqm.Uv, tmp, rd);
 
             for (n = 0; n < 8; n += 2)
             {
-                nz |= this.Quantize2Blocks(tmp.AsSpan(n * 16, 32), rd.UvLevels.AsSpan(n * 16, 32), dqm.Uv) << n;
+                nz |= QuantEnc.Quantize2Blocks(tmp.AsSpan(n * 16, 32), rd.UvLevels.AsSpan(n * 16, 32), dqm.Uv) << n;
             }
 
             for (n = 0; n < 8; n += 2)
             {
-                this.ITransform(reference.Slice(WebPLookupTables.Vp8ScanUv[n]), tmp.AsSpan(n * 16, 32), yuvOut.Slice(WebPLookupTables.Vp8ScanUv[n]), true);
+                Vp8Encoding.ITransform(reference.Slice(WebPLookupTables.Vp8ScanUv[n]), tmp.AsSpan(n * 16, 32), yuvOut.Slice(WebPLookupTables.Vp8ScanUv[n]), true);
             }
 
             return nz << 16;
         }
 
-        private void FTransform2(Span<byte> src, Span<byte> reference, Span<short> output, Span<short> output2)
-        {
-            this.FTransform(src, reference, output);
-            this.FTransform(src.Slice(4), reference.Slice(4), output2);
-        }
-
-        private void FTransform(Span<byte> src, Span<byte> reference, Span<short> output)
-        {
-            int i;
-            var tmp = new int[16];
-            int srcIdx = 0;
-            int refIdx = 0;
-            for (i = 0; i < 4; ++i)
-            {
-                int d0 = src[srcIdx] - reference[refIdx];   // 9bit dynamic range ([-255,255])
-                int d1 = src[srcIdx + 1] - reference[refIdx + 1];
-                int d2 = src[srcIdx + 2] - reference[refIdx + 2];
-                int d3 = src[srcIdx + 3] - reference[refIdx + 3];
-                int a0 = d0 + d3;         // 10b                      [-510,510]
-                int a1 = d1 + d2;
-                int a2 = d1 - d2;
-                int a3 = d0 - d3;
-                tmp[0 + (i * 4)] = (a0 + a1) * 8;   // 14b                      [-8160,8160]
-                tmp[1 + (i * 4)] = ((a2 * 2217) + (a3 * 5352) + 1812) >> 9;      // [-7536,7542]
-                tmp[2 + (i * 4)] = (a0 - a1) * 8;
-                tmp[3 + (i * 4)] = ((a3 * 2217) - (a2 * 5352) + 937) >> 9;
-
-                srcIdx += WebPConstants.Bps;
-                refIdx += WebPConstants.Bps;
-            }
-
-            for (i = 0; i < 4; ++i)
-            {
-                int a0 = tmp[0 + i] + tmp[12 + i];  // 15b
-                int a1 = tmp[4 + i] + tmp[8 + i];
-                int a2 = tmp[4 + i] - tmp[8 + i];
-                int a3 = tmp[0 + i] - tmp[12 + i];
-                output[0 + i] = (short)((a0 + a1 + 7) >> 4);            // 12b
-                output[4 + i] = (short)((((a2 * 2217) + (a3 * 5352) + 12000) >> 16) + (a3 != 0 ? 1 : 0));
-                output[8 + i] = (short)((a0 - a1 + 7) >> 4);
-                output[12 + i] = (short)(((a3 * 2217) - (a2 * 5352) + 51000) >> 16);
-            }
-        }
-
-        private void CorrectDCValues(Vp8EncIterator it, Vp8Matrix mtx, short[] tmp, Vp8ModeScore rd)
-        {
-#pragma warning disable SA1005 // Single line comments should begin with single space
-            //         | top[0] | top[1]
-            // --------+--------+---------
-            // left[0] | tmp[0]   tmp[1]  <->   err0 err1
-            // left[1] | tmp[2]   tmp[3]        err2 err3
-            //
-            // Final errors {err1,err2,err3} are preserved and later restored
-            // as top[]/left[] on the next block.
-#pragma warning restore SA1005 // Single line comments should begin with single space
-            for (int ch = 0; ch <= 1; ++ch)
-            {
-                Span<sbyte> top = it.TopDerr.AsSpan((it.X * 4) + ch, 2);
-                Span<sbyte> left = it.LeftDerr.AsSpan(ch, 2);
-                int err0, err1, err2, err3;
-                Span<short> c = tmp.AsSpan(ch * 4 * 16, 4 * 16);
-                c[0] += (short)(((C1 * top[0]) + (C2 * left[0])) >> (DSHIFT - DSCALE));
-                err0 = QuantizeSingle(c, mtx);
-                c[1 * 16] += (short)(((C1 * top[1]) + (C2 * err0)) >> (DSHIFT - DSCALE));
-                err1 = QuantizeSingle(c.Slice(1 * 16), mtx);
-                c[2 * 16] += (short)(((C1 * err0) + (C2 * left[1])) >> (DSHIFT - DSCALE));
-                err2 = QuantizeSingle(c.Slice(2 * 16), mtx);
-                c[3 * 16] += (short)(((C1 * err1) + (C2 * err2)) >> (DSHIFT - DSCALE));
-                err3 = QuantizeSingle(c.Slice(3 * 16), mtx);
-
-                // TODO: set errors in rd
-                // rd->derr[ch][0] = (int8_t)err1;
-                // rd->derr[ch][1] = (int8_t)err2;
-                // rd->derr[ch][2] = (int8_t)err3;
-            }
-        }
-
-        // Quantize as usual, but also compute and return the quantization error.
-        // Error is already divided by DSHIFT.
-        private static int QuantizeSingle(Span<short> v, Vp8Matrix mtx)
-        {
-            int v0 = v[0];
-            bool sign = v0 < 0;
-            if (sign)
-            {
-                v0 = -v0;
-            }
-
-            if (v0 > (int)mtx.ZThresh[0])
-            {
-                int qV = QuantDiv((uint)v0, mtx.IQ[0], mtx.Bias[0]) * mtx.Q[0];
-                int err = v0 - qV;
-                v[0] = (short)(sign ? -qV : qV);
-                return (sign ? -err : err) >> DSCALE;
-            }
-
-            v[0] = 0;
-            return (sign ? -v0 : v0) >> DSCALE;
-        }
-
-        private void FTransformWht(Span<short> input, Span<short> output)
-        {
-            var tmp = new int[16];
-            int i;
-            int inputIdx = 0;
-            for (i = 0; i < 4; ++i)
-            {
-                int a0 = input[inputIdx + (0 * 16)] + input[inputIdx + (2 * 16)];  // 13b
-                int a1 = input[inputIdx + (1 * 16)] + input[inputIdx + (3 * 16)];
-                int a2 = input[inputIdx + (1 * 16)] - input[inputIdx + (3 * 16)];
-                int a3 = input[inputIdx + (0 * 16)] - input[inputIdx + (2 * 16)];
-                tmp[0 + (i * 4)] = a0 + a1;   // 14b
-                tmp[1 + (i * 4)] = a3 + a2;
-                tmp[2 + (i * 4)] = a3 - a2;
-                tmp[3 + (i * 4)] = a0 - a1;
-
-                inputIdx += 64;
-            }
-
-            for (i = 0; i < 4; ++i)
-            {
-                int a0 = tmp[0 + i] + tmp[8 + i];  // 15b
-                int a1 = tmp[4 + i] + tmp[12 + i];
-                int a2 = tmp[4 + i] - tmp[12 + i];
-                int a3 = tmp[0 + i] - tmp[8 + i];
-                int b0 = a0 + a1;    // 16b
-                int b1 = a3 + a2;
-                int b2 = a3 - a2;
-                int b3 = a0 - a1;
-                output[0 + i] = (short)(b0 >> 1);     // 15b
-                output[4 + i] = (short)(b1 >> 1);
-                output[8 + i] = (short)(b2 >> 1);
-                output[12 + i] = (short)(b3 >> 1);
-            }
-        }
-
-        private int Quantize2Blocks(Span<short> input, Span<short> output, Vp8Matrix mtx)
-        {
-            int nz;
-            nz = this.QuantizeBlock(input, output, mtx) << 0;
-            nz |= this.QuantizeBlock(input.Slice(1 * 16), output.Slice(1 * 16), mtx) << 1;
-            return nz;
-        }
-
-        private int QuantizeBlock(Span<short> input, Span<short> output, Vp8Matrix mtx)
-        {
-            int last = -1;
-            int n;
-            for (n = 0; n < 16; ++n)
-            {
-                int j = this.zigzag[n];
-                bool sign = input[j] < 0;
-                uint coeff = (uint)((sign ? -input[j] : input[j]) + mtx.Sharpen[j]);
-                if (coeff > mtx.ZThresh[j])
-                {
-                    uint q = mtx.Q[j];
-                    uint iQ = mtx.IQ[j];
-                    uint b = mtx.Bias[j];
-                    int level = QuantDiv(coeff, iQ, b);
-                    if (level > MaxLevel)
-                    {
-                        level = MaxLevel;
-                    }
-
-                    if (sign)
-                    {
-                        level = -level;
-                    }
-
-                    input[j] = (short)(level * (int)q);
-                    output[n] = (short)level;
-                    if (level != 0)
-                    {
-                        last = n;
-                    }
-                }
-                else
-                {
-                    output[n] = 0;
-                    input[j] = 0;
-                }
-            }
-
-            return (last >= 0) ? 1 : 0;
-        }
-
-        private void ITransform(Span<byte> reference, Span<short> input, Span<byte> dst, bool doTwo)
-        {
-            this.ITransformOne(reference, input, dst);
-            if (doTwo)
-            {
-                this.ITransformOne(reference.Slice(4), input.Slice(16), dst.Slice(4));
-            }
-        }
-
-        private void ITransformOne(Span<byte> reference, Span<short> input, Span<byte> dst)
-        {
-            int i;
-#pragma warning disable SA1312 // Variable names should begin with lower-case letter
-            var C = new int[4 * 4];
-#pragma warning restore SA1312 // Variable names should begin with lower-case letter
-            Span<int> tmp = C.AsSpan();
-            for (i = 0; i < 4; ++i)
-            {
-                // vertical pass.
-                int a = input[0] + input[8];
-                int b = input[0] - input[8];
-                int c = Mul(input[4], KC2) - Mul(input[12], KC1);
-                int d = Mul(input[4], KC1) + Mul(input[12], KC2);
-                tmp[0] = a + d;
-                tmp[1] = b + c;
-                tmp[2] = b - c;
-                tmp[3] = a - d;
-                tmp = tmp.Slice(4);
-                input = input.Slice(1);
-            }
-
-            tmp = C.AsSpan();
-            for (i = 0; i < 4; ++i)
-            {
-                // horizontal pass.
-                int dc = tmp[0] + 4;
-                int a = dc + tmp[8];
-                int b = dc - tmp[8];
-                int c = Mul(tmp[4], KC2) - Mul(tmp[12], KC1);
-                int d = Mul(tmp[4], KC1) + Mul(tmp[12], KC2);
-                Store(dst, reference, 0, i, a + d);
-                Store(dst, reference, 1, i, b + c);
-                Store(dst, reference, 2, i, b - c);
-                Store(dst, reference, 3, i, a - d);
-                tmp = tmp.Slice(1);
-            }
-        }
-
+        /// <summary>
+        /// Converts the RGB values of the image to YUV.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type of the image.</typeparam>
+        /// <param name="image">The image to convert.</param>
         private void ConvertRgbToYuv<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int uvWidth = (image.Width + 1) >> 1;
-            bool hasAlpha = this.CheckNonOpaque(image);
+            bool hasAlpha = YuvConversion.CheckNonOpaque(image);
 
             // Temporary storage for accumulated R/G/B values during conversion to U/V.
             using IMemoryOwner<ushort> tmpRgb = this.memoryAllocator.Allocate<ushort>(4 * uvWidth);
@@ -1564,18 +1312,18 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 Span<TPixel> nextRowSpan = image.GetPixelRowSpan(rowIndex + 1);
                 if (!hasAlpha)
                 {
-                    this.AccumulateRgb(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
+                    YuvConversion.AccumulateRgb(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
                 }
                 else
                 {
-                    this.AccumulateRgba(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
+                    YuvConversion.AccumulateRgba(rowSpan, nextRowSpan, tmpRgbSpan, image.Width);
                 }
 
-                this.ConvertRgbaToUv(tmpRgbSpan, this.U.Slice(uvRowIndex * uvWidth), this.V.Slice(uvRowIndex * uvWidth), uvWidth);
+                YuvConversion.ConvertRgbaToUv(tmpRgbSpan, this.U.Slice(uvRowIndex * uvWidth), this.V.Slice(uvRowIndex * uvWidth), uvWidth);
                 uvRowIndex++;
 
-                this.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
-                this.ConvertRgbaToY(nextRowSpan, this.Y.Slice((rowIndex + 1) * image.Width), image.Width);
+                YuvConversion.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
+                YuvConversion.ConvertRgbaToY(nextRowSpan, this.Y.Slice((rowIndex + 1) * image.Width), image.Width);
             }
 
             // Extra last row.
@@ -1584,251 +1332,15 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
                 Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
                 if (!hasAlpha)
                 {
-                    this.AccumulateRgb(rowSpan, rowSpan, tmpRgbSpan, image.Width);
+                    YuvConversion.AccumulateRgb(rowSpan, rowSpan, tmpRgbSpan, image.Width);
                 }
                 else
                 {
-                    this.AccumulateRgba(rowSpan, rowSpan, tmpRgbSpan, image.Width);
+                    YuvConversion.AccumulateRgba(rowSpan, rowSpan, tmpRgbSpan, image.Width);
                 }
 
-                this.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
+                YuvConversion.ConvertRgbaToY(rowSpan, this.Y.Slice(rowIndex * image.Width), image.Width);
             }
-        }
-
-        // Returns true if alpha has non-0xff values.
-        private bool CheckNonOpaque<TPixel>(Image<TPixel> image)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Rgba32 rgba = default;
-            for (int rowIndex = 0; rowIndex < image.Height; rowIndex++)
-            {
-                Span<TPixel> rowSpan = image.GetPixelRowSpan(rowIndex);
-                for (int x = 0; x < image.Width; x++)
-                {
-                    TPixel color = rowSpan[x];
-                    color.ToRgba32(ref rgba);
-                    if (rgba.A != 255)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        private void ConvertRgbaToY<TPixel>(Span<TPixel> rowSpan, Span<byte> y, int width)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Rgba32 rgba = default;
-            for (int x = 0; x < width; x++)
-            {
-                TPixel color = rowSpan[x];
-                color.ToRgba32(ref rgba);
-                y[x] = (byte)RgbToY(rgba.R, rgba.G, rgba.B, YuvHalf);
-            }
-        }
-
-        private void ConvertRgbaToUv(Span<ushort> rgb, Span<byte> u, Span<byte> v, int width)
-        {
-            int rgbIdx = 0;
-            for (int i = 0; i < width; i += 1, rgbIdx += 4)
-            {
-                int r = rgb[rgbIdx], g = rgb[rgbIdx + 1], b = rgb[rgbIdx + 2];
-                u[i] = (byte)RgbToU(r, g, b, YuvHalf << 2);
-                v[i] = (byte)RgbToV(r, g, b, YuvHalf << 2);
-            }
-        }
-
-        private void AccumulateRgb<TPixel>(Span<TPixel> rowSpan, Span<TPixel> nextRowSpan, Span<ushort> dst, int width)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Rgba32 rgba0 = default;
-            Rgba32 rgba1 = default;
-            Rgba32 rgba2 = default;
-            Rgba32 rgba3 = default;
-            int i, j;
-            int dstIdx = 0;
-            for (i = 0, j = 0; i < (width >> 1); i += 1, j += 2, dstIdx += 4)
-            {
-                TPixel color = rowSpan[j];
-                color.ToRgba32(ref rgba0);
-                color = rowSpan[j + 1];
-                color.ToRgba32(ref rgba1);
-                color = nextRowSpan[j];
-                color.ToRgba32(ref rgba2);
-                color = nextRowSpan[j + 1];
-                color.ToRgba32(ref rgba3);
-
-                dst[dstIdx] = (ushort)LinearToGamma(
-                    GammaToLinear(rgba0.R) +
-                            GammaToLinear(rgba1.R) +
-                            GammaToLinear(rgba2.R) +
-                            GammaToLinear(rgba3.R), 0);
-                dst[dstIdx + 1] = (ushort)LinearToGamma(
-                    GammaToLinear(rgba0.G) +
-                            GammaToLinear(rgba1.G) +
-                            GammaToLinear(rgba2.G) +
-                            GammaToLinear(rgba3.G), 0);
-                dst[dstIdx + 2] = (ushort)LinearToGamma(
-                    GammaToLinear(rgba0.B) +
-                            GammaToLinear(rgba1.B) +
-                            GammaToLinear(rgba2.B) +
-                            GammaToLinear(rgba3.B), 0);
-            }
-
-            if ((width & 1) != 0)
-            {
-                TPixel color = rowSpan[j];
-                color.ToRgba32(ref rgba0);
-                color = nextRowSpan[j];
-                color.ToRgba32(ref rgba1);
-
-                dst[dstIdx] = (ushort)LinearToGamma(GammaToLinear(rgba0.R) + GammaToLinear(rgba1.R), 1);
-                dst[dstIdx + 1] = (ushort)LinearToGamma(GammaToLinear(rgba0.G) + GammaToLinear(rgba1.G), 1);
-                dst[dstIdx + 2] = (ushort)LinearToGamma(GammaToLinear(rgba0.B) + GammaToLinear(rgba1.B), 1);
-            }
-        }
-
-        private void AccumulateRgba<TPixel>(Span<TPixel> rowSpan, Span<TPixel> nextRowSpan, Span<ushort> dst, int width)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Rgba32 rgba0 = default;
-            Rgba32 rgba1 = default;
-            Rgba32 rgba2 = default;
-            Rgba32 rgba3 = default;
-            int i, j;
-            int dstIdx = 0;
-            for (i = 0, j = 0; i < (width >> 1); i += 1, j += 2, dstIdx += 4)
-            {
-                TPixel color = rowSpan[j];
-                color.ToRgba32(ref rgba0);
-                color = rowSpan[j + 1];
-                color.ToRgba32(ref rgba1);
-                color = nextRowSpan[j];
-                color.ToRgba32(ref rgba2);
-                color = nextRowSpan[j + 1];
-                color.ToRgba32(ref rgba3);
-                uint a = (uint)(rgba0.A + rgba1.A + rgba2.A + rgba3.A);
-                int r, g, b;
-                if (a == 4 * 0xff || a == 0)
-                {
-                    r = (ushort)LinearToGamma(
-                        GammaToLinear(rgba0.R) +
-                        GammaToLinear(rgba1.R) +
-                        GammaToLinear(rgba2.R) +
-                        GammaToLinear(rgba3.R), 0);
-                    g = (ushort)LinearToGamma(
-                        GammaToLinear(rgba0.G) +
-                        GammaToLinear(rgba1.G) +
-                        GammaToLinear(rgba2.G) +
-                        GammaToLinear(rgba3.G), 0);
-                    b = (ushort)LinearToGamma(
-                        GammaToLinear(rgba0.B) +
-                        GammaToLinear(rgba1.B) +
-                        GammaToLinear(rgba2.B) +
-                        GammaToLinear(rgba3.B), 0);
-                }
-                else
-                {
-                    r = LinearToGammaWeighted(rgba0.R, rgba1.R, rgba2.R, rgba3.R, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    g = LinearToGammaWeighted(rgba0.G, rgba1.G, rgba2.G, rgba3.G, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    b = LinearToGammaWeighted(rgba0.B, rgba1.B, rgba2.B, rgba3.B, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                }
-
-                dst[dstIdx] = (ushort)r;
-                dst[dstIdx + 1] = (ushort)g;
-                dst[dstIdx + 2] = (ushort)b;
-                dst[dstIdx + 3] = (ushort)a;
-            }
-
-            if ((width & 1) != 0)
-            {
-                TPixel color = rowSpan[j];
-                color.ToRgba32(ref rgba0);
-                color = nextRowSpan[j];
-                color.ToRgba32(ref rgba1);
-                uint a = (uint)(2u * (rgba0.A + rgba1.A));
-                int r, g, b;
-                if (a == 4 * 0xff || a == 0)
-                {
-                    r = (ushort)LinearToGamma(GammaToLinear(rgba0.R) + GammaToLinear(rgba1.R), 1);
-                    g = (ushort)LinearToGamma(GammaToLinear(rgba0.G) + GammaToLinear(rgba1.G), 1);
-                    b = (ushort)LinearToGamma(GammaToLinear(rgba0.B) + GammaToLinear(rgba1.B), 1);
-                }
-                else
-                {
-                    r = LinearToGammaWeighted(rgba0.R, rgba1.R, rgba2.R, rgba3.R, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    g = LinearToGammaWeighted(rgba0.G, rgba1.G, rgba2.G, rgba3.G, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                    b = LinearToGammaWeighted(rgba0.B, rgba1.B, rgba2.B, rgba3.B, rgba0.A, rgba1.A, rgba2.A, rgba3.A, a);
-                }
-
-                dst[dstIdx] = (ushort)r;
-                dst[dstIdx + 1] = (ushort)g;
-                dst[dstIdx + 2] = (ushort)b;
-                dst[dstIdx + 3] = (ushort)a;
-            }
-        }
-
-        private static int LinearToGammaWeighted(byte rgb0, byte rgb1, byte rgb2, byte rgb3, byte a0, byte a1, byte a2, byte a3, uint totalA)
-        {
-            uint sum = (a0 * GammaToLinear(rgb0)) + (a1 * GammaToLinear(rgb1)) + (a2 * GammaToLinear(rgb2)) + (a3 * GammaToLinear(rgb3));
-            return LinearToGamma((sum * WebPLookupTables.InvAlpha[totalA]) >> (WebPConstants.AlphaFix - 2), 0);
-        }
-
-        // Convert a linear value 'v' to YUV_FIX+2 fixed-point precision
-        // U/V value, suitable for RGBToU/V calls.
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int LinearToGamma(uint baseValue, int shift)
-        {
-            int y = Interpolate((int)(baseValue << shift));   // Final uplifted value.
-            return (y + WebPConstants.GammaTabRounder) >> WebPConstants.GammaTabFix;    // Descale.
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint GammaToLinear(byte v)
-        {
-            return WebPLookupTables.GammaToLinearTab[v];
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Interpolate(int v)
-        {
-            int tabPos = v >> (WebPConstants.GammaTabFix + 2);    // integer part.
-            int x = v & ((WebPConstants.GammaTabScale << 2) - 1);  // fractional part.
-            int v0 = WebPLookupTables.LinearToGammaTab[tabPos];
-            int v1 = WebPLookupTables.LinearToGammaTab[tabPos + 1];
-            int y = (v1 * x) + (v0 * ((WebPConstants.GammaTabScale << 2) - x));   // interpolate
-
-            return y;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int RgbToY(byte r, byte g, byte b, int rounding)
-        {
-            int luma = (16839 * r) + (33059 * g) + (6420 * b);
-            return (luma + rounding + (16 << YuvFix)) >> YuvFix;  // No need to clip.
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int RgbToU(int r, int g, int b, int rounding)
-        {
-            int u = (-9719 * r) - (19081 * g) + (28800 * b);
-            return ClipUv(u, rounding);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int RgbToV(int r, int g, int b, int rounding)
-        {
-            int v = (+28800 * r) - (24116 * g) - (4684 * b);
-            return ClipUv(v, rounding);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int ClipUv(int uv, int rounding)
-        {
-            uv = (uv + rounding + (128 << (YuvFix + 2))) >> (YuvFix + 2);
-            return ((uv & ~0xff) == 0) ? uv : (uv < 0) ? 0 : 255;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -1931,24 +1443,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private static double GetPsnr(long mse, long size)
         {
             return (mse > 0 && size > 0) ? 10.0f * Math.Log10(255.0f * 255.0f * size / mse) : 99;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int QuantDiv(uint n, uint iQ, uint b)
-        {
-            return (int)(((n * iQ) + b) >> WebPConstants.QFix);
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void Store(Span<byte> dst, Span<byte> reference, int x, int y, int v)
-        {
-            dst[x + (y * WebPConstants.Bps)] = LossyUtils.Clip8B(reference[x + (y * WebPConstants.Bps)] + (v >> 3));
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int Mul(int a, int b)
-        {
-            return (a * b) >> 16;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -13,27 +13,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// </summary>
         public const int MaxLengthBits = 12;
 
-        private const int HashBits = 18;
-
-        private const int HashSize = 1 << HashBits;
-
-        private const uint HashMultiplierHi = 0xc6a4a793u;
-
-        private const uint HashMultiplierLo = 0x5bd1e996u;
-
         private const float MaxEntropy = 1e30f;
 
         private const int WindowOffsetsSizeMax = 32;
-
-        /// <summary>
-        /// The number of bits for the window size.
-        /// </summary>
-        private const int WindowSizeBits = 20;
-
-        /// <summary>
-        /// 1M window (4M bytes) minus 120 special codes for short distances.
-        /// </summary>
-        private const int WindowSize = (1 << WindowSizeBits) - 120;
 
         /// <summary>
         /// We want the max value to be attainable and stored in MaxLengthBits bits.
@@ -45,183 +27,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
         /// distance + length instead of each pixel as a literal.
         /// </summary>
         private const int MinLength = 4;
-
-        // TODO: move to Hashchain?
-        public static void HashChainFill(Vp8LHashChain p, Span<uint> bgra, int quality, int xSize, int ySize)
-        {
-            int size = xSize * ySize;
-            int iterMax = GetMaxItersForQuality(quality);
-            int windowSize = GetWindowSizeForHashChain(quality, xSize);
-            int pos;
-            var hashToFirstIndex = new int[HashSize];  // TODO: use memory allocator
-
-            // Initialize hashToFirstIndex array to -1.
-            hashToFirstIndex.AsSpan().Fill(-1);
-
-            var chain = new int[size]; // TODO: use memory allocator.
-
-            // Fill the chain linking pixels with the same hash.
-            var bgraComp = bgra[0] == bgra[1];
-            for (pos = 0; pos < size - 2;)
-            {
-                uint hashCode;
-                bool bgraCompNext = bgra[pos + 1] == bgra[pos + 2];
-                if (bgraComp && bgraCompNext)
-                {
-                    // Consecutive pixels with the same color will share the same hash.
-                    // We therefore use a different hash: the color and its repetition length.
-                    var tmp = new uint[2];
-                    uint len = 1;
-                    tmp[0] = bgra[pos];
-
-                    // Figure out how far the pixels are the same. The last pixel has a different 64 bit hash,
-                    // as its next pixel does not have the same color, so we just need to get to
-                    // the last pixel equal to its follower.
-                    while (pos + (int)len + 2 < size && bgra[(int)(pos + len + 2)] == bgra[pos])
-                    {
-                        ++len;
-                    }
-
-                    if (len > MaxLength)
-                    {
-                        // Skip the pixels that match for distance=1 and length>MaxLength
-                        // because they are linked to their predecessor and we automatically
-                        // check that in the main for loop below. Skipping means setting no
-                        // predecessor in the chain, hence -1.
-                        pos += (int)(len - MaxLength);
-                        len = MaxLength;
-                    }
-
-                    // Process the rest of the hash chain.
-                    while (len > 0)
-                    {
-                        tmp[1] = len--;
-                        hashCode = GetPixPairHash64(tmp);
-                        chain[pos] = hashToFirstIndex[hashCode];
-                        hashToFirstIndex[hashCode] = pos++;
-                    }
-
-                    bgraComp = false;
-                }
-                else
-                {
-                    // Just move one pixel forward.
-                    hashCode = GetPixPairHash64(bgra.Slice(pos));
-                    chain[pos] = hashToFirstIndex[hashCode];
-                    hashToFirstIndex[hashCode] = pos++;
-                    bgraComp = bgraCompNext;
-                }
-            }
-
-            // Process the penultimate pixel.
-            chain[pos] = hashToFirstIndex[GetPixPairHash64(bgra.Slice(pos))];
-
-            // Find the best match interval at each pixel, defined by an offset to the
-            // pixel and a length. The right-most pixel cannot match anything to the right
-            // (hence a best length of 0) and the left-most pixel nothing to the left (hence an offset of 0).
-            p.OffsetLength[0] = p.OffsetLength[size - 1] = 0;
-            for (int basePosition = size - 2; basePosition > 0;)
-            {
-                int maxLen = MaxFindCopyLength(size - 1 - basePosition);
-                int bgraStart = basePosition;
-                int iter = iterMax;
-                int bestLength = 0;
-                uint bestDistance = 0;
-                uint bestBgra;
-                int minPos = (basePosition > windowSize) ? basePosition - windowSize : 0;
-                int lengthMax = (maxLen < 256) ? maxLen : 256;
-                pos = chain[basePosition];
-                int currLength;
-
-                // Heuristic: use the comparison with the above line as an initialization.
-                if (basePosition >= (uint)xSize)
-                {
-                    currLength = FindMatchLength(bgra.Slice(bgraStart - xSize), bgra.Slice(bgraStart), bestLength, maxLen);
-                    if (currLength > bestLength)
-                    {
-                        bestLength = currLength;
-                        bestDistance = (uint)xSize;
-                    }
-
-                    iter--;
-                }
-
-                // Heuristic: compare to the previous pixel.
-                currLength = FindMatchLength(bgra.Slice(bgraStart - 1), bgra.Slice(bgraStart), bestLength, maxLen);
-                if (currLength > bestLength)
-                {
-                    bestLength = currLength;
-                    bestDistance = 1;
-                }
-
-                iter--;
-
-                if (bestLength == MaxLength)
-                {
-                    pos = minPos - 1;
-                }
-
-                bestBgra = bgra.Slice(bgraStart)[bestLength];
-
-                for (; pos >= minPos && (--iter > 0); pos = chain[pos])
-                {
-                    if (bgra[pos + bestLength] != bestBgra)
-                    {
-                        continue;
-                    }
-
-                    currLength = VectorMismatch(bgra.Slice(pos), bgra.Slice(bgraStart), maxLen);
-                    if (bestLength < currLength)
-                    {
-                        bestLength = currLength;
-                        bestDistance = (uint)(basePosition - pos);
-                        bestBgra = bgra.Slice(bgraStart)[bestLength];
-
-                        // Stop if we have reached a good enough length.
-                        if (bestLength >= lengthMax)
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                // We have the best match but in case the two intervals continue matching
-                // to the left, we have the best matches for the left-extended pixels.
-                var maxBasePosition = (uint)basePosition;
-                while (true)
-                {
-                    p.OffsetLength[basePosition] = (bestDistance << MaxLengthBits) | (uint)bestLength;
-                    --basePosition;
-
-                    // Stop if we don't have a match or if we are out of bounds.
-                    if (bestDistance == 0 || basePosition == 0)
-                    {
-                        break;
-                    }
-
-                    // Stop if we cannot extend the matching intervals to the left.
-                    if (basePosition < bestDistance || bgra[(int)(basePosition - bestDistance)] != bgra[basePosition])
-                    {
-                        break;
-                    }
-
-                    // Stop if we are matching at its limit because there could be a closer
-                    // matching interval with the same maximum length. Then again, if the
-                    // matching interval is as close as possible (best_distance == 1), we will
-                    // never find anything better so let's continue.
-                    if (bestLength == MaxLength && bestDistance != 1 && basePosition + MaxLength < maxBasePosition)
-                    {
-                        break;
-                    }
-
-                    if (bestLength < MaxLength)
-                    {
-                        bestLength++;
-                        maxBasePosition = (uint)basePosition;
-                    }
-                }
-            }
-        }
 
         /// <summary>
         /// Evaluates best possible backward references for specified quality. The input cacheBits to 'GetBackwardReferences'
@@ -901,9 +706,9 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             int i = 1;
             while (i < pixelCount)
             {
-                int maxLen = MaxFindCopyLength(pixelCount - i);
-                int rleLen = FindMatchLength(bgra.Slice(i), bgra.Slice(i - 1), 0, maxLen);
-                int prevRowLen = (i < xSize) ? 0 : FindMatchLength(bgra.Slice(i), bgra.Slice(i - xSize), 0, maxLen);
+                int maxLen = LosslessUtils.MaxFindCopyLength(pixelCount - i);
+                int rleLen = LosslessUtils.FindMatchLength(bgra.Slice(i), bgra.Slice(i - 1), 0, maxLen);
+                int prevRowLen = (i < xSize) ? 0 : LosslessUtils.FindMatchLength(bgra.Slice(i), bgra.Slice(i - xSize), 0, maxLen);
                 if (rleLen >= prevRowLen && rleLen >= MinLength)
                 {
                     refs.Add(PixOrCopy.CreateCopy(1, (ushort)rleLen));
@@ -930,11 +735,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
                     AddSingleLiteral(bgra[i], useColorCache, colorCache, refs);
                     i++;
                 }
-            }
-
-            if (useColorCache)
-            {
-                // TODO: VP8LColorCacheClear()?
             }
         }
 
@@ -1032,76 +832,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
             }
 
             return dist + 120;
-        }
-
-        /// <summary>
-        /// Returns the exact index where array1 and array2 are different. For an index
-        /// inferior or equal to bestLenMatch, the return value just has to be strictly
-        /// inferior to best_lenMatch. The current behavior is to return 0 if this index
-        /// is bestLenMatch, and the index itself otherwise.
-        /// If no two elements are the same, it returns maxLimit.
-        /// </summary>
-        private static int FindMatchLength(Span<uint> array1, Span<uint> array2, int bestLenMatch, int maxLimit)
-        {
-            // Before 'expensive' linear match, check if the two arrays match at the
-            // current best length index.
-            if (array1[bestLenMatch] != array2[bestLenMatch])
-            {
-                return 0;
-            }
-
-            return VectorMismatch(array1, array2, maxLimit);
-        }
-
-        private static int VectorMismatch(Span<uint> array1, Span<uint> array2, int length)
-        {
-            int matchLen = 0;
-
-            while (matchLen < length && array1[matchLen] == array2[matchLen])
-            {
-                matchLen++;
-            }
-
-            return matchLen;
-        }
-
-        /// <summary>
-        /// Calculates the hash for a pixel pair.
-        /// </summary>
-        /// <param name="bgra">An Span with two pixels.</param>
-        /// <returns>The hash.</returns>
-        private static uint GetPixPairHash64(Span<uint> bgra)
-        {
-            uint key = bgra[1] * HashMultiplierHi;
-            key += bgra[0] * HashMultiplierLo;
-            key = key >> (32 - HashBits);
-            return key;
-        }
-
-        /// <summary>
-        /// Returns the maximum number of hash chain lookups to do for a
-        /// given compression quality. Return value in range [8, 86].
-        /// </summary>
-        /// <param name="quality">The quality.</param>
-        /// <returns>Number of hash chain lookups.</returns>
-        private static int GetMaxItersForQuality(int quality)
-        {
-            return 8 + (quality * quality / 128);
-        }
-
-        private static int MaxFindCopyLength(int len)
-        {
-            return (len < MaxLength) ? len : MaxLength;
-        }
-
-        private static int GetWindowSizeForHashChain(int quality, int xSize)
-        {
-            int maxWindowSize = (quality > 75) ? WindowSize
-                : (quality > 50) ? (xSize << 8)
-                : (quality > 25) ? (xSize << 6)
-                : (xSize << 4);
-
-            return (maxWindowSize > WindowSize) ? WindowSize : maxWindowSize;
         }
     }
 }

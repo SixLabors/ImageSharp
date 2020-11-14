@@ -10,15 +10,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 {
     internal static class LossyUtils
     {
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static void Put16(int v, Span<byte> dst)
-        {
-            for (int j = 0; j < 16; ++j)
-            {
-                Memset(dst.Slice(j * WebPConstants.Bps), (byte)v, 0, 16);
-            }
-        }
-
         public static void DC16(Span<byte> dst, Span<byte> yuv, int offset)
         {
             int offsetMinus1 = offset - 1;
@@ -600,27 +591,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             }
         }
 
-        private static void TrueMotion(Span<byte> dst, Span<byte> yuv, int offset, int size)
-        {
-            // For information about how true motion works, see rfc6386, page 52. ff and section 20.14.
-            int topOffset = offset - WebPConstants.Bps;
-            Span<byte> top = yuv.Slice(topOffset);
-            byte p = yuv[topOffset - 1];
-            int leftOffset = offset - 1;
-            byte left = yuv[leftOffset];
-            for (int y = 0; y < size; ++y)
-            {
-                for (int x = 0; x < size; ++x)
-                {
-                    dst[x] = (byte)Clamp255(left + top[x] - p);
-                }
-
-                leftOffset += WebPConstants.Bps;
-                left = yuv[leftOffset];
-                dst = dst.Slice(WebPConstants.Bps);
-            }
-        }
-
         // Simple In-loop filtering (Paragraph 15.2)
         public static void SimpleVFilter16(Span<byte> p, int offset, int stride, int thresh)
         {
@@ -788,6 +758,36 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         public static int Vp8BitCost(int bit, byte proba)
         {
             return bit == 0 ? WebPLookupTables.Vp8EntropyCost[proba] : WebPLookupTables.Vp8EntropyCost[255 - proba];
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static void Put16(int v, Span<byte> dst)
+        {
+            for (int j = 0; j < 16; ++j)
+            {
+                Memset(dst.Slice(j * WebPConstants.Bps), (byte)v, 0, 16);
+            }
+        }
+
+        private static void TrueMotion(Span<byte> dst, Span<byte> yuv, int offset, int size)
+        {
+            // For information about how true motion works, see rfc6386, page 52. ff and section 20.14.
+            int topOffset = offset - WebPConstants.Bps;
+            Span<byte> top = yuv.Slice(topOffset);
+            byte p = yuv[topOffset - 1];
+            int leftOffset = offset - 1;
+            byte left = yuv[leftOffset];
+            for (int y = 0; y < size; ++y)
+            {
+                for (int x = 0; x < size; ++x)
+                {
+                    dst[x] = (byte)Clamp255(left + top[x] - p);
+                }
+
+                leftOffset += WebPConstants.Bps;
+                left = yuv[leftOffset];
+                dst = dst.Slice(WebPConstants.Bps);
+            }
         }
 
         // Complex In-loop filtering (Paragraph 15.3)

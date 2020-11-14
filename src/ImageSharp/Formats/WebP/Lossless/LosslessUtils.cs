@@ -26,6 +26,44 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossless
 
         private const double Log2Reciprocal = 1.44269504088896338700465094007086;
 
+        /// <summary>
+        /// Returns the exact index where array1 and array2 are different. For an index
+        /// inferior or equal to bestLenMatch, the return value just has to be strictly
+        /// inferior to best_lenMatch. The current behavior is to return 0 if this index
+        /// is bestLenMatch, and the index itself otherwise.
+        /// If no two elements are the same, it returns maxLimit.
+        /// </summary>
+        public static int FindMatchLength(Span<uint> array1, Span<uint> array2, int bestLenMatch, int maxLimit)
+        {
+            // Before 'expensive' linear match, check if the two arrays match at the
+            // current best length index.
+            if (array1[bestLenMatch] != array2[bestLenMatch])
+            {
+                return 0;
+            }
+
+            return VectorMismatch(array1, array2, maxLimit);
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int VectorMismatch(Span<uint> array1, Span<uint> array2, int length)
+        {
+            int matchLen = 0;
+
+            while (matchLen < length && array1[matchLen] == array2[matchLen])
+            {
+                matchLen++;
+            }
+
+            return matchLen;
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int MaxFindCopyLength(int len)
+        {
+            return (len < BackwardReferenceEncoder.MaxLength) ? len : BackwardReferenceEncoder.MaxLength;
+        }
+
         public static int PrefixEncodeBits(int distance, ref int extraBits)
         {
             if (distance < PrefixLookupIdxMax)

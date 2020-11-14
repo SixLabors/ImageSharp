@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.WebP.Lossless;
 
 namespace SixLabors.ImageSharp.Formats.WebP.Lossy
@@ -23,8 +22,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
         private const int MaxIntra16Mode = 2;
 
-        private const int MaxIntra4Mode = 2;
-
         private readonly int mbw;
 
         private readonly int mbh;
@@ -33,50 +30,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         /// Stride of the prediction plane(=4*mbw + 1).
         /// </summary>
         private readonly int predsWidth;
-
-        private const int I16DC16 = 0 * 16 * WebPConstants.Bps;
-
-        private const int I16TM16 = I16DC16 + 16;
-
-        private const int I16VE16 = 1 * 16 * WebPConstants.Bps;
-
-        private const int I16HE16 = I16VE16 + 16;
-
-        private const int C8DC8 = 2 * 16 * WebPConstants.Bps;
-
-        private const int C8TM8 = C8DC8 + (1 * 16);
-
-        private const int C8VE8 = (2 * 16 * WebPConstants.Bps) + (8 * WebPConstants.Bps);
-
-        private const int C8HE8 = C8VE8 + (1 * 16);
-
-        public static readonly int[] Vp8I16ModeOffsets = { I16DC16, I16TM16, I16VE16, I16HE16 };
-
-        public static readonly int[] Vp8UvModeOffsets = { C8DC8, C8TM8, C8VE8, C8HE8 };
-
-        private const int I4DC4 = (3 * 16 * WebPConstants.Bps) + 0;
-
-        private const int I4TM4 = I4DC4 + 4;
-
-        private const int I4VE4 = I4DC4 + 8;
-
-        private const int I4HE4 = I4DC4 + 12;
-
-        private const int I4RD4 = I4DC4 + 16;
-
-        private const int I4VR4 = I4DC4 + 20;
-
-        private const int I4LD4 = I4DC4 + 24;
-
-        private const int I4VL4 = I4DC4 + 28;
-
-        private const int I4HD4 = (3 * 16 * WebPConstants.Bps) + (4 * WebPConstants.Bps);
-
-        private const int I4HU4 = I4HD4 + 4;
-
-        public static readonly int[] Vp8I4ModeOffsets = { I4DC4, I4TM4, I4VE4, I4HE4, I4RD4, I4VR4, I4LD4, I4VL4, I4HD4, I4HU4 };
-
-        private readonly byte[] clip1 = new byte[255 + 510 + 1]; // clips [-255,510] to [0,255]
 
         // Array to record the position of the top sample to pass to the prediction functions.
         private readonly byte[] vp8TopLeftI4 =
@@ -133,11 +86,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             this.YuvP.AsSpan().Fill(defaultInitVal);
             this.YLeft.AsSpan().Fill(defaultInitVal);
             this.UvLeft.AsSpan().Fill(defaultInitVal);
-
-            for (int i = -255; i <= 255 + 255; ++i)
-            {
-                this.clip1[255 + i] = this.Clip8b(i);
-            }
 
             this.Reset();
         }
@@ -440,7 +388,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             for (mode = 0; mode < maxMode; ++mode)
             {
                 var histo = new Vp8LHistogram();
-                histo.CollectHistogram(this.YuvIn.AsSpan(YOffEnc), this.YuvP.AsSpan(Vp8I16ModeOffsets[mode]), 0, 16);
+                histo.CollectHistogram(this.YuvIn.AsSpan(YOffEnc), this.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]), 0, 16);
                 int alpha = histo.GetAlpha();
                 if (alpha > bestAlpha)
                 {
@@ -465,7 +413,7 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
             for (mode = 0; mode < maxMode; ++mode)
             {
                 var histo = new Vp8LHistogram();
-                histo.CollectHistogram(this.YuvIn.AsSpan(UOffEnc), this.YuvP.AsSpan(Vp8UvModeOffsets[mode]), 16, 16 + 4 + 4);
+                histo.CollectHistogram(this.YuvIn.AsSpan(UOffEnc), this.YuvP.AsSpan(Vp8Encoding.Vp8UvModeOffsets[mode]), 16, 16 + 4 + 4);
                 int alpha = histo.GetAlpha();
                 if (alpha > bestAlpha)
                 {
@@ -663,19 +611,19 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         {
             Span<byte> left = this.X != 0 ? this.YLeft.AsSpan() : null;
             Span<byte> top = this.Y != 0 ? this.YTop.AsSpan(this.yTopIdx) : null;
-            this.EncPredLuma16(this.YuvP, left, top);
+            Vp8Encoding.EncPredLuma16(this.YuvP, left, top);
         }
 
         public void MakeChroma8Preds()
         {
             Span<byte> left = this.X != 0 ? this.UvLeft.AsSpan() : null;
             Span<byte> top = this.Y != 0 ? this.UvTop.AsSpan(this.uvTopIdx) : null;
-            this.EncPredChroma8(this.YuvP, left, top);
+            Vp8Encoding.EncPredChroma8(this.YuvP, left, top);
         }
 
         public void MakeIntra4Preds()
         {
-            this.EncPredLuma4(this.YuvP, this.I4Boundary, this.I4BoundaryIdx);
+            Vp8Encoding.EncPredLuma4(this.YuvP, this.I4Boundary, this.I4BoundaryIdx);
         }
 
         public void SwapOut()
@@ -764,452 +712,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
 
                 dc[k] = avg;
                 input = input.Slice(4);   // go to next 4x4 block.
-            }
-        }
-
-        // luma 16x16 prediction (paragraph 12.3).
-        private void EncPredLuma16(Span<byte> dst, Span<byte> left, Span<byte> top)
-        {
-            this.DcMode(dst.Slice(I16DC16), left, top, 16, 16, 5);
-            this.VerticalPred(dst.Slice(I16VE16), top, 16);
-            this.HorizontalPred(dst.Slice(I16HE16), left, 16);
-            this.TrueMotion(dst.Slice(I16TM16), left, top, 16);
-        }
-
-        // Chroma 8x8 prediction (paragraph 12.2).
-        private void EncPredChroma8(Span<byte> dst, Span<byte> left, Span<byte> top)
-        {
-            // U block.
-            this.DcMode(dst.Slice(C8DC8), left, top, 8, 8, 4);
-            this.VerticalPred(dst.Slice(C8VE8), top, 8);
-            this.HorizontalPred(dst.Slice(C8HE8), left, 8);
-            this.TrueMotion(dst.Slice(C8TM8), left, top, 8);
-
-            // V block.
-            dst = dst.Slice(8);
-            if (top != null)
-            {
-                top = top.Slice(8);
-            }
-
-            if (left != null)
-            {
-                left = left.Slice(16);
-            }
-
-            this.DcMode(dst.Slice(C8DC8), left, top, 8, 8, 4);
-            this.VerticalPred(dst.Slice(C8VE8), top, 8);
-            this.HorizontalPred(dst.Slice(C8HE8), left, 8);
-            this.TrueMotion(dst.Slice(C8TM8), left, top, 8);
-        }
-
-        // Left samples are top[-5 .. -2], top_left is top[-1], top are
-        // located at top[0..3], and top right is top[4..7]
-        private void EncPredLuma4(Span<byte> dst, Span<byte> top, int topOffset)
-        {
-            this.Dc4(dst.Slice(I4DC4), top, topOffset);
-            this.Tm4(dst.Slice(I4TM4), top, topOffset);
-            this.Ve4(dst.Slice(I4VE4), top, topOffset);
-            this.He4(dst.Slice(I4HE4), top, topOffset);
-            this.Rd4(dst.Slice(I4RD4), top, topOffset);
-            this.Vr4(dst.Slice(I4VR4), top, topOffset);
-            this.Ld4(dst.Slice(I4LD4), top, topOffset);
-            this.Vl4(dst.Slice(I4VL4), top, topOffset);
-            this.Hd4(dst.Slice(I4HD4), top, topOffset);
-            this.Hu4(dst.Slice(I4HU4), top, topOffset);
-        }
-
-        private void DcMode(Span<byte> dst, Span<byte> left, Span<byte> top, int size, int round, int shift)
-        {
-            int dc = 0;
-            int j;
-            if (top != null)
-            {
-                for (j = 0; j < size; ++j)
-                {
-                    dc += top[j];
-                }
-
-                if (left != null)
-                {
-                    // top and left present.
-                    left = left.Slice(1); // in the reference implementation, left starts at -1.
-                    for (j = 0; j < size; ++j)
-                    {
-                        dc += left[j];
-                    }
-                }
-                else
-                {
-                    // top, but no left.
-                    dc += dc;
-                }
-
-                dc = (dc + round) >> shift;
-            }
-            else if (left != null)
-            {
-                // left but no top.
-                left = left.Slice(1); // in the reference implementation, left starts at -1.
-                for (j = 0; j < size; ++j)
-                {
-                    dc += left[j];
-                }
-
-                dc += dc;
-                dc = (dc + round) >> shift;
-            }
-            else
-            {
-                // no top, no left, nothing.
-                dc = 0x80;
-            }
-
-            this.Fill(dst, dc, size);
-        }
-
-        private void VerticalPred(Span<byte> dst, Span<byte> top, int size)
-        {
-            if (top != null)
-            {
-                for (int j = 0; j < size; ++j)
-                {
-                    top.Slice(0, size).CopyTo(dst.Slice(j * WebPConstants.Bps));
-                }
-            }
-            else
-            {
-                this.Fill(dst, 127, size);
-            }
-        }
-
-        private void HorizontalPred(Span<byte> dst, Span<byte> left, int size)
-        {
-            if (left != null)
-            {
-                left = left.Slice(1); // in the reference implementation, left starts at - 1.
-                for (int j = 0; j < size; ++j)
-                {
-                    dst.Slice(j * WebPConstants.Bps, size).Fill(left[j]);
-                }
-            }
-            else
-            {
-               this.Fill(dst, 129, size);
-            }
-        }
-
-        private void TrueMotion(Span<byte> dst, Span<byte> left, Span<byte> top, int size)
-        {
-            if (left != null)
-            {
-                if (top != null)
-                {
-                    Span<byte> clip = this.clip1.AsSpan(255 - left[0]); // left [0] instead of left[-1], original left starts at -1
-                    for (int y = 0; y < size; ++y)
-                    {
-                        Span<byte> clipTable = clip.Slice(left[y + 1]); // left[y]
-                        for (int x = 0; x < size; ++x)
-                        {
-                            dst[x] = clipTable[top[x]];
-                        }
-
-                        dst = dst.Slice(WebPConstants.Bps);
-                    }
-                }
-                else
-                {
-                    this.HorizontalPred(dst, left, size);
-                }
-            }
-            else
-            {
-                // true motion without left samples (hence: with default 129 value)
-                // is equivalent to VE prediction where you just copy the top samples.
-                // Note that if top samples are not available, the default value is
-                // then 129, and not 127 as in the VerticalPred case.
-                if (top != null)
-                {
-                    this.VerticalPred(dst, top, size);
-                }
-                else
-                {
-                    this.Fill(dst, 129, size);
-                }
-            }
-        }
-
-        private void Dc4(Span<byte> dst, Span<byte> top, int topOffset)
-        {
-            uint dc = 4;
-            int i;
-            for (i = 0; i < 4; ++i)
-            {
-                dc += (uint)(top[topOffset + i] + top[topOffset - 5 + i]);
-            }
-
-            this.Fill(dst, (int)(dc >> 3), 4);
-        }
-
-        private void Tm4(Span<byte> dst, Span<byte> top, int topOffset)
-        {
-            Span<byte> clip = this.clip1.AsSpan(255 - top[topOffset - 1]);
-            for (int y = 0; y < 4; ++y)
-            {
-                Span<byte> clipTable = clip.Slice(top[topOffset - 2 - y]);
-                for (int x = 0; x < 4; ++x)
-                {
-                    dst[x] = clipTable[top[topOffset + x]];
-                }
-
-                dst = dst.Slice(WebPConstants.Bps);
-            }
-        }
-
-        private void Ve4(Span<byte> dst, Span<byte> top, int topOffset)
-        {
-            // vertical
-            byte[] vals =
-            {
-                LossyUtils.Avg3(top[topOffset - 1], top[topOffset], top[topOffset + 1]),
-                LossyUtils.Avg3(top[topOffset], top[topOffset + 1], top[topOffset + 2]),
-                LossyUtils.Avg3(top[topOffset + 1], top[topOffset + 2], top[topOffset + 3]),
-                LossyUtils.Avg3(top[topOffset + 2], top[topOffset + 3], top[topOffset + 4])
-            };
-
-            for (int i = 0; i < 4; ++i)
-            {
-                vals.AsSpan().CopyTo(dst.Slice(i * WebPConstants.Bps));
-            }
-        }
-
-        private void He4(Span<byte> dst, Span<byte> top, int topOffset)
-        {
-            // horizontal
-            byte x = top[topOffset - 1];
-            byte i = top[topOffset - 2];
-            byte j = top[topOffset - 3];
-            byte k = top[topOffset - 4];
-            byte l = top[topOffset - 5];
-
-            uint val = 0x01010101U * LossyUtils.Avg3(x, i, j);
-            BinaryPrimitives.WriteUInt32BigEndian(dst, val);
-            val = 0x01010101U * LossyUtils.Avg3(i, j, k);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(1 * WebPConstants.Bps), val);
-            val = 0x01010101U * LossyUtils.Avg3(j, k, l);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(2 * WebPConstants.Bps), val);
-            val = 0x01010101U * LossyUtils.Avg3(k, l, l);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(3 * WebPConstants.Bps), val);
-        }
-
-        private void Rd4(Span<byte> dst, Span<byte> top, int topOffset)
-        {
-            byte x = top[topOffset - 1];
-            byte i = top[topOffset - 2];
-            byte j = top[topOffset - 3];
-            byte k = top[topOffset - 4];
-            byte l = top[topOffset - 5];
-            byte a = top[topOffset];
-            byte b = top[topOffset + 1];
-            byte c = top[topOffset + 2];
-            byte d = top[topOffset + 3];
-
-            LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg3(j, k, l));
-            var ijk = LossyUtils.Avg3(i, j, k);
-            LossyUtils.Dst(dst, 0, 2, ijk);
-            LossyUtils.Dst(dst, 1, 3, ijk);
-            var xij = LossyUtils.Avg3(x, i, j);
-            LossyUtils.Dst(dst, 0, 1, xij);
-            LossyUtils.Dst(dst, 1, 2, xij);
-            LossyUtils.Dst(dst, 2, 3, xij);
-            var axi = LossyUtils.Avg3(a, x, i);
-            LossyUtils.Dst(dst, 0, 0, axi);
-            LossyUtils.Dst(dst, 1, 1, axi);
-            LossyUtils.Dst(dst, 2, 2, axi);
-            LossyUtils.Dst(dst, 3, 3, axi);
-            var bax = LossyUtils.Avg3(b, a, x);
-            LossyUtils.Dst(dst, 1, 0, bax);
-            LossyUtils.Dst(dst, 2, 1, bax);
-            LossyUtils.Dst(dst, 3, 2, bax);
-            var cba = LossyUtils.Avg3(c, b, a);
-            LossyUtils.Dst(dst, 2, 0, cba);
-            LossyUtils.Dst(dst, 3, 1, cba);
-            LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg3(d, c, b));
-        }
-
-        private void Vr4(Span<byte> dst, Span<byte> top, int topOffset)
-        {
-            byte x = top[topOffset - 1];
-            byte i = top[topOffset - 2];
-            byte j = top[topOffset - 3];
-            byte k = top[topOffset - 4];
-            byte a = top[topOffset];
-            byte b = top[topOffset + 1];
-            byte c = top[topOffset + 2];
-            byte d = top[topOffset + 3];
-
-            var xa = LossyUtils.Avg2(x, a);
-            LossyUtils.Dst(dst, 0, 0, xa);
-            LossyUtils.Dst(dst, 1, 2, xa);
-            var ab = LossyUtils.Avg2(a, b);
-            LossyUtils.Dst(dst, 1, 0, ab);
-            LossyUtils.Dst(dst, 2, 2, ab);
-            var bc = LossyUtils.Avg2(b, c);
-            LossyUtils.Dst(dst, 2, 0, bc);
-            LossyUtils.Dst(dst, 3, 2, bc);
-            LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg2(c, d));
-            LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg3(k, j, i));
-            LossyUtils.Dst(dst, 0, 2, LossyUtils.Avg3(j, i, x));
-            var ixa = LossyUtils.Avg3(i, x, a);
-            LossyUtils.Dst(dst, 0, 1, ixa);
-            LossyUtils.Dst(dst, 1, 3, ixa);
-            var xab = LossyUtils.Avg3(x, a, b);
-            LossyUtils.Dst(dst, 1, 1, xab);
-            LossyUtils.Dst(dst, 2, 3, xab);
-            var abc = LossyUtils.Avg3(a, b, c);
-            LossyUtils.Dst(dst, 2, 1, abc);
-            LossyUtils.Dst(dst, 3, 3, abc);
-            LossyUtils.Dst(dst, 3, 1, LossyUtils.Avg3(b, c, d));
-        }
-
-        private void Ld4(Span<byte> dst, Span<byte> top, int topOffset)
-        {
-            byte a = top[topOffset + 0];
-            byte b = top[topOffset + 1];
-            byte c = top[topOffset + 2];
-            byte d = top[topOffset + 3];
-            byte e = top[topOffset + 4];
-            byte f = top[topOffset + 5];
-            byte g = top[topOffset + 6];
-            byte h = top[topOffset + 7];
-
-            LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg3(a, b, c));
-            var bcd = LossyUtils.Avg3(b, c, d);
-            LossyUtils.Dst(dst, 1, 0, bcd);
-            LossyUtils.Dst(dst, 0, 1, bcd);
-            var cde = LossyUtils.Avg3(c, d, e);
-            LossyUtils.Dst(dst, 2, 0, cde);
-            LossyUtils.Dst(dst, 1, 1, cde);
-            LossyUtils.Dst(dst, 0, 2, cde);
-            var def = LossyUtils.Avg3(d, e, f);
-            LossyUtils.Dst(dst, 3, 0, def);
-            LossyUtils.Dst(dst, 2, 1, def);
-            LossyUtils.Dst(dst, 1, 2, def);
-            LossyUtils.Dst(dst, 0, 3, def);
-            var efg = LossyUtils.Avg3(e, f, g);
-            LossyUtils.Dst(dst, 3, 1, efg);
-            LossyUtils.Dst(dst, 2, 2, efg);
-            LossyUtils.Dst(dst, 1, 3, efg);
-            var fgh = LossyUtils.Avg3(f, g, h);
-            LossyUtils.Dst(dst, 3, 2, fgh);
-            LossyUtils.Dst(dst, 2, 3, fgh);
-            LossyUtils.Dst(dst, 3, 3, LossyUtils.Avg3(g, h, h));
-        }
-
-        private void Vl4(Span<byte> dst, Span<byte> top, int topOffset)
-        {
-            byte a = top[topOffset + 0];
-            byte b = top[topOffset + 1];
-            byte c = top[topOffset + 2];
-            byte d = top[topOffset + 3];
-            byte e = top[topOffset + 4];
-            byte f = top[topOffset + 5];
-            byte g = top[topOffset + 6];
-            byte h = top[topOffset + 7];
-
-            LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg2(a, b));
-            var bc = LossyUtils.Avg2(b, c);
-            LossyUtils.Dst(dst, 1, 0, bc);
-            LossyUtils.Dst(dst, 0, 2, bc);
-            var cd = LossyUtils.Avg2(c, d);
-            LossyUtils.Dst(dst, 2, 0, cd);
-            LossyUtils.Dst(dst, 1, 2, cd);
-            var de = LossyUtils.Avg2(d, e);
-            LossyUtils.Dst(dst, 3, 0, de);
-            LossyUtils.Dst(dst, 2, 2, de);
-            LossyUtils.Dst(dst, 0, 1, LossyUtils.Avg3(a, b, c));
-            var bcd = LossyUtils.Avg3(b, c, d);
-            LossyUtils.Dst(dst, 1, 1, bcd);
-            LossyUtils.Dst(dst, 0, 3, bcd);
-            var cde = LossyUtils.Avg3(c, d, e);
-            LossyUtils.Dst(dst, 2, 1, cde);
-            LossyUtils.Dst(dst, 1, 3, cde);
-            var def = LossyUtils.Avg3(d, e, f);
-            LossyUtils.Dst(dst, 3, 1, def);
-            LossyUtils.Dst(dst, 2, 3, def);
-            LossyUtils.Dst(dst, 3, 2, LossyUtils.Avg3(e, f, g));
-            LossyUtils.Dst(dst, 3, 3, LossyUtils.Avg3(f, g, h));
-        }
-
-        private void Hd4(Span<byte> dst, Span<byte> top, int topOffset)
-        {
-            byte x = top[topOffset - 1];
-            byte i = top[topOffset - 2];
-            byte j = top[topOffset - 3];
-            byte k = top[topOffset - 4];
-            byte l = top[topOffset - 5];
-            byte a = top[topOffset];
-            byte b = top[topOffset + 1];
-            byte c = top[topOffset + 2];
-
-            var ix = LossyUtils.Avg2(i, x);
-            LossyUtils.Dst(dst, 0, 0, ix);
-            LossyUtils.Dst(dst, 2, 1, ix);
-            var ji = LossyUtils.Avg2(j, i);
-            LossyUtils.Dst(dst, 0, 1, ji);
-            LossyUtils.Dst(dst, 2, 2, ji);
-            var kj = LossyUtils.Avg2(k, j);
-            LossyUtils.Dst(dst, 0, 2, kj);
-            LossyUtils.Dst(dst, 2, 3, kj);
-            LossyUtils.Dst(dst, 0, 3, LossyUtils.Avg2(l, k));
-            LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg3(a, b, c));
-            LossyUtils.Dst(dst, 2, 0, LossyUtils.Avg3(x, a, b));
-            var ixa = LossyUtils.Avg3(i, x, a);
-            LossyUtils.Dst(dst, 1, 0, ixa);
-            LossyUtils.Dst(dst, 3, 1, ixa);
-            var jix = LossyUtils.Avg3(j, i, x);
-            LossyUtils.Dst(dst, 1, 1, jix);
-            LossyUtils.Dst(dst, 3, 2, jix);
-            var kji = LossyUtils.Avg3(k, j, i);
-            LossyUtils.Dst(dst, 1, 2, kji);
-            LossyUtils.Dst(dst, 3, 3, kji);
-            LossyUtils.Dst(dst, 1, 3, LossyUtils.Avg3(l, k, j));
-        }
-
-        private void Hu4(Span<byte> dst, Span<byte> top, int topOffset)
-        {
-            byte i = top[topOffset - 2];
-            byte j = top[topOffset - 3];
-            byte k = top[topOffset - 4];
-            byte l = top[topOffset - 5];
-
-            LossyUtils.Dst(dst, 0, 0, LossyUtils.Avg2(i, j));
-            var jk = LossyUtils.Avg2(j, k);
-            LossyUtils.Dst(dst, 2, 0, jk);
-            LossyUtils.Dst(dst, 0, 1, jk);
-            var kl = LossyUtils.Avg2(k, l);
-            LossyUtils.Dst(dst, 2, 1, kl);
-            LossyUtils.Dst(dst, 0, 2, kl);
-            LossyUtils.Dst(dst, 1, 0, LossyUtils.Avg3(i, j, k));
-            var jkl = LossyUtils.Avg3(j, k, l);
-            LossyUtils.Dst(dst, 3, 0, jkl);
-            LossyUtils.Dst(dst, 1, 1, jkl);
-            var kll = LossyUtils.Avg3(k, l, l);
-            LossyUtils.Dst(dst, 3, 1, kll);
-            LossyUtils.Dst(dst, 1, 2, kll);
-            LossyUtils.Dst(dst, 3, 2, l);
-            LossyUtils.Dst(dst, 2, 2, l);
-            LossyUtils.Dst(dst, 0, 3, l);
-            LossyUtils.Dst(dst, 1, 3, l);
-            LossyUtils.Dst(dst, 2, 3, l);
-            LossyUtils.Dst(dst, 3, 3, l);
-        }
-
-        private void Fill(Span<byte> dst, int value, int size)
-        {
-            for (int j = 0; j < size; ++j)
-            {
-                dst.Slice(j * WebPConstants.Bps, size).Fill((byte)value);
             }
         }
 
@@ -1327,11 +829,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.Lossy
         private void SetCountDown(int countDown)
         {
             this.CountDown = countDown;
-        }
-
-        private byte Clip8b(int v)
-        {
-            return ((v & ~0xff) == 0) ? (byte)v : (v < 0) ? (byte)0 : (byte)255;
         }
     }
 }

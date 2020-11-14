@@ -197,7 +197,6 @@ namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
         /// <param name="extraSize">The extra size in bytes needed.</param>
         public override void BitWriterResize(int extraSize)
         {
-            // TODO: review again if this works as intended. Probably needs a unit test ...
             var neededSize = this.pos + extraSize;
             if (neededSize <= this.maxPos)
             {

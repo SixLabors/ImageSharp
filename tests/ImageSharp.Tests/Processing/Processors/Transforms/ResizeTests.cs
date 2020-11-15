@@ -355,6 +355,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
+        [PlatformSpecific(~TestPlatforms.OSX)]
         [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
         public void ResizeFromSourceRectangle<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -437,6 +438,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
+        [PlatformSpecific(~TestPlatforms.OSX)]
         [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
         public void ResizeWithBoxPadMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -547,6 +549,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         }
 
         [Theory]
+        [PlatformSpecific(~TestPlatforms.OSX)]
         [WithFileCollection(nameof(CommonTestImages), DefaultPixelType)]
         public void ResizeWithPadMode<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>

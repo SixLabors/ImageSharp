@@ -339,22 +339,13 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
-            using IMemoryOwner<Rgba32> rgbColorsBuffer = this.memoryAllocator.Allocate<Rgba32>(quantized.Palette.Length);
-            Span<Rgba32> rgbColors = rgbColorsBuffer.GetSpan();
 
             ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
-            PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, quantizedColors, rgbColors);
-
-            int idx = 0;
-            foreach (Rgba32 color in rgbColors)
+            PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, quantizedColors, MemoryMarshal.Cast<byte, Bgra32>(colorPalette));
+            Span<uint> colorPaletteAsUInt = MemoryMarshal.Cast<byte, uint>(colorPalette);
+            for (int i = 0; i < colorPaletteAsUInt.Length; i++)
             {
-                colorPalette[idx] = color.B;
-                colorPalette[idx + 1] = color.G;
-                colorPalette[idx + 2] = color.R;
-
-                // Padding byte, always 0.
-                colorPalette[idx + 3] = 0;
-                idx += 4;
+                colorPaletteAsUInt[i] = colorPaletteAsUInt[i] & 0x00FFFFFF; // Padding byte, always 0.
             }
 
             stream.Write(colorPalette);

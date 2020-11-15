@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 {
     /// <summary>
+    /// EXPERIMENTAL:
     /// Image encoder for writing an image to a stream in the WebP format.
     /// </summary>
     public sealed class WebPEncoder : IImageEncoder, IWebPEncoderOptions

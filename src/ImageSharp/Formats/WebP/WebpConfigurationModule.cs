@@ -4,6 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 {
     /// <summary>
+    /// EXPERIMENTAL:
     /// Registers the image encoders, decoders and mime type detectors for the webp format.
     /// </summary>
     public sealed class WebPConfigurationModule : IConfigurationModule

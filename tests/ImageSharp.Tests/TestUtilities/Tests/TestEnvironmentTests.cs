@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/foobar.webp", typeof(WebPEncoder))]
         public void GetReferenceEncoder_ReturnsCorrectEncoders_Windows(string fileName, Type expectedEncoderType)
         {
-            if (TestEnvironment.IsLinux)
+            if (!TestEnvironment.IsWindows)
             {
                 return;
             }
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/foobar.webp", typeof(WebPDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Windows(string fileName, Type expectedDecoderType)
         {
-            if (TestEnvironment.IsLinux)
+            if (!TestEnvironment.IsWindows)
             {
                 return;
             }

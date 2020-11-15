@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 {
     /// <summary>
     /// On-the-fly info about the current set of residuals.

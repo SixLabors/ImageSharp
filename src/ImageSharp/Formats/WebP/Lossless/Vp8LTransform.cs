@@ -4,7 +4,7 @@
 using System.Buffers;
 using System.Diagnostics;
 
-namespace SixLabors.ImageSharp.Formats.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 {
     /// <summary>
     /// Data associated with a VP8L transformation to reduce the entropy.

@@ -6,11 +6,11 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Formats.WebP.BitReader;
+using SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 {
     /// <summary>
     /// Decoder for lossy webp images. This code is a port of libwebp, which can be found here: https://chromium.googlesource.com/webm/libwebp

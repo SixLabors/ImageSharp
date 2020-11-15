@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.WebP;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 

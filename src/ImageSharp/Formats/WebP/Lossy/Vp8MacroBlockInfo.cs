@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace SixLabors.ImageSharp.Formats.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 {
     [DebuggerDisplay("Type: {MacroBlockType}, Alpha: {Alpha}, UvMode: {UvMode}")]
     internal class Vp8MacroBlockInfo

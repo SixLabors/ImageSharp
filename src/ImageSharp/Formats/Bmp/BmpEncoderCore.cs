@@ -6,7 +6,6 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
@@ -340,15 +339,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         {
             using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
+            using IMemoryOwner<Rgba32> rgbColorsBuffer = this.memoryAllocator.Allocate<Rgba32>(quantized.Palette.Length);
+            Span<Rgba32> rgbColors = rgbColorsBuffer.GetSpan();
 
             ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
-            var color = default(Rgba32);
+            PixelOperations<TPixel>.Instance.ToRgba32(Configuration.Default, quantizedColors, rgbColors);
 
-            // TODO: Use bulk conversion here for better perf
             int idx = 0;
-            foreach (TPixel quantizedColor in quantizedColors)
+            foreach (Rgba32 color in rgbColors)
             {
-                quantizedColor.ToRgba32(ref color);
                 colorPalette[idx] = color.B;
                 colorPalette[idx + 1] = color.G;
                 colorPalette[idx + 2] = color.R;

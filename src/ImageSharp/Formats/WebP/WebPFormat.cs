@@ -6,6 +6,7 @@ using System.Collections.Generic;
 namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 {
     /// <summary>
+    /// EXPERIMENTAL:
     /// Registers the image encoders, decoders and mime type detectors for the WebP format
     /// </summary>
     public sealed class WebPFormat : IImageFormat<WebPMetadata>

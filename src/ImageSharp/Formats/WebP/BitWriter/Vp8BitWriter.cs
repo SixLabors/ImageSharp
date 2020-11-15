@@ -4,9 +4,9 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using SixLabors.ImageSharp.Formats.WebP.Lossy;
+using SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy;
 
-namespace SixLabors.ImageSharp.Formats.WebP.BitWriter
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
 {
     /// <summary>
     /// A bit writer for writing lossy webp streams.

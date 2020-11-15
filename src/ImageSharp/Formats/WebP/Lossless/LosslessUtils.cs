@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 {
     /// <summary>
     /// Utility functions for the lossless decoder.

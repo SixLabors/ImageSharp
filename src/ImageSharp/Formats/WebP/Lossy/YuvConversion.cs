@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 {
     internal static class YuvConversion
     {

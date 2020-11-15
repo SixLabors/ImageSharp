@@ -4,7 +4,7 @@
 using System.IO;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.WebP;
 
 namespace SixLabors.ImageSharp
 {

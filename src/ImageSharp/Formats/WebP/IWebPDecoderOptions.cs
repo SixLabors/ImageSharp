@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 {
     /// <summary>
     /// Image decoder options for generating an image out of a webp stream.

@@ -7,7 +7,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.WebP.BitReader
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader
 {
     /// <summary>
     /// A bit reader for VP8 streams.

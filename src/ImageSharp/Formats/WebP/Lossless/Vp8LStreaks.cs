@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 {
     internal class Vp8LStreaks
     {

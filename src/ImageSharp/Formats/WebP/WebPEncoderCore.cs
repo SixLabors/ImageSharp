@@ -5,13 +5,13 @@ using System.IO;
 using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.WebP.Lossless;
-using SixLabors.ImageSharp.Formats.WebP.Lossy;
+using SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless;
+using SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 {
     /// <summary>
     /// Image encoder for writing an image to a stream in the WebP format.

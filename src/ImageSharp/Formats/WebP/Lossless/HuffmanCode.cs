@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace SixLabors.ImageSharp.Formats.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 {
     /// <summary>
     /// A classic way to do entropy coding where a smaller number of bits are used for more frequent codes.

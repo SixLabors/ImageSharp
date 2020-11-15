@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace SixLabors.ImageSharp.Formats.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 {
     /// <summary>
     /// Holds the tree header in coded form.

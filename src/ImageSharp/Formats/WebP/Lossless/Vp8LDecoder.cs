@@ -6,7 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 {
     /// <summary>
     /// Holds information for decoding a lossless webp image.

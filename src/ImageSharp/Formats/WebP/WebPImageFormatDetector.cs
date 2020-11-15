@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 {
     /// <summary>
     /// Detects WebP file headers.

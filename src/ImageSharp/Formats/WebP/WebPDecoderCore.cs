@@ -5,9 +5,9 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Threading;
-using SixLabors.ImageSharp.Formats.WebP.BitReader;
-using SixLabors.ImageSharp.Formats.WebP.Lossless;
-using SixLabors.ImageSharp.Formats.WebP.Lossy;
+using SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader;
+using SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless;
+using SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -15,7 +15,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 {
     /// <summary>
     /// Performs the webp decoding operation.

@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 {
     /// <summary>
+    /// EXPERIMENTAL:
     /// Image decoder for generating an image out of a webp stream.
     /// </summary>
     public sealed class WebPDecoder : IImageDecoder, IWebPDecoderOptions, IImageInfoDetector

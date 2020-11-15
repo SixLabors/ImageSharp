@@ -181,9 +181,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
             this.filterHeader = new Vp8FilterHeader();
             int predSize = (((4 * this.mbw) + 1) * ((4 * this.mbh) + 1)) + this.predsWidth + 1;
-            this.proba = new Vp8EncProba();
-            this.Preds = new byte[predSize * 2]; // TODO: figure out how much mem we need here. This is too much.
             this.predsWidth = (4 * this.mbw) + 1;
+            this.proba = new Vp8EncProba();
+            this.Preds = new byte[predSize + this.predsWidth + this.mbw];
 
             // Initialize with default values, which the reference c implementation uses,
             // to be able to compare to the original and spot differences.

@@ -20,6 +20,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
 
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
+        public WebPDecoderTests()
+        {
+            Configuration.Default.ImageFormatsManager.AddImageFormat(WebPFormat.Instance);
+            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new WebPImageFormatDetector());
+            Configuration.Default.ImageFormatsManager.SetDecoder(WebPFormat.Instance, new WebPDecoder());
+        }
+
         [Theory]
         [InlineData(Lossless.GreenTransform1, 1000, 307, 32)]
         [InlineData(Lossless.BikeThreeTransforms, 250, 195, 32)]

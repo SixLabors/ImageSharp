@@ -6,7 +6,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.Formats.Experimental.WebP;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
@@ -78,7 +77,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Gets or sets the size of the buffer to use when working with streams.
-        /// Intitialized with <see cref="DefaultStreamProcessingBufferSize"/> by default.
+        /// Initialized with <see cref="DefaultStreamProcessingBufferSize"/> by default.
         /// </summary>
         public int StreamProcessingBufferSize
         {
@@ -95,9 +94,9 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Gets a set of properties for the Congiguration.
+        /// Gets a set of properties for the Configuration.
         /// </summary>
-        /// <remarks>This can be used for storing global settings and defaults to be accessable to processors.</remarks>
+        /// <remarks>This can be used for storing global settings and defaults to be accessible to processors.</remarks>
         public IDictionary<object, object> Properties { get; } = new ConcurrentDictionary<object, object>();
 
         /// <summary>
@@ -190,8 +189,7 @@ namespace SixLabors.ImageSharp
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
                 new BmpConfigurationModule(),
-                new TgaConfigurationModule(),
-                new WebPConfigurationModule());
+                new TgaConfigurationModule());
         }
     }
 }

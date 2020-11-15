@@ -343,7 +343,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             Span<Rgba32> rgbColors = rgbColorsBuffer.GetSpan();
 
             ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
-            PixelOperations<TPixel>.Instance.ToRgba32(Configuration.Default, quantizedColors, rgbColors);
+            PixelOperations<TPixel>.Instance.ToRgba32(this.configuration, quantizedColors, rgbColors);
 
             int idx = 0;
             foreach (Rgba32 color in rgbColors)

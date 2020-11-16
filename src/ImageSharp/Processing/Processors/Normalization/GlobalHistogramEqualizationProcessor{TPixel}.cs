@@ -172,11 +172,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 for (int x = 0; x < this.bounds.Width; x++)
                 {
                     // TODO: We should bulk convert here.
-                    TPixel pixel = pixelRow[x];
+                    ref TPixel pixel = ref pixelRow[x];
                     var vector = pixel.ToVector4();
                     int luminance = ImageMaths.GetBT709Luminance(ref vector, levels);
                     float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / noOfPixelsMinusCdfMin;
-                    pixelRow[x].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W));
+                    pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W));
                 }
             }
         }

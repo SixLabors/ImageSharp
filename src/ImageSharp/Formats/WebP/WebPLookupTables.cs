@@ -6,6 +6,7 @@ using System.Collections.Generic;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 {
+#pragma warning disable SA1201 // Elements should appear in the correct order
     internal static class WebPLookupTables
     {
         public static readonly Dictionary<int, byte> Abs0;
@@ -418,7 +419,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         };
 
         // 31 ^ clz(i)
-        public static readonly byte[] LogTable8Bit =
+        public static ReadOnlySpan<byte> LogTable8Bit => new byte[]
         {
             0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
             4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,

@@ -1,11 +1,10 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
 using SixLabors.ImageSharp.Tuples;
 
 // ReSharper disable ImpureMethodCallOnReadonlyValueField
@@ -13,40 +12,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
 {
     internal abstract partial class JpegColorConverter
     {
-        internal sealed class FromYCbCrSimdVector8 : JpegColorConverter
+        internal sealed class FromYCbCrVector8 : Vector8JpegColorConverter
         {
-            public FromYCbCrSimdVector8(int precision)
+            public FromYCbCrVector8(int precision)
                 : base(JpegColorSpace.YCbCr, precision)
             {
             }
 
-            public static bool IsAvailable => Vector.IsHardwareAccelerated && SimdUtils.HasVector8;
-
-            public override void ConvertToRgba(in ComponentValues values, Span<Vector4> result)
+            protected override void ConvertCoreVectorized(in ComponentValues values, Span<Vector4> result)
             {
-                int remainder = result.Length % 8;
-                int simdCount = result.Length - remainder;
-                if (simdCount > 0)
-                {
-                    ConvertCore(values.Slice(0, simdCount), result.Slice(0, simdCount), this.MaximumValue, this.HalfValue);
-                }
-
-                FromYCbCrBasic.ConvertCore(values.Slice(simdCount, remainder), result.Slice(simdCount, remainder), this.MaximumValue, this.HalfValue);
-            }
-
-            /// <summary>
-            /// SIMD convert using buffers of sizes divisible by 8.
-            /// </summary>
-            internal static void ConvertCore(in ComponentValues values, Span<Vector4> result, float maxValue, float halfValue)
-            {
-                // This implementation is actually AVX specific.
-                // An AVX register is capable of storing 8 float-s.
-                if (!IsAvailable)
-                {
-                    throw new InvalidOperationException(
-                        "JpegColorConverter.FromYCbCrSimd256 can be used only on architecture having 256 byte floating point SIMD registers!");
-                }
-
                 ref Vector<float> yBase =
                     ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
                 ref Vector<float> cbBase =
@@ -57,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 ref Vector4Octet resultBase =
                     ref Unsafe.As<Vector4, Vector4Octet>(ref MemoryMarshal.GetReference(result));
 
-                var chromaOffset = new Vector<float>(-halfValue);
+                var chromaOffset = new Vector<float>(-this.HalfValue);
 
                 // Walking 8 elements at one step:
                 int n = result.Length / 8;
@@ -70,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 ref Vector<float> ggRefAsVector = ref Unsafe.As<Vector4Pair, Vector<float>>(ref gg);
                 ref Vector<float> bbRefAsVector = ref Unsafe.As<Vector4Pair, Vector<float>>(ref bb);
 
-                var scale = new Vector<float>(1 / maxValue);
+                var scale = new Vector<float>(1 / this.MaximumValue);
 
                 for (int i = 0; i < n; i++)
                 {
@@ -105,6 +79,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                     destination.Pack(ref rr, ref gg, ref bb);
                 }
             }
+
+            protected override void ConvertCore(in ComponentValues values, Span<Vector4> result) =>
+                FromYCbCrBasic.ConvertCore(values, result, this.MaximumValue, this.HalfValue);
         }
     }
 }

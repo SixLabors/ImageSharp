@@ -492,7 +492,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
         public static void TransformOne(Span<short> src, Span<byte> dst)
         {
-            var tmp = new int[4 * 4];
+            Span<int> tmp = stackalloc int[4 * 4];
             int tmpOffset = 0;
             for (int srcOffset = 0; srcOffset < 4; srcOffset++)
             {

@@ -332,5 +332,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
                     }
                 });
         }
+
+        [Theory]
+        [WithFile(Lossless.Earth, PixelTypes.Rgba32)]
+        public void ProfileTestLossless<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(WebpDecoder);
+        }
     }
 }

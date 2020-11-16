@@ -91,6 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader
 
         public uint Remaining { get; set; }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         public int GetBit(int prob)
         {
             uint range = this.range;
@@ -184,6 +185,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader
             this.LoadNewBytes();
         }
 
+        [MethodImpl(InliningOptions.ColdPath)]
         private void LoadNewBytes()
         {
             if (this.pos < this.bufferMax)

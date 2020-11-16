@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 {
@@ -23,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
                 n >>= 8;
             }
 
-            return logValue + WebPLookupTables.LogTable8Bit[n];
+            return logValue + Unsafe.Add(ref MemoryMarshal.GetReference(WebPLookupTables.LogTable8Bit), (int)n);
         }
     }
 }

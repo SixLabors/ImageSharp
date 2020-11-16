@@ -107,6 +107,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Issue1177_1 = "Png/issues/Issue_1177_1.png";
             public const string Issue1177_2 = "Png/issues/Issue_1177_2.png";
 
+            // Issue 935: https://github.com/SixLabors/ImageSharp/issues/935
+            public const string Issue935 = "Png/issues/Issue_935.png";
+
             public static class Bad
             {
                 public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -193,6 +196,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string YcckSubsample1222 = "Jpg/baseline/ycck-subsample-1222.jpg";
                 public const string Iptc = "Jpg/baseline/iptc.jpg";
                 public const string App13WithEmptyIptc = "Jpg/baseline/iptc-psAPP13-wIPTCempty.jpg";
+                public const string HistogramEqImage = "Jpg/baseline/640px-Unequalized_Hawkes_Bay_NZ.jpg";
 
                 public static readonly string[] All =
                 {

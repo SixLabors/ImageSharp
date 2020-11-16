@@ -17,6 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         [InlineData(0)]
         [InlineData(1)]
         [InlineData(30)]
+        [InlineData(63)]
         public void Premultiply_VectorSpan(int length)
         {
             var rnd = new Random(42);
@@ -36,6 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         [InlineData(0)]
         [InlineData(1)]
         [InlineData(30)]
+        [InlineData(63)]
         public void UnPremultiply_VectorSpan(int length)
         {
             var rnd = new Random(42);

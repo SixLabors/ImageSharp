@@ -145,9 +145,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 Span<TPixel> rowSpan = source.GetPixelRowSpan(dy);
                 for (int dx = xStart; dx < xEnd; dx++)
                 {
-                    TPixel pixel = rowSpan[dx];
+                    ref TPixel pixel = ref rowSpan[dx];
                     float luminanceEqualized = cdfData.RemapGreyValue(cdfX, cdfY, GetLuminance(pixel, luminanceLevels));
-                    rowSpan[dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                    pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                 }
             }
         }
@@ -191,9 +191,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     Span<TPixel> rowSpan = source.GetPixelRowSpan(dy);
                     for (int dx = xStart; dx < xEnd; dx++)
                     {
-                        TPixel pixel = rowSpan[dx];
+                        ref TPixel pixel = ref rowSpan[dx];
                         float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX, cdfY + 1, tileY, tileHeight, luminanceLevels);
-                        rowSpan[dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                        pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                     }
 
                     tileY++;
@@ -243,9 +243,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     int xLimit = Math.Min(x + tileWidth, sourceWidth - 1);
                     for (int dx = x; dx < xLimit; dx++)
                     {
-                        TPixel pixel = rowSpan[dx];
+                        ref TPixel pixel = ref rowSpan[dx];
                         float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX + 1, cdfY, tileX, tileWidth, luminanceLevels);
-                        rowSpan[dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                        pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                         tileX++;
                     }
                 }
@@ -423,7 +423,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                             int tileX = 0;
                             for (int dx = x; dx < xEnd; dx++)
                             {
-                                TPixel pixel = rowSpan[dx];
+                                ref TPixel pixel = ref rowSpan[dx];
                                 float luminanceEqualized = InterpolateBetweenFourTiles(
                                     pixel,
                                     this.cdfData,
@@ -437,7 +437,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                                     this.tileHeight,
                                     this.luminanceLevels);
 
-                                rowSpan[dx].FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                                pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                                 tileX++;
                             }
 

@@ -20,8 +20,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal class PixelOperations : PixelOperations<RgbaVector>
         {
+            private static readonly Lazy<PixelTypeInfo> LazyInfo =
+                new Lazy<PixelTypeInfo>(() => PixelTypeInfo.Create<RgbaVector>(PixelAlphaRepresentation.Unassociated), true);
+
             /// <inheritdoc />
-            public override PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<RgbaVector>(PixelAlphaRepresentation.Unassociated);
+            public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
 
             /// <inheritdoc />
             public override void FromVector4Destructive(

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.Formats;
 
 namespace SixLabors.ImageSharp.PixelFormats
@@ -15,8 +16,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal class PixelOperations : PixelOperations<HalfSingle>
         {
+            private static readonly Lazy<PixelTypeInfo> LazyInfo =
+                new Lazy<PixelTypeInfo>(() => PixelTypeInfo.Create<HalfSingle>(PixelAlphaRepresentation.None), true);
+
             /// <inheritdoc />
-            public override PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<HalfSingle>(PixelAlphaRepresentation.None);
+            public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
         }
     }
 }

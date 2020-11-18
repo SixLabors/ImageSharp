@@ -74,8 +74,6 @@ using Xunit.Abstractions;
             public <#=pixelType#>_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  <#=pixelType#>.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<<#=pixelType#>> Operations => <#=pixelType#>.PixelOperations.Instance;

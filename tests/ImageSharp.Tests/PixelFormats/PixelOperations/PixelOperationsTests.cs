@@ -36,8 +36,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 null;
 #endif
 
-        protected bool HasUnassociatedAlpha { get; set; } = true;
-
         protected PixelOperationsTests(ITestOutputHelper output)
             : base(output)
         {
@@ -73,7 +71,9 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
         protected Configuration Configuration => Configuration.Default;
 
-        protected virtual PixelOperations<TPixel> Operations => PixelOperations<TPixel>.Instance;
+        protected virtual PixelOperations<TPixel> Operations { get; } = PixelOperations<TPixel>.Instance;
+
+        protected bool HasUnassociatedAlpha => this.Operations.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Unassociated;
 
         internal static TPixel[] CreateExpectedPixelData(Vector4[] source, RefAction<Vector4> vectorModifier = null)
         {
@@ -217,8 +217,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 expected,
                 (s, d) =>
                 {
-                    PixelConversionModifiers modifiers = this.HasUnassociatedAlpha
-                        ? PixelConversionModifiers.Premultiply
+                    PixelConversionModifiers modifiers = this.HasUnassociatedAlpha ? PixelConversionModifiers.Premultiply
                         : PixelConversionModifiers.None;
 
                     this.Operations.FromVector4Destructive(this.Configuration, s, d.GetSpan(), modifiers);
@@ -253,8 +252,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 expected,
                 (s, d) =>
                 {
-                    PixelConversionModifiers modifiers = this.HasUnassociatedAlpha
-                        ? PixelConversionModifiers.Premultiply
+                    PixelConversionModifiers modifiers = this.HasUnassociatedAlpha ? PixelConversionModifiers.Premultiply
                         : PixelConversionModifiers.None;
 
                     this.Operations.FromVector4Destructive(
@@ -297,8 +295,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 expected,
                 (s, d) =>
                 {
-                    PixelConversionModifiers modifiers = this.HasUnassociatedAlpha
-                        ? PixelConversionModifiers.Premultiply
+                    PixelConversionModifiers modifiers = this.HasUnassociatedAlpha ? PixelConversionModifiers.Premultiply
                         : PixelConversionModifiers.None;
 
                     this.Operations.FromVector4Destructive(

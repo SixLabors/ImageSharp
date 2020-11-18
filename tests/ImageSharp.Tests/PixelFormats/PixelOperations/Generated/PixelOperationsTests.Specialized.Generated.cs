@@ -18,8 +18,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public A8_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  A8.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<A8> Operations => A8.PixelOperations.Instance;
@@ -40,8 +38,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Argb32_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Argb32.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Argb32> Operations => Argb32.PixelOperations.Instance;
@@ -62,8 +58,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Bgr24_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Bgr24.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Bgr24> Operations => Bgr24.PixelOperations.Instance;
@@ -84,8 +78,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Bgr565_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Bgr565.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Bgr565> Operations => Bgr565.PixelOperations.Instance;
@@ -106,8 +98,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Bgra32_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Bgra32.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Bgra32> Operations => Bgra32.PixelOperations.Instance;
@@ -128,8 +118,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Bgra4444_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Bgra4444.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Bgra4444> Operations => Bgra4444.PixelOperations.Instance;
@@ -150,8 +138,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Bgra5551_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Bgra5551.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Bgra5551> Operations => Bgra5551.PixelOperations.Instance;
@@ -172,8 +158,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Byte4_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Byte4.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Byte4> Operations => Byte4.PixelOperations.Instance;
@@ -194,8 +178,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public HalfSingle_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  HalfSingle.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<HalfSingle> Operations => HalfSingle.PixelOperations.Instance;
@@ -216,8 +198,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public HalfVector2_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  HalfVector2.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<HalfVector2> Operations => HalfVector2.PixelOperations.Instance;
@@ -238,8 +218,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public HalfVector4_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  HalfVector4.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<HalfVector4> Operations => HalfVector4.PixelOperations.Instance;
@@ -260,8 +238,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public L16_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  L16.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<L16> Operations => L16.PixelOperations.Instance;
@@ -282,8 +258,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public L8_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  L8.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<L8> Operations => L8.PixelOperations.Instance;
@@ -304,8 +278,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public La16_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  La16.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<La16> Operations => La16.PixelOperations.Instance;
@@ -326,8 +298,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public La32_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  La32.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<La32> Operations => La32.PixelOperations.Instance;
@@ -348,8 +318,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public NormalizedByte2_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  NormalizedByte2.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<NormalizedByte2> Operations => NormalizedByte2.PixelOperations.Instance;
@@ -370,8 +338,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public NormalizedByte4_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  NormalizedByte4.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<NormalizedByte4> Operations => NormalizedByte4.PixelOperations.Instance;
@@ -392,8 +358,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public NormalizedShort2_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  NormalizedShort2.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<NormalizedShort2> Operations => NormalizedShort2.PixelOperations.Instance;
@@ -414,8 +378,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public NormalizedShort4_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  NormalizedShort4.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<NormalizedShort4> Operations => NormalizedShort4.PixelOperations.Instance;
@@ -436,8 +398,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Rg32_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Rg32.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Rg32> Operations => Rg32.PixelOperations.Instance;
@@ -458,8 +418,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Rgb24_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Rgb24.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Rgb24> Operations => Rgb24.PixelOperations.Instance;
@@ -480,8 +438,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Rgb48_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Rgb48.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Rgb48> Operations => Rgb48.PixelOperations.Instance;
@@ -502,8 +458,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Rgba1010102_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Rgba1010102.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Rgba1010102> Operations => Rgba1010102.PixelOperations.Instance;
@@ -524,8 +478,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Rgba32_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Rgba32.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Rgba32> Operations => Rgba32.PixelOperations.Instance;
@@ -546,8 +498,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Rgba64_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Rgba64.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Rgba64> Operations => Rgba64.PixelOperations.Instance;
@@ -568,8 +518,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public RgbaVector_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  RgbaVector.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<RgbaVector> Operations => RgbaVector.PixelOperations.Instance;
@@ -590,8 +538,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Short2_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Short2.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Short2> Operations => Short2.PixelOperations.Instance;
@@ -612,8 +558,6 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             public Short4_OperationsTests(ITestOutputHelper output)
                 : base(output)
             {
-                var alphaRepresentation =  Short4.PixelOperations.Instance.GetPixelTypeInfo().AlphaRepresentation;
-                this.HasUnassociatedAlpha = alphaRepresentation == PixelAlphaRepresentation.Unassociated;
             }
 
             protected override PixelOperations<Short4> Operations => Short4.PixelOperations.Instance;

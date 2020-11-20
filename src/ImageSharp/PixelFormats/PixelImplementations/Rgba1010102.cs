@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
+    public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     {
         private static readonly Vector4 Multiplier = new Vector4(1023F, 1023F, 1023F, 3F);
 
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rgba1010102 left, Rgba1010102 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<Rgba1010102> CreatePixelOperations() => new PixelOperations<Rgba1010102>();
+        public readonly PixelOperations<Rgba1010102> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct Bgra4444 : IPixel<Bgra4444>, IPackedVector<ushort>
+    public partial struct Bgra4444 : IPixel<Bgra4444>, IPackedVector<ushort>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgra4444"/> struct.
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Bgra4444 left, Bgra4444 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<Bgra4444> CreatePixelOperations() => new PixelOperations<Bgra4444>();
+        public readonly PixelOperations<Bgra4444> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

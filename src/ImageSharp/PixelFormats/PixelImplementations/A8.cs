@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 0] to [0, 0, 0, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct A8 : IPixel<A8>, IPackedVector<byte>
+    public partial struct A8 : IPixel<A8>, IPackedVector<byte>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="A8"/> struct.
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(A8 left, A8 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<A8> CreatePixelOperations() => new PixelOperations<A8>();
+        public readonly PixelOperations<A8> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

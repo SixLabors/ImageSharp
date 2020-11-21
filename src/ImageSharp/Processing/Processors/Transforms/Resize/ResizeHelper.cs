@@ -47,12 +47,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             const int Min = 1;
             if (width == 0 && height > 0)
             {
-                width = (int)MathF.Max(Min, MathF.Round(sourceSize.Width * height / (float)sourceSize.Height));
+                width = (int)Math.Max(Min, Math.Round(sourceSize.Width * height / (double)sourceSize.Height));
             }
 
             if (height == 0 && width > 0)
             {
-                height = (int)MathF.Max(Min, MathF.Round(sourceSize.Height * width / (float)sourceSize.Width));
+                height = (int)Math.Max(Min, Math.Round(sourceSize.Height * width / (double)sourceSize.Width));
             }
 
             switch (options.Mode)
@@ -86,11 +86,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int sourceHeight = source.Height;
 
             // Fractional variants for preserving aspect ratio.
-            float percentHeight = MathF.Abs(height / (float)sourceHeight);
-            float percentWidth = MathF.Abs(width / (float)sourceWidth);
+            double percentHeight = Math.Abs(height / (double)sourceHeight);
+            double percentWidth = Math.Abs(width / (double)sourceWidth);
 
-            int boxPadHeight = height > 0 ? height : (int)MathF.Round(sourceHeight * percentWidth);
-            int boxPadWidth = width > 0 ? width : (int)MathF.Round(sourceWidth * percentHeight);
+            int boxPadHeight = height > 0 ? height : (int)Math.Round(sourceHeight * percentWidth);
+            int boxPadWidth = width > 0 ? width : (int)Math.Round(sourceWidth * percentHeight);
 
             // Only calculate if upscaling.
             if (sourceWidth < boxPadWidth && sourceHeight < boxPadHeight)
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int width,
             int height)
         {
-            float ratio;
+            double ratio;
             int sourceWidth = source.Width;
             int sourceHeight = source.Height;
 
@@ -166,8 +166,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int targetHeight = height;
 
             // Fractional variants for preserving aspect ratio.
-            float percentHeight = MathF.Abs(height / (float)sourceHeight);
-            float percentWidth = MathF.Abs(width / (float)sourceWidth);
+            double percentHeight = Math.Abs(height / (double)sourceHeight);
+            double percentWidth = Math.Abs(width / (double)sourceWidth);
 
             if (percentHeight < percentWidth)
             {
@@ -175,17 +175,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 if (options.CenterCoordinates.HasValue)
                 {
-                    float center = -(ratio * sourceHeight) * options.CenterCoordinates.Value.Y;
-                    targetY = (int)MathF.Round(center + (height / 2F));
+                    double center = -(ratio * sourceHeight) * options.CenterCoordinates.Value.Y;
+                    targetY = (int)Math.Round(center + (height / 2F));
 
                     if (targetY > 0)
                     {
                         targetY = 0;
                     }
 
-                    if (targetY < (int)MathF.Round(height - (sourceHeight * ratio)))
+                    if (targetY < (int)Math.Round(height - (sourceHeight * ratio)))
                     {
-                        targetY = (int)MathF.Round(height - (sourceHeight * ratio));
+                        targetY = (int)Math.Round(height - (sourceHeight * ratio));
                     }
                 }
                 else
@@ -200,15 +200,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         case AnchorPositionMode.Bottom:
                         case AnchorPositionMode.BottomLeft:
                         case AnchorPositionMode.BottomRight:
-                            targetY = (int)MathF.Round(height - (sourceHeight * ratio));
+                            targetY = (int)Math.Round(height - (sourceHeight * ratio));
                             break;
                         default:
-                            targetY = (int)MathF.Round((height - (sourceHeight * ratio)) / 2F);
+                            targetY = (int)Math.Round((height - (sourceHeight * ratio)) / 2F);
                             break;
                     }
                 }
 
-                targetHeight = (int)MathF.Ceiling(sourceHeight * percentWidth);
+                targetHeight = (int)Math.Ceiling(sourceHeight * percentWidth);
             }
             else
             {
@@ -216,17 +216,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 if (options.CenterCoordinates.HasValue)
                 {
-                    float center = -(ratio * sourceWidth) * options.CenterCoordinates.Value.X;
-                    targetX = (int)MathF.Round(center + (width / 2F));
+                    double center = -(ratio * sourceWidth) * options.CenterCoordinates.Value.X;
+                    targetX = (int)Math.Round(center + (width / 2F));
 
                     if (targetX > 0)
                     {
                         targetX = 0;
                     }
 
-                    if (targetX < (int)MathF.Round(width - (sourceWidth * ratio)))
+                    if (targetX < (int)Math.Round(width - (sourceWidth * ratio)))
                     {
-                        targetX = (int)MathF.Round(width - (sourceWidth * ratio));
+                        targetX = (int)Math.Round(width - (sourceWidth * ratio));
                     }
                 }
                 else
@@ -241,15 +241,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         case AnchorPositionMode.Right:
                         case AnchorPositionMode.TopRight:
                         case AnchorPositionMode.BottomRight:
-                            targetX = (int)MathF.Round(width - (sourceWidth * ratio));
+                            targetX = (int)Math.Round(width - (sourceWidth * ratio));
                             break;
                         default:
-                            targetX = (int)MathF.Round((width - (sourceWidth * ratio)) / 2F);
+                            targetX = (int)Math.Round((width - (sourceWidth * ratio)) / 2F);
                             break;
                     }
                 }
 
-                targetWidth = (int)MathF.Ceiling(sourceWidth * percentHeight);
+                targetWidth = (int)Math.Ceiling(sourceWidth * percentHeight);
             }
 
             // Target image width and height can be different to the rectangle width and height.
@@ -265,20 +265,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int targetHeight = height;
 
             // Fractional variants for preserving aspect ratio.
-            float percentHeight = MathF.Abs(height / (float)source.Height);
-            float percentWidth = MathF.Abs(width / (float)source.Width);
+            double percentHeight = Math.Abs(height / (double)source.Height);
+            double percentWidth = Math.Abs(width / (double)source.Width);
 
-            // Integers must be cast to floats to get needed precision
-            float ratio = height / (float)width;
-            float sourceRatio = source.Height / (float)source.Width;
+            // Integers must be cast to doubles to get needed precision
+            double ratio = height / (double)width;
+            double sourceRatio = source.Height / (double)source.Width;
 
             if (sourceRatio < ratio)
             {
-                targetHeight = (int)MathF.Round(source.Height * percentWidth);
+                targetHeight = (int)Math.Round(source.Height * percentWidth);
             }
             else
             {
-                targetWidth = (int)MathF.Round(source.Width * percentHeight);
+                targetWidth = (int)Math.Round(source.Width * percentHeight);
             }
 
             // Replace the size to match the rectangle.
@@ -307,25 +307,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             if (widthDiff < heightDiff)
             {
-                float sourceRatio = (float)sourceHeight / sourceWidth;
-                targetHeight = (int)MathF.Round(width * sourceRatio);
+                double sourceRatio = (double)sourceHeight / sourceWidth;
+                targetHeight = (int)Math.Round(width * sourceRatio);
             }
             else if (widthDiff > heightDiff)
             {
-                float sourceRatioInverse = (float)sourceWidth / sourceHeight;
-                targetWidth = (int)MathF.Round(height * sourceRatioInverse);
+                double sourceRatioInverse = (double)sourceWidth / sourceHeight;
+                targetWidth = (int)Math.Round(height * sourceRatioInverse);
             }
             else
             {
                 if (height > width)
                 {
-                    float percentWidth = MathF.Abs(width / (float)sourceWidth);
-                    targetHeight = (int)MathF.Round(sourceHeight * percentWidth);
+                    double percentWidth = Math.Abs(width / (double)sourceWidth);
+                    targetHeight = (int)Math.Round(sourceHeight * percentWidth);
                 }
                 else
                 {
-                    float percentHeight = MathF.Abs(height / (float)sourceHeight);
-                    targetWidth = (int)MathF.Round(sourceWidth * percentHeight);
+                    double percentHeight = Math.Abs(height / (double)sourceHeight);
+                    targetWidth = (int)Math.Round(sourceWidth * percentHeight);
                 }
             }
 
@@ -339,7 +339,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int width,
             int height)
         {
-            float ratio;
+            double ratio;
             int sourceWidth = sourceSize.Width;
             int sourceHeight = sourceSize.Height;
 
@@ -349,13 +349,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int targetHeight = height;
 
             // Fractional variants for preserving aspect ratio.
-            float percentHeight = MathF.Abs(height / (float)sourceHeight);
-            float percentWidth = MathF.Abs(width / (float)sourceWidth);
+            double percentHeight = Math.Abs(height / (double)sourceHeight);
+            double percentWidth = Math.Abs(width / (double)sourceWidth);
 
             if (percentHeight < percentWidth)
             {
                 ratio = percentHeight;
-                targetWidth = (int)MathF.Round(sourceWidth * percentHeight);
+                targetWidth = (int)Math.Round(sourceWidth * percentHeight);
 
                 switch (options.Position)
                 {
@@ -367,17 +367,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     case AnchorPositionMode.Right:
                     case AnchorPositionMode.TopRight:
                     case AnchorPositionMode.BottomRight:
-                        targetX = (int)MathF.Round(width - (sourceWidth * ratio));
+                        targetX = (int)Math.Round(width - (sourceWidth * ratio));
                         break;
                     default:
-                        targetX = (int)MathF.Round((width - (sourceWidth * ratio)) / 2F);
+                        targetX = (int)Math.Round((width - (sourceWidth * ratio)) / 2F);
                         break;
                 }
             }
             else
             {
                 ratio = percentWidth;
-                targetHeight = (int)MathF.Round(sourceHeight * percentWidth);
+                targetHeight = (int)Math.Round(sourceHeight * percentWidth);
 
                 switch (options.Position)
                 {
@@ -389,10 +389,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     case AnchorPositionMode.Bottom:
                     case AnchorPositionMode.BottomLeft:
                     case AnchorPositionMode.BottomRight:
-                        targetY = (int)MathF.Round(height - (sourceHeight * ratio));
+                        targetY = (int)Math.Round(height - (sourceHeight * ratio));
                         break;
                     default:
-                        targetY = (int)MathF.Round((height - (sourceHeight * ratio)) / 2F);
+                        targetY = (int)Math.Round((height - (sourceHeight * ratio)) / 2F);
                         break;
                 }
             }

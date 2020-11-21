@@ -1,14 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -345,6 +343,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffCompression.Lzw:
                 {
                     options.CompressionType = TiffCompressionType.Lzw;
+                    break;
+                }
+
+                case TiffCompression.CcittGroup3Fax:
+                {
+                    options.CompressionType = TiffCompressionType.T4;
                     break;
                 }
 

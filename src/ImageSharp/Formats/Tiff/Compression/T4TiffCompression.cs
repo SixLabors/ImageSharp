@@ -29,10 +29,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             int whiteValue = isWhiteZero ? 0 : 1;
             int blackValue = isWhiteZero ? 1 : 0;
 
-            var bitReader = new T4BitReader(stream, byteCount);
+            using var bitReader = new T4BitReader(stream, byteCount, this.Allocator);
 
             uint bitsWritten = 0;
-            uint pixels = 0;
             while (bitReader.HasMoreData)
             {
                 bitReader.ReadNextRun();
@@ -54,17 +53,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 {
                     this.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, whiteValue);
                     bitsWritten += bitReader.RunLength;
-                    pixels += bitReader.RunLength;
                 }
                 else
                 {
                     this.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, blackValue);
                     bitsWritten += bitReader.RunLength;
-                    pixels += bitReader.RunLength;
                 }
             }
-
-            int foo = 0;
         }
 
         private void WriteBits(Span<byte> buffer, int pos, uint count, int value)

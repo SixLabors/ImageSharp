@@ -174,14 +174,30 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             { 0x9A, 1600 }, { 0x9B, 1728 }
         };
 
+        private static readonly Dictionary<uint, uint> WhiteLen11MakeupCodes = new Dictionary<uint, uint>()
+        {
+            { 0x8, 1792 }, { 0xC, 1856 }, { 0xD, 1920 }
+        };
+
+        private static readonly Dictionary<uint, uint> WhiteLen12MakeupCodes = new Dictionary<uint, uint>()
+        {
+            { 0x12, 1984 }, { 0x13, 2048 }, { 0x14, 2112 }, { 0x15, 2176 }, { 0x16, 2240 }, { 0x17, 2304}, { 0x1C, 2368 }, { 0x1D, 2432 }, { 0x1E, 2496 }, { 0x1F, 2560 }
+        };
+
         private static readonly Dictionary<uint, uint> BlackLen10MakeupCodes = new Dictionary<uint, uint>()
         {
             { 0xF, 64 }
         };
 
+        private static readonly Dictionary<uint, uint> BlackLen11MakeupCodes = new Dictionary<uint, uint>()
+        {
+            { 0x8, 1792 }, { 0xC, 1856 }, { 0xD, 1920 }
+        };
+
         private static readonly Dictionary<uint, uint> BlackLen12MakeupCodes = new Dictionary<uint, uint>()
         {
-            { 0xC8, 128 }, { 0xC9, 192 }, { 0x5B, 256 }, { 0x33, 320 }, { 0x34, 384 }, { 0x35, 448 }
+            { 0xC8, 128 }, { 0xC9, 192 }, { 0x5B, 256 }, { 0x33, 320 }, { 0x34, 384 }, { 0x35, 448 },
+            { 0x12, 1984 }, { 0x13, 2048 }, { 0x14, 2112 }, { 0x15, 2176 }, { 0x16, 2240 }, { 0x17, 2304}, { 0x1C, 2368 }, { 0x1D, 2432 }, { 0x1E, 2496 }, { 0x1F, 2560 } 
         };
 
         private static readonly Dictionary<uint, uint> BlackLen13MakeupCodes = new Dictionary<uint, uint>()
@@ -481,6 +497,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 {
                     return WhiteLen9MakeupCodes[this.value];
                 }
+
+                case 11:
+                {
+                    return WhiteLen11MakeupCodes[this.value];
+                }
+
+                case 12:
+                {
+                    return WhiteLen12MakeupCodes[this.value];
+                }
             }
 
             return 0;
@@ -493,6 +519,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 case 10:
                 {
                     return BlackLen10MakeupCodes[this.value];
+                }
+
+                case 11:
+                {
+                    return BlackLen11MakeupCodes[this.value];
                 }
 
                 case 12:
@@ -547,6 +578,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 {
                     return WhiteLen9MakeupCodes.ContainsKey(this.value);
                 }
+
+                case 11:
+                {
+                    return WhiteLen11MakeupCodes.ContainsKey(this.value);
+                }
+
+                case 12:
+                {
+                    return WhiteLen12MakeupCodes.ContainsKey(this.value);
+                }
             }
 
             return false;
@@ -559,6 +600,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 case 10:
                 {
                     return BlackLen10MakeupCodes.ContainsKey(this.value);
+                }
+
+                case 11:
+                {
+                    return BlackLen11MakeupCodes.ContainsKey(this.value);
                 }
 
                 case 12:

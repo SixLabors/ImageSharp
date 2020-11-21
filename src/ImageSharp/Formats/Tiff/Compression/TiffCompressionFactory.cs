@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -20,6 +20,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     return new DeflateTiffCompression(allocator);
                 case TiffCompressionType.Lzw:
                     return new LzwTiffCompression(allocator);
+                case TiffCompressionType.T4:
+                    return new T4TiffCompression(allocator);
                 default:
                     throw TiffThrowHelper.NotSupportedCompression(nameof(compressionType));
             }

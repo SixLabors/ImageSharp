@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -27,5 +27,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Image data is compressed using LZW compression.
         /// </summary>
         Lzw = 3,
+
+        /// <summary>
+        /// Image data is compressed using T4-encoding: CCITT T.4.
+        /// </summary>
+        T4 = 4,
     }
 }

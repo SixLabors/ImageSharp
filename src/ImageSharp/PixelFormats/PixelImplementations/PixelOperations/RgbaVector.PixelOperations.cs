@@ -27,6 +27,17 @@ namespace SixLabors.ImageSharp.PixelFormats
             public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
 
             /// <inheritdoc />
+            public override void From<TSourcePixel>(
+                Configuration configuration,
+                ReadOnlySpan<TSourcePixel> sourcePixels,
+                Span<RgbaVector> destinationPixels)
+            {
+                Span<Vector4> destinationVectors = MemoryMarshal.Cast<RgbaVector, Vector4>(destinationPixels);
+
+                PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, sourcePixels, destinationVectors);
+            }
+
+            /// <inheritdoc />
             public override void FromVector4Destructive(
                 Configuration configuration,
                 Span<Vector4> sourceVectors,

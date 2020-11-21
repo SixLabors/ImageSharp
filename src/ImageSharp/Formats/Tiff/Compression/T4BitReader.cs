@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SixLabors.ImageSharp.Memory;
@@ -59,6 +60,136 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         private const int MinCodeLength = 2;
 
         private const int MaxCodeLength = 13;
+
+        private static readonly Dictionary<uint, uint> WhiteLen4TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x7, 2 }, { 0x8, 3 }, { 0xB, 4 }, { 0xC, 5 }, { 0xE, 6 }, { 0xF, 7 }
+        };
+
+        private static readonly Dictionary<uint, uint> WhiteLen5TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x13, 8 }, { 0x14, 9 }, { 0x7, 10 }, { 0x8, 11 }
+        };
+
+        private static readonly Dictionary<uint, uint> WhiteLen6TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x7, 1 }, { 0x8, 12 }, { 0x3, 13 }, { 0x34, 14 }, { 0x35, 15 }, { 0x2A, 16 }, { 0x2B, 17 }
+        };
+
+        private static readonly Dictionary<uint, uint> WhiteLen7TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x27, 18 }, { 0xC, 19 }, { 0x8, 20 }, { 0x17, 21 }, { 0x3, 22 }, { 0x4, 23 }, { 0x28, 24 }, { 0x2B, 25 }, { 0x13, 26 }, { 0x24, 27 }, { 0x18, 28 }
+        };
+
+        private static readonly Dictionary<uint, uint> WhiteLen8TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x35, 0 }, { 0x2, 29 }, { 0x3, 30 }, { 0x1A, 31 }, { 0x1B, 32 }, { 0x12, 33 }, { 0x13, 34 }, { 0x14, 35 }, { 0x15, 36 }, { 0x16, 37 }, { 0x17, 38 }, { 0x28, 39 }, { 0x29, 40 }, { 0x2A, 41 },
+            { 0x2B, 42 }, { 0x2C, 43 }, { 0x2D, 44 }, { 0x4, 45 }, { 0x5, 46 }, { 0xA, 47 }, { 0xB, 48 }, { 0x52, 49 }, { 0x53, 50 }, { 0x54, 51 }, { 0x55, 52 }, { 0x24, 53 }, { 0x25, 54 }, { 0x58, 55 },
+            { 0x59, 56 }, { 0x5A, 57 }, { 0x5B, 58 }, { 0x4A, 59 }, { 0x4B, 60 }, { 0x32, 61 }, { 0x33, 62 }, { 0x34, 63 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen2TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x3, 2 }, { 0x2, 3 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen3TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x2, 1 }, { 0x3, 4 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen4TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x3, 5 }, { 0x2, 6 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen5TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x3, 7 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen6TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x5, 8 }, { 0x4, 9 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen7TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x4, 10 }, { 0x5, 11 }, { 0x7, 12 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen8TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x4, 13 }, { 0x7, 14 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen9TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x18, 15 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen10TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x37, 0 }, { 0x17, 16 }, { 0x18, 17 }, { 0x8, 18 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen11TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0x67, 19 }, { 0x68, 20 }, { 0x6C, 21 }, { 0x37, 22 }, { 0x28, 23 }, { 0x17, 24 }, { 0x18, 25 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen12TermCodes = new Dictionary<uint, uint>()
+        {
+            { 0xCA, 26 }, { 0xCB, 27 }, { 0xCC, 28 }, { 0xCD, 29 }, { 0x68, 30 }, { 0x69, 31 }, { 0x6A, 32 }, { 0x6B, 33 }, { 0xD2, 34 },
+            { 0xD3, 35 }, { 0xD4, 36 }, { 0xD5, 37 }, { 0xD6, 38 }, { 0xD7, 39 }, { 0x6C, 40 }, { 0x6D, 41 }, { 0xDA, 42 }, { 0xDB, 43 },
+            { 0x54, 44 }, { 0x55, 45 }, { 0x56, 46 }, { 0x57, 47 }, { 0x64, 48 }, { 0x65, 49 }, { 0x52, 50 }, { 0x53, 51 }, { 0x24, 52 },
+            { 0x37, 53 }, { 0x38, 54 }, { 0x27, 55 }, { 0x28, 56 }, { 0x58, 57 }, { 0x59, 58 }, { 0x2B, 59 }, { 0x2C, 60 }, { 0x5A, 61 },
+            { 0x66, 62 }, { 0x67, 63 }
+        };
+
+        private static readonly Dictionary<uint, uint> WhiteLen5MakeupCodes = new Dictionary<uint, uint>()
+        {
+            { 0x1B, 64 }, { 0x12, 128 }
+        };
+
+        private static readonly Dictionary<uint, uint> WhiteLen6MakeupCodes = new Dictionary<uint, uint>()
+        {
+            { 0x17, 192 }, { 0x18, 1664 }
+        };
+
+        private static readonly Dictionary<uint, uint> WhiteLen8MakeupCodes = new Dictionary<uint, uint>()
+        {
+            { 0x36, 320 }, { 0x37, 348 }, { 0x64, 448 }, { 0x65, 512 }, { 0x68, 576 }, { 0x67, 640 }
+        };
+
+        private static readonly Dictionary<uint, uint> WhiteLen7MakeupCodes = new Dictionary<uint, uint>()
+        {
+            { 0x37, 256 }
+        };
+
+        private static readonly Dictionary<uint, uint> WhiteLen9MakeupCodes = new Dictionary<uint, uint>()
+        {
+            { 0xCC, 704 }, { 0xCD, 768 }, { 0xD2, 832 }, { 0xD3, 896 }, { 0xD4, 960 }, { 0xD5, 1024 }, { 0xD6, 1088 },
+            { 0xD7, 1152 }, { 0xD8, 1216 }, { 0xD9, 1280 }, { 0xDA, 1344 }, { 0xDB, 1408 }, { 0x98, 1472 }, { 0x99, 1536 },
+            { 0x9A, 1600 }, { 0x9B, 1728 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen10MakeupCodes = new Dictionary<uint, uint>()
+        {
+            { 0xF, 64 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen12MakeupCodes = new Dictionary<uint, uint>()
+        {
+            { 0xC8, 128 }, { 0xC9, 192 }, { 0x5B, 256 }, { 0x33, 320 }, { 0x34, 384 }, { 0x35, 448 }
+        };
+
+        private static readonly Dictionary<uint, uint> BlackLen13MakeupCodes = new Dictionary<uint, uint>()
+        {
+            { 0x6C, 512 }, { 0x6D, 576 }, { 0x4A, 640 }, { 0x4B, 704 }, { 0x4C, 768 }, { 0x4D, 832 }, { 0x72, 896 },
+            { 0x73, 960 }, { 0x74, 1024 }, { 0x75, 1088 }, { 0x76, 1152 }, { 0x77, 1216 }, { 0x52, 1280 }, { 0x53, 1344 },
+            { 0x54, 1408 }, { 0x55, 1472 }, { 0x5A, 1536 }, { 0x5B, 1600 }, { 0x64, 1664 }, { 0x65, 1728 }
+        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T4BitReader" /> class.
@@ -232,175 +363,27 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             {
                 case 4:
                 {
-                    switch (this.value)
-                    {
-                        case 0x7:
-                            return 2;
-                        case 0x8:
-                            return 3;
-                        case 0xB:
-                            return 4;
-                        case 0xC:
-                            return 5;
-                        case 0xE:
-                            return 6;
-                        case 0xF:
-                            return 7;
-                    }
-
-                    break;
+                    return WhiteLen4TermCodes[this.value];
                 }
 
                 case 5:
                 {
-                    switch (this.value)
-                    {
-                        case 0x13:
-                            return 8;
-                        case 0x14:
-                            return 9;
-                        case 0x7:
-                            return 10;
-                        case 0x8:
-                            return 11;
-                    }
-
-                    break;
+                    return WhiteLen5TermCodes[this.value];
                 }
 
                 case 6:
                 {
-                    switch (this.value)
-                    {
-                        case 0x7:
-                            return 1;
-                        case 0x8:
-                            return 12;
-                        case 0x3:
-                            return 13;
-                        case 0x34:
-                            return 14;
-                        case 0x35:
-                            return 15;
-                        case 0x2A:
-                            return 16;
-                        case 0x2B:
-                            return 17;
-                    }
-
-                    break;
+                    return WhiteLen6TermCodes[this.value];
                 }
 
                 case 7:
                 {
-                    switch (this.value)
-                    {
-                        case 0x27:
-                            return 18;
-                        case 0xC:
-                            return 19;
-                        case 0x8:
-                            return 20;
-                        case 0x17:
-                            return 21;
-                        case 0x3:
-                            return 22;
-                        case 0x4:
-                            return 23;
-                        case 0x28:
-                            return 24;
-                        case 0x2B:
-                            return 25;
-                        case 0x13:
-                            return 26;
-                        case 0x24:
-                            return 27;
-                        case 0x18:
-                            return 28;
-                    }
-
-                    break;
+                    return WhiteLen7TermCodes[this.value];
                 }
 
                 case 8:
                 {
-                    switch (this.value)
-                    {
-                        case 0x35:
-                            return 0;
-                        case 0x2:
-                            return 29;
-                        case 0x3:
-                            return 30;
-                        case 0x1A:
-                            return 31;
-                        case 0x1B:
-                            return 32;
-                        case 0x12:
-                            return 33;
-                        case 0x13:
-                            return 34;
-                        case 0x14:
-                            return 35;
-                        case 0x15:
-                            return 36;
-                        case 0x16:
-                            return 37;
-                        case 0x17:
-                            return 38;
-                        case 0x28:
-                            return 39;
-                        case 0x29:
-                            return 40;
-                        case 0x2A:
-                            return 41;
-                        case 0x2B:
-                            return 42;
-                        case 0x2C:
-                            return 43;
-                        case 0x2D:
-                            return 44;
-                        case 0x4:
-                            return 45;
-                        case 0x5:
-                            return 46;
-                        case 0xA:
-                            return 47;
-                        case 0xB:
-                            return 48;
-                        case 0x52:
-                            return 49;
-                        case 0x53:
-                            return 50;
-                        case 0x54:
-                            return 51;
-                        case 0x55:
-                            return 52;
-                        case 0x24:
-                            return 53;
-                        case 0x25:
-                            return 54;
-                        case 0x58:
-                            return 55;
-                        case 0x59:
-                            return 56;
-                        case 0x5A:
-                            return 57;
-                        case 0x5B:
-                            return 58;
-                        case 0x4A:
-                            return 59;
-                        case 0x4B:
-                            return 60;
-                        case 0x32:
-                            return 61;
-                        case 0x33:
-                            return 62;
-                        case 0x34:
-                            return 63;
-                    }
-
-                    break;
+                    return WhiteLen8TermCodes[this.value];
                 }
             }
 
@@ -413,229 +396,57 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             {
                 case 2:
                 {
-                    switch (this.value)
-                    {
-                        case 0x3:
-                            return 2;
-                        case 0x2:
-                            return 3;
-                    }
-
-                    break;
+                    return BlackLen2TermCodes[this.value];
                 }
 
                 case 3:
                 {
-                    switch (this.value)
-                    {
-                        case 0x2:
-                            return 1;
-                        case 0x3:
-                            return 4;
-                    }
-
-                    break;
+                    return BlackLen3TermCodes[this.value];
                 }
 
                 case 4:
                 {
-                    switch (this.value)
-                    {
-                        case 0x3:
-                            return 5;
-                        case 0x2:
-                            return 6;
-                    }
-
-                    break;
+                    return BlackLen4TermCodes[this.value];
                 }
 
                 case 5:
                 {
-                    switch (this.value)
-                    {
-                        case 0x3:
-                            return 7;
-                    }
-
-                    break;
+                    return BlackLen5TermCodes[this.value];
                 }
 
                 case 6:
                 {
-                    switch (this.value)
-                    {
-                        case 0x5:
-                            return 8;
-                        case 0x4:
-                            return 9;
-                    }
-
-                    break;
+                    return BlackLen6TermCodes[this.value];
                 }
 
                 case 7:
                 {
-                    switch (this.value)
-                    {
-                        case 0x4:
-                            return 10;
-                        case 0x5:
-                            return 11;
-                        case 0x7:
-                            return 12;
-                    }
-
-                    break;
+                    return BlackLen7TermCodes[this.value];
                 }
 
                 case 8:
                 {
-                    switch (this.value)
-                    {
-                        case 0x4:
-                            return 13;
-                        case 0x7:
-                            return 14;
-                    }
-
-                    break;
+                    return BlackLen8TermCodes[this.value];
                 }
 
                 case 9:
                 {
-                    switch (this.value)
-                    {
-                        case 0x18:
-                            return 15;
-                    }
-
-                    break;
+                    return BlackLen9TermCodes[this.value];
                 }
 
                 case 10:
                 {
-                    switch (this.value)
-                    {
-                        case 0x37:
-                            return 0;
-                        case 0x17:
-                            return 16;
-                        case 0x18:
-                            return 17;
-                        case 0x8:
-                            return 18;
-                    }
-
-                    break;
+                    return BlackLen10TermCodes[this.value];
                 }
 
                 case 11:
                 {
-                    switch (this.value)
-                    {
-                        case 0x67:
-                            return 19;
-                        case 0x68:
-                            return 20;
-                        case 0x6C:
-                            return 21;
-                        case 0x37:
-                            return 22;
-                        case 0x28:
-                            return 23;
-                        case 0x17:
-                            return 24;
-                        case 0x18:
-                            return 25;
-                    }
-
-                    break;
+                    return BlackLen11TermCodes[this.value];
                 }
 
                 case 12:
                 {
-                    switch (this.value)
-                    {
-                        case 0xCA:
-                            return 26;
-                        case 0xCB:
-                            return 27;
-                        case 0xCC:
-                            return 28;
-                        case 0xCD:
-                            return 29;
-                        case 0x68:
-                            return 30;
-                        case 0x69:
-                            return 31;
-                        case 0x6A:
-                            return 32;
-                        case 0x6B:
-                            return 33;
-                        case 0xD2:
-                            return 34;
-                        case 0xD3:
-                            return 35;
-                        case 0xD4:
-                            return 36;
-                        case 0xD5:
-                            return 37;
-                        case 0xD6:
-                            return 38;
-                        case 0xD7:
-                            return 39;
-                        case 0x6C:
-                            return 40;
-                        case 0x6D:
-                            return 41;
-                        case 0xDA:
-                            return 42;
-                        case 0xDB:
-                            return 43;
-                        case 0x54:
-                            return 44;
-                        case 0x55:
-                            return 45;
-                        case 0x56:
-                            return 46;
-                        case 0x57:
-                            return 47;
-                        case 0x64:
-                            return 48;
-                        case 0x65:
-                            return 49;
-                        case 0x52:
-                            return 50;
-                        case 0x53:
-                            return 51;
-                        case 0x24:
-                            return 52;
-                        case 0x37:
-                            return 53;
-                        case 0x38:
-                            return 54;
-                        case 0x27:
-                            return 55;
-                        case 0x28:
-                            return 56;
-                        case 0x58:
-                            return 57;
-                        case 0x59:
-                            return 58;
-                        case 0x2B:
-                            return 59;
-                        case 0x2C:
-                            return 60;
-                        case 0x5A:
-                            return 61;
-                        case 0x66:
-                            return 62;
-                        case 0x67:
-                            return 63;
-                    }
-
-                    break;
+                    return BlackLen12TermCodes[this.value];
                 }
             }
 
@@ -648,101 +459,27 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             {
                 case 5:
                 {
-                    switch (this.value)
-                    {
-                        case 0x1B:
-                            return 64;
-                        case 0x12:
-                            return 128;
-                    }
-
-                    break;
+                    return WhiteLen5MakeupCodes[this.value];
                 }
 
                 case 6:
                 {
-                    switch (this.value)
-                    {
-                        case 0x17:
-                            return 192;
-                        case 0x18:
-                            return 1664;
-                    }
-
-                    break;
+                    return WhiteLen6MakeupCodes[this.value];
                 }
 
                 case 7:
                 {
-                    switch (this.value)
-                    {
-                        case 0x37:
-                            return 256;
-                    }
-
-                    break;
+                    return WhiteLen7MakeupCodes[this.value];
                 }
 
                 case 8:
                 {
-                    switch (this.value)
-                    {
-                        case 0x36:
-                            return 320;
-                        case 0x37:
-                            return 348;
-                        case 0x64:
-                            return 448;
-                        case 0x65:
-                            return 512;
-                        case 0x68:
-                            return 576;
-                        case 0x67:
-                            return 640;
-                    }
-
-                    break;
+                    return WhiteLen8MakeupCodes[this.value];
                 }
 
                 case 9:
                 {
-                    switch (this.value)
-                    {
-                        case 0xCC:
-                            return 704;
-                        case 0xCD:
-                            return 768;
-                        case 0xD2:
-                            return 832;
-                        case 0xD3:
-                            return 896;
-                        case 0xD4:
-                            return 960;
-                        case 0xD5:
-                            return 1024;
-                        case 0xD6:
-                            return 1088;
-                        case 0xD7:
-                            return 1152;
-                        case 0xD8:
-                            return 1216;
-                        case 0xD9:
-                            return 1280;
-                        case 0xDA:
-                            return 1344;
-                        case 0xDB:
-                            return 1408;
-                        case 0x98:
-                            return 1472;
-                        case 0x99:
-                            return 1536;
-                        case 0x9A:
-                            return 1600;
-                        case 0x9B:
-                            return 1728;
-                    }
-
-                    break;
+                    return WhiteLen9MakeupCodes[this.value];
                 }
             }
 
@@ -755,83 +492,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             {
                 case 10:
                 {
-                    switch (this.value)
-                    {
-                        case 0xF:
-                            return 64;
-                    }
+                    return BlackLen10MakeupCodes[this.value];
                 }
-
-                break;
 
                 case 12:
                 {
-                    switch (this.value)
-                    {
-                        case 0xC8:
-                            return 128;
-                        case 0xC9:
-                            return 192;
-                        case 0x5B:
-                            return 256;
-                        case 0x33:
-                            return 320;
-                        case 0x34:
-                            return 384;
-                        case 0x35:
-                            return 448;
-                    }
+                    return BlackLen12MakeupCodes[this.value];
                 }
-
-                break;
 
                 case 13:
                 {
-                    switch (this.value)
-                    {
-                        case 0x6C:
-                            return 512;
-                        case 0x6D:
-                            return 576;
-                        case 0x4A:
-                            return 640;
-                        case 0x4B:
-                            return 704;
-                        case 0x4C:
-                            return 768;
-                        case 0x4D:
-                            return 832;
-                        case 0x72:
-                            return 896;
-                        case 0x73:
-                            return 960;
-                        case 0x74:
-                            return 1024;
-                        case 0x75:
-                            return 1088;
-                        case 0x76:
-                            return 1152;
-                        case 0x77:
-                            return 1216;
-                        case 0x52:
-                            return 1280;
-                        case 0x53:
-                            return 1344;
-                        case 0x54:
-                            return 1408;
-                        case 0x55:
-                            return 1472;
-                        case 0x5A:
-                            return 1536;
-                        case 0x5B:
-                            return 1600;
-                        case 0x64:
-                            return 1664;
-                        case 0x65:
-                            return 1728;
-                    }
-
-                    break;
+                    return BlackLen13MakeupCodes[this.value];
                 }
             }
 
@@ -854,36 +525,27 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             {
                 case 5:
                 {
-                    uint[] codes = { 0x1B, 0x12 };
-                    return codes.Contains(this.value);
+                    return WhiteLen5MakeupCodes.ContainsKey(this.value);
                 }
 
                 case 6:
                 {
-                    uint[] codes = { 0x17, 0x18 };
-                    return codes.Contains(this.value);
+                    return WhiteLen6MakeupCodes.ContainsKey(this.value);
                 }
 
                 case 7:
                 {
-                    uint[] codes = { 0x37 };
-                    return codes.Contains(this.value);
+                    return WhiteLen7MakeupCodes.ContainsKey(this.value);
                 }
 
                 case 8:
                 {
-                    uint[] codes = { 0x36, 0x37, 0x64, 0x65, 0x68, 0x67 };
-                    return codes.Contains(this.value);
+                    return WhiteLen8MakeupCodes.ContainsKey(this.value);
                 }
 
                 case 9:
                 {
-                    uint[] codes =
-                    {
-                        0xCC, 0xCD, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0x98,
-                        0x99, 0x9A, 0x9B
-                    };
-                    return codes.Contains(this.value);
+                    return WhiteLen9MakeupCodes.ContainsKey(this.value);
                 }
             }
 
@@ -896,24 +558,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             {
                 case 10:
                 {
-                    uint[] codes = { 0xF };
-                    return codes.Contains(this.value);
+                    return BlackLen10MakeupCodes.ContainsKey(this.value);
                 }
 
                 case 12:
                 {
-                    uint[] codes = { 0xC8, 0xC9, 0x5B, 0x33, 0x34, 0x35 };
-                    return codes.Contains(this.value);
+                    return BlackLen12MakeupCodes.ContainsKey(this.value);
                 }
 
                 case 13:
                 {
-                    uint[] codes =
-                    {
-                        0x6C, 0x6D, 0x4A, 0x4B, 0x4C, 0x4D, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x52,
-                        0x53, 0x54, 0x55, 0x5A, 0x5B, 0x64, 0x65
-                    };
-                    return codes.Contains(this.value);
+                    return BlackLen13MakeupCodes.ContainsKey(this.value);
                 }
             }
 
@@ -936,37 +591,27 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             {
                 case 4:
                 {
-                    uint[] codes = { 0x7, 0x8, 0xB, 0xC, 0xE, 0xF };
-                    return codes.Contains(this.value);
+                    return WhiteLen4TermCodes.Keys.Contains(this.value);
                 }
 
                 case 5:
                 {
-                    uint[] codes = { 0x13, 0x14, 0x7, 0x8 };
-                    return codes.Contains(this.value);
+                    return WhiteLen5TermCodes.Keys.Contains(this.value);
                 }
 
                 case 6:
                 {
-                    uint[] codes = { 0x7, 0x8, 0x3, 0x34, 0x35, 0x2A, 0x2B };
-                    return codes.Contains(this.value);
+                    return WhiteLen6TermCodes.Keys.Contains(this.value);
                 }
 
                 case 7:
                 {
-                    uint[] codes = { 0x27, 0xC, 0x8, 0x17, 0x3, 0x4, 0x28, 0x2B, 0x13, 0x24, 0x18 };
-                    return codes.Contains(this.value);
+                    return WhiteLen7TermCodes.Keys.Contains(this.value);
                 }
 
                 case 8:
                 {
-                    uint[] codes =
-                    {
-                        0x35, 0x2, 0x3, 0x1A, 0x1B, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x28, 0x29,
-                        0x2A, 0x2B, 0x2C, 0x2D, 0x4, 0x5, 0xA, 0xB, 0x52, 0x53, 0x54, 0x55, 0x24, 0x25,
-                        0x58, 0x59, 0x5A, 0x5B, 0x4A, 0x4B, 0x32, 0x33, 0x34
-                    };
-                    return codes.Contains(this.value);
+                    return WhiteLen8TermCodes.Keys.Contains(this.value);
                 }
             }
 
@@ -979,73 +624,57 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             {
                 case 2:
                 {
-                    uint[] codes = { 0x3, 0x2 };
-                    return codes.Contains(this.value);
+                    return BlackLen2TermCodes.ContainsKey(this.value);
                 }
 
                 case 3:
                 {
-                    uint[] codes = { 0x02, 0x03 };
-                    return codes.Contains(this.value);
+                    return BlackLen3TermCodes.ContainsKey(this.value);
                 }
 
                 case 4:
                 {
-                    uint[] codes = { 0x03, 0x02 };
-                    return codes.Contains(this.value);
+                    return BlackLen4TermCodes.ContainsKey(this.value);
                 }
 
                 case 5:
                 {
-                    uint[] codes = { 0x03 };
-                    return codes.Contains(this.value);
+                    return BlackLen5TermCodes.ContainsKey(this.value);
                 }
 
                 case 6:
                 {
-                    uint[] codes = { 0x5, 0x4 };
-                    return codes.Contains(this.value);
+                    return BlackLen6TermCodes.ContainsKey(this.value);
                 }
 
                 case 7:
                 {
-                    uint[] codes = { 0x4, 0x5, 0x7 };
-                    return codes.Contains(this.value);
+                    return BlackLen7TermCodes.ContainsKey(this.value);
                 }
 
                 case 8:
                 {
-                    uint[] codes = { 0x4, 0x7 };
-                    return codes.Contains(this.value);
+                    return BlackLen8TermCodes.ContainsKey(this.value);
                 }
 
                 case 9:
                 {
-                    uint[] codes = { 0x18 };
-                    return codes.Contains(this.value);
+                    return BlackLen9TermCodes.ContainsKey(this.value);
                 }
 
                 case 10:
                 {
-                    uint[] codes = { 0x37, 0x17, 0x18, 0x8 };
-                    return codes.Contains(this.value);
+                    return BlackLen10TermCodes.ContainsKey(this.value);
                 }
 
                 case 11:
                 {
-                    uint[] codes = { 0x67, 0x68, 0x6C, 0x37, 0x28, 0x17, 0x18 };
-                    return codes.Contains(this.value);
+                    return BlackLen11TermCodes.ContainsKey(this.value);
                 }
 
                 case 12:
                 {
-                    uint[] codes =
-                    {
-                        0xCA, 0xCB, 0xCC, 0xCD, 0x68, 0x69, 0x6A, 0x6B, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6,
-                        0xD7, 0x6C, 0x6D, 0xDA, 0xDB, 0x54, 0x55, 0x56, 0x57, 0x64, 0x65, 0x52, 0x53,
-                        0x24, 0x37, 0x38, 0x27, 0x28, 0x58, 0x59, 0x2B, 0x2C, 0x5A, 0x66, 0x67
-                    };
-                    return codes.Contains(this.value);
+                    return BlackLen12TermCodes.ContainsKey(this.value);
                 }
             }
 

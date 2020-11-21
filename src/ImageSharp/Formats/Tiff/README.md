@@ -10,6 +10,7 @@
   - [TIFF/EP Extension (Wikipedia)](https://en.wikipedia.org/wiki/TIFF/EP)
   - [Adobe TIFF Pages](http://partners.adobe.com/public/developer/tiff/index.html)
   - [Unofficial TIFF FAQ](http://www.awaresystems.be/imaging/tiff/faq.html)
+  - [CCITT T.4 Compression](https://www.itu.int/rec/T-REC-T.4-198811-S/_page.print)
 
 - DNG
   - [Adobe DNG Pages](https://helpx.adobe.com/photoshop/digital-negative.html)
@@ -41,7 +42,7 @@
 |None                       |       |   Y   |                          |
 |Ccitt1D                    |       |       |                          |
 |PackBits                   |       |   Y   |                          |
-|CcittGroup3Fax             |       |       |                          |
+|CcittGroup3Fax             |       |   Y   |                          |
 |CcittGroup4Fax             |       |       |                          |
 |Lzw                        |       |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case |
 |Old Jpeg                   |       |       |                          |

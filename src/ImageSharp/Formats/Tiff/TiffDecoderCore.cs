@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -311,7 +309,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             int uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip);
 
-            using IManagedByteBuffer stripBuffer = this.memoryAllocator.AllocateManagedByteBuffer(uncompressedStripSize);
+            using IManagedByteBuffer stripBuffer = this.memoryAllocator.AllocateManagedByteBuffer(uncompressedStripSize, AllocationOptions.Clean);
 
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 

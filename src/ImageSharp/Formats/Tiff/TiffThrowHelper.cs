@@ -12,6 +12,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     internal static class TiffThrowHelper
     {
+        /// <summary>
+        /// Cold path optimization for throwing <see cref="ImageFormatException"/>-s
+        /// </summary>
+        /// <param name="errorMessage">The error message for the exception.</param>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void ThrowImageFormatException(string errorMessage)
+        {
+            throw new ImageFormatException(errorMessage);
+        }
+
         [MethodImpl(InliningOptions.ColdPath)]
         public static Exception TagNotFound(string tagName)
             => new ArgumentException("Required tag is not found.", tagName);

@@ -2,15 +2,17 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Linq;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 {
     /// <summary>
     /// Bitreader for reading compressed CCITT T4 1D data.
     /// </summary>
-    internal class T4BitReader
+    internal class T4BitReader : IDisposable
     {
         /// <summary>
         /// Number of bits read.
@@ -42,6 +44,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// </summary>
         private bool isFirstScanLine;
 
+        /// <summary>
+        /// Indicates whether we have found a termination code which signals the end of a run.
+        /// </summary>
         private bool terminationCodeFound;
 
         /// <summary>
@@ -49,16 +54,24 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// </summary>
         private uint runLength;
 
+        private readonly int dataLength;
+
         private const int MinCodeLength = 2;
 
         private const int MaxCodeLength = 13;
 
-        public T4BitReader(Stream input, int bytesToRead)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="T4BitReader" /> class.
+        /// </summary>
+        /// <param name="input">The compressed input stream.</param>
+        /// <param name="bytesToRead">The number of bytes to read from the stream.</param>
+        /// <param name="allocator">The memory allocator.</param>
+        public T4BitReader(Stream input, int bytesToRead, MemoryAllocator allocator)
         {
-            // TODO: use memory allocator
-            this.Data = new byte[bytesToRead];
-            this.ReadImageDataFromStream(input, bytesToRead);
+            this.Data = allocator.Allocate<byte>(bytesToRead);
+            this.ReadImageDataFromStream(input, bytesToRead, allocator);
 
+            this.dataLength = bytesToRead;
             this.bitsRead = 0;
             this.value = 0;
             this.curValueBitsRead = 0;
@@ -72,7 +85,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// <summary>
         /// Gets the compressed image data.
         /// </summary>
-        public byte[] Data { get; }
+        public IMemoryOwner<byte> Data { get; }
 
         /// <summary>
         /// Gets a value indicating whether there is more data to read left.
@@ -81,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         {
             get
             {
-                return this.position < (ulong)this.Data.Length - 1;
+                return this.position < (ulong)this.dataLength - 1;
             }
         }
 
@@ -205,6 +218,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             while (!this.IsEndOfScanLine);
 
             this.isFirstScanLine = false;
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            this.Data.Dispose();
         }
 
         private uint WhiteTerminatingCodeRunLength()
@@ -401,6 +420,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                         case 0x2:
                             return 3;
                     }
+
                     break;
                 }
 
@@ -959,31 +979,31 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             {
                 case 2:
                 {
-                    uint[] codes = {0x3, 0x2};
+                    uint[] codes = { 0x3, 0x2 };
                     return codes.Contains(this.value);
                 }
 
                 case 3:
                 {
-                    uint[] codes = {0x02, 0x03};
+                    uint[] codes = { 0x02, 0x03 };
                     return codes.Contains(this.value);
                 }
 
                 case 4:
                 {
-                    uint[] codes = {0x03, 0x02};
+                    uint[] codes = { 0x03, 0x02 };
                     return codes.Contains(this.value);
                 }
 
                 case 5:
                 {
-                    uint[] codes = {0x03};
+                    uint[] codes = { 0x03 };
                     return codes.Contains(this.value);
                 }
 
                 case 6:
                 {
-                    uint[] codes = {0x5, 0x4};
+                    uint[] codes = { 0x5, 0x4 };
                     return codes.Contains(this.value);
                 }
 
@@ -1067,8 +1087,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 this.LoadNewByte();
             }
 
+            Span<byte> dataSpan = this.Data.GetSpan();
             int shift = 8 - this.bitsRead - 1;
-            var bit = (uint)((this.Data[this.position] & (1 << shift)) != 0 ? 1 : 0);
+            var bit = (uint)((dataSpan[(int)this.position] & (1 << shift)) != 0 ? 1 : 0);
             this.bitsRead++;
 
             return bit;
@@ -1079,24 +1100,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             this.position++;
             this.bitsRead = 0;
 
-            if (this.position >= (ulong)this.Data.Length)
+            if (this.position >= (ulong)this.dataLength)
             {
                 TiffThrowHelper.ThrowImageFormatException("tiff image has invalid t4 compressed data");
             }
         }
 
-        private void ReadImageDataFromStream(Stream input, int bytesToRead)
+        private void ReadImageDataFromStream(Stream input, int bytesToRead, MemoryAllocator allocator)
         {
-            var buffer = new byte[4096];
-
-            Span<byte> bufferSpan = buffer.AsSpan();
-            Span<byte> dataSpan = this.Data.AsSpan();
+            int bufferLength = 4096;
+            IMemoryOwner<byte> buffer = allocator.Allocate<byte>(bufferLength);
+            Span<byte> bufferSpan = buffer.GetSpan();
+            Span<byte> dataSpan = this.Data.GetSpan();
 
             int read;
-            while (bytesToRead > 0 &&
-                   (read = input.Read(buffer, 0, Math.Min(bufferSpan.Length, bytesToRead))) > 0)
+            while (bytesToRead > 0 && (read = input.Read(bufferSpan, 0, Math.Min(bufferLength, bytesToRead))) > 0)
             {
-                buffer.AsSpan(0, read).CopyTo(dataSpan);
+                buffer.Slice(0, read).CopyTo(dataSpan);
                 bytesToRead -= read;
                 dataSpan = dataSpan.Slice(read);
             }
@@ -1106,5 +1126,5 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 TiffThrowHelper.ThrowImageFormatException("tiff image file has insufficient data");
             }
         }
-}
+    }
 }

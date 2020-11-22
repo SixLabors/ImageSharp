@@ -210,11 +210,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
             {
-                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets, stripByteCounts);
+                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets, stripByteCounts, width);
             }
             else
             {
-                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts);
+                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts, width);
             }
 
             return frame;
@@ -258,7 +258,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="rowsPerStrip">The number of rows per strip of data.</param>
         /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
         /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
-        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts)
+        /// <param name="width">The image width.</param>
+        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts, int width)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int stripsPerPixel = this.BitsPerSample.Length;
@@ -276,7 +277,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     stripBuffers[stripIndex] = this.memoryAllocator.AllocateManagedByteBuffer(uncompressedStripSize);
                 }
 
-                TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation);
+                TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width);
 
                 RgbPlanarTiffColor<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap);
 
@@ -304,7 +305,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             }
         }
 
-        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts)
+        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts, int width)
            where TPixel : unmanaged, IPixel<TPixel>
         {
             int uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip);
@@ -313,7 +314,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
-            TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation);
+            TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width);
 
             TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap);
 

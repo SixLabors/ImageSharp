@@ -32,5 +32,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Image data is compressed using T4-encoding: CCITT T.4.
         /// </summary>
         T4 = 4,
+
+        /// <summary>
+        /// Image data is compressed using modified huffman compression.
+        /// </summary>
+        HuffmanRle = 5,
     }
 }

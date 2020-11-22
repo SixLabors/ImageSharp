@@ -61,6 +61,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// </summary>
         private bool isStartOfRow;
 
+        private readonly bool isModifiedHuffmanRle;
+
         private readonly int dataLength;
 
         private const int MinCodeLength = 2;
@@ -223,11 +225,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// <param name="input">The compressed input stream.</param>
         /// <param name="bytesToRead">The number of bytes to read from the stream.</param>
         /// <param name="allocator">The memory allocator.</param>
-        public T4BitReader(Stream input, int bytesToRead, MemoryAllocator allocator)
+        /// <param name="isModifiedHuffman">Indicates, if its the modified huffman code variation.</param>
+        public T4BitReader(Stream input, int bytesToRead, MemoryAllocator allocator, bool isModifiedHuffman = false)
         {
             this.Data = allocator.Allocate<byte>(bytesToRead);
             this.ReadImageDataFromStream(input, bytesToRead, allocator);
 
+            this.isModifiedHuffmanRle = isModifiedHuffman;
             this.dataLength = bytesToRead;
             this.bitsRead = 0;
             this.value = 0;
@@ -302,7 +306,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
             this.Reset();
 
-            if (this.isFirstScanLine)
+            if (this.isFirstScanLine && !this.isModifiedHuffmanRle)
             {
                 // We expect an EOL before the first data.
                 this.value = this.ReadValue(12);
@@ -372,14 +376,31 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
                 if (this.IsEndOfScanLine)
                 {
-                    // Each new row starts with a white run.
-                    this.isWhiteRun = true;
-                    this.isStartOfRow = true;
+                    this.StartNewRow();
                 }
             }
             while (!this.IsEndOfScanLine);
 
             this.isFirstScanLine = false;
+        }
+
+        public void StartNewRow()
+        {
+            // Each new row starts with a white run.
+            this.isWhiteRun = true;
+            this.isStartOfRow = true;
+            this.terminationCodeFound = false;
+
+            if (this.isModifiedHuffmanRle)
+            {
+                int pad = 8 - (this.bitsRead % 8);
+                if (pad != 8)
+                {
+                    // Skip padding bits, move to next byte.
+                    this.position++;
+                    this.bitsRead = 0;
+                }
+            }
         }
 
         /// <inheritdoc/>
@@ -601,6 +622,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
                 case 12:
                 {
+                    if (this.isModifiedHuffmanRle)
+                    {
+                        if (this.value == 1)
+                        {
+                            return true;
+                        }
+                    }
+
                     return WhiteLen12MakeupCodes.ContainsKey(this.value);
                 }
             }
@@ -619,6 +648,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
                 case 11:
                 {
+                    if (this.isModifiedHuffmanRle)
+                    {
+                        if (this.value == 0)
+                        {
+                            return true;
+                        }
+                    }
+
                     return BlackLen11MakeupCodes.ContainsKey(this.value);
                 }
 

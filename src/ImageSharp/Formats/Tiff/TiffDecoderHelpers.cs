@@ -352,6 +352,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
                 }
 
+                case TiffCompression.Ccitt1D:
+                {
+                    options.CompressionType = TiffCompressionType.HuffmanRle;
+                    break;
+                }
+
                 default:
                 {
                     TiffThrowHelper.ThrowNotSupported("The specified TIFF compression format is not supported: " + compression);

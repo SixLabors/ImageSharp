@@ -16,17 +16,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         private TiffPhotometricInterpretation photometricInterpretation;
 
+        private int width;
+
         public TiffBaseCompression(MemoryAllocator allocator) => this.allocator = allocator;
 
-        public TiffBaseCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation)
+        public TiffBaseCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
         {
             this.allocator = allocator;
             this.photometricInterpretation = photometricInterpretation;
+            this.width = width;
         }
 
         protected MemoryAllocator Allocator => this.allocator;
 
         protected TiffPhotometricInterpretation PhotometricInterpretation => this.photometricInterpretation;
+
+        protected int Width => this.width;
 
         /// <summary>
         /// Decompresses image data into the supplied buffer.

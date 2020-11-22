@@ -55,6 +55,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// </summary>
         private uint runLength;
 
+        /// <summary>
+        /// We keep track if its the start of the row, because each run is expected to start with a white run.
+        /// If the image row itself starts with black, a white run of zero is expected.
+        /// </summary>
+        private bool isStartOfRow;
+
         private readonly int dataLength;
 
         private const int MinCodeLength = 2;
@@ -78,14 +84,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
         private static readonly Dictionary<uint, uint> WhiteLen7TermCodes = new Dictionary<uint, uint>()
         {
-            { 0x27, 18 }, { 0xC, 19 }, { 0x8, 20 }, { 0x17, 21 }, { 0x3, 22 }, { 0x4, 23 }, { 0x28, 24 }, { 0x2B, 25 }, { 0x13, 26 }, { 0x24, 27 }, { 0x18, 28 }
+            { 0x27, 18 }, { 0xC, 19 }, { 0x8, 20 }, { 0x17, 21 }, { 0x3, 22 }, { 0x4, 23 }, { 0x28, 24 }, { 0x2B, 25 }, { 0x13, 26 },
+            { 0x24, 27 }, { 0x18, 28 }
         };
 
         private static readonly Dictionary<uint, uint> WhiteLen8TermCodes = new Dictionary<uint, uint>()
         {
-            { 0x35, 0 }, { 0x2, 29 }, { 0x3, 30 }, { 0x1A, 31 }, { 0x1B, 32 }, { 0x12, 33 }, { 0x13, 34 }, { 0x14, 35 }, { 0x15, 36 }, { 0x16, 37 }, { 0x17, 38 }, { 0x28, 39 }, { 0x29, 40 }, { 0x2A, 41 },
-            { 0x2B, 42 }, { 0x2C, 43 }, { 0x2D, 44 }, { 0x4, 45 }, { 0x5, 46 }, { 0xA, 47 }, { 0xB, 48 }, { 0x52, 49 }, { 0x53, 50 }, { 0x54, 51 }, { 0x55, 52 }, { 0x24, 53 }, { 0x25, 54 }, { 0x58, 55 },
-            { 0x59, 56 }, { 0x5A, 57 }, { 0x5B, 58 }, { 0x4A, 59 }, { 0x4B, 60 }, { 0x32, 61 }, { 0x33, 62 }, { 0x34, 63 }
+            { 0x35, 0 }, { 0x2, 29 }, { 0x3, 30 }, { 0x1A, 31 }, { 0x1B, 32 }, { 0x12, 33 }, { 0x13, 34 }, { 0x14, 35 }, { 0x15, 36 },
+            { 0x16, 37 }, { 0x17, 38 }, { 0x28, 39 }, { 0x29, 40 }, { 0x2A, 41 }, { 0x2B, 42 }, { 0x2C, 43 }, { 0x2D, 44 }, { 0x4, 45 },
+            { 0x5, 46 }, { 0xA, 47 }, { 0xB, 48 }, { 0x52, 49 }, { 0x53, 50 }, { 0x54, 51 }, { 0x55, 52 }, { 0x24, 53 }, { 0x25, 54 },
+            { 0x58, 55 }, { 0x59, 56 }, { 0x5A, 57 }, { 0x5B, 58 }, { 0x4A, 59 }, { 0x4B, 60 }, { 0x32, 61 }, { 0x33, 62 }, { 0x34, 63 }
         };
 
         private static readonly Dictionary<uint, uint> BlackLen2TermCodes = new Dictionary<uint, uint>()
@@ -159,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
         private static readonly Dictionary<uint, uint> WhiteLen8MakeupCodes = new Dictionary<uint, uint>()
         {
-            { 0x36, 320 }, { 0x37, 348 }, { 0x64, 448 }, { 0x65, 512 }, { 0x68, 576 }, { 0x67, 640 }
+            { 0x36, 320 }, { 0x37, 384 }, { 0x64, 448 }, { 0x65, 512 }, { 0x68, 576 }, { 0x67, 640 }
         };
 
         private static readonly Dictionary<uint, uint> WhiteLen7MakeupCodes = new Dictionary<uint, uint>()
@@ -181,7 +189,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
         private static readonly Dictionary<uint, uint> WhiteLen12MakeupCodes = new Dictionary<uint, uint>()
         {
-            { 0x12, 1984 }, { 0x13, 2048 }, { 0x14, 2112 }, { 0x15, 2176 }, { 0x16, 2240 }, { 0x17, 2304}, { 0x1C, 2368 }, { 0x1D, 2432 }, { 0x1E, 2496 }, { 0x1F, 2560 }
+            { 0x12, 1984 }, { 0x13, 2048 }, { 0x14, 2112 }, { 0x15, 2176 }, { 0x16, 2240 }, { 0x17, 2304 }, { 0x1C, 2368 },
+            { 0x1D, 2432 }, { 0x1E, 2496 }, { 0x1F, 2560 }
         };
 
         private static readonly Dictionary<uint, uint> BlackLen10MakeupCodes = new Dictionary<uint, uint>()
@@ -197,7 +206,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         private static readonly Dictionary<uint, uint> BlackLen12MakeupCodes = new Dictionary<uint, uint>()
         {
             { 0xC8, 128 }, { 0xC9, 192 }, { 0x5B, 256 }, { 0x33, 320 }, { 0x34, 384 }, { 0x35, 448 },
-            { 0x12, 1984 }, { 0x13, 2048 }, { 0x14, 2112 }, { 0x15, 2176 }, { 0x16, 2240 }, { 0x17, 2304}, { 0x1C, 2368 }, { 0x1D, 2432 }, { 0x1E, 2496 }, { 0x1F, 2560 } 
+            { 0x12, 1984 }, { 0x13, 2048 }, { 0x14, 2112 }, { 0x15, 2176 }, { 0x16, 2240 }, { 0x17, 2304 }, { 0x1C, 2368 },
+            { 0x1D, 2432 }, { 0x1E, 2496 }, { 0x1F, 2560 }
         };
 
         private static readonly Dictionary<uint, uint> BlackLen13MakeupCodes = new Dictionary<uint, uint>()
@@ -225,6 +235,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             this.position = 0;
             this.isWhiteRun = true;
             this.isFirstScanLine = true;
+            this.isStartOfRow = true;
             this.terminationCodeFound = false;
             this.runLength = 0;
         }
@@ -313,14 +324,32 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                     TiffThrowHelper.ThrowImageFormatException("t4 parsing error: invalid code length read");
                 }
 
+                bool isMakeupCode = this.IsMakeupCode();
+                if (isMakeupCode)
+                {
+                    if (this.IsWhiteRun)
+                    {
+                        this.runLength += this.WhiteMakeupCodeRunLength();
+                    }
+                    else
+                    {
+                        this.runLength += this.BlackMakeupCodeRunLength();
+                    }
+
+                    this.isStartOfRow = false;
+                    this.Reset(resetRunLength: false);
+                    continue;
+                }
+
                 bool isTerminatingCode = this.IsTerminatingCode();
                 if (isTerminatingCode)
                 {
                     // Each line starts with a white run. If the image starts with black, a white run with length zero is written.
-                    if (this.IsWhiteRun && this.WhiteTerminatingCodeRunLength() == 0)
+                    if (this.isStartOfRow && this.IsWhiteRun && this.WhiteTerminatingCodeRunLength() == 0)
                     {
                         this.isWhiteRun = !this.IsWhiteRun;
                         this.Reset();
+                        this.isStartOfRow = false;
                         continue;
                     }
 
@@ -334,23 +363,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                     }
 
                     this.terminationCodeFound = true;
+                    this.isStartOfRow = false;
                     break;
-                }
-
-                bool isMakeupCode = this.IsMakeupCode();
-                if (isMakeupCode)
-                {
-                    if (this.IsWhiteRun)
-                    {
-                        this.runLength += this.WhiteMakeupCodeRunLength();
-                    }
-                    else
-                    {
-                        this.runLength += this.BlackMakeupCodeRunLength();
-                    }
-
-                    this.Reset(false);
-                    continue;
                 }
 
                 var currBit = this.ReadValue(1);
@@ -360,6 +374,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 {
                     // Each new row starts with a white run.
                     this.isWhiteRun = true;
+                    this.isStartOfRow = true;
                 }
             }
             while (!this.IsEndOfScanLine);

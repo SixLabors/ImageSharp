@@ -36,6 +36,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             {
                 bitReader.ReadNextRun();
 
+                if (bitReader.RunLength > 0)
+                {
+                    if (bitReader.IsWhiteRun)
+                    {
+                        this.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, whiteValue);
+                        bitsWritten += bitReader.RunLength;
+                    }
+                    else
+                    {
+                        this.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, blackValue);
+                        bitsWritten += bitReader.RunLength;
+                    }
+                }
+
                 if (bitReader.IsEndOfScanLine)
                 {
                     // Write padding bytes, if necessary.
@@ -45,19 +59,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                         this.WriteBits(buffer, (int)bitsWritten, pad, 0);
                         bitsWritten += pad;
                     }
-
-                    continue;
-                }
-
-                if (bitReader.IsWhiteRun)
-                {
-                    this.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, whiteValue);
-                    bitsWritten += bitReader.RunLength;
-                }
-                else
-                {
-                    this.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, blackValue);
-                    bitsWritten += bitReader.RunLength;
                 }
             }
         }

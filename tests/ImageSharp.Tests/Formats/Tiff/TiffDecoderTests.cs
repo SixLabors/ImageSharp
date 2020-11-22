@@ -18,6 +18,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     [Trait("Category", "Tiff")]
     public class TiffDecoderTests
     {
+        private static TiffDecoder TiffDecoder => new TiffDecoder();
+
+        private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
+
         public static readonly string[] SingleTestImages = TestImages.Tiff.All;
 
         public static readonly string[] MultiframeTestImages = TestImages.Tiff.Multiframes;
@@ -29,7 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
         {
-            Assert.Throws<NotSupportedException>(() => provider.GetImage(new TiffDecoder()));
+            Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
         }
 
         [Theory]
@@ -79,10 +83,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void Decode<TPixel>(TestImageProvider<TPixel> provider)
           where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TiffDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact, new MagickReferenceDecoder());
+                image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
             }
         }
 
@@ -91,15 +95,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void DecodeMultiframe<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TiffDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
             {
                 Assert.True(image.Frames.Count > 1);
 
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact, new MagickReferenceDecoder());
+                image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
 
                 image.DebugSaveMultiFrame(provider);
-                image.CompareToOriginalMultiFrame(provider, ImageComparer.Exact, new MagickReferenceDecoder());
+                image.CompareToOriginalMultiFrame(provider, ImageComparer.Exact, ReferenceDecoder);
             }
         }
     }

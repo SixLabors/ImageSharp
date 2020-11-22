@@ -1,14 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Helpers
 {
-    public class ImageMathsTests
+    public class ImageMathTests
     {
         [Theory]
         [InlineData(0.2f, 0.7f, 0.1f, 256, 140)]
@@ -21,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var vector = new Vector4(x, y, z, 0.0f);
 
             // act
-            int actual = ImageMaths.GetBT709Luminance(ref vector, luminanceLevels);
+            int actual = ImageMath.GetBT709Luminance(ref vector, luminanceLevels);
 
             // assert
             Assert.Equal(expected, actual);

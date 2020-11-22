@@ -16,16 +16,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         /// Initializes a new instance of the <see cref="T4TiffCompression" /> class.
         /// </summary>
         /// <param name="allocator">The memory allocator.</param>
-        public T4TiffCompression(MemoryAllocator allocator)
-            : base(allocator)
+        /// <param name="photometricInterpretation">The photometric interpretation.</param>
+        public T4TiffCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation)
+            : base(allocator, photometricInterpretation)
         {
         }
 
         /// <inheritdoc/>
         public override void Decompress(Stream stream, int byteCount, Span<byte> buffer)
         {
-            // TODO: handle case when white is not zero.
-            bool isWhiteZero = true;
+            bool isWhiteZero = this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
             int whiteValue = isWhiteZero ? 0 : 1;
             int blackValue = isWhiteZero ? 1 : 0;
 

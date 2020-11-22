@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                     color.ToRgba32(ref rgba);
 
                     // Convert to grayscale using ITU-R Recommendation BT.709 if required
-                    byte luminance = this.isAlphaOnly ? rgba.A : ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                    byte luminance = this.isAlphaOnly ? rgba.A : ImageMath.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
                     color = luminance >= this.threshold ? this.upper : this.lower;
                 }
             }

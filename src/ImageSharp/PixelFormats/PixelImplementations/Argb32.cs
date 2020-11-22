@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromL16(L16 source)
         {
-            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
+            byte rgb = ImageMath.DownScaleFrom16BitTo8Bit(source.PackedValue);
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
@@ -265,11 +265,11 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromLa32(La32 source)
         {
-            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.L);
+            byte rgb = ImageMath.DownScaleFrom16BitTo8Bit(source.L);
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
-            this.A = ImageMaths.DownScaleFrom16BitTo8Bit(source.A);
+            this.A = ImageMath.DownScaleFrom16BitTo8Bit(source.A);
         }
 
         /// <inheritdoc/>
@@ -306,9 +306,9 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgb48(Rgb48 source)
         {
-            this.R = ImageMaths.DownScaleFrom16BitTo8Bit(source.R);
-            this.G = ImageMaths.DownScaleFrom16BitTo8Bit(source.G);
-            this.B = ImageMaths.DownScaleFrom16BitTo8Bit(source.B);
+            this.R = ImageMath.DownScaleFrom16BitTo8Bit(source.R);
+            this.G = ImageMath.DownScaleFrom16BitTo8Bit(source.G);
+            this.B = ImageMath.DownScaleFrom16BitTo8Bit(source.B);
             this.A = byte.MaxValue;
         }
 
@@ -316,10 +316,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgba64(Rgba64 source)
         {
-            this.R = ImageMaths.DownScaleFrom16BitTo8Bit(source.R);
-            this.G = ImageMaths.DownScaleFrom16BitTo8Bit(source.G);
-            this.B = ImageMaths.DownScaleFrom16BitTo8Bit(source.B);
-            this.A = ImageMaths.DownScaleFrom16BitTo8Bit(source.A);
+            this.R = ImageMath.DownScaleFrom16BitTo8Bit(source.R);
+            this.G = ImageMath.DownScaleFrom16BitTo8Bit(source.G);
+            this.B = ImageMath.DownScaleFrom16BitTo8Bit(source.B);
+            this.A = ImageMath.DownScaleFrom16BitTo8Bit(source.A);
         }
 
         /// <inheritdoc/>

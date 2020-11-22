@@ -11,6 +11,7 @@
   - [Adobe TIFF Pages](http://partners.adobe.com/public/developer/tiff/index.html)
   - [Unofficial TIFF FAQ](http://www.awaresystems.be/imaging/tiff/faq.html)
   - [CCITT T.4 Compression](https://www.itu.int/rec/T-REC-T.4-198811-S/_page.print)
+  - [CCITT T.6 Compression](https://www.itu.int/rec/T-REC-T.6/en)
 
 - DNG
   - [Adobe DNG Pages](https://helpx.adobe.com/photoshop/digital-negative.html)
@@ -40,7 +41,7 @@
 |                           |Encoder|Decoder|Comments                  |
 |---------------------------|:-----:|:-----:|--------------------------|
 |None                       |       |   Y   |                          |
-|Ccitt1D                    |       |       |                          |
+|Ccitt1D                    |       |   Y   |                          |
 |PackBits                   |       |   Y   |                          |
 |CcittGroup3Fax             |       |   Y   |                          |
 |CcittGroup4Fax             |       |       |                          |

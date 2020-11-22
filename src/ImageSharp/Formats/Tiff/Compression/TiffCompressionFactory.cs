@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 {
     internal static class TiffCompressionFactory
     {
-        public static TiffBaseCompression Create(TiffCompressionType compressionType, MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation)
+        public static TiffBaseCompression Create(TiffCompressionType compressionType, MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
         {
             switch (compressionType)
             {
@@ -21,7 +21,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffCompressionType.Lzw:
                     return new LzwTiffCompression(allocator);
                 case TiffCompressionType.T4:
-                    return new T4TiffCompression(allocator, photometricInterpretation);
+                    return new T4TiffCompression(allocator, photometricInterpretation, width);
+                case TiffCompressionType.HuffmanRle:
+                    return new TiffModifiedHuffmanCompression(allocator, photometricInterpretation, width);
                 default:
                     throw TiffThrowHelper.NotSupportedCompression(nameof(compressionType));
             }

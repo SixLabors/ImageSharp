@@ -182,7 +182,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         {
             if (y < 0)
             {
-                y = ImageMaths.FastAbs(y);
+                y = Numerics.Abs(y);
             }
             else if (y >= source.Height)
             {
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 int idx = 0;
                 for (int dx = x; dx < x + tileWidth; dx++)
                 {
-                    rowPixels[idx] = source[ImageMaths.FastAbs(dx), y].ToVector4();
+                    rowPixels[idx] = source[Numerics.Abs(dx), y].ToVector4();
                     idx++;
                 }
 

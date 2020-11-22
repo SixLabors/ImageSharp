@@ -514,7 +514,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Calliphora_Fax3Compressed = "Tiff/Calliphora_ccitt_fax3.tif";
 
             public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tif";
-            public const string CcittFax3AllMakupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tif";
+            public const string CcittFax3AllMakupCodes = "Tiff/ccitt_fax3_all_makeupcodes_codes.tif";
 
             public const string GrayscaleDeflateMultistrip = "Tiff/grayscale_deflate_multistrip.tiff";
             public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";

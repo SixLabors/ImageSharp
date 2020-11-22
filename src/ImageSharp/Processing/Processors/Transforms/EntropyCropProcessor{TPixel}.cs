@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 new BinaryThresholdProcessor(this.definition.Threshold).Execute(this.Configuration, temp, this.SourceRectangle);
 
                 // Search for the first white pixels
-                rectangle = ImageMaths.GetFilteredBoundingRectangle(temp.Frames.RootFrame, 0);
+                rectangle = ImageMath.GetFilteredBoundingRectangle(temp.Frames.RootFrame, 0);
             }
 
             new CropProcessor(rectangle, this.Source.Size()).Execute(this.Configuration, this.Source, this.SourceRectangle);

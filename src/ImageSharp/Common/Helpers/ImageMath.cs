@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// Provides common mathematical methods used for image processing.
     /// </summary>
-    internal static class ImageMaths
+    internal static class ImageMath
     {
         /// <summary>
         /// Vector for converting pixel to gray value as specified by ITU-R Recommendation BT.709.

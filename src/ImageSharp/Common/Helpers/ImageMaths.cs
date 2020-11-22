@@ -4,13 +4,12 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// Provides common mathematical methods.
+    /// Provides common mathematical methods used for image processing.
     /// </summary>
     internal static class ImageMaths
     {
@@ -109,85 +108,6 @@ namespace SixLabors.ImageSharp
         public static ushort UpscaleFrom8BitTo16Bit(byte component) => (ushort)(component * 257);
 
         /// <summary>
-        /// Determine the Greatest CommonDivisor (GCD) of two numbers.
-        /// </summary>
-        public static int GreatestCommonDivisor(int a, int b)
-        {
-            while (b != 0)
-            {
-                int temp = b;
-                b = a % b;
-                a = temp;
-            }
-
-            return a;
-        }
-
-        /// <summary>
-        /// Determine the Least Common Multiple (LCM) of two numbers.
-        /// </summary>
-        public static int LeastCommonMultiple(int a, int b)
-        {
-            // https://en.wikipedia.org/wiki/Least_common_multiple#Reduction_by_the_greatest_common_divisor
-            return (a / GreatestCommonDivisor(a, b)) * b;
-        }
-
-        /// <summary>
-        /// Calculates <paramref name="x"/> % 2
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Modulo2(int x) => x & 1;
-
-        /// <summary>
-        /// Calculates <paramref name="x"/> % 4
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Modulo4(int x) => x & 3;
-
-        /// <summary>
-        /// Calculates <paramref name="x"/> % 8
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int Modulo8(int x) => x & 7;
-
-        /// <summary>
-        /// Fast (x mod m) calculator, with the restriction that
-        /// <paramref name="m"/> should be power of 2.
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int ModuloP2(int x, int m) => x & (m - 1);
-
-        /// <summary>
-        /// Returns the absolute value of a 32-bit signed integer. Uses bit shifting to speed up the operation.
-        /// </summary>
-        /// <param name="x">
-        /// A number that is greater than <see cref="int.MinValue"/>, but less than or equal to <see cref="int.MaxValue"/>
-        /// </param>
-        /// <returns>The <see cref="int"/></returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int FastAbs(int x)
-        {
-            int y = x >> 31;
-            return (x ^ y) - y;
-        }
-
-        /// <summary>
-        /// Returns a specified number raised to the power of 2
-        /// </summary>
-        /// <param name="x">A single-precision floating-point number</param>
-        /// <returns>The number <paramref name="x" /> raised to the power of 2.</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static float Pow2(float x) => x * x;
-
-        /// <summary>
-        /// Returns a specified number raised to the power of 3
-        /// </summary>
-        /// <param name="x">A single-precision floating-point number</param>
-        /// <returns>The number <paramref name="x" /> raised to the power of 3.</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static float Pow3(float x) => x * x * x;
-
-        /// <summary>
         /// Returns how many bits are required to store the specified number of colors.
         /// Performs a Log2() on the value.
         /// </summary>
@@ -205,48 +125,6 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="int"/></returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetColorCountForBitDepth(int bitDepth) => 1 << bitDepth;
-
-        /// <summary>
-        /// Implementation of 1D Gaussian G(x) function
-        /// </summary>
-        /// <param name="x">The x provided to G(x).</param>
-        /// <param name="sigma">The spread of the blur.</param>
-        /// <returns>The Gaussian G(x)</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static float Gaussian(float x, float sigma)
-        {
-            const float Numerator = 1.0f;
-            float denominator = MathF.Sqrt(2 * MathF.PI) * sigma;
-
-            float exponentNumerator = -x * x;
-            float exponentDenominator = 2 * Pow2(sigma);
-
-            float left = Numerator / denominator;
-            float right = MathF.Exp(exponentNumerator / exponentDenominator);
-
-            return left * right;
-        }
-
-        /// <summary>
-        /// Returns the result of a normalized sine cardinal function for the given value.
-        /// SinC(x) = sin(pi*x)/(pi*x).
-        /// </summary>
-        /// <param name="f">A single-precision floating-point number to calculate the result for.</param>
-        /// <returns>
-        /// The sine cardinal of <paramref name="f" />.
-        /// </returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static float SinC(float f)
-        {
-            if (MathF.Abs(f) > Constants.Epsilon)
-            {
-                f *= MathF.PI;
-                float result = MathF.Sin(f) / f;
-                return MathF.Abs(result) < Constants.Epsilon ? 0F : result;
-            }
-
-            return 1F;
-        }
 
         /// <summary>
         /// Gets the bounding <see cref="Rectangle"/> from the given points.

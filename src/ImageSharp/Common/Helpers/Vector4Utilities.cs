@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp
                     vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
                 }
 
-                if (ImageMaths.Modulo2(vectors.Length) != 0)
+                if (Numerics.Modulo2(vectors.Length) != 0)
                 {
                     // Vector4 fits neatly in pairs. Any overlap has to be equal to 1.
                     Premultiply(ref MemoryMarshal.GetReference(vectors.Slice(vectors.Length - 1)));
@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp
                     vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
                 }
 
-                if (ImageMaths.Modulo2(vectors.Length) != 0)
+                if (Numerics.Modulo2(vectors.Length) != 0)
                 {
                     // Vector4 fits neatly in pairs. Any overlap has to be equal to 1.
                     UnPremultiply(ref MemoryMarshal.GetReference(vectors.Slice(vectors.Length - 1)));

@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             float radius = this.Radius;
             if (x < radius)
             {
-                return ImageMaths.SinC(x) * ImageMaths.SinC(x / radius);
+                return Numerics.SinC(x) * Numerics.SinC(x / radius);
             }
 
             return 0F;

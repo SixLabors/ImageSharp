@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp
             ref Vector4 target = ref Unsafe.Add(ref targetRowRef, column);
             vector.W = target.W;
 
-            Vector4Utilities.UnPremultiply(ref vector);
+            Numerics.UnPremultiply(ref vector);
             target = vector;
         }
 
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp
                 out Vector4 vector);
 
             ref Vector4 target = ref Unsafe.Add(ref targetRowRef, column);
-            Vector4Utilities.UnPremultiply(ref vector);
+            Numerics.UnPremultiply(ref vector);
             target = vector;
         }
 
@@ -133,14 +133,14 @@ namespace SixLabors.ImageSharp
 
             for (int y = 0; y < matrixHeight; y++)
             {
-                int offsetY = (row + y - radiusY).Clamp(minRow, maxRow);
+                int offsetY = Numerics.Clamp(row + y - radiusY, minRow, maxRow);
                 Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
 
                 for (int x = 0; x < matrixWidth; x++)
                 {
-                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(minColumn, maxColumn);
+                    int offsetX = Numerics.Clamp(sourceOffsetColumnBase + x - radiusX, minColumn, maxColumn);
                     var currentColor = sourceRowSpan[offsetX].ToVector4();
-                    Vector4Utilities.Premultiply(ref currentColor);
+                    Numerics.Premultiply(ref currentColor);
 
                     vectorX += matrixX[y, x] * currentColor;
                     vectorY += matrixY[y, x] * currentColor;
@@ -193,7 +193,7 @@ namespace SixLabors.ImageSharp
             ref Vector4 target = ref Unsafe.Add(ref targetRowRef, column);
             vector.W = target.W;
 
-            Vector4Utilities.UnPremultiply(ref vector);
+            Numerics.UnPremultiply(ref vector);
             target = vector;
         }
 
@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp
                 ref vector);
 
             ref Vector4 target = ref Unsafe.Add(ref targetRowRef, column);
-            Vector4Utilities.UnPremultiply(ref vector);
+            Numerics.UnPremultiply(ref vector);
             target = vector;
         }
 
@@ -263,14 +263,14 @@ namespace SixLabors.ImageSharp
 
             for (int y = 0; y < matrixHeight; y++)
             {
-                int offsetY = (row + y - radiusY).Clamp(minRow, maxRow);
+                int offsetY = Numerics.Clamp(row + y - radiusY, minRow, maxRow);
                 Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
 
                 for (int x = 0; x < matrixWidth; x++)
                 {
-                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(minColumn, maxColumn);
+                    int offsetX = Numerics.Clamp(sourceOffsetColumnBase + x - radiusX, minColumn, maxColumn);
                     var currentColor = sourceRowSpan[offsetX].ToVector4();
-                    Vector4Utilities.Premultiply(ref currentColor);
+                    Numerics.Premultiply(ref currentColor);
                     vector += matrix[y, x] * currentColor;
                 }
             }

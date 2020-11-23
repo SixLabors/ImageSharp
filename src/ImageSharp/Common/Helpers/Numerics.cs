@@ -393,7 +393,7 @@ namespace SixLabors.ImageSharp
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ClampImpl<T>(Span<T> span, T min, T max)
-        where T : unmanaged
+            where T : unmanaged
         {
             ref T sRef = ref MemoryMarshal.GetReference(span);
             ref Vector<T> vsBase = ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));

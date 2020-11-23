@@ -248,8 +248,8 @@ namespace SixLabors.ImageSharp
 
             topLeft.Y = GetMinY(bitmap);
             topLeft.X = GetMinX(bitmap);
-            bottomRight.Y = (GetMaxY(bitmap) + 1).Clamp(0, height);
-            bottomRight.X = (GetMaxX(bitmap) + 1).Clamp(0, width);
+            bottomRight.Y = Numerics.Clamp(GetMaxY(bitmap) + 1, 0, height);
+            bottomRight.X = Numerics.Clamp(GetMaxX(bitmap) + 1, 0, width);
 
             return GetBoundingRectangle(topLeft, bottomRight);
         }

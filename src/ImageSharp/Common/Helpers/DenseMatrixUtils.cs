@@ -133,12 +133,12 @@ namespace SixLabors.ImageSharp
 
             for (int y = 0; y < matrixHeight; y++)
             {
-                int offsetY = (row + y - radiusY).Clamp(minRow, maxRow);
+                int offsetY = Numerics.Clamp(row + y - radiusY, minRow, maxRow);
                 Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
 
                 for (int x = 0; x < matrixWidth; x++)
                 {
-                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(minColumn, maxColumn);
+                    int offsetX = Numerics.Clamp(sourceOffsetColumnBase + x - radiusX, minColumn, maxColumn);
                     var currentColor = sourceRowSpan[offsetX].ToVector4();
                     Vector4Utilities.Premultiply(ref currentColor);
 
@@ -263,12 +263,12 @@ namespace SixLabors.ImageSharp
 
             for (int y = 0; y < matrixHeight; y++)
             {
-                int offsetY = (row + y - radiusY).Clamp(minRow, maxRow);
+                int offsetY = Numerics.Clamp(row + y - radiusY, minRow, maxRow);
                 Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
 
                 for (int x = 0; x < matrixWidth; x++)
                 {
-                    int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(minColumn, maxColumn);
+                    int offsetX = Numerics.Clamp(sourceOffsetColumnBase + x - radiusX, minColumn, maxColumn);
                     var currentColor = sourceRowSpan[offsetX].ToVector4();
                     Vector4Utilities.Premultiply(ref currentColor);
                     vector += matrix[y, x] * currentColor;

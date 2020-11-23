@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
             for (int i = 0; i < A.Length; i++)
             {
                 ref int x = ref A[i];
-                x = x.Clamp(64, 128);
+                x = Numerics.Clamp(x, 64, 128);
             }
         }
 

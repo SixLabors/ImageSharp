@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector4 PseudoRound(this Vector4 v)
         {
-            Vector4 sign = Vector4Utilities.FastClamp(v, new Vector4(-1), new Vector4(1));
+            Vector4 sign = Numerics.Clamp(v, new Vector4(-1), new Vector4(1));
 
             return v + (sign * 0.5f);
         }

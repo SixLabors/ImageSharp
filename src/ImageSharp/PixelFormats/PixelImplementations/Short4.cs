@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         private static ulong Pack(ref Vector4 vector)
         {
-            vector = Vector4Utilities.FastClamp(vector, Min, Max);
+            vector = Numerics.Clamp(vector, Min, Max);
 
             // Clamp the value between min and max values
             ulong word4 = ((ulong)Math.Round(vector.X) & 0xFFFF) << 0x00;

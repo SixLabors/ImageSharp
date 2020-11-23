@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
         public static int GetLuminance(TPixel sourcePixel, int luminanceLevels)
         {
             var vector = sourcePixel.ToVector4();
-            return ImageMaths.GetBT709Luminance(ref vector, luminanceLevels);
+            return ColorNumerics.GetBT709Luminance(ref vector, luminanceLevels);
         }
     }
 }

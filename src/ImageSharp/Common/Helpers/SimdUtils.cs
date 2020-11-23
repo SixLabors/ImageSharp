@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte ConvertToByte(float f) => (byte)ComparableExtensions.Clamp((f * 255f) + 0.5f, 0, 255f);
+        private static byte ConvertToByte(float f) => (byte)Numerics.Clamp((f * 255F) + 0.5F, 0, 255F);
 
         [Conditional("DEBUG")]
         private static void VerifyHasVector8(string operation)

@@ -165,10 +165,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             int spread = 256 / bitDepth;
             float factor = spread * this.thresholdMatrix[y % this.modulusY, x % this.modulusX] * scale;
 
-            attempt.R = (byte)(rgba.R + factor).Clamp(byte.MinValue, byte.MaxValue);
-            attempt.G = (byte)(rgba.G + factor).Clamp(byte.MinValue, byte.MaxValue);
-            attempt.B = (byte)(rgba.B + factor).Clamp(byte.MinValue, byte.MaxValue);
-            attempt.A = (byte)(rgba.A + factor).Clamp(byte.MinValue, byte.MaxValue);
+            attempt.R = (byte)Numerics.Clamp(rgba.R + factor, byte.MinValue, byte.MaxValue);
+            attempt.G = (byte)Numerics.Clamp(rgba.G + factor, byte.MinValue, byte.MaxValue);
+            attempt.B = (byte)Numerics.Clamp(rgba.B + factor, byte.MinValue, byte.MaxValue);
+            attempt.A = (byte)Numerics.Clamp(rgba.A + factor, byte.MinValue, byte.MaxValue);
 
             TPixel result = default;
             result.FromRgba32(attempt);

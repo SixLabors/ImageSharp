@@ -32,6 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
             using var bitReader = new T4BitReader(stream, byteCount, this.Allocator, isModifiedHuffman: true);
 
+            buffer.Clear();
             uint bitsWritten = 0;
             uint pixelsWritten = 0;
             while (bitReader.HasMoreData)

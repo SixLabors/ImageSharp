@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             {
                 if (this.HasUnassociatedAlpha)
                 {
-                    Vector4Utilities.Premultiply(ref v);
+                    Vector4Utils.Premultiply(ref v);
                 }
             }
 
@@ -205,7 +205,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             {
                 if (this.HasUnassociatedAlpha)
                 {
-                    Vector4Utilities.UnPremultiply(ref v);
+                    Vector4Utils.UnPremultiply(ref v);
                 }
             }
 
@@ -232,7 +232,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             {
                 if (this.HasUnassociatedAlpha)
                 {
-                    Vector4Utilities.Premultiply(ref v);
+                    Vector4Utils.Premultiply(ref v);
                 }
             }
 
@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             {
                 if (this.HasUnassociatedAlpha)
                 {
-                    Vector4Utilities.UnPremultiply(ref v);
+                    Vector4Utils.UnPremultiply(ref v);
                 }
             }
 
@@ -273,7 +273,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
                 if (this.HasUnassociatedAlpha)
                 {
-                    Vector4Utilities.Premultiply(ref v);
+                    Vector4Utils.Premultiply(ref v);
                 }
             }
 
@@ -281,7 +281,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             {
                 if (this.HasUnassociatedAlpha)
                 {
-                    Vector4Utilities.UnPremultiply(ref v);
+                    Vector4Utils.UnPremultiply(ref v);
                 }
 
                 SRgbCompanding.Compress(ref v);
@@ -394,12 +394,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         {
             void SourceAction(ref Vector4 v)
             {
-                Vector4Utilities.UnPremultiply(ref v);
+                Vector4Utils.UnPremultiply(ref v);
             }
 
             void ExpectedAction(ref Vector4 v)
             {
-                Vector4Utilities.Premultiply(ref v);
+                Vector4Utils.Premultiply(ref v);
             }
 
             TPixel[] source = CreatePixelTestData(count, (ref Vector4 v) => SourceAction(ref v));
@@ -417,12 +417,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         {
             void SourceAction(ref Vector4 v)
             {
-                Vector4Utilities.UnPremultiply(ref v);
+                Vector4Utils.UnPremultiply(ref v);
             }
 
             void ExpectedAction(ref Vector4 v)
             {
-                Vector4Utilities.Premultiply(ref v);
+                Vector4Utils.Premultiply(ref v);
             }
 
             TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => SourceAction(ref v));
@@ -444,14 +444,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         {
             void SourceAction(ref Vector4 v)
             {
-                Vector4Utilities.UnPremultiply(ref v);
+                Vector4Utils.UnPremultiply(ref v);
                 SRgbCompanding.Compress(ref v);
             }
 
             void ExpectedAction(ref Vector4 v)
             {
                 SRgbCompanding.Expand(ref v);
-                Vector4Utilities.Premultiply(ref v);
+                Vector4Utils.Premultiply(ref v);
             }
 
             TPixel[] source = CreateScaledPixelTestData(count, (ref Vector4 v) => SourceAction(ref v));

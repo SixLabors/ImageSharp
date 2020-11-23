@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Utility methods for affine and projective transforms.
     /// </summary>
-    internal static class LinearTransformUtilities
+    internal static class LinearTransformUtils
     {
         [MethodImpl(InliningOptions.ShortMethod)]
         internal static int GetSamplingRadius<TResampler>(in TResampler sampler, int sourceSize, int destinationSize)
@@ -78,13 +78,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                     // Values are first premultiplied to prevent darkening of edge pixels.
                     var current = sourcePixels[x, y].ToVector4();
-                    Vector4Utilities.Premultiply(ref current);
+                    Vector4Utils.Premultiply(ref current);
                     sum += current * xWeight * yWeight;
                 }
             }
 
             // Reverse the premultiplication
-            Vector4Utilities.UnPremultiply(ref sum);
+            Vector4Utils.UnPremultiply(ref sum);
             targetRow[column] = sum;
         }
 

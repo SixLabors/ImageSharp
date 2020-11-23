@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
             if (modifiers.IsDefined(PixelConversionModifiers.Premultiply))
             {
-                Vector4Utilities.Premultiply(vectors);
+                Vector4Utils.Premultiply(vectors);
             }
         }
 
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
         {
             if (modifiers.IsDefined(PixelConversionModifiers.Premultiply))
             {
-                Vector4Utilities.UnPremultiply(vectors);
+                Vector4Utils.UnPremultiply(vectors);
             }
 
             if (modifiers.IsDefined(PixelConversionModifiers.SRgbCompand))

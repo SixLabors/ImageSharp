@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Options = options;
 
             this.maxColors = this.Options.MaxColors;
-            this.octree = new Octree(ImageMath.GetBitsNeededForColorDepth(this.maxColors).Clamp(1, 8));
+            this.octree = new Octree(Numerics.Clamp(ImageMath.GetBitsNeededForColorDepth(this.maxColors), 1, 8));
             this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
             this.palette = default;
             this.pixelMap = default;

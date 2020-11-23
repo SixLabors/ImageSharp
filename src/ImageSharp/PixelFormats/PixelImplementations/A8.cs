@@ -162,6 +162,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="alpha">The float containing the value to pack.</param>
         /// <returns>The <see cref="byte"/> containing the packed values.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte Pack(float alpha) => (byte)Math.Round(alpha.Clamp(0, 1F) * 255F);
+        private static byte Pack(float alpha) => (byte)Math.Round(Numerics.Clamp(alpha, 0, 1F) * 255F);
     }
 }

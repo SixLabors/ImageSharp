@@ -221,3 +221,4 @@ artifacts/
 # Tests
 **/Images/ActualOutput
 **/Images/ReferenceOutput
+.DS_Store

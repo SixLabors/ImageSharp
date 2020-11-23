@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// <summary>
     /// Contains utility methods for working with transforms.
     /// </summary>
-    internal static class TransformUtilities
+    internal static class TransformUtils
     {
         /// <summary>
         /// Returns a value that indicates whether the specified matrix is degenerate

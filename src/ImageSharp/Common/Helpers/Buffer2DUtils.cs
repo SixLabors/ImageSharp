@@ -50,8 +50,8 @@ namespace SixLabors.ImageSharp
 
             for (int i = 0; i < kernelLength; i++)
             {
-                int offsetY = (row + i - radiusY).Clamp(minRow, maxRow);
-                int offsetX = sourceOffsetColumnBase.Clamp(minColumn, maxColumn);
+                int offsetY = Numerics.Clamp(row + i - radiusY, minRow, maxRow);
+                int offsetX = Numerics.Clamp(sourceOffsetColumnBase, minColumn, maxColumn);
                 Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
                 var currentColor = sourceRowSpan[offsetX].ToVector4();
 
@@ -93,13 +93,13 @@ namespace SixLabors.ImageSharp
             int radiusX = kernelLength >> 1;
             int sourceOffsetColumnBase = column + minColumn;
 
-            int offsetY = row.Clamp(minRow, maxRow);
+            int offsetY = Numerics.Clamp(row, minRow, maxRow);
             ref ComplexVector4 sourceRef = ref MemoryMarshal.GetReference(sourceValues.GetRowSpan(offsetY));
             ref Complex64 baseRef = ref MemoryMarshal.GetReference(kernel);
 
             for (int x = 0; x < kernelLength; x++)
             {
-                int offsetX = (sourceOffsetColumnBase + x - radiusX).Clamp(minColumn, maxColumn);
+                int offsetX = Numerics.Clamp(sourceOffsetColumnBase + x - radiusX, minColumn, maxColumn);
                 vector.Sum(Unsafe.Add(ref baseRef, x) * Unsafe.Add(ref sourceRef, offsetX));
             }
 

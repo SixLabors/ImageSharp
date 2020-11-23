@@ -435,7 +435,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             Rgba32 expectedColor = Color.Blue;
             if (colorType == PngColorType.Grayscale || colorType == PngColorType.GrayscaleWithAlpha)
             {
-                var luminance = ImageMath.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
+                var luminance = ColorNumerics.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
                 expectedColor = new Rgba32(luminance, luminance, luminance);
             }
 

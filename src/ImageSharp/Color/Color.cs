@@ -27,19 +27,19 @@ namespace SixLabors.ImageSharp
         private Color(byte r, byte g, byte b, byte a)
         {
             this.data = new Rgba64(
-                ImageMath.UpscaleFrom8BitTo16Bit(r),
-                ImageMath.UpscaleFrom8BitTo16Bit(g),
-                ImageMath.UpscaleFrom8BitTo16Bit(b),
-                ImageMath.UpscaleFrom8BitTo16Bit(a));
+                ColorNumerics.UpscaleFrom8BitTo16Bit(r),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(g),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(b),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(a));
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private Color(byte r, byte g, byte b)
         {
             this.data = new Rgba64(
-                ImageMath.UpscaleFrom8BitTo16Bit(r),
-                ImageMath.UpscaleFrom8BitTo16Bit(g),
-                ImageMath.UpscaleFrom8BitTo16Bit(b),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(r),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(g),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(b),
                 ushort.MaxValue);
         }
 

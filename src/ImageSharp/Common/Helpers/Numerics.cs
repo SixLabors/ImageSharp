@@ -275,13 +275,13 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Clamp(Span<byte> span, byte min, byte max)
         {
-            int reduced = ClampReduce(span, min, max);
+            Span<byte> remainder = span.Slice(ClampReduce(span, min, max));
 
-            if (reduced > 0)
+            if (remainder.Length > 0)
             {
-                for (int i = reduced; i < span.Length; i++)
+                for (int i = 0; i < remainder.Length; i++)
                 {
-                    ref byte v = ref span[i];
+                    ref byte v = ref remainder[i];
                     v = Clamp(v, min, max);
                 }
             }
@@ -296,13 +296,13 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Clamp(Span<uint> span, uint min, uint max)
         {
-            int reduced = ClampReduce(span, min, max);
+            Span<uint> remainder = span.Slice(ClampReduce(span, min, max));
 
-            if (reduced > 0)
+            if (remainder.Length > 0)
             {
-                for (int i = reduced; i < span.Length; i++)
+                for (int i = 0; i < remainder.Length; i++)
                 {
-                    ref uint v = ref span[i];
+                    ref uint v = ref remainder[i];
                     v = Clamp(v, min, max);
                 }
             }
@@ -317,13 +317,13 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Clamp(Span<int> span, int min, int max)
         {
-            int reduced = ClampReduce(span, min, max);
+            Span<int> remainder = span.Slice(ClampReduce(span, min, max));
 
-            if (reduced > 0)
+            if (remainder.Length > 0)
             {
-                for (int i = reduced; i < span.Length; i++)
+                for (int i = 0; i < remainder.Length; i++)
                 {
-                    ref int v = ref span[i];
+                    ref int v = ref remainder[i];
                     v = Clamp(v, min, max);
                 }
             }
@@ -338,13 +338,13 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Clamp(Span<float> span, float min, float max)
         {
-            int reduced = ClampReduce(span, min, max);
+            Span<float> remainder = span.Slice(ClampReduce(span, min, max));
 
-            if (reduced > 0)
+            if (remainder.Length > 0)
             {
-                for (int i = reduced; i < span.Length; i++)
+                for (int i = 0; i < remainder.Length; i++)
                 {
-                    ref float v = ref span[i];
+                    ref float v = ref remainder[i];
                     v = Clamp(v, min, max);
                 }
             }
@@ -359,13 +359,13 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Clamp(Span<double> span, double min, double max)
         {
-            int reduced = ClampReduce(span, min, max);
+            Span<double> remainder = span.Slice(ClampReduce(span, min, max));
 
-            if (reduced > 0)
+            if (remainder.Length > 0)
             {
-                for (int i = reduced; i < span.Length; i++)
+                for (int i = 0; i < remainder.Length; i++)
                 {
-                    ref double v = ref span[i];
+                    ref double v = ref remainder[i];
                     v = Clamp(v, min, max);
                 }
             }

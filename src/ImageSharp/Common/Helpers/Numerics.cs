@@ -254,6 +254,19 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Returns the value clamped to the inclusive range of min and max.
+        /// 5x Faster than <see cref="Vector4.Clamp(Vector4, Vector4, Vector4)"/>
+        /// on platforms &lt; NET 5.
+        /// </summary>
+        /// <param name="value">The value to clamp.</param>
+        /// <param name="min">The minimum inclusive value.</param>
+        /// <param name="max">The maximum inclusive value.</param>
+        /// <returns>The clamped <see cref="Vector4"/>.</returns>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static Vector4 Clamp(Vector4 value, Vector4 min, Vector4 max)
+            => Vector4.Min(Vector4.Max(value, min), max);
+
+        /// <summary>
         /// Clamps the span values to the inclusive range of min and max.
         /// </summary>
         /// <param name="span">The span containing the values to clamp.</param>

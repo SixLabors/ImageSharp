@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 MathF.Floor(maxXY.X),
                 MathF.Floor(maxXY.Y));
 
-            sourceExtents = Vector4Utilities.FastClamp(sourceExtents, Vector4.Zero, maxSourceExtents);
+            sourceExtents = Numerics.Clamp(sourceExtents, Vector4.Zero, maxSourceExtents);
 
             int left = (int)sourceExtents.X;
             int top = (int)sourceExtents.Y;

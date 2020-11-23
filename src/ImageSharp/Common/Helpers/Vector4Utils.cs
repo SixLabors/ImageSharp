@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp
     /// <summary>
     /// Utility methods for the <see cref="Vector4"/> struct.
     /// </summary>
-    internal static class Vector4Utilities
+    internal static class Vector4Utils
     {
         private const int BlendAlphaControl = 0b_10_00_10_00;
         private const int ShuffleAlphaControl = 0b_11_11_11_11;

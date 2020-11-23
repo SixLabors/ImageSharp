@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
         [Benchmark]
         public void UnPremultiply()
         {
-            Vector4Utils.UnPremultiply(Vectors);
+            Numerics.UnPremultiply(Vectors);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

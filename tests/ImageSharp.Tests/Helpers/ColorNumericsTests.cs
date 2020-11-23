@@ -7,7 +7,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Helpers
 {
-    public class ImageMathTests
+    public class ColorNumericsTests
     {
         [Theory]
         [InlineData(0.2f, 0.7f, 0.1f, 256, 140)]
@@ -20,12 +20,12 @@ namespace SixLabors.ImageSharp.Tests.Helpers
             var vector = new Vector4(x, y, z, 0.0f);
 
             // act
-            int actual = ImageMath.GetBT709Luminance(ref vector, luminanceLevels);
+            int actual = ColorNumerics.GetBT709Luminance(ref vector, luminanceLevels);
 
             // assert
             Assert.Equal(expected, actual);
         }
 
-        // TODO: We need to test all ImageMaths methods!
+        // TODO: We need to test all ColorNumerics methods!
     }
 }

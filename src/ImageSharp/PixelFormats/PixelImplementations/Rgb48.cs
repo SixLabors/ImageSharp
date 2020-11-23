@@ -99,27 +99,27 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromArgb32(Argb32 source)
         {
-            this.R = ImageMath.UpscaleFrom8BitTo16Bit(source.R);
-            this.G = ImageMath.UpscaleFrom8BitTo16Bit(source.G);
-            this.B = ImageMath.UpscaleFrom8BitTo16Bit(source.B);
+            this.R = ColorNumerics.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ColorNumerics.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ColorNumerics.UpscaleFrom8BitTo16Bit(source.B);
         }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgr24(Bgr24 source)
         {
-            this.R = ImageMath.UpscaleFrom8BitTo16Bit(source.R);
-            this.G = ImageMath.UpscaleFrom8BitTo16Bit(source.G);
-            this.B = ImageMath.UpscaleFrom8BitTo16Bit(source.B);
+            this.R = ColorNumerics.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ColorNumerics.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ColorNumerics.UpscaleFrom8BitTo16Bit(source.B);
         }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgra32(Bgra32 source)
         {
-            this.R = ImageMath.UpscaleFrom8BitTo16Bit(source.R);
-            this.G = ImageMath.UpscaleFrom8BitTo16Bit(source.G);
-            this.B = ImageMath.UpscaleFrom8BitTo16Bit(source.B);
+            this.R = ColorNumerics.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ColorNumerics.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ColorNumerics.UpscaleFrom8BitTo16Bit(source.B);
         }
 
         /// <inheritdoc/>
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromL8(L8 source)
         {
-            ushort rgb = ImageMath.UpscaleFrom8BitTo16Bit(source.PackedValue);
+            ushort rgb = ColorNumerics.UpscaleFrom8BitTo16Bit(source.PackedValue);
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromLa16(La16 source)
         {
-            ushort rgb = ImageMath.UpscaleFrom8BitTo16Bit(source.L);
+            ushort rgb = ColorNumerics.UpscaleFrom8BitTo16Bit(source.L);
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
@@ -172,27 +172,27 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgb24(Rgb24 source)
         {
-            this.R = ImageMath.UpscaleFrom8BitTo16Bit(source.R);
-            this.G = ImageMath.UpscaleFrom8BitTo16Bit(source.G);
-            this.B = ImageMath.UpscaleFrom8BitTo16Bit(source.B);
+            this.R = ColorNumerics.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ColorNumerics.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ColorNumerics.UpscaleFrom8BitTo16Bit(source.B);
         }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgba32(Rgba32 source)
         {
-            this.R = ImageMath.UpscaleFrom8BitTo16Bit(source.R);
-            this.G = ImageMath.UpscaleFrom8BitTo16Bit(source.G);
-            this.B = ImageMath.UpscaleFrom8BitTo16Bit(source.B);
+            this.R = ColorNumerics.UpscaleFrom8BitTo16Bit(source.R);
+            this.G = ColorNumerics.UpscaleFrom8BitTo16Bit(source.G);
+            this.B = ColorNumerics.UpscaleFrom8BitTo16Bit(source.B);
         }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void ToRgba32(ref Rgba32 dest)
         {
-            dest.R = ImageMath.DownScaleFrom16BitTo8Bit(this.R);
-            dest.G = ImageMath.DownScaleFrom16BitTo8Bit(this.G);
-            dest.B = ImageMath.DownScaleFrom16BitTo8Bit(this.B);
+            dest.R = ColorNumerics.DownScaleFrom16BitTo8Bit(this.R);
+            dest.G = ColorNumerics.DownScaleFrom16BitTo8Bit(this.G);
+            dest.B = ColorNumerics.DownScaleFrom16BitTo8Bit(this.B);
             dest.A = byte.MaxValue;
         }
 

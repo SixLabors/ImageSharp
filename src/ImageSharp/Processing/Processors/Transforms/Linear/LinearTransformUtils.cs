@@ -78,13 +78,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                     // Values are first premultiplied to prevent darkening of edge pixels.
                     var current = sourcePixels[x, y].ToVector4();
-                    Vector4Utils.Premultiply(ref current);
+                    Numerics.Premultiply(ref current);
                     sum += current * xWeight * yWeight;
                 }
             }
 
             // Reverse the premultiplication
-            Vector4Utils.UnPremultiply(ref sum);
+            Numerics.UnPremultiply(ref sum);
             targetRow[column] = sum;
         }
 

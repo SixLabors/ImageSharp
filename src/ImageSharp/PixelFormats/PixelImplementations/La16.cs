@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromArgb32(Argb32 source)
         {
-            this.L = ImageMath.Get8BitBT709Luminance(source.R, source.G, source.B);
+            this.L = ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B);
             this.A = source.A;
         }
 
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgr24(Bgr24 source)
         {
-            this.L = ImageMath.Get8BitBT709Luminance(source.R, source.G, source.B);
+            this.L = ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B);
             this.A = byte.MaxValue;
         }
 
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgra32(Bgra32 source)
         {
-            this.L = ImageMath.Get8BitBT709Luminance(source.R, source.G, source.B);
+            this.L = ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B);
             this.A = source.A;
         }
 
@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromL16(L16 source)
         {
-            this.L = ImageMath.DownScaleFrom16BitTo8Bit(source.PackedValue);
+            this.L = ColorNumerics.DownScaleFrom16BitTo8Bit(source.PackedValue);
             this.A = byte.MaxValue;
         }
 
@@ -140,15 +140,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromLa32(La32 source)
         {
-            this.L = ImageMath.DownScaleFrom16BitTo8Bit(source.L);
-            this.A = ImageMath.DownScaleFrom16BitTo8Bit(source.A);
+            this.L = ColorNumerics.DownScaleFrom16BitTo8Bit(source.L);
+            this.A = ColorNumerics.DownScaleFrom16BitTo8Bit(source.A);
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgb24(Rgb24 source)
         {
-            this.L = ImageMath.Get8BitBT709Luminance(source.R, source.G, source.B);
+            this.L = ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B);
             this.A = byte.MaxValue;
         }
 
@@ -156,10 +156,10 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgb48(Rgb48 source)
         {
-            this.L = ImageMath.Get8BitBT709Luminance(
-                ImageMath.DownScaleFrom16BitTo8Bit(source.R),
-                ImageMath.DownScaleFrom16BitTo8Bit(source.G),
-                ImageMath.DownScaleFrom16BitTo8Bit(source.B));
+            this.L = ColorNumerics.Get8BitBT709Luminance(
+                ColorNumerics.DownScaleFrom16BitTo8Bit(source.R),
+                ColorNumerics.DownScaleFrom16BitTo8Bit(source.G),
+                ColorNumerics.DownScaleFrom16BitTo8Bit(source.B));
 
             this.A = byte.MaxValue;
         }
@@ -168,19 +168,19 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgba32(Rgba32 source)
         {
-            this.L = ImageMath.Get8BitBT709Luminance(source.R, source.G, source.B);
+            this.L = ColorNumerics.Get8BitBT709Luminance(source.R, source.G, source.B);
             this.A = source.A;
         }
 
         /// <inheritdoc/>
         public void FromRgba64(Rgba64 source)
         {
-            this.L = ImageMath.Get8BitBT709Luminance(
-                ImageMath.DownScaleFrom16BitTo8Bit(source.R),
-                ImageMath.DownScaleFrom16BitTo8Bit(source.G),
-                ImageMath.DownScaleFrom16BitTo8Bit(source.B));
+            this.L = ColorNumerics.Get8BitBT709Luminance(
+                ColorNumerics.DownScaleFrom16BitTo8Bit(source.R),
+                ColorNumerics.DownScaleFrom16BitTo8Bit(source.G),
+                ColorNumerics.DownScaleFrom16BitTo8Bit(source.B));
 
-            this.A = ImageMath.DownScaleFrom16BitTo8Bit(source.A);
+            this.A = ColorNumerics.DownScaleFrom16BitTo8Bit(source.A);
         }
 
         /// <inheritdoc/>
@@ -220,7 +220,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             vector *= MaxBytes;
             vector += Half;
             vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
-            this.L = ImageMath.Get8BitBT709Luminance((byte)vector.X, (byte)vector.Y, (byte)vector.Z);
+            this.L = ColorNumerics.Get8BitBT709Luminance((byte)vector.X, (byte)vector.Y, (byte)vector.Z);
             this.A = (byte)vector.W;
         }
     }

@@ -113,8 +113,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // Arrange
             L16 gray = default;
             const byte rgb = 128;
-            ushort scaledRgb = ImageMath.UpscaleFrom8BitTo16Bit(rgb);
-            ushort expected = ImageMath.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
+            ushort scaledRgb = ColorNumerics.UpscaleFrom8BitTo16Bit(rgb);
+            ushort expected = ColorNumerics.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
 
             // Act
             gray.FromRgba32(new Rgba32(rgb, rgb, rgb));
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void L16_ToRgba32(ushort input)
         {
             // Arrange
-            ushort expected = ImageMath.DownScaleFrom16BitTo8Bit(input);
+            ushort expected = ColorNumerics.DownScaleFrom16BitTo8Bit(input);
             var gray = new L16(input);
 
             // Act

@@ -2,13 +2,17 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Linq;
+using System.Numerics;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Helpers
 {
     public class NumericsTests
     {
-        public delegate void SpanAction<T, in TArg, in TArg1>(Span<T> span, TArg arg, TArg1 arg1);
+        private delegate void SpanAction<T, in TArg, in TArg1>(Span<T> span, TArg arg, TArg1 arg1);
+
+        private readonly ApproximateFloatComparer approximateFloatComparer = new ApproximateFloatComparer(1e-6f);
 
         [Theory]
         [InlineData(0)]
@@ -152,6 +156,46 @@ namespace SixLabors.ImageSharp.Tests.Helpers
         {
             int actual = Numerics.LeastCommonMultiple(a, b);
             Assert.Equal(expected, actual);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(30)]
+        [InlineData(63)]
+        public void PremultiplyVectorSpan(int length)
+        {
+            var rnd = new Random(42);
+            Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
+            Vector4[] expected = source.Select(v =>
+            {
+                Numerics.Premultiply(ref v);
+                return v;
+            }).ToArray();
+
+            Numerics.Premultiply(source);
+
+            Assert.Equal(expected, source, this.approximateFloatComparer);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(30)]
+        [InlineData(63)]
+        public void UnPremultiplyVectorSpan(int length)
+        {
+            var rnd = new Random(42);
+            Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
+            Vector4[] expected = source.Select(v =>
+            {
+                Numerics.UnPremultiply(ref v);
+                return v;
+            }).ToArray();
+
+            Numerics.UnPremultiply(source);
+
+            Assert.Equal(expected, source, this.approximateFloatComparer);
         }
 
         [Theory]

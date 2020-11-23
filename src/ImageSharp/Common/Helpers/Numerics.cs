@@ -5,6 +5,10 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp
 {
@@ -14,9 +18,15 @@ namespace SixLabors.ImageSharp
     /// </summary>
     internal static class Numerics
     {
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private const int BlendAlphaControl = 0b_10_00_10_00;
+        private const int ShuffleAlphaControl = 0b_11_11_11_11;
+#endif
+
         /// <summary>
         /// Determine the Greatest CommonDivisor (GCD) of two numbers.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int GreatestCommonDivisor(int a, int b)
         {
             while (b != 0)
@@ -32,6 +42,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Determine the Least Common Multiple (LCM) of two numbers.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int LeastCommonMultiple(int a, int b)
         {
             // https://en.wikipedia.org/wiki/Least_common_multiple#Reduction_by_the_greatest_common_divisor
@@ -262,7 +273,7 @@ namespace SixLabors.ImageSharp
         /// <param name="min">The minimum inclusive value.</param>
         /// <param name="max">The maximum inclusive value.</param>
         /// <returns>The clamped <see cref="Vector4"/>.</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector4 Clamp(Vector4 value, Vector4 min, Vector4 max)
             => Vector4.Min(Vector4.Max(value, min), max);
 
@@ -423,6 +434,116 @@ namespace SixLabors.ImageSharp
                 {
                     ref Vector<T> vs0 = ref Unsafe.Add(ref vsBase, i);
                     vs0 = Vector.Min(Vector.Max(vmin, vs0), vmax);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Pre-multiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
+        /// </summary>
+        /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Premultiply(ref Vector4 source)
+        {
+            float w = source.W;
+            source *= w;
+            source.W = w;
+        }
+
+        /// <summary>
+        /// Reverses the result of premultiplying a vector via <see cref="Premultiply(ref Vector4)"/>.
+        /// </summary>
+        /// <param name="source">The <see cref="Vector4"/> to premultiply</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void UnPremultiply(ref Vector4 source)
+        {
+            float w = source.W;
+            source /= w;
+            source.W = w;
+        }
+
+        /// <summary>
+        /// Bulk variant of <see cref="Premultiply(ref Vector4)"/>
+        /// </summary>
+        /// <param name="vectors">The span of vectors</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Premultiply(Span<Vector4> vectors)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported && vectors.Length >= 2)
+            {
+                ref Vector256<float> vectorsBase =
+                    ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
+
+                // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
+                ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
+
+                while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
+                {
+                    Vector256<float> source = vectorsBase;
+                    Vector256<float> multiply = Avx.Shuffle(source, source, ShuffleAlphaControl);
+                    vectorsBase = Avx.Blend(Avx.Multiply(source, multiply), source, BlendAlphaControl);
+                    vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
+                }
+
+                if (Modulo2(vectors.Length) != 0)
+                {
+                    // Vector4 fits neatly in pairs. Any overlap has to be equal to 1.
+                    Premultiply(ref MemoryMarshal.GetReference(vectors.Slice(vectors.Length - 1)));
+                }
+            }
+            else
+#endif
+            {
+                ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+
+                for (int i = 0; i < vectors.Length; i++)
+                {
+                    ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+                    Premultiply(ref v);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Bulk variant of <see cref="UnPremultiply(ref Vector4)"/>
+        /// </summary>
+        /// <param name="vectors">The span of vectors</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void UnPremultiply(Span<Vector4> vectors)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported && vectors.Length >= 2)
+            {
+                ref Vector256<float> vectorsBase =
+                    ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
+
+                // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
+                ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
+
+                while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
+                {
+                    Vector256<float> source = vectorsBase;
+                    Vector256<float> multiply = Avx.Shuffle(source, source, ShuffleAlphaControl);
+                    vectorsBase = Avx.Blend(Avx.Divide(source, multiply), source, BlendAlphaControl);
+                    vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
+                }
+
+                if (Modulo2(vectors.Length) != 0)
+                {
+                    // Vector4 fits neatly in pairs. Any overlap has to be equal to 1.
+                    UnPremultiply(ref MemoryMarshal.GetReference(vectors.Slice(vectors.Length - 1)));
+                }
+            }
+            else
+#endif
+            {
+                ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+
+                for (int i = 0; i < vectors.Length; i++)
+                {
+                    ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
+                    UnPremultiply(ref v);
                 }
             }
         }

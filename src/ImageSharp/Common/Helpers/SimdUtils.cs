@@ -26,13 +26,32 @@ namespace SixLabors.ImageSharp
             Vector.IsHardwareAccelerated && Vector<float>.Count == 8 && Vector<int>.Count == 8;
 
         /// <summary>
+        /// Gets a value indicating whether <see cref="Vector{T}"/> code is being JIT-ed to SSE instructions
+        /// where float and integer registers are of size 128 byte.
+        /// </summary>
+        public static bool HasVector4 { get; } =
+            Vector.IsHardwareAccelerated && Vector<float>.Count == 4;
+
+        public static bool HasAvx2
+        {
+            get
+            {
+#if SUPPORTS_RUNTIME_INTRINSICS
+                return Avx2.IsSupported;
+#else
+                return false;
+#endif
+            }
+        }
+
+        /// <summary>
         /// Transform all scalars in 'v' in a way that converting them to <see cref="int"/> would have rounding semantics.
         /// </summary>
         /// <param name="v">The vector</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static Vector4 PseudoRound(this Vector4 v)
         {
-            Vector4 sign = Vector4Utilities.FastClamp(v, new Vector4(-1), new Vector4(1));
+            Vector4 sign = Numerics.Clamp(v, new Vector4(-1), new Vector4(1));
 
             return v + (sign * 0.5f);
         }
@@ -171,7 +190,7 @@ namespace SixLabors.ImageSharp
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte ConvertToByte(float f) => (byte)ComparableExtensions.Clamp((f * 255f) + 0.5f, 0, 255f);
+        private static byte ConvertToByte(float f) => (byte)Numerics.Clamp((f * 255F) + 0.5F, 0, 255F);
 
         [Conditional("DEBUG")]
         private static void VerifyHasVector8(string operation)
@@ -187,7 +206,7 @@ namespace SixLabors.ImageSharp
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
             DebugGuard.IsTrue(
-                ImageMaths.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
+                Numerics.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
                 nameof(source),
                 $"length should be divisible by {shouldBeDivisibleBy}!");
         }
@@ -197,7 +216,7 @@ namespace SixLabors.ImageSharp
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
             DebugGuard.IsTrue(
-                ImageMaths.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
+                Numerics.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
                 nameof(source),
                 $"length should be divisible by {shouldBeDivisibleBy}!");
         }

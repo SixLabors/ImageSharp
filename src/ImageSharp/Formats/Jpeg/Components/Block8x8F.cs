@@ -671,7 +671,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
         {
             // sign(dividend) = max(min(dividend, 1), -1)
-            Vector4 sign = Vector4Utilities.FastClamp(dividend, NegativeOne, Vector4.One);
+            Vector4 sign = Numerics.Clamp(dividend, NegativeOne, Vector4.One);
 
             // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
             return (dividend / divisor) + (sign * Offset);

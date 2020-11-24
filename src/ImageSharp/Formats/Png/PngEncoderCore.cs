@@ -284,7 +284,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                             rowSpan.Length,
                             AllocationOptions.Clean))
                         {
-                            int scaleFactor = 255 / (ImageMaths.GetColorCountForBitDepth(this.bitDepth) - 1);
+                            int scaleFactor = 255 / (ColorNumerics.GetColorCountForBitDepth(this.bitDepth) - 1);
                             Span<byte> tempSpan = temp.GetSpan();
 
                             // We need to first create an array of luminance bytes then scale them down to the correct bit depth.
@@ -314,7 +314,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         for (int x = 0, o = 0; x < rgbaSpan.Length; x++, o += 4)
                         {
                             Rgba64 rgba = Unsafe.Add(ref rgbaRef, x);
-                            ushort luminance = ImageMaths.Get16BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                            ushort luminance = ColorNumerics.Get16BitBT709Luminance(rgba.R, rgba.G, rgba.B);
                             BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o, 2), luminance);
                             BinaryPrimitives.WriteUInt16BigEndian(rawScanlineSpan.Slice(o + 2, 2), rgba.A);
                         }
@@ -329,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     {
                         Unsafe.Add(ref rowSpanRef, x).ToRgba32(ref rgba);
                         Unsafe.Add(ref rawScanlineSpanRef, o) =
-                            ImageMaths.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                            ColorNumerics.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
                         Unsafe.Add(ref rawScanlineSpanRef, o + 1) = rgba.A;
                     }
                 }

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
         [Theory]
         [InlineData(256)]
         [InlineData(65536)]
-        public void HistogramEqualizationTest(int luminanceLevels)
+        public void GlobalHistogramEqualization_WithDifferentLumanceLevels(int luminanceLevels)
         {
             // Arrange
             var pixels = new byte[]
@@ -45,20 +45,21 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
 
                 var expected = new byte[]
                 {
-                0,    12,   53,   32,  146,   53,  174,   53,
-                57,   32,   12,  227,  219,  202,   32,  154,
-                65,   85,   93,  239,  251,  227,   65,  158,
-                73,  146,  146,  247,  255,  235,  154,  130,
-                97,  166,  117,  231,  243,  210,  117,  117,
-                117, 190,   36,  190,  178,   93,   20,  170,
-                130, 202,   73,   20,   12,   53,   85,  194,
-                146, 206,  130,  117,   85,  166,  182,  215
+                    0,    12,   53,   32,  146,   53,  174,   53,
+                    57,   32,   12,  227,  219,  202,   32,  154,
+                    65,   85,   93,  239,  251,  227,   65,  158,
+                    73,  146,  146,  247,  255,  235,  154,  130,
+                    97,  166,  117,  231,  243,  210,  117,  117,
+                    117, 190,   36,  190,  178,   93,   20,  170,
+                    130, 202,   73,   20,   12,   53,   85,  194,
+                    146, 206,  130,  117,   85,  166,  182,  215
                 };
 
                 // Act
                 image.Mutate(x => x.HistogramEqualization(new HistogramEqualizationOptions
                 {
-                    LuminanceLevels = luminanceLevels
+                    LuminanceLevels = luminanceLevels,
+                    Method = HistogramEqualizationMethod.Global
                 }));
 
                 // Assert
@@ -72,6 +73,24 @@ namespace SixLabors.ImageSharp.Tests.Processing.Normalization
                         Assert.Equal(expected[(y * 8) + x], actual.B);
                     }
                 }
+            }
+        }
+
+        [Theory]
+        [WithFile(TestImages.Jpeg.Baseline.HistogramEqImage, PixelTypes.Rgba32)]
+        public void GlobalHistogramEqualization_CompareToReferenceOutput<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var options = new HistogramEqualizationOptions
+                {
+                    Method = HistogramEqualizationMethod.Global,
+                    LuminanceLevels = 256,
+                };
+                image.Mutate(x => x.HistogramEqualization(options));
+                image.DebugSave(provider);
+                image.CompareToReferenceOutput(ValidatorComparer, provider, extension: "png");
             }
         }
 

@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 ++x;
                 ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
                 res = (byte)(scan - above);
-                sum += ImageMaths.FastAbs(unchecked((sbyte)res));
+                sum += Numerics.Abs(unchecked((sbyte)res));
             }
 
             sum -= 2;

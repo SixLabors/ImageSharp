@@ -137,8 +137,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                         {
                             int fyr = fy - this.radius;
                             int offsetY = y + fyr;
-
-                            offsetY = offsetY.Clamp(0, maxY);
+                            offsetY = Numerics.Clamp(offsetY, 0, maxY);
 
                             Span<TPixel> sourceOffsetRow = this.source.GetPixelRowSpan(offsetY);
 
@@ -146,7 +145,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Effects
                             {
                                 int fxr = fx - this.radius;
                                 int offsetX = x + fxr;
-                                offsetX = offsetX.Clamp(0, maxX);
+                                offsetX = Numerics.Clamp(offsetX, 0, maxX);
 
                                 var vector = sourceOffsetRow[offsetX].ToVector4();
 

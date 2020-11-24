@@ -13,7 +13,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
     {
         private struct InvertXAndYSwizzler : ISwizzler
         {
-            public Size DestinationSize => new Size(10, 10);
+            public InvertXAndYSwizzler(Size sourceSize)
+            {
+                this.DestinationSize = new Size(sourceSize.Height, sourceSize.Width);
+            }
+
+            public Size DestinationSize { get; }
 
             public void Transform(Point point, out Point newPoint)
                 => newPoint = new Point(point.Y, point.X);
@@ -26,8 +31,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void InvertXAndYSwizzle<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Image<TPixel> image = provider.GetImage();
             provider.RunValidatingProcessorTest(
-                ctx => ctx.Swizzle(default(InvertXAndYSwizzler)),
+                ctx => ctx.Swizzle(new InvertXAndYSwizzler(new Size(image.Width, image.Height))),
                 testOutputDetails: nameof(InvertXAndYSwizzler),
                 appendPixelTypeToFileName: false);
         }

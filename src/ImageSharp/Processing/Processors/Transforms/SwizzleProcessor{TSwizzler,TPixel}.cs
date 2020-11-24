@@ -1,31 +1,38 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
-    internal class SwizzleProcessor<TSwizzler, TPixel> : ImageProcessor<TPixel>
+    internal class SwizzleProcessor<TSwizzler, TPixel> : TransformProcessor<TPixel>
         where TSwizzler : struct, ISwizzler
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly TSwizzler swizzler;
+        private readonly Size destinationSize;
 
         public SwizzleProcessor(Configuration configuration, TSwizzler swizzler, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
             this.swizzler = swizzler;
+            this.destinationSize = swizzler.DestinationSize;
         }
 
-        /// <inheritdoc/>
-        protected override void OnFrameApply(ImageFrame<TPixel> source)
+        protected override Size GetDestinationSize()
+            => this.destinationSize;
+
+        protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         {
-            for (int y = 0; y < source.Height; y++)
+            Point p = default;
+            Point newPoint;
+            for (p.Y = 0; p.Y < source.Height; p.Y++)
             {
-                var pixelRowSpan = source.GetPixelRowSpan(y);
-                for (int x = 0; x < source.Width; x++)
+                for (p.X = 0; p.X < source.Width; p.X++)
                 {
-                    var newPoint = this.swizzler.Transform(new Point(x, y));
+                    this.swizzler.Transform(p, out newPoint);
+                    destination[newPoint.X, newPoint.Y] = source[p.X, p.Y];
                 }
             }
         }

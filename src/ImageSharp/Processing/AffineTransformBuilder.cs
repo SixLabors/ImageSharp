@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder PrependRotationRadians(float radians)
-            => this.Prepend(size => TransformUtilities.CreateRotationMatrixRadians(radians, size));
+            => this.Prepend(size => TransformUtils.CreateRotationMatrixRadians(radians, size));
 
         /// <summary>
         /// Prepends a rotation matrix using the given rotation in degrees at the given origin.
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radians">The amount of rotation, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder AppendRotationRadians(float radians)
-            => this.Append(size => TransformUtilities.CreateRotationMatrixRadians(radians, size));
+            => this.Append(size => TransformUtils.CreateRotationMatrixRadians(radians, size));
 
         /// <summary>
         /// Appends a rotation matrix using the given rotation in degrees at the given origin.
@@ -142,7 +142,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder PrependSkewDegrees(float degreesX, float degreesY)
-            => this.Prepend(size => TransformUtilities.CreateSkewMatrixDegrees(degreesX, degreesY, size));
+            => this.Prepend(size => TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size));
 
         /// <summary>
         /// Prepends a centered skew matrix from the give angles in radians.
@@ -151,7 +151,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radiansY">The Y angle, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-            => this.Prepend(size => TransformUtilities.CreateSkewMatrixRadians(radiansX, radiansY, size));
+            => this.Prepend(size => TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size));
 
         /// <summary>
         /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -180,7 +180,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="degreesY">The Y angle, in degrees.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder AppendSkewDegrees(float degreesX, float degreesY)
-            => this.Append(size => TransformUtilities.CreateSkewMatrixDegrees(degreesX, degreesY, size));
+            => this.Append(size => TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size));
 
         /// <summary>
         /// Appends a centered skew matrix from the give angles in radians.
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="radiansY">The Y angle, in radians.</param>
         /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
         public AffineTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-            => this.Append(size => TransformUtilities.CreateSkewMatrixRadians(radiansX, radiansY, size));
+            => this.Append(size => TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size));
 
         /// <summary>
         /// Appends a skew matrix using the given angles in degrees at the given origin.
@@ -314,7 +314,7 @@ namespace SixLabors.ImageSharp.Processing
 
         private static void CheckDegenerate(Matrix3x2 matrix)
         {
-            if (TransformUtilities.IsDegenerate(matrix))
+            if (TransformUtils.IsDegenerate(matrix))
             {
                 throw new DegenerateTransformException("Matrix is degenerate. Check input values.");
             }

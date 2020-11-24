@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [-32767, -32767, 0, 1] to [32767, 32767, 0, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct Short2 : IPixel<Short2>, IPackedVector<uint>
+    public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
     {
         // Largest two byte positive number 0xFFFF >> 1;
         private const float MaxPos = 0x7FFF;
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Short2 left, Short2 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<Short2> CreatePixelOperations() => new PixelOperations<Short2>();
+        public readonly PixelOperations<Short2> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

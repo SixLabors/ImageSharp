@@ -11,21 +11,29 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
     {
         private struct InvertXAndYSwizzler : ISwizzler
         {
-            public Point Transform(Point point) => new Point(point.Y, point.X);
+            public Size DestinationSize => new Size(10, 10);
+
+            public void Transform(Point point, out Point newPoint)
+                => newPoint = new Point(point.Y, point.X);
         }
 
         [Fact]
-        public void RotateDegreesFloatRotateProcessorWithAnglesSet()
+        public void InvertXAndYSwizzlerSetsCorrectSizes()
         {
+            int width = 5;
+            int height = 10;
+
             this.operations.Swizzle(default(InvertXAndYSwizzler));
             SwizzleProcessor<InvertXAndYSwizzler> processor = this.Verify<SwizzleProcessor<InvertXAndYSwizzler>>();
 
-            // assert that pixels have been changed
+            Assert.Equal(processor.Swizzler.DestinationSize.Width, height);
+            Assert.Equal(processor.Swizzler.DestinationSize.Height, width);
 
             this.operations.Swizzle(default(InvertXAndYSwizzler));
-            SwizzleProcessor<InvertXAndYSwizzler> processor2 = this.Verify<SwizzleProcessor<InvertXAndYSwizzler>>();
+            SwizzleProcessor<InvertXAndYSwizzler> processor2 = this.Verify<SwizzleProcessor<InvertXAndYSwizzler>>(1);
 
-            // assert that pixels have been changed (i.e. back to original)
+            Assert.Equal(processor2.Swizzler.DestinationSize.Width, width);
+            Assert.Equal(processor2.Swizzler.DestinationSize.Height, height);
         }
     }
 }

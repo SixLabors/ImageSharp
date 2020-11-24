@@ -17,7 +17,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         /// <param name="swizzler">The swizzler operation.</param>
         public SwizzleProcessor(TSwizzler swizzler)
-            => this.Swizzler = swizzler;
+        {
+            this.Swizzler = swizzler;
+        }
 
         /// <summary>
         /// Gets the swizzler operation.
@@ -27,6 +29,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : unmanaged, IPixel<TPixel>
-            => new SwizzleProcessor<TSwizzler, TPixel>(configuration, this, source, sourceRectangle);
+            => new SwizzleProcessor<TSwizzler, TPixel>(configuration, this.Swizzler, source, sourceRectangle);
     }
 }

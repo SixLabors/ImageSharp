@@ -9,10 +9,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     public interface ISwizzler
     {
         /// <summary>
+        /// Gets the size of the image after transformation.
+        /// </summary>
+        Size DestinationSize { get; }
+
+        /// <summary>
         /// Applies the swizzle transformation to a given point.
         /// </summary>
         /// <param name="point">Point to transform.</param>
-        /// <returns>Transformed point.</returns>
-        Point Transform(Point point);
+        /// <param name="newPoint">The transformed point.</param>
+        void Transform(Point point, out Point newPoint);
     }
 }

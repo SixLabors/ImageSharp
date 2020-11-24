@@ -46,7 +46,7 @@
 |CcittGroup3Fax             |       |   Y   |                          |
 |CcittGroup4Fax             |       |       |                          |
 |Lzw                        |       |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case |
-|Old Jpeg                   |       |       |                          |
+|Old Jpeg                   |       |       | We should not even try to support this |
 |Jpeg (Technote 2)          |       |       |                          |
 |Deflate (Technote 2)       |       |   Y   |                          |
 |Old Deflate (Technote 2)   |       |   Y   |                          |

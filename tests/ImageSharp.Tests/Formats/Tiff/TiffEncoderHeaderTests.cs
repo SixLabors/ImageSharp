@@ -3,6 +3,7 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
@@ -10,13 +11,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     [Trait("Category", "Tiff")]
     public class TiffEncoderHeaderTests
     {
+        private static readonly MemoryAllocator MemoryAllocator = new ArrayPoolMemoryAllocator();
+        private static readonly Configuration Configuration = Configuration.Default;
+
         [Fact]
         public void WriteHeader_WritesValidHeader()
         {
-            MemoryStream stream = new MemoryStream();
-            TiffEncoderCore encoder = new TiffEncoderCore(null);
+            var stream = new MemoryStream();
+            var encoder = new TiffEncoderCore(null, MemoryAllocator);
 
-            using (TiffWriter writer = new TiffWriter(stream))
+            using (var writer = new TiffWriter(stream, MemoryAllocator, Configuration))
             {
                 long firstIfdMarker = encoder.WriteHeader(writer);
             }
@@ -27,10 +31,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Fact]
         public void WriteHeader_ReturnsFirstIfdMarker()
         {
-            MemoryStream stream = new MemoryStream();
-            TiffEncoderCore encoder = new TiffEncoderCore(null);
+            var stream = new MemoryStream();
+            var encoder = new TiffEncoderCore(null, MemoryAllocator);
 
-            using (TiffWriter writer = new TiffWriter(stream))
+            using (var writer = new TiffWriter(stream, MemoryAllocator, Configuration))
             {
                 long firstIfdMarker = encoder.WriteHeader(writer);
                 Assert.Equal(4, firstIfdMarker);

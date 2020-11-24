@@ -18,6 +18,10 @@ jobs:
                       framework: netcoreapp3.1
                       runtime: -x64
                       codecov: true
+                    - os: macos-latest
+                      framework: netcoreapp3.1
+                      runtime: -x64
+                      codecov: false
                     - os: windows-latest
                       framework: netcoreapp3.1
                       runtime: -x64

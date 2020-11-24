@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             TPixel pixel = default;
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
             ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-            int scaleFactor = 255 / (ImageMaths.GetColorCountForBitDepth(header.BitDepth) - 1);
+            int scaleFactor = 255 / (ColorNumerics.GetColorCountForBitDepth(header.BitDepth) - 1);
 
             if (!hasTrans)
             {
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             TPixel pixel = default;
             ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
             ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-            int scaleFactor = 255 / (ImageMaths.GetColorCountForBitDepth(header.BitDepth) - 1);
+            int scaleFactor = 255 / (ColorNumerics.GetColorCountForBitDepth(header.BitDepth) - 1);
 
             if (!hasTrans)
             {

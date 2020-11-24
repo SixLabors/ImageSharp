@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             float v0 = ComputeV0(input.WhitePoint);
 
             float y = l > CieConstants.Kappa * CieConstants.Epsilon
-                        ? ImageMaths.Pow3((l + 16) / 116)
+                        ? Numerics.Pow3((l + 16) / 116)
                         : l / CieConstants.Kappa;
 
             float a = ((52 * l / (u + (13 * l * u0))) - 1) / 3;

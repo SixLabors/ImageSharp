@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 0] to [0, 0, 0, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct A8 : IPixel<A8>, IPackedVector<byte>
+    public partial struct A8 : IPixel<A8>, IPackedVector<byte>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="A8"/> struct.
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(A8 left, A8 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<A8> CreatePixelOperations() => new PixelOperations<A8>();
+        public readonly PixelOperations<A8> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromLa32(La32 source) => this.PackedValue = ImageMaths.DownScaleFrom16BitTo8Bit(source.A);
+        public void FromLa32(La32 source) => this.PackedValue = ColorNumerics.DownScaleFrom16BitTo8Bit(source.A);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -162,6 +162,6 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// <param name="alpha">The float containing the value to pack.</param>
         /// <returns>The <see cref="byte"/> containing the packed values.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte Pack(float alpha) => (byte)Math.Round(alpha.Clamp(0, 1F) * 255F);
+        private static byte Pack(float alpha) => (byte)Math.Round(Numerics.Clamp(alpha, 0, 1F) * 255F);
     }
 }

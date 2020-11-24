@@ -4,6 +4,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -17,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encode = new TiffEncoderCore(this);
+            var encode = new TiffEncoderCore(this, image.GetMemoryAllocator());
             encode.Encode(image, stream);
         }
 

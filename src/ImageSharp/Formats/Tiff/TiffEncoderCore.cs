@@ -4,7 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -16,11 +17,28 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     internal sealed class TiffEncoderCore
     {
         /// <summary>
+        /// The amount to pad each row by in bytes.
+        /// </summary>
+        private int padding;
+
+        /// <summary>
+        /// Used for allocating memory during processing operations.
+        /// </summary>
+        private readonly MemoryAllocator memoryAllocator;
+
+        /// <summary>
+        /// The global configuration.
+        /// </summary>
+        private Configuration configuration;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options for the encoder.</param>
-        public TiffEncoderCore(ITiffEncoderOptions options)
+        /// <param name="memoryAllocator">The memory allocator.</param>
+        public TiffEncoderCore(ITiffEncoderOptions options, MemoryAllocator memoryAllocator)
         {
+            this.memoryAllocator = memoryAllocator;
             options = options ?? new TiffEncoder();
         }
 
@@ -46,10 +64,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
-            using (var writer = new TiffWriter(stream))
+            this.configuration = image.GetConfiguration();
+
+            // TODO: bits per pixel hardcoded to 24 for the start.
+            short bpp = 24;
+            int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
+            this.padding = bytesPerLine - (int)(image.Width * (bpp / 8F));
+
+            using (var writer = new TiffWriter(stream, this.memoryAllocator, this.configuration))
             {
                 long firstIfdMarker = this.WriteHeader(writer);
-                //// todo: multiframing is not support
+
+                // TODO: multiframing is not support
                 long nextIfdMarker = this.WriteImage(writer, image, firstIfdMarker);
             }
         }
@@ -70,6 +96,31 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             long firstIfdMarker = writer.PlaceMarker();
 
             return firstIfdMarker;
+        }
+
+        /// <summary>
+        /// Writes all data required to define an image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
+        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
+        /// <param name="ifdOffset">The marker to write this IFD offset.</param>
+        /// <returns>The marker to write the next IFD offset (if present).</returns>
+        public long WriteImage<TPixel>(TiffWriter writer, Image<TPixel> image, long ifdOffset)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var ifdEntries = new List<IExifValue>();
+
+            // Write the image bytes to the steam.
+            var imageDataStart = (uint)writer.Position;
+            int imageData = writer.WriteRgbImageData(image, this.padding);
+
+            // Write info's about the image to the stream.
+            this.AddImageFormat(image, ifdEntries, imageDataStart, imageData);
+            writer.WriteMarker(ifdOffset, (uint)writer.Position);
+            long nextIfdMarker = this.WriteIfd(writer, ifdEntries);
+
+            return nextIfdMarker + imageData;
         }
 
         /// <summary>
@@ -98,8 +149,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 writer.Write((ushort)entry.DataType);
                 writer.Write(ExifWriter.GetNumberOfComponents(entry));
 
-                uint lenght = ExifWriter.GetLength(entry);
-                var raw = new byte[lenght];
+                uint length = ExifWriter.GetLength(entry);
+                var raw = new byte[length];
                 int sz = ExifWriter.WriteValue(entry, raw, 0);
                 DebugGuard.IsTrue(sz == raw.Length, "Incorrect number of bytes written");
                 if (raw.Length <= 4)
@@ -130,36 +181,95 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         /// <summary>
-        /// Writes all data required to define an image
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
-        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-        /// <param name="ifdOffset">The marker to write this IFD offset.</param>
-        /// <returns>The marker to write the next IFD offset (if present).</returns>
-        public long WriteImage<TPixel>(TiffWriter writer, Image<TPixel> image, long ifdOffset)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var ifdEntries = new List<IExifValue>();
-
-            this.AddImageFormat(image, ifdEntries);
-
-            writer.WriteMarker(ifdOffset, (uint)writer.Position);
-            long nextIfdMarker = this.WriteIfd(writer, ifdEntries);
-
-            return nextIfdMarker;
-        }
-
-        /// <summary>
         /// Adds image format information to the specified IFD.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="ifdEntries">The image format entries to add to the IFD.</param>
-        public void AddImageFormat<TPixel>(Image<TPixel> image, List<IExifValue> ifdEntries)
+        /// <param name="imageDataStartOffset">The start of the image data in the stream.</param>
+        /// <param name="imageDataBytes">The image data in bytes to write.</param>
+        public void AddImageFormat<TPixel>(Image<TPixel> image, List<IExifValue> ifdEntries, uint imageDataStartOffset, int imageDataBytes)
         where TPixel : unmanaged, IPixel<TPixel>
         {
-            throw new NotImplementedException();
+            var width = new ExifLong(ExifTagValue.ImageWidth)
+            {
+                Value = (uint)image.Width
+            };
+
+            var height = new ExifLong(ExifTagValue.ImageLength)
+            {
+                Value = (uint)image.Height
+            };
+
+            var bitPerSample = new ExifShortArray(ExifTagValue.BitsPerSample)
+            {
+                Value = new ushort[] { 8, 8, 8 }
+            };
+
+            var compression = new ExifShort(ExifTagValue.Compression)
+            {
+                // TODO: for the start, no compression is used.
+                Value = (ushort)TiffCompression.None
+            };
+
+            var photometricInterpretation = new ExifShort(ExifTagValue.PhotometricInterpretation)
+            {
+                // TODO: only rgb for now.
+                Value = (ushort)TiffPhotometricInterpretation.Rgb
+            };
+
+            var stripOffsets = new ExifLongArray(ExifTagValue.StripOffsets)
+            {
+                // TODO: we only write one image strip for the start.
+                Value = new uint[] { imageDataStartOffset }
+            };
+
+            var samplesPerPixel = new ExifLong(ExifTagValue.SamplesPerPixel)
+            {
+                Value = 3
+            };
+
+            var rowsPerStrip = new ExifLong(ExifTagValue.RowsPerStrip)
+            {
+                // TODO: all rows in one strip for the start
+                Value = (uint)image.Height
+            };
+
+            var stripByteCounts = new ExifLongArray(ExifTagValue.StripByteCounts)
+            {
+                Value = new[] { (uint)(imageDataBytes) }
+            };
+
+            var xResolution = new ExifRational(ExifTagValue.XResolution)
+            {
+                // TODO: what to use here as a default?
+                Value = Rational.FromDouble(1.0d)
+            };
+
+            var yResolution = new ExifRational(ExifTagValue.YResolution)
+            {
+                // TODO: what to use here as a default?
+                Value = Rational.FromDouble(1.0d)
+            };
+
+            var resolutionUnit = new ExifShort(ExifTagValue.ResolutionUnit)
+            {
+                // TODO: what to use here as default?
+                Value = 0
+            };
+
+            ifdEntries.Add(width);
+            ifdEntries.Add(height);
+            ifdEntries.Add(bitPerSample);
+            ifdEntries.Add(compression);
+            ifdEntries.Add(photometricInterpretation);
+            ifdEntries.Add(stripOffsets);
+            ifdEntries.Add(samplesPerPixel);
+            ifdEntries.Add(rowsPerStrip);
+            ifdEntries.Add(stripByteCounts);
+            ifdEntries.Add(xResolution);
+            ifdEntries.Add(yResolution);
+            ifdEntries.Add(resolutionUnit);
         }
     }
 }

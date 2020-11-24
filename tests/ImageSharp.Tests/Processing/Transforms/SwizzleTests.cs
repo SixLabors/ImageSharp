@@ -11,7 +11,12 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
     {
         private struct InvertXAndYSwizzler : ISwizzler
         {
-            public Size DestinationSize => new Size(10, 10);
+            public InvertXAndYSwizzler(Size sourceSize)
+            {
+                this.DestinationSize = new Size(sourceSize.Height, sourceSize.Width);
+            }
+
+            public Size DestinationSize { get; }
 
             public void Transform(Point point, out Point newPoint)
                 => newPoint = new Point(point.Y, point.X);
@@ -23,13 +28,13 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             int width = 5;
             int height = 10;
 
-            this.operations.Swizzle(default(InvertXAndYSwizzler));
+            this.operations.Swizzle(new InvertXAndYSwizzler(new Size(width, height)));
             SwizzleProcessor<InvertXAndYSwizzler> processor = this.Verify<SwizzleProcessor<InvertXAndYSwizzler>>();
 
             Assert.Equal(processor.Swizzler.DestinationSize.Width, height);
             Assert.Equal(processor.Swizzler.DestinationSize.Height, width);
 
-            this.operations.Swizzle(default(InvertXAndYSwizzler));
+            this.operations.Swizzle(new InvertXAndYSwizzler(processor.Swizzler.DestinationSize));
             SwizzleProcessor<InvertXAndYSwizzler> processor2 = this.Verify<SwizzleProcessor<InvertXAndYSwizzler>>(1);
 
             Assert.Equal(processor2.Swizzler.DestinationSize.Width, width);

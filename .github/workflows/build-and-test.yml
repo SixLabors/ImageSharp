@@ -61,7 +61,7 @@ jobs:
               id: nuget-cache
               with:
                   path: ~/.nuget
-                  key: ${{ runner.os }}-nuget-${{ hashFiles('**/ImageSharp*.csproj') }}
+                  key: ${{ runner.os }}-nuget-${{ hashFiles('**/ImageSharp*.csproj', '**/*.props', '**/*.targets') }}
                   restore-keys: ${{ runner.os }}-nuget-
 
             - name: Build

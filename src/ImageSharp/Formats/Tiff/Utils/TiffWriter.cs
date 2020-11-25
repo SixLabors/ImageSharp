@@ -145,6 +145,28 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return image.Width * image.Height * 3;
         }
 
+        /// <summary>
+        /// Writes the image data as 8 bit gray to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel data.</typeparam>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="padding">The padding bytes for each row.</param>
+        /// <returns>The number of bytes written</returns>
+        public int WriteGrayImageData<TPixel>(Image<TPixel> image, int padding)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using IManagedByteBuffer row = this.AllocateRow(image.Width, 1, padding);
+            Span<byte> rowSpan = row.GetSpan();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToL8Bytes(this.configuration, pixelRow, rowSpan, pixelRow.Length);
+                this.output.Write(rowSpan);
+            }
+
+            return image.Width * image.Height;
+        }
+
         private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel, int padding) => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, padding);
 
         /// <summary>

@@ -5,8 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -31,6 +33,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// The global configuration.
         /// </summary>
         private Configuration configuration;
+
+        /// <summary>
+        /// The color depth, in number of bits per pixel.
+        /// </summary>
+        private TiffBitsPerPixel? bitsPerPixel;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
@@ -66,9 +73,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Guard.NotNull(stream, nameof(stream));
 
             this.configuration = image.GetConfiguration();
+            ImageMetadata metadata = image.Metadata;
+            TiffMetadata tiffMetadata = metadata.GetTiffMetadata();
+            this.bitsPerPixel ??= tiffMetadata.BitsPerPixel;
 
-            // TODO: bits per pixel hardcoded to 24 for the start.
-            short bpp = 24;
+            short bpp = (short)this.bitsPerPixel;
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
             this.padding = bytesPerLine - (int)(image.Width * (bpp / 8F));
 

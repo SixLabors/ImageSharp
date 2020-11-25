@@ -14,6 +14,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     public class TiffEncoder : IImageEncoder, ITiffEncoderOptions
     {
+        /// <summary>
+        /// Gets or sets the number of bits per pixel. 8 bit implies a grayscale image.
+        /// </summary>
+        public TiffBitsPerPixel? BitsPerPixel { get; set; }
+
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>

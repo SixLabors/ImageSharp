@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -8,5 +8,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     public interface ITiffEncoderOptions
     {
+        /// <summary>
+        /// Gets the number of bits per pixel.
+        /// </summary>
+        TiffBitsPerPixel? BitsPerPixel { get; }
     }
 }

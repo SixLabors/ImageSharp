@@ -19,6 +19,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         public TiffBitsPerPixel? BitsPerPixel { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating which compression to use.
+        /// </summary>
+        public TiffEncoderCompression Compression { get; set; } = TiffEncoderCompression.None;
+
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>

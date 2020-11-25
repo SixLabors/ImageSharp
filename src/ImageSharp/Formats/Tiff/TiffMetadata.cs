@@ -1,9 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections;
-using System.Collections.Generic;
-
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
@@ -26,12 +23,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             this.ByteOrder = other.ByteOrder;
             this.XmpProfile = other.XmpProfile;
+            this.BitsPerPixel = other.BitsPerPixel;
         }
 
         /// <summary>
         /// Gets or sets the byte order.
         /// </summary>
         public TiffByteOrder ByteOrder { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of bits per pixel.
+        /// </summary>
+        public TiffBitsPerPixel BitsPerPixel { get; set; } = TiffBitsPerPixel.Pixel24;
 
         /// <summary>
         /// Gets or sets the XMP profile.

@@ -26,7 +26,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            throw new System.NotImplementedException();
+            var encoder = new TiffEncoderCore(this, image.GetMemoryAllocator());
+            return encoder.EncodeAsync(image, stream, cancellationToken);
         }
     }
 }

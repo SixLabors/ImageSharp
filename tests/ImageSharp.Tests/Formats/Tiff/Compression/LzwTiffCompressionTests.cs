@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             using (Stream stream = CreateCompressedStream(data))
             {
-                byte[] buffer = new byte[data.Length];
+                var buffer = new byte[data.Length];
 
                 new LzwTiffCompression(Configuration.Default.MemoryAllocator).Decompress(stream, (int)stream.Length, buffer);
 

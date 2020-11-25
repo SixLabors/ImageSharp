@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void Decompress_ReadsData(byte[] inputData, int byteCount, byte[] expectedResult)
         {
             Stream stream = new MemoryStream(inputData);
-            byte[] buffer = new byte[expectedResult.Length];
+            var buffer = new byte[expectedResult.Length];
 
             new NoneTiffCompression(null).Decompress(stream, byteCount, buffer);
 

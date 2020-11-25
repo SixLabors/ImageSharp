@@ -13,12 +13,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     {
         private static readonly MemoryAllocator MemoryAllocator = new ArrayPoolMemoryAllocator();
         private static readonly Configuration Configuration = Configuration.Default;
+        private static readonly ITiffEncoderOptions Options = new TiffEncoder();
 
         [Fact]
         public void WriteHeader_WritesValidHeader()
         {
-            var stream = new MemoryStream();
-            var encoder = new TiffEncoderCore(null, MemoryAllocator);
+            using var stream = new MemoryStream();
+            var encoder = new TiffEncoderCore(Options, MemoryAllocator);
 
             using (var writer = new TiffWriter(stream, MemoryAllocator, Configuration))
             {
@@ -31,8 +32,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Fact]
         public void WriteHeader_ReturnsFirstIfdMarker()
         {
-            var stream = new MemoryStream();
-            var encoder = new TiffEncoderCore(null, MemoryAllocator);
+            using var stream = new MemoryStream();
+            var encoder = new TiffEncoderCore(Options, MemoryAllocator);
 
             using (var writer = new TiffWriter(stream, MemoryAllocator, Configuration))
             {

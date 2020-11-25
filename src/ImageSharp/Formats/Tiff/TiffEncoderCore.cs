@@ -47,21 +47,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffEncoderCore(ITiffEncoderOptions options, MemoryAllocator memoryAllocator)
         {
             this.memoryAllocator = memoryAllocator;
-
-            if (options.BitsPerPixel == TiffBitsPerPixel.Pixel8)
-            {
-                this.PhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero;
-            }
-            else
-            {
-                this.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
-            }
         }
 
         /// <summary>
         /// Gets the photometric interpretation implementation to use when encoding the image.
         /// </summary>
-        private TiffPhotometricInterpretation PhotometricInterpretation { get; }
+        private TiffPhotometricInterpretation PhotometricInterpretation { get; set; }
 
         /// <summary>
         /// Gets or sets the compression implementation to use when encoding the image.
@@ -85,6 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ImageMetadata metadata = image.Metadata;
             TiffMetadata tiffMetadata = metadata.GetTiffMetadata();
             this.bitsPerPixel ??= tiffMetadata.BitsPerPixel;
+            this.PhotometricInterpretation = this.bitsPerPixel == TiffBitsPerPixel.Pixel8 ? TiffPhotometricInterpretation.BlackIsZero : TiffPhotometricInterpretation.Rgb;
 
             short bpp = (short)this.bitsPerPixel;
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
@@ -132,15 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             // Write the image bytes to the steam.
             var imageDataStart = (uint)writer.Position;
-            int imageDataBytes;
-            if (this.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb)
-            {
-                imageDataBytes = writer.WriteRgbImageData(image, this.padding);
-            }
-            else
-            {
-                imageDataBytes = writer.WriteGrayImageData(image, this.padding);
-            }
+            int imageDataBytes = this.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb ? writer.WriteRgbImageData(image, this.padding) : writer.WriteGrayImageData(image, this.padding);
 
             // Write info's about the image to the stream.
             this.AddImageFormat(image, ifdEntries, imageDataStart, imageDataBytes);

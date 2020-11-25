@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -14,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// <summary>
     /// Performs the TIFF encoding operation.
     /// </summary>
-    internal sealed class TiffEncoderCore
+    internal sealed class TiffEncoderCore : IImageEncoderInternals
     {
         /// <summary>
         /// The amount to pad each row by in bytes.
@@ -39,7 +40,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffEncoderCore(ITiffEncoderOptions options, MemoryAllocator memoryAllocator)
         {
             this.memoryAllocator = memoryAllocator;
-            options = options ?? new TiffEncoder();
         }
 
         /// <summary>
@@ -58,7 +58,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+        /// <param name="cancellationToken">The token to request cancellation.</param>
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
@@ -221,7 +222,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var stripOffsets = new ExifLongArray(ExifTagValue.StripOffsets)
             {
                 // TODO: we only write one image strip for the start.
-                Value = new uint[] { imageDataStartOffset }
+                Value = new[] { imageDataStartOffset }
             };
 
             var samplesPerPixel = new ExifLong(ExifTagValue.SamplesPerPixel)
@@ -237,7 +238,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             var stripByteCounts = new ExifLongArray(ExifTagValue.StripByteCounts)
             {
-                Value = new[] { (uint)(imageDataBytes) }
+                Value = new[] { (uint)imageDataBytes }
             };
 
             var xResolution = new ExifRational(ExifTagValue.XResolution)
@@ -258,6 +259,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 Value = 0
             };
 
+            var software = new ExifString(ExifTagValue.Software)
+            {
+                Value = "ImageSharp"
+            };
+
             ifdEntries.Add(width);
             ifdEntries.Add(height);
             ifdEntries.Add(bitPerSample);
@@ -270,6 +276,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ifdEntries.Add(xResolution);
             ifdEntries.Add(yResolution);
             ifdEntries.Add(resolutionUnit);
+            ifdEntries.Add(software);
         }
     }
 }

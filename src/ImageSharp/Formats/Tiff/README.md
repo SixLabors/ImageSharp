@@ -40,7 +40,7 @@
 
 |                           |Encoder|Decoder|Comments                  |
 |---------------------------|:-----:|:-----:|--------------------------|
-|None                       |       |   Y   |                          |
+|None                       |   Y   |   Y   | encoding only rgb so far |
 |Ccitt1D                    |       |   Y   |                          |
 |PackBits                   |       |   Y   |                          |
 |CcittGroup3Fax             |       |   Y   |                          |
@@ -58,7 +58,7 @@
 |WhiteIsZero                |       |   Y   | General + 1/4/8-bit optimised implementations |
 |BlackIsZero                |       |   Y   | General + 1/4/8-bit optimised implementations |
 |Rgb (Chunky)               |       |   Y   | General + Rgb888 optimised implementation |
-|Rgb (Planar)               |       |   Y   | General implementation only |
+|Rgb (Planar)               |   Y   |   Y   | General implementation only |
 |PaletteColor               |       |   Y   | General implementation only |
 |TransparencyMask           |       |       |                          |
 |Separated (TIFF Extension) |       |       |                          |
@@ -72,34 +72,34 @@
 |---------------------------|:-----:|:-----:|--------------------------|
 |NewSubfileType             |       |       |                          |
 |SubfileType                |       |       |                          |
-|ImageWidth                 |       |   Y   |                          |
-|ImageLength                |       |   Y   |                          |
-|BitsPerSample              |       |   Y   |                          |
+|ImageWidth                 |   Y   |   Y   |                          |
+|ImageLength                |   Y   |   Y   |                          |
+|BitsPerSample              |   Y   |   Y   |                          |
 |Compression                |       |   Y   |                          |
-|PhotometricInterpretation  |       |   Y   |                          |
-|Threshholding              |       |       |                          |
+|PhotometricInterpretation  |   Y   |   Y   |                          |
+|Thresholding               |       |       |                          |
 |CellWidth                  |       |       |                          |
 |CellLength                 |       |       |                          |
 |FillOrder                  |       |   -   | Ignore. In practice is very uncommon, and is not recommended. |
 |ImageDescription           |       |   Y   |                          |
 |Make                       |       |   Y   |                          |
 |Model                      |       |   Y   |                          |
-|StripOffsets               |       |   Y   |                          |
+|StripOffsets               |   Y   |   Y   |                          |
 |Orientation                |       |   -   | Ignore. Many readers ignore this tag. |
-|SamplesPerPixel            |       |   -   | Currently ignored, as can be inferred from count of BitsPerSample |
+|SamplesPerPixel            |   Y   |   -   | Currently ignored, as can be inferred from count of BitsPerSample |
 |RowsPerStrip               |       |   Y   |                          |
-|StripByteCounts            |       |   Y   |                          |
+|StripByteCounts            |   Y   |   Y   |                          |
 |MinSampleValue             |       |       |                          |
 |MaxSampleValue             |       |       |                          |
-|XResolution                |       |   Y   |                          |
-|YResolution                |       |   Y   |                          |
+|XResolution                |   Y   |   Y   |                          |
+|YResolution                |   Y   |   Y   |                          |
 |PlanarConfiguration        |       |   Y   |                          |
 |FreeOffsets                |       |       |                          |
 |FreeByteCounts             |       |       |                          |
 |GrayResponseUnit           |       |       |                          |
 |GrayResponseCurve          |       |       |                          |
 |ResolutionUnit             |       |   Y   |                          |
-|Software                   |       |   Y   |                          |
+|Software                   |   Y   |   Y   |                          |
 |DateTime                   |       |   Y   |                          |
 |Artist                     |       |   Y   |                          |
 |HostComputer               |       |   Y   |                          |

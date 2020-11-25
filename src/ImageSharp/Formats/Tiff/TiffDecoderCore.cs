@@ -33,6 +33,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         private readonly bool ignoreMetadata;
 
+        /// <summary>
+        /// The image metadata.
+        /// </summary>
+        private ImageMetadata metadata;
+
+        /// <summary>
+        /// The tiff specific metadata.
+        /// </summary>
+        private TiffMetadata tiffMetaData;
+
+        /// <summary>
+        /// The stream to decode from.
+        /// </summary>
         private BufferedReadStream inputStream;
 
         /// <summary>
@@ -104,7 +117,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 framesMetadata.Add(frameMetadata);
             }
 
-            ImageMetadata metadata = framesMetadata.CreateMetadata(this.ignoreMetadata, tiffStream.ByteOrder);
+            this.metadata = framesMetadata.CreateMetadata(this.ignoreMetadata, tiffStream.ByteOrder);
+            this.tiffMetaData = this.metadata.GetTiffMetadata();
+            this.SetBitsPerPixel(framesMetadata);
 
             // todo: tiff frames can have different sizes
             {
@@ -119,9 +134,29 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            var image = new Image<TPixel>(this.configuration, metadata, frames);
+            var image = new Image<TPixel>(this.configuration, this.metadata, frames);
 
             return image;
+        }
+
+        private void SetBitsPerPixel(List<TiffFrameMetadata> framesMetadata)
+        {
+            TiffFrameMetadata firstMetaData = framesMetadata.First();
+            ushort[] bitsPerSample = firstMetaData.BitsPerSample;
+            var bitsPerPixel = 0;
+            foreach (var bps in bitsPerSample)
+            {
+                bitsPerPixel += bps;
+            }
+
+            if (bitsPerPixel == 24)
+            {
+                this.tiffMetaData.BitsPerPixel = TiffBitsPerPixel.Pixel24;
+            }
+            else if (bitsPerPixel == 8)
+            {
+                this.tiffMetaData.BitsPerPixel = TiffBitsPerPixel.Pixel8;
+            }
         }
 
         /// <inheritdoc/>
@@ -168,7 +203,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         private static TiffByteOrder ReadByteOrder(Stream stream)
         {
-            byte[] headerBytes = new byte[2];
+            var headerBytes = new byte[2];
             stream.Read(headerBytes, 0, 2);
             if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
             {
@@ -187,26 +222,26 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="tags">The IFD tags.</param>
-        /// <param name="metadata">The frame metadata.</param>
+        /// <param name="frameMetaData">The frame metadata.</param>
         /// <returns>
         /// The tiff frame.
         /// </returns>
-        private ImageFrame<TPixel> DecodeFrame<TPixel>(IExifValue[] tags, out TiffFrameMetadata metadata)
+        private ImageFrame<TPixel> DecodeFrame<TPixel>(IExifValue[] tags, out TiffFrameMetadata frameMetaData)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var coreMetadata = new ImageFrameMetadata();
-            metadata = coreMetadata.GetTiffMetadata();
-            metadata.Tags = tags;
+            frameMetaData = coreMetadata.GetTiffMetadata();
+            frameMetaData.Tags = tags;
 
-            this.VerifyAndParseOptions(metadata);
+            this.VerifyAndParseOptions(frameMetaData);
 
-            int width = (int)metadata.Width;
-            int height = (int)metadata.Height;
+            int width = (int)frameMetaData.Width;
+            int height = (int)frameMetaData.Height;
             var frame = new ImageFrame<TPixel>(this.configuration, width, height, coreMetadata);
 
-            int rowsPerStrip = (int)metadata.RowsPerStrip;
-            uint[] stripOffsets = metadata.StripOffsets;
-            uint[] stripByteCounts = metadata.StripByteCounts;
+            int rowsPerStrip = (int)frameMetaData.RowsPerStrip;
+            uint[] stripOffsets = frameMetaData.StripOffsets;
+            uint[] stripByteCounts = frameMetaData.StripByteCounts;
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
             {

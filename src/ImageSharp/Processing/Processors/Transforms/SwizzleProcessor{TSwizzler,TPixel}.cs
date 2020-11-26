@@ -29,10 +29,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             Point newPoint;
             for (p.Y = 0; p.Y < source.Height; p.Y++)
             {
+                Span<TPixel> rowSpan = source.GetPixelRowSpan(p.Y);
                 for (p.X = 0; p.X < source.Width; p.X++)
                 {
-                    this.swizzler.Transform(p, out newPoint);
-                    destination[newPoint.X, newPoint.Y] = source[p.X, p.Y];
+                    newPoint = this.swizzler.Transform(p);
+                    destination[newPoint.X, newPoint.Y] = rowSpan[p.X];
                 }
             }
         }

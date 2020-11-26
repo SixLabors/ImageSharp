@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Applies the swizzle transformation to a given point.
         /// </summary>
         /// <param name="point">Point to transform.</param>
-        /// <param name="newPoint">The transformed point.</param>
-        void Transform(Point point, out Point newPoint);
+        /// <returns>The transformed point.</returns>
+        Point Transform(Point point);
     }
 }

@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Extensions.Transforms;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
@@ -31,11 +33,26 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
         public void InvertXAndYSwizzle<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Image<TPixel> image = provider.GetImage();
-            provider.RunValidatingProcessorTest(
-                ctx => ctx.Swizzle(new InvertXAndYSwizzler(new Size(image.Width, image.Height))),
-                testOutputDetails: nameof(InvertXAndYSwizzler),
-                appendPixelTypeToFileName: false);
+            using Image<TPixel> expectedImage = provider.GetImage();
+            using Image<TPixel> image = provider.GetImage();
+
+            image.Mutate(ctx => ctx.Swizzle(new InvertXAndYSwizzler(new Size(image.Width, image.Height))));
+
+            image.DebugSave(
+                provider,
+                nameof(InvertXAndYSwizzler),
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: true);
+
+            image.Mutate(ctx => ctx.Swizzle(new InvertXAndYSwizzler(new Size(image.Width, image.Height))));
+
+            image.DebugSave(
+                provider,
+                "Unswizzle",
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: true);
+
+            ImageComparer.Exact.VerifySimilarity(expectedImage, image);
         }
     }
 }

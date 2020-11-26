@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <typeparam name="TPixel">The pixel data.</typeparam>
         /// <param name="image">The image to write to the stream.</param>
         /// <param name="padding">The padding bytes for each row.</param>
-        /// <returns>The number of bytes written</returns>
+        /// <returns>The number of bytes written.</returns>
         public int WriteRgbImageData<TPixel>(Image<TPixel> image, int padding)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -151,6 +151,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return bytesWritten;
         }
 
+        /// <summary>
+        /// Writes the image data as indices into a color map to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel data.</typeparam>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="quantizer">The quantizer to use.</param>
+        /// <param name="padding">The padding bytes for each row.</param>
+        /// <param name="colorMap">The color map.</param>
+        /// <returns>The number of bytes written.</returns>
         public int WritePalettedRgbImageData<TPixel>(Image<TPixel> image, IQuantizer quantizer, int padding, out IExifValue colorMap)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -214,7 +223,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <typeparam name="TPixel">The pixel data.</typeparam>
         /// <param name="image">The image to write to the stream.</param>
         /// <param name="padding">The padding bytes for each row.</param>
-        /// <returns>The number of bytes written</returns>
+        /// <returns>The number of bytes written.</returns>
         public int WriteGrayImageData<TPixel>(Image<TPixel> image, int padding)
             where TPixel : unmanaged, IPixel<TPixel>
         {

@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             this.memoryAllocator = memoryAllocator;
             this.CompressionType = options.Compression;
-            this.UseColorMap = options.UseColorPalette;
+            this.Mode = options.Mode;
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
         }
 
@@ -70,9 +70,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private TiffEncoderCompression CompressionType { get; }
 
         /// <summary>
-        /// Gets a value indicating whether to use a colormap.
+        /// Gets or sets the encoding mode to use. RGB, RGB with color palette or gray.
         /// </summary>
-        private bool UseColorMap { get; }
+        private TiffEncodingMode Mode { get; set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -91,6 +91,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ImageMetadata metadata = image.Metadata;
             TiffMetadata tiffMetadata = metadata.GetTiffMetadata();
             this.bitsPerPixel ??= tiffMetadata.BitsPerPixel;
+            if (this.Mode == TiffEncodingMode.Default)
+            {
+                // Preserve input bits per pixel, if no mode was specified.
+                if (this.bitsPerPixel == TiffBitsPerPixel.Pixel8)
+                {
+                    this.Mode = TiffEncodingMode.Gray;
+                }
+            }
+
             this.SetPhotometricInterpretation();
 
             short bpp = (short)this.bitsPerPixel;
@@ -141,17 +150,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             // Write the image bytes to the steam.
             var imageDataStart = (uint)writer.Position;
             int imageDataBytes;
-            if (this.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb)
+            switch (this.PhotometricInterpretation)
             {
-                imageDataBytes = writer.WriteRgbImageData(image, this.padding);
-            }
-            else if (this.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor)
-            {
-                imageDataBytes = writer.WritePalettedRgbImageData(image, this.quantizer, this.padding, out colorMap);
-            }
-            else
-            {
-                imageDataBytes = writer.WriteGrayImageData(image, this.padding);
+                case TiffPhotometricInterpretation.PaletteColor:
+                    imageDataBytes = writer.WritePalettedRgbImageData(image, this.quantizer, this.padding, out colorMap);
+                    break;
+                case TiffPhotometricInterpretation.BlackIsZero:
+                    imageDataBytes = writer.WriteGrayImageData(image, this.padding);
+                    break;
+                default:
+                    imageDataBytes = writer.WriteRgbImageData(image, this.padding);
+                    break;
             }
 
             // Write info's about the image to the stream.
@@ -270,7 +279,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             var samplesPerPixel = new ExifLong(ExifTagValue.SamplesPerPixel)
             {
-                Value = 3
+                Value = this.GetSamplesPerPixel()
             };
 
             var rowsPerStrip = new ExifLong(ExifTagValue.RowsPerStrip)
@@ -323,19 +332,31 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         private void SetPhotometricInterpretation()
         {
-            if (this.UseColorMap)
+            switch (this.Mode)
             {
-                this.PhotometricInterpretation = TiffPhotometricInterpretation.PaletteColor;
-                return;
+                case TiffEncodingMode.ColorPalette:
+                    this.PhotometricInterpretation = TiffPhotometricInterpretation.PaletteColor;
+                    break;
+                case TiffEncodingMode.Gray:
+                    this.PhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero;
+                    break;
+                default:
+                    this.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
+                    break;
             }
+        }
 
-            if (this.bitsPerPixel == TiffBitsPerPixel.Pixel8)
+        private uint GetSamplesPerPixel()
+        {
+            switch (this.PhotometricInterpretation)
             {
-                this.PhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero;
-            }
-            else
-            {
-                this.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
+                case TiffPhotometricInterpretation.PaletteColor:
+                case TiffPhotometricInterpretation.Rgb:
+                    return 3;
+                case TiffPhotometricInterpretation.BlackIsZero:
+                    return 1;
+                default:
+                    return 3;
             }
         }
 
@@ -344,6 +365,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (this.PhotometricInterpretation)
             {
                 case TiffPhotometricInterpretation.PaletteColor:
+                    return new ushort[] { 8 };
                 case TiffPhotometricInterpretation.Rgb:
                     return new ushort[] { 8, 8, 8 };
                 case TiffPhotometricInterpretation.BlackIsZero:

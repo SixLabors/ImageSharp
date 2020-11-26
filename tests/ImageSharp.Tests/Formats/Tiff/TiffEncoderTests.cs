@@ -5,13 +5,17 @@ using System.IO;
 
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
+    [Trait("Category", "Tiff")]
     public class TiffEncoderTests
     {
+        private static TiffDecoder referenceDecoder = new TiffDecoder();
+
         public static readonly TheoryData<string, TiffBitsPerPixel> TiffBitsPerPixelFiles =
             new TheoryData<string, TiffBitsPerPixel>
             {
@@ -41,36 +45,33 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(TestImages.Tiff.RgbUncompressed, PixelTypes.Rgba32)]
-        public void TiffEncoder_EncodeRgb_Works<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel bitsPerPixel = TiffBitsPerPixel.Pixel24)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, bitsPerPixel);
+        public void TiffEncoder_EncodeRgb_Works<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel bitsPerPixel = TiffBitsPerPixel.Pixel24, TiffEncodingMode mode = TiffEncodingMode.Rgb)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, bitsPerPixel, mode);
 
         [Theory]
         [WithFile(TestImages.Tiff.RgbUncompressed, PixelTypes.Rgba32)]
-        public void TiffEncoder_EncodeGray_Works<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel bitsPerPixel = TiffBitsPerPixel.Pixel8)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, bitsPerPixel);
+        public void TiffEncoder_EncodeGray_Works<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel bitsPerPixel = TiffBitsPerPixel.Pixel8, TiffEncodingMode mode = TiffEncodingMode.Gray)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, bitsPerPixel, mode);
 
         [Theory]
         [WithFile(TestImages.Tiff.RgbUncompressed, PixelTypes.Rgba32)]
-        public void TiffEncoder_EncodeColorPalette_Works<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel bitsPerPixel = TiffBitsPerPixel.Pixel8, bool useColorPalette = true)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, bitsPerPixel, useColorPalette);
+        public void TiffEncoder_EncodeColorPalette_Works<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel bitsPerPixel = TiffBitsPerPixel.Pixel24, TiffEncodingMode mode = TiffEncodingMode.ColorPalette)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, bitsPerPixel, mode);
 
         private static void TestTiffEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             TiffBitsPerPixel bitsPerPixel,
-            bool useColorPalette = false,
+            TiffEncodingMode mode,
             TiffEncoderCompression compression = TiffEncoderCompression.None,
             bool useExactComparer = true,
             float compareTolerance = 0.01f)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image<TPixel> image = provider.GetImage();
-            var encoder = new TiffEncoder { BitsPerPixel = bitsPerPixel, Compression = compression };
+            var encoder = new TiffEncoder { Mode = mode, Compression = compression };
 
-            using var memStream = new MemoryStream();
-            image.Save(memStream, encoder);
-            memStream.Position = 0;
-            using var encodedImage = (Image<TPixel>)Image.Load(memStream);
-            TiffTestUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
+            // Does DebugSave & load reference CompareToReferenceInput():
+            image.VerifyEncoder(provider, "tiff", bitsPerPixel, encoder, useExactComparer ? ImageComparer.Exact : ImageComparer.Tolerant(compareTolerance), referenceDecoder: referenceDecoder);
         }
     }
 }

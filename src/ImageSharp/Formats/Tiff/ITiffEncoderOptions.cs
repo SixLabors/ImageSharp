@@ -11,19 +11,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     internal interface ITiffEncoderOptions
     {
         /// <summary>
-        /// Gets the number of bits per pixel.
-        /// </summary>
-        TiffBitsPerPixel? BitsPerPixel { get; }
-
-        /// <summary>
         /// Gets the compression type to use.
         /// </summary>
         TiffEncoderCompression Compression { get; }
 
         /// <summary>
-        /// Gets a value indicating whether to use a color palette.
+        /// Gets the encoding mode to use. RGB, RGB with color palette or gray.
         /// </summary>
-        bool UseColorPalette { get; }
+        TiffEncodingMode Mode { get; }
 
         /// <summary>
         /// Gets the quantizer for creating a color palette image.

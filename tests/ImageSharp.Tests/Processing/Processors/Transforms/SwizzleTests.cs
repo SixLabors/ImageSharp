@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             public Size DestinationSize { get; }
 
-            public void Transform(Point point, out Point newPoint)
-                => newPoint = new Point(point.Y, point.X);
+            public Point Transform(Point point)
+                => new Point(point.Y, point.X);
         }
 
         [Theory]

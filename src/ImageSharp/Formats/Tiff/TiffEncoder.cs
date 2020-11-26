@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -23,6 +24,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Gets or sets a value indicating which compression to use.
         /// </summary>
         public TiffEncoderCompression Compression { get; set; } = TiffEncoderCompression.None;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to use a color palette.
+        /// </summary>
+        public bool UseColorPalette { get; set; }
+
+        /// <summary>
+        /// Gets or sets the quantizer for color images with a palette.
+        /// Defaults to OctreeQuantizer.
+        /// </summary>
+        public IQuantizer Quantizer { get; set; }
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

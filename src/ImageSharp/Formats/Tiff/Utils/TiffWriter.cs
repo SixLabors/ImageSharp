@@ -2,10 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -135,14 +139,73 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             using IManagedByteBuffer row = this.AllocateRow(image.Width, 3, padding);
             Span<byte> rowSpan = row.GetSpan();
+            int bytesWritten = 0;
             for (int y = 0; y < image.Height; y++)
             {
                 Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.configuration, pixelRow, rowSpan, pixelRow.Length);
                 this.output.Write(rowSpan);
+                bytesWritten += rowSpan.Length;
             }
 
-            return image.Width * image.Height * 3;
+            return bytesWritten;
+        }
+
+        public int WritePalettedRgbImageData<TPixel>(Image<TPixel> image, IQuantizer quantizer, int padding, out IExifValue colorMap)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using IManagedByteBuffer row = this.AllocateRow(image.Width, 1, padding);
+            using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
+            using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image.Frames.RootFrame, image.Bounds());
+            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(256 * 2 * 3);
+            Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
+
+            ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
+            int quantizedColorBytes = quantizedColors.Length * 3 * 2;
+
+            // In the ColorMap, black is represented by 0,0,0 and white is represented by 65535, 65535, 65535.
+            Span<Rgb48> quantizedColorRgb48 = MemoryMarshal.Cast<byte, Rgb48>(colorPalette.Slice(0, quantizedColorBytes));
+            PixelOperations<TPixel>.Instance.ToRgb48(this.configuration, quantizedColors, quantizedColorRgb48);
+
+            // In a TIFF ColorMap, all the Red values come first, followed by the Green values,
+            // then the Blue values. Convert the quantized palette to this format.
+            var palette = new ushort[quantizedColorBytes];
+            int paletteIdx = 0;
+            for (int i = 0; i < quantizedColors.Length; i++)
+            {
+                palette[paletteIdx++] = quantizedColorRgb48[i].R;
+            }
+
+            for (int i = 0; i < quantizedColors.Length; i++)
+            {
+                palette[paletteIdx++] = quantizedColorRgb48[i].G;
+            }
+
+            for (int i = 0; i < quantizedColors.Length; i++)
+            {
+                palette[paletteIdx++] = quantizedColorRgb48[i].B;
+            }
+
+            colorMap = new ExifShortArray(ExifTagValue.ColorMap)
+            {
+                Value = palette
+            };
+
+            int bytesWritten = 0;
+            for (int y = 0; y < image.Height; y++)
+            {
+                ReadOnlySpan<byte> pixelSpan = quantized.GetPixelRowSpan(y);
+                this.output.Write(pixelSpan);
+                bytesWritten += pixelSpan.Length;
+
+                for (int i = 0; i < padding; i++)
+                {
+                    this.output.WriteByte(0);
+                    bytesWritten++;
+                }
+            }
+
+            return bytesWritten;
         }
 
         /// <summary>
@@ -157,14 +220,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             using IManagedByteBuffer row = this.AllocateRow(image.Width, 1, padding);
             Span<byte> rowSpan = row.GetSpan();
+            int bytesWritten = 0;
             for (int y = 0; y < image.Height; y++)
             {
                 Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToL8Bytes(this.configuration, pixelRow, rowSpan, pixelRow.Length);
                 this.output.Write(rowSpan);
+                bytesWritten += rowSpan.Length;
             }
 
-            return image.Width * image.Height;
+            return bytesWritten;
         }
 
         private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel, int padding) => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, padding);

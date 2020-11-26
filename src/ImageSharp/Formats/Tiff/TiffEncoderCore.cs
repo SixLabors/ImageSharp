@@ -11,6 +11,8 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
@@ -40,6 +42,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private TiffBitsPerPixel? bitsPerPixel;
 
         /// <summary>
+        /// The quantizer for creating color palette image.
+        /// </summary>
+        private readonly IQuantizer quantizer;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options for the encoder.</param>
@@ -47,17 +54,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffEncoderCore(ITiffEncoderOptions options, MemoryAllocator memoryAllocator)
         {
             this.memoryAllocator = memoryAllocator;
+            this.CompressionType = options.Compression;
+            this.UseColorMap = options.UseColorPalette;
+            this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
         }
 
         /// <summary>
-        /// Gets the photometric interpretation implementation to use when encoding the image.
+        /// Gets or sets the photometric interpretation implementation to use when encoding the image.
         /// </summary>
         private TiffPhotometricInterpretation PhotometricInterpretation { get; set; }
 
         /// <summary>
-        /// Gets or sets the compression implementation to use when encoding the image.
+        /// Gets the compression implementation to use when encoding the image.
         /// </summary>
-        public TiffCompressionType CompressionType { get; set; }
+        private TiffEncoderCompression CompressionType { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether to use a colormap.
+        /// </summary>
+        private bool UseColorMap { get; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -76,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ImageMetadata metadata = image.Metadata;
             TiffMetadata tiffMetadata = metadata.GetTiffMetadata();
             this.bitsPerPixel ??= tiffMetadata.BitsPerPixel;
-            this.PhotometricInterpretation = this.bitsPerPixel == TiffBitsPerPixel.Pixel8 ? TiffPhotometricInterpretation.BlackIsZero : TiffPhotometricInterpretation.Rgb;
+            this.SetPhotometricInterpretation();
 
             short bpp = (short)this.bitsPerPixel;
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
@@ -120,14 +135,32 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public long WriteImage<TPixel>(TiffWriter writer, Image<TPixel> image, long ifdOffset)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            IExifValue colorMap = null;
             var ifdEntries = new List<IExifValue>();
 
             // Write the image bytes to the steam.
             var imageDataStart = (uint)writer.Position;
-            int imageDataBytes = this.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb ? writer.WriteRgbImageData(image, this.padding) : writer.WriteGrayImageData(image, this.padding);
+            int imageDataBytes;
+            if (this.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb)
+            {
+                imageDataBytes = writer.WriteRgbImageData(image, this.padding);
+            }
+            else if (this.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor)
+            {
+                imageDataBytes = writer.WritePalettedRgbImageData(image, this.quantizer, this.padding, out colorMap);
+            }
+            else
+            {
+                imageDataBytes = writer.WriteGrayImageData(image, this.padding);
+            }
 
             // Write info's about the image to the stream.
             this.AddImageFormat(image, ifdEntries, imageDataStart, imageDataBytes);
+            if (this.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor)
+            {
+                ifdEntries.Add(colorMap);
+            }
+
             writer.WriteMarker(ifdOffset, (uint)writer.Position);
             long nextIfdMarker = this.WriteIfd(writer, ifdEntries);
 
@@ -200,7 +233,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="imageDataStartOffset">The start of the image data in the stream.</param>
         /// <param name="imageDataBytes">The image data in bytes to write.</param>
         public void AddImageFormat<TPixel>(Image<TPixel> image, List<IExifValue> ifdEntries, uint imageDataStartOffset, int imageDataBytes)
-        where TPixel : unmanaged, IPixel<TPixel>
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             var width = new ExifLong(ExifTagValue.ImageWidth)
             {
@@ -212,7 +245,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 Value = (uint)image.Height
             };
 
-            ushort[] bitsPerSampleValue = this.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb ? new ushort[] { 8, 8, 8 } : new ushort[] { 8 };
+            ushort[] bitsPerSampleValue = this.GetBitsPerSampleValue();
             var bitPerSample = new ExifShortArray(ExifTagValue.BitsPerSample)
             {
                 Value = bitsPerSampleValue
@@ -265,8 +298,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             var resolutionUnit = new ExifShort(ExifTagValue.ResolutionUnit)
             {
-                // TODO: what to use here as default?
-                Value = 0
+                Value = 3 // 3 is centimeter.
             };
 
             var software = new ExifString(ExifTagValue.Software)
@@ -287,6 +319,38 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ifdEntries.Add(yResolution);
             ifdEntries.Add(resolutionUnit);
             ifdEntries.Add(software);
+        }
+
+        private void SetPhotometricInterpretation()
+        {
+            if (this.UseColorMap)
+            {
+                this.PhotometricInterpretation = TiffPhotometricInterpretation.PaletteColor;
+                return;
+            }
+
+            if (this.bitsPerPixel == TiffBitsPerPixel.Pixel8)
+            {
+                this.PhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero;
+            }
+            else
+            {
+                this.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
+            }
+        }
+
+        private ushort[] GetBitsPerSampleValue()
+        {
+            switch (this.PhotometricInterpretation)
+            {
+                case TiffPhotometricInterpretation.PaletteColor:
+                case TiffPhotometricInterpretation.Rgb:
+                    return new ushort[] { 8, 8, 8 };
+                case TiffPhotometricInterpretation.BlackIsZero:
+                    return new ushort[] { 8 };
+                default:
+                    return new ushort[] { 8, 8, 8 };
+            }
         }
     }
 }

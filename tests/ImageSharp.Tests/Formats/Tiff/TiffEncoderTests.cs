@@ -49,9 +49,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffEncoder_EncodeGray_Works<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel bitsPerPixel = TiffBitsPerPixel.Pixel8)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, bitsPerPixel);
 
+        [Theory]
+        [WithFile(TestImages.Tiff.RgbUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeColorPalette_Works<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel bitsPerPixel = TiffBitsPerPixel.Pixel8, bool useColorPalette = true)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, bitsPerPixel, useColorPalette);
+
         private static void TestTiffEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             TiffBitsPerPixel bitsPerPixel,
+            bool useColorPalette = false,
             TiffEncoderCompression compression = TiffEncoderCompression.None,
             bool useExactComparer = true,
             float compareTolerance = 0.01f)

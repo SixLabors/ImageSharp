@@ -16,19 +16,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     public class TiffEncoder : IImageEncoder, ITiffEncoderOptions
     {
         /// <summary>
-        /// Gets or sets the number of bits per pixel. 8 bit implies a grayscale image.
-        /// </summary>
-        public TiffBitsPerPixel? BitsPerPixel { get; set; }
-
-        /// <summary>
         /// Gets or sets a value indicating which compression to use.
         /// </summary>
         public TiffEncoderCompression Compression { get; set; } = TiffEncoderCompression.None;
 
         /// <summary>
-        /// Gets or sets a value indicating whether to use a color palette.
+        /// Gets or sets the encoding mode to use. RGB, RGB with a color palette or gray.
         /// </summary>
-        public bool UseColorPalette { get; set; }
+        public TiffEncodingMode Mode { get; set; }
 
         /// <summary>
         /// Gets or sets the quantizer for color images with a palette.

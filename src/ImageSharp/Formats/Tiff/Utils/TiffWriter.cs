@@ -6,6 +6,9 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -133,13 +136,37 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <typeparam name="TPixel">The pixel data.</typeparam>
         /// <param name="image">The image to write to the stream.</param>
         /// <param name="padding">The padding bytes for each row.</param>
+        /// <param name="compression">The compression to use.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WriteRgbImageData<TPixel>(Image<TPixel> image, int padding)
+        public int WriteRgbImageData<TPixel>(Image<TPixel> image, int padding, TiffEncoderCompression compression)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using IManagedByteBuffer row = this.AllocateRow(image.Width, 3, padding);
             Span<byte> rowSpan = row.GetSpan();
             int bytesWritten = 0;
+            if (compression == TiffEncoderCompression.Deflate)
+            {
+                using var memoryStream = new MemoryStream();
+
+                // TODO: move zlib compression from png to a common place?
+                using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, PngCompressionLevel.Level6); // TODO: make compression level configurable
+
+                for (int y = 0; y < image.Height; y++)
+                {
+                    Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.configuration, pixelRow, rowSpan, pixelRow.Length);
+                    deflateStream.Write(rowSpan);
+                }
+
+                deflateStream.Flush();
+
+                byte[] buffer = memoryStream.ToArray();
+                this.output.Write(buffer);
+                bytesWritten += buffer.Length;
+                return bytesWritten;
+            }
+
+            // No compression.
             for (int y = 0; y < image.Height; y++)
             {
                 Span<TPixel> pixelRow = image.GetPixelRowSpan(y);

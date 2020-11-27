@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel8, TiffEncodingMode.Gray);
 
         [Theory]
-        [WithFile(TestImages.Tiff.RgbUncompressed, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette);
 

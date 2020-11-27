@@ -143,30 +143,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             using IManagedByteBuffer row = this.AllocateRow(image.Width, 3, padding);
             Span<byte> rowSpan = row.GetSpan();
-            int bytesWritten = 0;
             if (compression == TiffEncoderCompression.Deflate)
             {
-                using var memoryStream = new MemoryStream();
-
-                // TODO: move zlib compression from png to a common place?
-                using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, PngCompressionLevel.Level6); // TODO: make compression level configurable
-
-                for (int y = 0; y < image.Height; y++)
-                {
-                    Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.configuration, pixelRow, rowSpan, pixelRow.Length);
-                    deflateStream.Write(rowSpan);
-                }
-
-                deflateStream.Flush();
-
-                byte[] buffer = memoryStream.ToArray();
-                this.output.Write(buffer);
-                bytesWritten += buffer.Length;
-                return bytesWritten;
+                return this.WriteDeflateCompressedRgb(image, rowSpan);
             }
 
             // No compression.
+            int bytesWritten = 0;
             for (int y = 0; y < image.Height; y++)
             {
                 Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
@@ -179,6 +162,37 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         /// <summary>
+        /// Writes the image data as RGB compressed with zlib to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel data.</typeparam>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="rowSpan">A Span for a pixel row.</param>
+        /// <returns>The number of bytes written.</returns>
+        private int WriteDeflateCompressedRgb<TPixel>(Image<TPixel> image, Span<byte> rowSpan)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int bytesWritten = 0;
+            using var memoryStream = new MemoryStream();
+
+            // TODO: move zlib compression from png to a common place?
+            using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, PngCompressionLevel.Level6); // TODO: make compression level configurable
+
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.configuration, pixelRow, rowSpan, pixelRow.Length);
+                deflateStream.Write(rowSpan);
+            }
+
+            deflateStream.Flush();
+
+            byte[] buffer = memoryStream.ToArray();
+            this.output.Write(buffer);
+            bytesWritten += buffer.Length;
+            return bytesWritten;
+        }
+
+        /// <summary>
         /// Writes the image data as indices into a color map to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel data.</typeparam>
@@ -187,13 +201,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="padding">The padding bytes for each row.</param>
         /// <param name="colorMap">The color map.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WritePalettedRgbImageData<TPixel>(Image<TPixel> image, IQuantizer quantizer, int padding, out IExifValue colorMap)
+        public int WritePalettedRgb<TPixel>(Image<TPixel> image, IQuantizer quantizer, int padding, out IExifValue colorMap)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            int colorPaletteSize = 256 * 3 * 2;
             using IManagedByteBuffer row = this.AllocateRow(image.Width, 1, padding);
             using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image.Frames.RootFrame, image.Bounds());
-            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(256 * 2 * 3);
+            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(colorPaletteSize);
             Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
 
             ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
@@ -203,19 +218,26 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Span<Rgb48> quantizedColorRgb48 = MemoryMarshal.Cast<byte, Rgb48>(colorPalette.Slice(0, quantizedColorBytes));
             PixelOperations<TPixel>.Instance.ToRgb48(this.configuration, quantizedColors, quantizedColorRgb48);
 
+            // It can happen that the quantized colors are less than the expected 256.
+            var diffToMaxColors = 256 - quantizedColors.Length;
+
             // In a TIFF ColorMap, all the Red values come first, followed by the Green values,
             // then the Blue values. Convert the quantized palette to this format.
-            var palette = new ushort[quantizedColorBytes];
+            var palette = new ushort[colorPaletteSize];
             int paletteIdx = 0;
             for (int i = 0; i < quantizedColors.Length; i++)
             {
                 palette[paletteIdx++] = quantizedColorRgb48[i].R;
             }
 
+            paletteIdx += diffToMaxColors;
+
             for (int i = 0; i < quantizedColors.Length; i++)
             {
                 palette[paletteIdx++] = quantizedColorRgb48[i].G;
             }
+
+            paletteIdx += diffToMaxColors;
 
             for (int i = 0; i < quantizedColors.Length; i++)
             {
@@ -251,7 +273,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="image">The image to write to the stream.</param>
         /// <param name="padding">The padding bytes for each row.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WriteGrayImageData<TPixel>(Image<TPixel> image, int padding)
+        public int WriteGray<TPixel>(Image<TPixel> image, int padding)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using IManagedByteBuffer row = this.AllocateRow(image.Width, 1, padding);

@@ -150,16 +150,16 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             // Write the image bytes to the steam.
             var imageDataStart = (uint)writer.Position;
             int imageDataBytes;
-            switch (this.PhotometricInterpretation)
+            switch (this.Mode)
             {
-                case TiffPhotometricInterpretation.PaletteColor:
+                case TiffEncodingMode.ColorPalette:
                     imageDataBytes = writer.WritePalettedRgbImageData(image, this.quantizer, this.padding, out colorMap);
                     break;
-                case TiffPhotometricInterpretation.BlackIsZero:
+                case TiffEncodingMode.Gray:
                     imageDataBytes = writer.WriteGrayImageData(image, this.padding);
                     break;
                 default:
-                    imageDataBytes = writer.WriteRgbImageData(image, this.padding);
+                    imageDataBytes = writer.WriteRgbImageData(image, this.padding, this.CompressionType);
                     break;
             }
 
@@ -260,10 +260,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 Value = bitsPerSampleValue
             };
 
+            ushort compressionType = this.GetCompressionType();
             var compression = new ExifShort(ExifTagValue.Compression)
             {
-                // TODO: for the start, no compression is used.
-                Value = (ushort)TiffCompression.None
+                Value = compressionType
             };
 
             var photometricInterpretation = new ExifShort(ExifTagValue.PhotometricInterpretation)
@@ -373,6 +373,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 default:
                     return new ushort[] { 8, 8, 8 };
             }
+        }
+
+        private ushort GetCompressionType()
+        {
+            if (this.CompressionType == TiffEncoderCompression.Deflate &&
+                this.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb)
+            {
+                return (ushort)TiffCompression.Deflate;
+            }
+
+            return (ushort)TiffCompression.None;
         }
     }
 }

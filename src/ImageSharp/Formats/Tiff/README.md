@@ -57,8 +57,8 @@
 |---------------------------|:-----:|:-----:|--------------------------|
 |WhiteIsZero                |       |   Y   | General + 1/4/8-bit optimised implementations |
 |BlackIsZero                |       |   Y   | General + 1/4/8-bit optimised implementations |
-|Rgb (Chunky)               |       |   Y   | General + Rgb888 optimised implementation |
-|Rgb (Planar)               |   Y   |   Y   | General implementation only |
+|Rgb (Chunky)               |   Y   |   Y   | General + Rgb888 optimised implementation |
+|Rgb (Planar)               |       |   Y   | General implementation only |
 |PaletteColor               |   Y   |   Y   | General implementation only |
 |TransparencyMask           |       |       |                          |
 |Separated (TIFF Extension) |       |       |                          |

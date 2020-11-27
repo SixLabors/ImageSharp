@@ -12,6 +12,8 @@ using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -199,6 +201,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="image">The image to write to the stream.</param>
         /// <param name="quantizer">The quantizer to use.</param>
         /// <param name="padding">The padding bytes for each row.</param>
+        /// <param name="compression">The compression to use.</param>
         /// <param name="colorMap">The color map.</param>
         /// <returns>The number of bytes written.</returns>
         public int WritePalettedRgb<TPixel>(Image<TPixel> image, IQuantizer quantizer, int padding, TiffEncoderCompression compression, out IExifValue colorMap)
@@ -328,7 +331,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Writes the image data as 8 bit gray with deflate compression to the stream.
         /// </summary>
         /// <param name="image">The image to write to the stream.</param>
-        /// <param name="rowSpan">A span of a pixel row.</param>
+        /// <param name="rowSpan">A span of a row of pixels.</param>
         /// <returns>The number of bytes written.</returns>
         private int WriteGrayDeflateCompressed<TPixel>(Image<TPixel> image, Span<byte> rowSpan)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -337,8 +340,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             using var memoryStream = new MemoryStream();
 
             // TODO: move zlib compression from png to a common place?
-            using var deflateStream =
-                new ZlibDeflateStream(this.memoryAllocator, memoryStream, PngCompressionLevel.Level6); // TODO: make compression level configurable
+            using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, PngCompressionLevel.Level6); // TODO: make compression level configurable
 
             for (int y = 0; y < image.Height; y++)
             {
@@ -352,6 +354,52 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             byte[] buffer = memoryStream.ToArray();
             this.output.Write(buffer);
             bytesWritten += buffer.Length;
+            return bytesWritten;
+        }
+
+        public int WriteBiColor<TPixel>(Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int padding = image.Width % 8 == 0 ? 0 : 1;
+            int bytesPerRow = (image.Width / 8) + padding;
+            using IMemoryOwner<Rgb24> rowRgb = this.memoryAllocator.Allocate<Rgb24>(image.Width);
+            using IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(bytesPerRow, AllocationOptions.Clean);
+            Span<byte> rowSpan = row.GetSpan();
+            Span<Rgb24> rowRgbSpan = rowRgb.GetSpan();
+
+            // Convert image to black and white.
+            using Image<TPixel> imageClone = image.Clone();
+            imageClone.Mutate(img => img.BinaryDither(default(ErrorDither)));
+
+            int bytesWritten = 0;
+            for (int y = 0; y < image.Height; y++)
+            {
+                int bitIndex = 0;
+                int byteIndex = 0;
+                Span<TPixel> pixelRow = imageClone.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToRgb24(this.configuration, pixelRow, rowRgbSpan);
+                for (int x = 0; x < pixelRow.Length; x++)
+                {
+                    int shift = 7 - bitIndex;
+                    if (rowRgbSpan[x].R == 255)
+                    {
+                        rowSpan[byteIndex] |= (byte)(1 << shift);
+                    }
+
+                    bitIndex++;
+                    if (bitIndex == 8)
+                    {
+                        byteIndex++;
+                        bitIndex = 0;
+                    }
+                }
+
+                this.output.Write(row);
+                bytesWritten += row.Length();
+
+                row.Clear();
+            }
+
             return bytesWritten;
         }
 

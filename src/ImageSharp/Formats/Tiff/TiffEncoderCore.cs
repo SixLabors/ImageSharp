@@ -153,10 +153,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (this.Mode)
             {
                 case TiffEncodingMode.ColorPalette:
-                    imageDataBytes = writer.WritePalettedRgbImageData(image, this.quantizer, this.padding, out colorMap);
+                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.padding, out colorMap);
                     break;
                 case TiffEncodingMode.Gray:
-                    imageDataBytes = writer.WriteGrayImageData(image, this.padding);
+                    imageDataBytes = writer.WriteGray(image, this.padding);
                     break;
                 default:
                     imageDataBytes = writer.WriteRgbImageData(image, this.padding, this.CompressionType);
@@ -350,9 +350,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             switch (this.PhotometricInterpretation)
             {
-                case TiffPhotometricInterpretation.PaletteColor:
                 case TiffPhotometricInterpretation.Rgb:
                     return 3;
+                case TiffPhotometricInterpretation.PaletteColor:
                 case TiffPhotometricInterpretation.BlackIsZero:
                     return 1;
                 default:

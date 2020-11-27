@@ -357,15 +357,24 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return bytesWritten;
         }
 
-        public int WriteBiColor<TPixel>(Image<TPixel> image)
+        /// <summary>
+        /// Writes the image data as 1 bit black and white to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel data.</typeparam>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="compression">The compression to use.</param>
+        /// <returns>The number of bytes written.</returns>
+        public int WriteBiColor<TPixel>(Image<TPixel> image, TiffEncoderCompression compression)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int padding = image.Width % 8 == 0 ? 0 : 1;
             int bytesPerRow = (image.Width / 8) + padding;
-            using IMemoryOwner<Rgb24> rowRgb = this.memoryAllocator.Allocate<Rgb24>(image.Width);
+            using IMemoryOwner<L8> rowL8 = this.memoryAllocator.Allocate<L8>(image.Width);
             using IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(bytesPerRow, AllocationOptions.Clean);
+            using var memoryStream = new MemoryStream();
+            using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, PngCompressionLevel.Level6); // TODO: make compression level configurable
             Span<byte> rowSpan = row.GetSpan();
-            Span<Rgb24> rowRgbSpan = rowRgb.GetSpan();
+            Span<L8> rowL8Span = rowL8.GetSpan();
 
             // Convert image to black and white.
             using Image<TPixel> imageClone = image.Clone();
@@ -377,11 +386,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 int bitIndex = 0;
                 int byteIndex = 0;
                 Span<TPixel> pixelRow = imageClone.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToRgb24(this.configuration, pixelRow, rowRgbSpan);
+                PixelOperations<TPixel>.Instance.ToL8(this.configuration, pixelRow, rowL8Span);
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
                     int shift = 7 - bitIndex;
-                    if (rowRgbSpan[x].R == 255)
+                    if (rowL8Span[x].PackedValue == 255)
                     {
                         rowSpan[byteIndex] |= (byte)(1 << shift);
                     }
@@ -394,10 +403,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     }
                 }
 
-                this.output.Write(row);
-                bytesWritten += row.Length();
+                if (compression == TiffEncoderCompression.Deflate)
+                {
+                    deflateStream.Write(row);
+                }
+                else
+                {
+                    this.output.Write(row);
+                    bytesWritten += row.Length();
+                }
 
                 row.Clear();
+            }
+
+            if (compression == TiffEncoderCompression.Deflate)
+            {
+                deflateStream.Flush();
+                byte[] buffer = memoryStream.ToArray();
+                this.output.Write(buffer);
+                bytesWritten += buffer.Length;
             }
 
             return bytesWritten;

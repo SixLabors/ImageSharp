@@ -159,7 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     imageDataBytes = writer.WriteGray(image, this.padding, this.CompressionType);
                     break;
                 case TiffEncodingMode.BiColor:
-                    imageDataBytes = writer.WriteBiColor(image);
+                    imageDataBytes = writer.WriteBiColor(image, this.CompressionType);
                     break;
                 default:
                     imageDataBytes = writer.WriteRgbImageData(image, this.padding, this.CompressionType);
@@ -386,20 +386,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         private ushort GetCompressionType()
         {
-            if (this.CompressionType == TiffEncoderCompression.Deflate &&
-                this.Mode == TiffEncodingMode.Rgb)
+            if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.Rgb)
             {
                 return (ushort)TiffCompression.Deflate;
             }
 
-            if (this.CompressionType == TiffEncoderCompression.Deflate &&
-                this.Mode == TiffEncodingMode.Gray)
+            if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.Gray)
             {
                 return (ushort)TiffCompression.Deflate;
             }
 
-            if (this.CompressionType == TiffEncoderCompression.Deflate &&
-                this.Mode == TiffEncodingMode.ColorPalette)
+            if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.ColorPalette)
+            {
+                return (ushort)TiffCompression.Deflate;
+            }
+
+            if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.BiColor)
             {
                 return (ushort)TiffCompression.Deflate;
             }

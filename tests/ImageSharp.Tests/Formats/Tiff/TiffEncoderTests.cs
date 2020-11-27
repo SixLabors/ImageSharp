@@ -77,6 +77,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffEncoder_EncodeColorPalette_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, TiffEncoderCompression.Deflate);
 
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_HuffmanCompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeBiColor_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.BiColor);
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_HuffmanCompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeBiColor_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.BiColor, TiffEncoderCompression.Deflate);
+
         private static void TestTiffEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
             TiffBitsPerPixel bitsPerPixel,

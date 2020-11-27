@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.padding, out colorMap);
                     break;
                 case TiffEncodingMode.Gray:
-                    imageDataBytes = writer.WriteGray(image, this.padding);
+                    imageDataBytes = writer.WriteGray(image, this.padding, this.CompressionType);
                     break;
                 default:
                     imageDataBytes = writer.WriteRgbImageData(image, this.padding, this.CompressionType);
@@ -378,7 +378,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private ushort GetCompressionType()
         {
             if (this.CompressionType == TiffEncoderCompression.Deflate &&
-                this.PhotometricInterpretation == TiffPhotometricInterpretation.Rgb)
+                this.Mode == TiffEncodingMode.Rgb)
+            {
+                return (ushort)TiffCompression.Deflate;
+            }
+
+            if (this.CompressionType == TiffEncoderCompression.Deflate &&
+                this.Mode == TiffEncodingMode.Gray)
             {
                 return (ushort)TiffCompression.Deflate;
             }

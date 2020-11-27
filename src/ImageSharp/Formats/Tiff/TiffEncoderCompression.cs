@@ -12,5 +12,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// No compression is used.
         /// </summary>
         None,
+
+        /// <summary>
+        /// Use zlib compression.
+        /// </summary>
+        Deflate
     }
 }

@@ -27,5 +27,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// The image will be encoded as 8 bit gray.
         /// </summary>
         Gray = 3,
+
+        /// <summary>
+        /// The image will be written as a white and black image.
+        /// </summary>
+        BiColor = 4,
     }
 }

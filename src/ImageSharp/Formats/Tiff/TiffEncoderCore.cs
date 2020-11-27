@@ -158,6 +158,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffEncodingMode.Gray:
                     imageDataBytes = writer.WriteGray(image, this.padding, this.CompressionType);
                     break;
+                case TiffEncodingMode.BiColor:
+                    imageDataBytes = writer.WriteBiColor(image);
+                    break;
                 default:
                     imageDataBytes = writer.WriteRgbImageData(image, this.padding, this.CompressionType);
                     break;
@@ -337,6 +340,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffEncodingMode.ColorPalette:
                     this.PhotometricInterpretation = TiffPhotometricInterpretation.PaletteColor;
                     break;
+                case TiffEncodingMode.BiColor:
                 case TiffEncodingMode.Gray:
                     this.PhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero;
                     break;
@@ -369,6 +373,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffPhotometricInterpretation.Rgb:
                     return new ushort[] { 8, 8, 8 };
                 case TiffPhotometricInterpretation.BlackIsZero:
+                    if (this.Mode == TiffEncodingMode.BiColor)
+                    {
+                        return new ushort[] { 1 };
+                    }
+
                     return new ushort[] { 8 };
                 default:
                     return new ushort[] { 8, 8, 8 };

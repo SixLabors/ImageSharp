@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (this.Mode)
             {
                 case TiffEncodingMode.ColorPalette:
-                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.padding, out colorMap);
+                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.padding, this.CompressionType, out colorMap);
                     break;
                 case TiffEncodingMode.Gray:
                     imageDataBytes = writer.WriteGray(image, this.padding, this.CompressionType);
@@ -385,6 +385,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             if (this.CompressionType == TiffEncoderCompression.Deflate &&
                 this.Mode == TiffEncodingMode.Gray)
+            {
+                return (ushort)TiffCompression.Deflate;
+            }
+
+            if (this.CompressionType == TiffEncoderCompression.Deflate &&
+                this.Mode == TiffEncodingMode.ColorPalette)
             {
                 return (ushort)TiffCompression.Deflate;
             }

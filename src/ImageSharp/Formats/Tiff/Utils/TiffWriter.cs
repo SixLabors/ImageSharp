@@ -201,10 +201,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="padding">The padding bytes for each row.</param>
         /// <param name="colorMap">The color map.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WritePalettedRgb<TPixel>(Image<TPixel> image, IQuantizer quantizer, int padding, out IExifValue colorMap)
+        public int WritePalettedRgb<TPixel>(Image<TPixel> image, IQuantizer quantizer, int padding, TiffEncoderCompression compression, out IExifValue colorMap)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorPaletteSize = 256 * 3 * 2;
+            using var memoryStream = new MemoryStream();
+            using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, PngCompressionLevel.Level6); // TODO: make compression level configurable
             using IManagedByteBuffer row = this.AllocateRow(image.Width, 1, padding);
             using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image.Frames.RootFrame, image.Bounds());
@@ -253,14 +255,39 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             for (int y = 0; y < image.Height; y++)
             {
                 ReadOnlySpan<byte> pixelSpan = quantized.GetPixelRowSpan(y);
-                this.output.Write(pixelSpan);
-                bytesWritten += pixelSpan.Length;
+
+                if (compression == TiffEncoderCompression.Deflate)
+                {
+                    deflateStream.Write(pixelSpan);
+                }
+                else
+                {
+                    // No compression.
+                    this.output.Write(pixelSpan);
+                    bytesWritten += pixelSpan.Length;
+                }
 
                 for (int i = 0; i < padding; i++)
                 {
-                    this.output.WriteByte(0);
-                    bytesWritten++;
+                    if (compression == TiffEncoderCompression.Deflate)
+                    {
+                        deflateStream.WriteByte(0);
+                    }
+                    else
+                    {
+                        // no compression.
+                        this.output.WriteByte(0);
+                        bytesWritten++;
+                    }
                 }
+            }
+
+            if (compression == TiffEncoderCompression.Deflate)
+            {
+                deflateStream.Flush();
+                byte[] buffer = memoryStream.ToArray();
+                this.output.Write(buffer);
+                bytesWritten += buffer.Length;
             }
 
             return bytesWritten;

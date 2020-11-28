@@ -406,6 +406,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 return (ushort)TiffCompression.Deflate;
             }
 
+            if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax && this.Mode == TiffEncodingMode.BiColor)
+            {
+                return (ushort)TiffCompression.CcittGroup3Fax;
+            }
+
             return (ushort)TiffCompression.None;
         }
     }

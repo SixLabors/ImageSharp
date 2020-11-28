@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -381,6 +382,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             if (compression == TiffEncoderCompression.Deflate)
             {
                 return this.WriteBiColorDeflate(image, pixelRowAsGraySpan, outputRow);
+            }
+
+            if (compression == TiffEncoderCompression.CcittGroup3Fax)
+            {
+                var bitWriter = new T4BitWriter(this.memoryAllocator, this.configuration);
+                return bitWriter.CompressImage(image, pixelRowAsGraySpan, this.output);
             }
 
             int bytesWritten = 0;

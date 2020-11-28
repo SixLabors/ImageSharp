@@ -341,6 +341,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     this.PhotometricInterpretation = TiffPhotometricInterpretation.PaletteColor;
                     break;
                 case TiffEncodingMode.BiColor:
+                    if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax)
+                    {
+                        // The “normal” PhotometricInterpretation for bilevel CCITT compressed data is WhiteIsZero.
+                        this.PhotometricInterpretation = TiffPhotometricInterpretation.WhiteIsZero;
+                    }
+                    else
+                    {
+                        this.PhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero;
+                    }
+
+                    break;
+
                 case TiffEncodingMode.Gray:
                     this.PhotometricInterpretation = TiffPhotometricInterpretation.BlackIsZero;
                     break;
@@ -358,6 +370,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     return 3;
                 case TiffPhotometricInterpretation.PaletteColor:
                 case TiffPhotometricInterpretation.BlackIsZero:
+                case TiffPhotometricInterpretation.WhiteIsZero:
                     return 1;
                 default:
                     return 3;
@@ -372,6 +385,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     return new ushort[] { 8 };
                 case TiffPhotometricInterpretation.Rgb:
                     return new ushort[] { 8, 8, 8 };
+                case TiffPhotometricInterpretation.WhiteIsZero:
+                    if (this.Mode == TiffEncodingMode.BiColor)
+                    {
+                        return new ushort[] { 1 };
+                    }
+
+                    return new ushort[] { 8 };
                 case TiffPhotometricInterpretation.BlackIsZero:
                     if (this.Mode == TiffEncodingMode.BiColor)
                     {

@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case TiffCompressionType.T4:
                     return new T4TiffCompression(allocator, photometricInterpretation, width);
                 case TiffCompressionType.HuffmanRle:
-                    return new TiffModifiedHuffmanCompression(allocator, photometricInterpretation, width);
+                    return new ModifiedHuffmanTiffCompression(allocator, photometricInterpretation, width);
                 default:
                     throw TiffThrowHelper.NotSupportedCompression(nameof(compressionType));
             }

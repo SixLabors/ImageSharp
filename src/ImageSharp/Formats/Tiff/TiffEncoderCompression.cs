@@ -16,6 +16,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// Use zlib compression.
         /// </summary>
-        Deflate
+        Deflate,
+
+        /// <summary>
+        /// Use CCITT T4 1D compression. Note: This is only valid for bi-level images.
+        /// </summary>
+        CcittGroup3Fax,
     }
 }

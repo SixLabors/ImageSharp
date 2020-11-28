@@ -10,15 +10,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using Modified Huffman Compression.
     /// </summary>
-    internal class TiffModifiedHuffmanCompression : T4TiffCompression
+    internal class ModifiedHuffmanTiffCompression : T4TiffCompression
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="TiffModifiedHuffmanCompression" /> class.
+        /// Initializes a new instance of the <see cref="ModifiedHuffmanTiffCompression" /> class.
         /// </summary>
         /// <param name="allocator">The memory allocator.</param>
         /// <param name="photometricInterpretation">The photometric interpretation.</param>
         /// <param name="width">The image width.</param>
-        public TiffModifiedHuffmanCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
+        public ModifiedHuffmanTiffCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
             : base(allocator, photometricInterpretation, width)
         {
         }
@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         public override void Decompress(Stream stream, int byteCount, Span<byte> buffer)
         {
             bool isWhiteZero = this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
-            int whiteValue = isWhiteZero ? 0 : 1;
-            int blackValue = isWhiteZero ? 1 : 0;
+            byte whiteValue = (byte)(isWhiteZero ? 0 : 1);
+            byte blackValue = (byte)(isWhiteZero ? 1 : 0);
 
             using var bitReader = new T4BitReader(stream, byteCount, this.Allocator, isModifiedHuffman: true);
 
@@ -43,13 +43,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 {
                     if (bitReader.IsWhiteRun)
                     {
-                        this.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, whiteValue);
+                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, whiteValue);
                         bitsWritten += bitReader.RunLength;
                         pixelsWritten += bitReader.RunLength;
                     }
                     else
                     {
-                        this.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, blackValue);
+                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, blackValue);
                         bitsWritten += bitReader.RunLength;
                         pixelsWritten += bitReader.RunLength;
                     }
@@ -59,11 +59,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 {
                     bitReader.StartNewRow();
 
-                    // Write padding bytes, if necessary.
+                    // Write padding bits, if necessary.
                     uint pad = 8 - (bitsWritten % 8);
                     if (pad != 8)
                     {
-                        this.WriteBits(buffer, (int)bitsWritten, pad, 0);
+                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, pad, 0);
                         bitsWritten += pad;
                     }
                 }

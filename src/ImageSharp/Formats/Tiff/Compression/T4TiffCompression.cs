@@ -27,8 +27,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         public override void Decompress(Stream stream, int byteCount, Span<byte> buffer)
         {
             bool isWhiteZero = this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
-            int whiteValue = isWhiteZero ? 0 : 1;
-            int blackValue = isWhiteZero ? 1 : 0;
+            byte whiteValue = (byte)(isWhiteZero ? 0 : 1);
+            byte blackValue = (byte)(isWhiteZero ? 1 : 0);
 
             using var bitReader = new T4BitReader(stream, byteCount, this.Allocator);
 
@@ -42,12 +42,12 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                 {
                     if (bitReader.IsWhiteRun)
                     {
-                        this.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, whiteValue);
+                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, whiteValue);
                         bitsWritten += bitReader.RunLength;
                     }
                     else
                     {
-                        this.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, blackValue);
+                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, blackValue);
                         bitsWritten += bitReader.RunLength;
                     }
                 }
@@ -58,36 +58,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                     uint pad = 8 - (bitsWritten % 8);
                     if (pad != 8)
                     {
-                        this.WriteBits(buffer, (int)bitsWritten, pad, 0);
+                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, pad, 0);
                         bitsWritten += pad;
                     }
                 }
             }
-        }
-
-        protected void WriteBits(Span<byte> buffer, int pos, uint count, int value)
-        {
-            int bitPos = pos % 8;
-            int bufferPos = pos / 8;
-            int startIdx = bufferPos + bitPos;
-            int endIdx = (int)(startIdx + count);
-
-            for (int i = startIdx; i < endIdx; i++)
-            {
-                this.WriteBit(buffer, bufferPos, bitPos, value);
-
-                bitPos++;
-                if (bitPos >= 8)
-                {
-                    bitPos = 0;
-                    bufferPos++;
-                }
-            }
-        }
-
-        protected void WriteBit(Span<byte> buffer, int bufferPos, int bitPos, int value)
-        {
-            buffer[bufferPos] |= (byte)(value << (7 - bitPos));
         }
     }
 }

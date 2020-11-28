@@ -19,22 +19,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             var CMax4 = new Vector4(maximum);
             var COff4 = new Vector4(MathF.Ceiling(maximum / 2));
 
-            this.V0L = Vector4Utilities.FastClamp(this.V0L + COff4, CMin4, CMax4);
-            this.V0R = Vector4Utilities.FastClamp(this.V0R + COff4, CMin4, CMax4);
-            this.V1L = Vector4Utilities.FastClamp(this.V1L + COff4, CMin4, CMax4);
-            this.V1R = Vector4Utilities.FastClamp(this.V1R + COff4, CMin4, CMax4);
-            this.V2L = Vector4Utilities.FastClamp(this.V2L + COff4, CMin4, CMax4);
-            this.V2R = Vector4Utilities.FastClamp(this.V2R + COff4, CMin4, CMax4);
-            this.V3L = Vector4Utilities.FastClamp(this.V3L + COff4, CMin4, CMax4);
-            this.V3R = Vector4Utilities.FastClamp(this.V3R + COff4, CMin4, CMax4);
-            this.V4L = Vector4Utilities.FastClamp(this.V4L + COff4, CMin4, CMax4);
-            this.V4R = Vector4Utilities.FastClamp(this.V4R + COff4, CMin4, CMax4);
-            this.V5L = Vector4Utilities.FastClamp(this.V5L + COff4, CMin4, CMax4);
-            this.V5R = Vector4Utilities.FastClamp(this.V5R + COff4, CMin4, CMax4);
-            this.V6L = Vector4Utilities.FastClamp(this.V6L + COff4, CMin4, CMax4);
-            this.V6R = Vector4Utilities.FastClamp(this.V6R + COff4, CMin4, CMax4);
-            this.V7L = Vector4Utilities.FastClamp(this.V7L + COff4, CMin4, CMax4);
-            this.V7R = Vector4Utilities.FastClamp(this.V7R + COff4, CMin4, CMax4);
+            this.V0L = Numerics.Clamp(this.V0L + COff4, CMin4, CMax4);
+            this.V0R = Numerics.Clamp(this.V0R + COff4, CMin4, CMax4);
+            this.V1L = Numerics.Clamp(this.V1L + COff4, CMin4, CMax4);
+            this.V1R = Numerics.Clamp(this.V1R + COff4, CMin4, CMax4);
+            this.V2L = Numerics.Clamp(this.V2L + COff4, CMin4, CMax4);
+            this.V2R = Numerics.Clamp(this.V2R + COff4, CMin4, CMax4);
+            this.V3L = Numerics.Clamp(this.V3L + COff4, CMin4, CMax4);
+            this.V3R = Numerics.Clamp(this.V3R + COff4, CMin4, CMax4);
+            this.V4L = Numerics.Clamp(this.V4L + COff4, CMin4, CMax4);
+            this.V4R = Numerics.Clamp(this.V4R + COff4, CMin4, CMax4);
+            this.V5L = Numerics.Clamp(this.V5L + COff4, CMin4, CMax4);
+            this.V5R = Numerics.Clamp(this.V5R + COff4, CMin4, CMax4);
+            this.V6L = Numerics.Clamp(this.V6L + COff4, CMin4, CMax4);
+            this.V6R = Numerics.Clamp(this.V6R + COff4, CMin4, CMax4);
+            this.V7L = Numerics.Clamp(this.V7L + COff4, CMin4, CMax4);
+            this.V7R = Numerics.Clamp(this.V7R + COff4, CMin4, CMax4);
         }
 
         /// <summary>

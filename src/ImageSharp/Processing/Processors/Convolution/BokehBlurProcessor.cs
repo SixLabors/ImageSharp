@@ -1,6 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
@@ -77,5 +82,56 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : unmanaged, IPixel<TPixel>
             => new BokehBlurProcessor<TPixel>(configuration, this, source, sourceRectangle);
+
+        /// <summary>
+        /// A <see langword="struct"/> implementing the horizontal convolution logic for <see cref="BokehBlurProcessor{T}"/>.
+        /// </summary>
+        /// <remarks>
+        /// This type is located in the non-generic <see cref="BokehBlurProcessor"/> class and not in <see cref="BokehBlurProcessor{TPixel}"/>, where
+        /// it is actually used, because it does not use any generic parameters internally. Defining in a non-generic class means that there will only
+        /// ever be a single instantiation of this type for the JIT/AOT compilers to process, instead of having duplicate versions for each pixel type.
+        /// </remarks>
+        internal readonly struct ApplyHorizontalConvolutionRowOperation : IRowOperation
+        {
+            private readonly Rectangle bounds;
+            private readonly Buffer2D<Vector4> targetValues;
+            private readonly Buffer2D<ComplexVector4> sourceValues;
+            private readonly Complex64[] kernel;
+            private readonly float z;
+            private readonly float w;
+            private readonly int maxY;
+            private readonly int maxX;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public ApplyHorizontalConvolutionRowOperation(
+                Rectangle bounds,
+                Buffer2D<Vector4> targetValues,
+                Buffer2D<ComplexVector4> sourceValues,
+                Complex64[] kernel,
+                float z,
+                float w)
+            {
+                this.bounds = bounds;
+                this.maxY = this.bounds.Bottom - 1;
+                this.maxX = this.bounds.Right - 1;
+                this.targetValues = targetValues;
+                this.sourceValues = sourceValues;
+                this.kernel = kernel;
+                this.z = z;
+                this.w = w;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(int y)
+            {
+                Span<Vector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
+
+                for (int x = 0; x < this.bounds.Width; x++)
+                {
+                    Buffer2DUtils.Convolve4AndAccumulatePartials(this.kernel, this.sourceValues, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX, this.z, this.w);
+                }
+            }
+        }
     }
 }

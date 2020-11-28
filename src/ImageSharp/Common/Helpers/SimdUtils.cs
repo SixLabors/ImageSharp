@@ -313,7 +313,7 @@ namespace SixLabors.ImageSharp
         {
             DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
             DebugGuard.IsTrue(
-                ImageMaths.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
+                Numerics.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
                 nameof(source),
                 $"length should be divisible by {shouldBeDivisibleBy}!");
         }

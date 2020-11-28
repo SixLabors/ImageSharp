@@ -802,7 +802,7 @@ namespace SixLabors.ImageSharp
 
                 if (Avx2.IsSupported)
                 {
-                    int remainder = ImageMaths.ModuloP2(channel1.Length, Vector256<byte>.Count);
+                    int remainder = Numerics.ModuloP2(channel1.Length, Vector256<byte>.Count);
                     int adjustedCount = channel1.Length - remainder;
 
                     if (adjustedCount > 0)
@@ -888,7 +888,7 @@ namespace SixLabors.ImageSharp
 
                 if (Avx2.IsSupported)
                 {
-                    int remainder = ImageMaths.ModuloP2(channel0.Length, Vector256<byte>.Count);
+                    int remainder = Numerics.ModuloP2(channel0.Length, Vector256<byte>.Count);
                     int adjustedCount = channel0.Length - remainder;
 
                     if (adjustedCount > 0)

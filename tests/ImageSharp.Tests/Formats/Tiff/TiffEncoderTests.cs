@@ -78,14 +78,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, TiffEncoderCompression.Deflate);
 
         [Theory]
-        [WithFile(TestImages.Tiff.Calliphora_HuffmanCompressed, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.BiColor);
 
         [Theory]
-        [WithFile(TestImages.Tiff.Calliphora_HuffmanCompressed, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.BiColor, TiffEncoderCompression.Deflate);
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeBiColor_WithCcittGroup3FaxCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.BiColor, TiffEncoderCompression.CcittGroup3Fax);
 
         private static void TestTiffEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,

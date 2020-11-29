@@ -98,6 +98,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 {
                     this.Mode = TiffEncodingMode.Gray;
                 }
+                else if (this.bitsPerPixel == TiffBitsPerPixel.Pixel1)
+                {
+                    this.Mode = TiffEncodingMode.BiColor;
+                }
             }
 
             this.SetPhotometricInterpretation();
@@ -341,7 +345,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     this.PhotometricInterpretation = TiffPhotometricInterpretation.PaletteColor;
                     break;
                 case TiffEncodingMode.BiColor:
-                    if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax)
+                    if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax || this.CompressionType == TiffEncoderCompression.ModifiedHuffman)
                     {
                         // The “normal” PhotometricInterpretation for bilevel CCITT compressed data is WhiteIsZero.
                         this.PhotometricInterpretation = TiffPhotometricInterpretation.WhiteIsZero;
@@ -429,6 +433,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax && this.Mode == TiffEncodingMode.BiColor)
             {
                 return (ushort)TiffCompression.CcittGroup3Fax;
+            }
+
+            if (this.CompressionType == TiffEncoderCompression.ModifiedHuffman && this.Mode == TiffEncodingMode.BiColor)
+            {
+                return (ushort)TiffCompression.Ccitt1D;
             }
 
             return (ushort)TiffCompression.None;

@@ -9,6 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     public enum TiffBitsPerPixel
     {
         /// <summary>
+        /// 1 bits per pixel, bi-color image. Each pixel consists of 1 bit.
+        /// </summary>
+        Pixel1 = 1,
+
+        /// <summary>
         /// 8 bits per pixel, grayscale image. Each pixel consists of 1 byte.
         /// </summary>
         Pixel8 = 8,

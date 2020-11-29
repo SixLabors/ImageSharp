@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -80,7 +82,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// Gets or sets the compression implementation to use when decoding the image.
         /// </summary>
-        public TiffCompressionType CompressionType { get; set; }
+        public TiffDecoderCompressionType CompressionType { get; set; }
 
         /// <summary>
         /// Gets or sets the planar configuration type to use when decoding the image.

@@ -1,28 +1,27 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 {
     internal static class TiffCompressionFactory
     {
-        public static TiffBaseCompression Create(TiffCompressionType compressionType, MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
+        public static TiffBaseCompression Create(TiffDecoderCompressionType compressionType, MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
         {
             switch (compressionType)
             {
-                case TiffCompressionType.None:
+                case TiffDecoderCompressionType.None:
                     return new NoneTiffCompression(allocator);
-                case TiffCompressionType.PackBits:
+                case TiffDecoderCompressionType.PackBits:
                     return new PackBitsTiffCompression(allocator);
-                case TiffCompressionType.Deflate:
+                case TiffDecoderCompressionType.Deflate:
                     return new DeflateTiffCompression(allocator);
-                case TiffCompressionType.Lzw:
+                case TiffDecoderCompressionType.Lzw:
                     return new LzwTiffCompression(allocator);
-                case TiffCompressionType.T4:
+                case TiffDecoderCompressionType.T4:
                     return new T4TiffCompression(allocator, photometricInterpretation, width);
-                case TiffCompressionType.HuffmanRle:
+                case TiffDecoderCompressionType.HuffmanRle:
                     return new ModifiedHuffmanTiffCompression(allocator, photometricInterpretation, width);
                 default:
                     throw TiffThrowHelper.NotSupportedCompression(nameof(compressionType));

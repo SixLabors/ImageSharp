@@ -3,8 +3,7 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
-using SixLabors.ImageSharp.Formats.Tiff;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
@@ -22,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             using (Stream stream = CreateCompressedStream(data))
             {
-                byte[] buffer = new byte[data.Length];
+                var buffer = new byte[data.Length];
 
                 new DeflateTiffCompression(null).Decompress(stream, (int)stream.Length, buffer);
 

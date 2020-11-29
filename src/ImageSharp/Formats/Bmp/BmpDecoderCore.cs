@@ -1385,7 +1385,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     {
                         case BmpFileMarkerType.Bitmap:
                             colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
-                            int colorCountForBitDepth = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
+                            int colorCountForBitDepth = ColorNumerics.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
                             bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;
 
                             // Edge case for less-than-full-sized palette: bytesPerColorMapEntry should be at least 3.
@@ -1399,7 +1399,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                         case BmpFileMarkerType.Pointer:
                             // OS/2 bitmaps always have 3 colors per color palette entry.
                             bytesPerColorMapEntry = 3;
-                            colorMapSizeBytes = ImageMaths.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel) * bytesPerColorMapEntry;
+                            colorMapSizeBytes = ColorNumerics.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel) * bytesPerColorMapEntry;
                             break;
                     }
                 }

@@ -3,6 +3,7 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using Xunit;
 

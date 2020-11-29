@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -323,38 +324,38 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             {
                 case TiffCompression.None:
                 {
-                    options.CompressionType = TiffCompressionType.None;
+                    options.CompressionType = TiffDecoderCompressionType.None;
                     break;
                 }
 
                 case TiffCompression.PackBits:
                 {
-                    options.CompressionType = TiffCompressionType.PackBits;
+                    options.CompressionType = TiffDecoderCompressionType.PackBits;
                     break;
                 }
 
                 case TiffCompression.Deflate:
                 case TiffCompression.OldDeflate:
                 {
-                    options.CompressionType = TiffCompressionType.Deflate;
+                    options.CompressionType = TiffDecoderCompressionType.Deflate;
                     break;
                 }
 
                 case TiffCompression.Lzw:
                 {
-                    options.CompressionType = TiffCompressionType.Lzw;
+                    options.CompressionType = TiffDecoderCompressionType.Lzw;
                     break;
                 }
 
                 case TiffCompression.CcittGroup3Fax:
                 {
-                    options.CompressionType = TiffCompressionType.T4;
+                    options.CompressionType = TiffDecoderCompressionType.T4;
                     break;
                 }
 
                 case TiffCompression.Ccitt1D:
                 {
-                    options.CompressionType = TiffCompressionType.HuffmanRle;
+                    options.CompressionType = TiffDecoderCompressionType.HuffmanRle;
                     break;
                 }
 

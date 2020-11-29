@@ -629,10 +629,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             var transform = new Vp8LTransform(transformType, xSize, ySize);
 
             // Each transform is allowed to be used only once.
-            // TODO: No Linq, avoid 'transform' closure allocation.
-            if (decoder.Transforms.Any(t => t.TransformType == transform.TransformType))
+            foreach (Vp8LTransform decoderTransform in decoder.Transforms)
             {
-                WebPThrowHelper.ThrowImageFormatException("Each transform can only be present once");
+                if (decoderTransform.TransformType == transform.TransformType)
+                {
+                    WebPThrowHelper.ThrowImageFormatException("Each transform can only be present once");
+                }
             }
 
             switch (transformType)

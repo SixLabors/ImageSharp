@@ -35,7 +35,7 @@ namespace SixLabors.ImageSharp
                     return;
                 }
 
-                int remainder = ImageMaths.Modulo8(source.Length);
+                int remainder = Numerics.Modulo8(source.Length);
                 int adjustedCount = source.Length - remainder;
 
                 if (adjustedCount > 0)
@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp
                     return;
                 }
 
-                int remainder = ImageMaths.Modulo8(source.Length);
+                int remainder = Numerics.Modulo8(source.Length);
                 int adjustedCount = source.Length - remainder;
 
                 if (adjustedCount > 0)

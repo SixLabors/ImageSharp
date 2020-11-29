@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             Guard.MustBeGreaterThan(palette.Length, 0, nameof(palette));
             Guard.NotNull(dither, nameof(dither));
             this.Dither = dither;
-            this.DitherScale = ditherScale.Clamp(QuantizerConstants.MinDitherScale, QuantizerConstants.MaxDitherScale);
+            this.DitherScale = Numerics.Clamp(ditherScale, QuantizerConstants.MinDitherScale, QuantizerConstants.MaxDitherScale);
             this.Palette = palette;
         }
 

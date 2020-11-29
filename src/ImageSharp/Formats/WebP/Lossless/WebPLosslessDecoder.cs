@@ -381,9 +381,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 int huffmanXSize = LosslessUtils.SubSampleSize(xSize, huffmanPrecision);
                 int huffmanYSize = LosslessUtils.SubSampleSize(ySize, huffmanPrecision);
                 int huffmanPixels = huffmanXSize * huffmanYSize;
+
                 IMemoryOwner<uint> huffmanImage = this.DecodeImageStream(decoder, huffmanXSize, huffmanYSize, false);
                 Span<uint> huffmanImageSpan = huffmanImage.GetSpan();
                 decoder.Metadata.HuffmanSubSampleBits = huffmanPrecision;
+
+                // TODO: Isn't huffmanPixels the length of the span?
                 for (int i = 0; i < huffmanPixels; ++i)
                 {
                     // The huffman data is stored in red and green bytes.
@@ -440,7 +443,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                         WebPThrowHelper.ThrowImageFormatException("Huffman table size is zero");
                     }
 
-                    hTreeGroup.HTrees.Add(huffmanTable.ToArray());
+                    // TODO: Avoid allocation.
+                    hTreeGroup.HTrees.Add(huffmanTable.Slice(0, size).ToArray());
 
                     HuffmanCode huffTableZero = huffmanTable[0];
                     if (isTrivialLiteral && LiteralMap[j] == 1)
@@ -472,10 +476,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 hTreeGroup.IsTrivialCode = false;
                 if (isTrivialLiteral)
                 {
-                    uint red = hTreeGroup.HTrees[HuffIndex.Red].First().Value;
-                    uint blue = hTreeGroup.HTrees[HuffIndex.Blue].First().Value;
-                    uint green = hTreeGroup.HTrees[HuffIndex.Green].First().Value;
-                    uint alpha = hTreeGroup.HTrees[HuffIndex.Alpha].First().Value;
+                    uint red = hTreeGroup.HTrees[HuffIndex.Red][0].Value;
+                    uint blue = hTreeGroup.HTrees[HuffIndex.Blue][0].Value;
+                    uint green = hTreeGroup.HTrees[HuffIndex.Green][0].Value;
+                    uint alpha = hTreeGroup.HTrees[HuffIndex.Alpha][0].Value;
                     hTreeGroup.LiteralArb = (alpha << 24) | (red << 16) | blue;
                     if (totalSize == 0 && green < WebPConstants.NumLiteralCodes)
                     {
@@ -542,7 +546,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                     codeLengthCodeLengths[CodeLengthCodeOrder[i]] = (int)this.bitReader.ReadValue(3);
                 }
 
-                this.ReadHuffmanCodeLengths(table.ToArray(), codeLengthCodeLengths, alphabetSize, codeLengths);
+                this.ReadHuffmanCodeLengths(table, codeLengthCodeLengths, alphabetSize, codeLengths);
             }
 
             int size = HuffmanUtils.BuildHuffmanTable(table, HuffmanUtils.HuffmanTableBits, codeLengths, alphabetSize);
@@ -550,7 +554,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             return size;
         }
 
-        private void ReadHuffmanCodeLengths(HuffmanCode[] table, int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
+        private void ReadHuffmanCodeLengths(Span<HuffmanCode> table, int[] codeLengthCodeLengths, int numSymbols, int[] codeLengths)
         {
             int maxSymbol;
             int symbol = 0;
@@ -580,7 +584,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 
                 this.bitReader.FillBitWindow();
                 ulong prefetchBits = this.bitReader.PrefetchBits();
-                ulong idx = prefetchBits & 127;
+                int idx = (int)(prefetchBits & 127);
                 HuffmanCode huffmanCode = table[idx];
                 this.bitReader.AdvanceBitPosition(huffmanCode.BitsUsed);
                 uint codeLen = huffmanCode.Value;
@@ -625,9 +629,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             var transform = new Vp8LTransform(transformType, xSize, ySize);
 
             // Each transform is allowed to be used only once.
-            if (decoder.Transforms.Any(t => t.TransformType == transform.TransformType))
+            foreach (Vp8LTransform decoderTransform in decoder.Transforms)
             {
-                WebPThrowHelper.ThrowImageFormatException("Each transform can only be present once");
+                if (decoderTransform.TransformType == transform.TransformType)
+                {
+                    WebPThrowHelper.ThrowImageFormatException("Each transform can only be present once");
+                }
             }
 
             switch (transformType)

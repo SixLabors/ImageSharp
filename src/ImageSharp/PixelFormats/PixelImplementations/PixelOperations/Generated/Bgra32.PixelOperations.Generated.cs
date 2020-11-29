@@ -21,14 +21,13 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal partial class PixelOperations : PixelOperations<Bgra32>
         {
-            
-            /// <inheritdoc />
+                        /// <inheritdoc />
             public override void FromBgra32(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<Bgra32> destinationPixels)
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
 
-                source.CopyTo(destinationPixels);
+                source.CopyTo(destinationPixels.Slice(0, source.Length));
             }
 
             /// <inheritdoc />
@@ -37,9 +36,8 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
 
-                sourcePixels.CopyTo(destinationPixels);
+                sourcePixels.CopyTo(destinationPixels.Slice(0, sourcePixels.Length));
             }
-
             /// <inheritdoc />
             public override void FromVector4Destructive(
                 Configuration configuration,
@@ -59,7 +57,6 @@ namespace SixLabors.ImageSharp.PixelFormats
             {
                 Vector4Converters.RgbaCompatible.ToVector4(configuration, this, sourcePixels, destVectors, modifiers.Remove(PixelConversionModifiers.Scale));
             }
-
             /// <inheritdoc />
             public override void ToRgba32(
                 Configuration configuration,
@@ -87,7 +84,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<byte> dest = MemoryMarshal.Cast<Bgra32, byte>(destinationPixels);
                 PixelConverter.FromRgba32.ToBgra32(source, dest);
             }
-
             /// <inheritdoc />
             public override void ToArgb32(
                 Configuration configuration,
@@ -115,7 +111,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<byte> dest = MemoryMarshal.Cast<Bgra32, byte>(destinationPixels);
                 PixelConverter.FromArgb32.ToBgra32(source, dest);
             }
-
             /// <inheritdoc />
             public override void ToRgb24(
                 Configuration configuration,
@@ -143,7 +138,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<byte> dest = MemoryMarshal.Cast<Bgra32, byte>(destinationPixels);
                 PixelConverter.FromRgb24.ToBgra32(source, dest);
             }
-
             /// <inheritdoc />
             public override void ToBgr24(
                 Configuration configuration,
@@ -171,7 +165,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Span<byte> dest = MemoryMarshal.Cast<Bgra32, byte>(destinationPixels);
                 PixelConverter.FromBgr24.ToBgra32(source, dest);
             }
-
             /// <inheritdoc />
             public override void ToL8(
                 Configuration configuration,
@@ -192,7 +185,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromBgra32(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToL16(
                 Configuration configuration,
@@ -213,7 +205,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromBgra32(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToLa16(
                 Configuration configuration,
@@ -234,7 +225,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromBgra32(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToLa32(
                 Configuration configuration,
@@ -255,7 +245,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromBgra32(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToRgb48(
                 Configuration configuration,
@@ -276,7 +265,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromBgra32(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToRgba64(
                 Configuration configuration,
@@ -297,7 +285,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromBgra32(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToBgra5551(
                 Configuration configuration,
@@ -318,14 +305,13 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromBgra32(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void From<TSourcePixel>(
                 Configuration configuration,
                 ReadOnlySpan<TSourcePixel> sourcePixels,
                 Span<Bgra32> destinationPixels)
             {
-                PixelOperations<TSourcePixel>.Instance.ToBgra32(configuration, sourcePixels, destinationPixels);
+                PixelOperations<TSourcePixel>.Instance.ToBgra32(configuration, sourcePixels, destinationPixels.Slice(0, sourcePixels.Length));
             }
 
         }

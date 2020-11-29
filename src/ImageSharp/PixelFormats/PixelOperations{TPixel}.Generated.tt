@@ -48,7 +48,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void From<#=pixelType#>Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
         {
-            this.From<#=pixelType#>(configuration, MemoryMarshal.Cast<byte, <#=pixelType#>>(sourceBytes).Slice(0, count), destinationPixels.Slice(0, count));
+            this.From<#=pixelType#>(configuration, MemoryMarshal.Cast<byte, <#=pixelType#>>(sourceBytes).Slice(0, count), destinationPixels);
         }
 
 <#
@@ -90,7 +90,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void To<#=pixelType#>Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
         {
-            this.To<#=pixelType#>(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, <#=pixelType#>>(destBytes.Slice(0, count)));
+            this.To<#=pixelType#>(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, <#=pixelType#>>(destBytes));
         }
 <#
     }

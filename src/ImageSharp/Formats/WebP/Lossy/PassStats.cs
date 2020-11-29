@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             this.Dq = 10.0f;
             this.Qmin = qMin;
             this.Qmax = qMax;
-            this.Q = quality.Clamp(qMin, qMax);
+            this.Q = Numerics.Clamp(quality, qMin, qMax);
             this.LastQ = this.Q;
             this.Target = doSizeSearch ? targetSize
                 : (targetPsnr > 0.0f) ? targetPsnr
@@ -65,10 +65,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             }
 
             // Limit variable to avoid large swings.
-            this.Dq = dq.Clamp(-30.0f, 30.0f);
+            this.Dq = Numerics.Clamp(dq, -30.0f, 30.0f);
             this.LastQ = this.Q;
             this.LastValue = this.Value;
-            this.Q = (this.Q + this.Dq).Clamp(this.Qmin, this.Qmax);
+            this.Q = Numerics.Clamp(this.Q + this.Dq, this.Qmin, this.Qmax);
 
             return this.Q;
         }

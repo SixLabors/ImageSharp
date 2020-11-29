@@ -68,8 +68,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             var pixelCount = width * height;
             int initialSize = pixelCount * 2;
 
-            this.quality = quality.Clamp(0, 100);
-            this.method = method.Clamp(0, 6);
+            this.quality = Numerics.Clamp(quality, 0, 100);
+            this.method = Numerics.Clamp(method, 0, 6);
             this.bitWriter = new Vp8LBitWriter(initialSize);
             this.Bgra = memoryAllocator.Allocate<uint>(pixelCount);
             this.Palette = memoryAllocator.Allocate<uint>(WebPConstants.MaxPaletteSize);

@@ -99,7 +99,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             this.AppendRotationDegrees(builder, degrees);
 
             // TODO: We should also test CreateRotationMatrixDegrees() (and all TransformUtils stuff!) for correctness
-            Matrix3x2 matrix = TransformUtilities.CreateRotationMatrixDegrees(degrees, size);
+            Matrix3x2 matrix = TransformUtils.CreateRotationMatrixDegrees(degrees, size);
 
             var position = new Vector2(x, y);
             var expected = Vector2.Transform(position, matrix);
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
 
             this.AppendSkewDegrees(builder, degreesX, degreesY);
 
-            Matrix3x2 matrix = TransformUtilities.CreateSkewMatrixDegrees(degreesX, degreesY, size);
+            Matrix3x2 matrix = TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size);
 
             var position = new Vector2(x, y);
             var expected = Vector2.Transform(position, matrix);

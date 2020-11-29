@@ -189,6 +189,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         [WithFile(Lossy.Alpha2, PixelTypes.Rgba32)]
         [WithFile(Lossy.Alpha3, PixelTypes.Rgba32)]
         [WithFile(Lossy.AlphaThinkingSmiley, PixelTypes.Rgba32)]
+        [WithFile(Lossy.AlphaSticker, PixelTypes.Rgba32)]
         public void WebpDecoder_CanDecode_Lossy_WithAlpha<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

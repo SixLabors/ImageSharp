@@ -140,9 +140,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             this.Width = width;
             this.Height = height;
             this.memoryAllocator = memoryAllocator;
-            this.quality = quality.Clamp(0, 100);
-            this.method = method.Clamp(0, 6);
-            this.entropyPasses = entropyPasses.Clamp(1, 10);
+            this.quality = Numerics.Clamp(quality, 0, 100);
+            this.method = Numerics.Clamp(method, 0, 6);
+            this.entropyPasses = Numerics.Clamp(entropyPasses, 1, 10);
             this.rdOptLevel = (method >= 6) ? Vp8RdLevel.RdOptTrellisAll
                 : (method >= 5) ? Vp8RdLevel.RdOptTrellis
                 : (method >= 3) ? Vp8RdLevel.RdOptBasic
@@ -819,7 +819,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 this.segmentHeader.UpdateMap = (probas[0] != 255) || (probas[1] != 255) || (probas[2] != 255);
                 if (!this.segmentHeader.UpdateMap)
                 {
-                   this.ResetSegments();
+                    this.ResetSegments();
                 }
 
                 this.segmentHeader.Size = (p[0] * (LossyUtils.Vp8BitCost(0, probas[0]) + LossyUtils.Vp8BitCost(0, probas[1]))) +

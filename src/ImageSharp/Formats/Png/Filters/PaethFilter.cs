@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 ++x;
                 ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
                 res = (byte)(scan - PaethPredictor(0, above, 0));
-                sum += ImageMaths.FastAbs(unchecked((sbyte)res));
+                sum += Numerics.Abs(unchecked((sbyte)res));
             }
 
             for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 ++x;
                 ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
                 res = (byte)(scan - PaethPredictor(left, above, upperLeft));
-                sum += ImageMaths.FastAbs(unchecked((sbyte)res));
+                sum += Numerics.Abs(unchecked((sbyte)res));
             }
 
             sum -= 4;
@@ -111,9 +111,9 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
         private static byte PaethPredictor(byte left, byte above, byte upperLeft)
         {
             int p = left + above - upperLeft;
-            int pa = ImageMaths.FastAbs(p - left);
-            int pb = ImageMaths.FastAbs(p - above);
-            int pc = ImageMaths.FastAbs(p - upperLeft);
+            int pa = Numerics.Abs(p - left);
+            int pb = Numerics.Abs(p - above);
+            int pc = Numerics.Abs(p - upperLeft);
 
             if (pa <= pb && pa <= pc)
             {

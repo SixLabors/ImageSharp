@@ -641,6 +641,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string AlphaNoCompressionGradientFilter = "WebP/alpha_filter_3_method_0.webp";
                 public const string AlphaCompressedGradientFilter = "WebP/alpha_filter_3_method_1.webp";
                 public const string AlphaThinkingSmiley = "WebP/1602311202.webp";
+                public const string AlphaSticker = "WebP/sticker.webp";
             }
         }
     }

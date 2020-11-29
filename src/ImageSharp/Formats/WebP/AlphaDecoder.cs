@@ -261,8 +261,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
             // Extract alpha (which is stored in the green plane).
             int pixelCount = width * numRowsToProcess;
             WebPLosslessDecoder.ApplyInverseTransforms(dec, input, this.memoryAllocator);
-            this.AlphaApplyFilter(0, numRowsToProcess, output, width);
             ExtractGreen(input, output, pixelCount);
+            this.AlphaApplyFilter(0, numRowsToProcess, output, width);
         }
 
         private static void ColorIndexInverseTransformAlpha(

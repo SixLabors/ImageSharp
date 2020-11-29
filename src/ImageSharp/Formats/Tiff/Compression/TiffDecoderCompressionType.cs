@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 {
     /// <summary>
-    /// Provides enumeration of the various TIFF compression types.
+    /// Provides enumeration of the various TIFF compression types the decoder can handle.
     /// </summary>
-    internal enum TiffCompressionType
+    internal enum TiffDecoderCompressionType
     {
         /// <summary>
         /// Image data is stored uncompressed in the TIFF file.

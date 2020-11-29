@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 {
     /// <summary>
     /// Base tiff decompressor class.

@@ -444,7 +444,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                     }
 
                     // TODO: Avoid allocation.
-                    hTreeGroup.HTrees.Add(huffmanTable.ToArray());
+                    hTreeGroup.HTrees.Add(huffmanTable.Slice(0, size).ToArray());
 
                     HuffmanCode huffTableZero = huffmanTable[0];
                     if (isTrivialLiteral && LiteralMap[j] == 1)

@@ -21,14 +21,13 @@ namespace SixLabors.ImageSharp.PixelFormats
         /// </summary>
         internal partial class PixelOperations : PixelOperations<L16>
         {
-            
-            /// <inheritdoc />
+                        /// <inheritdoc />
             public override void FromL16(Configuration configuration, ReadOnlySpan<L16> source, Span<L16> destinationPixels)
             {
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
 
-                source.CopyTo(destinationPixels);
+                source.CopyTo(destinationPixels.Slice(0, source.Length));
             }
 
             /// <inheritdoc />
@@ -37,9 +36,8 @@ namespace SixLabors.ImageSharp.PixelFormats
                 Guard.NotNull(configuration, nameof(configuration));
                 Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
 
-                sourcePixels.CopyTo(destinationPixels);
+                sourcePixels.CopyTo(destinationPixels.Slice(0, sourcePixels.Length));
             }
-
             /// <inheritdoc />
             public override void ToArgb32(
                 Configuration configuration,
@@ -60,7 +58,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromL16(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToBgr24(
                 Configuration configuration,
@@ -81,7 +78,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromL16(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToBgra32(
                 Configuration configuration,
@@ -102,7 +98,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromL16(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToL8(
                 Configuration configuration,
@@ -123,7 +118,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromL16(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToLa16(
                 Configuration configuration,
@@ -144,7 +138,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromL16(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToLa32(
                 Configuration configuration,
@@ -165,7 +158,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromL16(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToRgb24(
                 Configuration configuration,
@@ -186,7 +178,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromL16(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToRgba32(
                 Configuration configuration,
@@ -207,7 +198,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromL16(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToRgb48(
                 Configuration configuration,
@@ -228,7 +218,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromL16(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToRgba64(
                 Configuration configuration,
@@ -249,7 +238,6 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromL16(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void ToBgra5551(
                 Configuration configuration,
@@ -270,14 +258,13 @@ namespace SixLabors.ImageSharp.PixelFormats
                     dp.FromL16(sp);
                 }
             }
-
             /// <inheritdoc />
             public override void From<TSourcePixel>(
                 Configuration configuration,
                 ReadOnlySpan<TSourcePixel> sourcePixels,
                 Span<L16> destinationPixels)
             {
-                PixelOperations<TSourcePixel>.Instance.ToL16(configuration, sourcePixels, destinationPixels);
+                PixelOperations<TSourcePixel>.Instance.ToL16(configuration, sourcePixels, destinationPixels.Slice(0, sourcePixels.Length));
             }
 
         }

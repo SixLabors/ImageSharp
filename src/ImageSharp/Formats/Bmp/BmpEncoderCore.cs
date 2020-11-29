@@ -262,7 +262,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write24Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 3))
+            int width = pixels.Width;
+            int rowBytesWithoutPadding = width * 3;
+            using (IManagedByteBuffer row = this.AllocateRow(width, 3))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
@@ -270,8 +272,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     PixelOperations<TPixel>.Instance.ToBgr24Bytes(
                         this.configuration,
                         pixelSpan,
-                        row.GetSpan(),
-                        pixelSpan.Length);
+                        row.Slice(0, rowBytesWithoutPadding),
+                        width);
                     stream.Write(row.Array, 0, row.Length());
                 }
             }
@@ -286,7 +288,9 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private void Write16Bit<TPixel>(Stream stream, Buffer2D<TPixel> pixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (IManagedByteBuffer row = this.AllocateRow(pixels.Width, 2))
+            int width = pixels.Width;
+            int rowBytesWithoutPadding = width * 2;
+            using (IManagedByteBuffer row = this.AllocateRow(width, 2))
             {
                 for (int y = pixels.Height - 1; y >= 0; y--)
                 {
@@ -295,7 +299,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
                         this.configuration,
                         pixelSpan,
-                        row.GetSpan(),
+                        row.Slice(0, rowBytesWithoutPadding),
                         pixelSpan.Length);
 
                     stream.Write(row.Array, 0, row.Length());
@@ -341,7 +345,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
 
             ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
-            PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, quantizedColors, MemoryMarshal.Cast<byte, Bgra32>(colorPalette));
+            var quantizedColorBytes = quantizedColors.Length * 4;
+            PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, quantizedColors, MemoryMarshal.Cast<byte, Bgra32>(colorPalette.Slice(0, quantizedColorBytes)));
             Span<uint> colorPaletteAsUInt = MemoryMarshal.Cast<byte, uint>(colorPalette);
             for (int i = 0; i < colorPaletteAsUInt.Length; i++)
             {

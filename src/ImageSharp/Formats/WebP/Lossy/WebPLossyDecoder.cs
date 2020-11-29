@@ -55,14 +55,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             sbyte colorSpace = (sbyte)this.bitReader.ReadValue(1);
             sbyte clampType = (sbyte)this.bitReader.ReadValue(1);
             var pictureHeader = new Vp8PictureHeader()
-                                   {
-                                       Width = (uint)width,
-                                       Height = (uint)height,
-                                       XScale = info.XScale,
-                                       YScale = info.YScale,
-                                       ColorSpace = colorSpace,
-                                       ClampType = clampType
-                                   };
+            {
+                Width = (uint)width,
+                Height = (uint)height,
+                XScale = info.XScale,
+                YScale = info.YScale,
+                ColorSpace = colorSpace,
+                ClampType = clampType
+            };
 
             // Paragraph 9.3: Parse the segment header.
             var proba = new Vp8Proba();
@@ -135,10 +135,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             Span<byte> alphaSpan = alpha.Memory.Span;
             for (int y = 0; y < height; y++)
             {
+                // TODO: Can we use span.Length here?
                 int yMulWidth = y * width;
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y);
                 for (int x = 0; x < width; x++)
                 {
+                    // TODO: Could use cast to Bgr24/Bgra32 then set alpha.
                     int offset = yMulWidth + x;
                     int idxBgr = offset * 3;
                     byte b = pixelData[idxBgr];
@@ -165,9 +167,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                     this.ParseIntraMode(dec, mbX);
                 }
 
-                for (; dec.MbX < dec.MbWidth; ++dec.MbX)
+                while (dec.MbX < dec.MbWidth)
                 {
                     this.DecodeMacroBlock(dec, bitreader);
+                    ++dec.MbX;
                 }
 
                 // Prepare for next scanline.

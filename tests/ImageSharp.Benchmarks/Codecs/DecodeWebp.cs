@@ -5,7 +5,7 @@ using System.IO;
 using BenchmarkDotNet.Attributes;
 
 using ImageMagick;
-
+using SixLabors.ImageSharp.Formats.Experimental.WebP;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 
@@ -14,6 +14,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
     [Config(typeof(Config.ShortClr))]
     public class DecodeWebp : BenchmarkBase
     {
+        private Configuration configuration;
+
         private byte[] webpLossyBytes;
 
         private byte[] webpLosslessBytes;
@@ -31,6 +33,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [GlobalSetup]
         public void ReadImages()
         {
+            this.configuration = Configuration.CreateDefaultInstance();
+            new WebPConfigurationModule().Configure(this.configuration);
+
             this.webpLossyBytes ??= File.ReadAllBytes(this.TestImageLossyFullPath);
             this.webpLosslessBytes ??= File.ReadAllBytes(this.TestImageLosslessFullPath);
         }
@@ -47,7 +52,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public int WebpLossy()
         {
             using var memoryStream = new MemoryStream(this.webpLossyBytes);
-            using var image = Image.Load<Rgba32>(memoryStream);
+            using var image = Image.Load<Rgba32>(this.configuration, memoryStream);
             return image.Height;
         }
 
@@ -63,7 +68,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public int WebpLossless()
         {
             using var memoryStream = new MemoryStream(this.webpLosslessBytes);
-            using var image = Image.Load<Rgba32>(memoryStream);
+            using var image = Image.Load<Rgba32>(this.configuration, memoryStream);
             return image.Height;
         }
 

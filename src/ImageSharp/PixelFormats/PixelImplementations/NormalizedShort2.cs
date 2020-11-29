@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [-1, -1, 0, 1] to [1, 1, 0, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector<uint>
+    public partial struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector<uint>
     {
         private static readonly Vector2 Max = new Vector2(0x7FFF);
         private static readonly Vector2 Min = Vector2.Negate(Max);
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(NormalizedShort2 left, NormalizedShort2 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<NormalizedShort2> CreatePixelOperations() => new PixelOperations<NormalizedShort2>();
+        public readonly PixelOperations<NormalizedShort2> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

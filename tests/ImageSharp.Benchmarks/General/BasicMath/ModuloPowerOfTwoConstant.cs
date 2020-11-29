@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
         [Benchmark]
         public int Bitwise()
         {
-            return ImageMaths.Modulo8(this.value);
+            return Numerics.Modulo8(this.value);
         }
     }
 }

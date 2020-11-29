@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [-1, -1, -1, -1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct NormalizedShort4 : IPixel<NormalizedShort4>, IPackedVector<ulong>
+    public partial struct NormalizedShort4 : IPixel<NormalizedShort4>, IPackedVector<ulong>
     {
         private static readonly Vector4 Max = new Vector4(0x7FFF);
         private static readonly Vector4 Min = Vector4.Negate(Max);
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(NormalizedShort4 left, NormalizedShort4 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<NormalizedShort4> CreatePixelOperations() => new PixelOperations<NormalizedShort4>();
+        public readonly PixelOperations<NormalizedShort4> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -177,7 +177,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         private static ulong Pack(ref Vector4 vector)
         {
             vector *= Max;
-            vector = Vector4Utilities.FastClamp(vector, Min, Max);
+            vector = Numerics.Clamp(vector, Min, Max);
 
             // Round rather than truncate.
             ulong word4 = ((ulong)MathF.Round(vector.X) & 0xFFFF) << 0x00;

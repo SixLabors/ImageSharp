@@ -74,30 +74,30 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromArgb32(Argb32 source)
         {
-            this.PackedValue = ImageMaths.Get16BitBT709Luminance(
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.G),
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.B));
+            this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgr24(Bgr24 source)
         {
-            this.PackedValue = ImageMaths.Get16BitBT709Luminance(
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.G),
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.B));
+            this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromBgra32(Bgra32 source)
         {
-            this.PackedValue = ImageMaths.Get16BitBT709Luminance(
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.G),
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.B));
+            this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
         }
 
         /// <inheritdoc/>
@@ -106,7 +106,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromL8(L8 source) => this.PackedValue = ImageMaths.UpscaleFrom8BitTo16Bit(source.PackedValue);
+        public void FromL8(L8 source) => this.PackedValue = ColorNumerics.UpscaleFrom8BitTo16Bit(source.PackedValue);
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromLa16(La16 source) => this.PackedValue = ImageMaths.UpscaleFrom8BitTo16Bit(source.L);
+        public void FromLa16(La16 source) => this.PackedValue = ColorNumerics.UpscaleFrom8BitTo16Bit(source.L);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -124,27 +124,27 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgb24(Rgb24 source)
         {
-            this.PackedValue = ImageMaths.Get16BitBT709Luminance(
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.G),
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.B));
+            this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
         }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgba32(Rgba32 source)
         {
-            this.PackedValue = ImageMaths.Get16BitBT709Luminance(
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.R),
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.G),
-                ImageMaths.UpscaleFrom8BitTo16Bit(source.B));
+            this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
+                ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
         }
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
         public void ToRgba32(ref Rgba32 dest)
         {
-            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(this.PackedValue);
+            byte rgb = ColorNumerics.DownScaleFrom16BitTo8Bit(this.PackedValue);
             dest.R = rgb;
             dest.G = rgb;
             dest.B = rgb;
@@ -153,11 +153,11 @@ namespace SixLabors.ImageSharp.PixelFormats
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromRgb48(Rgb48 source) => this.PackedValue = ImageMaths.Get16BitBT709Luminance(source.R, source.G, source.B);
+        public void FromRgb48(Rgb48 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void FromRgba64(Rgba64 source) => this.PackedValue = ImageMaths.Get16BitBT709Luminance(source.R, source.G, source.B);
+        public void FromRgba64(Rgba64 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
 
         /// <inheritdoc />
         public override readonly bool Equals(object obj) => obj is L16 other && this.Equals(other);
@@ -176,8 +176,8 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         internal void ConvertFromRgbaScaledVector4(Vector4 vector)
         {
-            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, Vector4.One) * Max;
-            this.PackedValue = ImageMaths.Get16BitBT709Luminance(
+            vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
+            this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
                 vector.X,
                 vector.Y,
                 vector.Z);

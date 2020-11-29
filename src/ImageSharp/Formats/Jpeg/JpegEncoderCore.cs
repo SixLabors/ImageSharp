@@ -212,8 +212,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             ImageMetadata metadata = image.Metadata;
 
             // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
-            int qlty = (this.quality ?? metadata.GetJpegMetadata().Quality).Clamp(1, 100);
-            this.subsample = this.subsample ?? (qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
+            int qlty = Numerics.Clamp(this.quality ?? metadata.GetJpegMetadata().Quality, 1, 100);
+            this.subsample ??= qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
 
             // Convert from a quality rating to a scaling factor.
             int scale;

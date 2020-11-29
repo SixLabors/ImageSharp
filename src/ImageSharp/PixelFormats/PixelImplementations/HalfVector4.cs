@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [-1, -1, -1, -1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
+    public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="HalfVector4"/> struct.
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(HalfVector4 left, HalfVector4 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<HalfVector4> CreatePixelOperations() => new PixelOperations<HalfVector4>();
+        public readonly PixelOperations<HalfVector4> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

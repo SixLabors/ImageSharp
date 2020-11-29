@@ -116,14 +116,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             public void Invoke(int y)
             {
                 ref int histogramBase = ref MemoryMarshal.GetReference(this.histogramBuffer.GetSpan());
-                ref TPixel pixelBase = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
+                Span<TPixel> pixelRow = this.source.GetPixelRowSpan(y);
                 int levels = this.luminanceLevels;
 
                 for (int x = 0; x < this.bounds.Width; x++)
                 {
                     // TODO: We should bulk convert here.
-                    var vector = Unsafe.Add(ref pixelBase, x).ToVector4();
-                    int luminance = ImageMaths.GetBT709Luminance(ref vector, levels);
+                    var vector = pixelRow[x].ToVector4();
+                    int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
                     Interlocked.Increment(ref Unsafe.Add(ref histogramBase, luminance));
                 }
             }
@@ -165,16 +165,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             public void Invoke(int y)
             {
                 ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
-                ref TPixel pixelBase = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
+                Span<TPixel> pixelRow = this.source.GetPixelRowSpan(y);
                 int levels = this.luminanceLevels;
                 float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
 
                 for (int x = 0; x < this.bounds.Width; x++)
                 {
                     // TODO: We should bulk convert here.
-                    ref TPixel pixel = ref Unsafe.Add(ref pixelBase, x);
+                    ref TPixel pixel = ref pixelRow[x];
                     var vector = pixel.ToVector4();
-                    int luminance = ImageMaths.GetBT709Luminance(ref vector, levels);
+                    int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
                     float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / noOfPixelsMinusCdfMin;
                     pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W));
                 }

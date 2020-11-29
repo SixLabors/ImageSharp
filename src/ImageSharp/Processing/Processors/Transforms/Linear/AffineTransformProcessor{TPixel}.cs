@@ -80,8 +80,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            int yRadius = LinearTransformUtilities.GetSamplingRadius(in sampler, source.Height, destination.Height);
-            int xRadius = LinearTransformUtilities.GetSamplingRadius(in sampler, source.Width, destination.Width);
+            int yRadius = LinearTransformUtils.GetSamplingRadius(in sampler, source.Height, destination.Height);
+            int xRadius = LinearTransformUtils.GetSamplingRadius(in sampler, source.Width, destination.Width);
             var radialExtents = new Vector2(xRadius, yRadius);
             int yLength = (yRadius * 2) + 1;
             int xLength = (xRadius * 2) + 1;
@@ -207,7 +207,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     // Use the single precision position to calculate correct bounding pixels
                     // otherwise we get rogue pixels outside of the bounds.
                     var point = Vector2.Transform(new Vector2(x, y), this.matrix);
-                    LinearTransformUtilities.Convolve(
+                    LinearTransformUtils.Convolve(
                         in this.sampler,
                         point,
                         sourceBuffer,

@@ -376,18 +376,25 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             Span<L8> pixelRowAsGraySpan = pixelRowAsGray.GetSpan();
 
             // Convert image to black and white.
-            using Image<TPixel> imageClone = image.Clone();
-            imageClone.Mutate(img => img.BinaryDither(default(ErrorDither)));
+            // TODO: Should we allow to skip this by the user, if its known to be black and white already?
+            using Image<TPixel> imageBlackWhite = image.Clone();
+            imageBlackWhite.Mutate(img => img.BinaryDither(default(ErrorDither)));
 
             if (compression == TiffEncoderCompression.Deflate)
             {
-                return this.WriteBiColorDeflate(image, pixelRowAsGraySpan, outputRow);
+                return this.WriteBiColorDeflate(imageBlackWhite, pixelRowAsGraySpan, outputRow);
             }
 
             if (compression == TiffEncoderCompression.CcittGroup3Fax)
             {
                 var bitWriter = new T4BitWriter(this.memoryAllocator, this.configuration);
-                return bitWriter.CompressImage(image, pixelRowAsGraySpan, this.output);
+                return bitWriter.CompressImage(imageBlackWhite, pixelRowAsGraySpan, this.output);
+            }
+
+            if (compression == TiffEncoderCompression.ModifiedHuffman)
+            {
+                var bitWriter = new T4BitWriter(this.memoryAllocator, this.configuration, useModifiedHuffman: true);
+                return bitWriter.CompressImage(imageBlackWhite, pixelRowAsGraySpan, this.output);
             }
 
             int bytesWritten = 0;
@@ -395,7 +402,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             {
                 int bitIndex = 0;
                 int byteIndex = 0;
-                Span<TPixel> pixelRow = imageClone.GetPixelRowSpan(y);
+                Span<TPixel> pixelRow = imageBlackWhite.GetPixelRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToL8(this.configuration, pixelRow, pixelRowAsGraySpan);
                 for (int x = 0; x < pixelRow.Length; x++)
                 {

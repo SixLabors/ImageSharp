@@ -159,6 +159,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             {
                 this.tiffMetaData.BitsPerPixel = TiffBitsPerPixel.Pixel8;
             }
+            else if (bitsPerPixel == 1)
+            {
+                this.tiffMetaData.BitsPerPixel = TiffBitsPerPixel.Pixel1;
+            }
         }
 
         /// <inheritdoc/>

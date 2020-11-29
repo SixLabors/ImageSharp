@@ -22,5 +22,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Use CCITT T4 1D compression. Note: This is only valid for bi-level images.
         /// </summary>
         CcittGroup3Fax,
+
+        /// <summary>
+        /// Use the modified Huffman RLE. Note: This is only valid for bi-level images.
+        /// </summary>
+        ModifiedHuffman,
     }
 }

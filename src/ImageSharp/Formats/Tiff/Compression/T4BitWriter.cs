@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -184,16 +185,23 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
         private byte bitPosition;
 
         /// <summary>
+        /// The modified huffman is basically the same as CCITT T4, but without EOL markers and padding at the end of the rows.
+        /// </summary>
+        private bool useModifiedHuffman;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="T4BitWriter" /> class.
         /// </summary>
         /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="configuration">The configuration.</param>
-        public T4BitWriter(MemoryAllocator memoryAllocator, Configuration configuration)
+        /// <param name="useModifiedHuffman">Indicates if the modified huffman RLE should be used.</param>
+        public T4BitWriter(MemoryAllocator memoryAllocator, Configuration configuration, bool useModifiedHuffman = false)
         {
             this.memoryAllocator = memoryAllocator;
             this.configuration = configuration;
             this.bytePosition = 0;
             this.bitPosition = 0;
+            this.useModifiedHuffman = useModifiedHuffman;
         }
 
         /// <summary>
@@ -215,9 +223,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             this.bytePosition = 0;
             this.bitPosition = 0;
 
-            // An EOL code is expected at the start of the data.
-            this.WriteCode(12, 1, compressedData);
+            if (!this.useModifiedHuffman)
+            {
+                // An EOL code is expected at the start of the data.
+                this.WriteCode(12, 1, compressedData);
+            }
 
+            uint pixelsWritten = 0;
             for (int y = 0; y < image.Height; y++)
             {
                 bool isWhiteRun = true;
@@ -268,6 +280,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                         code = this.GetTermCode(runLength, out codeLength, isWhiteRun);
                         this.WriteCode(codeLength, code, compressedData);
                         x += (int)runLength;
+                        pixelsWritten += runLength;
                     }
                     else
                     {
@@ -275,6 +288,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                         code = this.GetMakeupCode(runLength, out codeLength, isWhiteRun);
                         this.WriteCode(codeLength, code, compressedData);
                         x += (int)runLength;
+                        pixelsWritten += runLength;
 
                         // If we are at the end of the line with a makeup code, we need to write a final term code with a length of zero.
                         if (x == image.Width)
@@ -296,14 +310,32 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
                     isWhiteRun = !isWhiteRun;
                 }
 
-                // Write EOL.
-                this.WriteCode(12, 1, compressedData);
+                this.WriteEndOfLine(compressedData);
             }
 
             // Write the compressed data to the stream.
             stream.Write(compressedData.Slice(0, this.bytePosition));
 
             return this.bytePosition;
+        }
+
+        private void WriteEndOfLine(Span<byte> compressedData)
+        {
+            if (this.useModifiedHuffman)
+            {
+                // Check if padding is necessary.
+                if (this.bitPosition % 8 != 0)
+                {
+                    // Skip padding bits, move to next byte.
+                    this.bytePosition++;
+                    this.bitPosition = 0;
+                }
+            }
+            else
+            {
+                // Write EOL.
+                this.WriteCode(12, 1, compressedData);
+            }
         }
 
         private void WriteCode(uint codeLength, uint code, Span<byte> compressedData)

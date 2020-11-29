@@ -41,9 +41,9 @@
 |                           |Encoder|Decoder|Comments                  |
 |---------------------------|:-----:|:-----:|--------------------------|
 |None                       |   Y   |   Y   |                          |
-|Ccitt1D                    |       |   Y   |                          |
+|Ccitt1D                    |   Y   |   Y   |                          |
 |PackBits                   |       |   Y   |                          |
-|CcittGroup3Fax             |       |   Y   |                          |
+|CcittGroup3Fax             |   Y   |   Y   |                          |
 |CcittGroup4Fax             |       |       |                          |
 |Lzw                        |       |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case |
 |Old Jpeg                   |       |       | We should not even try to support this |
@@ -55,8 +55,8 @@
 
 |                           |Encoder|Decoder|Comments                  |
 |---------------------------|:-----:|:-----:|--------------------------|
-|WhiteIsZero                |       |   Y   | General + 1/4/8-bit optimised implementations |
-|BlackIsZero                |       |   Y   | General + 1/4/8-bit optimised implementations |
+|WhiteIsZero                |   Y   |   Y   | General + 1/4/8-bit optimised implementations |
+|BlackIsZero                |   Y   |   Y   | General + 1/4/8-bit optimised implementations |
 |Rgb (Chunky)               |   Y   |   Y   | General + Rgb888 optimised implementation |
 |Rgb (Planar)               |       |   Y   | General implementation only |
 |PaletteColor               |   Y   |   Y   | General implementation only |

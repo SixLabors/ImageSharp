@@ -289,6 +289,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
                 return this.WriteDeflateCompressedPalettedRgb(image, quantized, padding);
             }
 
+            if (compression == TiffEncoderCompression.PackBits)
+            {
+                return this.WritePackBitsCompressedPalettedRgb(image, quantized, padding);
+            }
+
             // No compression.
             int bytesWritten = 0;
             for (int y = 0; y < image.Height; y++)
@@ -337,6 +342,47 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             byte[] buffer = memoryStream.ToArray();
             this.output.Write(buffer);
             bytesWritten += buffer.Length;
+
+            return bytesWritten;
+        }
+
+        /// <summary>
+        /// Writes the image data as indices into a color map compressed with deflate compression to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel data.</typeparam>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="quantized">The quantized frame.</param>
+        /// <param name="padding">The padding bytes for each row.</param>
+        /// <returns>The number of bytes written.</returns>
+        public int WritePackBitsCompressedPalettedRgb<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, int padding)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Worst case is that the actual compressed data is larger then the input data. In this case we need 1 additional byte per 127 bytes.
+            int additionalBytes = (image.Width * 3 / 127) + 1;
+            using IManagedByteBuffer compressedRow = this.memoryAllocator.AllocateManagedByteBuffer((image.Width * 3) + additionalBytes, AllocationOptions.Clean);
+            using IManagedByteBuffer pixelRowWithPadding = this.memoryAllocator.AllocateManagedByteBuffer((image.Width * 3) + padding, AllocationOptions.Clean);
+            Span<byte> compressedRowSpan = compressedRow.GetSpan();
+            Span<byte> pixelRowWithPaddingSpan = pixelRowWithPadding.GetSpan();
+
+            int bytesWritten = 0;
+            for (int y = 0; y < image.Height; y++)
+            {
+                ReadOnlySpan<byte> pixelSpan = quantized.GetPixelRowSpan(y);
+
+                int size = 0;
+                if (padding != 0)
+                {
+                    pixelSpan.CopyTo(pixelRowWithPaddingSpan);
+                    size = PackBitsWriter.PackBits(pixelRowWithPaddingSpan, compressedRowSpan);
+                }
+                else
+                {
+                    size = PackBitsWriter.PackBits(pixelSpan, compressedRowSpan);
+                }
+
+                this.output.Write(compressedRowSpan.Slice(0, size));
+                bytesWritten += size;
+            }
 
             return bytesWritten;
         }

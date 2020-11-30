@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
     /// </summary>
     internal static class PackBitsWriter
     {
-        public static int PackBits(Span<byte> rowSpan, Span<byte> compressedRowSpan)
+        public static int PackBits(ReadOnlySpan<byte> rowSpan, Span<byte> compressedRowSpan)
         {
             int maxRunLength = 127;
             int posInRowSpan = 0;
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             return bytesWritten;
         }
 
-        private static void WriteLiteralRun(Span<byte> rowSpan, int end, int literalRunLength, Span<byte> compressedRowSpan, int compressedRowPos)
+        private static void WriteLiteralRun(ReadOnlySpan<byte> rowSpan, int end, int literalRunLength, Span<byte> compressedRowSpan, int compressedRowPos)
         {
             DebugGuard.MustBeLessThanOrEqualTo(literalRunLength, 127, nameof(literalRunLength));
 
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             rowSpan.Slice(literalRunStart, literalRunLength).CopyTo(compressedRowSpan.Slice(compressedRowPos + 1));
         }
 
-        private static void WriteRun(Span<byte> rowSpan, int start, int runLength, Span<byte> compressedRowSpan, int compressedRowPos)
+        private static void WriteRun(ReadOnlySpan<byte> rowSpan, int start, int runLength, Span<byte> compressedRowSpan, int compressedRowPos)
         {
             DebugGuard.MustBeLessThanOrEqualTo(runLength, 127, nameof(runLength));
 
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             compressedRowSpan[compressedRowPos + 1] = rowSpan[start];
         }
 
-        private static bool IsReplicateRun(Span<byte> rowSpan, int startPos)
+        private static bool IsReplicateRun(ReadOnlySpan<byte> rowSpan, int startPos)
         {
             // We consider run which has at least 3 same consecutive bytes a candidate for a run.
             var startByte = rowSpan[startPos];
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             return false;
         }
 
-        private static int FindRunLength(Span<byte> rowSpan, int startPos, int maxRunLength)
+        private static int FindRunLength(ReadOnlySpan<byte> rowSpan, int startPos, int maxRunLength)
         {
             var startByte = rowSpan[startPos];
             int count = 1;

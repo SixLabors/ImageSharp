@@ -2,72 +2,104 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.PixelFormats;
+
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Tiff
+namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
 {
     public class BlackIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
-        private static Rgba32 Gray000 = new Rgba32(0, 0, 0, 255);
-        private static Rgba32 Gray128 = new Rgba32(128, 128, 128, 255);
-        private static Rgba32 Gray255 = new Rgba32(255, 255, 255, 255);
-        private static Rgba32 Gray0 = new Rgba32(0, 0, 0, 255);
-        private static Rgba32 Gray8 = new Rgba32(136, 136, 136, 255);
-        private static Rgba32 GrayF = new Rgba32(255, 255, 255, 255);
-        private static Rgba32 Bit0 = new Rgba32(0, 0, 0, 255);
-        private static Rgba32 Bit1 = new Rgba32(255, 255, 255, 255);
+        private static Rgba32 gray000 = new Rgba32(0, 0, 0, 255);
+        private static Rgba32 gray128 = new Rgba32(128, 128, 128, 255);
+        private static Rgba32 gray255 = new Rgba32(255, 255, 255, 255);
+        private static Rgba32 gray0 = new Rgba32(0, 0, 0, 255);
+        private static Rgba32 gray8 = new Rgba32(136, 136, 136, 255);
+        private static Rgba32 grayF = new Rgba32(255, 255, 255, 255);
+        private static Rgba32 bit0 = new Rgba32(0, 0, 0, 255);
+        private static Rgba32 bit1 = new Rgba32(255, 255, 255, 255);
 
-        private static readonly byte[] Bilevel_Bytes4x4 = new byte[] { 0b01010000,
-                                                              0b11110000,
-                                                              0b01110000,
-                                                              0b10010000 };
+        private static readonly byte[] Bilevel_Bytes4x4 =
+        {
+            0b01010000,
+            0b11110000,
+            0b01110000,
+            0b10010000
+        };
 
-        private static readonly Rgba32[][] Bilevel_Result4x4 = new[] { new[] { Bit0, Bit1, Bit0, Bit1 },
-                                                             new[] { Bit1, Bit1, Bit1, Bit1 },
-                                                             new[] { Bit0, Bit1, Bit1, Bit1 },
-                                                             new[] { Bit1, Bit0, Bit0, Bit1 }};
+        private static readonly Rgba32[][] Bilevel_Result4x4 = new[]
+        {
+            new[] { bit0, bit1, bit0, bit1 },
+            new[] { bit1, bit1, bit1, bit1 },
+            new[] { bit0, bit1, bit1, bit1 },
+            new[] { bit1, bit0, bit0, bit1 }
+        };
 
-        private static readonly byte[] Bilevel_Bytes12x4 = new byte[] { 0b01010101, 0b01010000,
-                                                               0b11111111, 0b11111111,
-                                                               0b01101001, 0b10100000,
-                                                               0b10010000, 0b01100000};
+        private static readonly byte[] Bilevel_Bytes12x4 =
+        {
+            0b01010101, 0b01010000,
+            0b11111111, 0b11111111,
+            0b01101001, 0b10100000,
+            0b10010000, 0b01100000
+        };
 
-        private static readonly Rgba32[][] Bilevel_Result12x4 = new[] { new[] { Bit0, Bit1, Bit0, Bit1, Bit0, Bit1, Bit0, Bit1, Bit0, Bit1, Bit0, Bit1 },
-                                                              new[] { Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1 },
-                                                              new[] { Bit0, Bit1, Bit1, Bit0, Bit1, Bit0, Bit0, Bit1, Bit1, Bit0, Bit1, Bit0 },
-                                                              new[] { Bit1, Bit0, Bit0, Bit1, Bit0, Bit0, Bit0, Bit0, Bit0, Bit1, Bit1, Bit0 }};
+        private static readonly Rgba32[][] Bilevel_Result12x4 =
+        {
+            new[] { bit0, bit1, bit0, bit1, bit0, bit1, bit0, bit1, bit0, bit1, bit0, bit1 },
+            new[] { bit1, bit1, bit1, bit1, bit1, bit1, bit1, bit1, bit1, bit1, bit1, bit1 },
+            new[] { bit0, bit1, bit1, bit0, bit1, bit0, bit0, bit1, bit1, bit0, bit1, bit0 },
+            new[] { bit1, bit0, bit0, bit1, bit0, bit0, bit0, bit0, bit0, bit1, bit1, bit0 }
+        };
 
-        private static readonly byte[] Grayscale4_Bytes4x4 = new byte[] { 0x8F, 0x0F,
-                                                                 0xFF, 0xFF,
-                                                                 0x08, 0x8F,
-                                                                 0xF0, 0xF8 };
+        private static readonly byte[] Grayscale4_Bytes4x4 =
+        {
+            0x8F, 0x0F,
+            0xFF, 0xFF,
+            0x08, 0x8F,
+            0xF0, 0xF8
+        };
 
-        private static readonly Rgba32[][] Grayscale4_Result4x4 = new[] { new[] { Gray8, GrayF, Gray0, GrayF },
-                                                                new[] { GrayF, GrayF, GrayF, GrayF },
-                                                                new[] { Gray0, Gray8, Gray8, GrayF },
-                                                                new[] { GrayF, Gray0, GrayF, Gray8 }};
+        private static readonly Rgba32[][] Grayscale4_Result4x4 =
+        {
+            new[] { gray8, grayF, gray0, grayF },
+            new[] { grayF, grayF, grayF, grayF },
+            new[] { gray0, gray8, gray8, grayF },
+            new[] { grayF, gray0, grayF, gray8 }
+        };
 
-        private static readonly byte[] Grayscale4_Bytes3x4 = new byte[] { 0x8F, 0x00,
-                                                                 0xFF, 0xF0,
-                                                                 0x08, 0x80,
-                                                                 0xF0, 0xF0 };
+        private static readonly byte[] Grayscale4_Bytes3x4 =
+        {
+            0x8F, 0x00,
+            0xFF, 0xF0,
+            0x08, 0x80,
+            0xF0, 0xF0
+        };
 
-        private static readonly Rgba32[][] Grayscale4_Result3x4 = new[] { new[] { Gray8, GrayF, Gray0 },
-                                                                new[] { GrayF, GrayF, GrayF },
-                                                                new[] { Gray0, Gray8, Gray8 },
-                                                                new[] { GrayF, Gray0, GrayF }};
+        private static readonly Rgba32[][] Grayscale4_Result3x4 =
+        {
+            new[] { gray8, grayF, gray0 },
+            new[] { grayF, grayF, grayF },
+            new[] { gray0, gray8, gray8 },
+            new[] { grayF, gray0, grayF }
+        };
 
-        private static readonly byte[] Grayscale8_Bytes4x4 = new byte[] { 128, 255, 000, 255,
-                                                                 255, 255, 255, 255,
-                                                                 000, 128, 128, 255,
-                                                                 255, 000, 255, 128 };
+        private static readonly byte[] Grayscale8_Bytes4x4 =
+        {
+            128, 255, 000, 255,
+            255, 255, 255, 255,
+            000, 128, 128, 255,
+            255, 000, 255, 128
+        };
 
-        private static readonly Rgba32[][] Grayscale8_Result4x4 = new[] { new[] { Gray128, Gray255, Gray000, Gray255 },
-                                                                new[] { Gray255, Gray255, Gray255, Gray255 },
-                                                                new[] { Gray000, Gray128, Gray128, Gray255 },
-                                                                new[] { Gray255, Gray000, Gray255, Gray128 }};
+        private static readonly Rgba32[][] Grayscale8_Result4x4 =
+        {
+            new[] { gray128, gray255, gray000, gray255 },
+            new[] { gray255, gray255, gray255, gray255 },
+            new[] { gray000, gray128, gray128, gray255 },
+            new[] { gray255, gray000, gray255, gray128 }
+        };
 
         public static IEnumerable<object[]> Bilevel_Data
         {

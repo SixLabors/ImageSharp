@@ -436,6 +436,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 return (ushort)TiffCompression.Deflate;
             }
 
+            if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.ColorPalette)
+            {
+                return (ushort)TiffCompression.PackBits;
+            }
+
             if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.BiColor)
             {
                 return (ushort)TiffCompression.Deflate;

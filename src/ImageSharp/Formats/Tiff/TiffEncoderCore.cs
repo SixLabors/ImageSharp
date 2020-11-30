@@ -7,6 +7,7 @@ using System.IO;
 using System.Threading;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -166,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     imageDataBytes = writer.WriteBiColor(image, this.CompressionType);
                     break;
                 default:
-                    imageDataBytes = writer.WriteRgbImageData(image, this.padding, this.CompressionType);
+                    imageDataBytes = writer.WriteRgb(image, this.padding, this.CompressionType);
                     break;
             }
 
@@ -415,9 +416,19 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 return (ushort)TiffCompression.Deflate;
             }
 
+            if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.Rgb)
+            {
+                return (ushort)TiffCompression.PackBits;
+            }
+
             if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.Gray)
             {
                 return (ushort)TiffCompression.Deflate;
+            }
+
+            if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.Gray)
+            {
+                return (ushort)TiffCompression.PackBits;
             }
 
             if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.ColorPalette)
@@ -428,6 +439,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.BiColor)
             {
                 return (ushort)TiffCompression.Deflate;
+            }
+
+            if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.BiColor)
+            {
+                return (ushort)TiffCompression.PackBits;
             }
 
             if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax && this.Mode == TiffEncodingMode.BiColor)

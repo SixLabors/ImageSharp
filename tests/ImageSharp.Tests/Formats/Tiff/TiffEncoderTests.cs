@@ -47,24 +47,34 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [WithFile(TestImages.Tiff.RgbUncompressed, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.Rgb);
 
         [Theory]
-        [WithFile(TestImages.Tiff.RgbUncompressed, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.Rgb, TiffEncoderCompression.Deflate);
 
         [Theory]
-        [WithFile(TestImages.Tiff.GrayscaleUncompressed, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeRgb_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.Rgb, TiffEncoderCompression.PackBits);
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel8, TiffEncodingMode.Gray);
 
         [Theory]
-        [WithFile(TestImages.Tiff.GrayscaleUncompressed, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel8, TiffEncodingMode.Gray, TiffEncoderCompression.Deflate);
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeGray_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel8, TiffEncodingMode.Gray, TiffEncoderCompression.PackBits);
 
         // TODO: this test fails, but the output looks correct. I thinks its due to the fact that a quantizer is used to create the palette.
         [Theory]
@@ -87,6 +97,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel1, TiffEncodingMode.BiColor, TiffEncoderCompression.Deflate);
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeBiColor_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel1, TiffEncodingMode.BiColor, TiffEncoderCompression.PackBits);
 
         [Theory]
         [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]

@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Tiff
+namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
 {
     [Trait("Category", "Tiff")]
     public class DeflateTiffCompressionTests

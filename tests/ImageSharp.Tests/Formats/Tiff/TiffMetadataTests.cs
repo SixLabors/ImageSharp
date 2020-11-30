@@ -70,18 +70,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(TiffPlanarConfiguration.Chunky, frame.PlanarConfiguration);
                 Assert.Equal(TiffResolutionUnit.Inch, frame.ResolutionUnit);
                 Assert.Equal("IrfanView", frame.Software);
-                Assert.Equal(null, frame.DateTime);
+                Assert.Null(frame.DateTime);
                 Assert.Equal("This is author1;Author2", frame.Artist);
-                Assert.Equal(null, frame.HostComputer);
+                Assert.Null(frame.HostComputer);
                 Assert.Equal(48, frame.ColorMap.Length);
                 Assert.Equal(10537, frame.ColorMap[0]);
                 Assert.Equal(14392, frame.ColorMap[1]);
                 Assert.Equal(58596, frame.ColorMap[46]);
                 Assert.Equal(3855, frame.ColorMap[47]);
 
-                Assert.Equal(null, frame.ExtraSamples);
+                Assert.Null(frame.ExtraSamples);
                 Assert.Equal(TiffPredictor.None, frame.Predictor);
-                Assert.Equal(null, frame.SampleFormat);
+                Assert.Null(frame.SampleFormat);
                 Assert.Equal("This is Авторские права", frame.Copyright);
             }
         }
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
                 TiffFrameMetadata frame0 = image.Frames[0].Metadata.GetTiffMetadata();
                 Assert.Equal(TiffNewSubfileType.FullImage, frame0.NewSubfileType);
-                Assert.Equal(null, frame0.SubfileType);
+                Assert.Null(frame0.SubfileType);
                 Assert.Equal(255u, frame0.Width);
                 Assert.Equal(255u, frame0.Height);
 

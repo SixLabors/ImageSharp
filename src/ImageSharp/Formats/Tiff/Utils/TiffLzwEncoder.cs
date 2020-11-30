@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,7 +6,7 @@ using System.Buffers;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Gif;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff.Utils
 {
     /// <summary>
     /// Encodes and compresses the image data using dynamic Lempel-Ziv compression.

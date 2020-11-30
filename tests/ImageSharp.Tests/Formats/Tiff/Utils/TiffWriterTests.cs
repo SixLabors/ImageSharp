@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-using SixLabors.ImageSharp.Formats.Tiff;
+
+using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff

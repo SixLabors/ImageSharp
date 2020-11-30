@@ -3,7 +3,9 @@
 
 using System;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Tiff;
+
+using SixLabors.ImageSharp.Formats.Tiff.Utils;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff

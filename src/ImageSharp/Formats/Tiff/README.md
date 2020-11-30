@@ -42,7 +42,7 @@
 |---------------------------|:-----:|:-----:|--------------------------|
 |None                       |   Y   |   Y   |                          |
 |Ccitt1D                    |   Y   |   Y   |                          |
-|PackBits                   |       |   Y   |                          |
+|PackBits                   |   Y   |   Y   |                          |
 |CcittGroup3Fax             |   Y   |   Y   |                          |
 |CcittGroup4Fax             |       |       |                          |
 |Lzw                        |       |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case |

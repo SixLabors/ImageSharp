@@ -240,8 +240,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorPaletteSize = 256 * 3 * 2;
-            using var memoryStream = new MemoryStream();
-            using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, PngCompressionLevel.Level6); // TODO: make compression level configurable
             using IManagedByteBuffer row = this.AllocateRow(image.Width, 1, padding);
             using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image.Frames.RootFrame, image.Bounds());
@@ -286,44 +284,59 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
                 Value = palette
             };
 
+            if (compression == TiffEncoderCompression.Deflate)
+            {
+                return this.WriteDeflateCompressedPalettedRgb(image, quantized, padding);
+            }
+
+            // No compression.
             int bytesWritten = 0;
             for (int y = 0; y < image.Height; y++)
             {
                 ReadOnlySpan<byte> pixelSpan = quantized.GetPixelRowSpan(y);
-
-                if (compression == TiffEncoderCompression.Deflate)
-                {
-                    deflateStream.Write(pixelSpan);
-                }
-                else
-                {
-                    // No compression.
-                    this.output.Write(pixelSpan);
-                    bytesWritten += pixelSpan.Length;
-                }
+                this.output.Write(pixelSpan);
+                bytesWritten += pixelSpan.Length;
 
                 for (int i = 0; i < padding; i++)
                 {
-                    if (compression == TiffEncoderCompression.Deflate)
-                    {
-                        deflateStream.WriteByte(0);
-                    }
-                    else
-                    {
-                        // no compression.
-                        this.output.WriteByte(0);
-                        bytesWritten++;
-                    }
+                    this.output.WriteByte(0);
+                    bytesWritten++;
                 }
             }
 
-            if (compression == TiffEncoderCompression.Deflate)
+            return bytesWritten;
+        }
+
+        /// <summary>
+        /// Writes the image data as indices into a color map compressed with deflate compression to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel data.</typeparam>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="quantized">The quantized frame.</param>
+        /// <param name="padding">The padding bytes for each row.</param>
+        /// <returns>The number of bytes written.</returns>
+        public int WriteDeflateCompressedPalettedRgb<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, int padding)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using var memoryStream = new MemoryStream();
+            using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, PngCompressionLevel.Level6); // TODO: make compression level configurable
+
+            int bytesWritten = 0;
+            for (int y = 0; y < image.Height; y++)
             {
-                deflateStream.Flush();
-                byte[] buffer = memoryStream.ToArray();
-                this.output.Write(buffer);
-                bytesWritten += buffer.Length;
+                ReadOnlySpan<byte> pixelSpan = quantized.GetPixelRowSpan(y);
+                deflateStream.Write(pixelSpan);
+
+                for (int i = 0; i < padding; i++)
+                {
+                    deflateStream.WriteByte(0);
+                }
             }
+
+            deflateStream.Flush();
+            byte[] buffer = memoryStream.ToArray();
+            this.output.Write(buffer);
+            bytesWritten += buffer.Length;
 
             return bytesWritten;
         }
@@ -337,7 +350,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
         /// <param name="compression">The compression to use.</param>
         /// <returns>The number of bytes written.</returns>
         public int WriteGray<TPixel>(Image<TPixel> image, int padding, TiffEncoderCompression compression)
-            where TPixel : unmanaged, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
         {
             using IManagedByteBuffer row = this.AllocateRow(image.Width, 1, padding);
             Span<byte> rowSpan = row.GetSpan();

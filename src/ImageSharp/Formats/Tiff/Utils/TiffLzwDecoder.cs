@@ -7,7 +7,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff.Utils
 {
     /// <summary>
     /// Decompresses and decodes data using the dynamic LZW algorithms.

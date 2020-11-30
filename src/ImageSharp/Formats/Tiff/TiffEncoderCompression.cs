@@ -19,6 +19,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         Deflate,
 
         /// <summary>
+        /// Use PackBits to compression the image data.
+        /// </summary>
+        PackBits,
+
+        /// <summary>
         /// Use CCITT T4 1D compression. Note: This is only valid for bi-level images.
         /// </summary>
         CcittGroup3Fax,

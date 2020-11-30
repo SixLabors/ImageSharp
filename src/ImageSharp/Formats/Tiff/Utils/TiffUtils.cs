@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff.Utils
 {
     /// <summary>
     /// TIFF specific utilities and extension methods.

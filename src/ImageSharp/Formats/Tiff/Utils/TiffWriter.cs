@@ -3,7 +3,6 @@
 
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -17,7 +16,7 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff.Utils
 {
     /// <summary>
     /// Utility class for writing TIFF data to a <see cref="Stream"/>.
@@ -31,8 +30,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private readonly Configuration configuration;
 
         private readonly byte[] paddingBytes = new byte[4];
-
-        private readonly List<long> references = new List<long>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffWriter"/> class.
@@ -141,7 +138,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="padding">The padding bytes for each row.</param>
         /// <param name="compression">The compression to use.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WriteRgbImageData<TPixel>(Image<TPixel> image, int padding, TiffEncoderCompression compression)
+        public int WriteRgb<TPixel>(Image<TPixel> image, int padding, TiffEncoderCompression compression)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using IManagedByteBuffer row = this.AllocateRow(image.Width, 3, padding);
@@ -149,6 +146,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             if (compression == TiffEncoderCompression.Deflate)
             {
                 return this.WriteDeflateCompressedRgb(image, rowSpan);
+            }
+
+            if (compression == TiffEncoderCompression.PackBits)
+            {
+                return this.WriteRgbPackBitsCompressed(image, rowSpan);
             }
 
             // No compression.
@@ -192,6 +194,35 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             byte[] buffer = memoryStream.ToArray();
             this.output.Write(buffer);
             bytesWritten += buffer.Length;
+            return bytesWritten;
+        }
+
+        /// <summary>
+        /// Writes the image data as RGB with packed bits compression to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel data.</typeparam>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="rowSpan">A Span for a pixel row.</param>
+        /// <returns>The number of bytes written.</returns>
+        private int WriteRgbPackBitsCompressed<TPixel>(Image<TPixel> image, Span<byte> rowSpan)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Worst case is that the actual compressed data is larger then the input data. In this case we need 1 additional byte per 127 bytes.
+            int additionalBytes = ((image.Width * 3) / 127) + 1;
+            using IManagedByteBuffer compressedRow = this.memoryAllocator.AllocateManagedByteBuffer((image.Width * 3) + additionalBytes, AllocationOptions.Clean);
+            Span<byte> compressedRowSpan = compressedRow.GetSpan();
+            int bytesWritten = 0;
+
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.configuration, pixelRow, rowSpan, pixelRow.Length);
+                int size = PackBitsWriter.PackBits(rowSpan, compressedRowSpan);
+                this.output.Write(compressedRow.Slice(0, size));
+                bytesWritten += size;
+                compressedRowSpan.Clear();
+            }
+
             return bytesWritten;
         }
 
@@ -316,6 +347,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 return this.WriteGrayDeflateCompressed(image, rowSpan);
             }
 
+            if (compression == TiffEncoderCompression.PackBits)
+            {
+                return this.WriteGrayPackBitsCompressed(image, rowSpan);
+            }
+
             int bytesWritten = 0;
             for (int y = 0; y < image.Height; y++)
             {
@@ -359,6 +395,35 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         /// <summary>
+        /// Writes the image data as 8 bit gray to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel data.</typeparam>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="rowSpan">A span of a row of pixels.</param>
+        /// <returns>The number of bytes written.</returns>
+        private int WriteGrayPackBitsCompressed<TPixel>(Image<TPixel> image, Span<byte> rowSpan)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Worst case is that the actual compressed data is larger then the input data. In this case we need 1 additional byte per 127 bytes.
+            int additionalBytes = (image.Width / 127) + 1;
+            using IManagedByteBuffer compressedRow = this.memoryAllocator.AllocateManagedByteBuffer(image.Width + additionalBytes, AllocationOptions.Clean);
+            Span<byte> compressedRowSpan = compressedRow.GetSpan();
+
+            int bytesWritten = 0;
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToL8Bytes(this.configuration, pixelRow, rowSpan, pixelRow.Length);
+                int size = PackBitsWriter.PackBits(rowSpan, compressedRowSpan);
+                this.output.Write(compressedRow.Slice(0, size));
+                bytesWritten += size;
+                compressedRowSpan.Clear();
+            }
+
+            return bytesWritten;
+        }
+
+        /// <summary>
         /// Writes the image data as 1 bit black and white to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel data.</typeparam>
@@ -385,6 +450,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 return this.WriteBiColorDeflate(imageBlackWhite, pixelRowAsGraySpan, outputRow);
             }
 
+            if (compression == TiffEncoderCompression.PackBits)
+            {
+                return this.WriteBiColorPackBits(imageBlackWhite, pixelRowAsGraySpan, outputRow);
+            }
+
             if (compression == TiffEncoderCompression.CcittGroup3Fax)
             {
                 var bitWriter = new T4BitWriter(this.memoryAllocator, this.configuration);
@@ -397,6 +467,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 return bitWriter.CompressImage(imageBlackWhite, pixelRowAsGraySpan, this.output);
             }
 
+            // Write image uncompressed.
             int bytesWritten = 0;
             for (int y = 0; y < image.Height; y++)
             {
@@ -475,6 +546,56 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             byte[] buffer = memoryStream.ToArray();
             this.output.Write(buffer);
             bytesWritten += buffer.Length;
+
+            return bytesWritten;
+        }
+
+        /// <summary>
+        /// Writes the image data as 1 bit black and white with pack bits compression to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel data.</typeparam>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="pixelRowAsGraySpan">A span for converting a pixel row to gray.</param>
+        /// <param name="outputRow">A span which will be used to store the output pixels.</param>
+        /// <returns>The number of bytes written.</returns>
+        public int WriteBiColorPackBits<TPixel>(Image<TPixel> image, Span<L8> pixelRowAsGraySpan, Span<byte> outputRow)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Worst case is that the actual compressed data is larger then the input data. In this case we need 1 additional byte per 127 bits.
+            int additionalBytes = (image.Width / 127) + 1;
+            int compressedRowBytes = (image.Width / 8) + additionalBytes;
+            using IManagedByteBuffer compressedRow = this.memoryAllocator.AllocateManagedByteBuffer(compressedRowBytes, AllocationOptions.Clean);
+            Span<byte> compressedRowSpan = compressedRow.GetSpan();
+
+            int bytesWritten = 0;
+            for (int y = 0; y < image.Height; y++)
+            {
+                int bitIndex = 0;
+                int byteIndex = 0;
+                Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToL8(this.configuration, pixelRow, pixelRowAsGraySpan);
+                for (int x = 0; x < pixelRow.Length; x++)
+                {
+                    int shift = 7 - bitIndex;
+                    if (pixelRowAsGraySpan[x].PackedValue == 255)
+                    {
+                        outputRow[byteIndex] |= (byte)(1 << shift);
+                    }
+
+                    bitIndex++;
+                    if (bitIndex == 8)
+                    {
+                        byteIndex++;
+                        bitIndex = 0;
+                    }
+                }
+
+                var size = PackBitsWriter.PackBits(outputRow, compressedRowSpan);
+                this.output.Write(compressedRowSpan);
+                bytesWritten += size;
+
+                outputRow.Clear();
+            }
 
             return bytesWritten;
         }

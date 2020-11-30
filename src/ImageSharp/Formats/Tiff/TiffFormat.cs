@@ -3,6 +3,8 @@
 
 using System.Collections.Generic;
 
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
+
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>

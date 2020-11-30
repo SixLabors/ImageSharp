@@ -2,8 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff.Streams
 {
     /// <summary>
     /// The tiff data stream base class.

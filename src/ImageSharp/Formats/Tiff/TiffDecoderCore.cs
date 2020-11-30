@@ -7,6 +7,8 @@ using System.Linq;
 using System.Threading;
 
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.Streams;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;

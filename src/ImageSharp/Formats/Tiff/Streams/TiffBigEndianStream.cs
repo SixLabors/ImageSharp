@@ -1,10 +1,12 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.IO;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
+
+namespace SixLabors.ImageSharp.Formats.Tiff.Streams
 {
     internal class TiffBigEndianStream : TiffStream
     {

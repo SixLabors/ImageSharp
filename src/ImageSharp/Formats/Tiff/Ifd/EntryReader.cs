@@ -3,9 +3,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
+
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.Streams;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Tiff

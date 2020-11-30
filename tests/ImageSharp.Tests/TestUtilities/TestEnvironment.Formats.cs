@@ -57,8 +57,7 @@ namespace SixLabors.ImageSharp.Tests
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
                 new TgaConfigurationModule(),
-                new TiffConfigurationModule()
-            );
+                new TiffConfigurationModule());
 
             // Magick codecs should work on all platforms
             IImageEncoder pngEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Png : new PngEncoder();

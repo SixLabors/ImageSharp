@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory;
 
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Tiff
+namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
 {
     [Trait("Category", "Tiff")]
     public class TiffWriterTests
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             using var stream = new MemoryStream();
             using var writer = new TiffWriter(stream, MemoryAllocator, Configuration);
-            writer.Write((uint)12345678);
+            writer.Write(12345678U);
 
             Assert.Equal(new byte[] { 0x4E, 0x61, 0xBC, 0x00 }, stream.ToArray());
         }
@@ -99,13 +99,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             using (var writer = new TiffWriter(stream, MemoryAllocator, Configuration))
             {
-                writer.Write((uint)0x11111111);
+                writer.Write(0x11111111);
                 long marker = writer.PlaceMarker();
-                writer.Write((uint)0x33333333);
+                writer.Write(0x33333333);
 
                 writer.WriteMarker(marker, 0x12345678);
 
-                writer.Write((uint)0x44444444);
+                writer.Write(0x44444444);
             }
 
             Assert.Equal(

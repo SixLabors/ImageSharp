@@ -1,15 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Tests
+namespace SixLabors.ImageSharp.Tests.TestUtilities
 {
     using System;
     using System.Collections.Generic;
 
     public class ByteBuffer
     {
-        List<byte> bytes = new List<byte>();
-        bool isLittleEndian;
+        private readonly List<byte> bytes = new List<byte>();
+        private readonly bool isLittleEndian;
 
         public ByteBuffer(bool isLittleEndian)
         {
@@ -18,22 +18,22 @@ namespace SixLabors.ImageSharp.Tests
 
         public void AddByte(byte value)
         {
-            bytes.Add(value);
+            this.bytes.Add(value);
         }
 
         public void AddUInt16(ushort value)
         {
-            bytes.AddRange(BitConverter.GetBytes(value).WithByteOrder(isLittleEndian));
+            this.bytes.AddRange(BitConverter.GetBytes(value).WithByteOrder(this.isLittleEndian));
         }
 
         public void AddUInt32(uint value)
         {
-            bytes.AddRange(BitConverter.GetBytes(value).WithByteOrder(isLittleEndian));
+            this.bytes.AddRange(BitConverter.GetBytes(value).WithByteOrder(this.isLittleEndian));
         }
 
         public byte[] ToArray()
         {
-            return bytes.ToArray();
+            return this.bytes.ToArray();
         }
     }
 }

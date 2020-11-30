@@ -591,7 +591,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Utils
                 }
 
                 var size = PackBitsWriter.PackBits(outputRow, compressedRowSpan);
-                this.output.Write(compressedRowSpan);
+                this.output.Write(compressedRowSpan.Slice(0, size));
                 bytesWritten += size;
 
                 outputRow.Clear();

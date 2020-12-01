@@ -240,6 +240,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var coreMetadata = new ImageFrameMetadata();
             frameMetaData = coreMetadata.GetTiffMetadata();
             frameMetaData.Tags = tags;
+            TiffFrameMetadata tiffFormatMetaData = coreMetadata.GetFormatMetadata(TiffFormat.Instance);
 
             this.VerifyAndParseOptions(frameMetaData);
 
@@ -260,7 +261,36 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts, width);
             }
 
+            if (tiffFormatMetaData.Predictor == TiffPredictor.Horizontal)
+            {
+                this.UndoHorizontalPredictor(width, height, frame);
+            }
+
             return frame;
+        }
+
+        private void UndoHorizontalPredictor<TPixel>(int width, int height, ImageFrame<TPixel> frame)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using System.Buffers.IMemoryOwner<Rgb24> rowRgbBuffer = this.memoryAllocator.Allocate<Rgb24>(width);
+            System.Span<Rgb24> rowRgb = rowRgbBuffer.GetSpan();
+            for (int y = 0; y < height; y++)
+            {
+                System.Span<TPixel> pixelRow = frame.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToRgb24(this.configuration, pixelRow, rowRgb);
+                byte r = rowRgb[0].R;
+                byte g = rowRgb[0].G;
+                byte b = rowRgb[0].B;
+                for (int x = 1; x < width; x++)
+                {
+                    ref TPixel pixel = ref pixelRow[x];
+                    r += rowRgb[x].R;
+                    g += rowRgb[x].G;
+                    b += rowRgb[x].B;
+                    var rgb = new Rgb24(r, g, b);
+                    pixel.FromRgb24(rgb);
+                }
+            }
         }
 
         /// <summary>

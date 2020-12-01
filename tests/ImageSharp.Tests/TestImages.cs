@@ -529,7 +529,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbDeflate_Predictor = "Tiff/rgb_deflate.tiff";
             public const string RgbDeflateMultistrip = "Tiff/rgb_deflate_multistrip.tiff";
             public const string RgbJpeg = "Tiff/rgb_jpeg.tiff";
-            public const string RgbLzw_Predictor = "Tiff/rgb_lzw.tiff";
+            public const string RgbLzw_Predictor = "Tiff/rgb_lzw_predictor.tiff";
             public const string RgbLzw_NoPredictor_Multistrip = "Tiff/rgb_lzw_noPredictor_multistrip.tiff";
             public const string RgbLzw_NoPredictor_Multistrip_Motorola = "Tiff/rgb_lzw_noPredictor_multistrip_Motorola.tiff";
             public const string RgbLzw_NoPredictor_Singlestrip_Motorola = "Tiff/rgb_lzw_noPredictor_singlestrip_Motorola.tiff";
@@ -553,10 +553,12 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] All =
             {
-                Calliphora_PaletteUncompressed, /*Calliphora_RgbDeflate_Predictor, Calliphora_RgbLzwe_Predictor, */ Calliphora_RgbPackbits,
+                Calliphora_PaletteUncompressed, Calliphora_RgbPackbits,
+                Calliphora_GrayscaleDeflate_Predictor, Calliphora_RgbDeflate_Predictor, RgbDeflate_Predictor,
+                Calliphora_RgbLzw_Predictor, RgbLzw_Predictor, // TODO: Undoing the horizontal prediction seems to fail for lzw. Do we need to do something different for lzw?
                 Calliphora_BiColor, Calliphora_RgbUncompressed, Calliphora_HuffmanCompressed, Calliphora_Fax3Compressed, CcittFax3AllTermCodes, CcittFax3AllMakeupCodes,
                 HuffmanRleAllTermCodes, HuffmanRleAllMakeupCodes, GrayscaleDeflateMultistrip, Calliphora_GrayscaleDeflate, Calliphora_GrayscaleUncompressed,
-                GrayscaleUncompressed, PaletteDeflateMultistrip, PaletteUncompressed, /*RgbDeflate_Predictor,*/ RgbDeflateMultistrip, /*RgbJpeg,*/ /*RgbLzw_Predictor, RgbLzwMultistrip_Predictor,*/
+                GrayscaleUncompressed, PaletteDeflateMultistrip, PaletteUncompressed, RgbDeflateMultistrip, /*RgbJpeg,*/ /* RgbLzwMultistrip_Predictor,*/
                 RgbLzw_NoPredictor_Multistrip, RgbLzw_NoPredictor_Multistrip_Motorola, RgbLzw_NoPredictor_Singlestrip_Motorola, RgbPackbits, RgbPackbitsMultistrip, RgbUncompressed,
                 /* MultiframeLzw_Predictor, MultiFrameDifferentVariants, SampleMetadata,*/ SmallRgbDeflate, SmallRgbLzw,
             };
@@ -565,7 +567,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] Metadata = { SampleMetadata };
 
-            public static readonly string[] NotSupported = { Calliphora_GrayscaleDeflate_Predictor, Calliphora_RgbJpeg, Calliphora_RgbDeflate_Predictor, Calliphora_RgbLzw_Predictor, RgbDeflate_Predictor, RgbLzw_Predictor, RgbLzwMultistrip_Predictor, RgbJpeg, RgbUncompressedTiled, MultiframeLzw_Predictor, MultiframeDifferentSize, MultiframeDifferentVariants };
+            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbLzwMultistrip_Predictor, RgbJpeg, RgbUncompressedTiled, MultiframeLzw_Predictor, MultiframeDifferentSize, MultiframeDifferentVariants };
         }
     }
 }

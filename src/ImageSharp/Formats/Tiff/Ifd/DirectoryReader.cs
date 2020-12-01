@@ -3,11 +3,11 @@
 
 using System.Collections.Generic;
 
-using SixLabors.ImageSharp.Formats.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Tiff.Streams;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Streams;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 {
     /// <summary>
     /// The TIFF IFD reader class.

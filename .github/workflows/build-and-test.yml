@@ -56,7 +56,7 @@ jobs:
                   git fetch --prune --unshallow
                   git submodule -q update --init --recursive
 
-            - name: Setup nuget cache
+            - name: Setup NuGet Cache
               uses: actions/cache@v2
               id: nuget-cache
               with:

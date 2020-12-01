@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing
             IResampler sampler)
         {
             Matrix3x2 transform = builder.BuildMatrix(sourceRectangle);
-            Size targetDimensions = TransformUtilities.GetTransformedSize(sourceRectangle.Size, transform);
+            Size targetDimensions = TransformUtils.GetTransformedSize(sourceRectangle.Size, transform);
             return ctx.Transform(sourceRectangle, transform, targetDimensions, sampler);
         }
 
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Processing
             IResampler sampler)
         {
             Matrix4x4 transform = builder.BuildMatrix(sourceRectangle);
-            Size targetDimensions = TransformUtilities.GetTransformedSize(sourceRectangle.Size, transform);
+            Size targetDimensions = TransformUtils.GetTransformedSize(sourceRectangle.Size, transform);
             return ctx.Transform(sourceRectangle, transform, targetDimensions, sampler);
         }
 

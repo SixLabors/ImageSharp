@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp
             ref Byte3 dBase = ref Unsafe.As<byte, Byte3>(ref MemoryMarshal.GetReference(dest));
 
             int n = source.Length / 4;
-            int m = ImageMaths.Modulo4(n);
+            int m = Numerics.Modulo4(n);
             int u = n - m;
 
             ref uint sLoopEnd = ref Unsafe.Add(ref sBase, u);

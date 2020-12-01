@@ -105,7 +105,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             }
 
             // Get the number of bits.
-            this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length);
+            this.bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
 
             // Write the header.
             this.WriteHeader(stream);
@@ -212,7 +212,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     }
                 }
 
-                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(quantized.Palette.Length);
+                this.bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
                 this.WriteGraphicalControlExtension(frameMetadata, this.GetTransparentIndex(quantized), stream);
                 this.WriteImageDescriptor(frame, true, stream);
                 this.WriteColorTable(quantized, stream);
@@ -468,7 +468,7 @@ namespace SixLabors.ImageSharp.Formats.Gif
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // The maximum number of colors for the bit depth
-            int colorTableLength = ImageMaths.GetColorCountForBitDepth(this.bitDepth) * Unsafe.SizeOf<Rgb24>();
+            int colorTableLength = ColorNumerics.GetColorCountForBitDepth(this.bitDepth) * Unsafe.SizeOf<Rgb24>();
 
             using IManagedByteBuffer colorTable = this.memoryAllocator.AllocateManagedByteBuffer(colorTableLength, AllocationOptions.Clean);
             PixelOperations<TPixel>.Instance.ToRgb24Bytes(

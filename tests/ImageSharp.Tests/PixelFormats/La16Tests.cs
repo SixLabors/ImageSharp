@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             // Arrange
             La16 gray = default;
-            byte expected = ImageMaths.Get8BitBT709Luminance(rgb, rgb, rgb);
+            byte expected = ColorNumerics.Get8BitBT709Luminance(rgb, rgb, rgb);
 
             // Act
             gray.FromRgba32(new Rgba32(rgb, rgb, rgb));

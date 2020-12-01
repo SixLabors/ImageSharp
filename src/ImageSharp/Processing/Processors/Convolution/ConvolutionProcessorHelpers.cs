@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             for (int i = 0; i < size; i++)
             {
                 float x = i - midpoint;
-                float gx = ImageMaths.Gaussian(x, weight);
+                float gx = Numerics.Gaussian(x, weight);
                 sum += gx;
                 kernel[0, i] = gx;
             }
@@ -58,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             for (int i = 0; i < size; i++)
             {
                 float x = i - midpoint;
-                float gx = ImageMaths.Gaussian(x, weight);
+                float gx = Numerics.Gaussian(x, weight);
                 sum += gx;
                 kernel[0, i] = gx;
             }

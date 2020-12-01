@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public float DitherScale
         {
             get { return this.ditherScale; }
-            set { this.ditherScale = value.Clamp(QuantizerConstants.MinDitherScale, QuantizerConstants.MaxDitherScale); }
+            set { this.ditherScale = Numerics.Clamp(value, QuantizerConstants.MinDitherScale, QuantizerConstants.MaxDitherScale); }
         }
 
         /// <summary>
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
         public int MaxColors
         {
             get { return this.maxColors; }
-            set { this.maxColors = value.Clamp(QuantizerConstants.MinColors, QuantizerConstants.MaxColors); }
+            set { this.maxColors = Numerics.Clamp(value, QuantizerConstants.MinColors, QuantizerConstants.MaxColors); }
         }
     }
 }

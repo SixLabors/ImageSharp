@@ -6,9 +6,9 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
 
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -239,11 +239,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         public int WritePalettedRgb<TPixel>(Image<TPixel> image, IQuantizer quantizer, int padding, TiffEncoderCompression compression, out IExifValue colorMap)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int colorPaletteSize = 256 * 3 * 2;
+            int colorsPerChannel = 256;
+            int colorPaletteSize = colorsPerChannel * 3;
+            int colorPaletteBytes = colorPaletteSize * 2;
             using IManagedByteBuffer row = this.AllocateRow(image.Width, 1, padding);
             using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image.Frames.RootFrame, image.Bounds());
-            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(colorPaletteSize);
+            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(colorPaletteBytes);
             Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
 
             ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
@@ -253,8 +255,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             Span<Rgb48> quantizedColorRgb48 = MemoryMarshal.Cast<byte, Rgb48>(colorPalette.Slice(0, quantizedColorBytes));
             PixelOperations<TPixel>.Instance.ToRgb48(this.configuration, quantizedColors, quantizedColorRgb48);
 
-            // It can happen that the quantized colors are less than the expected 256.
-            var diffToMaxColors = 256 - quantizedColors.Length;
+            // It can happen that the quantized colors are less than the expected 256 per channel.
+            var diffToMaxColors = colorsPerChannel - quantizedColors.Length;
 
             // In a TIFF ColorMap, all the Red values come first, followed by the Green values,
             // then the Blue values. Convert the quantized palette to this format.

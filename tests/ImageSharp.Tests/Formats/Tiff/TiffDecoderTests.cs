@@ -60,8 +60,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [InlineData(TestImages.Tiff.RgbLzw_NoPredictor_Multistrip, TiffByteOrder.LittleEndian)]
-        [InlineData(TestImages.Tiff.RgbLzw_NoPredictor_Multistrip_Motorola, TiffByteOrder.BigEndian)]
+        [InlineData(TestImages.Tiff.RgbLzwNoPredictorMultistrip, TiffByteOrder.LittleEndian)]
+        [InlineData(TestImages.Tiff.RgbLzwNoPredictorMultistripMotorola, TiffByteOrder.BigEndian)]
         public void ByteOrder(string imagePath, TiffByteOrder expectedByteOrder)
         {
             var testFile = TestFile.Create(imagePath);

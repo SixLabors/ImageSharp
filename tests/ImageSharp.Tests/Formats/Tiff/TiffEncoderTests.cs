@@ -93,6 +93,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
 
             using var encodedImage = (Image<TPixel>)Image.Load(memStream);
+            provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
             TiffTestUtils.CompareWithReferenceDecoder(provider, encodedImage);
         }
 
@@ -110,6 +111,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
 
             using var encodedImage = (Image<TPixel>)Image.Load(memStream);
+            provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
             TiffTestUtils.CompareWithReferenceDecoder(provider, encodedImage);
         }
 
@@ -127,6 +129,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
 
             using var encodedImage = (Image<TPixel>)Image.Load(memStream);
+            provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
             TiffTestUtils.CompareWithReferenceDecoder(provider, encodedImage);
         }
 

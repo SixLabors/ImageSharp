@@ -5,10 +5,10 @@ using System;
 using System.Buffers;
 using System.IO;
 
-using SixLabors.ImageSharp.Formats.Tiff.Utils;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Tiff.Compression
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 {
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using PackBits compression.

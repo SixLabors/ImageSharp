@@ -526,14 +526,15 @@ namespace SixLabors.ImageSharp.Tests
             public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
             public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
             public const string PaletteUncompressed = "Tiff/palette_uncompressed.tiff";
-            public const string RgbDeflate_Predictor = "Tiff/rgb_deflate.tiff";
+            public const string RgbDeflatePredictor = "Tiff/rgb_deflate.tiff";
             public const string RgbDeflateMultistrip = "Tiff/rgb_deflate_multistrip.tiff";
             public const string RgbJpeg = "Tiff/rgb_jpeg.tiff";
-            public const string RgbLzw_Predictor = "Tiff/rgb_lzw_predictor.tiff";
-            public const string RgbLzw_NoPredictor_Multistrip = "Tiff/rgb_lzw_noPredictor_multistrip.tiff";
-            public const string RgbLzw_NoPredictor_Multistrip_Motorola = "Tiff/rgb_lzw_noPredictor_multistrip_Motorola.tiff";
-            public const string RgbLzw_NoPredictor_Singlestrip_Motorola = "Tiff/rgb_lzw_noPredictor_singlestrip_Motorola.tiff";
-            public const string RgbLzwMultistrip_Predictor = "Tiff/rgb_lzw_multistrip.tiff";
+            public const string RgbLzwPredictor = "Tiff/rgb_lzw_predictor.tiff";
+            public const string RgbLzwNoPredictor = "Tiff/rgb_lzw_no_predictor.tiff";
+            public const string RgbLzwNoPredictorMultistrip = "Tiff/rgb_lzw_noPredictor_multistrip.tiff";
+            public const string RgbLzwNoPredictorMultistripMotorola = "Tiff/rgb_lzw_noPredictor_multistrip_Motorola.tiff";
+            public const string RgbLzwNoPredictorSinglestripMotorola = "Tiff/rgb_lzw_noPredictor_singlestrip_Motorola.tiff";
+            public const string RgbLzwMultistripPredictor = "Tiff/rgb_lzw_multistrip.tiff";
             public const string RgbPackbits = "Tiff/rgb_packbits.tiff";
             public const string RgbPackbitsMultistrip = "Tiff/rgb_packbits_multistrip.tiff";
             public const string RgbUncompressed = "Tiff/rgb_uncompressed.tiff";
@@ -544,7 +545,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbUncompressedTiled = "Tiff/rgb_uncompressed_tiled.tiff";
             public const string MultiframeDifferentSizeTiled = "Tiff/multipage_ withPreview_differentSize_tiled.tiff";
 
-            public const string MultiframeLzw_Predictor = "Tiff/multipage_lzw.tiff";
+            public const string MultiframeLzwPredictor = "Tiff/multipage_lzw.tiff";
             public const string MultiframeDeflateWithPreview = "Tiff/multipage_deflate_withPreview.tiff";
             public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
@@ -554,20 +555,20 @@ namespace SixLabors.ImageSharp.Tests
             public static readonly string[] All =
             {
                 Calliphora_PaletteUncompressed, Calliphora_RgbPackbits,
-                Calliphora_GrayscaleDeflate_Predictor, Calliphora_RgbDeflate_Predictor, RgbDeflate_Predictor,
-                Calliphora_RgbLzw_Predictor, RgbLzw_Predictor, // TODO: Undoing the horizontal prediction seems to fail for lzw. Do we need to do something different for lzw?
+                Calliphora_GrayscaleDeflate_Predictor, Calliphora_RgbDeflate_Predictor, RgbDeflatePredictor,
+                Calliphora_RgbLzw_Predictor, RgbLzwPredictor, // TODO: Undoing the horizontal prediction seems to fail for lzw. Do we need to do something different for lzw?
                 Calliphora_BiColor, Calliphora_RgbUncompressed, Calliphora_HuffmanCompressed, Calliphora_Fax3Compressed, CcittFax3AllTermCodes, CcittFax3AllMakeupCodes,
                 HuffmanRleAllTermCodes, HuffmanRleAllMakeupCodes, GrayscaleDeflateMultistrip, Calliphora_GrayscaleDeflate, Calliphora_GrayscaleUncompressed,
                 GrayscaleUncompressed, PaletteDeflateMultistrip, PaletteUncompressed, RgbDeflateMultistrip, /*RgbJpeg,*/ /* RgbLzwMultistrip_Predictor,*/
-                RgbLzw_NoPredictor_Multistrip, RgbLzw_NoPredictor_Multistrip_Motorola, RgbLzw_NoPredictor_Singlestrip_Motorola, RgbPackbits, RgbPackbitsMultistrip, RgbUncompressed,
-                /* MultiframeLzw_Predictor, MultiFrameDifferentVariants, SampleMetadata,*/ SmallRgbDeflate, SmallRgbLzw,
+                RgbLzwNoPredictorMultistrip, RgbLzwNoPredictorMultistripMotorola, RgbLzwNoPredictorSinglestripMotorola, RgbPackbits, RgbPackbitsMultistrip, RgbUncompressed,
+                /* MultiframeLzw_Predictor, MultiFrameDifferentVariants, SampleMetadata,*/ SmallRgbDeflate, SmallRgbLzw, RgbLzwNoPredictor
             };
 
             public static readonly string[] Multiframes = { MultiframeDeflateWithPreview /*MultiframeLzw_Predictor, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
 
             public static readonly string[] Metadata = { SampleMetadata };
 
-            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbLzwMultistrip_Predictor, RgbJpeg, RgbUncompressedTiled, MultiframeLzw_Predictor, MultiframeDifferentSize, MultiframeDifferentVariants };
+            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbLzwMultistripPredictor, RgbJpeg, RgbUncompressedTiled, MultiframeLzwPredictor, MultiframeDifferentSize, MultiframeDifferentVariants };
         }
     }
 }

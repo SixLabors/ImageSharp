@@ -9,7 +9,7 @@ using System.Linq;
 
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Tiff.Compression
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 {
     /// <summary>
     /// Bitreader for reading compressed CCITT T4 1D data.

@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -95,7 +94,7 @@ namespace SixLabors.ImageSharp.Advanced
             AotCodec<TPixel>(new Formats.Gif.GifDecoder(), new Formats.Gif.GifEncoder());
             AotCodec<TPixel>(new Formats.Jpeg.JpegDecoder(), new Formats.Jpeg.JpegEncoder());
             AotCodec<TPixel>(new Formats.Tga.TgaDecoder(), new Formats.Tga.TgaEncoder());
-            AotCodec<TPixel>(new Formats.Tiff.TiffDecoder(), new Formats.Tiff.TiffEncoder());
+            AotCodec<TPixel>(new Formats.Experimental.Tiff.TiffDecoder(), new Formats.Experimental.Tiff.TiffEncoder());
 
             // TODO: Do the discovery work to figure out what works and what doesn't.
         }

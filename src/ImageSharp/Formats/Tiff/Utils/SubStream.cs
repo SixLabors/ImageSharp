@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 
-namespace SixLabors.ImageSharp.Formats.Tiff.Utils
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 {
     /// <summary>
     /// Utility class to encapsulate a sub-portion of another <see cref="Stream"/>.

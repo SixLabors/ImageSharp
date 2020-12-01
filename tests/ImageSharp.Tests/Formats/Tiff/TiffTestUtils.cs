@@ -15,19 +15,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     public static class TiffTestUtils
     {
         public static void CompareWithReferenceDecoder<TPixel>(
-            TestImageProvider<TPixel> provider,
+            string encodedImagePath,
             Image<TPixel> image,
             bool useExactComparer = true,
             float compareTolerance = 0.01f)
             where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
         {
-            string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
-            if (path == null)
-            {
-                throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
-            }
-
-            var testFile = TestFile.Create(path);
+            var testFile = TestFile.Create(encodedImagePath);
             Image<Rgba32> magickImage = DecodeWithMagick<Rgba32>(Configuration.Default, new FileInfo(testFile.FullPath));
             if (useExactComparer)
             {

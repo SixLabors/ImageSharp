@@ -11,7 +11,7 @@
     <RepositoryUrl Condition="'$(RepositoryUrl)' == ''">https://github.com/SixLabors/ImageSharp/</RepositoryUrl>
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Png Tga NetCore</PackageTags>
-    <Description>A new, fully featured, fully managed, cross-platform, 2D graphics API</Description>
+    <Description>A new, fully featured, fully managed, cross-platform, 2D graphics API for .NET</Description>
     <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;netstandard2.1;netstandard2.0;netstandard1.3;net472</TargetFrameworks>
   </PropertyGroup>
 

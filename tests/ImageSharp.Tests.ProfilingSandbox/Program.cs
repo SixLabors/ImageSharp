@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
         private static void RunToVector4ProfilingTest()
         {
-            var tests = new PixelOperationsTests.Rgba32OperationsTests(new ConsoleOutput());
+            var tests = new PixelOperationsTests.Rgba32_OperationsTests(new ConsoleOutput());
             tests.Benchmark_ToVector4();
         }
 

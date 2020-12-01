@@ -56,6 +56,14 @@ jobs:
                   git fetch --prune --unshallow
                   git submodule -q update --init --recursive
 
+            - name: Setup nuget cache
+              uses: actions/cache@v2
+              id: nuget-cache
+              with:
+                  path: ~/.nuget
+                  key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
+                  restore-keys: ${{ runner.os }}-nuget-
+
             - name: Build
               shell: pwsh
               run: ./ci-build.ps1 "${{matrix.options.framework}}"

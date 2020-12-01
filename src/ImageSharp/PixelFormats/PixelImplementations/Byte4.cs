@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 0] to [255, 255, 255, 255] in vector form.
     /// </para>
     /// </summary>
-    public struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
+    public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Byte4"/> struct.
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Byte4 left, Byte4 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<Byte4> CreatePixelOperations() => new PixelOperations<Byte4>();
+        public readonly PixelOperations<Byte4> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -171,7 +171,7 @@ namespace SixLabors.ImageSharp.PixelFormats
             const float Max = 255F;
 
             // Clamp the value between min and max values
-            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, new Vector4(Max));
+            vector = Numerics.Clamp(vector, Vector4.Zero, new Vector4(Max));
 
             uint byte4 = (uint)Math.Round(vector.X) & 0xFF;
             uint byte3 = ((uint)Math.Round(vector.Y) & 0xFF) << 0x8;

@@ -123,7 +123,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                 {
                     // TODO: We should bulk convert here.
                     var vector = pixelRow[x].ToVector4();
-                    int luminance = ImageMaths.GetBT709Luminance(ref vector, levels);
+                    int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
                     Interlocked.Increment(ref Unsafe.Add(ref histogramBase, luminance));
                 }
             }
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
                     // TODO: We should bulk convert here.
                     ref TPixel pixel = ref pixelRow[x];
                     var vector = pixel.ToVector4();
-                    int luminance = ImageMaths.GetBT709Luminance(ref vector, levels);
+                    int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
                     float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / noOfPixelsMinusCdfMin;
                     pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W));
                 }

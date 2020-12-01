@@ -163,7 +163,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         private static ushort Pack(ref Vector4 vector)
         {
-            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, Vector4.One);
+            vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One);
             return (ushort)(
                    (((int)Math.Round(vector.X * 31F) & 0x1F) << 10)
                    | (((int)Math.Round(vector.Y * 31F) & 0x1F) << 5)

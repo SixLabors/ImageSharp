@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 ++x;
                 ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
                 res = scan;
-                sum += ImageMaths.FastAbs(unchecked((sbyte)res));
+                sum += Numerics.Abs(unchecked((sbyte)res));
             }
 
             for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 ++x;
                 ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
                 res = (byte)(scan - prev);
-                sum += ImageMaths.FastAbs(unchecked((sbyte)res));
+                sum += Numerics.Abs(unchecked((sbyte)res));
             }
 
             sum -= 1;

@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 for (int j = 0; j < 2; j++)
                 {
 					char side = j == 0 ? 'L' : 'R';
-					Write($"this.V{i}{side} = Vector4Utilities.FastClamp(this.V{i}{side} + COff4, CMin4, CMax4);\r\n");
+					Write($"this.V{i}{side} = Numerics.Clamp(this.V{i}{side} + COff4, CMin4, CMax4);\r\n");
                 }
             }
 			PopIndent();

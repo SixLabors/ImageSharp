@@ -31,9 +31,6 @@ Decoder:
 - Decoding HUffman RLE for `Calliphora_huffman_rle.tiff` has 4 pixels difference to the reference decoder. Al those are at the very edge of the image (reason unknown so far).
 - Decoding compressed images with HorizontalPrediction: Works for deflate, but not for lzw.
 
-Encoder:
-- Encoding image with a palette have a difference of 0.0043% to the ReferenceDecoder (ImageMagick)
-
 ### Deviations from the TIFF spec (to be fixed)
 
 - Decoder

@@ -84,7 +84,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // Because a quantizer is used to create the palette (and therefore changes to the original are expected),
             // we do not compare the encoded image against the original:
             // Instead we load the encoded image with a reference decoder and compare against that image.
-            // TODO: There is a difference of 0,0043%
             using Image<TPixel> image = provider.GetImage();
             using var memStream = new MemoryStream();
             var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.None };
@@ -93,8 +92,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
 
             using var encodedImage = (Image<TPixel>)Image.Load(memStream);
-            provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
-            TiffTestUtils.CompareWithReferenceDecoder(provider, encodedImage);
+            var encodedImagePath = provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
+            TiffTestUtils.CompareWithReferenceDecoder(encodedImagePath, encodedImage);
         }
 
         [Theory]
@@ -102,7 +101,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffEncoder_EncodeColorPalette_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // TODO: There is a difference of 0,0043%
             using Image<TPixel> image = provider.GetImage();
             using var memStream = new MemoryStream();
             var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Deflate };
@@ -111,8 +109,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
 
             using var encodedImage = (Image<TPixel>)Image.Load(memStream);
-            provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
-            TiffTestUtils.CompareWithReferenceDecoder(provider, encodedImage);
+            var encodedImagePath = provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
+            TiffTestUtils.CompareWithReferenceDecoder(encodedImagePath, encodedImage);
         }
 
         [Theory]
@@ -120,7 +118,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffEncoder_EncodeColorPalette_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            // TODO: There is a difference of 0,0043%
             using Image<TPixel> image = provider.GetImage();
             using var memStream = new MemoryStream();
             var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.PackBits };
@@ -129,8 +126,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
 
             using var encodedImage = (Image<TPixel>)Image.Load(memStream);
-            provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
-            TiffTestUtils.CompareWithReferenceDecoder(provider, encodedImage);
+            var encodedImagePath = provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
+            TiffTestUtils.CompareWithReferenceDecoder(encodedImagePath, encodedImage);
         }
 
         [Theory]

@@ -25,11 +25,11 @@ namespace SixLabors.ImageSharp.ColorSpaces.Conversion
             float fx = (a / 500F) + fy;
             float fz = fy - (b / 200F);
 
-            float fx3 = ImageMaths.Pow3(fx);
-            float fz3 = ImageMaths.Pow3(fz);
+            float fx3 = Numerics.Pow3(fx);
+            float fz3 = Numerics.Pow3(fz);
 
             float xr = fx3 > CieConstants.Epsilon ? fx3 : ((116F * fx) - 16F) / CieConstants.Kappa;
-            float yr = l > CieConstants.Kappa * CieConstants.Epsilon ? ImageMaths.Pow3((l + 16F) / 116F) : l / CieConstants.Kappa;
+            float yr = l > CieConstants.Kappa * CieConstants.Epsilon ? Numerics.Pow3((l + 16F) / 116F) : l / CieConstants.Kappa;
             float zr = fz3 > CieConstants.Epsilon ? fz3 : ((116F * fz) - 16F) / CieConstants.Kappa;
 
             var wxyz = new Vector3(input.WhitePoint.X, input.WhitePoint.Y, input.WhitePoint.Z);

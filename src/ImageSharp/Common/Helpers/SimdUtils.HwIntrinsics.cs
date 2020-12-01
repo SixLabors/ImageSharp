@@ -38,8 +38,8 @@ namespace SixLabors.ImageSharp
                 if (Avx.IsSupported || Sse.IsSupported)
                 {
                     int remainder = Avx.IsSupported
-                        ? ImageMaths.ModuloP2(source.Length, Vector256<float>.Count)
-                        : ImageMaths.ModuloP2(source.Length, Vector128<float>.Count);
+                        ? Numerics.ModuloP2(source.Length, Vector256<float>.Count)
+                        : Numerics.ModuloP2(source.Length, Vector128<float>.Count);
 
                     int adjustedCount = source.Length - remainder;
 
@@ -72,8 +72,8 @@ namespace SixLabors.ImageSharp
                 if (Avx2.IsSupported || Ssse3.IsSupported)
                 {
                     int remainder = Avx2.IsSupported
-                        ? ImageMaths.ModuloP2(source.Length, Vector256<byte>.Count)
-                        : ImageMaths.ModuloP2(source.Length, Vector128<byte>.Count);
+                        ? Numerics.ModuloP2(source.Length, Vector256<byte>.Count)
+                        : Numerics.ModuloP2(source.Length, Vector128<byte>.Count);
 
                     int adjustedCount = source.Length - remainder;
 
@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp
                         ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(dest));
 
                     int n = dest.Length / Vector256<float>.Count;
-                    int m = ImageMaths.Modulo4(n);
+                    int m = Numerics.Modulo4(n);
                     int u = n - m;
 
                     for (int i = 0; i < u; i += 4)
@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp
                         ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(dest));
 
                     int n = dest.Length / Vector128<float>.Count;
-                    int m = ImageMaths.Modulo4(n);
+                    int m = Numerics.Modulo4(n);
                     int u = n - m;
 
                     for (int i = 0; i < u; i += 4)
@@ -288,7 +288,7 @@ namespace SixLabors.ImageSharp
                         ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(dest));
 
                     int n = dest.Length / Vector256<byte>.Count;
-                    int m = ImageMaths.Modulo4(n);
+                    int m = Numerics.Modulo4(n);
                     int u = n - m;
 
                     for (int i = 0; i < u; i += 4)
@@ -324,7 +324,7 @@ namespace SixLabors.ImageSharp
                         ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(dest));
 
                     int n = dest.Length / Vector128<byte>.Count;
-                    int m = ImageMaths.Modulo4(n);
+                    int m = Numerics.Modulo4(n);
                     int u = n - m;
 
                     for (int i = 0; i < u; i += 4)
@@ -550,11 +550,11 @@ namespace SixLabors.ImageSharp
                     int remainder;
                     if (Avx2.IsSupported)
                     {
-                        remainder = ImageMaths.ModuloP2(source.Length, Vector256<byte>.Count);
+                        remainder = Numerics.ModuloP2(source.Length, Vector256<byte>.Count);
                     }
                     else
                     {
-                        remainder = ImageMaths.ModuloP2(source.Length, Vector128<byte>.Count);
+                        remainder = Numerics.ModuloP2(source.Length, Vector128<byte>.Count);
                     }
 
                     int adjustedCount = source.Length - remainder;
@@ -683,11 +683,11 @@ namespace SixLabors.ImageSharp
                     int remainder;
                     if (Avx2.IsSupported)
                     {
-                        remainder = ImageMaths.ModuloP2(source.Length, Vector256<byte>.Count);
+                        remainder = Numerics.ModuloP2(source.Length, Vector256<byte>.Count);
                     }
                     else
                     {
-                        remainder = ImageMaths.ModuloP2(source.Length, Vector128<byte>.Count);
+                        remainder = Numerics.ModuloP2(source.Length, Vector128<byte>.Count);
                     }
 
                     int adjustedCount = source.Length - remainder;

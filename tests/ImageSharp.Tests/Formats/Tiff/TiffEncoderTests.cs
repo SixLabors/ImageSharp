@@ -76,23 +76,59 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffEncoder_EncodeGray_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel8, TiffEncodingMode.Gray, TiffEncoderCompression.PackBits);
 
-        // TODO: this test fails, but the output looks correct. I thinks its due to the fact that a quantizer is used to create the palette.
         [Theory]
         [WithFile(TestImages.Tiff.Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette);
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // Because a quantizer is used to create the palette (and therefore changes to the original are expected),
+            // we do not compare the encoded image against the original:
+            // Instead we load the encoded image with a reference decoder and compare against that image.
+            // TODO: There is a difference of 0,0043%
+            using Image<TPixel> image = provider.GetImage();
+            using var memStream = new MemoryStream();
+            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.None };
 
-        // TODO: this test fails, but the output looks correct. I thinks its due to the fact that a quantizer is used to create the palette.
+            image.Save(memStream, encoder);
+            memStream.Position = 0;
+
+            using var encodedImage = (Image<TPixel>)Image.Load(memStream);
+            TiffTestUtils.CompareWithReferenceDecoder(provider, encodedImage);
+        }
+
         [Theory]
         [WithFile(TestImages.Tiff.Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, TiffEncoderCompression.Deflate);
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // TODO: There is a difference of 0,0043%
+            using Image<TPixel> image = provider.GetImage();
+            using var memStream = new MemoryStream();
+            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Deflate };
 
-        // TODO: this test fails, but the output looks correct. I thinks its due to the fact that a quantizer is used to create the palette.
+            image.Save(memStream, encoder);
+            memStream.Position = 0;
+
+            using var encodedImage = (Image<TPixel>)Image.Load(memStream);
+            TiffTestUtils.CompareWithReferenceDecoder(provider, encodedImage);
+        }
+
         [Theory]
         [WithFile(TestImages.Tiff.Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, TiffEncoderCompression.PackBits);
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // TODO: There is a difference of 0,0043%
+            using Image<TPixel> image = provider.GetImage();
+            using var memStream = new MemoryStream();
+            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.PackBits };
+
+            image.Save(memStream, encoder);
+            memStream.Position = 0;
+
+            using var encodedImage = (Image<TPixel>)Image.Load(memStream);
+            TiffTestUtils.CompareWithReferenceDecoder(provider, encodedImage);
+        }
 
         [Theory]
         [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]

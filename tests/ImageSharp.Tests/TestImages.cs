@@ -505,10 +505,12 @@ namespace SixLabors.ImageSharp.Tests
             public const string Benchmark_RgbUncompressed = "Tiff/Benchmarks/jpeg444_big_rgb_uncompressed.tiff";
 
             public const string Calliphora_GrayscaleUncompressed = "Tiff/Calliphora_grayscale_uncompressed.tiff";
+            public const string Calliphora_GrayscaleDeflate_Predictor = "Tiff/Calliphora_gray_deflate_predictor.tiff";
+            public const string Calliphora_GrayscaleDeflate = "Tiff/Calliphora_gray_deflate.tiff";
             public const string Calliphora_PaletteUncompressed = "Tiff/Calliphora_palette_uncompressed.tiff";
-            public const string Calliphora_RgbDeflate_Predictor = "Tiff/Calliphora_rgb_deflate.tiff";
+            public const string Calliphora_RgbDeflate_Predictor = "Tiff/Calliphora_rgb_deflate_predictor.tiff";
             public const string Calliphora_RgbJpeg = "Tiff/Calliphora_rgb_jpeg.tiff";
-            public const string Calliphora_RgbLzw_Predictor = "Tiff/Calliphora_rgb_lzw.tiff";
+            public const string Calliphora_RgbLzw_Predictor = "Tiff/Calliphora_rgb_lzw_predictor.tiff";
             public const string Calliphora_RgbPackbits = "Tiff/Calliphora_rgb_packbits.tiff";
             public const string Calliphora_RgbUncompressed = "Tiff/Calliphora_rgb_uncompressed.tiff";
             public const string Calliphora_Fax3Compressed = "Tiff/Calliphora_ccitt_fax3.tiff";
@@ -516,7 +518,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string Calliphora_BiColor = "Tiff/Calliphora_bicolor_uncompressed.tiff";
 
             public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tiff";
-            public const string CcittFax3AllMakupCodes = "Tiff/ccitt_fax3_all_makeupcodes_codes.tiff";
+            public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
+            public const string HuffmanRleAllTermCodes = "Tiff/huffman_rle_all_terminating_codes.tiff";
+            public const string HuffmanRleAllMakeupCodes = "Tiff/huffman_rle_all_makeup_codes.tiff";
 
             public const string GrayscaleDeflateMultistrip = "Tiff/grayscale_deflate_multistrip.tiff";
             public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
@@ -549,8 +553,9 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] All =
             {
-                Calliphora_GrayscaleUncompressed, Calliphora_PaletteUncompressed, /*Calliphora_RgbDeflate_Predictor, Calliphora_RgbLzwe_Predictor, */ Calliphora_RgbPackbits,
-                Calliphora_BiColor, Calliphora_RgbUncompressed, Calliphora_HuffmanCompressed, Calliphora_Fax3Compressed, CcittFax3AllTermCodes, CcittFax3AllMakupCodes, GrayscaleDeflateMultistrip,
+                Calliphora_PaletteUncompressed, /*Calliphora_RgbDeflate_Predictor, Calliphora_RgbLzwe_Predictor, */ Calliphora_RgbPackbits,
+                Calliphora_BiColor, Calliphora_RgbUncompressed, Calliphora_HuffmanCompressed, Calliphora_Fax3Compressed, CcittFax3AllTermCodes, CcittFax3AllMakeupCodes,
+                HuffmanRleAllTermCodes, HuffmanRleAllMakeupCodes, GrayscaleDeflateMultistrip, Calliphora_GrayscaleDeflate, Calliphora_GrayscaleUncompressed,
                 GrayscaleUncompressed, PaletteDeflateMultistrip, PaletteUncompressed, /*RgbDeflate_Predictor,*/ RgbDeflateMultistrip, /*RgbJpeg,*/ /*RgbLzw_Predictor, RgbLzwMultistrip_Predictor,*/
                 RgbLzw_NoPredictor_Multistrip, RgbLzw_NoPredictor_Multistrip_Motorola, RgbLzw_NoPredictor_Singlestrip_Motorola, RgbPackbits, RgbPackbitsMultistrip, RgbUncompressed,
                 /* MultiframeLzw_Predictor, MultiFrameDifferentVariants, SampleMetadata,*/ SmallRgbDeflate, SmallRgbLzw,
@@ -560,7 +565,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] Metadata = { SampleMetadata };
 
-            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, Calliphora_RgbDeflate_Predictor, Calliphora_RgbLzw_Predictor, RgbDeflate_Predictor, RgbLzw_Predictor, RgbLzwMultistrip_Predictor, RgbJpeg, RgbUncompressedTiled, MultiframeLzw_Predictor, MultiframeDifferentSize, MultiframeDifferentVariants };
+            public static readonly string[] NotSupported = { Calliphora_GrayscaleDeflate_Predictor, Calliphora_RgbJpeg, Calliphora_RgbDeflate_Predictor, Calliphora_RgbLzw_Predictor, RgbDeflate_Predictor, RgbLzw_Predictor, RgbLzwMultistrip_Predictor, RgbJpeg, RgbUncompressedTiled, MultiframeLzw_Predictor, MultiframeDifferentSize, MultiframeDifferentVariants };
         }
     }
 }

@@ -106,9 +106,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 TiffThrowHelper.ThrowNotSupported("The Tile images is not supported.");
             }
 
-            if (entries.Predictor != TiffPredictor.None)
+            if (entries.Predictor == TiffPredictor.FloatingPoint)
             {
-                TiffThrowHelper.ThrowNotSupported("At the moment we support only None Predictor images.");
+                TiffThrowHelper.ThrowNotSupported("ImageSharp does not support FloatingPoint Predictor images.");
             }
 
             if (entries.SampleFormat != null)
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 {
                     if (format != TiffSampleFormat.UnsignedInteger)
                     {
-                        TiffThrowHelper.ThrowNotSupported("At the moment support only UnsignedInteger SampleFormat.");
+                        TiffThrowHelper.ThrowNotSupported("ImageSharp only supports the UnsignedInteger SampleFormat.");
                     }
                 }
             }

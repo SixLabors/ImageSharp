@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             if (entries.Predictor != TiffPredictor.None)
             {
-                TiffThrowHelper.ThrowNotSupported("At the moment support only None Predictor.");
+                TiffThrowHelper.ThrowNotSupported("At the moment we support only None Predictor images.");
             }
 
             if (entries.SampleFormat != null)

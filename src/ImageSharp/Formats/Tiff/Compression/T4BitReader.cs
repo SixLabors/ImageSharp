@@ -6,7 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
@@ -230,7 +230,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         public T4BitReader(Stream input, int bytesToRead, MemoryAllocator allocator, bool isModifiedHuffman = false)
         {
             this.Data = allocator.Allocate<byte>(bytesToRead);
-            this.ReadImageDataFromStream(input, bytesToRead, allocator);
+            this.ReadImageDataFromStream(input, bytesToRead);
 
             this.isModifiedHuffmanRle = isModifiedHuffman;
             this.dataLength = bytesToRead;
@@ -253,46 +253,22 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         /// <summary>
         /// Gets a value indicating whether there is more data to read left.
         /// </summary>
-        public bool HasMoreData
-        {
-            get
-            {
-                return this.position < (ulong)this.dataLength - 1;
-            }
-        }
+        public bool HasMoreData => this.position < (ulong)this.dataLength - 1;
 
         /// <summary>
         /// Gets a value indicating whether the current run is a white pixel run, otherwise its a black pixel run.
         /// </summary>
-        public bool IsWhiteRun
-        {
-            get
-            {
-                return this.isWhiteRun;
-            }
-        }
+        public bool IsWhiteRun => this.isWhiteRun;
 
         /// <summary>
         /// Gets the number of pixels in the current run.
         /// </summary>
-        public uint RunLength
-        {
-            get
-            {
-                return this.runLength;
-            }
-        }
+        public uint RunLength => this.runLength;
 
         /// <summary>
         /// Gets a value indicating whether the end of a pixel row has been reached.
         /// </summary>
-        public bool IsEndOfScanLine
-        {
-            get
-            {
-                return this.curValueBitsRead == 12 && this.value == 1;
-            }
-        }
+        public bool IsEndOfScanLine => this.curValueBitsRead == 12 && this.value == 1;
 
         /// <summary>
         /// Read the next run of pixels.
@@ -834,25 +810,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             }
         }
 
-        private void ReadImageDataFromStream(Stream input, int bytesToRead, MemoryAllocator allocator)
+        private void ReadImageDataFromStream(Stream input, int bytesToRead)
         {
-            int bufferLength = 4096;
-            IMemoryOwner<byte> buffer = allocator.Allocate<byte>(bufferLength);
-            Span<byte> bufferSpan = buffer.GetSpan();
             Span<byte> dataSpan = this.Data.GetSpan();
-
-            int read;
-            while (bytesToRead > 0 && (read = input.Read(bufferSpan, 0, Math.Min(bufferLength, bytesToRead))) > 0)
-            {
-                buffer.Slice(0, read).CopyTo(dataSpan);
-                bytesToRead -= read;
-                dataSpan = dataSpan.Slice(read);
-            }
-
-            if (bytesToRead > 0)
-            {
-                TiffThrowHelper.ThrowImageFormatException("tiff image file has insufficient data");
-            }
+            input.ReadFull(dataSpan, bytesToRead);
         }
     }
 }

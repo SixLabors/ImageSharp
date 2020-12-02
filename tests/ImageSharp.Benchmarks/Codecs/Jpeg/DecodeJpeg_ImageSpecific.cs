@@ -25,18 +25,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
     {
         public class Config : ManualConfig
         {
-            public Config()
-            {
-                this.Add(MemoryDiagnoser.Default);
-            }
+            public Config() => this.AddDiagnoser(MemoryDiagnoser.Default);
 
             public class ShortClr : Benchmarks.Config
             {
-                public ShortClr()
-                {
+                public ShortClr() =>
+
                     // Job.Default.With(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3),
-                    this.Add(Job.Default.With(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3));
-                }
+                    this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3));
             }
         }
 

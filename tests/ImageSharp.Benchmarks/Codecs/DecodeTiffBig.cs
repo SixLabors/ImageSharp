@@ -23,10 +23,10 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             {
                 public LongClr()
                 {
-                    this.Add(
-                        Job.Default.With(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(5),
-                        Job.Default.With(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(5),
-                        Job.Default.With(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(5));
+                    this.AddJob(
+                        Job.Default.WithRuntime(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(5),
+                        Job.Default.WithRuntime(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(5),
+                        Job.Default.WithRuntime(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(5));
 
                     this.SummaryStyle = SummaryStyle.Default.WithMaxParameterColumnWidth(60);
                 }
@@ -40,6 +40,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
         [Params(TestImages.Tiff.Benchmark_GrayscaleUncompressed, TestImages.Tiff.Benchmark_PaletteUncompressed, TestImages.Tiff.Benchmark_RgbDeflate, TestImages.Tiff.Benchmark_RgbLzw, TestImages.Tiff.Benchmark_RgbPackbits, TestImages.Tiff.Benchmark_RgbUncompressed)]
+
         // [Params(TestImages.Tiff.GrayscaleUncompressed, TestImages.Tiff.PaletteUncompressed, TestImages.Tiff.RgbDeflate, TestImages.Tiff.RgbLzw, TestImages.Tiff.RgbPackbits, TestImages.Tiff.RgbUncompressed)]
         public string TestImage { get; set; }
 

@@ -4,41 +4,36 @@
   <PropertyGroup>
     <AssemblyName>SixLabors.ImageSharp</AssemblyName>
     <AssemblyTitle>SixLabors.ImageSharp</AssemblyTitle>
-    <Description>A cross-platform library for the processing of image files; written in C#</Description>
-    <NeutralLanguage>en</NeutralLanguage>
-
-    <VersionPrefix Condition="$(packageversion) != ''">$(packageversion)</VersionPrefix>
-    <VersionPrefix Condition="$(packageversion) == ''">0.0.1</VersionPrefix>
-
-    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;netstandard2.1;netstandard2.0;netstandard1.3;net472</TargetFrameworks>
-
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PackageId>SixLabors.ImageSharp</PackageId>
-    <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Png Core</PackageTags>
     <RootNamespace>SixLabors.ImageSharp</RootNamespace>
+    <PackageId>SixLabors.ImageSharp</PackageId>
+    <PackageIcon>sixlabors.imagesharp.128.png</PackageIcon>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl Condition="'$(RepositoryUrl)' == ''">https://github.com/SixLabors/ImageSharp/</RepositoryUrl>
+    <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
+    <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Png Tga NetCore</PackageTags>
+    <Description>A new, fully featured, fully managed, cross-platform, 2D graphics API for .NET</Description>
+    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;netstandard2.1;netstandard2.0;netstandard1.3;net472</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" />
-    <PackageReference Include="MinVer" PrivateAssets="All" />
+    <None Include="..\..\shared-infrastructure\branding\icons\imagesharp\sixlabors.imagesharp.128.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
   </ItemGroup>
 
   <ItemGroup Condition=" $(TargetFramework.StartsWith('netstandard')) OR '$(TargetFramework)' == 'net472'">
-    <PackageReference Include="System.Numerics.Vectors" />
-    <PackageReference Include="System.Buffers" />
-    <PackageReference Include="System.Memory" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0"/>
+    <PackageReference Include="System.Buffers" Version="4.5.1" />
+    <PackageReference Include="System.Memory" Version="4.5.4"/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3'">
-    <PackageReference Include="System.IO.Compression" />
-    <PackageReference Include="System.IO.UnmanagedMemoryStream" />
-    <PackageReference Include="System.Threading.Tasks.Parallel" />
-    <PackageReference Include="System.ValueTuple" />
+    <PackageReference Include="System.IO.Compression" Version="4.3.0"/>
+    <PackageReference Include="System.IO.UnmanagedMemoryStream" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks.Parallel" Version="4.3.0"/>
+    <PackageReference Include="System.ValueTuple" Version="4.5.0"/>
   </ItemGroup>
 
   <ItemGroup>

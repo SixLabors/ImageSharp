@@ -3,17 +3,13 @@
 
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <DebugSymbols>True</DebugSymbols>
     <AssemblyName>SixLabors.ImageSharp.Tests</AssemblyName>
     <Platforms>AnyCPU;x64;x86</Platforms>
     <RootNamespace>SixLabors.ImageSharp.Tests</RootNamespace>
-    <!--Used to show test project to dotnet test-->
-    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
-    <DotNetCliToolReference Include="dotnet-xunit" />
     <InternalsVisibleTo Include="ImageSharp.Tests.ProfilingSandbox" Key="$(SixLaborsPublicKey)" />
   </ItemGroup>
 

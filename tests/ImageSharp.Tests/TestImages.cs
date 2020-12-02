@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests
 {
     /// <summary>
     /// Class that contains all the relative test image paths in the TestImages/Formats directory.
-    /// Use with <see cref="WithFileAttribute"/>, <see cref="WithFileCollectionAttribute"/> or <see cref="FileTestBase"/>.
+    /// Use with <see cref="WithFileAttribute"/>, <see cref="WithFileCollectionAttribute"/>.
     /// </summary>
     public static class TestImages
     {

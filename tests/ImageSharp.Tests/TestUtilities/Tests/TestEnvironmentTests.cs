@@ -20,9 +20,7 @@ namespace SixLabors.ImageSharp.Tests
     public class TestEnvironmentTests
     {
         public TestEnvironmentTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+            => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
@@ -34,21 +32,15 @@ namespace SixLabors.ImageSharp.Tests
 
         [Fact]
         public void SolutionDirectoryFullPath()
-        {
-            this.CheckPath(TestEnvironment.SolutionDirectoryFullPath);
-        }
+            => this.CheckPath(TestEnvironment.SolutionDirectoryFullPath);
 
         [Fact]
         public void InputImagesDirectoryFullPath()
-        {
-            this.CheckPath(TestEnvironment.InputImagesDirectoryFullPath);
-        }
+            => this.CheckPath(TestEnvironment.InputImagesDirectoryFullPath);
 
         [Fact]
         public void ExpectedOutputDirectoryFullPath()
-        {
-            this.CheckPath(TestEnvironment.ReferenceOutputDirectoryFullPath);
-        }
+            => this.CheckPath(TestEnvironment.ReferenceOutputDirectoryFullPath);
 
         [Fact]
         public void GetReferenceOutputFileName()

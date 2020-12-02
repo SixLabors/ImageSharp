@@ -253,7 +253,18 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         /// <summary>
         /// Gets a value indicating whether there is more data to read left.
         /// </summary>
-        public bool HasMoreData => this.position < (ulong)this.dataLength - 1;
+        public bool HasMoreData
+        {
+            get
+            {
+                if (this.isModifiedHuffmanRle)
+                {
+                    return this.position < (ulong)this.dataLength - 1 || (this.bitsRead > 0 && this.bitsRead < 7);
+                }
+
+                return this.position < (ulong)this.dataLength - 1;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether the current run is a white pixel run, otherwise its a black pixel run.
@@ -381,10 +392,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         }
 
         /// <inheritdoc/>
-        public void Dispose()
-        {
-            this.Data.Dispose();
-        }
+        public void Dispose() => this.Data.Dispose();
 
         private uint WhiteTerminatingCodeRunLength()
         {

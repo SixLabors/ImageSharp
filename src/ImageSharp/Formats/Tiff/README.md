@@ -28,8 +28,7 @@
 ### Know issue which need to be fixed
 
 Decoder:
-- Decoding HUffman RLE for `Calliphora_huffman_rle.tiff` has 4 pixels difference to the reference decoder. Al those are at the very edge of the image (reason unknown so far).
-- Decoding compressed images with HorizontalPrediction: Works for deflate, but not for lzw.
+- Decoding compressed images with HorizontalPrediction: Works for deflate, but not for lzw (maybe an issue with lzw itself?).
 
 ### Deviations from the TIFF spec (to be fixed)
 

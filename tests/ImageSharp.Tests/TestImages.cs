@@ -522,6 +522,9 @@ namespace SixLabors.ImageSharp.Tests
             public const string HuffmanRleAllTermCodes = "Tiff/huffman_rle_all_terminating_codes.tiff";
             public const string HuffmanRleAllMakeupCodes = "Tiff/huffman_rle_all_makeup_codes.tiff";
 
+            // Test case for an issue, that the last bits in a row got ignored.
+            public const string HuffmanRle_basi3p02 = "Tiff/basi3p02_huffman_rle.tiff";
+
             public const string GrayscaleDeflateMultistrip = "Tiff/grayscale_deflate_multistrip.tiff";
             public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
             public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
@@ -558,7 +561,7 @@ namespace SixLabors.ImageSharp.Tests
                 Calliphora_GrayscaleDeflate_Predictor, Calliphora_RgbDeflate_Predictor, RgbDeflatePredictor,
                 Calliphora_RgbLzw_Predictor, RgbLzwPredictor, // TODO: Undoing the horizontal prediction seems to fail for lzw. Do we need to do something different for lzw?
                 Calliphora_BiColor, Calliphora_RgbUncompressed, Calliphora_HuffmanCompressed, Calliphora_Fax3Compressed, CcittFax3AllTermCodes, CcittFax3AllMakeupCodes,
-                HuffmanRleAllTermCodes, HuffmanRleAllMakeupCodes, GrayscaleDeflateMultistrip, Calliphora_GrayscaleDeflate, Calliphora_GrayscaleUncompressed,
+                HuffmanRleAllTermCodes, HuffmanRleAllMakeupCodes, HuffmanRle_basi3p02, GrayscaleDeflateMultistrip, Calliphora_GrayscaleDeflate, Calliphora_GrayscaleUncompressed,
                 GrayscaleUncompressed, PaletteDeflateMultistrip, PaletteUncompressed, RgbDeflateMultistrip, /*RgbJpeg,*/ /* RgbLzwMultistrip_Predictor,*/
                 RgbLzwNoPredictorMultistrip, RgbLzwNoPredictorMultistripMotorola, RgbLzwNoPredictorSinglestripMotorola, RgbPackbits, RgbPackbitsMultistrip, RgbUncompressed,
                 /* MultiframeLzw_Predictor, MultiFrameDifferentVariants, SampleMetadata,*/ SmallRgbDeflate, SmallRgbLzw, RgbLzwNoPredictor

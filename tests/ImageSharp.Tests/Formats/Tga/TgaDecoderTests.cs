@@ -6,16 +6,17 @@ using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
 using Xunit;
+
+using static SixLabors.ImageSharp.Tests.TestImages.Tga;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
-    using static TestImages.Tga;
-
+    [Trait("Format", "Tga")]
     public class TgaDecoderTests
     {
         private static TgaDecoder TgaDecoder => new TgaDecoder();

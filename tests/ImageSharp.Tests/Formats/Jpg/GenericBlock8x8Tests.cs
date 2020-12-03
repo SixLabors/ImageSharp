@@ -11,6 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public class GenericBlock8x8Tests
     {
         public static Image<TPixel> CreateTestImage<TPixel>()

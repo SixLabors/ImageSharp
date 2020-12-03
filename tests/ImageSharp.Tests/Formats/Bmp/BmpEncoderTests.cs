@@ -11,14 +11,16 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
+
 using Xunit;
 using Xunit.Abstractions;
+
+using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
-    using static TestImages.Bmp;
-
+    [Trait("Format", "Bmp")]
     public class BmpEncoderTests
     {
         public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel =

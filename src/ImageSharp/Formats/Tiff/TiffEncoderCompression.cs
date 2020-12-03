@@ -19,6 +19,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         Deflate,
 
         /// <summary>
+        /// Use lzw compression.
+        /// </summary>
+        Lzw,
+
+        /// <summary>
         /// Use PackBits to compression the image data.
         /// </summary>
         PackBits,

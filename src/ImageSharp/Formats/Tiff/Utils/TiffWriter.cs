@@ -7,6 +7,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Memory;
@@ -149,6 +150,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                 return this.WriteDeflateCompressedRgb(image, rowSpan, useHorizontalPredictor);
             }
 
+            if (compression == TiffEncoderCompression.Lzw)
+            {
+                return this.WriteLzwCompressedRgb(image, rowSpan, useHorizontalPredictor);
+            }
+
             if (compression == TiffEncoderCompression.PackBits)
             {
                 return this.WriteRgbPackBitsCompressed(image, rowSpan);
@@ -198,6 +204,44 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             }
 
             deflateStream.Flush();
+
+            byte[] buffer = memoryStream.ToArray();
+            this.output.Write(buffer);
+            bytesWritten += buffer.Length;
+            return bytesWritten;
+        }
+
+        /// <summary>
+        /// Writes the image data as RGB compressed with lzw to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel data.</typeparam>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="rowSpan">A Span for a pixel row.</param>
+        /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used. Should only be used with deflate compression.</param>
+        /// <returns>The number of bytes written.</returns>
+        private int WriteLzwCompressedRgb<TPixel>(Image<TPixel> image, Span<byte> rowSpan, bool useHorizontalPredictor)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int bytesWritten = 0;
+            using var memoryStream = new MemoryStream();
+
+            IMemoryOwner<byte> pixelData = this.memoryAllocator.Allocate<byte>(image.Width * image.Height * 3);
+            Span<byte> pixels = pixelData.GetSpan();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToRgb24Bytes(this.configuration, pixelRow, rowSpan, pixelRow.Length);
+
+                if (useHorizontalPredictor)
+                {
+                    this.ApplyHorizontalPredictionRgb(rowSpan);
+                }
+
+                rowSpan.CopyTo(pixels.Slice(y * image.Width * 3));
+            }
+
+            using var lzwEncoder = new TiffLzwEncoder(pixelData, 8);
+            lzwEncoder.Encode(memoryStream);
 
             byte[] buffer = memoryStream.ToArray();
             this.output.Write(buffer);
@@ -425,7 +469,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <param name="image">The image to write to the stream.</param>
         /// <param name="padding">The padding bytes for each row.</param>
         /// <param name="compression">The compression to use.</param>
-        /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used. Should only be used with deflate compression.</param>
+        /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used. Should only be used with deflate or lzw compression.</param>
         /// <returns>The number of bytes written.</returns>
         public int WriteGray<TPixel>(Image<TPixel> image, int padding, TiffEncoderCompression compression, bool useHorizontalPredictor)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -436,6 +480,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             if (compression == TiffEncoderCompression.Deflate)
             {
                 return this.WriteGrayDeflateCompressed(image, rowSpan, useHorizontalPredictor);
+            }
+
+            if (compression == TiffEncoderCompression.Lzw)
+            {
+                return this.WriteGrayLzwCompressed(image, rowSpan, useHorizontalPredictor);
             }
 
             if (compression == TiffEncoderCompression.PackBits)
@@ -460,7 +509,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// </summary>
         /// <param name="image">The image to write to the stream.</param>
         /// <param name="rowSpan">A span of a row of pixels.</param>
-        /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used. Should only be used with deflate compression.</param>
+        /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used.</param>
         /// <returns>The number of bytes written.</returns>
         private int WriteGrayDeflateCompressed<TPixel>(Image<TPixel> image, Span<byte> rowSpan, bool useHorizontalPredictor)
             where TPixel : unmanaged, IPixel<TPixel>
@@ -485,6 +534,42 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             }
 
             deflateStream.Flush();
+
+            byte[] buffer = memoryStream.ToArray();
+            this.output.Write(buffer);
+            bytesWritten += buffer.Length;
+            return bytesWritten;
+        }
+
+        /// <summary>
+        /// Writes the image data as 8 bit gray with lzw compression to the stream.
+        /// </summary>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="rowSpan">A span of a row of pixels.</param>
+        /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used.</param>
+        /// <returns>The number of bytes written.</returns>
+        private int WriteGrayLzwCompressed<TPixel>(Image<TPixel> image, Span<byte> rowSpan, bool useHorizontalPredictor)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int bytesWritten = 0;
+            using var memoryStream = new MemoryStream();
+
+            IMemoryOwner<byte> pixelData = this.memoryAllocator.Allocate<byte>(image.Width * image.Height);
+            Span<byte> pixels = pixelData.GetSpan();
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToL8Bytes(this.configuration, pixelRow, rowSpan, pixelRow.Length);
+                if (useHorizontalPredictor)
+                {
+                    this.ApplyHorizontalPredictionGray(rowSpan);
+                }
+
+                rowSpan.CopyTo(pixels.Slice(y * image.Width));
+            }
+
+            using var lzwEncoder = new TiffLzwEncoder(pixelData, 8);
+            lzwEncoder.Encode(memoryStream);
 
             byte[] buffer = memoryStream.ToArray();
             this.output.Write(buffer);

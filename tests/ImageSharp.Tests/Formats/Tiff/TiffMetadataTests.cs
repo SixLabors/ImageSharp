@@ -10,7 +10,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    [Trait("Category", "Tiff")]
+    [Trait("Format", "Tiff")]
     public class TiffMetadataTests
     {
         public static readonly string[] MetadataImages = TestImages.Tiff.Metadata;

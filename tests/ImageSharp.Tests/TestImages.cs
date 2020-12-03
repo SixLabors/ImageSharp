@@ -515,7 +515,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Calliphora_RgbUncompressed = "Tiff/Calliphora_rgb_uncompressed.tiff";
             public const string Calliphora_Fax3Compressed = "Tiff/Calliphora_ccitt_fax3.tiff";
             public const string Calliphora_HuffmanCompressed = "Tiff/Calliphora_huffman_rle.tiff";
-            public const string Calliphora_BiColor = "Tiff/Calliphora_bicolor_uncompressed.tiff";
+            public const string Calliphora_BiColorUncompressed = "Tiff/Calliphora_bicolor_uncompressed.tiff";
 
             public const string CcittFax3AllTermCodes = "Tiff/ccitt_fax3_all_terminating_codes.tiff";
             public const string CcittFax3AllMakeupCodes = "Tiff/ccitt_fax3_all_makeup_codes.tiff";
@@ -529,7 +529,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string GrayscaleUncompressed = "Tiff/grayscale_uncompressed.tiff";
             public const string PaletteDeflateMultistrip = "Tiff/palette_grayscale_deflate_multistrip.tiff";
             public const string PaletteUncompressed = "Tiff/palette_uncompressed.tiff";
-            public const string RgbDeflatePredictor = "Tiff/rgb_deflate.tiff";
+            public const string RgbDeflate = "Tiff/rgb_deflate.tiff";
+            public const string RgbDeflatePredictor = "Tiff/rgb_deflate_predictor.tiff";
             public const string RgbDeflateMultistrip = "Tiff/rgb_deflate_multistrip.tiff";
             public const string RgbJpeg = "Tiff/rgb_jpeg.tiff";
             public const string RgbLzwPredictor = "Tiff/rgb_lzw_predictor.tiff";
@@ -541,6 +542,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbPackbits = "Tiff/rgb_packbits.tiff";
             public const string RgbPackbitsMultistrip = "Tiff/rgb_packbits_multistrip.tiff";
             public const string RgbUncompressed = "Tiff/rgb_uncompressed.tiff";
+            public const string RgbPalette = "Tiff/rgb_palette.tiff";
+            public const string RgbPaletteDeflate = "Tiff/rgb_palette_deflate.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
             public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";
@@ -554,18 +557,6 @@ namespace SixLabors.ImageSharp.Tests
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
 
             public const string SampleMetadata = "Tiff/metadata_sample.tiff";
-
-            public static readonly string[] All =
-            {
-                Calliphora_PaletteUncompressed, Calliphora_RgbPackbits,
-                Calliphora_GrayscaleDeflate_Predictor, Calliphora_RgbDeflate_Predictor, RgbDeflatePredictor,
-                Calliphora_RgbLzw_Predictor, RgbLzwPredictor, // TODO: Undoing the horizontal prediction seems to fail for lzw. Do we need to do something different for lzw?
-                Calliphora_BiColor, Calliphora_RgbUncompressed, Calliphora_HuffmanCompressed, Calliphora_Fax3Compressed, CcittFax3AllTermCodes, CcittFax3AllMakeupCodes,
-                HuffmanRleAllTermCodes, HuffmanRleAllMakeupCodes, HuffmanRle_basi3p02, GrayscaleDeflateMultistrip, Calliphora_GrayscaleDeflate, Calliphora_GrayscaleUncompressed,
-                GrayscaleUncompressed, PaletteDeflateMultistrip, PaletteUncompressed, RgbDeflateMultistrip, /*RgbJpeg,*/ /* RgbLzwMultistrip_Predictor,*/
-                RgbLzwNoPredictorMultistrip, RgbLzwNoPredictorMultistripMotorola, RgbLzwNoPredictorSinglestripMotorola, RgbPackbits, RgbPackbitsMultistrip, RgbUncompressed,
-                /* MultiframeLzw_Predictor, MultiFrameDifferentVariants, SampleMetadata,*/ SmallRgbDeflate, SmallRgbLzw, RgbLzwNoPredictor
-            };
 
             public static readonly string[] Multiframes = { MultiframeDeflateWithPreview /*MultiframeLzw_Predictor, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
 

@@ -9,7 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    [Trait("Category", "Tiff")]
+    [Trait("Format", "Tiff")]
     public abstract class PhotometricInterpretationTestBase
     {
         public static Rgba32 DefaultColor = new Rgba32(42, 96, 18, 128);

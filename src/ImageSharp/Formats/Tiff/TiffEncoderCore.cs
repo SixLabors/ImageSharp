@@ -49,6 +49,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         private readonly IQuantizer quantizer;
 
         /// <summary>
+        /// Indicating whether to use horizontal prediction. This can improve the compression ratio with deflate compression.
+        /// </summary>
+        private bool useHorizontalPredictor;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options for the encoder.</param>
@@ -59,6 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             this.CompressionType = options.Compression;
             this.Mode = options.Mode;
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
+            this.useHorizontalPredictor = options.UseHorizontalPredictor;
         }
 
         /// <summary>
@@ -162,13 +168,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.padding, this.CompressionType, out colorMap);
                     break;
                 case TiffEncodingMode.Gray:
-                    imageDataBytes = writer.WriteGray(image, this.padding, this.CompressionType);
+                    imageDataBytes = writer.WriteGray(image, this.padding, this.CompressionType, this.useHorizontalPredictor);
                     break;
                 case TiffEncodingMode.BiColor:
                     imageDataBytes = writer.WriteBiColor(image, this.CompressionType);
                     break;
                 default:
-                    imageDataBytes = writer.WriteRgb(image, this.padding, this.CompressionType);
+                    imageDataBytes = writer.WriteRgb(image, this.padding, this.CompressionType, this.useHorizontalPredictor);
                     break;
             }
 
@@ -337,6 +343,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             ifdEntries.Add(yResolution);
             ifdEntries.Add(resolutionUnit);
             ifdEntries.Add(software);
+
+            if (this.useHorizontalPredictor)
+            {
+                if (this.Mode == TiffEncodingMode.Rgb || this.Mode == TiffEncodingMode.Gray)
+                {
+                    var predictor = new ExifShort(ExifTagValue.Predictor) { Value = (ushort)TiffPredictor.Horizontal };
+
+                    ifdEntries.Add(predictor);
+                }
+            }
         }
 
         private void SetPhotometricInterpretation()

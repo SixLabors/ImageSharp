@@ -58,6 +58,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(TestImages.Tiff.Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeRgb_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.Rgb, TiffEncoderCompression.Deflate, usePredictor: true);
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.Rgb, TiffEncoderCompression.PackBits);
 
@@ -70,6 +75,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(TestImages.Tiff.Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel8, TiffEncodingMode.Gray, TiffEncoderCompression.Deflate);
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeGray_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel8, TiffEncodingMode.Gray, TiffEncoderCompression.Deflate, usePredictor: true);
 
         [Theory]
         [WithFile(TestImages.Tiff.Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
@@ -160,12 +170,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             TiffBitsPerPixel bitsPerPixel,
             TiffEncodingMode mode,
             TiffEncoderCompression compression = TiffEncoderCompression.None,
+            bool usePredictor = false,
             bool useExactComparer = true,
             float compareTolerance = 0.01f)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image<TPixel> image = provider.GetImage();
-            var encoder = new TiffEncoder { Mode = mode, Compression = compression };
+            var encoder = new TiffEncoder { Mode = mode, Compression = compression, UseHorizontalPredictor = usePredictor };
 
             // Does DebugSave & load reference CompareToReferenceInput():
             image.VerifyEncoder(provider, "tiff", bitsPerPixel, encoder, useExactComparer ? ImageComparer.Exact : ImageComparer.Tolerant(compareTolerance), referenceDecoder: ReferenceDecoder);

@@ -26,6 +26,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public TiffEncodingMode Mode { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to use horizontal prediction. This can improve the compression ratio with deflate compression.
+        /// </summary>
+        public bool UseHorizontalPredictor { get; set; }
+
+        /// <summary>
         /// Gets or sets the quantizer for color images with a palette.
         /// Defaults to OctreeQuantizer.
         /// </summary>

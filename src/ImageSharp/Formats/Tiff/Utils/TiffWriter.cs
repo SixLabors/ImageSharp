@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                 rowSpan.CopyTo(pixels.Slice(y * image.Width * 3));
             }
 
-            using var lzwEncoder = new TiffLzwEncoder(pixelData, 8);
+            using var lzwEncoder = new TiffLzwEncoder(this.memoryAllocator, pixelData, 8);
             lzwEncoder.Encode(memoryStream);
 
             byte[] buffer = memoryStream.ToArray();
@@ -568,7 +568,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                 rowSpan.CopyTo(pixels.Slice(y * image.Width));
             }
 
-            using var lzwEncoder = new TiffLzwEncoder(pixelData, 8);
+            using var lzwEncoder = new TiffLzwEncoder(this.memoryAllocator, pixelData, 8);
             lzwEncoder.Encode(memoryStream);
 
             byte[] buffer = memoryStream.ToArray();

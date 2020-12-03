@@ -168,14 +168,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 
                     pixelStack[top++] = suffix[code];
 
-                    // Fix for Gifs that have "deferred clear code" as per here :
-                    // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
                     if (availableCode < MaxStackSize)
                     {
                         prefix[availableCode] = oldCode;
                         suffix[availableCode] = first;
                         availableCode++;
-                        if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
+                        if (availableCode > codeMask - 1 && availableCode < MaxStackSize)
                         {
                             codeSize++;
                             codeMask = (1 << codeSize) - 1;

@@ -79,12 +79,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <summary>
         /// The hash table.
         /// </summary>
-        private readonly int[] hashTable;
+        private readonly IMemoryOwner<int> hashTable;
 
         /// <summary>
         /// The code table.
         /// </summary>
-        private readonly int[] codeTable;
+        private readonly IMemoryOwner<int> codeTable;
 
         /// <summary>
         /// Define the storage for the packet accumulator.
@@ -201,16 +201,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// </summary>
         /// <param name="indexedPixels">The array of indexed pixels.</param>
         /// <param name="colorDepth">The color depth in bits.</param>
-        public TiffLzwEncoder(IMemoryOwner<byte> indexedPixels, int colorDepth)
+        /// <param name="memoryAllocator">The memory allocator.</param>
+        public TiffLzwEncoder(MemoryAllocator memoryAllocator, IMemoryOwner<byte> indexedPixels, int colorDepth)
         {
             this.pixelArray = indexedPixels;
             this.initialCodeSize = Math.Max(2, colorDepth);
 
-            // TODO: use memory allocator
-            this.hashTable = ArrayPool<int>.Shared.Rent(HashSize);
-            this.codeTable = ArrayPool<int>.Shared.Rent(HashSize);
-            Array.Clear(this.hashTable, 0, HashSize);
-            Array.Clear(this.codeTable, 0, HashSize);
+            this.hashTable = memoryAllocator.Allocate<int>(HashSize, AllocationOptions.Clean);
+            this.codeTable = memoryAllocator.Allocate<int>(HashSize, AllocationOptions.Clean);
         }
 
         /// <summary>
@@ -276,9 +274,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <param name="size">The hash size.</param>
         private void ResetCodeTable(int size)
         {
+            Span<int> hashTableSpan = this.hashTable.GetSpan();
             for (int i = 0; i < size; ++i)
             {
-                this.hashTable[i] = -1;
+                hashTableSpan[i] = -1;
             }
         }
 
@@ -325,19 +324,21 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 
             this.Output(this.clearCode, stream);
 
+            Span<int> hashTableSpan = this.hashTable.GetSpan();
+            Span<int> codeTableSpan = this.codeTable.GetSpan();
             while ((c = this.NextPixel()) != Eof)
             {
                 fcode = (c << this.maxbits) + ent;
                 int i = (c << hshift) ^ ent /* = 0 */;
 
-                if (this.hashTable[i] == fcode)
+                if (hashTableSpan[i] == fcode)
                 {
-                    ent = this.codeTable[i];
+                    ent = codeTableSpan[i];
                     continue;
                 }
 
                 // Non-empty slot
-                if (this.hashTable[i] >= 0)
+                if (hashTableSpan[i] >= 0)
                 {
                     int disp = hsizeReg - i;
                     if (i == 0)
@@ -352,15 +353,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                             i += hsizeReg;
                         }
 
-                        if (this.hashTable[i] == fcode)
+                        if (hashTableSpan[i] == fcode)
                         {
-                            ent = this.codeTable[i];
+                            ent = codeTableSpan[i];
                             break;
                         }
                     }
-                    while (this.hashTable[i] >= 0);
+                    while (hashTableSpan[i] >= 0);
 
-                    if (this.hashTable[i] == fcode)
+                    if (hashTableSpan[i] == fcode)
                     {
                         continue;
                     }
@@ -370,8 +371,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                 ent = c;
                 if (this.freeEntry < this.maxmaxcode)
                 {
-                    this.codeTable[i] = this.freeEntry++; // code -> hashtable
-                    this.hashTable[i] = fcode;
+                    codeTableSpan[i] = this.freeEntry++; // code -> hashtable
+                    hashTableSpan[i] = fcode;
                 }
                 else
                 {
@@ -487,8 +488,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 
             if (disposing)
             {
-                ArrayPool<int>.Shared.Return(this.hashTable);
-                ArrayPool<int>.Shared.Return(this.codeTable);
+                this.hashTable.Dispose();
+                this.codeTable.Dispose();
             }
 
             this.isDisposed = true;

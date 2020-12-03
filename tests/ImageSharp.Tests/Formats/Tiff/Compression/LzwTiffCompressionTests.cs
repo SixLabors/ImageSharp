@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             using System.Buffers.IMemoryOwner<byte> data = Configuration.Default.MemoryAllocator.Allocate<byte>(inputData.Length);
             inputData.AsSpan().CopyTo(data.GetSpan());
 
-            using (var encoder = new TiffLzwEncoder(data, 8))
+            using (var encoder = new TiffLzwEncoder(Configuration.Default.MemoryAllocator, data, 8))
             {
                 encoder.Encode(compressedStream);
             }

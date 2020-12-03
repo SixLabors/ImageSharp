@@ -9,6 +9,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
+    [Trait("Category", "PixelFormats")]
     public class L8Tests
     {
         public static readonly TheoryData<byte> LuminanceData

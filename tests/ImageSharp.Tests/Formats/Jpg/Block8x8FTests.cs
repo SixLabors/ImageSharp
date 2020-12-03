@@ -14,6 +14,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public partial class Block8x8FTests : JpegFixture
     {
 #if BENCHMARKING

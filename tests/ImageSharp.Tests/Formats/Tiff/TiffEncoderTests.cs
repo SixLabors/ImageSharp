@@ -63,6 +63,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(TestImages.Tiff.Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeRgb_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.Rgb, TiffEncoderCompression.Lzw);
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeRgb_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.Rgb, TiffEncoderCompression.Lzw, usePredictor: true);
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.Rgb, TiffEncoderCompression.PackBits);
 
@@ -80,6 +90,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(TestImages.Tiff.Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel8, TiffEncodingMode.Gray, TiffEncoderCompression.Deflate, usePredictor: true);
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeGray_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel8, TiffEncodingMode.Gray, TiffEncoderCompression.Lzw);
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeGray_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel8, TiffEncodingMode.Gray, TiffEncoderCompression.Lzw, usePredictor: true);
 
         [Theory]
         [WithFile(TestImages.Tiff.Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]

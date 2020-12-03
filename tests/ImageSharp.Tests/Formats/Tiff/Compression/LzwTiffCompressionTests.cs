@@ -1,11 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
-
+using SixLabors.ImageSharp.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
@@ -29,9 +30,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             Assert.Equal(data, buffer);
         }
 
-        private static Stream CreateCompressedStream(byte[] data)
+        private static Stream CreateCompressedStream(byte[] inputData)
         {
-            Stream compressedStream = new MemoryStream();
+            using Stream compressedStream = new MemoryStream();
+            using System.Buffers.IMemoryOwner<byte> data = Configuration.Default.MemoryAllocator.Allocate<byte>(inputData.Length);
+            inputData.AsSpan().CopyTo(data.GetSpan());
 
             using (var encoder = new TiffLzwEncoder(data, 8))
             {

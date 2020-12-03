@@ -433,6 +433,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 return (ushort)TiffCompression.Deflate;
             }
 
+            if (this.CompressionType == TiffEncoderCompression.Lzw && this.Mode == TiffEncodingMode.Rgb)
+            {
+                return (ushort)TiffCompression.Lzw;
+            }
+
             if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.Rgb)
             {
                 return (ushort)TiffCompression.PackBits;
@@ -441,6 +446,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.Gray)
             {
                 return (ushort)TiffCompression.Deflate;
+            }
+
+            if (this.CompressionType == TiffEncoderCompression.Lzw && this.Mode == TiffEncodingMode.Gray)
+            {
+                return (ushort)TiffCompression.Lzw;
             }
 
             if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.Gray)

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         TiffEncodingMode Mode { get; }
 
         /// <summary>
-        /// Gets a value indicating whether to use horizontal prediction. This can improve the compression ratio with deflate compression.
+        /// Gets a value indicating whether to use horizontal prediction. This can improve the compression ratio with deflate or lzw compression.
         /// </summary>
         bool UseHorizontalPredictor { get; }
 

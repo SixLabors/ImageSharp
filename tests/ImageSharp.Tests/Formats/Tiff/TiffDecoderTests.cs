@@ -14,21 +14,20 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
 
+using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    [Trait("Category", "Tiff.BlackBox.Decoder")]
-    [Trait("Category", "Tiff")]
+    [Trait("Format", "Tiff")]
     public class TiffDecoderTests
     {
+        public static readonly string[] MultiframeTestImages = Multiframes;
+
+        public static readonly string[] NotSupportedImages = NotSupported;
+
         private static TiffDecoder TiffDecoder => new TiffDecoder();
 
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
-
-        public static readonly string[] SingleTestImages = TestImages.Tiff.All;
-
-        public static readonly string[] MultiframeTestImages = TestImages.Tiff.Multiframes;
-
-        public static readonly string[] NotSupportedImages = TestImages.Tiff.NotSupported;
 
         [Theory]
         [WithFileCollection(nameof(NotSupportedImages), PixelTypes.Rgba32)]
@@ -72,7 +71,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.NotNull(info.Metadata);
                 Assert.Equal(expectedByteOrder, info.Metadata.GetTiffMetadata().ByteOrder);
 
-                // todo: it's not a mistake?
                 stream.Seek(0, SeekOrigin.Begin);
 
                 using var img = Image.Load(stream);
@@ -81,15 +79,78 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [WithFileCollection(nameof(SingleTestImages), PixelTypes.Rgba32)]
-        public void Decode<TPixel>(TestImageProvider<TPixel> provider)
-          where TPixel : unmanaged, IPixel<TPixel>
+        [WithFile(RgbUncompressed, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Uncompressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
-            {
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
-            }
+            TestTiffDecoder(provider);
+        }
+
+        [Theory]
+        [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
+        [WithFile(RgbPalette, PixelTypes.Rgba32)]
+        [WithFile(RgbPaletteDeflate, PixelTypes.Rgba32)]
+        [WithFile(PaletteUncompressed, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_WithPalette<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            TestTiffDecoder(provider);
+        }
+
+        [Theory]
+        [WithFile(Calliphora_GrayscaleDeflate, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_GrayscaleDeflate_Predictor, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_RgbDeflate_Predictor, PixelTypes.Rgba32)]
+        [WithFile(RgbDeflate, PixelTypes.Rgba32)]
+        [WithFile(RgbDeflatePredictor, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_DeflateCompressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            TestTiffDecoder(provider);
+        }
+
+        [Theory]
+        [WithFile(RgbLzwPredictor, PixelTypes.Rgba32)]
+        [WithFile(RgbLzwNoPredictor, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_RgbLzw_Predictor, PixelTypes.Rgba32)]
+        [WithFile(SmallRgbLzw, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_LzwCompressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            TestTiffDecoder(provider);
+        }
+
+        [Theory]
+        [WithFile(HuffmanRleAllTermCodes, PixelTypes.Rgba32)]
+        [WithFile(HuffmanRleAllMakeupCodes, PixelTypes.Rgba32)]
+        [WithFile(HuffmanRle_basi3p02, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_HuffmanCompressed, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_HuffmanCompressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            TestTiffDecoder(provider);
+        }
+
+        [Theory]
+        [WithFile(CcittFax3AllTermCodes, PixelTypes.Rgba32)]
+        [WithFile(CcittFax3AllMakeupCodes, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_Fax3Compressed, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_Fax3Compressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            TestTiffDecoder(provider);
+        }
+
+        [Theory]
+        [WithFile(Calliphora_RgbPackbits, PixelTypes.Rgba32)]
+        [WithFile(RgbPackbits, PixelTypes.Rgba32)]
+        public void TiffDecoder_CanDecode_PackBitsCompressed<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            TestTiffDecoder(provider);
         }
 
         [Theory]
@@ -97,16 +158,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void DecodeMultiframe<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
-            {
-                Assert.True(image.Frames.Count > 1);
+            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            Assert.True(image.Frames.Count > 1);
 
-                image.DebugSave(provider);
-                image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
 
-                image.DebugSaveMultiFrame(provider);
-                image.CompareToOriginalMultiFrame(provider, ImageComparer.Exact, ReferenceDecoder);
-            }
+            image.DebugSaveMultiFrame(provider);
+            image.CompareToOriginalMultiFrame(provider, ImageComparer.Exact, ReferenceDecoder);
+        }
+
+        private static void TestTiffDecoder<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+            image.DebugSave(provider);
+            image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
         }
     }
 }

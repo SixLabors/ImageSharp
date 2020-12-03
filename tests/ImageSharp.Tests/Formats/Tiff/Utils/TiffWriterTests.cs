@@ -10,7 +10,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
 {
-    [Trait("Category", "Tiff")]
+    [Trait("Format", "Tiff")]
     public class TiffWriterTests
     {
         private static readonly MemoryAllocator MemoryAllocator = new ArrayPoolMemoryAllocator();

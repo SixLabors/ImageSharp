@@ -11,7 +11,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    [Trait("Category", "Tiff")]
+    [Trait("Format", "Tiff")]
     public class TiffEncoderHeaderTests
     {
         private static readonly MemoryAllocator MemoryAllocator = new ArrayPoolMemoryAllocator();

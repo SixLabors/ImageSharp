@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 {
@@ -66,9 +67,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         };
 
         /// <summary>
-        /// The working pixel array
+        /// The working pixel array.
         /// </summary>
-        private readonly byte[] pixelArray;
+        private readonly IMemoryOwner<byte> pixelArray;
 
         /// <summary>
         /// The initial code size.
@@ -200,11 +201,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// </summary>
         /// <param name="indexedPixels">The array of indexed pixels.</param>
         /// <param name="colorDepth">The color depth in bits.</param>
-        public TiffLzwEncoder(byte[] indexedPixels, int colorDepth)
+        public TiffLzwEncoder(IMemoryOwner<byte> indexedPixels, int colorDepth)
         {
             this.pixelArray = indexedPixels;
             this.initialCodeSize = Math.Max(2, colorDepth);
 
+            // TODO: use memory allocator
             this.hashTable = ArrayPool<int>.Shared.Rent(HashSize);
             this.codeTable = ArrayPool<int>.Shared.Rent(HashSize);
             Array.Clear(this.hashTable, 0, HashSize);
@@ -404,13 +406,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// </returns>
         private int NextPixel()
         {
-            if (this.currentPixel == this.pixelArray.Length)
+            if (this.currentPixel == this.pixelArray.Length())
             {
                 return Eof;
             }
 
             this.currentPixel++;
-            return this.pixelArray[this.currentPixel - 1] & 0xff;
+            return this.pixelArray.GetSpan()[this.currentPixel - 1] & 0xff;
         }
 
         /// <summary>

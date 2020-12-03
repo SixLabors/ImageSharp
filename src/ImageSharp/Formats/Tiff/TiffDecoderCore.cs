@@ -263,13 +263,20 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             if (tiffFormatMetaData.Predictor == TiffPredictor.Horizontal)
             {
-                this.UndoHorizontalPredictor(width, height, frame);
+                this.UndoHorizontalPredictor(frame, width, height);
             }
 
             return frame;
         }
 
-        private void UndoHorizontalPredictor<TPixel>(int width, int height, ImageFrame<TPixel> frame)
+        /// <summary>
+        /// This will reverse the horizontal prediction operation.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="frame">The image frame.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        private void UndoHorizontalPredictor<TPixel>(ImageFrame<TPixel> frame, int width, int height)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using System.Buffers.IMemoryOwner<Rgb24> rowRgbBuffer = this.memoryAllocator.Allocate<Rgb24>(width);

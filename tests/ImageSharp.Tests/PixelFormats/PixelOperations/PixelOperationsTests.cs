@@ -16,6 +16,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 {
+    [Trait("Category", "PixelFormats")]
     public partial class PixelOperationsTests
     {
 #pragma warning disable SA1313 // Parameter names should begin with lower-case letter

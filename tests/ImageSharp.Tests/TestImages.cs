@@ -558,11 +558,11 @@ namespace SixLabors.ImageSharp.Tests
 
             public const string SampleMetadata = "Tiff/metadata_sample.tiff";
 
-            public static readonly string[] Multiframes = { MultiframeDeflateWithPreview /*MultiframeLzw_Predictor, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
+            public static readonly string[] Multiframes = { MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
 
             public static readonly string[] Metadata = { SampleMetadata };
 
-            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbLzwMultistripPredictor, RgbJpeg, RgbUncompressedTiled, MultiframeLzwPredictor, MultiframeDifferentSize, MultiframeDifferentVariants };
+            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants };
         }
     }
 }

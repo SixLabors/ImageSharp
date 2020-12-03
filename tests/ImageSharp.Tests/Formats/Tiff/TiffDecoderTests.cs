@@ -59,8 +59,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [InlineData(TestImages.Tiff.RgbLzwNoPredictorMultistrip, TiffByteOrder.LittleEndian)]
-        [InlineData(TestImages.Tiff.RgbLzwNoPredictorMultistripMotorola, TiffByteOrder.BigEndian)]
+        [InlineData(RgbLzwNoPredictorMultistrip, TiffByteOrder.LittleEndian)]
+        [InlineData(RgbLzwNoPredictorMultistripMotorola, TiffByteOrder.BigEndian)]
         public void ByteOrder(string imagePath, TiffByteOrder expectedByteOrder)
         {
             var testFile = TestFile.Create(imagePath);
@@ -91,6 +91,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
+        [WithFile(PaletteDeflateMultistrip, PixelTypes.Rgba32)]
         [WithFile(RgbPalette, PixelTypes.Rgba32)]
         [WithFile(RgbPaletteDeflate, PixelTypes.Rgba32)]
         [WithFile(PaletteUncompressed, PixelTypes.Rgba32)]
@@ -101,11 +102,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [WithFile(GrayscaleDeflateMultistrip, PixelTypes.Rgba32)]
+        [WithFile(RgbDeflateMultistrip, PixelTypes.Rgba32)]
         [WithFile(Calliphora_GrayscaleDeflate, PixelTypes.Rgba32)]
         [WithFile(Calliphora_GrayscaleDeflate_Predictor, PixelTypes.Rgba32)]
         [WithFile(Calliphora_RgbDeflate_Predictor, PixelTypes.Rgba32)]
         [WithFile(RgbDeflate, PixelTypes.Rgba32)]
         [WithFile(RgbDeflatePredictor, PixelTypes.Rgba32)]
+        [WithFile(SmallRgbDeflate, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_DeflateCompressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -115,6 +119,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(RgbLzwPredictor, PixelTypes.Rgba32)]
         [WithFile(RgbLzwNoPredictor, PixelTypes.Rgba32)]
+        [WithFile(RgbLzwNoPredictorSinglestripMotorola, PixelTypes.Rgba32)]
+        [WithFile(RgbLzwNoPredictorMultistripMotorola, PixelTypes.Rgba32)]
+        [WithFile(RgbLzwMultistripPredictor, PixelTypes.Rgba32)]
         [WithFile(Calliphora_RgbLzw_Predictor, PixelTypes.Rgba32)]
         [WithFile(SmallRgbLzw, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_LzwCompressed<TPixel>(TestImageProvider<TPixel> provider)
@@ -147,6 +154,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Calliphora_RgbPackbits, PixelTypes.Rgba32)]
         [WithFile(RgbPackbits, PixelTypes.Rgba32)]
+        [WithFile(RgbPackbitsMultistrip, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_PackBitsCompressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

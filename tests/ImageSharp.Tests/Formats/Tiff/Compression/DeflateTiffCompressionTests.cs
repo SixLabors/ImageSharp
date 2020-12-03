@@ -8,7 +8,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
 {
-    [Trait("Category", "Tiff")]
+    [Trait("Format", "Tiff")]
     public class DeflateTiffCompressionTests
     {
         [Theory]

@@ -13,7 +13,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
-    [Trait("Category", "Tiff")]
+    [Trait("Format", "Tiff")]
     public class TiffEncoderTests
     {
         private static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder();
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public static readonly TheoryData<string, TiffBitsPerPixel> TiffBitsPerPixelFiles =
             new TheoryData<string, TiffBitsPerPixel>
             {
-                { TestImages.Tiff.Calliphora_BiColor, TiffBitsPerPixel.Pixel1 },
+                { TestImages.Tiff.Calliphora_BiColorUncompressed, TiffBitsPerPixel.Pixel1 },
                 { TestImages.Tiff.GrayscaleUncompressed, TiffBitsPerPixel.Pixel8 },
                 { TestImages.Tiff.RgbUncompressed, TiffBitsPerPixel.Pixel24 },
             };
@@ -131,27 +131,27 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.BiColor);
 
         [Theory]
-        [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel1, TiffEncodingMode.BiColor, TiffEncoderCompression.Deflate);
 
         [Theory]
-        [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel1, TiffEncodingMode.BiColor, TiffEncoderCompression.PackBits);
 
         [Theory]
-        [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_WithCcittGroup3FaxCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel1, TiffEncodingMode.BiColor, TiffEncoderCompression.CcittGroup3Fax);
 
         [Theory]
-        [WithFile(TestImages.Tiff.Calliphora_BiColor, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Tiff.Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeBiColor_WithModifiedHuffmanCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel1, TiffEncodingMode.BiColor, TiffEncoderCompression.ModifiedHuffman);
 

@@ -165,7 +165,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             switch (this.Mode)
             {
                 case TiffEncodingMode.ColorPalette:
-                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.padding, this.CompressionType, out colorMap);
+                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.padding, this.CompressionType, this.useHorizontalPredictor, out colorMap);
                     break;
                 case TiffEncodingMode.Gray:
                     imageDataBytes = writer.WriteGray(image, this.padding, this.CompressionType, this.useHorizontalPredictor);
@@ -346,7 +346,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             if (this.useHorizontalPredictor)
             {
-                if (this.Mode == TiffEncodingMode.Rgb || this.Mode == TiffEncodingMode.Gray)
+                if (this.Mode == TiffEncodingMode.Rgb || this.Mode == TiffEncodingMode.Gray || this.Mode == TiffEncodingMode.ColorPalette)
                 {
                     var predictor = new ExifShort(ExifTagValue.Predictor) { Value = (ushort)TiffPredictor.Horizontal };
 

@@ -28,9 +28,9 @@ namespace SixLabors.ImageSharp.Formats.Png
 
         /// <summary>
         /// Gets the compression level 1-9.
-        /// <remarks>Defaults to <see cref="PngCompressionLevel.DefaultCompression"/>.</remarks>
+        /// <remarks>Defaults to <see cref="DeflateCompressionLevel.DefaultCompression"/>.</remarks>
         /// </summary>
-        PngCompressionLevel CompressionLevel { get; }
+        DeflateCompressionLevel CompressionLevel { get; }
 
         /// <summary>
         /// Gets the threshold of characters in text metadata, when compression should be used.

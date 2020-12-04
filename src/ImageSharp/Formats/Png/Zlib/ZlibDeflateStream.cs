@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
         /// <param name="stream">The stream to compress.</param>
         /// <param name="level">The compression level.</param>
-        public ZlibDeflateStream(MemoryAllocator memoryAllocator, Stream stream, PngCompressionLevel level)
+        public ZlibDeflateStream(MemoryAllocator memoryAllocator, Stream stream, DeflateCompressionLevel level)
         {
             int compressionLevel = (int)level;
             this.rawStream = stream;

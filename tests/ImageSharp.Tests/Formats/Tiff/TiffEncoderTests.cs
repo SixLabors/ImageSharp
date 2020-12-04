@@ -145,6 +145,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(TestImages.Tiff.Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeColorPalette_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+            using var memStream = new MemoryStream();
+            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Deflate, UseHorizontalPredictor = true};
+
+            image.Save(memStream, encoder);
+            memStream.Position = 0;
+
+            using var encodedImage = (Image<TPixel>)Image.Load(memStream);
+            var encodedImagePath = provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
+            TiffTestUtils.CompareWithReferenceDecoder(encodedImagePath, encodedImage);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Tiff.Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {

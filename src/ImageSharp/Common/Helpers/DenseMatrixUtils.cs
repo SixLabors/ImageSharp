@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Convolution;
 
 namespace SixLabors.ImageSharp
 {
@@ -156,38 +157,32 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="matrix">The dense matrix.</param>
+        /// <param name="yOffsetSpan">The span containing precalculated kernel y-offsets.</param>
+        /// <param name="xOffsetSpan">The span containing precalculated kernel x-offsets.</param>
         /// <param name="sourcePixels">The source frame.</param>
         /// <param name="targetRowRef">The target row base reference.</param>
         /// <param name="row">The current row.</param>
         /// <param name="column">The current column.</param>
-        /// <param name="minRow">The minimum working area row.</param>
-        /// <param name="maxRow">The maximum working area row.</param>
-        /// <param name="minColumn">The minimum working area column.</param>
-        /// <param name="maxColumn">The maximum working area column.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void Convolve3<TPixel>(
             in DenseMatrix<float> matrix,
+            Span<int> yOffsetSpan,
+            Span<int> xOffsetSpan,
             Buffer2D<TPixel> sourcePixels,
             ref Vector4 targetRowRef,
             int row,
-            int column,
-            int minRow,
-            int maxRow,
-            int minColumn,
-            int maxColumn)
+            int column)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Vector4 vector = default;
 
             ConvolveImpl(
                 in matrix,
+                yOffsetSpan,
+                xOffsetSpan,
                 sourcePixels,
                 row,
                 column,
-                minRow,
-                maxRow,
-                minColumn,
-                maxColumn,
                 ref vector);
 
             ref Vector4 target = ref Unsafe.Add(ref targetRowRef, column);
@@ -203,38 +198,32 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="matrix">The dense matrix.</param>
+        /// <param name="yOffsetSpan">The span containing precalculated kernel y-offsets.</param>
+        /// <param name="xOffsetSpan">The span containing precalculated kernel x-offsets.</param>
         /// <param name="sourcePixels">The source frame.</param>
         /// <param name="targetRowRef">The target row base reference.</param>
         /// <param name="row">The current row.</param>
         /// <param name="column">The current column.</param>
-        /// <param name="minRow">The minimum working area row.</param>
-        /// <param name="maxRow">The maximum working area row.</param>
-        /// <param name="minColumn">The minimum working area column.</param>
-        /// <param name="maxColumn">The maximum working area column.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void Convolve4<TPixel>(
             in DenseMatrix<float> matrix,
+            Span<int> yOffsetSpan,
+            Span<int> xOffsetSpan,
             Buffer2D<TPixel> sourcePixels,
             ref Vector4 targetRowRef,
             int row,
-            int column,
-            int minRow,
-            int maxRow,
-            int minColumn,
-            int maxColumn)
+            int column)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Vector4 vector = default;
 
             ConvolveImpl(
                 in matrix,
+                yOffsetSpan,
+                xOffsetSpan,
                 sourcePixels,
                 row,
                 column,
-                minRow,
-                maxRow,
-                minColumn,
-                maxColumn,
                 ref vector);
 
             ref Vector4 target = ref Unsafe.Add(ref targetRowRef, column);
@@ -245,33 +234,28 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void ConvolveImpl<TPixel>(
             in DenseMatrix<float> matrix,
+            Span<int> yOffsetSpan,
+            Span<int> xOffsetSpan,
             Buffer2D<TPixel> sourcePixels,
             int row,
             int column,
-            int minRow,
-            int maxRow,
-            int minColumn,
-            int maxColumn,
-            ref Vector4 vector)
+            ref Vector4 targetVector)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int matrixHeight = matrix.Rows;
             int matrixWidth = matrix.Columns;
-            int radiusY = matrixHeight >> 1;
-            int radiusX = matrixWidth >> 1;
-            int sourceOffsetColumnBase = column + minColumn;
 
             for (int y = 0; y < matrixHeight; y++)
             {
-                int offsetY = Numerics.Clamp(row + y - radiusY, minRow, maxRow);
+                int offsetY = yOffsetSpan[(row * matrixHeight) + y];
                 Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
 
                 for (int x = 0; x < matrixWidth; x++)
                 {
-                    int offsetX = Numerics.Clamp(sourceOffsetColumnBase + x - radiusX, minColumn, maxColumn);
+                    int offsetX = xOffsetSpan[(column * matrixWidth) + x];
                     var currentColor = sourceRowSpan[offsetX].ToVector4();
                     Numerics.Premultiply(ref currentColor);
-                    vector += matrix[y, x] * currentColor;
+                    targetVector += matrix[y, x] * currentColor;
                 }
             }
         }

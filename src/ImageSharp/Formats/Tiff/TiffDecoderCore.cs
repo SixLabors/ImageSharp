@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public TiffColorType ColorType { get; set; }
 
         /// <summary>
-        /// Gets or sets the compression implementation to use when decoding the image.
+        /// Gets or sets the compression used, when the image was encoded.
         /// </summary>
         public TiffDecoderCompressionType CompressionType { get; set; }
 
@@ -122,8 +122,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             }
 
             this.metadata = framesMetadata.CreateMetadata(this.ignoreMetadata, tiffStream.ByteOrder);
-            this.tiffMetaData = this.metadata.GetTiffMetadata();
-            this.SetBitsPerPixel(framesMetadata);
+            this.SetTiffFormatMetaData(framesMetadata, tiffStream.ByteOrder);
 
             // todo: tiff frames can have different sizes
             {
@@ -143,10 +142,45 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             return image;
         }
 
-        private void SetBitsPerPixel(List<TiffFrameMetadata> framesMetadata)
+        /// <inheritdoc/>
+        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
-            TiffFrameMetadata firstMetaData = framesMetadata.First();
-            ushort[] bitsPerSample = firstMetaData.BitsPerSample;
+            this.inputStream = stream;
+            TiffStream tiffStream = CreateStream(stream);
+            var reader = new DirectoryReader(tiffStream);
+
+            IEnumerable<IExifValue[]> directories = reader.Read();
+
+            var framesMetadata = new List<TiffFrameMetadata>();
+            foreach (IExifValue[] ifd in directories)
+            {
+                framesMetadata.Add(new TiffFrameMetadata() { Tags = ifd });
+            }
+
+            this.SetTiffFormatMetaData(framesMetadata, tiffStream.ByteOrder);
+
+            TiffFrameMetadata root = framesMetadata.First();
+            int bitsPerPixel = 0;
+            foreach (var bits in root.BitsPerSample)
+            {
+                bitsPerPixel += bits;
+            }
+
+            return new ImageInfo(new PixelTypeInfo(bitsPerPixel), (int)root.Width, (int)root.Height, metadata);
+        }
+
+        private void SetTiffFormatMetaData(List<TiffFrameMetadata> framesMetadata, TiffByteOrder byteOrder)
+        {
+            this.metadata = framesMetadata.CreateMetadata(this.ignoreMetadata, byteOrder);
+            this.tiffMetaData = this.metadata.GetTiffMetadata();
+            TiffFrameMetadata firstFrameMetaData = framesMetadata.First();
+            this.SetBitsPerPixel(firstFrameMetaData);
+            this.tiffMetaData.Compression = firstFrameMetaData.Compression;
+        }
+
+        private void SetBitsPerPixel(TiffFrameMetadata firstFrameMetaData)
+        {
+            ushort[] bitsPerSample = firstFrameMetaData.BitsPerSample;
             var bitsPerPixel = 0;
             foreach (var bps in bitsPerSample)
             {
@@ -165,33 +199,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             {
                 this.tiffMetaData.BitsPerPixel = TiffBitsPerPixel.Pixel1;
             }
-        }
-
-        /// <inheritdoc/>
-        public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
-        {
-            this.inputStream = stream;
-            TiffStream tiffStream = CreateStream(stream);
-            var reader = new DirectoryReader(tiffStream);
-
-            IEnumerable<IExifValue[]> directories = reader.Read();
-
-            var framesMetadata = new List<TiffFrameMetadata>();
-            foreach (IExifValue[] ifd in directories)
-            {
-                framesMetadata.Add(new TiffFrameMetadata() { Tags = ifd });
-            }
-
-            ImageMetadata metadata = framesMetadata.CreateMetadata(this.ignoreMetadata, tiffStream.ByteOrder);
-
-            TiffFrameMetadata root = framesMetadata.First();
-            int bitsPerPixel = 0;
-            foreach (var bits in root.BitsPerSample)
-            {
-                bitsPerPixel += bits;
-            }
-
-            return new ImageInfo(new PixelTypeInfo(bitsPerPixel), (int)root.Width, (int)root.Height, metadata);
         }
 
         private static TiffStream CreateStream(Stream stream)

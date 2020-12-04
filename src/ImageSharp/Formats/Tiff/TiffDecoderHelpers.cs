@@ -300,22 +300,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         private static void ParsePhotometric(this TiffDecoderCore options, TiffFrameMetadata entries)
         {
-            /*
-            if (!entries.TryGetSingleNumber(ExifTag.PhotometricInterpretation, out uint photometricInterpretation))
-            {
-                if (entries.Compression == TiffCompression.Ccitt1D)
-                {
-                    photometricInterpretation = (uint)TiffPhotometricInterpretation.WhiteIsZero;
-                }
-                else
-                {
-                    TiffThrowHelper.ThrowNotSupported("The TIFF photometric interpretation entry is missing.");
-                }
-            }
-
-            options.PhotometricInterpretation = (TiffPhotometricInterpretation)photometricInterpretation;
-            /* */
-
             // There is no default for PhotometricInterpretation, and it is required.
             options.PhotometricInterpretation = entries.PhotometricInterpretation;
         }

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.IO;
+using System.Linq;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
@@ -8,16 +10,94 @@ using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
 
+using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
+
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 {
     [Trait("Format", "Tiff")]
     public class TiffMetadataTests
     {
-        public static readonly string[] MetadataImages = TestImages.Tiff.Metadata;
+        [Fact]
+        public void CloneIsDeep()
+        {
+            var meta = new TiffMetadata
+            {
+                Compression = TiffCompression.Deflate,
+                BitsPerPixel = TiffBitsPerPixel.Pixel8,
+                ByteOrder = TiffByteOrder.BigEndian,
+                XmpProfile = new byte[3]
+            };
+
+            var clone = (TiffMetadata)meta.DeepClone();
+
+            clone.Compression = TiffCompression.None;
+            clone.BitsPerPixel = TiffBitsPerPixel.Pixel24;
+            clone.ByteOrder = TiffByteOrder.LittleEndian;
+            clone.XmpProfile = new byte[1];
+
+            Assert.False(meta.Compression == clone.Compression);
+            Assert.False(meta.BitsPerPixel == clone.BitsPerPixel);
+            Assert.False(meta.ByteOrder == clone.ByteOrder);
+            Assert.False(meta.XmpProfile.SequenceEqual(clone.XmpProfile));
+        }
 
         [Theory]
-        [WithFile(TestImages.Tiff.SampleMetadata, PixelTypes.Rgba32, false)]
-        [WithFile(TestImages.Tiff.SampleMetadata, PixelTypes.Rgba32, true)]
+        [InlineData(Calliphora_BiColorUncompressed, TiffBitsPerPixel.Pixel1)]
+        [InlineData(GrayscaleUncompressed, TiffBitsPerPixel.Pixel8)]
+        [InlineData(RgbUncompressed, TiffBitsPerPixel.Pixel24)]
+        public void Identify_DetectsCorrectBitPerPixel(string imagePath, TiffBitsPerPixel expectedBitsPerPixel)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+
+            IImageInfo imageInfo = Image.Identify(stream);
+
+            Assert.NotNull(imageInfo);
+            TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
+            Assert.NotNull(tiffMetadata);
+            Assert.Equal(expectedBitsPerPixel, tiffMetadata.BitsPerPixel);
+        }
+
+        [Theory]
+        [InlineData(GrayscaleUncompressed, TiffCompression.None)]
+        [InlineData(RgbDeflate, TiffCompression.Deflate)]
+        [InlineData(SmallRgbLzw, TiffCompression.Lzw)]
+        [InlineData(Calliphora_Fax3Compressed, TiffCompression.CcittGroup3Fax)]
+        [InlineData(Calliphora_Fax4Compressed, TiffCompression.CcittGroup4Fax)]
+        [InlineData(Calliphora_HuffmanCompressed, TiffCompression.Ccitt1D)]
+        [InlineData(Calliphora_RgbPackbits, TiffCompression.PackBits)]
+        public void Identify_DetectsCorrectCompression(string imagePath, TiffCompression expectedCompression)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+
+            IImageInfo imageInfo = Image.Identify(stream);
+
+            Assert.NotNull(imageInfo);
+            TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
+            Assert.NotNull(tiffMetadata);
+            Assert.Equal(expectedCompression, tiffMetadata.Compression);
+        }
+
+        [Theory]
+        [InlineData(GrayscaleUncompressed, TiffByteOrder.BigEndian)]
+        [InlineData(LsbToMsbByteOrder, TiffByteOrder.LittleEndian)]
+        public void Identify_DetectsCorrectByteOrder(string imagePath, TiffByteOrder expectedByteOrder)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+
+            IImageInfo imageInfo = Image.Identify(stream);
+
+            Assert.NotNull(imageInfo);
+            TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
+            Assert.NotNull(tiffMetadata);
+            Assert.Equal(expectedByteOrder, tiffMetadata.ByteOrder);
+        }
+
+        [Theory]
+        [WithFile(SampleMetadata, PixelTypes.Rgba32, false)]
+        [WithFile(SampleMetadata, PixelTypes.Rgba32, true)]
         public void MetadataProfiles<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
           where TPixel : unmanaged, IPixel<TPixel>
         {

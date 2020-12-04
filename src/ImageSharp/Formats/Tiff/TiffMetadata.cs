@@ -39,6 +39,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public TiffBitsPerPixel BitsPerPixel { get; set; } = TiffBitsPerPixel.Pixel24;
 
         /// <summary>
+        /// Gets or sets the compression used to create the TIFF file.
+        /// </summary>
+        public TiffCompression Compression { get; set; } = TiffCompression.None;
+
+        /// <summary>
         /// Gets or sets the XMP profile.
         /// </summary>
         public byte[] XmpProfile { get; set; }

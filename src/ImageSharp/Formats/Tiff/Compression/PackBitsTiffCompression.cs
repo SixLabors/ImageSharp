@@ -15,8 +15,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
     /// </summary>
     internal class PackBitsTiffCompression : TiffBaseCompression
     {
-        public PackBitsTiffCompression(MemoryAllocator allocator)
-            : base(allocator)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PackBitsTiffCompression" /> class.
+        /// </summary>
+        /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
+        public PackBitsTiffCompression(MemoryAllocator memoryAllocator)
+            : base(memoryAllocator)
         {
         }
 

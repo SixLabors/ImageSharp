@@ -3,7 +3,9 @@
 
 using System;
 using System.IO;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
@@ -13,8 +15,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
     /// </summary>
     internal class LzwTiffCompression : TiffBaseCompression
     {
-        public LzwTiffCompression(MemoryAllocator allocator)
-            : base(allocator)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LzwTiffCompression" /> class.
+        /// </summary>
+        /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
+        /// <param name="width">The image width.</param>
+        /// <param name="bitsPerPixel">The bits used per pixel.</param>
+        /// <param name="predictor">The tiff predictor used.</param>
+        public LzwTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffPredictor predictor)
+            : base(memoryAllocator, width, bitsPerPixel, predictor)
         {
         }
 
@@ -24,6 +33,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             var subStream = new SubStream(stream, byteCount);
             var decoder = new TiffLzwDecoder(subStream, this.Allocator);
             decoder.DecodePixels(buffer.Length, 8, buffer);
+
+            if (this.Predictor == TiffPredictor.Horizontal)
+            {
+                HorizontalPredictor.Undo(buffer, this.Width, this.BitsPerPixel);
+            }
         }
     }
 }

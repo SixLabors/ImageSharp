@@ -51,16 +51,22 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            using Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size());
+            MemoryAllocator allocator = this.Configuration.MemoryAllocator;
+            using Buffer2D<TPixel> targetPixels = allocator.Allocate2D<TPixel>(source.Size());
 
             source.CopyTo(targetPixels);
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-            var operation = new RowOperation(interest, targetPixels, source.PixelBuffer, this.KernelXY, this.Configuration, this.PreserveAlpha);
-            ParallelRowIterator.IterateRows<RowOperation, Vector4>(
-               this.Configuration,
-               interest,
-               in operation);
+            using (var map = new KernelOffsetMap(allocator))
+            {
+                map.BuildOffsetMap(this.KernelXY, interest);
+
+                var operation = new RowOperation(interest, targetPixels, source.PixelBuffer, map, this.KernelXY, this.Configuration, this.PreserveAlpha);
+                ParallelRowIterator.IterateRows<RowOperation, Vector4>(
+                   this.Configuration,
+                   interest,
+                   in operation);
+            }
 
             Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
         }
@@ -71,10 +77,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly struct RowOperation : IRowOperation<Vector4>
         {
             private readonly Rectangle bounds;
-            private readonly int maxY;
-            private readonly int maxX;
             private readonly Buffer2D<TPixel> targetPixels;
             private readonly Buffer2D<TPixel> sourcePixels;
+            private readonly KernelOffsetMap map;
             private readonly DenseMatrix<float> kernel;
             private readonly Configuration configuration;
             private readonly bool preserveAlpha;
@@ -84,15 +89,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<TPixel> sourcePixels,
+                KernelOffsetMap map,
                 DenseMatrix<float> kernel,
                 Configuration configuration,
                 bool preserveAlpha)
             {
                 this.bounds = bounds;
-                this.maxY = this.bounds.Bottom - 1;
-                this.maxX = this.bounds.Right - 1;
                 this.targetPixels = targetPixels;
                 this.sourcePixels = sourcePixels;
+                this.map = map;
                 this.kernel = kernel;
                 this.configuration = configuration;
                 this.preserveAlpha = preserveAlpha;
@@ -103,40 +108,38 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             public void Invoke(int y, Span<Vector4> span)
             {
                 ref Vector4 spanRef = ref MemoryMarshal.GetReference(span);
-
                 Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
+                Span<int> yOffsetSpan = this.map.GetYOffsetSpan();
+                Span<int> xOffsetSpan = this.map.GetXOffsetSpan();
+                int row = y - this.bounds.Y;
 
                 if (this.preserveAlpha)
                 {
-                    for (int x = 0; x < this.bounds.Width; x++)
+                    for (int column = 0; column < this.bounds.Width; column++)
                     {
                         DenseMatrixUtils.Convolve3(
                             in this.kernel,
+                            yOffsetSpan,
+                            xOffsetSpan,
                             this.sourcePixels,
                             ref spanRef,
-                            y,
-                            x,
-                            this.bounds.Y,
-                            this.maxY,
-                            this.bounds.X,
-                            this.maxX);
+                            row,
+                            column);
                     }
                 }
                 else
                 {
-                    for (int x = 0; x < this.bounds.Width; x++)
+                    for (int column = 0; column < this.bounds.Width; column++)
                     {
                         DenseMatrixUtils.Convolve4(
                             in this.kernel,
+                            yOffsetSpan,
+                            xOffsetSpan,
                             this.sourcePixels,
                             ref spanRef,
-                            y,
-                            x,
-                            this.bounds.Y,
-                            this.maxY,
-                            this.bounds.X,
-                            this.maxX);
+                            row,
+                            column);
                     }
                 }
 

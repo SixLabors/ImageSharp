@@ -60,17 +60,32 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            using Buffer2D<TPixel> targetPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Width, source.Height);
+            MemoryAllocator allocator = this.Configuration.MemoryAllocator;
+            using Buffer2D<TPixel> targetPixels = allocator.Allocate2D<TPixel>(source.Width, source.Height);
 
             source.CopyTo(targetPixels);
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-            var operation = new RowOperation(interest, targetPixels, source.PixelBuffer, this.KernelY, this.KernelX, this.Configuration, this.PreserveAlpha);
+            using (var map = new KernelSamplingMap(allocator))
+            {
+                // Since the kernel sizes are identical we can use a single map.
+                map.BuildSamplingOffsetMap(this.KernelY, interest);
 
-            ParallelRowIterator.IterateRows<RowOperation, Vector4>(
-                this.Configuration,
-                interest,
-                in operation);
+                var operation = new RowOperation(
+                    interest,
+                    targetPixels,
+                    source.PixelBuffer,
+                    map,
+                    this.KernelY,
+                    this.KernelX,
+                    this.Configuration,
+                    this.PreserveAlpha);
+
+                ParallelRowIterator.IterateRows<RowOperation, Vector4>(
+                    this.Configuration,
+                    interest,
+                    in operation);
+            }
 
             Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);
         }
@@ -81,10 +96,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly struct RowOperation : IRowOperation<Vector4>
         {
             private readonly Rectangle bounds;
-            private readonly int maxY;
-            private readonly int maxX;
             private readonly Buffer2D<TPixel> targetPixels;
             private readonly Buffer2D<TPixel> sourcePixels;
+            private readonly KernelSamplingMap map;
             private readonly DenseMatrix<float> kernelY;
             private readonly DenseMatrix<float> kernelX;
             private readonly Configuration configuration;
@@ -95,16 +109,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<TPixel> sourcePixels,
+                KernelSamplingMap map,
                 DenseMatrix<float> kernelY,
                 DenseMatrix<float> kernelX,
                 Configuration configuration,
                 bool preserveAlpha)
             {
                 this.bounds = bounds;
-                this.maxY = this.bounds.Bottom - 1;
-                this.maxX = this.bounds.Right - 1;
                 this.targetPixels = targetPixels;
                 this.sourcePixels = sourcePixels;
+                this.map = map;
                 this.kernelY = kernelY;
                 this.kernelX = kernelX;
                 this.configuration = configuration;
@@ -115,42 +129,41 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                ref Vector4 spanRef = ref MemoryMarshal.GetReference(span);
+                ref Vector4 targetRowRef = ref MemoryMarshal.GetReference(span);
                 Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
+                Span<int> yOffsets = this.map.GetYOffsetSpan();
+                Span<int> xOffsets = this.map.GetXOffsetSpan();
+                int row = y - this.bounds.Y;
 
                 if (this.preserveAlpha)
                 {
-                    for (int x = 0; x < this.bounds.Width; x++)
+                    for (int column = 0; column < this.bounds.Width; column++)
                     {
-                        DenseMatrixUtils.Convolve2D3(
+                        Convolver.Convolve2D3(
                             in this.kernelY,
                             in this.kernelX,
+                            yOffsets,
+                            xOffsets,
                             this.sourcePixels,
-                            ref spanRef,
-                            y,
-                            x,
-                            this.bounds.Y,
-                            this.maxY,
-                            this.bounds.X,
-                            this.maxX);
+                            ref targetRowRef,
+                            row,
+                            column);
                     }
                 }
                 else
                 {
-                    for (int x = 0; x < this.bounds.Width; x++)
+                    for (int column = 0; column < this.bounds.Width; column++)
                     {
-                        DenseMatrixUtils.Convolve2D4(
+                        Convolver.Convolve2D4(
                             in this.kernelY,
                             in this.kernelX,
+                            yOffsets,
+                            xOffsets,
                             this.sourcePixels,
-                            ref spanRef,
-                            y,
-                            x,
-                            this.bounds.Y,
-                            this.maxY,
-                            this.bounds.X,
-                            this.maxX);
+                            ref targetRowRef,
+                            row,
+                            column);
                     }
                 }
 

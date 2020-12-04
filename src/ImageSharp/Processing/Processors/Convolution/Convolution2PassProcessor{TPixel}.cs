@@ -63,9 +63,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-            using (var mapX = new KernelOffsetMap(this.Configuration.MemoryAllocator))
+            using (var mapX = new KernelSamplingMap(this.Configuration.MemoryAllocator))
             {
-                mapX.BuildOffsetMap(this.KernelX, interest);
+                mapX.BuildSamplingOffsetMap(this.KernelX, interest);
 
                 // Horizontal convolution
                 var horizontalOperation = new RowOperation(
@@ -83,9 +83,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     in horizontalOperation);
             }
 
-            using (var mapY = new KernelOffsetMap(this.Configuration.MemoryAllocator))
+            using (var mapY = new KernelSamplingMap(this.Configuration.MemoryAllocator))
             {
-                mapY.BuildOffsetMap(this.KernelY, interest);
+                mapY.BuildSamplingOffsetMap(this.KernelY, interest);
 
                 // Vertical convolution
                 var verticalOperation = new RowOperation(
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly Rectangle bounds;
             private readonly Buffer2D<TPixel> targetPixels;
             private readonly Buffer2D<TPixel> sourcePixels;
-            private readonly KernelOffsetMap map;
+            private readonly KernelSamplingMap map;
             private readonly DenseMatrix<float> kernel;
             private readonly Configuration configuration;
             private readonly bool preserveAlpha;
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Rectangle bounds,
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<TPixel> sourcePixels,
-                KernelOffsetMap map,
+                KernelSamplingMap map,
                 DenseMatrix<float> kernel,
                 Configuration configuration,
                 bool preserveAlpha)
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                ref Vector4 targetRef = ref MemoryMarshal.GetReference(span);
+                ref Vector4 targetRowRef = ref MemoryMarshal.GetReference(span);
                 Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
                 Span<int> yOffsets = this.map.GetYOffsetSpan();
@@ -151,12 +151,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 {
                     for (int column = 0; column < this.bounds.Width; column++)
                     {
-                        DenseMatrixUtils.Convolve3(
+                        Convolver.Convolve3(
                             in this.kernel,
                             yOffsets,
                             xOffsets,
                             this.sourcePixels,
-                            ref targetRef,
+                            ref targetRowRef,
                             row,
                             column);
                     }
@@ -165,12 +165,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 {
                     for (int column = 0; column < this.bounds.Width; column++)
                     {
-                        DenseMatrixUtils.Convolve4(
+                        Convolver.Convolve4(
                             in this.kernel,
                             yOffsets,
                             xOffsets,
                             this.sourcePixels,
-                            ref targetRef,
+                            ref targetRowRef,
                             row,
                             column);
                     }

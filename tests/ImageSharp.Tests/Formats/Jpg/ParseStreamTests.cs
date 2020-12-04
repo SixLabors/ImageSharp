@@ -13,6 +13,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public class ParseStreamTests
     {
         private ITestOutputHelper Output { get; }

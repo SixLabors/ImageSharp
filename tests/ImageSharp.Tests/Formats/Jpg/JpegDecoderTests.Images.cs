@@ -2,9 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public partial class JpegDecoderTests
     {
         public static string[] BaselineTestJpegs =

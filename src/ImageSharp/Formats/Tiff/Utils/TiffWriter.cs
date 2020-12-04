@@ -344,6 +344,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                 return this.WriteDeflateCompressedPalettedRgb(image, quantized, padding, useHorizontalPredictor);
             }
 
+            if (compression == TiffEncoderCompression.Lzw)
+            {
+                return this.WriteLzwCompressedPalettedRgb(image, quantized, padding, useHorizontalPredictor);
+            }
+
             if (compression == TiffEncoderCompression.PackBits)
             {
                 return this.WritePackBitsCompressedPalettedRgb(image, quantized, padding);
@@ -407,6 +412,52 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             }
 
             deflateStream.Flush();
+            byte[] buffer = memoryStream.ToArray();
+            this.output.Write(buffer);
+            bytesWritten += buffer.Length;
+
+            return bytesWritten;
+        }
+
+        /// <summary>
+        /// Writes the image data as indices into a color map compressed with lzw compression to the stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel data.</typeparam>
+        /// <param name="image">The image to write to the stream.</param>
+        /// <param name="quantized">The quantized frame.</param>
+        /// <param name="padding">The padding bytes for each row.</param>
+        /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used.</param>
+        /// <returns>The number of bytes written.</returns>
+        public int WriteLzwCompressedPalettedRgb<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, int padding, bool useHorizontalPredictor)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            IMemoryOwner<byte> pixelData = this.memoryAllocator.Allocate<byte>(image.Width * image.Height);
+            using IManagedByteBuffer tmpBuffer = this.memoryAllocator.AllocateManagedByteBuffer(image.Width);
+            using var memoryStream = new MemoryStream();
+
+            int bytesWritten = 0;
+            Span<byte> pixels = pixelData.GetSpan();
+            for (int y = 0; y < image.Height; y++)
+            {
+                ReadOnlySpan<byte> indexedPixelRow = quantized.GetPixelRowSpan(y);
+
+                if (useHorizontalPredictor)
+                {
+                    // We need a writable Span here.
+                    Span<byte> pixelRowCopy = tmpBuffer.GetSpan();
+                    indexedPixelRow.CopyTo(pixelRowCopy);
+                    HorizontalPredictor.ApplyHorizontalPrediction8Bit(pixelRowCopy);
+                    pixelRowCopy.CopyTo(pixels.Slice(y * image.Width));
+                }
+                else
+                {
+                    indexedPixelRow.CopyTo(pixels.Slice(y * image.Width));
+                }
+            }
+
+            using var lzwEncoder = new TiffLzwEncoder(this.memoryAllocator, pixelData, 8);
+            lzwEncoder.Encode(memoryStream);
+
             byte[] buffer = memoryStream.ToArray();
             this.output.Write(buffer);
             bytesWritten += buffer.Length;

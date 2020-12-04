@@ -517,6 +517,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Calliphora_RgbPackbits = "Tiff/Calliphora_rgb_packbits.tiff";
             public const string Calliphora_RgbUncompressed = "Tiff/Calliphora_rgb_uncompressed.tiff";
             public const string Calliphora_Fax3Compressed = "Tiff/Calliphora_ccitt_fax3.tiff";
+            public const string Calliphora_Fax4Compressed = "Tiff/Calliphora_ccitt_fax4.tiff";
             public const string Calliphora_HuffmanCompressed = "Tiff/Calliphora_huffman_rle.tiff";
             public const string Calliphora_BiColorUncompressed = "Tiff/Calliphora_bicolor_uncompressed.tiff";
 
@@ -558,6 +559,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string MultiframeDeflateWithPreview = "Tiff/multipage_deflate_withPreview.tiff";
             public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
+
+            public const string LsbToMsbByteOrder = "Tiff/b0350_lsb_to_msb.tiff";
 
             public const string SampleMetadata = "Tiff/metadata_sample.tiff";
 

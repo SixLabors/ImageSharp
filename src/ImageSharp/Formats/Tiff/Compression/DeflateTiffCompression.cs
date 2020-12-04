@@ -4,7 +4,10 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
@@ -17,8 +20,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
     /// </remarks>
     internal class DeflateTiffCompression : TiffBaseCompression
     {
-        public DeflateTiffCompression(MemoryAllocator allocator)
-            : base(allocator)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DeflateTiffCompression" /> class.
+        /// </summary>
+        /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
+        /// <param name="width">The image width.</param>
+        /// <param name="bitsPerPixel">The bits used per pixel.</param>
+        /// <param name="predictor">The tiff predictor used.</param>
+        public DeflateTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffPredictor predictor)
+            : base(memoryAllocator, width, bitsPerPixel, predictor)
         {
         }
 
@@ -51,6 +61,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             using (var deflateStream = new DeflateStream(subStream, CompressionMode.Decompress, true))
             {
                 deflateStream.ReadFull(buffer);
+            }
+
+            if (this.Predictor == TiffPredictor.Horizontal)
+            {
+                HorizontalPredictor.Undo(buffer, this.Width, this.BitsPerPixel);
             }
         }
     }

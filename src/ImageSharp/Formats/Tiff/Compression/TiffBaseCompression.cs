@@ -5,6 +5,7 @@ using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
@@ -20,13 +21,25 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 
         private int width;
 
+        private int bitsPerPixel;
+
+        private TiffPredictor predictor;
+
         public TiffBaseCompression(MemoryAllocator allocator) => this.allocator = allocator;
 
         public TiffBaseCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
+            : this(allocator)
         {
-            this.allocator = allocator;
             this.photometricInterpretation = photometricInterpretation;
             this.width = width;
+        }
+
+        public TiffBaseCompression(MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor)
+            : this(allocator)
+        {
+            this.width = width;
+            this.bitsPerPixel = bitsPerPixel;
+            this.predictor = predictor;
         }
 
         protected MemoryAllocator Allocator => this.allocator;
@@ -34,6 +47,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         protected TiffPhotometricInterpretation PhotometricInterpretation => this.photometricInterpretation;
 
         protected int Width => this.width;
+
+        protected int BitsPerPixel => this.bitsPerPixel;
+
+        protected TiffPredictor Predictor => this.predictor;
 
         /// <summary>
         /// Decompresses image data into the supplied buffer.

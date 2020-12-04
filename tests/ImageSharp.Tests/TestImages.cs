@@ -506,11 +506,14 @@ namespace SixLabors.ImageSharp.Tests
 
             public const string Calliphora_GrayscaleUncompressed = "Tiff/Calliphora_grayscale_uncompressed.tiff";
             public const string Calliphora_GrayscaleDeflate_Predictor = "Tiff/Calliphora_gray_deflate_predictor.tiff";
+            public const string Calliphora_GrayscaleLzw_Predictor = "Tiff/Calliphora_gray_lzw_predictor.tiff";
             public const string Calliphora_GrayscaleDeflate = "Tiff/Calliphora_gray_deflate.tiff";
-            public const string Calliphora_PaletteUncompressed = "Tiff/Calliphora_palette_uncompressed.tiff";
             public const string Calliphora_RgbDeflate_Predictor = "Tiff/Calliphora_rgb_deflate_predictor.tiff";
             public const string Calliphora_RgbJpeg = "Tiff/Calliphora_rgb_jpeg.tiff";
-            public const string Calliphora_RgbLzw_Predictor = "Tiff/Calliphora_rgb_lzw_predictor.tiff";
+            public const string Calliphora_PaletteUncompressed = "Tiff/Calliphora_palette_uncompressed.tiff";
+            public const string Calliphora_RgbLzwPredictor = "Tiff/Calliphora_rgb_lzw_predictor.tiff";
+            public const string Calliphora_RgbPaletteLzw = "Tiff/Calliphora_rgb_palette_lzw.tiff";
+            public const string Calliphora_RgbPaletteLzw_Predictor = "Tiff/Calliphora_rgb_palette_lzw_predictor.tiff";
             public const string Calliphora_RgbPackbits = "Tiff/Calliphora_rgb_packbits.tiff";
             public const string Calliphora_RgbUncompressed = "Tiff/Calliphora_rgb_uncompressed.tiff";
             public const string Calliphora_Fax3Compressed = "Tiff/Calliphora_ccitt_fax3.tiff";

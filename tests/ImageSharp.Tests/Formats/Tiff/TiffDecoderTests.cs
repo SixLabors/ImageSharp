@@ -122,7 +122,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(RgbLzwNoPredictorSinglestripMotorola, PixelTypes.Rgba32)]
         [WithFile(RgbLzwNoPredictorMultistripMotorola, PixelTypes.Rgba32)]
         [WithFile(RgbLzwMultistripPredictor, PixelTypes.Rgba32)]
-        [WithFile(Calliphora_RgbLzw_Predictor, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_RgbPaletteLzw_Predictor, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_RgbLzwPredictor, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_GrayscaleLzw_Predictor, PixelTypes.Rgba32)]
         [WithFile(SmallRgbLzw, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_LzwCompressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>

@@ -7,9 +7,9 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
-using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -197,7 +197,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 
                 if (useHorizontalPredictor)
                 {
-                    this.ApplyHorizontalPredictionRgb(rowSpan);
+                    HorizontalPredictor.ApplyHorizontalPrediction24Bit(rowSpan);
                 }
 
                 deflateStream.Write(rowSpan);
@@ -234,7 +234,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 
                 if (useHorizontalPredictor)
                 {
-                    this.ApplyHorizontalPredictionRgb(rowSpan);
+                    HorizontalPredictor.ApplyHorizontalPrediction24Bit(rowSpan);
                 }
 
                 rowSpan.CopyTo(pixels.Slice(y * image.Width * 3));
@@ -250,27 +250,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         }
 
         /// <summary>
-        /// Applies a horizontal predictor to the rgb row.
-        /// Make use of the fact that many continuous-tone images rarely vary much in pixel value from one pixel to the next.
-        /// In such images, if we replace the pixel values by differences between consecutive pixels, many of the differences should be 0, plus
-        /// or minus 1, and so on.This reduces the apparent information content and allows LZW to encode the data more compactly.
-        /// </summary>
-        /// <param name="rowSpan">The rgb pixel row.</param>
-        private void ApplyHorizontalPredictionRgb(Span<byte> rowSpan)
-        {
-            Span<Rgb24> rowRgb = MemoryMarshal.Cast<byte, Rgb24>(rowSpan);
-
-            for (int x = rowRgb.Length - 1; x >= 1; x--)
-            {
-                byte r = (byte)(rowRgb[x].R - rowRgb[x - 1].R);
-                byte g = (byte)(rowRgb[x].G - rowRgb[x - 1].G);
-                byte b = (byte)(rowRgb[x].B - rowRgb[x - 1].B);
-                var rgb = new Rgb24(r, g, b);
-                rowRgb[x].FromRgb24(rgb);
-            }
-        }
-
-        /// <summary>
         /// Writes the image data as RGB with packed bits compression to the stream.
         /// </summary>
         /// <typeparam name="TPixel">The pixel data.</typeparam>
@@ -281,7 +260,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Worst case is that the actual compressed data is larger then the input data. In this case we need 1 additional byte per 127 bytes.
-            int additionalBytes = (image.Width * 3 / 127) + 1;
+            int additionalBytes = ((image.Width * 3) / 127) + 1;
             using IManagedByteBuffer compressedRow = this.memoryAllocator.AllocateManagedByteBuffer((image.Width * 3) + additionalBytes, AllocationOptions.Clean);
             Span<byte> compressedRowSpan = compressedRow.GetSpan();
             int bytesWritten = 0;
@@ -527,7 +506,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 
                 if (useHorizontalPredictor)
                 {
-                    this.ApplyHorizontalPredictionGray(rowSpan);
+                    HorizontalPredictor.ApplyHorizontalPrediction8Bit(rowSpan);
                 }
 
                 deflateStream.Write(rowSpan);
@@ -562,7 +541,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                 PixelOperations<TPixel>.Instance.ToL8Bytes(this.configuration, pixelRow, rowSpan, pixelRow.Length);
                 if (useHorizontalPredictor)
                 {
-                    this.ApplyHorizontalPredictionGray(rowSpan);
+                    HorizontalPredictor.ApplyHorizontalPrediction8Bit(rowSpan);
                 }
 
                 rowSpan.CopyTo(pixels.Slice(y * image.Width));
@@ -575,18 +554,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             this.output.Write(buffer);
             bytesWritten += buffer.Length;
             return bytesWritten;
-        }
-
-        /// <summary>
-        /// Applies a horizontal predictor to a gray pixel row.
-        /// </summary>
-        /// <param name="rowSpan">The gray pixel row.</param>
-        private void ApplyHorizontalPredictionGray(Span<byte> rowSpan)
-        {
-            for (int x = rowSpan.Length - 1; x >= 1; x--)
-            {
-                rowSpan[x] -= rowSpan[x - 1];
-            }
         }
 
         /// <summary>

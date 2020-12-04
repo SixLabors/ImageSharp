@@ -5,6 +5,7 @@ using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using Xunit;
@@ -25,14 +26,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             using Stream stream = CreateCompressedStream(data);
             var buffer = new byte[data.Length];
 
-            new LzwTiffCompression(Configuration.Default.MemoryAllocator).Decompress(stream, (int)stream.Length, buffer);
+            new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None).Decompress(stream, (int)stream.Length, buffer);
 
             Assert.Equal(data, buffer);
         }
 
         private static Stream CreateCompressedStream(byte[] inputData)
         {
-            using Stream compressedStream = new MemoryStream();
+            Stream compressedStream = new MemoryStream();
             using System.Buffers.IMemoryOwner<byte> data = Configuration.Default.MemoryAllocator.Allocate<byte>(inputData.Length);
             inputData.AsSpan().CopyTo(data.GetSpan());
 

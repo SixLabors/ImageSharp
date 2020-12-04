@@ -241,6 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             frameMetaData = coreMetadata.GetTiffMetadata();
             frameMetaData.Tags = tags;
             TiffFrameMetadata tiffFormatMetaData = coreMetadata.GetFormatMetadata(TiffFormat.Instance);
+            TiffPredictor predictor = tiffFormatMetaData.Predictor;
 
             this.VerifyAndParseOptions(frameMetaData);
 
@@ -254,50 +255,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
             {
-                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets, stripByteCounts, width);
+                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets, stripByteCounts, width, predictor);
             }
             else
             {
-                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts, width);
-            }
-
-            if (tiffFormatMetaData.Predictor == TiffPredictor.Horizontal)
-            {
-                this.UndoHorizontalPredictor(frame, width, height);
+                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts, width, predictor);
             }
 
             return frame;
-        }
-
-        /// <summary>
-        /// This will reverse the horizontal prediction operation.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="frame">The image frame.</param>
-        /// <param name="width">The width of the image.</param>
-        /// <param name="height">The height of the image.</param>
-        private void UndoHorizontalPredictor<TPixel>(ImageFrame<TPixel> frame, int width, int height)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using System.Buffers.IMemoryOwner<Rgb24> rowRgbBuffer = this.memoryAllocator.Allocate<Rgb24>(width);
-            System.Span<Rgb24> rowRgb = rowRgbBuffer.GetSpan();
-            for (int y = 0; y < height; y++)
-            {
-                System.Span<TPixel> pixelRow = frame.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToRgb24(this.configuration, pixelRow, rowRgb);
-                byte r = rowRgb[0].R;
-                byte g = rowRgb[0].G;
-                byte b = rowRgb[0].B;
-                for (int x = 1; x < width; x++)
-                {
-                    ref TPixel pixel = ref pixelRow[x];
-                    r += rowRgb[x].R;
-                    g += rowRgb[x].G;
-                    b += rowRgb[x].B;
-                    var rgb = new Rgb24(r, g, b);
-                    pixel.FromRgb24(rgb);
-                }
-            }
         }
 
         /// <summary>
@@ -339,11 +304,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
         /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
         /// <param name="width">The image width.</param>
-        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts, int width)
+        /// <param name="predictor">The tiff predictor used.</param>
+        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts, int width, TiffPredictor predictor)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int stripsPerPixel = this.BitsPerSample.Length;
             int stripsPerPlane = stripOffsets.Length / stripsPerPixel;
+            int bitsPerPixel = 0;
+            foreach (var bits in this.BitsPerSample)
+            {
+                bitsPerPixel += bits;
+            }
 
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
@@ -357,7 +328,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     stripBuffers[stripIndex] = this.memoryAllocator.AllocateManagedByteBuffer(uncompressedStripSize);
                 }
 
-                TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width);
+                TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, predictor);
 
                 RgbPlanarTiffColor<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap);
 
@@ -385,16 +356,21 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             }
         }
 
-        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts, int width)
+        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts, int width, TiffPredictor predictor)
            where TPixel : unmanaged, IPixel<TPixel>
         {
             int uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip);
+            int bitsPerPixel = 0;
+            foreach (var bits in this.BitsPerSample)
+            {
+                bitsPerPixel += bits;
+            }
 
             using IManagedByteBuffer stripBuffer = this.memoryAllocator.AllocateManagedByteBuffer(uncompressedStripSize, AllocationOptions.Clean);
 
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
-            TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width);
+            TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, predictor);
 
             TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap);
 

@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 {
     internal static class TiffCompressionFactory
     {
-        public static TiffBaseCompression Create(TiffDecoderCompressionType compressionType, MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
+        public static TiffBaseCompression Create(TiffDecoderCompressionType compressionType, MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width, int bitsPerPixel, TiffPredictor predictor)
         {
             switch (compressionType)
             {
@@ -17,9 +17,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
                 case TiffDecoderCompressionType.PackBits:
                     return new PackBitsTiffCompression(allocator);
                 case TiffDecoderCompressionType.Deflate:
-                    return new DeflateTiffCompression(allocator);
+                    return new DeflateTiffCompression(allocator, width, bitsPerPixel, predictor);
                 case TiffDecoderCompressionType.Lzw:
-                    return new LzwTiffCompression(allocator);
+                    return new LzwTiffCompression(allocator, width, bitsPerPixel, predictor);
                 case TiffDecoderCompressionType.T4:
                     return new T4TiffCompression(allocator, photometricInterpretation, width);
                 case TiffDecoderCompressionType.HuffmanRle:

@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                ref Vector4 spanRef = ref MemoryMarshal.GetReference(span);
+                ref Vector4 targetRef = ref MemoryMarshal.GetReference(span);
                 Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
                 Span<int> yOffsets = this.map.GetYOffsetSpan();
@@ -156,7 +156,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             yOffsets,
                             xOffsets,
                             this.sourcePixels,
-                            ref spanRef,
+                            ref targetRef,
                             row,
                             column);
                     }
@@ -170,7 +170,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                             yOffsets,
                             xOffsets,
                             this.sourcePixels,
-                            ref spanRef,
+                            ref targetRef,
                             row,
                             column);
                     }

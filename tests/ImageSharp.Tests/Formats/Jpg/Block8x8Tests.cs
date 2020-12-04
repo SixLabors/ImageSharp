@@ -9,6 +9,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public class Block8x8Tests : JpegFixture
     {
         public Block8x8Tests(ITestOutputHelper output)

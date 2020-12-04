@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 bitsPerPixel += bits;
             }
 
-            return new ImageInfo(new PixelTypeInfo(bitsPerPixel), (int)root.Width, (int)root.Height, metadata);
+            return new ImageInfo(new PixelTypeInfo(bitsPerPixel), (int)root.Width, (int)root.Height, this.metadata);
         }
 
         private void SetTiffFormatMetaData(List<TiffFrameMetadata> framesMetadata, TiffByteOrder byteOrder)

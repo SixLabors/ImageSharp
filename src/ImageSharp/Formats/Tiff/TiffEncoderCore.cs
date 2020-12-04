@@ -463,6 +463,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 return (ushort)TiffCompression.Deflate;
             }
 
+            if (this.CompressionType == TiffEncoderCompression.Lzw && this.Mode == TiffEncodingMode.ColorPalette)
+            {
+                return (ushort)TiffCompression.Lzw;
+            }
+
             if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.ColorPalette)
             {
                 return (ushort)TiffCompression.PackBits;

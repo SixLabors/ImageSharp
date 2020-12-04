@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
@@ -14,6 +15,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// Gets the compression type to use.
         /// </summary>
         TiffEncoderCompression Compression { get; }
+
+        /// <summary>
+        /// Gets the compression level 1-9 for the deflate compression mode.
+        /// <remarks>Defaults to <see cref="DeflateCompressionLevel.DefaultCompression"/>.</remarks>
+        /// </summary>
+        DeflateCompressionLevel CompressionLevel { get; }
 
         /// <summary>
         /// Gets the encoding mode to use. RGB, RGB with color palette or gray.

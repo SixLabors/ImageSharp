@@ -4,7 +4,9 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -15,25 +17,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     /// </summary>
     public class TiffEncoder : IImageEncoder, ITiffEncoderOptions
     {
-        /// <summary>
-        /// Gets or sets a value indicating which compression to use.
-        /// </summary>
+        /// <inheritdoc/>
         public TiffEncoderCompression Compression { get; set; } = TiffEncoderCompression.None;
 
-        /// <summary>
-        /// Gets or sets the encoding mode to use. RGB, RGB with a color palette or gray.
-        /// </summary>
+        /// <inheritdoc/>
+        public DeflateCompressionLevel CompressionLevel { get; } = DeflateCompressionLevel.DefaultCompression;
+
+        /// <inheritdoc/>
         public TiffEncodingMode Mode { get; set; }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether to use horizontal prediction. This can improve the compression ratio with deflate or lzw compression.
-        /// </summary>
+        /// <inheritdoc/>
         public bool UseHorizontalPredictor { get; set; }
 
-        /// <summary>
-        /// Gets or sets the quantizer for color images with a palette.
-        /// Defaults to OctreeQuantizer.
-        /// </summary>
+        /// <inheritdoc/>
         public IQuantizer Quantizer { get; set; }
 
         /// <inheritdoc/>

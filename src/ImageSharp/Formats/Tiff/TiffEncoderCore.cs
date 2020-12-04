@@ -9,6 +9,7 @@ using System.Threading;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -51,7 +52,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Indicating whether to use horizontal prediction. This can improve the compression ratio with deflate compression.
         /// </summary>
-        private bool useHorizontalPredictor;
+        private readonly bool useHorizontalPredictor;
+
+        /// <summary>
+        /// Sets the deflate compression level.
+        /// </summary>
+        private readonly DeflateCompressionLevel compressionLevel;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
@@ -65,6 +71,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             this.Mode = options.Mode;
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
             this.useHorizontalPredictor = options.UseHorizontalPredictor;
+            this.compressionLevel = options.CompressionLevel;
         }
 
         /// <summary>
@@ -165,16 +172,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             switch (this.Mode)
             {
                 case TiffEncodingMode.ColorPalette:
-                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.padding, this.CompressionType, this.useHorizontalPredictor, out colorMap);
+                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.padding, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor, out colorMap);
                     break;
                 case TiffEncodingMode.Gray:
-                    imageDataBytes = writer.WriteGray(image, this.padding, this.CompressionType, this.useHorizontalPredictor);
+                    imageDataBytes = writer.WriteGray(image, this.padding, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor);
                     break;
                 case TiffEncodingMode.BiColor:
-                    imageDataBytes = writer.WriteBiColor(image, this.CompressionType);
+                    imageDataBytes = writer.WriteBiColor(image, this.CompressionType, this.compressionLevel);
                     break;
                 default:
-                    imageDataBytes = writer.WriteRgb(image, this.padding, this.CompressionType, this.useHorizontalPredictor);
+                    imageDataBytes = writer.WriteRgb(image, this.padding, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor);
                     break;
             }
 

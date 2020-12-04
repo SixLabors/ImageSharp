@@ -107,11 +107,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
-                ref Vector4 spanRef = ref MemoryMarshal.GetReference(span);
+                ref Vector4 targetRef = ref MemoryMarshal.GetReference(span);
                 Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
-                Span<int> yOffsetSpan = this.map.GetYOffsetSpan();
-                Span<int> xOffsetSpan = this.map.GetXOffsetSpan();
+                Span<int> yOffsets = this.map.GetYOffsetSpan();
+                Span<int> xOffsets = this.map.GetXOffsetSpan();
                 int row = y - this.bounds.Y;
 
                 if (this.preserveAlpha)
@@ -120,10 +120,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     {
                         DenseMatrixUtils.Convolve3(
                             in this.kernel,
-                            yOffsetSpan,
-                            xOffsetSpan,
+                            yOffsets,
+                            xOffsets,
                             this.sourcePixels,
-                            ref spanRef,
+                            ref targetRef,
                             row,
                             column);
                     }
@@ -134,10 +134,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     {
                         DenseMatrixUtils.Convolve4(
                             in this.kernel,
-                            yOffsetSpan,
-                            xOffsetSpan,
+                            yOffsets,
+                            xOffsets,
                             this.sourcePixels,
-                            ref spanRef,
+                            ref targetRef,
                             row,
                             column);
                     }

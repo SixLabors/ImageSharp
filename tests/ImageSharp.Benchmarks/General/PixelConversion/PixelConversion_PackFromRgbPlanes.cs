@@ -268,5 +268,19 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             public byte V0, V1, V2, V3;
         }
 #pragma warning restore
+
+        // Results @ Anton's PC, 2020 Dec 05
+        // .NET Core 3.1.1
+        // Intel Core i7-7700HQ CPU 2.80GHz (Kaby Lake), 1 CPU, 8 logical and 4 physical cores
+        //
+        // |                           Method | Count |       Mean |    Error |   StdDev | Ratio | RatioSD |
+        // |--------------------------------- |------ |-----------:|---------:|---------:|------:|--------:|
+        // |     Rgb24_Scalar_PerElement_Span |  1024 | 1,634.6 ns | 26.56 ns | 24.84 ns |  3.12 |    0.05 |
+        // |   Rgb24_Scalar_PerElement_Unsafe |  1024 | 1,284.7 ns |  4.70 ns |  4.16 ns |  2.46 |    0.01 |
+        // | Rgb24_Scalar_PerElement_Batched8 |  1024 | 1,182.3 ns |  5.12 ns |  4.27 ns |  2.26 |    0.01 |
+        // | Rgb24_Scalar_PerElement_Batched4 |  1024 | 1,146.2 ns | 16.38 ns | 14.52 ns |  2.19 |    0.02 |
+        // |                Rgba32_Avx2_Float |  1024 |   522.7 ns |  1.78 ns |  1.39 ns |  1.00 |    0.00 |
+        // |                Rgba24_Avx2_Bytes |  1024 |   243.3 ns |  1.56 ns |  1.30 ns |  0.47 |    0.00 |
+        // |                Rgba32_Avx2_Bytes |  1024 |   146.0 ns |  2.48 ns |  2.32 ns |  0.28 |    0.01 |
     }
 }

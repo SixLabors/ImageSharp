@@ -4,6 +4,8 @@
 using System;
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 
@@ -177,13 +179,26 @@ namespace SixLabors.ImageSharp.PixelFormats
             Span<TPixel> destination)
         {
             Guard.NotNull(configuration, nameof(configuration));
+
+            int count = redChannel.Length;
+            Guard.IsTrue(greenChannel.Length == count, nameof(greenChannel), "Channels must be of same size!");
+            Guard.IsTrue(blueChannel.Length == count, nameof(blueChannel), "Channels must be of same size!");
+            Guard.IsTrue(destination.Length > count + 2, nameof(destination), "'destination' must contain a padding of 3 elements!");
+
             Guard.DestinationShouldNotBeTooShort(redChannel, destination, nameof(destination));
 
-            for (int i = 0; i < destination.Length; i++)
-            {
-                var rgb24 = new Rgb24(redChannel[i], greenChannel[i], blueChannel[i]);
+            Rgb24 rgb24 = default;
+            ref byte r = ref MemoryMarshal.GetReference(redChannel);
+            ref byte g = ref MemoryMarshal.GetReference(greenChannel);
+            ref byte b = ref MemoryMarshal.GetReference(blueChannel);
+            ref TPixel d = ref MemoryMarshal.GetReference(destination);
 
-                destination[i].FromRgb24(rgb24);
+            for (int i = 0; i < count; i++)
+            {
+                rgb24.R = Unsafe.Add(ref r, i);
+                rgb24.G = Unsafe.Add(ref g, i);
+                rgb24.B = Unsafe.Add(ref b, i);
+                Unsafe.Add(ref d, i).FromRgb24(rgb24);
             }
         }
     }

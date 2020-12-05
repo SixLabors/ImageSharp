@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 
             Span<byte> compressedData = compressedDataMemory.GetSpan();
 
-            stream.ReadFull(compressedData, byteCount);
+            stream.Read(compressedData, 0, byteCount);
             int compressedOffset = 0;
             int decompressedOffset = 0;
 

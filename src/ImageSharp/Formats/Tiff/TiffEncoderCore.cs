@@ -7,9 +7,9 @@ using System.IO;
 using System.Threading;
 
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
-using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;

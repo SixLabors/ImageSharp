@@ -4,10 +4,10 @@
 using System;
 using System.Buffers;
 using System.IO;
-using System.Runtime.InteropServices;
 
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
-using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;

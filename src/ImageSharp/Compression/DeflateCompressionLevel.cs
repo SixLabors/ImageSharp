@@ -1,15 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.ComponentModel;
-
-namespace SixLabors.ImageSharp.Formats.Png
+namespace SixLabors.ImageSharp.Compression
 {
     /// <summary>
-    /// Provides enumeration of available PNG compression levels.
+    /// Provides enumeration of available deflate compression levels.
     /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public enum PngCompressionLevel
+    public enum DeflateCompressionLevel
     {
         /// <summary>
         /// Level 0. Equivalent to <see cref="NoCompression"/>.

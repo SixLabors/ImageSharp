@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [Benchmark(Baseline = true)]
-        public void Rgba32_Vector_Float()
+        public void Rgba32_Avx2_Float()
         {
             ref Vector256<float> rBase = ref Unsafe.As<float, Vector256<float>>(ref this.rFloat[0]);
             ref Vector256<float> gBase = ref Unsafe.As<float, Vector256<float>>(ref this.gFloat[0]);
@@ -237,12 +237,22 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         }
 
         [Benchmark]
-        public void Rgba32_Vector_Bytes()
+        public void Rgba24_Avx2_Bytes()
         {
             ReadOnlySpan<byte> r = this.rBuf;
             ReadOnlySpan<byte> g = this.rBuf;
             ReadOnlySpan<byte> b = this.rBuf;
             Span<Rgb24> rgb = this.rgbBuf;
+            SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref r, ref g, ref b, ref rgb);
+        }
+
+        [Benchmark]
+        public void Rgba32_Avx2_Bytes()
+        {
+            ReadOnlySpan<byte> r = this.rBuf;
+            ReadOnlySpan<byte> g = this.rBuf;
+            ReadOnlySpan<byte> b = this.rBuf;
+            Span<Rgba32> rgb = this.rgbaBuf;
             SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref r, ref g, ref b, ref rgb);
         }
 #endif

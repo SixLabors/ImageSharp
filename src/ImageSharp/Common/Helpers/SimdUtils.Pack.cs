@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp
             ref ByteTuple4 b = ref Unsafe.As<byte, ByteTuple4>(ref MemoryMarshal.GetReference(blueChannel));
             ref Rgb24 rgb = ref MemoryMarshal.GetReference(destination);
 
-            int count = destination.Length / 4;
+            int count = redChannel.Length / 4;
             for (int i = 0; i < count; i++)
             {
                 ref Rgb24 d0 = ref Unsafe.Add(ref rgb, i * 4);
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp
             ref ByteTuple4 b = ref Unsafe.As<byte, ByteTuple4>(ref MemoryMarshal.GetReference(blueChannel));
             ref Rgba32 rgb = ref MemoryMarshal.GetReference(destination);
 
-            int count = destination.Length / 4;
+            int count = redChannel.Length / 4;
             destination.Fill(new Rgba32(0, 0, 0, 255));
             for (int i = 0; i < count; i++)
             {

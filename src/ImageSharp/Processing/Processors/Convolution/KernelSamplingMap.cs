@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
@@ -44,13 +45,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             int radiusY = kernelHeight >> 1;
             int radiusX = kernelWidth >> 1;
 
-            // Calculate the potential sampling y-offsets.
+            // Calculate the y and x sampling offsets clamped to the given rectangle.
+            // While this isn't a hotpath we still dip into unsafe to avoid the span bounds
+            // checks as the can potentially be looping over large arrays.
             Span<int> ySpan = this.yOffsets.GetSpan();
+            ref int ySpanBase = ref MemoryMarshal.GetReference(ySpan);
             for (int row = 0; row < bounds.Height; row++)
             {
                 for (int y = 0; y < kernelHeight; y++)
                 {
-                    ySpan[(row * kernelHeight) + y] = row + y + minY - radiusY;
+                    Unsafe.Add(ref ySpanBase, (row * kernelHeight) + y) = row + y + minY - radiusY;
                 }
             }
 
@@ -59,13 +63,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Numerics.Clamp(ySpan, minY, maxY);
             }
 
-            // Calculate the potential sampling x-offsets.
             Span<int> xSpan = this.xOffsets.GetSpan();
+            ref int xSpanBase = ref MemoryMarshal.GetReference(xSpan);
             for (int column = 0; column < bounds.Width; column++)
             {
                 for (int x = 0; x < kernelWidth; x++)
                 {
-                    xSpan[(column * kernelWidth) + x] = column + x + minX - radiusX;
+                    Unsafe.Add(ref xSpanBase, (column * kernelWidth) + x) = column + x + minX - radiusX;
                 }
             }
 

@@ -821,7 +821,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         private void ReadImageDataFromStream(Stream input, int bytesToRead)
         {
             Span<byte> dataSpan = this.Data.GetSpan();
-            input.ReadFull(dataSpan, bytesToRead);
+            input.Read(dataSpan, 0, bytesToRead);
         }
     }
 }

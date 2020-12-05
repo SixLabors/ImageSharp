@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             var subStream = new SubStream(stream, byteCount - headerLength);
             using (var deflateStream = new DeflateStream(subStream, CompressionMode.Decompress, true))
             {
-                deflateStream.ReadFull(buffer);
+                deflateStream.Read(buffer, 0, buffer.Length);
             }
 
             if (this.Predictor == TiffPredictor.Horizontal)

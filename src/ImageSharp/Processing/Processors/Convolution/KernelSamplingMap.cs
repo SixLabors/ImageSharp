@@ -76,10 +76,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<int> GetYOffsetSpan() => this.yOffsets.GetSpan();
+        public Span<int> GetRowOffsetSpan() => this.yOffsets.GetSpan();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<int> GetXOffsetSpan() => this.xOffsets.GetSpan();
+        public Span<int> GetColumnOffsetSpan() => this.xOffsets.GetSpan();
 
         /// <inheritdoc/>
         public void Dispose()

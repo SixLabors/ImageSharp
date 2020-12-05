@@ -43,12 +43,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         /// <summary>
-        /// Gets the horizontal gradient operator.
+        /// Gets the horizontal convolution kernel.
         /// </summary>
         public DenseMatrix<float> KernelX { get; }
 
         /// <summary>
-        /// Gets the vertical gradient operator.
+        /// Gets the vertical convolution kernel.
         /// </summary>
         public DenseMatrix<float> KernelY { get; }
 
@@ -132,8 +132,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 ref Vector4 targetRowRef = ref MemoryMarshal.GetReference(span);
                 Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
-                Span<int> yOffsets = this.map.GetYOffsetSpan();
-                Span<int> xOffsets = this.map.GetXOffsetSpan();
+
+                var state = new Convolution2DState(this.kernelY, this.kernelX, this.map);
                 int row = y - this.bounds.Y;
 
                 if (this.preserveAlpha)
@@ -141,10 +141,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     for (int column = 0; column < this.bounds.Width; column++)
                     {
                         Convolver.Convolve2D3(
-                            in this.kernelY,
-                            in this.kernelX,
-                            yOffsets,
-                            xOffsets,
+                            in state,
                             this.sourcePixels,
                             ref targetRowRef,
                             row,
@@ -156,10 +153,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     for (int column = 0; column < this.bounds.Width; column++)
                     {
                         Convolver.Convolve2D4(
-                            in this.kernelY,
-                            in this.kernelX,
-                            yOffsets,
-                            xOffsets,
+                            in state,
                             this.sourcePixels,
                             ref targetRowRef,
                             row,

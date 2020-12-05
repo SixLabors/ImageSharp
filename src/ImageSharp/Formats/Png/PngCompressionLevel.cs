@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Png
     /// <summary>
     /// Provides enumeration of available PNG compression levels.
     /// </summary>
-    public enum DeflateCompressionLevel
+    public enum PngCompressionLevel
     {
         /// <summary>
         /// Level 0. Equivalent to <see cref="NoCompression"/>.

@@ -237,7 +237,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         }
 
         [Benchmark]
-        public void Rgba24_Avx2_Bytes()
+        public void Rgb24_Avx2_Bytes()
         {
             ReadOnlySpan<byte> r = this.rBuf;
             ReadOnlySpan<byte> g = this.rBuf;
@@ -280,7 +280,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         // | Rgb24_Scalar_PerElement_Batched8 |  1024 | 1,182.3 ns |  5.12 ns |  4.27 ns |  2.26 |    0.01 |
         // | Rgb24_Scalar_PerElement_Batched4 |  1024 | 1,146.2 ns | 16.38 ns | 14.52 ns |  2.19 |    0.02 |
         // |                Rgba32_Avx2_Float |  1024 |   522.7 ns |  1.78 ns |  1.39 ns |  1.00 |    0.00 |
-        // |                Rgba24_Avx2_Bytes |  1024 |   243.3 ns |  1.56 ns |  1.30 ns |  0.47 |    0.00 |
+        // |                Rgb24_Avx2_Bytes |  1024 |   243.3 ns |  1.56 ns |  1.30 ns |  0.47 |    0.00 |
         // |                Rgba32_Avx2_Bytes |  1024 |   146.0 ns |  2.48 ns |  2.32 ns |  0.28 |    0.01 |
     }
 }

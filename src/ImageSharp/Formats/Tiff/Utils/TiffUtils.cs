@@ -23,6 +23,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 
             while (count > 0)
             {
+                int bytesLeftInBuffer = buffer.Length - offset;
+                if (bytesLeftInBuffer < count)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("Error reading data from the stream. The provided buffer was too small.");
+                }
+
                 int bytesRead = stream.Read(buffer, offset, count);
 
                 if (bytesRead == 0)

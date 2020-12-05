@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.PixelFormats;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -145,6 +146,26 @@ namespace SixLabors.ImageSharp
             {
                 ConvertNormalizedFloatToByteRemainder(source, dest);
             }
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal static void PackFromRgbPlanes(
+            Configuration configuration,
+            ReadOnlySpan<byte> redChannel,
+            ReadOnlySpan<byte> greenChannel,
+            ReadOnlySpan<byte> blueChannel,
+            Span<Rgb24> destination)
+        {
+        }
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        internal static void PackFromRgbPlanes(
+            Configuration configuration,
+            ReadOnlySpan<byte> redChannel,
+            ReadOnlySpan<byte> greenChannel,
+            ReadOnlySpan<byte> blueChannel,
+            Span<Rgba32> destination)
+        {
         }
 
         [MethodImpl(InliningOptions.ColdPath)]

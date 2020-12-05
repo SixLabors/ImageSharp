@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Tuples;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
@@ -336,6 +337,46 @@ namespace SixLabors.ImageSharp.Tests.Common
             }
         }
 
+        [Theory]
+        [MemberData(nameof(ArbitraryArraySizes))]
+        public void PackFromRgbPlanes_Rgb24(int count)
+        {
+            TestPackFromRgbPlanes<Rgb24>(
+                count,
+                (r, g, b, actual) =>
+                    SimdUtils.PackFromRgbPlanes(Configuration.Default, r, g, b, actual));
+        }
+
+        [Theory]
+        [MemberData(nameof(ArbitraryArraySizes))]
+        public void PackFromRgbPlanes_Rgba32(int count)
+        {
+            TestPackFromRgbPlanes<Rgba32>(
+                count,
+                (r, g, b, actual) =>
+                    SimdUtils.PackFromRgbPlanes(Configuration.Default, r, g, b, actual));
+        }
+
+        internal static void TestPackFromRgbPlanes<TPixel>(int count, Action<byte[], byte[], byte[], TPixel[]> packMethod)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Random rnd = new Random(42);
+            byte[] r = rnd.GenerateRandomByteArray(count);
+            byte[] g = rnd.GenerateRandomByteArray(count);
+            byte[] b = rnd.GenerateRandomByteArray(count);
+
+            TPixel[] expected = new TPixel[count];
+            for (int i = 0; i < count; i++)
+            {
+                expected[i].FromRgb24(new Rgb24(r[i], g[i], b[i]));
+            }
+
+            TPixel[] actual = new TPixel[count];
+            packMethod(r, g, b, actual);
+
+            Assert.Equal(expected, actual);
+        }
+
         private static void TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
             int count,
             Action<Memory<float>,
@@ -353,72 +394,6 @@ namespace SixLabors.ImageSharp.Tests.Common
         }
 
         private static byte NormalizedFloatToByte(float f) => (byte)Math.Min(255f, Math.Max(0f, (f * 255f) + 0.5f));
-
-        [Theory]
-        [InlineData(0)]
-        [InlineData(7)]
-        [InlineData(42)]
-        [InlineData(255)]
-        [InlineData(256)]
-        [InlineData(257)]
-        private void MagicConvertToByte(float value)
-        {
-            byte actual = MagicConvert(value / 256f);
-            var expected = (byte)value;
-
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        private void BulkConvertNormalizedFloatToByte_Step()
-        {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
-
-            float[] source = { 0, 7, 42, 255, 0.5f, 1.1f, 2.6f, 16f };
-
-            byte[] expected = source.Select(f => (byte)Math.Round(f)).ToArray();
-
-            source = source.Select(f => f / 255f).ToArray();
-
-            Span<byte> dest = stackalloc byte[8];
-
-            this.MagicConvert(source, dest);
-
-            Assert.True(dest.SequenceEqual(expected));
-        }
-
-        private static byte MagicConvert(float x)
-        {
-            float f = 32768.0f + x;
-            uint i = Unsafe.As<float, uint>(ref f);
-            return (byte)i;
-        }
-
-        private void MagicConvert(Span<float> source, Span<byte> dest)
-        {
-            var magick = new Vector<float>(32768.0f);
-
-            var scale = new Vector<float>(255f) / new Vector<float>(256f);
-
-            Vector<float> x = MemoryMarshal.Cast<float, Vector<float>>(source)[0];
-
-            x = (x * scale) + magick;
-
-            Tuple8.OfUInt32 ii = default;
-
-            ref Vector<float> iiRef = ref Unsafe.As<Tuple8.OfUInt32, Vector<float>>(ref ii);
-
-            iiRef = x;
-
-            ref Tuple8.OfByte d = ref MemoryMarshal.Cast<byte, Tuple8.OfByte>(dest)[0];
-            d.LoadFrom(ref ii);
-
-            this.Output.WriteLine(ii.ToString());
-            this.Output.WriteLine(d.ToString());
-        }
 
         private static void AssertEvenRoundIsCorrect(Vector<float> r, Vector<float> v)
         {

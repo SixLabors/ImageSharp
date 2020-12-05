@@ -443,10 +443,10 @@ namespace SixLabors.ImageSharp.Tests.Common
                 expected[i].FromRgb24(new Rgb24(r[i], g[i], b[i]));
             }
 
-            TPixel[] actual = new TPixel[count];
+            TPixel[] actual = new TPixel[count + 3]; // padding for Rgb24 AVX2
             packMethod(r, g, b, actual);
 
-            Assert.Equal(expected, actual);
+            Assert.True(expected.AsSpan().SequenceEqual(actual.AsSpan().Slice(0, count)));
         }
 
         private static void TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(

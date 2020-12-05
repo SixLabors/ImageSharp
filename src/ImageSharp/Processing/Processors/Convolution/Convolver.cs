@@ -1,11 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Convolution;
 
 namespace SixLabors.ImageSharp
 {
@@ -19,20 +20,14 @@ namespace SixLabors.ImageSharp
         /// Using this method the convolution filter is not applied to alpha in addition to the color channels.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="kernelY">The vertical convolution kernel.</param>
-        /// <param name="kernelX">The horizontal convolution kernel.</param>
-        /// <param name="rowSampleOffsets">The span containing precalculated kernel y-sampling offsets.</param>
-        /// <param name="columnSampleOffsets">The span containing precalculated kernel x-sampling offsets.</param>
+        /// <param name="state">The 2D convolution kernels state.</param>
         /// <param name="sourcePixels">The source frame.</param>
         /// <param name="targetRowRef">The target row base reference.</param>
         /// <param name="row">The current row.</param>
         /// <param name="column">The current column.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Convolve2D3<TPixel>(
-            in DenseMatrix<float> kernelY,
-            in DenseMatrix<float> kernelX,
-            Span<int> rowSampleOffsets,
-            Span<int> columnSampleOffsets,
+            in Convolution2DState state,
             Buffer2D<TPixel> sourcePixels,
             ref Vector4 targetRowRef,
             int row,
@@ -42,10 +37,7 @@ namespace SixLabors.ImageSharp
             Vector4 vector = default;
 
             Convolve2DImpl(
-                in kernelY,
-                in kernelX,
-                rowSampleOffsets,
-                columnSampleOffsets,
+                in state,
                 sourcePixels,
                 row,
                 column,
@@ -63,20 +55,14 @@ namespace SixLabors.ImageSharp
         /// Using this method the convolution filter is applied to alpha in addition to the color channels.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="kernelY">The vertical convolution kernel.</param>
-        /// <param name="kernelX">The horizontal convolution kernel.</param>
-        /// <param name="rowSampleOffsets">The span containing precalculated kernel y-sampling offsets.</param>
-        /// <param name="columnSampleOffsets">The span containing precalculated kernel x-sampling offsets.</param>
+        /// <param name="state">The 2D convolution kernels state.</param>
         /// <param name="sourcePixels">The source frame.</param>
         /// <param name="targetRowRef">The target row base reference.</param>
         /// <param name="row">The current row.</param>
         /// <param name="column">The current column.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Convolve2D4<TPixel>(
-            in DenseMatrix<float> kernelY,
-            in DenseMatrix<float> kernelX,
-            Span<int> rowSampleOffsets,
-            Span<int> columnSampleOffsets,
+            in Convolution2DState state,
             Buffer2D<TPixel> sourcePixels,
             ref Vector4 targetRowRef,
             int row,
@@ -86,10 +72,7 @@ namespace SixLabors.ImageSharp
             Vector4 vector = default;
 
             Convolve2DImpl(
-                in kernelY,
-                in kernelX,
-                rowSampleOffsets,
-                columnSampleOffsets,
+                in state,
                 sourcePixels,
                 row,
                 column,
@@ -100,34 +83,33 @@ namespace SixLabors.ImageSharp
             target = vector;
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Convolve2DImpl<TPixel>(
-            in DenseMatrix<float> kernelY,
-            in DenseMatrix<float> kernelX,
-            Span<int> rowSampleOffsets,
-            Span<int> columnSampleOffsets,
+            in Convolution2DState state,
             Buffer2D<TPixel> sourcePixels,
             int row,
             int column,
             ref Vector4 targetVector)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Vector4 vectorY = default;
-            Vector4 vectorX = default;
+            ReadOnlyKernel kernelY = state.KernelY;
+            ReadOnlyKernel kernelX = state.KernelX;
             int kernelHeight = kernelY.Rows;
             int kernelWidth = kernelY.Columns;
 
+            Vector4 vectorY = default;
+            Vector4 vectorX = default;
+
             for (int y = 0; y < kernelHeight; y++)
             {
-                int offsetY = rowSampleOffsets[(row * kernelHeight) + y];
-                Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
+                int offsetY = state.GetRowSampleOffset(row, y);
+                ref TPixel sourceRowBase = ref MemoryMarshal.GetReference(sourcePixels.GetRowSpan(offsetY));
 
                 for (int x = 0; x < kernelWidth; x++)
                 {
-                    int offsetX = columnSampleOffsets[(column * kernelWidth) + x];
-                    var sample = sourceRowSpan[offsetX].ToVector4();
+                    int offsetX = state.GetColumnSampleOffset(column, x);
+                    var sample = Unsafe.Add(ref sourceRowBase, offsetX).ToVector4();
                     Numerics.Premultiply(ref sample);
-
                     vectorX += kernelX[y, x] * sample;
                     vectorY += kernelY[y, x] * sample;
                 }
@@ -141,18 +123,14 @@ namespace SixLabors.ImageSharp
         /// Using this method the convolution filter is not applied to alpha in addition to the color channels.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="kernel">The convolution kernel.</param>
-        /// <param name="rowSampleOffsets">The span containing precalculated kernel y-sampling offsets.</param>
-        /// <param name="columnSampleOffsets">The span containing precalculated kernel x-sampling offsets.</param>
+        /// <param name="state">The convolution kernel state.</param>
         /// <param name="sourcePixels">The source frame.</param>
         /// <param name="targetRowRef">The target row base reference.</param>
         /// <param name="row">The current row.</param>
         /// <param name="column">The current column.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Convolve3<TPixel>(
-            in DenseMatrix<float> kernel,
-            Span<int> rowSampleOffsets,
-            Span<int> columnSampleOffsets,
+            in ConvolutionState state,
             Buffer2D<TPixel> sourcePixels,
             ref Vector4 targetRowRef,
             int row,
@@ -162,9 +140,7 @@ namespace SixLabors.ImageSharp
             Vector4 vector = default;
 
             ConvolveImpl(
-                in kernel,
-                rowSampleOffsets,
-                columnSampleOffsets,
+                state,
                 sourcePixels,
                 row,
                 column,
@@ -182,18 +158,14 @@ namespace SixLabors.ImageSharp
         /// Using this method the convolution filter is applied to alpha in addition to the color channels.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="kernel">The convolution kernel.</param>
-        /// <param name="rowSampleOffsets">The span containing precalculated kernel y-offsets.</param>
-        /// <param name="columnSampleOffsets">The span containing precalculated kernel x-offsets.</param>
+        /// <param name="state">The convolution kernel state.</param>
         /// <param name="sourcePixels">The source frame.</param>
         /// <param name="targetRowRef">The target row base reference.</param>
         /// <param name="row">The current row.</param>
         /// <param name="column">The current column.</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Convolve4<TPixel>(
-            in DenseMatrix<float> kernel,
-            Span<int> rowSampleOffsets,
-            Span<int> columnSampleOffsets,
+            in ConvolutionState state,
             Buffer2D<TPixel> sourcePixels,
             ref Vector4 targetRowRef,
             int row,
@@ -203,9 +175,7 @@ namespace SixLabors.ImageSharp
             Vector4 vector = default;
 
             ConvolveImpl(
-                in kernel,
-                rowSampleOffsets,
-                columnSampleOffsets,
+                state,
                 sourcePixels,
                 row,
                 column,
@@ -216,29 +186,28 @@ namespace SixLabors.ImageSharp
             target = vector;
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ConvolveImpl<TPixel>(
-            in DenseMatrix<float> kernel,
-            Span<int> rowSampleOffsets,
-            Span<int> columnSampleOffsets,
+            in ConvolutionState state,
             Buffer2D<TPixel> sourcePixels,
             int row,
             int column,
             ref Vector4 targetVector)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            ReadOnlyKernel kernel = state.Kernel;
             int kernelHeight = kernel.Rows;
             int kernelWidth = kernel.Columns;
 
             for (int y = 0; y < kernelHeight; y++)
             {
-                int offsetY = rowSampleOffsets[(row * kernelHeight) + y];
-                Span<TPixel> sourceRowSpan = sourcePixels.GetRowSpan(offsetY);
+                int offsetY = state.GetRowSampleOffset(row, y);
+                ref TPixel sourceRowBase = ref MemoryMarshal.GetReference(sourcePixels.GetRowSpan(offsetY));
 
                 for (int x = 0; x < kernelWidth; x++)
                 {
-                    int offsetX = columnSampleOffsets[(column * kernelWidth) + x];
-                    var sample = sourceRowSpan[offsetX].ToVector4();
+                    int offsetX = state.GetColumnSampleOffset(column, x);
+                    var sample = Unsafe.Add(ref sourceRowBase, offsetX).ToVector4();
                     Numerics.Premultiply(ref sample);
                     targetVector += kernel[y, x] * sample;
                 }

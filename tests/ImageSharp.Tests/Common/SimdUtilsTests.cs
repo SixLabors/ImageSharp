@@ -392,6 +392,41 @@ namespace SixLabors.ImageSharp.Tests.Common
             Assert.Equal(0, bb.Length);
             Assert.Equal(padding, dd.Length);
         }
+
+        [Fact]
+        public void PackFromRgbPlanesAvx2Reduce_Rgba32()
+        {
+            if (!Avx2.IsSupported)
+            {
+                return;
+            }
+
+            byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
+            byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
+            byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();
+
+            Rgba32[] d = new Rgba32[32];
+
+            ReadOnlySpan<byte> rr = r.AsSpan();
+            ReadOnlySpan<byte> gg = g.AsSpan();
+            ReadOnlySpan<byte> bb = b.AsSpan();
+            Span<Rgba32> dd = d.AsSpan();
+
+            SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref rr, ref gg, ref bb, ref dd);
+
+            for (int i = 0; i < 32; i++)
+            {
+                Assert.Equal(i, d[i].R);
+                Assert.Equal(i + 100, d[i].G);
+                Assert.Equal(i + 200, d[i].B);
+                Assert.Equal(255, d[i].A);
+            }
+
+            Assert.Equal(0, rr.Length);
+            Assert.Equal(0, gg.Length);
+            Assert.Equal(0, bb.Length);
+            Assert.Equal(0, dd.Length);
+        }
 #endif
 
         internal static void TestPackFromRgbPlanes<TPixel>(int count, Action<byte[], byte[], byte[], TPixel[]> packMethod)

@@ -148,26 +148,6 @@ namespace SixLabors.ImageSharp
             }
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void PackFromRgbPlanes(
-            Configuration configuration,
-            ReadOnlySpan<byte> redChannel,
-            ReadOnlySpan<byte> greenChannel,
-            ReadOnlySpan<byte> blueChannel,
-            Span<Rgb24> destination)
-        {
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        internal static void PackFromRgbPlanes(
-            Configuration configuration,
-            ReadOnlySpan<byte> redChannel,
-            ReadOnlySpan<byte> greenChannel,
-            ReadOnlySpan<byte> blueChannel,
-            Span<Rgba32> destination)
-        {
-        }
-
         [MethodImpl(InliningOptions.ColdPath)]
         private static void ConvertByteToNormalizedFloatRemainder(ReadOnlySpan<byte> source, Span<float> dest)
         {
@@ -240,6 +220,14 @@ namespace SixLabors.ImageSharp
                 Numerics.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
                 nameof(source),
                 $"length should be divisible by {shouldBeDivisibleBy}!");
+        }
+
+        private struct ByteTuple4
+        {
+            public byte V0;
+            public byte V1;
+            public byte V2;
+            public byte V3;
         }
     }
 }

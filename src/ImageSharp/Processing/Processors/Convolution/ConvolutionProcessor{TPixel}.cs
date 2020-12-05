@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
 
-                var state = new ConvolutionState(this.kernel, this.map);
+                var state = new ConvolutionState(in this.kernel, this.map);
                 int row = y - this.bounds.Y;
 
                 if (this.preserveAlpha)

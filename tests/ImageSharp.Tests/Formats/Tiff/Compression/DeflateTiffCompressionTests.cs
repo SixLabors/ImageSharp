@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using SixLabors.ImageSharp.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -35,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             Stream compressedStream = new MemoryStream();
 
             using (Stream uncompressedStream = new MemoryStream(data),
-                          deflateStream = new ZlibDeflateStream(Configuration.Default.MemoryAllocator, compressedStream, ImageSharp.Formats.Png.DeflateCompressionLevel.Level6))
+                          deflateStream = new ZlibDeflateStream(Configuration.Default.MemoryAllocator, compressedStream, DeflateCompressionLevel.Level6))
             {
                 uncompressedStream.CopyTo(deflateStream);
             }

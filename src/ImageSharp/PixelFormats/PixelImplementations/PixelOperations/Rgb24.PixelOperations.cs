@@ -30,6 +30,7 @@ namespace SixLabors.ImageSharp.PixelFormats
                 ReadOnlySpan<byte> blueChannel,
                 Span<Rgb24> destination)
             {
+                Guard.NotNull(configuration, nameof(configuration));
                 int count = redChannel.Length;
                 Guard.IsTrue(greenChannel.Length == count, nameof(greenChannel), "Channels must be of same size!");
                 Guard.IsTrue(blueChannel.Length == count, nameof(blueChannel), "Channels must be of same size!");

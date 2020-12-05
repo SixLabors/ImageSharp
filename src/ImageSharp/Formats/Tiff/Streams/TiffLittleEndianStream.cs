@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Streams
         {
         }
 
-        public override TiffByteOrder ByteOrder => TiffByteOrder.LittleEndian;
+        public override ByteOrder ByteOrder => ByteOrder.LittleEndian;
 
         /// <summary>
         /// Converts buffer data into an <see cref="short"/> using the correct endianness.

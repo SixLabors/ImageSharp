@@ -6,6 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Common.Tuples;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -170,7 +171,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         public static readonly TheoryData<int> ArbitraryArraySizes =
             new TheoryData<int>
                 {
-                    0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 63, 64, 255, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520, 520,
+                    0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 63, 64, 255, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520,
                 };
 
         [Theory]
@@ -356,6 +357,42 @@ namespace SixLabors.ImageSharp.Tests.Common
                 (r, g, b, actual) =>
                     SimdUtils.PackFromRgbPlanes(Configuration.Default, r, g, b, actual));
         }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void PackFromRgbPlanesAvx2Reduce_Rgb24()
+        {
+            if (!Avx2.IsSupported)
+            {
+                return;
+            }
+
+            byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
+            byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
+            byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();
+            const int padding = 4;
+            Rgb24[] d = new Rgb24[32 + padding];
+
+            ReadOnlySpan<byte> rr = r.AsSpan();
+            ReadOnlySpan<byte> gg = g.AsSpan();
+            ReadOnlySpan<byte> bb = b.AsSpan();
+            Span<Rgb24> dd = d.AsSpan();
+
+            SimdUtils.PackFromRgbPlanesAvx2Reduce(ref rr, ref gg, ref bb, ref dd);
+
+            for (int i = 0; i < 32; i++)
+            {
+                Assert.Equal(i, d[i].R);
+                Assert.Equal(i + 100, d[i].G);
+                Assert.Equal(i + 200, d[i].B);
+            }
+
+            Assert.Equal(0, rr.Length);
+            Assert.Equal(0, gg.Length);
+            Assert.Equal(0, bb.Length);
+            Assert.Equal(padding, dd.Length);
+        }
+#endif
 
         internal static void TestPackFromRgbPlanes<TPixel>(int count, Action<byte[], byte[], byte[], TPixel[]> packMethod)
             where TPixel : unmanaged, IPixel<TPixel>

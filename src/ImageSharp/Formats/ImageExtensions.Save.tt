@@ -9,6 +9,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff;
 
 <#
     var formats = new []{
@@ -39,9 +40,10 @@ namespace SixLabors.ImageSharp
 <#
     foreach (string fmt in formats)
     {
+        string experimentalString =  fmt == "Tiff" || fmt == "Webp" ? @"EXPERIMENTAL! " : "";
 #>
         /// <summary>
-        /// Saves the image to the given stream with the <#= fmt #> format.
+        /// <#= experimentalString #>Saves the image to the given stream with the <#= fmt #> format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
@@ -49,7 +51,7 @@ namespace SixLabors.ImageSharp
         public static void SaveAs<#= fmt #>(this Image source, string path) => SaveAs<#= fmt #>(source, path, null);
 
         /// <summary>
-        /// Saves the image to the given stream with the <#= fmt #> format.
+        /// <#= experimentalString #>Saves the image to the given stream with the <#= fmt #> format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
@@ -58,7 +60,7 @@ namespace SixLabors.ImageSharp
         public static Task SaveAs<#= fmt #>Async(this Image source, string path) => SaveAs<#= fmt #>Async(source, path, null);
 
         /// <summary>
-        /// Saves the image to the given stream with the <#= fmt #> format.
+        /// <#= experimentalString #>Saves the image to the given stream with the <#= fmt #> format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
@@ -69,7 +71,7 @@ namespace SixLabors.ImageSharp
             => SaveAs<#= fmt #>Async(source, path, null, cancellationToken);
 
         /// <summary>
-        /// Saves the image to the given stream with the <#= fmt #> format.
+        /// <#= experimentalString #>Saves the image to the given stream with the <#= fmt #> format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
@@ -81,7 +83,7 @@ namespace SixLabors.ImageSharp
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(<#= fmt #>Format.Instance));
 
         /// <summary>
-        /// Saves the image to the given stream with the <#= fmt #> format.
+        /// <#= experimentalString #>Saves the image to the given stream with the <#= fmt #> format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
@@ -96,7 +98,7 @@ namespace SixLabors.ImageSharp
                 cancellationToken);
 
         /// <summary>
-        /// Saves the image to the given stream with the <#= fmt #> format.
+        /// <#= experimentalString #>Saves the image to the given stream with the <#= fmt #> format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
@@ -105,7 +107,7 @@ namespace SixLabors.ImageSharp
             => SaveAs<#= fmt #>(source, stream, null);
 
         /// <summary>
-        /// Saves the image to the given stream with the <#= fmt #> format.
+        /// <#= experimentalString #>Saves the image to the given stream with the <#= fmt #> format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
@@ -116,7 +118,7 @@ namespace SixLabors.ImageSharp
             => SaveAs<#= fmt #>Async(source, stream, null, cancellationToken);
 
         /// <summary>
-        /// Saves the image to the given stream with the <#= fmt #> format.
+        /// <#= experimentalString #>Saves the image to the given stream with the <#= fmt #> format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
@@ -129,7 +131,7 @@ namespace SixLabors.ImageSharp
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(<#= fmt #>Format.Instance));
 
         /// <summary>
-        /// Saves the image to the given stream with the <#= fmt #> format.
+        /// <#= experimentalString #>Saves the image to the given stream with the <#= fmt #> format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>

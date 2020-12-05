@@ -161,14 +161,15 @@ namespace SixLabors.ImageSharp.PixelFormats
         }
 
         /// <summary>
-        /// Bulk operation that converts 3 seperate RGB channels to <paramref name="destination"/>
+        /// Bulk operation that packs 3 seperate RGB channels to <paramref name="destination"/>.
+        /// The destination must have a padding of 3.
         /// </summary>
         /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
         /// <param name="redChannel">A <see cref="ReadOnlySpan{T}"/> to the red values.</param>
         /// <param name="greenChannel">A <see cref="ReadOnlySpan{T}"/> to the green values.</param>
         /// <param name="blueChannel">A <see cref="ReadOnlySpan{T}"/> to the blue values.</param>
         /// <param name="destination">A <see cref="Span{T}"/> to the destination pixels.</param>
-        public virtual void PackFromRgbPlanes(
+        internal virtual void PackFromRgbPlanes(
             Configuration configuration,
             ReadOnlySpan<byte> redChannel,
             ReadOnlySpan<byte> greenChannel,

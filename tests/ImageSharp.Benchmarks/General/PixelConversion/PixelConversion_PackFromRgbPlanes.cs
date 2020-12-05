@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
 
         private float[] rgbaFloat;
 
-        [Params(512)]
+        [Params(1024)]
         public int Count { get; set; }
 
         [GlobalSetup]
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             this.rBuf = new byte[this.Count];
             this.gBuf = new byte[this.Count];
             this.bBuf = new byte[this.Count];
-            this.rgbBuf = new Rgb24[this.Count];
+            this.rgbBuf = new Rgb24[this.Count + 3]; // padded
             this.rgbaBuf = new Rgba32[this.Count];
 
             this.rFloat = new float[this.Count];
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             this.rgbaFloat = new float[this.Count * 4];
         }
 
-        // [Benchmark(Baseline = true)]
+        // [Benchmark]
         public void Rgb24_Scalar_PerElement_Pinned()
         {
             fixed (byte* r = &this.rBuf[0])
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             Span<byte> b = this.rBuf;
             Span<Rgb24> rgb = this.rgbBuf;
 
-            for (int i = 0; i < rgb.Length; i++)
+            for (int i = 0; i < r.Length; i++)
             {
                 ref Rgb24 d = ref rgb[i];
                 d.R = r[i];
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
             }
         }
 
-        [Benchmark(Baseline = true)]
+        [Benchmark]
         public void Rgb24_Scalar_PerElement_Unsafe()
         {
             ref byte r = ref this.rBuf[0];
@@ -195,7 +195,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
-        [Benchmark]
+        [Benchmark(Baseline = true)]
         public void Rgba32_Vector_Float()
         {
             ref Vector256<float> rBase = ref Unsafe.As<float, Vector256<float>>(ref this.rFloat[0]);
@@ -234,6 +234,16 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion
                 Unsafe.Add(ref destination, 2) = Avx.UnpackLow(vte, vto);
                 Unsafe.Add(ref destination, 3) = Avx.UnpackHigh(vte, vto);
             }
+        }
+
+        [Benchmark]
+        public void Rgba32_Vector_Bytes()
+        {
+            ReadOnlySpan<byte> r = this.rBuf;
+            ReadOnlySpan<byte> g = this.rBuf;
+            ReadOnlySpan<byte> b = this.rBuf;
+            Span<Rgb24> rgb = this.rgbBuf;
+            SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref r, ref g, ref b, ref rgb);
         }
 #endif
 

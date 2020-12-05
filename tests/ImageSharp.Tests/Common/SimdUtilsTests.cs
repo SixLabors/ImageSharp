@@ -378,7 +378,7 @@ namespace SixLabors.ImageSharp.Tests.Common
             ReadOnlySpan<byte> bb = b.AsSpan();
             Span<Rgb24> dd = d.AsSpan();
 
-            SimdUtils.PackFromRgbPlanesAvx2Reduce(ref rr, ref gg, ref bb, ref dd);
+            SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref rr, ref gg, ref bb, ref dd);
 
             for (int i = 0; i < 32; i++)
             {

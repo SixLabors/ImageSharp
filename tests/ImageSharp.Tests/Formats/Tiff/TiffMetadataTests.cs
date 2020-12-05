@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             {
                 Compression = TiffCompression.Deflate,
                 BitsPerPixel = TiffBitsPerPixel.Pixel8,
-                ByteOrder = TiffByteOrder.BigEndian,
+                ByteOrder = ByteOrder.BigEndian,
                 XmpProfile = new byte[3]
             };
 
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             clone.Compression = TiffCompression.None;
             clone.BitsPerPixel = TiffBitsPerPixel.Pixel24;
-            clone.ByteOrder = TiffByteOrder.LittleEndian;
+            clone.ByteOrder = ByteOrder.LittleEndian;
             clone.XmpProfile = new byte[1];
 
             Assert.False(meta.Compression == clone.Compression);
@@ -80,9 +80,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [InlineData(GrayscaleUncompressed, TiffByteOrder.BigEndian)]
-        [InlineData(LsbToMsbByteOrder, TiffByteOrder.LittleEndian)]
-        public void Identify_DetectsCorrectByteOrder(string imagePath, TiffByteOrder expectedByteOrder)
+        [InlineData(GrayscaleUncompressed, ByteOrder.BigEndian)]
+        [InlineData(LsbToMsbByteOrder, ByteOrder.LittleEndian)]
+        public void Identify_DetectsCorrectByteOrder(string imagePath, ByteOrder expectedByteOrder)
         {
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 TiffMetadata meta = image.Metadata.GetTiffMetadata();
 
                 Assert.NotNull(meta);
-                Assert.Equal(TiffByteOrder.LittleEndian, meta.ByteOrder);
+                Assert.Equal(ByteOrder.LittleEndian, meta.ByteOrder);
                 Assert.Equal(PixelResolutionUnit.PixelsPerInch, image.Metadata.ResolutionUnits);
                 Assert.Equal(10, image.Metadata.HorizontalResolution);
                 Assert.Equal(10, image.Metadata.VerticalResolution);

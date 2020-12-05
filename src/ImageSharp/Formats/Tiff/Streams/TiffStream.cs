@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Streams
         /// <summary>
         /// Gets a value indicating whether the file is encoded in little-endian or big-endian format.
         /// </summary>
-        public abstract TiffByteOrder ByteOrder { get; }
+        public abstract ByteOrder ByteOrder { get; }
 
         /// <summary>
         /// Gets the input stream.

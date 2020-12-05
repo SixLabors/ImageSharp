@@ -25,11 +25,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     internal sealed class TiffEncoderCore : IImageEncoderInternals
     {
         /// <summary>
-        /// The amount to pad each row by in bytes.
-        /// </summary>
-        private int padding;
-
-        /// <summary>
         /// Used for allocating memory during processing operations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;
@@ -121,10 +116,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             this.SetPhotometricInterpretation();
 
-            short bpp = (short)this.bitsPerPixel;
-            int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
-            this.padding = bytesPerLine - (int)(image.Width * (bpp / 8F));
-
             using (var writer = new TiffWriter(stream, this.memoryAllocator, this.configuration))
             {
                 long firstIfdMarker = this.WriteHeader(writer);
@@ -172,16 +163,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             switch (this.Mode)
             {
                 case TiffEncodingMode.ColorPalette:
-                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.padding, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor, out colorMap);
+                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor, out colorMap);
                     break;
                 case TiffEncodingMode.Gray:
-                    imageDataBytes = writer.WriteGray(image, this.padding, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor);
+                    imageDataBytes = writer.WriteGray(image, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor);
                     break;
                 case TiffEncodingMode.BiColor:
                     imageDataBytes = writer.WriteBiColor(image, this.CompressionType, this.compressionLevel);
                     break;
                 default:
-                    imageDataBytes = writer.WriteRgb(image, this.padding, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor);
+                    imageDataBytes = writer.WriteRgb(image, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor);
                     break;
             }
 

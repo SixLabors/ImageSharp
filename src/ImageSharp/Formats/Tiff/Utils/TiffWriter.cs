@@ -136,15 +136,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// </summary>
         /// <typeparam name="TPixel">The pixel data.</typeparam>
         /// <param name="image">The image to write to the stream.</param>
-        /// <param name="padding">The padding bytes for each row.</param>
         /// <param name="compression">The compression to use.</param>
         /// <param name="compressionLevel">The compression level for deflate compression.</param>
         /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used. Should only be used with deflate compression.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WriteRgb<TPixel>(Image<TPixel> image, int padding, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor)
+        public int WriteRgb<TPixel>(Image<TPixel> image, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using IManagedByteBuffer row = this.AllocateRow(image.Width, 3, padding);
+            using IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(image.Width * 3);
             Span<byte> rowSpan = row.GetSpan();
             if (compression == TiffEncoderCompression.Deflate)
             {
@@ -284,19 +283,18 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <typeparam name="TPixel">The pixel data.</typeparam>
         /// <param name="image">The image to write to the stream.</param>
         /// <param name="quantizer">The quantizer to use.</param>
-        /// <param name="padding">The padding bytes for each row.</param>
         /// <param name="compression">The compression to use.</param>
         /// <param name="compressionLevel">The compression level for deflate compression.</param>
         /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used. Should only be used in combination with deflate or LZW compression.</param>
         /// <param name="colorMap">The color map.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WritePalettedRgb<TPixel>(Image<TPixel> image, IQuantizer quantizer, int padding, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor, out IExifValue colorMap)
+        public int WritePalettedRgb<TPixel>(Image<TPixel> image, IQuantizer quantizer, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor, out IExifValue colorMap)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorsPerChannel = 256;
             int colorPaletteSize = colorsPerChannel * 3;
             int colorPaletteBytes = colorPaletteSize * 2;
-            using IManagedByteBuffer row = this.AllocateRow(image.Width, 1, padding);
+            using IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(image.Width);
             using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image.Frames.RootFrame, image.Bounds());
             using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(colorPaletteBytes);
@@ -342,17 +340,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 
             if (compression == TiffEncoderCompression.Deflate)
             {
-                return this.WriteDeflateCompressedPalettedRgb(image, quantized, padding, compressionLevel, useHorizontalPredictor);
+                return this.WriteDeflateCompressedPalettedRgb(image, quantized, compressionLevel, useHorizontalPredictor);
             }
 
             if (compression == TiffEncoderCompression.Lzw)
             {
-                return this.WriteLzwCompressedPalettedRgb(image, quantized, padding, useHorizontalPredictor);
+                return this.WriteLzwCompressedPalettedRgb(image, quantized, useHorizontalPredictor);
             }
 
             if (compression == TiffEncoderCompression.PackBits)
             {
-                return this.WritePackBitsCompressedPalettedRgb(image, quantized, padding);
+                return this.WritePackBitsCompressedPalettedRgb(image, quantized);
             }
 
             // No compression.
@@ -362,12 +360,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                 ReadOnlySpan<byte> pixelSpan = quantized.GetPixelRowSpan(y);
                 this.output.Write(pixelSpan);
                 bytesWritten += pixelSpan.Length;
-
-                for (int i = 0; i < padding; i++)
-                {
-                    this.output.WriteByte(0);
-                    bytesWritten++;
-                }
             }
 
             return bytesWritten;
@@ -379,11 +371,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <typeparam name="TPixel">The pixel data.</typeparam>
         /// <param name="image">The image to write to the stream.</param>
         /// <param name="quantized">The quantized frame.</param>
-        /// <param name="padding">The padding bytes for each row.</param>
         /// <param name="compressionLevel">The compression level for deflate compression.</param>
         /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WriteDeflateCompressedPalettedRgb<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, int padding, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor)
+        public int WriteDeflateCompressedPalettedRgb<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using IManagedByteBuffer tmpBuffer = this.memoryAllocator.AllocateManagedByteBuffer(image.Width);
@@ -406,11 +397,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                 {
                     deflateStream.Write(pixelRow);
                 }
-
-                for (int i = 0; i < padding; i++)
-                {
-                    deflateStream.WriteByte(0);
-                }
             }
 
             deflateStream.Flush();
@@ -427,10 +413,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <typeparam name="TPixel">The pixel data.</typeparam>
         /// <param name="image">The image to write to the stream.</param>
         /// <param name="quantized">The quantized frame.</param>
-        /// <param name="padding">The padding bytes for each row.</param>
         /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WriteLzwCompressedPalettedRgb<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, int padding, bool useHorizontalPredictor)
+        public int WriteLzwCompressedPalettedRgb<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, bool useHorizontalPredictor)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             IMemoryOwner<byte> pixelData = this.memoryAllocator.Allocate<byte>(image.Width * image.Height);
@@ -473,34 +458,21 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <typeparam name="TPixel">The pixel data.</typeparam>
         /// <param name="image">The image to write to the stream.</param>
         /// <param name="quantized">The quantized frame.</param>
-        /// <param name="padding">The padding bytes for each row.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WritePackBitsCompressedPalettedRgb<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized, int padding)
+        public int WritePackBitsCompressedPalettedRgb<TPixel>(Image<TPixel> image, IndexedImageFrame<TPixel> quantized)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Worst case is that the actual compressed data is larger then the input data. In this case we need 1 additional byte per 127 bytes.
             int additionalBytes = ((image.Width * 3) / 127) + 1;
             using IManagedByteBuffer compressedRow = this.memoryAllocator.AllocateManagedByteBuffer((image.Width * 3) + additionalBytes, AllocationOptions.Clean);
-            using IManagedByteBuffer pixelRowWithPadding = this.memoryAllocator.AllocateManagedByteBuffer((image.Width * 3) + padding, AllocationOptions.Clean);
             Span<byte> compressedRowSpan = compressedRow.GetSpan();
-            Span<byte> pixelRowWithPaddingSpan = pixelRowWithPadding.GetSpan();
 
             int bytesWritten = 0;
             for (int y = 0; y < image.Height; y++)
             {
                 ReadOnlySpan<byte> pixelSpan = quantized.GetPixelRowSpan(y);
 
-                int size;
-                if (padding != 0)
-                {
-                    pixelSpan.CopyTo(pixelRowWithPaddingSpan);
-                    size = PackBitsWriter.PackBits(pixelRowWithPaddingSpan, compressedRowSpan);
-                }
-                else
-                {
-                    size = PackBitsWriter.PackBits(pixelSpan, compressedRowSpan);
-                }
-
+                int size = PackBitsWriter.PackBits(pixelSpan, compressedRowSpan);
                 this.output.Write(compressedRowSpan.Slice(0, size));
                 bytesWritten += size;
             }
@@ -513,15 +485,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// </summary>
         /// <typeparam name="TPixel">The pixel data.</typeparam>
         /// <param name="image">The image to write to the stream.</param>
-        /// <param name="padding">The padding bytes for each row.</param>
         /// <param name="compression">The compression to use.</param>
         /// <param name="compressionLevel">The compression level for deflate compression.</param>
         /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used. Should only be used with deflate or lzw compression.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WriteGray<TPixel>(Image<TPixel> image, int padding, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor)
+        public int WriteGray<TPixel>(Image<TPixel> image, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor)
         where TPixel : unmanaged, IPixel<TPixel>
         {
-            using IManagedByteBuffer row = this.AllocateRow(image.Width, 1, padding);
+            using IManagedByteBuffer row = this.memoryAllocator.AllocateManagedByteBuffer(image.Width);
             Span<byte> rowSpan = row.GetSpan();
 
             if (compression == TiffEncoderCompression.Deflate)
@@ -830,8 +801,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 
             return bytesWritten;
         }
-
-        private IManagedByteBuffer AllocateRow(int width, int bytesPerPixel, int padding) => this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, bytesPerPixel, padding);
 
         /// <summary>
         /// Disposes <see cref="TiffWriter"/> instance, ensuring any unwritten data is flushed.

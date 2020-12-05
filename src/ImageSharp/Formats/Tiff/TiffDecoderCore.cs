@@ -169,7 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             return new ImageInfo(new PixelTypeInfo(bitsPerPixel), (int)root.Width, (int)root.Height, this.metadata);
         }
 
-        private void SetTiffFormatMetaData(List<TiffFrameMetadata> framesMetadata, TiffByteOrder byteOrder)
+        private void SetTiffFormatMetaData(List<TiffFrameMetadata> framesMetadata, ByteOrder byteOrder)
         {
             this.metadata = framesMetadata.CreateMetadata(this.ignoreMetadata, byteOrder);
             this.tiffMetaData = this.metadata.GetTiffMetadata();
@@ -203,12 +203,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         private static TiffStream CreateStream(Stream stream)
         {
-            TiffByteOrder byteOrder = ReadByteOrder(stream);
-            if (byteOrder == TiffByteOrder.BigEndian)
+            ByteOrder byteOrder = ReadByteOrder(stream);
+            if (byteOrder == ByteOrder.BigEndian)
             {
                 return new TiffBigEndianStream(stream);
             }
-            else if (byteOrder == TiffByteOrder.LittleEndian)
+            else if (byteOrder == ByteOrder.LittleEndian)
             {
                 return new TiffLittleEndianStream(stream);
             }
@@ -216,17 +216,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             throw TiffThrowHelper.InvalidHeader();
         }
 
-        private static TiffByteOrder ReadByteOrder(Stream stream)
+        private static ByteOrder ReadByteOrder(Stream stream)
         {
             var headerBytes = new byte[2];
             stream.Read(headerBytes, 0, 2);
             if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
             {
-                return TiffByteOrder.LittleEndian;
+                return ByteOrder.LittleEndian;
             }
             else if (headerBytes[0] == TiffConstants.ByteOrderBigEndian && headerBytes[1] == TiffConstants.ByteOrderBigEndian)
             {
-                return TiffByteOrder.BigEndian;
+                return ByteOrder.BigEndian;
             }
 
             throw TiffThrowHelper.InvalidHeader();

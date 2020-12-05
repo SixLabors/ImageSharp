@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     /// </summary>
     internal static class TiffDecoderHelpers
     {
-        public static ImageMetadata CreateMetadata(this IList<TiffFrameMetadata> frames, bool ignoreMetadata, TiffByteOrder byteOrder)
+        public static ImageMetadata CreateMetadata(this IList<TiffFrameMetadata> frames, bool ignoreMetadata, ByteOrder byteOrder)
         {
             var coreMetadata = new ImageMetadata();
             TiffMetadata tiffMetadata = coreMetadata.GetTiffMetadata();

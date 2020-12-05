@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets or sets the byte order.
         /// </summary>
-        public TiffByteOrder ByteOrder { get; set; }
+        public ByteOrder ByteOrder { get; set; }
 
         /// <summary>
         /// Gets or sets the number of bits per pixel.

@@ -1,20 +1,22 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
+namespace SixLabors.ImageSharp
 {
     /// <summary>
     /// The tiff data stream byte order enum.
     /// </summary>
-    public enum TiffByteOrder
+    public enum ByteOrder
     {
         /// <summary>
         /// The big-endian byte order (Motorola).
+        /// Most-significant byte comes first, and ends with the least-significant byte.
         /// </summary>
         BigEndian,
 
         /// <summary>
         /// The little-endian byte order (Intel).
+        /// Least-significant byte comes first and ends with the most-significant byte.
         /// </summary>
         LittleEndian
     }

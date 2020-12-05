@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         /// <inheritdoc/>
         public override void Decompress(Stream stream, int byteCount, Span<byte> buffer)
         {
-            stream.ReadFull(buffer, byteCount);
+            stream.Read(buffer, 0, byteCount);
         }
     }
 }

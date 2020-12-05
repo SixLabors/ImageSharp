@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Formats.Png
         public PngFilterMethod? FilterMethod { get; }
 
         /// <inheritdoc/>
-        public DeflateCompressionLevel CompressionLevel { get; } = DeflateCompressionLevel.DefaultCompression;
+        public PngCompressionLevel CompressionLevel { get; } = PngCompressionLevel.DefaultCompression;
 
         /// <inheritdoc/>
         public int TextCompressionThreshold { get; }

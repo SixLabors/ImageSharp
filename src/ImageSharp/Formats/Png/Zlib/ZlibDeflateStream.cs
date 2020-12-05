@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Compression;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png.Zlib
@@ -39,7 +40,6 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <summary>
         /// The stream responsible for compressing the input stream.
         /// </summary>
-        // private DeflateStream deflateStream;
         private DeflaterOutputStream deflateStream;
 
         /// <summary>
@@ -49,6 +49,17 @@ namespace SixLabors.ImageSharp.Formats.Png.Zlib
         /// <param name="stream">The stream to compress.</param>
         /// <param name="level">The compression level.</param>
         public ZlibDeflateStream(MemoryAllocator memoryAllocator, Stream stream, DeflateCompressionLevel level)
+            : this(memoryAllocator, stream, (PngCompressionLevel)level)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ZlibDeflateStream"/> class.
+        /// </summary>
+        /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
+        /// <param name="stream">The stream to compress.</param>
+        /// <param name="level">The compression level.</param>
+        public ZlibDeflateStream(MemoryAllocator memoryAllocator, Stream stream, PngCompressionLevel level)
         {
             int compressionLevel = (int)level;
             this.rawStream = stream;

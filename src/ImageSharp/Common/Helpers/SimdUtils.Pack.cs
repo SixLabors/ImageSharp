@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -20,12 +23,9 @@ namespace SixLabors.ImageSharp
             ReadOnlySpan<byte> blueChannel,
             Span<Rgb24> destination)
         {
-            int count = redChannel.Length;
-            DebugGuard.IsTrue(greenChannel.Length == count, "Channels must be of same size!");
-            DebugGuard.IsTrue(blueChannel.Length == count, "Channels must be of same size!");
-
-            // To avoid overflows, this check is not debug-only:
-            Guard.IsTrue(destination.Length > count + 2, nameof(destination), "'destination' must contain a padding of 3 elements!");
+            DebugGuard.IsTrue(greenChannel.Length == redChannel.Length, nameof(greenChannel), "Channels must be of same size!");
+            DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
+            DebugGuard.IsTrue(destination.Length > redChannel.Length + 2, nameof(destination), "'destination' must contain a padding of 3 elements!");
 
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported)
@@ -49,7 +49,21 @@ namespace SixLabors.ImageSharp
             ReadOnlySpan<byte> blueChannel,
             Span<Rgba32> destination)
         {
-            PackFromRgbPlanesScalarBatchedReduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
+            DebugGuard.IsTrue(greenChannel.Length == redChannel.Length, nameof(greenChannel), "Channels must be of same size!");
+            DebugGuard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");
+            DebugGuard.IsTrue(destination.Length > redChannel.Length, nameof(destination), "'destination' span should not be shorter than the source channels!");
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx2.IsSupported)
+            {
+                HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
+            }
+            else
+#endif
+            {
+                PackFromRgbPlanesScalarBatchedReduce(ref redChannel, ref greenChannel, ref blueChannel, ref destination);
+            }
+
             PackFromRgbPlanesRemainder(redChannel, greenChannel, blueChannel, destination);
         }
 

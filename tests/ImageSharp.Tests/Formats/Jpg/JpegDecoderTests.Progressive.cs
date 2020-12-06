@@ -9,6 +9,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public partial class JpegDecoderTests
     {
         public const string DecodeProgressiveJpegOutputName = "DecodeProgressiveJpeg";

@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="ImageSharp.Tests" ToolsVersion="16.0">
+  <Include Path="..\shared-infrastructure\sixlabors.tests.ruleset" Action="Default" />
+  <Rules AnalyzerId="xunit.analyzers" RuleNamespace="xunit.analyzers">
+    <Rule Id="xUnit1004" Action="None" />
+    <Rule Id="xUnit1013" Action="None" />
+    <Rule Id="xUnit1026" Action="None" />
+    <Rule Id="xUnit2013" Action="None" />
+  </Rules>
+</RuleSet>

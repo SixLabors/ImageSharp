@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests
 {
     /// <summary>
     /// Class that contains all the relative test image paths in the TestImages/Formats directory.
-    /// Use with <see cref="WithFileAttribute"/>, <see cref="WithFileCollectionAttribute"/> or <see cref="FileTestBase"/>.
+    /// Use with <see cref="WithFileAttribute"/>, <see cref="WithFileCollectionAttribute"/>.
     /// </summary>
     public static class TestImages
     {
@@ -196,6 +196,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string YcckSubsample1222 = "Jpg/baseline/ycck-subsample-1222.jpg";
                 public const string Iptc = "Jpg/baseline/iptc.jpg";
                 public const string App13WithEmptyIptc = "Jpg/baseline/iptc-psAPP13-wIPTCempty.jpg";
+                public const string HistogramEqImage = "Jpg/baseline/640px-Unequalized_Hawkes_Bay_NZ.jpg";
 
                 public static readonly string[] All =
                 {

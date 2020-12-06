@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // 'ratio' is a rational number.
             // Multiplying it by LCM(sourceSize, destSize)/sourceSize will result in a whole number "again".
             // This value is determining the length of the periods in repeating kernel map rows.
-            int period = ImageMaths.LeastCommonMultiple(sourceSize, destinationSize) / sourceSize;
+            int period = Numerics.LeastCommonMultiple(sourceSize, destinationSize) / sourceSize;
 
             // the center position at i == 0:
             double center0 = (ratio - 1) * 0.5;

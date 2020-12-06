@@ -7,7 +7,6 @@ using System.Linq;
 
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
@@ -17,6 +16,7 @@ using Xunit.Abstractions;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public class SpectralJpegTests
     {
         public SpectralJpegTests(ITestOutputHelper output)

@@ -79,14 +79,14 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 public override TPixel Blend(TPixel background, TPixel source, float amount)
                 {
                     TPixel dest = default;
-                    dest.FromScaledVector4(PorterDuffFunctions.<#=blender_composer#>(background.ToScaledVector4(), source.ToScaledVector4(), amount.Clamp(0, 1)));
+                    dest.FromScaledVector4(PorterDuffFunctions.<#=blender_composer#>(background.ToScaledVector4(), source.ToScaledVector4(), Numerics.Clamp(amount, 0, 1)));
                     return dest;
                 }
 
                 /// <inheritdoc />
                 protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
                 {
-                    amount = amount.Clamp(0, 1);
+                    amount = Numerics.Clamp(amount, 0, 1);
                     for (int i = 0; i < destination.Length; i++)
                     {
                         destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source[i], amount);
@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
                 {
                     for (int i = 0; i < destination.Length; i++)
                     {
-                        destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source[i], amount[i].Clamp(0, 1));
+                        destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source[i], Numerics.Clamp(amount[i], 0, 1));
                     }
                 }
             }

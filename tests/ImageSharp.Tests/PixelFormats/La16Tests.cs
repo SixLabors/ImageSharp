@@ -9,6 +9,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
+    [Trait("Category", "PixelFormats")]
     public class La16Tests
     {
         public static readonly TheoryData<byte> LuminanceData
@@ -138,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         {
             // Arrange
             La16 gray = default;
-            byte expected = ImageMaths.Get8BitBT709Luminance(rgb, rgb, rgb);
+            byte expected = ColorNumerics.Get8BitBT709Luminance(rgb, rgb, rgb);
 
             // Act
             gray.FromRgba32(new Rgba32(rgb, rgb, rgb));

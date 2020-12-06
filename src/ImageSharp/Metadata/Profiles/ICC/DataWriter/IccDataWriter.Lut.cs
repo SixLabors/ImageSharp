@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         {
             foreach (float item in value.Values)
             {
-                this.WriteByte((byte)((item * byte.MaxValue) + 0.5f).Clamp(0, byte.MaxValue));
+                this.WriteByte((byte)Numerics.Clamp((item * byte.MaxValue) + 0.5F, 0, byte.MaxValue));
             }
 
             return value.Values.Length;
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         {
             foreach (float item in value.Values)
             {
-                this.WriteUInt16((ushort)((item * ushort.MaxValue) + 0.5f).Clamp(0, ushort.MaxValue));
+                this.WriteUInt16((ushort)Numerics.Clamp((item * ushort.MaxValue) + 0.5F, 0, ushort.MaxValue));
             }
 
             return value.Values.Length * 2;
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             {
                 foreach (float item in inArray)
                 {
-                    count += this.WriteByte((byte)((item * byte.MaxValue) + 0.5f).Clamp(0, byte.MaxValue));
+                    count += this.WriteByte((byte)Numerics.Clamp((item * byte.MaxValue) + 0.5F, 0, byte.MaxValue));
                 }
             }
 
@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             {
                 foreach (float item in inArray)
                 {
-                    count += this.WriteUInt16((ushort)((item * ushort.MaxValue) + 0.5f).Clamp(0, ushort.MaxValue));
+                    count += this.WriteUInt16((ushort)Numerics.Clamp((item * ushort.MaxValue) + 0.5F, 0, ushort.MaxValue));
                 }
             }
 

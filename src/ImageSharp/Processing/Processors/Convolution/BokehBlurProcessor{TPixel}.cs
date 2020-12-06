@@ -127,7 +127,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     in verticalOperation);
 
                 // Compute the horizontal 1D convolutions and accumulate the partial results on the target buffer
-                var horizontalOperation = new ApplyHorizontalConvolutionRowOperation(sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W);
+                var horizontalOperation = new BokehBlurProcessor.ApplyHorizontalConvolutionRowOperation(sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W);
                 ParallelRowIterator.IterateRows(
                     configuration,
                     sourceRectangle,
@@ -171,52 +171,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 for (int x = 0; x < this.bounds.Width; x++)
                 {
                     Buffer2DUtils.Convolve4(this.kernel, this.sourcePixels, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX);
-                }
-            }
-        }
-
-        /// <summary>
-        /// A <see langword="struct"/> implementing the horizontal convolution logic for <see cref="BokehBlurProcessor{T}"/>.
-        /// </summary>
-        private readonly struct ApplyHorizontalConvolutionRowOperation : IRowOperation
-        {
-            private readonly Rectangle bounds;
-            private readonly Buffer2D<Vector4> targetValues;
-            private readonly Buffer2D<ComplexVector4> sourceValues;
-            private readonly Complex64[] kernel;
-            private readonly float z;
-            private readonly float w;
-            private readonly int maxY;
-            private readonly int maxX;
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyHorizontalConvolutionRowOperation(
-                Rectangle bounds,
-                Buffer2D<Vector4> targetValues,
-                Buffer2D<ComplexVector4> sourceValues,
-                Complex64[] kernel,
-                float z,
-                float w)
-            {
-                this.bounds = bounds;
-                this.maxY = this.bounds.Bottom - 1;
-                this.maxX = this.bounds.Right - 1;
-                this.targetValues = targetValues;
-                this.sourceValues = sourceValues;
-                this.kernel = kernel;
-                this.z = z;
-                this.w = w;
-            }
-
-            /// <inheritdoc/>
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y)
-            {
-                Span<Vector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
-
-                for (int x = 0; x < this.bounds.Width; x++)
-                {
-                    Buffer2DUtils.Convolve4AndAccumulatePartials(this.kernel, this.sourceValues, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX, this.z, this.w);
                 }
             }
         }
@@ -304,7 +258,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 for (int x = 0; x < this.bounds.Width; x++)
                 {
                     ref Vector4 v = ref Unsafe.Add(ref sourceRef, x);
-                    var clamp = Vector4Utilities.FastClamp(v, low, high);
+                    Vector4 clamp = Numerics.Clamp(v, low, high);
                     v.X = MathF.Pow(clamp.X, this.inverseGamma);
                     v.Y = MathF.Pow(clamp.Y, this.inverseGamma);
                     v.Z = MathF.Pow(clamp.Z, this.inverseGamma);

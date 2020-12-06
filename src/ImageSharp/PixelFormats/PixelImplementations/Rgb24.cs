@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromL16(L16 source)
         {
-            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.PackedValue);
+            byte rgb = ColorNumerics.DownScaleFrom16BitTo8Bit(source.PackedValue);
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromLa32(La32 source)
         {
-            byte rgb = ImageMaths.DownScaleFrom16BitTo8Bit(source.L);
+            byte rgb = ColorNumerics.DownScaleFrom16BitTo8Bit(source.L);
             this.R = rgb;
             this.G = rgb;
             this.B = rgb;
@@ -227,18 +227,18 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgb48(Rgb48 source)
         {
-            this.R = ImageMaths.DownScaleFrom16BitTo8Bit(source.R);
-            this.G = ImageMaths.DownScaleFrom16BitTo8Bit(source.G);
-            this.B = ImageMaths.DownScaleFrom16BitTo8Bit(source.B);
+            this.R = ColorNumerics.DownScaleFrom16BitTo8Bit(source.R);
+            this.G = ColorNumerics.DownScaleFrom16BitTo8Bit(source.G);
+            this.B = ColorNumerics.DownScaleFrom16BitTo8Bit(source.B);
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromRgba64(Rgba64 source)
         {
-            this.R = ImageMaths.DownScaleFrom16BitTo8Bit(source.R);
-            this.G = ImageMaths.DownScaleFrom16BitTo8Bit(source.G);
-            this.B = ImageMaths.DownScaleFrom16BitTo8Bit(source.B);
+            this.R = ColorNumerics.DownScaleFrom16BitTo8Bit(source.R);
+            this.G = ColorNumerics.DownScaleFrom16BitTo8Bit(source.G);
+            this.B = ColorNumerics.DownScaleFrom16BitTo8Bit(source.B);
         }
 
         /// <inheritdoc/>
@@ -264,7 +264,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         {
             vector *= MaxBytes;
             vector += Half;
-            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, MaxBytes);
+            vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
 
             this.R = (byte)vector.X;
             this.G = (byte)vector.Y;

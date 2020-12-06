@@ -15,6 +15,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
+    [Trait("Format", "Png")]
     public partial class PngEncoderTests
     {
         private static PngEncoder PngEncoder => new PngEncoder();
@@ -435,7 +436,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             Rgba32 expectedColor = Color.Blue;
             if (colorType == PngColorType.Grayscale || colorType == PngColorType.GrayscaleWithAlpha)
             {
-                var luminance = ImageMaths.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
+                var luminance = ColorNumerics.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
                 expectedColor = new Rgba32(luminance, luminance, luminance);
             }
 

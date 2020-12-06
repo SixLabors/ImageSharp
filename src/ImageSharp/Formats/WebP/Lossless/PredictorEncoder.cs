@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     /// <summary>
     /// Image transform methods for the lossless webp encoder.
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                         usedSubtractGreen,
                         image);
 
-                    image[(tileY * tilesPerRow) + tileX] = (uint)(WebPConstants.ArgbBlack | (pred << 8));
+                    image[(tileY * tilesPerRow) + tileX] = (uint)(WebpConstants.ArgbBlack | (pred << 8));
                 }
             }
 
@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             Span<byte> maxDiffs = MemoryMarshal.Cast<uint, byte>(currentRow.Slice(width + 1));
             float bestDiff = MaxDiffCost;
             int bestMode = 0;
-            var residuals = new uint[1 << WebPConstants.MaxTransformBits];
+            var residuals = new uint[1 << WebpConstants.MaxTransformBits];
             var histoArgb = new int[4][];
             var bestHisto = new int[4][];
             for (int i = 0; i < 4; i++)
@@ -329,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                         uint residual;
                         if (y == 0)
                         {
-                            predict = (x == 0) ? WebPConstants.ArgbBlack : currentRow[x - 1];  // Left.
+                            predict = (x == 0) ? WebpConstants.ArgbBlack : currentRow[x - 1];  // Left.
                         }
                         else if (x == 0)
                         {
@@ -340,7 +340,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                             switch (mode)
                             {
                                 case 0:
-                                    predict = WebPConstants.ArgbBlack;
+                                    predict = WebpConstants.ArgbBlack;
                                     break;
                                 case 1:
                                     predict = currentRow[x - 1];

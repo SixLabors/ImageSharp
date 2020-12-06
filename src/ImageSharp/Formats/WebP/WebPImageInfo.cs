@@ -2,12 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader;
-using SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
-    internal class WebPImageInfo : IDisposable
+    internal class WebpImageInfo : IDisposable
     {
         /// <summary>
         /// Gets or sets the bitmap width in pixels.
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         /// <summary>
         /// Gets or sets the bits per pixel.
         /// </summary>
-        public WebPBitsPerPixel BitsPerPixel { get; set; }
+        public WebpBitsPerPixel BitsPerPixel { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this image uses lossless compression.
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         /// <summary>
         /// Gets or sets additional features present in a VP8X image.
         /// </summary>
-        public WebPFeatures Features { get; set; }
+        public WebpFeatures Features { get; set; }
 
         /// <summary>
         /// Gets or sets the VP8 profile / version. Valid values are between 0 and 3. Default value will be the invalid value -1.

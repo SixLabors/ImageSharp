@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// Enumerates the available bits per pixel the webp image uses.
     /// </summary>
-    public enum WebPBitsPerPixel : short
+    public enum WebpBitsPerPixel : short
     {
         /// <summary>
         /// 24 bits per pixel. Each pixel consists of 3 bytes.

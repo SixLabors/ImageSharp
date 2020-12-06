@@ -3,7 +3,7 @@
 
 using System.Buffers;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     internal class Vp8LMetadata
     {

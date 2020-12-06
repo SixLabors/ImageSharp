@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     /// <summary>
     /// Quantization methods.
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int QuantDiv(uint n, uint iQ, uint b)
         {
-            return (int)(((n * iQ) + b) >> WebPConstants.QFix);
+            return (int)(((n * iQ) + b) >> WebpConstants.QFix);
         }
     }
 }

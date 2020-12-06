@@ -6,11 +6,11 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     /// <summary>
     /// Decoder for lossy webp images. This code is a port of libwebp, which can be found here: https://chromium.googlesource.com/webm/libwebp
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             this.configuration = configuration;
         }
 
-        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, WebPImageInfo info)
+        public void Decode<TPixel>(Buffer2D<TPixel> pixels, int width, int height, WebpImageInfo info)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Paragraph 9.2: color space and clamp type follow.
@@ -227,11 +227,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                     int yMode = left[y];
                     for (int x = 0; x < 4; ++x)
                     {
-                        byte[] prob = WebPLookupTables.ModesProba[top[x], yMode];
-                        int i = WebPConstants.YModesIntra4[this.bitReader.GetBit(prob[0])];
+                        byte[] prob = WebpLookupTables.ModesProba[top[x], yMode];
+                        int i = WebpConstants.YModesIntra4[this.bitReader.GetBit(prob[0])];
                         while (i > 0)
                         {
-                            i = WebPConstants.YModesIntra4[(2 * i) + this.bitReader.GetBit(prob[i])];
+                            i = WebpConstants.YModesIntra4[(2 * i) + this.bitReader.GetBit(prob[i])];
                         }
 
                         yMode = -i;
@@ -272,8 +272,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         private void ReconstructRow(Vp8Decoder dec)
         {
             int mby = dec.MbY;
-            const int yOff = (WebPConstants.Bps * 1) + 8;
-            const int uOff = yOff + (WebPConstants.Bps * 16) + WebPConstants.Bps;
+            const int yOff = (WebpConstants.Bps * 1) + 8;
+            const int uOff = yOff + (WebpConstants.Bps * 16) + WebpConstants.Bps;
             const int vOff = uOff + 16;
 
             Span<byte> yuv = dec.YuvBuffer.Memory.Span;
@@ -282,14 +282,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             Span<byte> vDst = yuv.Slice(vOff);
 
             // Initialize left-most block.
-            var end = 16 * WebPConstants.Bps;
-            for (int i = 0; i < end; i += WebPConstants.Bps)
+            var end = 16 * WebpConstants.Bps;
+            for (int i = 0; i < end; i += WebpConstants.Bps)
             {
                 yuv[i - 1 + yOff] = 129;
             }
 
-            end = 8 * WebPConstants.Bps;
-            for (int i = 0; i < end; i += WebPConstants.Bps)
+            end = 8 * WebpConstants.Bps;
+            for (int i = 0; i < end; i += WebpConstants.Bps)
             {
                 yuv[i - 1 + uOff] = 129;
                 yuv[i - 1 + vOff] = 129;
@@ -298,25 +298,25 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             // Init top-left sample on left column too.
             if (mby > 0)
             {
-                yuv[yOff - 1 - WebPConstants.Bps] = yuv[uOff - 1 - WebPConstants.Bps] = yuv[vOff - 1 - WebPConstants.Bps] = 129;
+                yuv[yOff - 1 - WebpConstants.Bps] = yuv[uOff - 1 - WebpConstants.Bps] = yuv[vOff - 1 - WebpConstants.Bps] = 129;
             }
             else
             {
                 // We only need to do this init once at block (0,0).
                 // Afterward, it remains valid for the whole topmost row.
-                Span<byte> tmp = yuv.Slice(yOff - WebPConstants.Bps - 1, 16 + 4 + 1);
+                Span<byte> tmp = yuv.Slice(yOff - WebpConstants.Bps - 1, 16 + 4 + 1);
                 for (int i = 0; i < tmp.Length; ++i)
                 {
                     tmp[i] = 127;
                 }
 
-                tmp = yuv.Slice(uOff - WebPConstants.Bps - 1, 8 + 1);
+                tmp = yuv.Slice(uOff - WebpConstants.Bps - 1, 8 + 1);
                 for (int i = 0; i < tmp.Length; ++i)
                 {
                     tmp[i] = 127;
                 }
 
-                tmp = yuv.Slice(vOff - WebPConstants.Bps - 1, 8 + 1);
+                tmp = yuv.Slice(vOff - WebpConstants.Bps - 1, 8 + 1);
                 for (int i = 0; i < tmp.Length; ++i)
                 {
                     tmp[i] = 127;
@@ -334,18 +334,18 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 {
                     for (int i = -1; i < 16; ++i)
                     {
-                        int srcIdx = (i * WebPConstants.Bps) + 12 + yOff;
-                        int dstIdx = (i * WebPConstants.Bps) - 4 + yOff;
+                        int srcIdx = (i * WebpConstants.Bps) + 12 + yOff;
+                        int dstIdx = (i * WebpConstants.Bps) - 4 + yOff;
                         yuv.Slice(srcIdx, 4).CopyTo(yuv.Slice(dstIdx));
                     }
 
                     for (int i = -1; i < 8; ++i)
                     {
-                        int srcIdx = (i * WebPConstants.Bps) + 4 + uOff;
-                        int dstIdx = (i * WebPConstants.Bps) - 4 + uOff;
+                        int srcIdx = (i * WebpConstants.Bps) + 4 + uOff;
+                        int dstIdx = (i * WebpConstants.Bps) - 4 + uOff;
                         yuv.Slice(srcIdx, 4).CopyTo(yuv.Slice(dstIdx));
-                        srcIdx = (i * WebPConstants.Bps) + 4 + vOff;
-                        dstIdx = (i * WebPConstants.Bps) - 4 + vOff;
+                        srcIdx = (i * WebpConstants.Bps) + 4 + vOff;
+                        dstIdx = (i * WebpConstants.Bps) - 4 + vOff;
                         yuv.Slice(srcIdx, 4).CopyTo(yuv.Slice(dstIdx));
                     }
                 }
@@ -356,15 +356,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 uint bits = block.NonZeroY;
                 if (mby > 0)
                 {
-                    topYuv.Y.CopyTo(yuv.Slice(yOff - WebPConstants.Bps));
-                    topYuv.U.CopyTo(yuv.Slice(uOff - WebPConstants.Bps));
-                    topYuv.V.CopyTo(yuv.Slice(vOff - WebPConstants.Bps));
+                    topYuv.Y.CopyTo(yuv.Slice(yOff - WebpConstants.Bps));
+                    topYuv.U.CopyTo(yuv.Slice(uOff - WebpConstants.Bps));
+                    topYuv.V.CopyTo(yuv.Slice(vOff - WebpConstants.Bps));
                 }
 
                 // Predict and add residuals.
                 if (block.IsI4x4)
                 {
-                    Span<byte> topRight = yuv.Slice(yOff - WebPConstants.Bps + 16);
+                    Span<byte> topRight = yuv.Slice(yOff - WebpConstants.Bps + 16);
                     if (mby > 0)
                     {
                         if (mbx >= dec.MbWidth - 1)
@@ -383,13 +383,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                     }
 
                     // Replicate the top-right pixels below.
-                    Span<uint> topRightUint = MemoryMarshal.Cast<byte, uint>(yuv.Slice(yOff - WebPConstants.Bps + 16));
-                    topRightUint[WebPConstants.Bps] = topRightUint[2 * WebPConstants.Bps] = topRightUint[3 * WebPConstants.Bps] = topRightUint[0];
+                    Span<uint> topRightUint = MemoryMarshal.Cast<byte, uint>(yuv.Slice(yOff - WebpConstants.Bps + 16));
+                    topRightUint[WebpConstants.Bps] = topRightUint[2 * WebpConstants.Bps] = topRightUint[3 * WebpConstants.Bps] = topRightUint[0];
 
                     // Predict and add residuals for all 4x4 blocks in turn.
                     for (int n = 0; n < 16; ++n, bits <<= 2)
                     {
-                        int offset = yOff + WebPConstants.Scan[n];
+                        int offset = yOff + WebpConstants.Scan[n];
                         Span<byte> dst = yuv.Slice(offset);
                         byte lumaMode = block.Modes[n];
                         switch (lumaMode)
@@ -462,7 +462,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                     {
                         for (int n = 0; n < 16; ++n, bits <<= 2)
                         {
-                            this.DoTransform(bits, coeffs.AsSpan(n * 16), yDst.Slice(WebPConstants.Scan[n]));
+                            this.DoTransform(bits, coeffs.AsSpan(n * 16), yDst.Slice(WebpConstants.Scan[n]));
                         }
                     }
                 }
@@ -508,9 +508,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 // Stash away top samples for next block.
                 if (mby < dec.MbHeight - 1)
                 {
-                    yDst.Slice(15 * WebPConstants.Bps, 16).CopyTo(topYuv.Y);
-                    uDst.Slice(7 * WebPConstants.Bps, 8).CopyTo(topYuv.U);
-                    vDst.Slice(7 * WebPConstants.Bps, 8).CopyTo(topYuv.V);
+                    yDst.Slice(15 * WebpConstants.Bps, 16).CopyTo(topYuv.Y);
+                    uDst.Slice(7 * WebpConstants.Bps, 8).CopyTo(topYuv.U);
+                    vDst.Slice(7 * WebpConstants.Bps, 8).CopyTo(topYuv.V);
                 }
 
                 // Transfer reconstructed samples from yuv_buffer cache to final destination.
@@ -519,14 +519,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 Span<byte> vOut = dec.CacheV.Memory.Span.Slice(dec.CacheUvOffset + (mbx * 8));
                 for (int j = 0; j < 16; ++j)
                 {
-                    yDst.Slice(j * WebPConstants.Bps, Math.Min(16, yOut.Length)).CopyTo(yOut.Slice(j * dec.CacheYStride));
+                    yDst.Slice(j * WebpConstants.Bps, Math.Min(16, yOut.Length)).CopyTo(yOut.Slice(j * dec.CacheYStride));
                 }
 
                 for (int j = 0; j < 8; ++j)
                 {
                     int jUvStride = j * dec.CacheUvStride;
-                    uDst.Slice(j * WebPConstants.Bps, Math.Min(8, uOut.Length)).CopyTo(uOut.Slice(jUvStride));
-                    vDst.Slice(j * WebPConstants.Bps, Math.Min(8, vOut.Length)).CopyTo(vOut.Slice(jUvStride));
+                    uDst.Slice(j * WebpConstants.Bps, Math.Min(8, uOut.Length)).CopyTo(uOut.Slice(jUvStride));
+                    vDst.Slice(j * WebpConstants.Bps, Math.Min(8, vOut.Length)).CopyTo(vOut.Slice(jUvStride));
                 }
             }
         }
@@ -609,7 +609,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
         private void FinishRow(Vp8Decoder dec, Vp8Io io)
         {
-            int extraYRows = WebPConstants.FilterExtraRows[(int)dec.Filter];
+            int extraYRows = WebpConstants.FilterExtraRows[(int)dec.Filter];
             int ySize = extraYRows * dec.CacheYStride;
             int uvSize = (extraYRows / 2) * dec.CacheUvStride;
             Span<byte> yDst = dec.CacheY.Memory.Span;
@@ -1008,7 +1008,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 }
 
                 int idx = n > 0 ? 1 : 0;
-                coeffs[WebPConstants.Zigzag[n]] = (short)(br.GetSigned(v) * dq[idx]);
+                coeffs[WebpConstants.Zigzag[n]] = (short)(br.GetSigned(v) * dq[idx]);
             }
 
             return 16;
@@ -1053,19 +1053,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                     switch (cat)
                     {
                         case 0:
-                            tab = WebPConstants.Cat3;
+                            tab = WebpConstants.Cat3;
                             break;
                         case 1:
-                            tab = WebPConstants.Cat4;
+                            tab = WebpConstants.Cat4;
                             break;
                         case 2:
-                            tab = WebPConstants.Cat5;
+                            tab = WebpConstants.Cat5;
                             break;
                         case 3:
-                            tab = WebPConstants.Cat6;
+                            tab = WebpConstants.Cat6;
                             break;
                         default:
-                            WebPThrowHelper.ThrowImageFormatException("VP8 parsing error");
+                            WebpThrowHelper.ThrowImageFormatException("VP8 parsing error");
                             break;
                     }
 
@@ -1162,7 +1162,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 }
             }
 
-            int extraRows = WebPConstants.FilterExtraRows[(int)dec.Filter];
+            int extraRows = WebpConstants.FilterExtraRows[(int)dec.Filter];
             int extraY = extraRows * dec.CacheYStride;
             int extraUv = (extraRows / 2) * dec.CacheUvStride;
             dec.CacheYOffset = extraY;
@@ -1213,7 +1213,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             int dquvDc = hasValue ? this.bitReader.ReadSignedValue(4) : 0;
             hasValue = this.bitReader.ReadBool();
             int dquvAc = hasValue ? this.bitReader.ReadSignedValue(4) : 0;
-            for (int i = 0; i < WebPConstants.NumMbSegments; ++i)
+            for (int i = 0; i < WebpConstants.NumMbSegments; ++i)
             {
                 int q;
                 if (vp8SegmentHeader.UseSegment)
@@ -1238,20 +1238,20 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 }
 
                 Vp8QuantMatrix m = decoder.DeQuantMatrices[i];
-                m.Y1Mat[0] = WebPLookupTables.DcTable[Clip(q + dqy1Dc, 127)];
-                m.Y1Mat[1] = WebPLookupTables.AcTable[Clip(q + 0, 127)];
-                m.Y2Mat[0] = WebPLookupTables.DcTable[Clip(q + dqy2Dc, 127)] * 2;
+                m.Y1Mat[0] = WebpLookupTables.DcTable[Clip(q + dqy1Dc, 127)];
+                m.Y1Mat[1] = WebpLookupTables.AcTable[Clip(q + 0, 127)];
+                m.Y2Mat[0] = WebpLookupTables.DcTable[Clip(q + dqy2Dc, 127)] * 2;
 
                 // For all x in [0..284], x*155/100 is bitwise equal to (x*101581) >> 16.
                 // The smallest precision for that is '(x*6349) >> 12' but 16 is a good word size.
-                m.Y2Mat[1] = (WebPLookupTables.AcTable[Clip(q + dqy2Ac, 127)] * 101581) >> 16;
+                m.Y2Mat[1] = (WebpLookupTables.AcTable[Clip(q + dqy2Ac, 127)] * 101581) >> 16;
                 if (m.Y2Mat[1] < 8)
                 {
                     m.Y2Mat[1] = 8;
                 }
 
-                m.UvMat[0] = WebPLookupTables.DcTable[Clip(q + dquvDc, 117)];
-                m.UvMat[1] = WebPLookupTables.AcTable[Clip(q + dquvAc, 127)];
+                m.UvMat[0] = WebpLookupTables.DcTable[Clip(q + dquvDc, 117)];
+                m.UvMat[1] = WebpLookupTables.AcTable[Clip(q + dquvAc, 127)];
 
                 // For dithering strength evaluation.
                 m.UvQuant = q + dquvAc;
@@ -1262,18 +1262,18 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         {
             Vp8Proba proba = dec.Probabilities;
 
-            for (int t = 0; t < WebPConstants.NumTypes; ++t)
+            for (int t = 0; t < WebpConstants.NumTypes; ++t)
             {
-                for (int b = 0; b < WebPConstants.NumBands; ++b)
+                for (int b = 0; b < WebpConstants.NumBands; ++b)
                 {
-                    for (int c = 0; c < WebPConstants.NumCtx; ++c)
+                    for (int c = 0; c < WebpConstants.NumCtx; ++c)
                     {
-                        for (int p = 0; p < WebPConstants.NumProbas; ++p)
+                        for (int p = 0; p < WebpConstants.NumProbas; ++p)
                         {
-                            byte prob = WebPLookupTables.CoeffsUpdateProba[t, b, c, p];
+                            byte prob = WebpLookupTables.CoeffsUpdateProba[t, b, c, p];
                             byte v = (byte)(this.bitReader.GetBit(prob) != 0
                                         ? this.bitReader.ReadValue(8)
-                                        : WebPLookupTables.DefaultCoeffsProba[t, b, c, p]);
+                                        : WebpLookupTables.DefaultCoeffsProba[t, b, c, p]);
                             proba.Bands[t, b].Probabilities[c].Probabilities[p] = v;
                         }
                     }
@@ -1281,7 +1281,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
                 for (int b = 0; b < 16 + 1; ++b)
                 {
-                    proba.BandsPtr[t][b] = proba.Bands[t, WebPConstants.Vp8EncBands[b]];
+                    proba.BandsPtr[t][b] = proba.Bands[t, WebpConstants.Vp8EncBands[b]];
                 }
             }
 
@@ -1309,7 +1309,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             int intraPredModeSize = 4 * dec.MbWidth;
             dec.IntraT = new byte[intraPredModeSize];
 
-            int extraPixels = WebPConstants.FilterExtraRows[(int)dec.Filter];
+            int extraPixels = WebpConstants.FilterExtraRows[(int)dec.Filter];
             if (dec.Filter == LoopFilter.Complex)
             {
                 // For complex filter, we need to preserve the dependency chain.

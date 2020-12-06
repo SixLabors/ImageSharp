@@ -4,7 +4,7 @@
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using ImageMagick;
-using SixLabors.ImageSharp.Formats.Experimental.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 
@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void ImageSharpWebpLossy()
         {
             using var memoryStream = new MemoryStream();
-            this.webp.Save(memoryStream, new WebPEncoder()
+            this.webp.Save(memoryStream, new WebpEncoder()
             {
                 Lossy = true
             });
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void ImageSharpWebpLossless()
         {
             using var memoryStream = new MemoryStream();
-            this.webp.Save(memoryStream, new WebPEncoder()
+            this.webp.Save(memoryStream, new WebpEncoder()
             {
                 Lossy = false
             });

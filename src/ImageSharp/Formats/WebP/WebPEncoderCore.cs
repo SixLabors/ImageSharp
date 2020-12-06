@@ -5,18 +5,18 @@ using System.IO;
 using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless;
-using SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// Image encoder for writing an image to a stream in the WebP format.
     /// </summary>
-    internal sealed class WebPEncoderCore
+    internal sealed class WebpEncoderCore
     {
         /// <summary>
         /// Used for allocating memory during processing operations.
@@ -54,11 +54,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         private readonly int entropyPasses;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WebPEncoderCore"/> class.
+        /// Initializes a new instance of the <see cref="WebpEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The encoder options.</param>
         /// <param name="memoryAllocator">The memory manager.</param>
-        public WebPEncoderCore(IWebPEncoderOptions options, MemoryAllocator memoryAllocator)
+        public WebpEncoderCore(IWebPEncoderOptions options, MemoryAllocator memoryAllocator)
         {
             this.memoryAllocator = memoryAllocator;
             this.alphaCompression = options.AlphaCompression;

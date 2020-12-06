@@ -7,7 +7,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader
 {
     /// <summary>
     /// A bit reader for VP8 streams.
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader
                 range = split + 1;
             }
 
-            int shift = 7 ^ WebPCommonUtils.BitsLog2Floor(range);
+            int shift = 7 ^ WebpCommonUtils.BitsLog2Floor(range);
             range <<= shift;
             this.bits -= shift;
 

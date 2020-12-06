@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.Formats.Experimental.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Tests
                 new JpegConfigurationModule(),
                 new GifConfigurationModule(),
                 new TgaConfigurationModule(),
-                new WebPConfigurationModule());
+                new WebpConfigurationModule());
 
             // Magick codecs should work on all platforms
             IImageEncoder pngEncoder = IsWindows ? (IImageEncoder)SystemDrawingReferenceEncoder.Png : new PngEncoder();

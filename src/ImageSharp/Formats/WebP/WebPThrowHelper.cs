@@ -4,9 +4,9 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
-    internal static class WebPThrowHelper
+    internal static class WebpThrowHelper
     {
         /// <summary>
         /// Cold path optimization for throwing <see cref="ImageFormatException"/>-s

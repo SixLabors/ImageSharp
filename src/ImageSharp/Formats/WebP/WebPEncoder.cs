@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// EXPERIMENTAL:
     /// Image encoder for writing an image to a stream in the WebP format.
     /// </summary>
-    public sealed class WebPEncoder : IImageEncoder, IWebPEncoderOptions
+    public sealed class WebpEncoder : IImageEncoder, IWebPEncoderOptions
     {
         /// <inheritdoc/>
         public bool Lossy { get; set; }
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new WebPEncoderCore(this, image.GetMemoryAllocator());
+            var encoder = new WebpEncoderCore(this, image.GetMemoryAllocator());
             encoder.Encode(image, stream);
         }
 
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         public Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new WebPEncoderCore(this, image.GetMemoryAllocator());
+            var encoder = new WebpEncoderCore(this, image.GetMemoryAllocator());
             return encoder.EncodeAsync(image, stream);
         }
     }

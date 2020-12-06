@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     internal class Vp8Stats
     {
@@ -10,8 +10,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         /// </summary>
         public Vp8Stats()
         {
-            this.Stats = new Vp8StatsArray[WebPConstants.NumCtx];
-            for (int i = 0; i < WebPConstants.NumCtx; i++)
+            this.Stats = new Vp8StatsArray[WebpConstants.NumCtx];
+            for (int i = 0; i < WebpConstants.NumCtx; i++)
             {
                 this.Stats[i] = new Vp8StatsArray();
             }

@@ -6,11 +6,11 @@ using System.Buffers;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-using SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     /// <summary>
     /// Encoder for lossy webp images.
@@ -115,9 +115,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         // Convergence is considered reached if dq < DqLimit
         private const float DqLimit = 0.4f;
 
-        private const ulong Partition0SizeLimit = (WebPConstants.Vp8MaxPartition0Size - 2048UL) << 11;
+        private const ulong Partition0SizeLimit = (WebpConstants.Vp8MaxPartition0Size - 2048UL) << 11;
 
-        private const long HeaderSizeEstimate = WebPConstants.RiffHeaderSize + WebPConstants.ChunkHeaderSize + WebPConstants.Vp8FrameHeaderSize;
+        private const long HeaderSizeEstimate = WebpConstants.RiffHeaderSize + WebpConstants.ChunkHeaderSize + WebpConstants.Vp8FrameHeaderSize;
 
         private const int QMin = 0;
 
@@ -355,7 +355,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             int uvStride = (yStride + 1) >> 1;
 
             var it = new Vp8EncIterator(this.YTop, this.UvTop, this.Nz, this.mbInfo, this.Preds, this.TopDerr, this.mbw, this.mbh);
-            var alphas = new int[WebPConstants.MaxAlpha + 1];
+            var alphas = new int[WebpConstants.MaxAlpha + 1];
             this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
             int totalMb = this.mbw * this.mbw;
             this.alpha = this.alpha / totalMb;
@@ -550,7 +550,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             if (FilterStrength > 0)
             {
                 int maxLevel = 0;
-                for (int s = 0; s < WebPConstants.NumMbSegments; s++)
+                for (int s = 0; s < WebpConstants.NumMbSegments; s++)
                 {
                     Vp8SegmentInfo dqm = this.SegmentInfos[s];
 
@@ -600,18 +600,18 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             int nb = (this.segmentHeader.NumSegments < NumMbSegments) ? this.segmentHeader.NumSegments : NumMbSegments;
             var centers = new int[NumMbSegments];
             int weightedAverage = 0;
-            var map = new int[WebPConstants.MaxAlpha + 1];
+            var map = new int[WebpConstants.MaxAlpha + 1];
             int a, n, k;
             var accum = new int[NumMbSegments];
             var distAccum = new int[NumMbSegments];
 
             // Bracket the input.
-            for (n = 0; n <= WebPConstants.MaxAlpha && alphas[n] == 0; ++n)
+            for (n = 0; n <= WebpConstants.MaxAlpha && alphas[n] == 0; ++n)
             {
             }
 
             var minA = n;
-            for (n = WebPConstants.MaxAlpha; n > minA && alphas[n] == 0; --n)
+            for (n = WebpConstants.MaxAlpha; n > minA && alphas[n] == 0; --n)
             {
             }
 
@@ -730,7 +730,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             int nb = this.segmentHeader.NumSegments;
             Vp8SegmentInfo[] dqm = this.SegmentInfos;
             int snsStrength = 50; // TODO: Spatial Noise Shaping, hardcoded for now.
-            double amp = WebPConstants.SnsToDq * snsStrength / 100.0d / 128.0d;
+            double amp = WebpConstants.SnsToDq * snsStrength / 100.0d / 128.0d;
             double cBase = QualityToCompression(quality / 100.0d);
             for (int i = 0; i < nb; ++i)
             {
@@ -748,13 +748,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             // uvAlpha is normally spread around ~60. The useful range is
             // typically ~30 (quite bad) to ~100 (ok to decimate UV more).
             // We map it to the safe maximal range of MAX/MIN_DQ_UV for dq_uv.
-            this.dqUvAc = (this.uvAlpha - WebPConstants.QuantEncMidAlpha) * (WebPConstants.QuantEncMaxDqUv - WebPConstants.QuantEncMinDqUv) / (WebPConstants.QuantEncMaxAlpha - WebPConstants.QuantEncMinAlpha);
+            this.dqUvAc = (this.uvAlpha - WebpConstants.QuantEncMidAlpha) * (WebpConstants.QuantEncMaxDqUv - WebpConstants.QuantEncMinDqUv) / (WebpConstants.QuantEncMaxAlpha - WebpConstants.QuantEncMinAlpha);
 
             // We rescale by the user-defined strength of adaptation.
             this.dqUvAc = this.dqUvAc * snsStrength / 100;
 
             // and make it safe.
-            this.dqUvAc = Clip(this.dqUvAc, WebPConstants.QuantEncMinDqUv, WebPConstants.QuantEncMaxDqUv);
+            this.dqUvAc = Clip(this.dqUvAc, WebpConstants.QuantEncMinDqUv, WebpConstants.QuantEncMaxDqUv);
 
             // We also boost the dc-uv-quant a little, based on sns-strength, since
             // U/V channels are quite more reactive to high quants (flat DC-blocks
@@ -779,17 +779,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
             // level0 is in [0..500]. Using '-f 50' as filter_strength is mid-filtering.
             int level0 = 5 * FilterStrength;
-            for (int i = 0; i < WebPConstants.NumMbSegments; ++i)
+            for (int i = 0; i < WebpConstants.NumMbSegments; ++i)
             {
                 Vp8SegmentInfo m = this.SegmentInfos[i];
 
                 // We focus on the quantization of AC coeffs.
-                int qstep = WebPLookupTables.AcTable[Clip(m.Quant, 0, 127)] >> 2;
+                int qstep = WebpLookupTables.AcTable[Clip(m.Quant, 0, 127)] >> 2;
                 int baseStrength = this.FilterStrengthFromDelta(this.filterHeader.Sharpness, qstep);
 
                 // Segments with lower complexity ('beta') will be less filtered.
                 int f = baseStrength * level0 / (256 + m.Beta);
-                m.FStrength = (f < WebPConstants.FilterStrengthCutoff) ? 0 : (f > 63) ? 63 : f;
+                m.FStrength = (f < WebpConstants.FilterStrengthCutoff) ? 0 : (f > 63) ? 63 : f;
             }
 
             // We record the initial strength (mainly for the case of 1-segment only).
@@ -861,14 +861,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 m.Y2 = new Vp8Matrix();
                 m.Uv = new Vp8Matrix();
 
-                m.Y1.Q[0] = WebPLookupTables.DcTable[Clip(q, 0, 127)];
-                m.Y1.Q[1] = WebPLookupTables.AcTable[Clip(q, 0, 127)];
+                m.Y1.Q[0] = WebpLookupTables.DcTable[Clip(q, 0, 127)];
+                m.Y1.Q[1] = WebpLookupTables.AcTable[Clip(q, 0, 127)];
 
-                m.Y2.Q[0] = (ushort)(WebPLookupTables.DcTable[Clip(q, 0, 127)] * 2);
-                m.Y2.Q[1] = WebPLookupTables.AcTable2[Clip(q, 0, 127)];
+                m.Y2.Q[0] = (ushort)(WebpLookupTables.DcTable[Clip(q, 0, 127)] * 2);
+                m.Y2.Q[1] = WebpLookupTables.AcTable2[Clip(q, 0, 127)];
 
-                m.Uv.Q[0] = WebPLookupTables.DcTable[Clip(q + this.dqUvDc, 0, 117)];
-                m.Uv.Q[1] = WebPLookupTables.AcTable[Clip(q + this.dqUvAc, 0, 127)];
+                m.Uv.Q[0] = WebpLookupTables.DcTable[Clip(q + this.dqUvDc, 0, 117)];
+                m.Uv.Q[1] = WebpLookupTables.AcTable[Clip(q + this.dqUvAc, 0, 127)];
 
                 var qi4 = m.Y1.Expand(0);
                 var qi16 = m.Y2.Expand(1);
@@ -974,9 +974,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 for (mode = 0; mode < numPredModes; ++mode)
                 {
                     Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]);
-                    long score = (Vp8Sse16X16(src, reference) * WebPConstants.RdDistoMult) + (WebPConstants.Vp8FixedCostsI16[mode] * lambdaDi16);
+                    long score = (Vp8Sse16X16(src, reference) * WebpConstants.RdDistoMult) + (WebpConstants.Vp8FixedCostsI16[mode] * lambdaDi16);
 
-                    if (mode > 0 && WebPConstants.Vp8FixedCostsI16[mode] > bitLimit)
+                    if (mode > 0 && WebpConstants.Vp8FixedCostsI16[mode] > bitLimit)
                     {
                         continue;
                     }
@@ -1014,14 +1014,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 {
                     int bestI4Mode = -1;
                     long bestI4Score = Vp8ModeScore.MaxCost;
-                    Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc + WebPLookupTables.Vp8Scan[it.I4]);
+                    Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc + WebpLookupTables.Vp8Scan[it.I4]);
                     short[] modeCosts = it.GetCostModeI4(rd.ModesI4);
 
                     it.MakeIntra4Preds();
                     for (mode = 0; mode < numBModes; ++mode)
                     {
                         Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]);
-                        long score = (Vp8Sse4X4(src, reference) * WebPConstants.RdDistoMult) + (modeCosts[mode] * lambdaDi4);
+                        long score = (Vp8Sse4X4(src, reference) * WebpConstants.RdDistoMult) + (modeCosts[mode] * lambdaDi4);
                         if (score < bestI4Score)
                         {
                             bestI4Mode = mode;
@@ -1041,7 +1041,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                     else
                     {
                         // Reconstruct partial block inside YuvOut2 buffer
-                        Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc + WebPLookupTables.Vp8Scan[it.I4]);
+                        Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc + WebpLookupTables.Vp8Scan[it.I4]);
                         nz |= this.ReconstructIntra4(it, dqm, rd.YAcLevels.AsSpan(it.I4 * 16, 16), src, tmpDst, bestI4Mode) << it.I4;
                     }
                 }
@@ -1070,7 +1070,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 for (mode = 0; mode < numPredModes; ++mode)
                 {
                     Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8UvModeOffsets[mode]);
-                    long score = (Vp8Sse16X8(src, reference) * WebPConstants.RdDistoMult) + (WebPConstants.Vp8FixedCostsUv[mode] * lambdaDuv);
+                    long score = (Vp8Sse16X8(src, reference) * WebpConstants.RdDistoMult) + (WebpConstants.Vp8FixedCostsUv[mode] * lambdaDuv);
                     if (score < bestUvScore)
                     {
                         bestMode = mode;
@@ -1222,7 +1222,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
             for (n = 0; n < 16; n += 2)
             {
-                Vp8Encoding.FTransform2(src.Slice(WebPLookupTables.Vp8Scan[n]), reference.Slice(WebPLookupTables.Vp8Scan[n]), tmpSpan.Slice(n * 16, 16), tmpSpan.Slice((n + 1) * 16, 16));
+                Vp8Encoding.FTransform2(src.Slice(WebpLookupTables.Vp8Scan[n]), reference.Slice(WebpLookupTables.Vp8Scan[n]), tmpSpan.Slice(n * 16, 16), tmpSpan.Slice((n + 1) * 16, 16));
             }
 
             Vp8Encoding.FTransformWht(tmp, dcTmp);
@@ -1240,7 +1240,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             LossyUtils.TransformWht(dcTmp, tmpSpan);
             for (n = 0; n < 16; n += 2)
             {
-                Vp8Encoding.ITransform(reference.Slice(WebPLookupTables.Vp8Scan[n]), tmpSpan.Slice(n * 16, 32), yuvOut.Slice(WebPLookupTables.Vp8Scan[n]), true);
+                Vp8Encoding.ITransform(reference.Slice(WebpLookupTables.Vp8Scan[n]), tmpSpan.Slice(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8Scan[n]), true);
             }
 
             return nz;
@@ -1268,8 +1268,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             for (n = 0; n < 8; n += 2)
             {
                 Vp8Encoding.FTransform2(
-                    src.Slice(WebPLookupTables.Vp8ScanUv[n]),
-                    reference.Slice(WebPLookupTables.Vp8ScanUv[n]),
+                    src.Slice(WebpLookupTables.Vp8ScanUv[n]),
+                    reference.Slice(WebpLookupTables.Vp8ScanUv[n]),
                     tmp.AsSpan(n * 16, 16),
                     tmp.AsSpan((n + 1) * 16, 16));
             }
@@ -1283,7 +1283,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
             for (n = 0; n < 8; n += 2)
             {
-                Vp8Encoding.ITransform(reference.Slice(WebPLookupTables.Vp8ScanUv[n]), tmp.AsSpan(n * 16, 32), yuvOut.Slice(WebPLookupTables.Vp8ScanUv[n]), true);
+                Vp8Encoding.ITransform(reference.Slice(WebpLookupTables.Vp8ScanUv[n]), tmp.AsSpan(n * 16, 32), yuvOut.Slice(WebpLookupTables.Vp8ScanUv[n]), true);
             }
 
             return nz << 16;
@@ -1346,8 +1346,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int FinalAlphaValue(int alpha)
         {
-            alpha = WebPConstants.MaxAlpha - alpha;
-            return Clip(alpha, 0, WebPConstants.MaxAlpha);
+            alpha = WebpConstants.MaxAlpha - alpha;
+            return Clip(alpha, 0, WebpConstants.MaxAlpha);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -1387,8 +1387,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                     count += diff * diff;
                 }
 
-                aOffset += WebPConstants.Bps;
-                bOffset += WebPConstants.Bps;
+                aOffset += WebpConstants.Bps;
+                bOffset += WebpConstants.Bps;
             }
 
             return count;
@@ -1407,7 +1407,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                     return false;
                 }
 
-                src = src.Slice(WebPConstants.Bps);
+                src = src.Slice(WebpConstants.Bps);
             }
 
             return true;
@@ -1435,8 +1435,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
         private int FilterStrengthFromDelta(int sharpness, int delta)
         {
-            int pos = (delta < WebPConstants.MaxDelzaSize) ? delta : WebPConstants.MaxDelzaSize - 1;
-            return WebPLookupTables.LevelsFromDelta[sharpness, pos];
+            int pos = (delta < WebpConstants.MaxDelzaSize) ? delta : WebpConstants.MaxDelzaSize - 1;
+            return WebpLookupTables.LevelsFromDelta[sharpness, pos];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

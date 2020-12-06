@@ -4,10 +4,10 @@
 using System;
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
 #pragma warning disable SA1201 // Elements should appear in the correct order
-    internal static class WebPLookupTables
+    internal static class WebpLookupTables
     {
         public static readonly Dictionary<int, byte> Abs0;
 
@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 
         public static readonly ushort[] GammaToLinearTab = new ushort[256];
 
-        public static readonly int[] LinearToGammaTab = new int[WebPConstants.GammaTabSize + 1];
+        public static readonly int[] LinearToGammaTab = new int[WebpConstants.GammaTabSize + 1];
 
         public static readonly short[,][] Vp8FixedCostsI4 = new short[10, 10][];
 
@@ -30,28 +30,28 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         public static readonly int[] Vp8DspScan =
         {
             // Luma
-            0 + (0 * WebPConstants.Bps),  4 + (0 * WebPConstants.Bps), 8 + (0 * WebPConstants.Bps), 12 + (0 * WebPConstants.Bps),
-            0 + (4 * WebPConstants.Bps),  4 + (4 * WebPConstants.Bps), 8 + (4 * WebPConstants.Bps), 12 + (4 * WebPConstants.Bps),
-            0 + (8 * WebPConstants.Bps),  4 + (8 * WebPConstants.Bps), 8 + (8 * WebPConstants.Bps), 12 + (8 * WebPConstants.Bps),
-            0 + (12 * WebPConstants.Bps),  4 + (12 * WebPConstants.Bps), 8 + (12 * WebPConstants.Bps), 12 + (12 * WebPConstants.Bps),
+            0 + (0 * WebpConstants.Bps),  4 + (0 * WebpConstants.Bps), 8 + (0 * WebpConstants.Bps), 12 + (0 * WebpConstants.Bps),
+            0 + (4 * WebpConstants.Bps),  4 + (4 * WebpConstants.Bps), 8 + (4 * WebpConstants.Bps), 12 + (4 * WebpConstants.Bps),
+            0 + (8 * WebpConstants.Bps),  4 + (8 * WebpConstants.Bps), 8 + (8 * WebpConstants.Bps), 12 + (8 * WebpConstants.Bps),
+            0 + (12 * WebpConstants.Bps),  4 + (12 * WebpConstants.Bps), 8 + (12 * WebpConstants.Bps), 12 + (12 * WebpConstants.Bps),
 
-            0 + (0 * WebPConstants.Bps),   4 + (0 * WebPConstants.Bps), 0 + (4 * WebPConstants.Bps),  4 + (4 * WebPConstants.Bps), // U
-            8 + (0 * WebPConstants.Bps),  12 + (0 * WebPConstants.Bps), 8 + (4 * WebPConstants.Bps), 12 + (4 * WebPConstants.Bps) // V
+            0 + (0 * WebpConstants.Bps),   4 + (0 * WebpConstants.Bps), 0 + (4 * WebpConstants.Bps),  4 + (4 * WebpConstants.Bps), // U
+            8 + (0 * WebpConstants.Bps),  12 + (0 * WebpConstants.Bps), 8 + (4 * WebpConstants.Bps), 12 + (4 * WebpConstants.Bps) // V
         };
 
         public static readonly short[] Vp8Scan =
         {
             // Luma
-            0 + (0 * WebPConstants.Bps), 4 + (0 * WebPConstants.Bps), 8 + (0 * WebPConstants.Bps), 12 + (0 * WebPConstants.Bps),
-            0 + (4 * WebPConstants.Bps), 4 + (4 * WebPConstants.Bps), 8 + (4 * WebPConstants.Bps), 12 + (4 * WebPConstants.Bps),
-            0 + (8 * WebPConstants.Bps), 4 + (8 * WebPConstants.Bps), 8 + (8 * WebPConstants.Bps), 12 + (8 * WebPConstants.Bps),
-            0 + (12 * WebPConstants.Bps), 4 + (12 * WebPConstants.Bps), 8 + (12 * WebPConstants.Bps), 12 + (12 * WebPConstants.Bps),
+            0 + (0 * WebpConstants.Bps), 4 + (0 * WebpConstants.Bps), 8 + (0 * WebpConstants.Bps), 12 + (0 * WebpConstants.Bps),
+            0 + (4 * WebpConstants.Bps), 4 + (4 * WebpConstants.Bps), 8 + (4 * WebpConstants.Bps), 12 + (4 * WebpConstants.Bps),
+            0 + (8 * WebpConstants.Bps), 4 + (8 * WebpConstants.Bps), 8 + (8 * WebpConstants.Bps), 12 + (8 * WebpConstants.Bps),
+            0 + (12 * WebpConstants.Bps), 4 + (12 * WebpConstants.Bps), 8 + (12 * WebpConstants.Bps), 12 + (12 * WebpConstants.Bps),
         };
 
         public static readonly short[] Vp8ScanUv =
         {
-            0 + (0 * WebPConstants.Bps), 4 + (0 * WebPConstants.Bps), 0 + (4 * WebPConstants.Bps),  4 + (4 * WebPConstants.Bps), // U
-            8 + (0 * WebPConstants.Bps), 12 + (0 * WebPConstants.Bps), 8 + (4 * WebPConstants.Bps), 12 + (4 * WebPConstants.Bps) // V
+            0 + (0 * WebpConstants.Bps), 4 + (0 * WebpConstants.Bps), 0 + (4 * WebpConstants.Bps),  4 + (4 * WebpConstants.Bps), // U
+            8 + (0 * WebpConstants.Bps), 12 + (0 * WebpConstants.Bps), 8 + (4 * WebpConstants.Bps), 12 + (4 * WebpConstants.Bps) // V
         };
 
         // This table gives, for a given sharpness, the filtering strength to be
@@ -1092,18 +1092,18 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
             515, 515, 514, 514
         };
 
-        static WebPLookupTables()
+        static WebpLookupTables()
         {
-            double scale = (double)(1 << WebPConstants.GammaTabFix) / WebPConstants.GammaScale;
+            double scale = (double)(1 << WebpConstants.GammaTabFix) / WebpConstants.GammaScale;
             double norm = 1.0d / 255.0d;
             for (int v = 0; v < 256; ++v)
             {
-                GammaToLinearTab[v] = (ushort)((Math.Pow(norm * v, WebPConstants.Gamma) * WebPConstants.GammaScale) + .5);
+                GammaToLinearTab[v] = (ushort)((Math.Pow(norm * v, WebpConstants.Gamma) * WebpConstants.GammaScale) + .5);
             }
 
-            for (int v = 0; v <= WebPConstants.GammaTabSize; ++v)
+            for (int v = 0; v <= WebpConstants.GammaTabSize; ++v)
             {
-                LinearToGammaTab[v] = (int)((255.0d * Math.Pow(scale * v, 1.0d / WebPConstants.Gamma)) + .5);
+                LinearToGammaTab[v] = (int)((255.0d * Math.Pow(scale * v, 1.0d / WebpConstants.Gamma)) + .5);
             }
 
             Abs0 = new Dictionary<int, byte>();

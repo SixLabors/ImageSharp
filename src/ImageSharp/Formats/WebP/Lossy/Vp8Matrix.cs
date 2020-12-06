@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     internal class Vp8Matrix
     {
@@ -71,13 +71,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             {
                 int isAcCoeff = (i > 0) ? 1 : 0;
                 int bias = BiasMatrices[type][isAcCoeff];
-                this.IQ[i] = (ushort)((1 << WebPConstants.QFix) / this.Q[i]);
+                this.IQ[i] = (ushort)((1 << WebpConstants.QFix) / this.Q[i]);
                 this.Bias[i] = (uint)this.BIAS(bias);
 
                 // zthresh is the exact value such that QUANTDIV(coeff, iQ, B) is:
                 //   * zero if coeff <= zthresh
                 //   * non-zero if coeff > zthresh
-                this.ZThresh[i] = ((1 << WebPConstants.QFix) - 1 - this.Bias[i]) / this.IQ[i];
+                this.ZThresh[i] = ((1 << WebpConstants.QFix) - 1 - this.Bias[i]) / this.IQ[i];
             }
 
             for (i = 2; i < 16; ++i)
@@ -108,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
         private int BIAS(int b)
         {
-            return b << (WebPConstants.QFix - 8);
+            return b << (WebpConstants.QFix - 8);
         }
     }
 }

@@ -9,13 +9,13 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// EXPERIMENTAL:
     /// Image decoder for generating an image out of a webp stream.
     /// </summary>
-    public sealed class WebPDecoder : IImageDecoder, IWebPDecoderOptions, IImageInfoDetector
+    public sealed class WebpDecoder : IImageDecoder, IWebpDecoderOptions, IImageInfoDetector
     {
         /// <summary>
         /// Gets or sets a value indicating whether the metadata should be ignored when the image is being decoded.
@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         {
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new WebPDecoderCore(configuration, this);
+            var decoder = new WebpDecoderCore(configuration, this);
 
             try
             {
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         {
             Guard.NotNull(stream, nameof(stream));
 
-            return new WebPDecoderCore(configuration, this).Identify(configuration, stream);
+            return new WebpDecoderCore(configuration, this).Identify(configuration, stream);
         }
 
         /// <inheritdoc />
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         {
             Guard.NotNull(stream, nameof(stream));
 
-            var decoder = new WebPDecoderCore(configuration, this);
+            var decoder = new WebpDecoderCore(configuration, this);
 
             try
             {
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
             Guard.NotNull(stream, nameof(stream));
 
             using var bufferedStream = new BufferedReadStream(configuration, stream);
-            return new WebPDecoderCore(configuration, this).IdentifyAsync(configuration, bufferedStream, cancellationToken);
+            return new WebpDecoderCore(configuration, this).IdentifyAsync(configuration, bufferedStream, cancellationToken);
         }
     }
 }

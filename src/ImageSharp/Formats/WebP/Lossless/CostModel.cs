@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     internal class CostModel
     {
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             this.Alpha = new double[ValuesInBytes];
             this.Red = new double[ValuesInBytes];
             this.Blue = new double[ValuesInBytes];
-            this.Distance = new double[WebPConstants.NumDistanceCodes];
+            this.Distance = new double[WebpConstants.NumDistanceCodes];
             this.Literal = new double[literalArraySize];
         }
 
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             ConvertPopulationCountTableToBitEstimates(ValuesInBytes, histogram.Red, this.Red);
             ConvertPopulationCountTableToBitEstimates(ValuesInBytes, histogram.Blue, this.Blue);
             ConvertPopulationCountTableToBitEstimates(ValuesInBytes, histogram.Alpha, this.Alpha);
-            ConvertPopulationCountTableToBitEstimates(WebPConstants.NumDistanceCodes, histogram.Distance, this.Distance);
+            ConvertPopulationCountTableToBitEstimates(WebpConstants.NumDistanceCodes, histogram.Distance, this.Distance);
         }
 
         public double GetLengthCost(int length)
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 
         public double GetCacheCost(uint idx)
         {
-            int literalIdx = (int)(ValuesInBytes + WebPConstants.NumLengthCodes + idx);
+            int literalIdx = (int)(ValuesInBytes + WebpConstants.NumLengthCodes + idx);
             return this.Literal[literalIdx];
         }
 

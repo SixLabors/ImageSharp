@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     /// <summary>
     /// Probabilities associated to one of the contexts.
@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         /// </summary>
         public Vp8ProbaArray()
         {
-            this.Probabilities = new byte[WebPConstants.NumProbas];
+            this.Probabilities = new byte[WebpConstants.NumProbas];
         }
 
         /// <summary>

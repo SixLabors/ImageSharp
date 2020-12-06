@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     internal class Vp8CostArray
     {
@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         /// </summary>
         public Vp8CostArray()
         {
-            this.Costs = new ushort[WebPConstants.NumCtx * (67 + 1)];
+            this.Costs = new ushort[WebpConstants.NumCtx * (67 + 1)];
         }
 
         public ushort[] Costs { get; }

@@ -7,14 +7,14 @@ using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     /// <summary>
     /// Utility functions for the lossless decoder.
     /// </summary>
     internal static unsafe class LosslessUtils
     {
-        private const uint Predictor0 = WebPConstants.ArgbBlack;
+        private const uint Predictor0 = WebpConstants.ArgbBlack;
 
         private const int PrefixLookupIdxMax = 512;
 
@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         {
             if (distance < PrefixLookupIdxMax)
             {
-                (int code, int extraBits) prefixCode = WebPLookupTables.PrefixEncodeCode[distance];
+                (int code, int extraBits) prefixCode = WebpLookupTables.PrefixEncodeCode[distance];
                 extraBits = prefixCode.extraBits;
                 return prefixCode.code;
             }
@@ -82,9 +82,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         {
             if (distance < PrefixLookupIdxMax)
             {
-                (int code, int extraBits) prefixCode = WebPLookupTables.PrefixEncodeCode[distance];
+                (int code, int extraBits) prefixCode = WebpLookupTables.PrefixEncodeCode[distance];
                 extraBits = prefixCode.extraBits;
-                extraBitsValue = WebPLookupTables.PrefixEncodeExtraBitsValue[distance];
+                extraBitsValue = WebpLookupTables.PrefixEncodeExtraBitsValue[distance];
 
                 return prefixCode.code;
             }
@@ -510,7 +510,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         /// </summary>
         public static float FastLog2(uint v)
         {
-            return (v < LogLookupIdxMax) ? WebPLookupTables.Log2Table[v] : FastLog2Slow(v);
+            return (v < LogLookupIdxMax) ? WebpLookupTables.Log2Table[v] : FastLog2Slow(v);
         }
 
         /// <summary>
@@ -519,7 +519,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         public static float FastSLog2(uint v)
         {
-            return (v < LogLookupIdxMax) ? WebPLookupTables.SLog2Table[v] : FastSLog2Slow(v);
+            return (v < LogLookupIdxMax) ? WebpLookupTables.SLog2Table[v] : FastSLog2Slow(v);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -567,7 +567,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 // log2(1 + (v % y) / v) ~ LOG_2_RECIPROCAL * (v % y)/v
                 // LOG_2_RECIPROCAL ~ 23/16
                 correction = (int)((23 * (origV & (y - 1))) >> 4);
-                return (vF * (WebPLookupTables.Log2Table[v] + logCnt)) + correction;
+                return (vF * (WebpLookupTables.Log2Table[v] + logCnt)) + correction;
             }
             else
             {
@@ -591,7 +591,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 }
                 while (v >= LogLookupIdxMax);
 
-                double log2 = WebPLookupTables.Log2Table[v] + logCnt;
+                double log2 = WebpLookupTables.Log2Table[v] + logCnt;
                 if (origV >= ApproxLogMax)
                 {
                     // Since the division is still expensive, add this correction factor only
@@ -615,7 +615,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         /// </summary>
         private static int PrefixEncodeBitsNoLut(int distance, ref int extraBits)
         {
-            int highestBit = WebPCommonUtils.BitsLog2Floor((uint)--distance);
+            int highestBit = WebpCommonUtils.BitsLog2Floor((uint)--distance);
             int secondHighestBit = (distance >> (highestBit - 1)) & 1;
             extraBits = highestBit - 1;
             var code = (2 * highestBit) + secondHighestBit;
@@ -624,7 +624,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 
         private static int PrefixEncodeNoLUT(int distance, ref int extraBits, ref int extraBitsValue)
         {
-            int highestBit = WebPCommonUtils.BitsLog2Floor((uint)--distance);
+            int highestBit = WebpCommonUtils.BitsLog2Floor((uint)--distance);
             int secondHighestBit = (distance >> (highestBit - 1)) & 1;
             extraBits = highestBit - 1;
             extraBitsValue = distance & ((1 << extraBits) - 1);
@@ -637,7 +637,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         {
             for (int x = 0; x < numberOfPixels; ++x)
             {
-                output[x] = AddPixels(input[x], WebPConstants.ArgbBlack);
+                output[x] = AddPixels(input[x], WebpConstants.ArgbBlack);
             }
         }
 
@@ -848,7 +848,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         {
             for (int i = 0; i < numPixels; ++i)
             {
-                output[i] = SubPixels(input[i], WebPConstants.ArgbBlack);
+                output[i] = SubPixels(input[i], WebpConstants.ArgbBlack);
             }
         }
 

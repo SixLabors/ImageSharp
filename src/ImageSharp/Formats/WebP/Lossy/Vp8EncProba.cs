@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     internal class Vp8EncProba
     {
@@ -25,37 +25,37 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             this.Dirty = true;
             this.UseSkipProba = false;
             this.Segments = new byte[3];
-            this.Coeffs = new Vp8BandProbas[WebPConstants.NumTypes][];
+            this.Coeffs = new Vp8BandProbas[WebpConstants.NumTypes][];
             for (int i = 0; i < this.Coeffs.Length; i++)
             {
-                this.Coeffs[i] = new Vp8BandProbas[WebPConstants.NumBands];
+                this.Coeffs[i] = new Vp8BandProbas[WebpConstants.NumBands];
                 for (int j = 0; j < this.Coeffs[i].Length; j++)
                 {
                     this.Coeffs[i][j] = new Vp8BandProbas();
                 }
             }
 
-            this.Stats = new Vp8Stats[WebPConstants.NumTypes][];
+            this.Stats = new Vp8Stats[WebpConstants.NumTypes][];
             for (int i = 0; i < this.Coeffs.Length; i++)
             {
-                this.Stats[i] = new Vp8Stats[WebPConstants.NumBands];
+                this.Stats[i] = new Vp8Stats[WebpConstants.NumBands];
                 for (int j = 0; j < this.Stats[i].Length; j++)
                 {
                     this.Stats[i][j] = new Vp8Stats();
                 }
             }
 
-            this.LevelCost = new Vp8CostArray[WebPConstants.NumTypes][];
+            this.LevelCost = new Vp8CostArray[WebpConstants.NumTypes][];
             for (int i = 0; i < this.LevelCost.Length; i++)
             {
-                this.LevelCost[i] = new Vp8CostArray[WebPConstants.NumBands];
+                this.LevelCost[i] = new Vp8CostArray[WebpConstants.NumBands];
                 for (int j = 0; j < this.LevelCost[i].Length; j++)
                 {
                     this.LevelCost[i][j] = new Vp8CostArray();
                 }
             }
 
-            this.RemappedCosts = new Vp8CostArray[WebPConstants.NumTypes][];
+            this.RemappedCosts = new Vp8CostArray[WebpConstants.NumTypes][];
             for (int i = 0; i < this.RemappedCosts.Length; i++)
             {
                 this.RemappedCosts[i] = new Vp8CostArray[16];
@@ -67,16 +67,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
             // Initialize with default probabilities.
             this.Segments.AsSpan().Fill(255);
-            for (int t = 0; t < WebPConstants.NumTypes; ++t)
+            for (int t = 0; t < WebpConstants.NumTypes; ++t)
             {
-                for (int b = 0; b < WebPConstants.NumBands; ++b)
+                for (int b = 0; b < WebpConstants.NumBands; ++b)
                 {
-                    for (int c = 0; c < WebPConstants.NumCtx; ++c)
+                    for (int c = 0; c < WebpConstants.NumCtx; ++c)
                     {
                         Vp8ProbaArray dst = this.Coeffs[t][b].Probabilities[c];
-                        for (int p = 0; p < WebPConstants.NumProbas; ++p)
+                        for (int p = 0; p < WebpConstants.NumProbas; ++p)
                         {
-                            dst.Probabilities[p] = WebPLookupTables.DefaultCoeffsProba[t, b, c, p];
+                            dst.Probabilities[p] = WebpLookupTables.DefaultCoeffsProba[t, b, c, p];
                         }
                     }
                 }
@@ -123,11 +123,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 return; // nothing to do.
             }
 
-            for (int ctype = 0; ctype < WebPConstants.NumTypes; ++ctype)
+            for (int ctype = 0; ctype < WebpConstants.NumTypes; ++ctype)
             {
-                for (int band = 0; band < WebPConstants.NumBands; ++band)
+                for (int band = 0; band < WebpConstants.NumBands; ++band)
                 {
-                    for (int ctx = 0; ctx < WebPConstants.NumCtx; ++ctx)
+                    for (int ctx = 0; ctx < WebpConstants.NumCtx; ++ctx)
                     {
                         Vp8ProbaArray p = this.Coeffs[ctype][band].Probabilities[ctx];
                         Span<ushort> table = this.LevelCost[ctype][band].Costs.AsSpan(ctx * MaxVariableLevel);
@@ -146,10 +146,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
                 for (int n = 0; n < 16; ++n)
                 {
-                    for (int ctx = 0; ctx < WebPConstants.NumCtx; ++ctx)
+                    for (int ctx = 0; ctx < WebpConstants.NumCtx; ++ctx)
                     {
                         Span<ushort> dst = this.RemappedCosts[ctype][n].Costs.AsSpan(ctx * MaxVariableLevel, MaxVariableLevel);
-                        Span<ushort> src = this.LevelCost[ctype][WebPConstants.Vp8EncBands[n]].Costs.AsSpan(ctx * MaxVariableLevel, MaxVariableLevel);
+                        Span<ushort> src = this.LevelCost[ctype][WebpConstants.Vp8EncBands[n]].Costs.AsSpan(ctx * MaxVariableLevel, MaxVariableLevel);
                         src.CopyTo(dst);
                     }
                 }
@@ -162,19 +162,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         {
             bool hasChanged = false;
             int size = 0;
-            for (int t = 0; t < WebPConstants.NumTypes; ++t)
+            for (int t = 0; t < WebpConstants.NumTypes; ++t)
             {
-                for (int b = 0; b < WebPConstants.NumBands; ++b)
+                for (int b = 0; b < WebpConstants.NumBands; ++b)
                 {
-                    for (int c = 0; c < WebPConstants.NumCtx; ++c)
+                    for (int c = 0; c < WebpConstants.NumCtx; ++c)
                     {
-                        for (int p = 0; p < WebPConstants.NumProbas; ++p)
+                        for (int p = 0; p < WebpConstants.NumProbas; ++p)
                         {
                             var stats = this.Stats[t][b].Stats[c].Stats[p];
                             int nb = (int)((stats >> 0) & 0xffff);
                             int total = (int)((stats >> 16) & 0xffff);
-                            int updateProba = WebPLookupTables.CoeffsUpdateProba[t, b, c, p];
-                            int oldP = WebPLookupTables.DefaultCoeffsProba[t, b, c, p];
+                            int updateProba = WebpLookupTables.CoeffsUpdateProba[t, b, c, p];
+                            int oldP = WebpLookupTables.DefaultCoeffsProba[t, b, c, p];
                             int newP = CalcTokenProba(nb, total);
                             int oldCost = BranchCost(nb, total, oldP) + LossyUtils.Vp8BitCost(0, (byte)updateProba);
                             int newCost = BranchCost(nb, total, newP) + LossyUtils.Vp8BitCost(1, (byte)updateProba) + (8 * 256);
@@ -219,13 +219,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
         public void ResetTokenStats()
         {
-            for (int t = 0; t < WebPConstants.NumTypes; ++t)
+            for (int t = 0; t < WebpConstants.NumTypes; ++t)
             {
-                for (int b = 0; b < WebPConstants.NumBands; ++b)
+                for (int b = 0; b < WebpConstants.NumBands; ++b)
                 {
-                    for (int c = 0; c < WebPConstants.NumCtx; ++c)
+                    for (int c = 0; c < WebpConstants.NumCtx; ++c)
                     {
-                        for (int p = 0; p < WebPConstants.NumProbas; ++p)
+                        for (int p = 0; p < WebpConstants.NumProbas; ++p)
                         {
                             this.Stats[t][b].Stats[c].Stats[p] = 0;
                         }
@@ -241,8 +241,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
         private static int VariableLevelCost(int level, Span<byte> probas)
         {
-            int pattern = WebPLookupTables.Vp8LevelCodes[level - 1][0];
-            int bits = WebPLookupTables.Vp8LevelCodes[level - 1][1];
+            int pattern = WebpLookupTables.Vp8LevelCodes[level - 1][0];
+            int bits = WebpLookupTables.Vp8LevelCodes[level - 1][1];
             int cost = 0;
             for (int i = 2; pattern != 0; ++i)
             {

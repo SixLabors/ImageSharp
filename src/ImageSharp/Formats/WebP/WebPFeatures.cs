@@ -4,12 +4,12 @@
 using System;
 using System.Buffers;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// Image features of a VP8X image.
     /// </summary>
-    internal class WebPFeatures : IDisposable
+    internal class WebpFeatures : IDisposable
     {
         /// <summary>
         /// Gets or sets a value indicating whether this image has an ICC Profile.

@@ -3,22 +3,22 @@
 
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// EXPERIMENTAL:
     /// Registers the image encoders, decoders and mime type detectors for the WebP format
     /// </summary>
-    public sealed class WebPFormat : IImageFormat<WebPMetadata>
+    public sealed class WebpFormat : IImageFormat<WebpMetadata>
     {
-        private WebPFormat()
+        private WebpFormat()
         {
         }
 
         /// <summary>
         /// Gets the current instance.
         /// </summary>
-        public static WebPFormat Instance { get; } = new WebPFormat();
+        public static WebpFormat Instance { get; } = new WebpFormat();
 
         /// <inheritdoc/>
         public string Name => "WebP";
@@ -27,12 +27,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         public string DefaultMimeType => "image/webp";
 
         /// <inheritdoc/>
-        public IEnumerable<string> MimeTypes => WebPConstants.MimeTypes;
+        public IEnumerable<string> MimeTypes => WebpConstants.MimeTypes;
 
         /// <inheritdoc/>
-        public IEnumerable<string> FileExtensions => WebPConstants.FileExtensions;
+        public IEnumerable<string> FileExtensions => WebpConstants.FileExtensions;
 
         /// <inheritdoc/>
-        public WebPMetadata CreateDefaultFormatMetadata() => new WebPMetadata();
+        public WebpMetadata CreateDefaultFormatMetadata() => new WebpMetadata();
     }
 }

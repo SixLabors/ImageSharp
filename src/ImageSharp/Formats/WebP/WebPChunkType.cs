@@ -1,13 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// Contains a list of different webp chunk types.
     /// </summary>
     /// <remarks>See WebP Container Specification for more details: https://developers.google.com/speed/webp/docs/riff_container </remarks>
-    public enum WebPChunkType : uint
+    public enum WebpChunkType : uint
     {
         /// <summary>
         /// Header signaling the use of the VP8 format.

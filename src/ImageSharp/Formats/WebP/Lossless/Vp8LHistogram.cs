@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     internal class Vp8LHistogram : IDeepCloneable
     {
@@ -66,12 +66,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         public Vp8LHistogram(int paletteCodeBits)
         {
             this.PaletteCodeBits = paletteCodeBits;
-            this.Red = new uint[WebPConstants.NumLiteralCodes + 1];
-            this.Blue = new uint[WebPConstants.NumLiteralCodes + 1];
-            this.Alpha = new uint[WebPConstants.NumLiteralCodes + 1];
-            this.Distance = new uint[WebPConstants.NumDistanceCodes];
+            this.Red = new uint[WebpConstants.NumLiteralCodes + 1];
+            this.Blue = new uint[WebpConstants.NumLiteralCodes + 1];
+            this.Alpha = new uint[WebpConstants.NumLiteralCodes + 1];
+            this.Distance = new uint[WebpConstants.NumDistanceCodes];
 
-            var literalSize = WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + (1 << WebPConstants.MaxColorCacheBits);
+            var literalSize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + (1 << WebpConstants.MaxColorCacheBits);
             this.Literal = new uint[literalSize + 1];
 
             // 5 for literal, red, blue, alpha, distance.
@@ -150,14 +150,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             }
             else if (v.IsCacheIdx())
             {
-                int literalIx = (int)(WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + v.CacheIdx());
+                int literalIx = (int)(WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + v.CacheIdx());
                 this.Literal[literalIx]++;
             }
             else
             {
                 int extraBits = 0;
                 int code = LosslessUtils.PrefixEncodeBits(v.Length(), ref extraBits);
-                this.Literal[WebPConstants.NumLiteralCodes + code]++;
+                this.Literal[WebpConstants.NumLiteralCodes + code]++;
                 if (!useDistanceModifier)
                 {
                     code = LosslessUtils.PrefixEncodeBits((int)v.Distance(), ref extraBits);
@@ -173,7 +173,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 
         public int NumCodes()
         {
-            return WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + ((this.PaletteCodeBits > 0) ? (1 << this.PaletteCodeBits) : 0);
+            return WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + ((this.PaletteCodeBits > 0) ? (1 << this.PaletteCodeBits) : 0);
         }
 
         /// <summary>
@@ -185,24 +185,24 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             uint notUsed = 0;
             return
                 PopulationCost(this.Literal, this.NumCodes(), ref notUsed, ref this.IsUsed[0])
-                + PopulationCost(this.Red, WebPConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[1])
-                + PopulationCost(this.Blue, WebPConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[2])
-                + PopulationCost(this.Alpha, WebPConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[3])
-                + PopulationCost(this.Distance, WebPConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4])
-                + ExtraCost(this.Literal.AsSpan(WebPConstants.NumLiteralCodes), WebPConstants.NumLengthCodes)
-                + ExtraCost(this.Distance, WebPConstants.NumDistanceCodes);
+                + PopulationCost(this.Red, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[1])
+                + PopulationCost(this.Blue, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[2])
+                + PopulationCost(this.Alpha, WebpConstants.NumLiteralCodes, ref notUsed, ref this.IsUsed[3])
+                + PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4])
+                + ExtraCost(this.Literal.AsSpan(WebpConstants.NumLiteralCodes), WebpConstants.NumLengthCodes)
+                + ExtraCost(this.Distance, WebpConstants.NumDistanceCodes);
         }
 
         public void UpdateHistogramCost()
         {
             uint alphaSym = 0, redSym = 0, blueSym = 0;
             uint notUsed = 0;
-            double alphaCost = PopulationCost(this.Alpha, WebPConstants.NumLiteralCodes, ref alphaSym, ref this.IsUsed[3]);
-            double distanceCost = PopulationCost(this.Distance, WebPConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4]) + ExtraCost(this.Distance, WebPConstants.NumDistanceCodes);
+            double alphaCost = PopulationCost(this.Alpha, WebpConstants.NumLiteralCodes, ref alphaSym, ref this.IsUsed[3]);
+            double distanceCost = PopulationCost(this.Distance, WebpConstants.NumDistanceCodes, ref notUsed, ref this.IsUsed[4]) + ExtraCost(this.Distance, WebpConstants.NumDistanceCodes);
             int numCodes = this.NumCodes();
-            this.LiteralCost = PopulationCost(this.Literal, numCodes, ref notUsed, ref this.IsUsed[0]) + ExtraCost(this.Literal.AsSpan(WebPConstants.NumLiteralCodes), WebPConstants.NumLengthCodes);
-            this.RedCost = PopulationCost(this.Red, WebPConstants.NumLiteralCodes, ref redSym, ref this.IsUsed[1]);
-            this.BlueCost = PopulationCost(this.Blue, WebPConstants.NumLiteralCodes, ref blueSym, ref this.IsUsed[2]);
+            this.LiteralCost = PopulationCost(this.Literal, numCodes, ref notUsed, ref this.IsUsed[0]) + ExtraCost(this.Literal.AsSpan(WebpConstants.NumLiteralCodes), WebpConstants.NumLengthCodes);
+            this.RedCost = PopulationCost(this.Red, WebpConstants.NumLiteralCodes, ref redSym, ref this.IsUsed[1]);
+            this.BlueCost = PopulationCost(this.Blue, WebpConstants.NumLiteralCodes, ref blueSym, ref this.IsUsed[2]);
             this.BitCost = this.LiteralCost + this.RedCost + this.BlueCost + alphaCost + distanceCost;
             if ((alphaSym | redSym | blueSym) == NonTrivialSym)
             {
@@ -247,10 +247,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             int literalSize = this.NumCodes();
 
             this.AddLiteral(b, output, literalSize);
-            this.AddRed(b, output, WebPConstants.NumLiteralCodes);
-            this.AddBlue(b, output, WebPConstants.NumLiteralCodes);
-            this.AddAlpha(b, output, WebPConstants.NumLiteralCodes);
-            this.AddDistance(b, output, WebPConstants.NumDistanceCodes);
+            this.AddRed(b, output, WebpConstants.NumLiteralCodes);
+            this.AddBlue(b, output, WebpConstants.NumLiteralCodes);
+            this.AddAlpha(b, output, WebpConstants.NumLiteralCodes);
+            this.AddDistance(b, output, WebpConstants.NumDistanceCodes);
 
             for (int i = 0; i < 5; i++)
             {
@@ -269,7 +269,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 
             cost += GetCombinedEntropy(this.Literal, b.Literal, this.NumCodes(), this.IsUsed[0], b.IsUsed[0], false);
 
-            cost += ExtraCostCombined(this.Literal.AsSpan(WebPConstants.NumLiteralCodes), b.Literal.AsSpan(WebPConstants.NumLiteralCodes), WebPConstants.NumLengthCodes);
+            cost += ExtraCostCombined(this.Literal.AsSpan(WebpConstants.NumLiteralCodes), b.Literal.AsSpan(WebpConstants.NumLiteralCodes), WebpConstants.NumLengthCodes);
 
             if (cost > costThreshold)
             {
@@ -290,31 +290,31 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 }
             }
 
-            cost += GetCombinedEntropy(this.Red, b.Red, WebPConstants.NumLiteralCodes, this.IsUsed[1], b.IsUsed[1], trivialAtEnd);
+            cost += GetCombinedEntropy(this.Red, b.Red, WebpConstants.NumLiteralCodes, this.IsUsed[1], b.IsUsed[1], trivialAtEnd);
             if (cost > costThreshold)
             {
                 return false;
             }
 
-            cost += GetCombinedEntropy(this.Blue, b.Blue, WebPConstants.NumLiteralCodes, this.IsUsed[2], b.IsUsed[2], trivialAtEnd);
+            cost += GetCombinedEntropy(this.Blue, b.Blue, WebpConstants.NumLiteralCodes, this.IsUsed[2], b.IsUsed[2], trivialAtEnd);
             if (cost > costThreshold)
             {
                 return false;
             }
 
-            cost += GetCombinedEntropy(this.Alpha, b.Alpha, WebPConstants.NumLiteralCodes, this.IsUsed[3], b.IsUsed[3], trivialAtEnd);
+            cost += GetCombinedEntropy(this.Alpha, b.Alpha, WebpConstants.NumLiteralCodes, this.IsUsed[3], b.IsUsed[3], trivialAtEnd);
             if (cost > costThreshold)
             {
                 return false;
             }
 
-            cost += GetCombinedEntropy(this.Distance, b.Distance, WebPConstants.NumDistanceCodes, this.IsUsed[4], b.IsUsed[4], false);
+            cost += GetCombinedEntropy(this.Distance, b.Distance, WebpConstants.NumDistanceCodes, this.IsUsed[4], b.IsUsed[4], false);
             if (cost > costThreshold)
             {
                 return false;
             }
 
-            cost += ExtraCostCombined(this.Distance, b.Distance, WebPConstants.NumDistanceCodes);
+            cost += ExtraCostCombined(this.Distance, b.Distance, WebpConstants.NumDistanceCodes);
             if (cost > costThreshold)
             {
                 return false;
@@ -331,7 +331,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             {
                 var output = new short[16];
 
-                this.Vp8FTransform(reference.Slice(WebPLookupTables.Vp8DspScan[j]), pred.Slice(WebPLookupTables.Vp8DspScan[j]), output);
+                this.Vp8FTransform(reference.Slice(WebpLookupTables.Vp8DspScan[j]), pred.Slice(WebpLookupTables.Vp8DspScan[j]), output);
 
                 // Convert coefficients to bin.
                 for (int k = 0; k < 16; ++k)
@@ -352,7 +352,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             // for handling the useful small values which contribute most.
             int maxValue = this.maxValue;
             int lastNonZero = this.lastNonZero;
-            int alpha = (maxValue > 1) ? WebPConstants.AlphaScale * lastNonZero / maxValue : 0;
+            int alpha = (maxValue > 1) ? WebpConstants.AlphaScale * lastNonZero / maxValue : 0;
             return alpha;
         }
 
@@ -400,8 +400,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 // Do not change the span in the last iteration.
                 if (i < 3)
                 {
-                    src = src.Slice(WebPConstants.Bps);
-                    reference = reference.Slice(WebPConstants.Bps);
+                    src = src.Slice(WebpConstants.Bps);
+                    reference = reference.Slice(WebpConstants.Bps);
                 }
             }
 

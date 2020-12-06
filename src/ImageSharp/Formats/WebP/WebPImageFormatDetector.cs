@@ -3,12 +3,12 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// Detects WebP file headers.
     /// </summary>
-    public sealed class WebPImageFormatDetector : IImageFormatDetector
+    public sealed class WebpImageFormatDetector : IImageFormatDetector
     {
         /// <inheritdoc />
         public int HeaderSize => 12;
@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         /// <inheritdoc />
         public IImageFormat DetectFormat(ReadOnlySpan<byte> header)
         {
-            return this.IsSupportedFileFormat(header) ? WebPFormat.Instance : null;
+            return this.IsSupportedFileFormat(header) ? WebpFormat.Instance : null;
         }
 
         private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         /// <returns>True, if its a valid RIFF FourCC.</returns>
         private bool IsRiffContainer(ReadOnlySpan<byte> header)
         {
-            return header.Slice(0, 4).SequenceEqual(WebPConstants.RiffFourCc);
+            return header.Slice(0, 4).SequenceEqual(WebpConstants.RiffFourCc);
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         /// <returns>True, if its a webp file.</returns>
         private bool IsWebPFile(ReadOnlySpan<byte> header)
         {
-            return header.Slice(8, 4).SequenceEqual(WebPConstants.WebPHeader);
+            return header.Slice(8, 4).SequenceEqual(WebpConstants.WebPHeader);
         }
     }
 }

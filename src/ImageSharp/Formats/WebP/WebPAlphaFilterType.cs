@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// Enum for the different alpha filter types.
     /// </summary>
-    internal enum WebPAlphaFilterType : int
+    internal enum WebpAlphaFilterType : int
     {
         /// <summary>
         /// No filtering.

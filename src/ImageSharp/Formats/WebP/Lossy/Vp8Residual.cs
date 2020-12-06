@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     /// <summary>
     /// On-the-fly info about the current set of residuals.
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 while ((v = this.Coeffs[n++]) == 0)
                 {
                     this.RecordStats(0, s, 1);
-                    s = this.Stats[WebPConstants.Vp8EncBands[n]].Stats[0];
+                    s = this.Stats[WebpConstants.Vp8EncBands[n]].Stats[0];
                 }
 
                 this.RecordStats(1, s, 1);
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 if (this.RecordStats(bit ? 1 : 0, s, 2) == 0)
                 {
                     // v = -1 or 1
-                    s = this.Stats[WebPConstants.Vp8EncBands[n]].Stats[1];
+                    s = this.Stats[WebpConstants.Vp8EncBands[n]].Stats[1];
                 }
                 else
                 {
@@ -88,8 +88,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                         v = MaxVariableLevel;
                     }
 
-                    int bits = WebPLookupTables.Vp8LevelCodes[v - 1][1];
-                    int pattern = WebPLookupTables.Vp8LevelCodes[v - 1][0];
+                    int bits = WebpLookupTables.Vp8LevelCodes[v - 1][1];
+                    int pattern = WebpLookupTables.Vp8LevelCodes[v - 1][0];
                     int i;
                     for (i = 0; (pattern >>= 1) != 0; ++i)
                     {
@@ -100,7 +100,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                         }
                     }
 
-                    s = this.Stats[WebPConstants.Vp8EncBands[n]].Stats[2];
+                    s = this.Stats[WebpConstants.Vp8EncBands[n]].Stats[2];
                 }
             }
 

@@ -3,29 +3,29 @@
 
 using System.IO;
 
-using SixLabors.ImageSharp.Formats.Experimental.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Tests.Formats.WebP
+namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
     using static SixLabors.ImageSharp.Tests.TestImages.WebP;
 
     [Trait("Format", "Webp")]
-    public class WebPDecoderTests
+    public class WebpDecoderTests
     {
-        private static WebPDecoder WebpDecoder => new WebPDecoder();
+        private static WebpDecoder WebpDecoder => new WebpDecoder();
 
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
-        public WebPDecoderTests()
+        public WebpDecoderTests()
         {
-            Configuration.Default.ImageFormatsManager.AddImageFormat(WebPFormat.Instance);
-            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new WebPImageFormatDetector());
-            Configuration.Default.ImageFormatsManager.SetDecoder(WebPFormat.Instance, new WebPDecoder());
+            Configuration.Default.ImageFormatsManager.AddImageFormat(WebpFormat.Instance);
+            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new WebpImageFormatDetector());
+            Configuration.Default.ImageFormatsManager.SetDecoder(WebpFormat.Instance, new WebpDecoder());
         }
 
         [Theory]

@@ -4,7 +4,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Experimental.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
@@ -15,10 +15,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     {
         public ImageExtensionsTest()
         {
-            Configuration.Default.ImageFormatsManager.AddImageFormat(WebPFormat.Instance);
-            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new WebPImageFormatDetector());
-            Configuration.Default.ImageFormatsManager.SetDecoder(WebPFormat.Instance, new WebPDecoder());
-            Configuration.Default.ImageFormatsManager.SetEncoder(WebPFormat.Instance, new WebPEncoder());
+            Configuration.Default.ImageFormatsManager.AddImageFormat(WebpFormat.Instance);
+            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new WebpImageFormatDetector());
+            Configuration.Default.ImageFormatsManager.SetDecoder(WebpFormat.Instance, new WebpDecoder());
+            Configuration.Default.ImageFormatsManager.SetEncoder(WebpFormat.Instance, new WebpEncoder());
         }
 
         [Fact]
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             using (var image = new Image<Rgba32>(10, 10))
             {
-                image.SaveAsWebP(file);
+                image.SaveAsWebp(file);
             }
 
             using (Image.Load(file, out IImageFormat mime))
@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             using (var image = new Image<Rgba32>(10, 10))
             {
-                await image.SaveAsWebPAsync(file);
+                await image.SaveAsWebpAsync(file);
             }
 
             using (Image.Load(file, out IImageFormat mime))
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             using (var image = new Image<Rgba32>(10, 10))
             {
-                image.SaveAsWebP(file, new WebPEncoder());
+                image.SaveAsWebp(file, new WebpEncoder());
             }
 
             using (Image.Load(file, out IImageFormat mime))
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             using (var image = new Image<Rgba32>(10, 10))
             {
-                await image.SaveAsWebPAsync(file, new WebPEncoder());
+                await image.SaveAsWebpAsync(file, new WebpEncoder());
             }
 
             using (Image.Load(file, out IImageFormat mime))
@@ -96,7 +96,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             using (var image = new Image<Rgba32>(10, 10))
             {
-                image.SaveAsWebP(memoryStream);
+                image.SaveAsWebp(memoryStream);
             }
 
             memoryStream.Position = 0;
@@ -114,7 +114,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             using (var image = new Image<Rgba32>(10, 10))
             {
-                await image.SaveAsWebPAsync(memoryStream);
+                await image.SaveAsWebpAsync(memoryStream);
             }
 
             memoryStream.Position = 0;
@@ -132,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             using (var image = new Image<Rgba32>(10, 10))
             {
-                image.SaveAsWebp(memoryStream, new WebPEncoder());
+                image.SaveAsWebp(memoryStream, new WebpEncoder());
             }
 
             memoryStream.Position = 0;
@@ -150,7 +150,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
 
             using (var image = new Image<Rgba32>(10, 10))
             {
-                await image.SaveAsWebPAsync(memoryStream, new WebPEncoder());
+                await image.SaveAsWebpAsync(memoryStream, new WebpEncoder());
             }
 
             memoryStream.Position = 0;

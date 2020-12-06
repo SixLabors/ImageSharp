@@ -5,7 +5,7 @@ using System.IO;
 using BenchmarkDotNet.Attributes;
 
 using ImageMagick;
-using SixLabors.ImageSharp.Formats.Experimental.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 
@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void ReadImages()
         {
             this.configuration = Configuration.CreateDefaultInstance();
-            new WebPConfigurationModule().Configure(this.configuration);
+            new WebpConfigurationModule().Configure(this.configuration);
 
             this.webpLossyBytes ??= File.ReadAllBytes(this.TestImageLossyFullPath);
             this.webpLosslessBytes ??= File.ReadAllBytes(this.TestImageLosslessFullPath);

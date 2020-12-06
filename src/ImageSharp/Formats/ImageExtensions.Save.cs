@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 // using SixLabors.ImageSharp.Formats.Experimental.Tiff;
-using SixLabors.ImageSharp.Formats.Experimental.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.Webp;
 
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -538,47 +538,47 @@ namespace SixLabors.ImageSharp
                 cancellationToken);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the WebP format.
+        /// EXPERIMENTAL! Saves the image to the given stream with the Webp format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-        public static void SaveAsWebP(this Image source, string path) => SaveAsWebP(source, path, null);
+        public static void SaveAsWebp(this Image source, string path) => SaveAsWebp(source, path, null);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the WebP format.
+        /// EXPERIMENTAL! Saves the image to the given stream with the Webp format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsWebPAsync(this Image source, string path) => SaveAsWebPAsync(source, path, null);
+        public static Task SaveAsWebpAsync(this Image source, string path) => SaveAsWebpAsync(source, path, null);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the WebP format.
+        /// EXPERIMENTAL! Saves the image to the given stream with the Webp format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsWebPAsync(this Image source, string path, CancellationToken cancellationToken)
-            => SaveAsWebPAsync(source, path, null, cancellationToken);
+        public static Task SaveAsWebpAsync(this Image source, string path, CancellationToken cancellationToken)
+            => SaveAsWebpAsync(source, path, null, cancellationToken);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the WebP format.
+        /// EXPERIMENTAL! Saves the image to the given stream with the Webp format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
-        public static void SaveAsWebP(this Image source, string path, WebPEncoder encoder) =>
+        public static void SaveAsWebp(this Image source, string path, WebpEncoder encoder) =>
             source.Save(
                 path,
-                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebPFormat.Instance));
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance));
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the WebP format.
+        /// EXPERIMENTAL! Saves the image to the given stream with the Webp format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
@@ -586,47 +586,47 @@ namespace SixLabors.ImageSharp
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the path is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsWebPAsync(this Image source, string path, WebPEncoder encoder, CancellationToken cancellationToken = default) =>
+        public static Task SaveAsWebpAsync(this Image source, string path, WebpEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 path,
-                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebPFormat.Instance),
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance),
                 cancellationToken);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the WebP format.
+        /// EXPERIMENTAL! Saves the image to the given stream with the Webp format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
-        public static void SaveAsWebP(this Image source, Stream stream)
-            => SaveAsWebP(source, stream, null);
+        public static void SaveAsWebp(this Image source, Stream stream)
+            => SaveAsWebp(source, stream, null);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the WebP format.
+        /// EXPERIMENTAL! Saves the image to the given stream with the Webp format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsWebPAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
-            => SaveAsWebPAsync(source, stream, null, cancellationToken);
+        public static Task SaveAsWebpAsync(this Image source, Stream stream, CancellationToken cancellationToken = default)
+            => SaveAsWebpAsync(source, stream, null, cancellationToken);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the WebP format.
+        /// EXPERIMENTAL! Saves the image to the given stream with the Webp format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
         /// <param name="encoder">The encoder to save the image with.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static void SaveAsWebP(this Image source, Stream stream, WebPEncoder encoder)
+        public static void SaveAsWebp(this Image source, Stream stream, WebpEncoder encoder)
             => source.Save(
                 stream,
-                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebPFormat.Instance));
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance));
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the WebP format.
+        /// EXPERIMENTAL! Saves the image to the given stream with the Webp format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
@@ -634,10 +634,10 @@ namespace SixLabors.ImageSharp
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <exception cref="System.ArgumentNullException">Thrown if the stream is null.</exception>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        public static Task SaveAsWebPAsync(this Image source, Stream stream, WebPEncoder encoder, CancellationToken cancellationToken = default) =>
+        public static Task SaveAsWebpAsync(this Image source, Stream stream, WebpEncoder encoder, CancellationToken cancellationToken = default) =>
             source.SaveAsync(
                 stream,
-                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebPFormat.Instance),
+                encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(WebpFormat.Instance),
                 cancellationToken);
 
     }

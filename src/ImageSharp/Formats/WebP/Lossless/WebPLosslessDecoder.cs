@@ -945,17 +945,23 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         /// <param name="length">The number of pixels to copy.</param>
         private static void CopyBlock(Span<uint> pixelData, int decodedPixels, int dist, int length)
         {
+            int start = decodedPixels - dist;
+            if (start < 0)
+            {
+                WebPThrowHelper.ThrowImageFormatException("webp image data seems to be invalid");
+            }
+
             if (dist >= length)
             {
                 // no overlap.
-                Span<uint> src = pixelData.Slice(decodedPixels - dist, length);
+                Span<uint> src = pixelData.Slice(start, length);
                 Span<uint> dest = pixelData.Slice(decodedPixels);
                 src.CopyTo(dest);
             }
             else
             {
                 // There is overlap between the backward reference distance and the pixels to copy.
-                Span<uint> src = pixelData.Slice(decodedPixels - dist);
+                Span<uint> src = pixelData.Slice(start);
                 Span<uint> dest = pixelData.Slice(decodedPixels);
                 for (int i = 0; i < length; i++)
                 {

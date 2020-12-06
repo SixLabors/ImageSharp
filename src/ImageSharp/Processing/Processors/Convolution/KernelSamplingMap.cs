@@ -52,9 +52,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             ref int ySpanBase = ref MemoryMarshal.GetReference(ySpan);
             for (int row = 0; row < bounds.Height; row++)
             {
+                int rowBase = row * kernelHeight;
                 for (int y = 0; y < kernelHeight; y++)
                 {
-                    Unsafe.Add(ref ySpanBase, (row * kernelHeight) + y) = row + y + minY - radiusY;
+                    Unsafe.Add(ref ySpanBase, rowBase + y) = row + y + minY - radiusY;
                 }
             }
 
@@ -67,9 +68,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             ref int xSpanBase = ref MemoryMarshal.GetReference(xSpan);
             for (int column = 0; column < bounds.Width; column++)
             {
+                int columnBase = column * kernelWidth;
                 for (int x = 0; x < kernelWidth; x++)
                 {
-                    Unsafe.Add(ref xSpanBase, (column * kernelWidth) + x) = column + x + minX - radiusX;
+                    Unsafe.Add(ref xSpanBase, columnBase + x) = column + x + minX - radiusX;
                 }
             }
 

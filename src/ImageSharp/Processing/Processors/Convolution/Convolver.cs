@@ -100,14 +100,16 @@ namespace SixLabors.ImageSharp
             Vector4 vectorY = default;
             Vector4 vectorX = default;
 
+            ref int sampleOffsetRowBase = ref state.GetSampleOffsetRow(row);
             for (int y = 0; y < kernelHeight; y++)
             {
-                int offsetY = state.GetRowSampleOffset(row, y);
+                int offsetY = Unsafe.Add(ref sampleOffsetRowBase, y);
                 ref TPixel sourceRowBase = ref MemoryMarshal.GetReference(sourcePixels.GetRowSpan(offsetY));
+                ref int sampleOffsetColumnBase = ref state.GetSampleOffsetColumn(column);
 
                 for (int x = 0; x < kernelWidth; x++)
                 {
-                    int offsetX = state.GetColumnSampleOffset(column, x);
+                    int offsetX = Unsafe.Add(ref sampleOffsetColumnBase, x);
                     var sample = Unsafe.Add(ref sourceRowBase, offsetX).ToVector4();
                     Numerics.Premultiply(ref sample);
                     vectorX += kernelX[y, x] * sample;
@@ -199,14 +201,16 @@ namespace SixLabors.ImageSharp
             int kernelHeight = kernel.Rows;
             int kernelWidth = kernel.Columns;
 
+            ref int sampleOffsetRowBase = ref state.GetSampleOffsetRow(row);
             for (int y = 0; y < kernelHeight; y++)
             {
-                int offsetY = state.GetRowSampleOffset(row, y);
+                int offsetY = Unsafe.Add(ref sampleOffsetRowBase, y);
                 ref TPixel sourceRowBase = ref MemoryMarshal.GetReference(sourcePixels.GetRowSpan(offsetY));
+                ref int sampleOffsetColumnBase = ref state.GetSampleOffsetColumn(column);
 
                 for (int x = 0; x < kernelWidth; x++)
                 {
-                    int offsetX = state.GetColumnSampleOffset(column, x);
+                    int offsetX = Unsafe.Add(ref sampleOffsetColumnBase, x);
                     var sample = Unsafe.Add(ref sourceRowBase, offsetX).ToVector4();
                     Numerics.Premultiply(ref sample);
                     targetVector += kernel[y, x] * sample;

@@ -31,24 +31,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             this.columnOffsetMap = map.GetColumnOffsetSpan();
         }
 
-        public ReadOnlyKernel KernelY
+        public readonly ReadOnlyKernel KernelY
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get;
         }
 
-        public ReadOnlyKernel KernelX
+        public readonly ReadOnlyKernel KernelX
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetRowSampleOffset(int row, int kernelRow)
-            => Unsafe.Add(ref MemoryMarshal.GetReference(this.rowOffsetMap), (row * this.kernelHeight) + kernelRow);
+        public readonly ref int GetSampleOffsetRow(int row)
+            => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.rowOffsetMap), row * this.kernelHeight);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetColumnSampleOffset(int column, int kernelColumn)
-            => Unsafe.Add(ref MemoryMarshal.GetReference(this.columnOffsetMap), (column * this.kernelWidth) + kernelColumn);
+        public readonly ref int GetSampleOffsetColumn(int column)
+            => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.columnOffsetMap), column * this.kernelWidth);
     }
 }

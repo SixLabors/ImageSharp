@@ -196,15 +196,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             ApplyInverseTransforms(decoder, pixelData, this.memoryAllocator);
 
             Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
-            int widthMul4 = width * 4;
+            int bytesPerRow = width * 4;
             for (int y = 0; y < decoder.Height; y++)
             {
-                Span<byte> row = pixelDataAsBytes.Slice(y * widthMul4, widthMul4);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<byte> rowAsBytes = pixelDataAsBytes.Slice(y * bytesPerRow, bytesPerRow);
+                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromBgra32Bytes(
                     this.configuration,
-                    row,
-                    pixelSpan,
+                    rowAsBytes.Slice(0, bytesPerRow),
+                    pixelRow.Slice(0, width),
                     width);
             }
         }

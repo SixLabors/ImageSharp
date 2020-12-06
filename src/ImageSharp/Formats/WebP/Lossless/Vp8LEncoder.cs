@@ -423,6 +423,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 
             Vp8LBitWriter bitWriterBest = config.SubConfigs.Count > 1 ? this.bitWriter.Clone() : this.bitWriter;
             Vp8LBitWriter bwInit = this.bitWriter;
+            bool isFirstIteration = true;
             foreach (CrunchSubConfig subConfig in config.SubConfigs)
             {
                 Vp8LBackwardRefs refsBest = BackwardReferenceEncoder.GetBackwardReferences(
@@ -525,11 +526,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 this.StoreImageToBitMask(width, histogramBits, refsBest, histogramSymbols, huffmanCodes);
 
                 // Keep track of the smallest image so far.
-                if (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes())
+                if (isFirstIteration || (bitWriterBest != null && this.bitWriter.NumBytes() < bitWriterBest.NumBytes()))
                 {
                     // TODO: This was done in the reference by swapping references, this will be slower
                     bitWriterBest = this.bitWriter.Clone();
                 }
+
+                isFirstIteration = false;
             }
 
             this.bitWriter = bitWriterBest;
@@ -1156,6 +1159,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 xBits = (paletteSize <= 16) ? 1 : 0;
             }
 
+            this.CurrentWidth = LosslessUtils.SubSampleSize(width, xBits);
             this.ApplyPalette(src, srcStride, dst, this.CurrentWidth, palette, paletteSize, width, height, xBits);
         }
 

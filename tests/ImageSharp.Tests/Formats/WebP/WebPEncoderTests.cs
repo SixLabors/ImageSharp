@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
 {
     using static TestImages.WebP;
 
+    [Trait("Format", "Webp")]
     public class WebPEncoderTests
     {
         [Theory]

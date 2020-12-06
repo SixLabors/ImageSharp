@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [-1, -1, -1, -1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct NormalizedByte4 : IPixel<NormalizedByte4>, IPackedVector<uint>
+    public partial struct NormalizedByte4 : IPixel<NormalizedByte4>, IPackedVector<uint>
     {
         private static readonly Vector4 Half = new Vector4(127);
         private static readonly Vector4 MinusOne = new Vector4(-1F);
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(NormalizedByte4 left, NormalizedByte4 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<NormalizedByte4> CreatePixelOperations() => new PixelOperations<NormalizedByte4>();
+        public readonly PixelOperations<NormalizedByte4> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         private static uint Pack(ref Vector4 vector)
         {
-            vector = Vector4Utilities.FastClamp(vector, MinusOne, Vector4.One) * Half;
+            vector = Numerics.Clamp(vector, MinusOne, Vector4.One) * Half;
 
             uint byte4 = ((uint)MathF.Round(vector.X) & 0xFF) << 0;
             uint byte3 = ((uint)MathF.Round(vector.Y) & 0xFF) << 8;

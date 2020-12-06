@@ -28,14 +28,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sourceSize">The source image size</param>
         public RotateProcessor(float degrees, IResampler sampler, Size sourceSize)
             : this(
-                TransformUtilities.CreateRotationMatrixDegrees(degrees, sourceSize),
+                TransformUtils.CreateRotationMatrixDegrees(degrees, sourceSize),
                 sampler,
                 sourceSize)
             => this.Degrees = degrees;
 
         // Helper constructor
         private RotateProcessor(Matrix3x2 rotationMatrix, IResampler sampler, Size sourceSize)
-            : base(rotationMatrix, sampler, TransformUtilities.GetTransformedSize(sourceSize, rotationMatrix))
+            : base(rotationMatrix, sampler, TransformUtils.GetTransformedSize(sourceSize, rotationMatrix))
         {
         }
 

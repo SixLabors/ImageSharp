@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
         /// <param name="index">The new index position</param>
         public void SetIndex(int index)
         {
-            this.currentIndex = index.Clamp(0, this.data.Length);
+            this.currentIndex = Numerics.Clamp(index, 0, this.data.Length);
         }
 
         /// <summary>

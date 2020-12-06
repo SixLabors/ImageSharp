@@ -29,23 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader
         {
             this.Data = memoryAllocator.Allocate<byte>(bytesToRead);
             Span<byte> dataSpan = this.Data.Memory.Span;
-
-            using (IManagedByteBuffer buffer = memoryAllocator.AllocateManagedByteBuffer(4096))
-            {
-                Span<byte> bufferSpan = buffer.GetSpan();
-                int read;
-                while (bytesToRead > 0 && (read = input.Read(buffer.Array, 0, Math.Min(bufferSpan.Length, bytesToRead))) > 0)
-                {
-                    buffer.Array.AsSpan(0, read).CopyTo(dataSpan);
-                    bytesToRead -= read;
-                    dataSpan = dataSpan.Slice(read);
-                }
-
-                if (bytesToRead > 0)
-                {
-                    WebPThrowHelper.ThrowImageFormatException("webp image file has insufficient data");
-                }
-            }
+            input.Read(dataSpan.Slice(0, bytesToRead), 0, bytesToRead);
         }
 
         /// <inheritdoc/>

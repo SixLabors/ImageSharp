@@ -20,9 +20,7 @@ namespace SixLabors.ImageSharp.Tests
     public class TestEnvironmentTests
     {
         public TestEnvironmentTests(ITestOutputHelper output)
-        {
-            this.Output = output;
-        }
+            => this.Output = output;
 
         private ITestOutputHelper Output { get; }
 
@@ -34,21 +32,15 @@ namespace SixLabors.ImageSharp.Tests
 
         [Fact]
         public void SolutionDirectoryFullPath()
-        {
-            this.CheckPath(TestEnvironment.SolutionDirectoryFullPath);
-        }
+            => this.CheckPath(TestEnvironment.SolutionDirectoryFullPath);
 
         [Fact]
         public void InputImagesDirectoryFullPath()
-        {
-            this.CheckPath(TestEnvironment.InputImagesDirectoryFullPath);
-        }
+            => this.CheckPath(TestEnvironment.InputImagesDirectoryFullPath);
 
         [Fact]
         public void ExpectedOutputDirectoryFullPath()
-        {
-            this.CheckPath(TestEnvironment.ReferenceOutputDirectoryFullPath);
-        }
+            => this.CheckPath(TestEnvironment.ReferenceOutputDirectoryFullPath);
 
         [Fact]
         public void GetReferenceOutputFileName()
@@ -67,7 +59,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]
         public void GetReferenceEncoder_ReturnsCorrectEncoders_Windows(string fileName, Type expectedEncoderType)
         {
-            if (TestEnvironment.IsLinux)
+            if (!TestEnvironment.IsWindows)
             {
                 return;
             }
@@ -83,7 +75,7 @@ namespace SixLabors.ImageSharp.Tests
         [InlineData("lol/Baz.gif", typeof(GifDecoder))]
         public void GetReferenceDecoder_ReturnsCorrectDecoders_Windows(string fileName, Type expectedDecoderType)
         {
-            if (TestEnvironment.IsLinux)
+            if (!TestEnvironment.IsWindows)
             {
                 return;
             }

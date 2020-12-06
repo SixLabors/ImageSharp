@@ -2,25 +2,47 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
-
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats
 {
-    public class GeneralFormatTests : FileTestBase
+    public class GeneralFormatTests
     {
+        /// <summary>
+        /// A collection made up of one file for each image format
+        /// </summary>
+        public static readonly IEnumerable<string> DefaultFiles =
+            new[]
+            {
+                TestImages.Bmp.Car,
+                TestImages.Jpeg.Baseline.Calliphora,
+                TestImages.Png.Splash,
+                TestImages.Gif.Trans
+            };
+
+        /// <summary>
+        /// The collection of image files to test against.
+        /// </summary>
+        protected static readonly List<TestFile> Files = new List<TestFile>
+        {
+            TestFile.Create(TestImages.Jpeg.Baseline.Calliphora),
+            TestFile.Create(TestImages.Bmp.Car),
+            TestFile.Create(TestImages.Png.Splash),
+            TestFile.Create(TestImages.Gif.Rings),
+        };
+
         [Theory]
-        [WithFileCollection(nameof(DefaultFiles), DefaultPixelType)]
+        [WithFileCollection(nameof(DefaultFiles), PixelTypes.Rgba32)]
         public void ResolutionShouldChange<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -200,7 +222,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
         [Fact]
         public void IdentifyReturnsNullWithInvalidStream()
         {
-            byte[] invalid = new byte[10];
+            var invalid = new byte[10];
 
             using (var memoryStream = new MemoryStream(invalid))
             {
@@ -212,8 +234,7 @@ namespace SixLabors.ImageSharp.Tests.Formats
         }
 
         private static IImageFormat GetFormat(string format)
-        {
-            return Configuration.Default.ImageFormats.FirstOrDefault(x => x.FileExtensions.Contains(format));
-        }
+            => Configuration.Default.ImageFormats
+            .FirstOrDefault(x => x.FileExtensions.Contains(format));
     }
 }

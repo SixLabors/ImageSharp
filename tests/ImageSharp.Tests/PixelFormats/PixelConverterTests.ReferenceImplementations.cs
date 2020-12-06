@@ -7,8 +7,11 @@ using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.PixelFormats;
 
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
+    [Trait("Category", "PixelFormats")]
     public abstract partial class PixelConverterTests
     {
         public static class ReferenceImplementations

@@ -8,6 +8,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.WebP
 {
+    [Trait("Format", "Webp")]
     public class WebPMetadataTests
     {
         [Theory]

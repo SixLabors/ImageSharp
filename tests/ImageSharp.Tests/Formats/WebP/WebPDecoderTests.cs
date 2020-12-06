@@ -14,6 +14,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
 {
     using static SixLabors.ImageSharp.Tests.TestImages.WebP;
 
+    [Trait("Format", "Webp")]
     public class WebPDecoderTests
     {
         private static WebPDecoder WebpDecoder => new WebPDecoder();

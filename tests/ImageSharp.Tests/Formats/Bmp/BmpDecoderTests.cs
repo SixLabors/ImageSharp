@@ -7,6 +7,7 @@ using Microsoft.DotNet.RemoteExecutor;
 
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -14,12 +15,12 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
 
+using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
+
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
-    using SixLabors.ImageSharp.Metadata;
-    using static TestImages.Bmp;
-
+    [Trait("Format", "Bmp")]
     public class BmpDecoderTests
     {
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;

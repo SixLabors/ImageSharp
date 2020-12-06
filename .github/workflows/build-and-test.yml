@@ -56,7 +56,7 @@ jobs:
                   git fetch --prune --unshallow
                   git submodule -q update --init --recursive
 
-            - name: Setup nuget cache
+            - name: Setup NuGet Cache
               uses: actions/cache@v2
               id: nuget-cache
               with:
@@ -74,6 +74,13 @@ jobs:
               env:
                   CI: True
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
+
+            - name: Store Output Images after failed tests
+              uses: actions/upload-artifact@v2
+              if: failure()
+              with:
+                  name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
+                  path: tests/Images/ActualOutput/
 
             - name: Update Codecov
               uses: codecov/codecov-action@v1

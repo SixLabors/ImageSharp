@@ -1,14 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
+    [Trait("Category", "PixelFormats")]
     public abstract partial class PixelConverterTests
     {
         public static readonly TheoryData<byte, byte, byte, byte> RgbaData =

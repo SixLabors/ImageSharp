@@ -16,6 +16,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public class JpegColorConverterTests
     {
         private const float Precision = 0.1F / 255;

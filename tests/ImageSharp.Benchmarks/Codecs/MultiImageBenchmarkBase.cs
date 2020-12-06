@@ -1,49 +1,40 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Numerics;
+using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Diagnosers;
+using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Jobs;
-
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests;
+using CoreImage = SixLabors.ImageSharp.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Drawing;
-    using System.IO;
-    using System.Linq;
-    using System.Numerics;
-
-    using BenchmarkDotNet.Attributes;
-    using BenchmarkDotNet.Diagnosers;
-    using BenchmarkDotNet.Environments;
-    using SixLabors.ImageSharp.Tests;
-
-    using CoreImage = SixLabors.ImageSharp.Image;
-
     public abstract class MultiImageBenchmarkBase
     {
         public class Config : ManualConfig
         {
-            public Config()
-            {
-                // Uncomment if you want to use any of the diagnoser
-                this.Add(MemoryDiagnoser.Default);
-            }
+            public Config() => this.AddDiagnoser(MemoryDiagnoser.Default);
 
             public class ShortClr : Benchmarks.Config
             {
-                public ShortClr()
-                {
-                    this.Add(Job.Default.With(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(1).WithIterationCount(2));
-                }
+                public ShortClr() => this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(1).WithIterationCount(2));
             }
         }
 
-        protected Dictionary<string, byte[]> fileNamesToBytes = new Dictionary<string, byte[]>();
-        protected Dictionary<string, Image<Rgba32>> fileNamesToImageSharpImages = new Dictionary<string, Image<Rgba32>>();
-        protected Dictionary<string, Bitmap> fileNamesToSystemDrawingImages = new Dictionary<string, System.Drawing.Bitmap>();
+        protected Dictionary<string, byte[]> FileNamesToBytes { get; set; } = new Dictionary<string, byte[]>();
+
+        protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages { get; set; } = new Dictionary<string, Image<Rgba32>>();
+
+        protected Dictionary<string, Bitmap> FileNamesToSystemDrawingImages { get; set; } = new Dictionary<string, System.Drawing.Bitmap>();
 
         /// <summary>
         /// The values of this enum separate input files into categories.
@@ -109,7 +100,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         protected IEnumerable<KeyValuePair<string, byte[]>> FileNames2Bytes
             =>
             this.EnumeratePairsByBenchmarkSettings(
-                this.fileNamesToBytes,
+                this.FileNamesToBytes,
                 arr => arr.Length < this.LargeImageThresholdInBytes);
 
         protected abstract IEnumerable<string> InputImageSubfoldersOrFiles { get; }
@@ -132,7 +123,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             {
                 if (File.Exists(path))
                 {
-                    this.fileNamesToBytes[path] = File.ReadAllBytes(path);
+                    this.FileNamesToBytes[path] = File.ReadAllBytes(path);
                     continue;
                 }
 
@@ -146,7 +137,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
                 foreach (string fn in allFiles)
                 {
-                    this.fileNamesToBytes[fn] = File.ReadAllBytes(fn);
+                    this.FileNamesToBytes[fn] = File.ReadAllBytes(fn);
                 }
             }
         }
@@ -180,30 +171,30 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             {
                 base.ReadFilesImpl();
 
-                foreach (KeyValuePair<string, byte[]> kv in this.fileNamesToBytes)
+                foreach (KeyValuePair<string, byte[]> kv in this.FileNamesToBytes)
                 {
                     byte[] bytes = kv.Value;
                     string fn = kv.Key;
 
                     using (var ms1 = new MemoryStream(bytes))
                     {
-                        this.fileNamesToImageSharpImages[fn] = CoreImage.Load<Rgba32>(ms1);
+                        this.FileNamesToImageSharpImages[fn] = CoreImage.Load<Rgba32>(ms1);
                     }
 
-                    this.fileNamesToSystemDrawingImages[fn] = new Bitmap(new MemoryStream(bytes));
+                    this.FileNamesToSystemDrawingImages[fn] = new Bitmap(new MemoryStream(bytes));
                 }
             }
 
             protected IEnumerable<KeyValuePair<string, Image<Rgba32>>> FileNames2ImageSharpImages
                 =>
                 this.EnumeratePairsByBenchmarkSettings(
-                    this.fileNamesToImageSharpImages,
+                    this.FileNamesToImageSharpImages,
                     img => img.Width * img.Height < this.LargeImageThresholdInPixels);
 
             protected IEnumerable<KeyValuePair<string, System.Drawing.Bitmap>> FileNames2SystemDrawingImages
                 =>
                 this.EnumeratePairsByBenchmarkSettings(
-                    this.fileNamesToSystemDrawingImages,
+                    this.FileNamesToSystemDrawingImages,
                     img => img.Width * img.Height < this.LargeImageThresholdInPixels);
 
             protected virtual int LargeImageThresholdInPixels => 700000;

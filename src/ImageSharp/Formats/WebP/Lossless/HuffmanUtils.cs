@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     /// <summary>
     /// Utility functions related to creating the huffman tables.
@@ -312,14 +312,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             int totalSize = 1 << rootBits; // total size root table + 2nd level table.
             int len; // current code length.
             int symbol; // symbol index in original or sorted table.
-            var counts = new int[WebPConstants.MaxAllowedCodeLength + 1]; // number of codes of each length.
-            var offsets = new int[WebPConstants.MaxAllowedCodeLength + 1]; // offsets in sorted table for each length.
+            var counts = new int[WebpConstants.MaxAllowedCodeLength + 1]; // number of codes of each length.
+            var offsets = new int[WebpConstants.MaxAllowedCodeLength + 1]; // offsets in sorted table for each length.
 
             // Build histogram of code lengths.
             for (symbol = 0; symbol < codeLengthsSize; ++symbol)
             {
                 var codeLengthOfSymbol = codeLengths[symbol];
-                if (codeLengthOfSymbol > WebPConstants.MaxAllowedCodeLength)
+                if (codeLengthOfSymbol > WebpConstants.MaxAllowedCodeLength)
                 {
                     return 0;
                 }
@@ -335,7 +335,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 
             // Generate offsets into sorted symbol table by code length.
             offsets[1] = 0;
-            for (len = 1; len < WebPConstants.MaxAllowedCodeLength; ++len)
+            for (len = 1; len < WebpConstants.MaxAllowedCodeLength; ++len)
             {
                 int codesOfLength = counts[len];
                 if (codesOfLength > (1 << len))
@@ -357,7 +357,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             }
 
             // Special case code with only one value.
-            if (offsets[WebPConstants.MaxAllowedCodeLength] == 1)
+            if (offsets[WebpConstants.MaxAllowedCodeLength] == 1)
             {
                 var huffmanCode = new HuffmanCode()
                 {
@@ -407,7 +407,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             // Fill in 2nd level tables and add pointers to root table.
             Span<HuffmanCode> tableSpan = table;
             int tablePos = 0;
-            for (len = rootBits + 1, step = 2; len <= WebPConstants.MaxAllowedCodeLength; ++len, step <<= 1)
+            for (len = rootBits + 1, step = 2; len <= WebpConstants.MaxAllowedCodeLength; ++len, step <<= 1)
             {
                 numOpen <<= 1;
                 numNodes += numOpen;
@@ -542,8 +542,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         private static void ConvertBitDepthsToSymbols(HuffmanTreeCode tree)
         {
             // 0 bit-depth means that the symbol does not exist.
-            uint[] nextCode = new uint[WebPConstants.MaxAllowedCodeLength + 1];
-            int[] depthCount = new int[WebPConstants.MaxAllowedCodeLength + 1];
+            uint[] nextCode = new uint[WebpConstants.MaxAllowedCodeLength + 1];
+            int[] depthCount = new int[WebpConstants.MaxAllowedCodeLength + 1];
 
             int len = tree.NumSymbols;
             for (int i = 0; i < len; i++)
@@ -556,7 +556,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             nextCode[0] = 0;
 
             uint code = 0;
-            for (int i = 1; i <= WebPConstants.MaxAllowedCodeLength; i++)
+            for (int i = 1; i <= WebpConstants.MaxAllowedCodeLength; i++)
             {
                 code = (uint)((code + depthCount[i - 1]) << 1);
                 nextCode[i] = code;
@@ -589,11 +589,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             while (i < numBits)
             {
                 i += 4;
-                retval |= (uint)(reversedBits[bits & 0xf] << (WebPConstants.MaxAllowedCodeLength + 1 - i));
+                retval |= (uint)(reversedBits[bits & 0xf] << (WebpConstants.MaxAllowedCodeLength + 1 - i));
                 bits >>= 4;
             }
 
-            retval >>= WebPConstants.MaxAllowedCodeLength + 1 - numBits;
+            retval >>= WebpConstants.MaxAllowedCodeLength + 1 - numBits;
             return retval;
         }
 
@@ -604,7 +604,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         private static int NextTableBitSize(int[] count, int len, int rootBits)
         {
             int left = 1 << (len - rootBits);
-            while (len < WebPConstants.MaxAllowedCodeLength)
+            while (len < WebpConstants.MaxAllowedCodeLength)
             {
                 left -= count[len];
                 if (left <= 0)

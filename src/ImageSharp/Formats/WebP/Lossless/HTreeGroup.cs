@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     /// <summary>
     /// Huffman table group.
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
     {
         public HTreeGroup(uint packedTableSize)
         {
-            this.HTrees = new List<HuffmanCode[]>(WebPConstants.HuffmanCodesPerMetaCode);
+            this.HTrees = new List<HuffmanCode[]>(WebpConstants.HuffmanCodesPerMetaCode);
             this.PackedTable = new HuffmanCode[packedTableSize];
             for (int i = 0; i < packedTableSize; i++)
             {
@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         }
 
         /// <summary>
-        /// Gets the Huffman trees. This has a maximum of <see cref="WebPConstants.HuffmanCodesPerMetaCode" /> (5) entry's.
+        /// Gets the Huffman trees. This has a maximum of <see cref="WebpConstants.HuffmanCodesPerMetaCode" /> (5) entry's.
         /// </summary>
         public List<HuffmanCode[]> HTrees { get; }
 

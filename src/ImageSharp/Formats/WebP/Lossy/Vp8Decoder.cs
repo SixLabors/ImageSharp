@@ -3,10 +3,10 @@
 
 using System;
 using System.Buffers;
-using SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     /// <summary>
     /// Holds information for decoding a lossy webp image.
@@ -49,9 +49,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
             this.MacroBlockInfo[this.MbWidth] = new Vp8MacroBlock();
 
-            this.DeQuantMatrices = new Vp8QuantMatrix[WebPConstants.NumMbSegments];
-            this.FilterStrength = new Vp8FilterInfo[WebPConstants.NumMbSegments, 2];
-            for (int i = 0; i < WebPConstants.NumMbSegments; i++)
+            this.DeQuantMatrices = new Vp8QuantMatrix[WebpConstants.NumMbSegments];
+            this.FilterStrength = new Vp8FilterInfo[WebpConstants.NumMbSegments, 2];
+            for (int i = 0; i < WebpConstants.NumMbSegments; i++)
             {
                 this.DeQuantMatrices[i] = new Vp8QuantMatrix();
                 for (int j = 0; j < 2; j++)
@@ -63,10 +63,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             uint width = pictureHeader.Width;
             uint height = pictureHeader.Height;
 
-            int extraRows = WebPConstants.FilterExtraRows[(int)LoopFilter.Complex]; // assuming worst case: complex filter
+            int extraRows = WebpConstants.FilterExtraRows[(int)LoopFilter.Complex]; // assuming worst case: complex filter
             int extraY = extraRows * this.CacheYStride;
             int extraUv = (extraRows / 2) * this.CacheUvStride;
-            this.YuvBuffer = memoryAllocator.Allocate<byte>((WebPConstants.Bps * 17) + (WebPConstants.Bps * 9) + extraY);
+            this.YuvBuffer = memoryAllocator.Allocate<byte>((WebpConstants.Bps * 17) + (WebpConstants.Bps * 9) + extraY);
             this.CacheY = memoryAllocator.Allocate<byte>((16 * this.CacheYStride) + extraY);
             int cacheUvSize = (16 * this.CacheUvStride) + extraUv;
             this.CacheU = memoryAllocator.Allocate<byte>(cacheUvSize);
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             this.CacheU.Memory.Span.Fill(205);
             this.CacheV.Memory.Span.Fill(205);
 
-            this.Vp8BitReaders = new Vp8BitReader[WebPConstants.MaxNumPartitions];
+            this.Vp8BitReaders = new Vp8BitReader[WebpConstants.MaxNumPartitions];
         }
 
         /// <summary>
@@ -276,7 +276,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             }
 
             Vp8FilterHeader hdr = this.FilterHeader;
-            for (int s = 0; s < WebPConstants.NumMbSegments; ++s)
+            for (int s = 0; s < WebpConstants.NumMbSegments; ++s)
             {
                 int baseLevel;
 

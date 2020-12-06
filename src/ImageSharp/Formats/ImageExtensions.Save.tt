@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
 // using SixLabors.ImageSharp.Formats.Experimental.Tiff;
-using SixLabors.ImageSharp.Formats.Experimental.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.Webp;
 
 <#
     var formats = new []{
@@ -19,12 +19,12 @@ using SixLabors.ImageSharp.Formats.Experimental.WebP;
         "Jpeg",
         "Png",
         "Tga",
-        "WebP"
+        "Webp"
     };
 
     foreach (string fmt in formats)
     {
-        if (fmt == "Tiff" || fmt == "WebP")
+        if (fmt == "Tiff" || fmt == "Webp")
         {
             continue;
         }
@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp
 <#
     foreach (string fmt in formats)
     {
-        string experimentalString =  fmt == "Tiff" || fmt == "WebP" ? @"EXPERIMENTAL! " : "";
+        string experimentalString =  fmt == "Tiff" || fmt == "Webp" ? @"EXPERIMENTAL! " : "";
 #>
         /// <summary>
         /// <#= experimentalString #>Saves the image to the given stream with the <#= fmt #> format.

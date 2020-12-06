@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     internal class BackwardReferenceEncoder
     {
@@ -129,9 +129,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 
             double entropyMin = MaxEntropy;
             int pos = 0;
-            var colorCache = new ColorCache[WebPConstants.MaxColorCacheBits + 1];
-            var histos = new Vp8LHistogram[WebPConstants.MaxColorCacheBits + 1];
-            for (int i = 0; i <= WebPConstants.MaxColorCacheBits; i++)
+            var colorCache = new ColorCache[WebpConstants.MaxColorCacheBits + 1];
+            var histos = new Vp8LHistogram[WebpConstants.MaxColorCacheBits + 1];
+            for (int i = 0; i <= WebpConstants.MaxColorCacheBits; i++)
             {
                 histos[i] = new Vp8LHistogram(paletteCodeBits: i);
                 colorCache[i] = new ColorCache();
@@ -166,7 +166,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                     {
                         if (colorCache[i].Lookup(key) == pix)
                         {
-                            ++histos[i].Literal[WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + key];
+                            ++histos[i].Literal[WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + key];
                         }
                         else
                         {
@@ -244,7 +244,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         {
             int pixCount = xSize * ySize;
             bool useColorCache = cacheBits > 0;
-            var literalArraySize = WebPConstants.NumLiteralCodes + WebPConstants.NumLengthCodes + ((cacheBits > 0) ? (1 << cacheBits) : 0);
+            var literalArraySize = WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + ((cacheBits > 0) ? (1 << cacheBits) : 0);
             var costModel = new CostModel(literalArraySize);
             int offsetPrev = -1;
             int lenPrev = -1;
@@ -824,11 +824,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             int xOffset = dist - (yOffset * xSize);
             if (xOffset <= 8 && yOffset < 8)
             {
-                return (int)WebPLookupTables.PlaneToCodeLut[(yOffset * 16) + 8 - xOffset] + 1;
+                return (int)WebpLookupTables.PlaneToCodeLut[(yOffset * 16) + 8 - xOffset] + 1;
             }
             else if (xOffset > xSize - 8 && yOffset < 7)
             {
-                return (int)WebPLookupTables.PlaneToCodeLut[((yOffset + 1) * 16) + 8 + (xSize - xOffset)] + 1;
+                return (int)WebpLookupTables.PlaneToCodeLut[((yOffset + 1) * 16) + 8 + (xSize - xOffset)] + 1;
             }
 
             return dist + 120;

@@ -4,9 +4,9 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
 {
     /// <summary>
     /// A bit writer for writing lossy webp streams.
@@ -100,13 +100,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
                 int v = sign ? -c : c;
                 if (!this.PutBit(v != 0, p.Probabilities[1]))
                 {
-                    p = residual.Prob[WebPConstants.Vp8EncBands[n]].Probabilities[0];
+                    p = residual.Prob[WebpConstants.Vp8EncBands[n]].Probabilities[0];
                     continue;
                 }
 
                 if (!this.PutBit(v > 1, p.Probabilities[2]))
                 {
-                    p = residual.Prob[WebPConstants.Vp8EncBands[n]].Probabilities[1];
+                    p = residual.Prob[WebpConstants.Vp8EncBands[n]].Probabilities[1];
                 }
                 else
                 {
@@ -140,7 +140,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
                             this.PutBit(0, p.Probabilities[9]);
                             v -= 3 + (8 << 0);
                             mask = 1 << 2;
-                            tab = WebPConstants.Cat3;
+                            tab = WebpConstants.Cat3;
                         }
                         else if (v < 3 + (8 << 2))
                         {
@@ -149,7 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
                             this.PutBit(1, p.Probabilities[9]);
                             v -= 3 + (8 << 1);
                             mask = 1 << 3;
-                            tab = WebPConstants.Cat4;
+                            tab = WebpConstants.Cat4;
                         }
                         else if (v < 3 + (8 << 3))
                         {
@@ -158,7 +158,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
                             this.PutBit(0, p.Probabilities[10]);
                             v -= 3 + (8 << 2);
                             mask = 1 << 4;
-                            tab = WebPConstants.Cat5;
+                            tab = WebpConstants.Cat5;
                         }
                         else
                         {
@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
                             this.PutBit(1, p.Probabilities[10]);
                             v -= 3 + (8 << 3);
                             mask = 1 << 10;
-                            tab = WebPConstants.Cat6;
+                            tab = WebpConstants.Cat6;
                         }
 
                         var tabIdx = 0;
@@ -178,7 +178,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
                         }
                     }
 
-                    p = residual.Prob[WebPConstants.Vp8EncBands[n]].Probabilities[2];
+                    p = residual.Prob[WebpConstants.Vp8EncBands[n]].Probabilities[2];
                 }
 
                 this.PutBitUniform(sign ? 1 : 0);
@@ -311,8 +311,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
             if (this.range < 127)
             {
                 // emit 'shift' bits out and renormalize.
-                int shift = WebPLookupTables.Norm[this.range];
-                this.range = WebPLookupTables.NewRange[this.range];
+                int shift = WebpLookupTables.Norm[this.range];
+                this.range = WebpLookupTables.NewRange[this.range];
                 this.value <<= shift;
                 this.nbBits += shift;
                 if (this.nbBits > 0)
@@ -339,7 +339,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
 
             if (this.range < 127)
             {
-                this.range = WebPLookupTables.NewRange[this.range];
+                this.range = WebpLookupTables.NewRange[this.range];
                 this.value <<= 1;
                 this.nbBits += 1;
                 if (this.nbBits > 0)
@@ -420,14 +420,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
             // Partition #0 with header and partition sizes
             uint size0 = this.GeneratePartition0(bitWriterPartZero);
 
-            uint vp8Size = WebPConstants.Vp8FrameHeaderSize + size0;
+            uint vp8Size = WebpConstants.Vp8FrameHeaderSize + size0;
             vp8Size += numBytes;
             uint pad = vp8Size & 1;
             vp8Size += pad;
 
             // Compute RIFF size
             // At the minimum it is: "WEBPVP8 nnnn" + VP8 data size.
-            var riffSize = WebPConstants.TagSize + WebPConstants.ChunkHeaderSize + vp8Size;
+            var riffSize = WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + vp8Size;
 
             // Emit headers and partition #0
             this.WriteWebPHeaders(stream, size0, vp8Size, riffSize);
@@ -474,12 +474,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
                 {
                     // We always use absolute values, not relative ones.
                     bitWriter.PutBitUniform(1); // (segment_feature_mode = 1. Paragraph 9.3.)
-                    for (int s = 0; s < WebPConstants.NumMbSegments; ++s)
+                    for (int s = 0; s < WebpConstants.NumMbSegments; ++s)
                     {
                         bitWriter.PutSignedBits(this.enc.SegmentInfos[s].Quant, 7);
                     }
 
-                    for (int s = 0; s < WebPConstants.NumMbSegments; ++s)
+                    for (int s = 0; s < WebpConstants.NumMbSegments; ++s)
                     {
                         bitWriter.PutSignedBits(this.enc.SegmentInfos[s].FStrength, 6);
                     }
@@ -535,17 +535,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
         private void WriteProbas(Vp8BitWriter bitWriter)
         {
             Vp8EncProba probas = this.enc.Proba;
-            for (int t = 0; t < WebPConstants.NumTypes; ++t)
+            for (int t = 0; t < WebpConstants.NumTypes; ++t)
             {
-                for (int b = 0; b < WebPConstants.NumBands; ++b)
+                for (int b = 0; b < WebpConstants.NumBands; ++b)
                 {
-                    for (int c = 0; c < WebPConstants.NumCtx; ++c)
+                    for (int c = 0; c < WebpConstants.NumCtx; ++c)
                     {
-                        for (int p = 0; p < WebPConstants.NumProbas; ++p)
+                        for (int p = 0; p < WebpConstants.NumProbas; ++p)
                         {
                             byte p0 = probas.Coeffs[t][b].Probabilities[c].Probabilities[p];
-                            bool update = p0 != WebPLookupTables.DefaultCoeffsProba[t, b, c, p];
-                            if (bitWriter.PutBit(update, WebPLookupTables.CoeffsUpdateProba[t, b, c, p]))
+                            bool update = p0 != WebpLookupTables.DefaultCoeffsProba[t, b, c, p];
+                            if (bitWriter.PutBit(update, WebpLookupTables.CoeffsUpdateProba[t, b, c, p]))
                             {
                                 bitWriter.PutBits(p0, 8);
                             }
@@ -594,7 +594,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
                         int left = it.Preds[predIdx - 1];
                         for (int x = 0; x < 4; ++x)
                         {
-                            byte[] probas = WebPLookupTables.ModesProba[topPred[x], left];
+                            byte[] probas = WebpLookupTables.ModesProba[topPred[x], left];
                             left = bitWriter.PutI4Mode(it.Preds[predIdx + x], probas);
                         }
 
@@ -617,9 +617,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
 
         private void WriteVp8Header(Stream stream, uint size)
         {
-            Span<byte> vp8ChunkHeader = stackalloc byte[WebPConstants.ChunkHeaderSize];
+            Span<byte> vp8ChunkHeader = stackalloc byte[WebpConstants.ChunkHeaderSize];
 
-            WebPConstants.Vp8MagicBytes.AsSpan().CopyTo(vp8ChunkHeader);
+            WebpConstants.Vp8MagicBytes.AsSpan().CopyTo(vp8ChunkHeader);
             BinaryPrimitives.WriteUInt32LittleEndian(vp8ChunkHeader.Slice(4), size);
 
             stream.Write(vp8ChunkHeader);
@@ -630,7 +630,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
             uint profile = 0;
             int width = this.enc.Width;
             int height = this.enc.Height;
-            var vp8FrameHeader = new byte[WebPConstants.Vp8FrameHeaderSize];
+            var vp8FrameHeader = new byte[WebpConstants.Vp8FrameHeaderSize];
 
             // Paragraph 9.1.
             uint bits = 0 // keyframe (1b)
@@ -643,9 +643,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
             vp8FrameHeader[2] = (byte)((bits >> 16) & 0xff);
 
             // signature
-            vp8FrameHeader[3] = WebPConstants.Vp8HeaderMagicBytes[0];
-            vp8FrameHeader[4] = WebPConstants.Vp8HeaderMagicBytes[1];
-            vp8FrameHeader[5] = WebPConstants.Vp8HeaderMagicBytes[2];
+            vp8FrameHeader[3] = WebpConstants.Vp8HeaderMagicBytes[0];
+            vp8FrameHeader[4] = WebpConstants.Vp8HeaderMagicBytes[1];
+            vp8FrameHeader[5] = WebpConstants.Vp8HeaderMagicBytes[2];
 
             // dimensions
             vp8FrameHeader[6] = (byte)(width & 0xff);

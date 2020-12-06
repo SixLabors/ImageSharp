@@ -3,12 +3,12 @@
 
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// Constants used for encoding and decoding VP8 and VP8L bitstreams.
     /// </summary>
-    internal static class WebPConstants
+    internal static class WebpConstants
     {
         /// <summary>
         /// The list of file extensions that equate to WebP.

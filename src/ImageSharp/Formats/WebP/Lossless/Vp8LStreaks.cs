@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     internal class Vp8LStreaks
     {
@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         private static double InitialHuffmanCost()
         {
             // Small bias because Huffman code length is typically not stored in full length.
-            int huffmanCodeOfHuffmanCodeSize = WebPConstants.CodeLengthCodes * 3;
+            int huffmanCodeOfHuffmanCodeSize = WebpConstants.CodeLengthCodes * 3;
             double smallBias = 9.1;
             return huffmanCodeOfHuffmanCodeSize - smallBias;
         }

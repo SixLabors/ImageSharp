@@ -5,7 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     /// <summary>
     /// Methods for encoding a VP8 frame.
@@ -18,19 +18,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
         private static readonly byte[] Clip1 = new byte[255 + 510 + 1]; // clips [-255,510] to [0,255]
 
-        private const int I16DC16 = 0 * 16 * WebPConstants.Bps;
+        private const int I16DC16 = 0 * 16 * WebpConstants.Bps;
 
         private const int I16TM16 = I16DC16 + 16;
 
-        private const int I16VE16 = 1 * 16 * WebPConstants.Bps;
+        private const int I16VE16 = 1 * 16 * WebpConstants.Bps;
 
         private const int I16HE16 = I16VE16 + 16;
 
-        private const int C8DC8 = 2 * 16 * WebPConstants.Bps;
+        private const int C8DC8 = 2 * 16 * WebpConstants.Bps;
 
         private const int C8TM8 = C8DC8 + (1 * 16);
 
-        private const int C8VE8 = (2 * 16 * WebPConstants.Bps) + (8 * WebPConstants.Bps);
+        private const int C8VE8 = (2 * 16 * WebpConstants.Bps) + (8 * WebpConstants.Bps);
 
         private const int C8HE8 = C8VE8 + (1 * 16);
 
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
         public static readonly int[] Vp8UvModeOffsets = { C8DC8, C8TM8, C8VE8, C8HE8 };
 
-        private const int I4DC4 = (3 * 16 * WebPConstants.Bps) + 0;
+        private const int I4DC4 = (3 * 16 * WebpConstants.Bps) + 0;
 
         private const int I4TM4 = I4DC4 + 4;
 
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
         private const int I4VL4 = I4DC4 + 28;
 
-        private const int I4HD4 = (3 * 16 * WebPConstants.Bps) + (4 * WebPConstants.Bps);
+        private const int I4HD4 = (3 * 16 * WebpConstants.Bps) + (4 * WebpConstants.Bps);
 
         private const int I4HU4 = I4HD4 + 4;
 
@@ -143,8 +143,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 tmp[2 + (i * 4)] = (a0 - a1) * 8;
                 tmp[3 + (i * 4)] = ((a3 * 2217) - (a2 * 5352) + 937) >> 9;
 
-                srcIdx += WebPConstants.Bps;
-                refIdx += WebPConstants.Bps;
+                srcIdx += WebpConstants.Bps;
+                refIdx += WebpConstants.Bps;
             }
 
             for (i = 0; i < 4; ++i)
@@ -254,7 +254,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             {
                 for (int j = 0; j < size; ++j)
                 {
-                    top.Slice(0, size).CopyTo(dst.Slice(j * WebPConstants.Bps));
+                    top.Slice(0, size).CopyTo(dst.Slice(j * WebpConstants.Bps));
                 }
             }
             else
@@ -270,7 +270,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 left = left.Slice(1); // in the reference implementation, left starts at - 1.
                 for (int j = 0; j < size; ++j)
                 {
-                    dst.Slice(j * WebPConstants.Bps, size).Fill(left[j]);
+                    dst.Slice(j * WebpConstants.Bps, size).Fill(left[j]);
                 }
             }
             else
@@ -294,7 +294,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                             dst[x] = clipTable[top[x]];
                         }
 
-                        dst = dst.Slice(WebPConstants.Bps);
+                        dst = dst.Slice(WebpConstants.Bps);
                     }
                 }
                 else
@@ -391,7 +391,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                     dst[x] = clipTable[top[topOffset + x]];
                 }
 
-                dst = dst.Slice(WebPConstants.Bps);
+                dst = dst.Slice(WebpConstants.Bps);
             }
         }
 
@@ -408,7 +408,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
 
             for (int i = 0; i < 4; ++i)
             {
-                vals.AsSpan().CopyTo(dst.Slice(i * WebPConstants.Bps));
+                vals.AsSpan().CopyTo(dst.Slice(i * WebpConstants.Bps));
             }
         }
 
@@ -424,11 +424,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             uint val = 0x01010101U * LossyUtils.Avg3(x, i, j);
             BinaryPrimitives.WriteUInt32BigEndian(dst, val);
             val = 0x01010101U * LossyUtils.Avg3(i, j, k);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(1 * WebPConstants.Bps), val);
+            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(1 * WebpConstants.Bps), val);
             val = 0x01010101U * LossyUtils.Avg3(j, k, l);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(2 * WebPConstants.Bps), val);
+            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(2 * WebpConstants.Bps), val);
             val = 0x01010101U * LossyUtils.Avg3(k, l, l);
-            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(3 * WebPConstants.Bps), val);
+            BinaryPrimitives.WriteUInt32BigEndian(dst.Slice(3 * WebpConstants.Bps), val);
         }
 
         private static void Rd4(Span<byte> dst, Span<byte> top, int topOffset)
@@ -639,7 +639,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         {
             for (int j = 0; j < size; ++j)
             {
-                dst.Slice(j * WebPConstants.Bps, size).Fill((byte)value);
+                dst.Slice(j * WebpConstants.Bps, size).Fill((byte)value);
             }
         }
 
@@ -652,7 +652,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void Store(Span<byte> dst, Span<byte> reference, int x, int y, int v)
         {
-            dst[x + (y * WebPConstants.Bps)] = LossyUtils.Clip8B(reference[x + (y * WebPConstants.Bps)] + (v >> 3));
+            dst[x + (y * WebpConstants.Bps)] = LossyUtils.Clip8B(reference[x + (y * WebpConstants.Bps)] + (v >> 3));
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

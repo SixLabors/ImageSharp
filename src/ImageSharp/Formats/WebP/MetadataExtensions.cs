@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Experimental.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp
@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp
         /// Gets the webp format specific metadata for the image.
         /// </summary>
         /// <param name="metadata">The metadata this method extends.</param>
-        /// <returns>The <see cref="WebPMetadata"/>.</returns>
-        public static WebPMetadata GetWebpMetadata(this ImageMetadata metadata) => metadata.GetFormatMetadata(WebPFormat.Instance);
+        /// <returns>The <see cref="WebpMetadata"/>.</returns>
+        public static WebpMetadata GetWebpMetadata(this ImageMetadata metadata) => metadata.GetFormatMetadata(WebpFormat.Instance);
     }
 }

@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     internal static class YuvConversion
     {
@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         private static int LinearToGammaWeighted(byte rgb0, byte rgb1, byte rgb2, byte rgb3, byte a0, byte a1, byte a2, byte a3, uint totalA)
         {
             uint sum = (a0 * GammaToLinear(rgb0)) + (a1 * GammaToLinear(rgb1)) + (a2 * GammaToLinear(rgb2)) + (a3 * GammaToLinear(rgb3));
-            return LinearToGamma((sum * WebPLookupTables.InvAlpha[totalA]) >> (WebPConstants.AlphaFix - 2), 0);
+            return LinearToGamma((sum * WebpLookupTables.InvAlpha[totalA]) >> (WebpConstants.AlphaFix - 2), 0);
         }
 
         // Convert a linear value 'v' to YUV_FIX+2 fixed-point precision
@@ -208,23 +208,23 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         private static int LinearToGamma(uint baseValue, int shift)
         {
             int y = Interpolate((int)(baseValue << shift));   // Final uplifted value.
-            return (y + WebPConstants.GammaTabRounder) >> WebPConstants.GammaTabFix;    // Descale.
+            return (y + WebpConstants.GammaTabRounder) >> WebpConstants.GammaTabFix;    // Descale.
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static uint GammaToLinear(byte v)
         {
-            return WebPLookupTables.GammaToLinearTab[v];
+            return WebpLookupTables.GammaToLinearTab[v];
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int Interpolate(int v)
         {
-            int tabPos = v >> (WebPConstants.GammaTabFix + 2);    // integer part.
-            int x = v & ((WebPConstants.GammaTabScale << 2) - 1);  // fractional part.
-            int v0 = WebPLookupTables.LinearToGammaTab[tabPos];
-            int v1 = WebPLookupTables.LinearToGammaTab[tabPos + 1];
-            int y = (v1 * x) + (v0 * ((WebPConstants.GammaTabScale << 2) - x));   // interpolate
+            int tabPos = v >> (WebpConstants.GammaTabFix + 2);    // integer part.
+            int x = v & ((WebpConstants.GammaTabScale << 2) - 1);  // fractional part.
+            int v0 = WebpLookupTables.LinearToGammaTab[tabPos];
+            int v1 = WebpLookupTables.LinearToGammaTab[tabPos + 1];
+            int y = (v1 * x) + (v0 * ((WebpConstants.GammaTabScale << 2) - x));   // interpolate
 
             return y;
         }

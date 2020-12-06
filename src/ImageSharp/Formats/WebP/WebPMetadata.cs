@@ -3,25 +3,25 @@
 
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// Provides WebP specific metadata information for the image.
     /// </summary>
-    public class WebPMetadata : IDeepCloneable
+    public class WebpMetadata : IDeepCloneable
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="WebPMetadata"/> class.
+        /// Initializes a new instance of the <see cref="WebpMetadata"/> class.
         /// </summary>
-        public WebPMetadata()
+        public WebpMetadata()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WebPMetadata"/> class.
+        /// Initializes a new instance of the <see cref="WebpMetadata"/> class.
         /// </summary>
         /// <param name="other">The metadata to create an instance from.</param>
-        private WebPMetadata(WebPMetadata other)
+        private WebpMetadata(WebpMetadata other)
         {
             this.Animated = other.Animated;
             this.Format = other.Format;
@@ -30,12 +30,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         /// <summary>
         /// Gets or sets the webp format used. Either lossless or lossy.
         /// </summary>
-        public WebPFormatType Format { get; set; }
+        public WebpFormatType Format { get; set; }
 
         /// <summary>
         /// Gets or sets all found chunk types ordered by appearance.
         /// </summary>
-        public Queue<WebPChunkType> ChunkTypes { get; set; } = new Queue<WebPChunkType>();
+        public Queue<WebpChunkType> ChunkTypes { get; set; } = new Queue<WebpChunkType>();
 
         /// <summary>
         /// Gets or sets a value indicating whether the webp file contains an animation.
@@ -43,6 +43,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         public bool Animated { get; set; } = false;
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new WebPMetadata(this);
+        public IDeepCloneable DeepClone() => new WebpMetadata(this);
     }
 }

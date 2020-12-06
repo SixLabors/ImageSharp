@@ -6,11 +6,11 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats.Experimental.WebP.BitReader;
-using SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// Implements decoding for lossy alpha chunks which may be compressed.
@@ -40,20 +40,20 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
             var compression = (AlphaCompressionMethod)(alphaChunkHeader & 0x03);
             if (compression != AlphaCompressionMethod.NoCompression && compression != AlphaCompressionMethod.WebPLosslessCompression)
             {
-                WebPThrowHelper.ThrowImageFormatException($"unexpected alpha compression method {compression} found");
+                WebpThrowHelper.ThrowImageFormatException($"unexpected alpha compression method {compression} found");
             }
 
             this.Compressed = compression == AlphaCompressionMethod.WebPLosslessCompression;
 
             // The filtering method used. Only values between 0 and 3 are valid.
             int filter = (alphaChunkHeader >> 2) & 0x03;
-            if (filter < (int)WebPAlphaFilterType.None || filter > (int)WebPAlphaFilterType.Gradient)
+            if (filter < (int)WebpAlphaFilterType.None || filter > (int)WebpAlphaFilterType.Gradient)
             {
-                WebPThrowHelper.ThrowImageFormatException($"unexpected alpha filter method {filter} found");
+                WebpThrowHelper.ThrowImageFormatException($"unexpected alpha filter method {filter} found");
             }
 
             this.Alpha = memoryAllocator.Allocate<byte>(totalPixels);
-            this.AlphaFilterType = (WebPAlphaFilterType)filter;
+            this.AlphaFilterType = (WebpAlphaFilterType)filter;
             this.Vp8LDec = new Vp8LDecoder(width, height, memoryAllocator);
 
             if (this.Compressed)
@@ -78,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         /// <summary>
         /// Gets the used filter type.
         /// </summary>
-        public WebPAlphaFilterType AlphaFilterType { get; }
+        public WebpAlphaFilterType AlphaFilterType { get; }
 
         /// <summary>
         /// Gets or sets the last decoded row.
@@ -133,11 +133,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
                 var pixelCount = this.Width * this.Height;
                 if (dataSpan.Length < pixelCount)
                 {
-                    WebPThrowHelper.ThrowImageFormatException("not enough data in the ALPH chunk");
+                    WebpThrowHelper.ThrowImageFormatException("not enough data in the ALPH chunk");
                 }
 
                 Span<byte> alphaSpan = this.Alpha.Memory.Span;
-                if (this.AlphaFilterType == WebPAlphaFilterType.None)
+                if (this.AlphaFilterType == WebpAlphaFilterType.None)
                 {
                     dataSpan.Slice(0, pixelCount).CopyTo(alphaSpan);
                     return;
@@ -150,13 +150,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
                 {
                     switch (this.AlphaFilterType)
                     {
-                        case WebPAlphaFilterType.Horizontal:
+                        case WebpAlphaFilterType.Horizontal:
                             HorizontalUnfilter(prev, deltas, dst, this.Width);
                             break;
-                        case WebPAlphaFilterType.Vertical:
+                        case WebpAlphaFilterType.Vertical:
                             VerticalUnfilter(prev, deltas, dst, this.Width);
                             break;
-                        case WebPAlphaFilterType.Gradient:
+                        case WebpAlphaFilterType.Gradient:
                             GradientUnfilter(prev, deltas, dst, this.Width);
                             break;
                     }
@@ -189,7 +189,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         /// <param name="stride">The stride to use.</param>
         public void AlphaApplyFilter(int firstRow, int lastRow, Span<byte> dst, int stride)
         {
-            if (this.AlphaFilterType == WebPAlphaFilterType.None)
+            if (this.AlphaFilterType == WebpAlphaFilterType.None)
             {
                 return;
             }
@@ -200,13 +200,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
             {
                 switch (this.AlphaFilterType)
                 {
-                    case WebPAlphaFilterType.Horizontal:
+                    case WebpAlphaFilterType.Horizontal:
                         HorizontalUnfilter(prev, dst, dst, this.Width);
                         break;
-                    case WebPAlphaFilterType.Vertical:
+                    case WebpAlphaFilterType.Vertical:
                         VerticalUnfilter(prev, dst, dst, this.Width);
                         break;
-                    case WebPAlphaFilterType.Gradient:
+                    case WebpAlphaFilterType.Gradient:
                         GradientUnfilter(prev, dst, dst, this.Width);
                         break;
                 }
@@ -222,7 +222,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
         {
             // For vertical and gradient filtering, we need to decode the part above the
             // cropTop row, in order to have the correct spatial predictors.
-            int topRow = (this.AlphaFilterType == WebPAlphaFilterType.None || this.AlphaFilterType == WebPAlphaFilterType.Horizontal) ? 0 : this.LastRow;
+            int topRow = (this.AlphaFilterType == WebpAlphaFilterType.None || this.AlphaFilterType == WebpAlphaFilterType.Horizontal) ? 0 : this.LastRow;
             int firstRow = (this.LastRow < topRow) ? topRow : this.LastRow;
             if (lastRow > firstRow)
             {
@@ -235,7 +235,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
 
                 if (this.Vp8LDec.Transforms.Count == 0 || this.Vp8LDec.Transforms[0].TransformType != Vp8LTransformType.ColorIndexingTransform)
                 {
-                    WebPThrowHelper.ThrowImageFormatException("error while decoding alpha channel, expected color index transform data is missing");
+                    WebpThrowHelper.ThrowImageFormatException("error while decoding alpha channel, expected color index transform data is missing");
                 }
 
                 Vp8LTransform transform = this.Vp8LDec.Transforms[0];

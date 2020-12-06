@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     /// <summary>
     /// Data for all frame-persistent probabilities.
@@ -16,18 +16,18 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         public Vp8Proba()
         {
             this.Segments = new uint[MbFeatureTreeProbs];
-            this.Bands = new Vp8BandProbas[WebPConstants.NumTypes, WebPConstants.NumBands];
-            this.BandsPtr = new Vp8BandProbas[WebPConstants.NumTypes][];
+            this.Bands = new Vp8BandProbas[WebpConstants.NumTypes, WebpConstants.NumBands];
+            this.BandsPtr = new Vp8BandProbas[WebpConstants.NumTypes][];
 
-            for (int i = 0; i < WebPConstants.NumTypes; i++)
+            for (int i = 0; i < WebpConstants.NumTypes; i++)
             {
-                for (int j = 0; j < WebPConstants.NumBands; j++)
+                for (int j = 0; j < WebpConstants.NumBands; j++)
                 {
                     this.Bands[i, j] = new Vp8BandProbas();
                 }
             }
 
-            for (int i = 0; i < WebPConstants.NumTypes; i++)
+            for (int i = 0; i < WebpConstants.NumTypes; i++)
             {
                 this.BandsPtr[i] = new Vp8BandProbas[16 + 1];
             }

@@ -5,7 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
 {
     internal abstract class BitWriterBase
     {
@@ -98,10 +98,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter
         {
             Span<byte> buffer = stackalloc byte[4];
 
-            stream.Write(WebPConstants.RiffFourCc);
+            stream.Write(WebpConstants.RiffFourCc);
             BinaryPrimitives.WriteUInt32LittleEndian(buffer, riffSize);
             stream.Write(buffer);
-            stream.Write(WebPConstants.WebPHeader);
+            stream.Write(WebpConstants.WebPHeader);
         }
     }
 }

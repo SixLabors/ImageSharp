@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     /// <summary>
     /// Iterator structure to iterate through macroblocks, pointing to the
@@ -67,10 +67,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             this.uvTopIdx = 0;
             this.predsWidth = (4 * mbw) + 1;
             this.predIdx = this.predsWidth;
-            this.YuvIn = new byte[WebPConstants.Bps * 16];
-            this.YuvOut = new byte[WebPConstants.Bps * 16];
-            this.YuvOut2 = new byte[WebPConstants.Bps * 16];
-            this.YuvP = new byte[(32 * WebPConstants.Bps) + (16 * WebPConstants.Bps) + (8 * WebPConstants.Bps)]; // I16+Chroma+I4 preds
+            this.YuvIn = new byte[WebpConstants.Bps * 16];
+            this.YuvOut = new byte[WebpConstants.Bps * 16];
+            this.YuvOut2 = new byte[WebpConstants.Bps * 16];
+            this.YuvP = new byte[(32 * WebpConstants.Bps) + (16 * WebpConstants.Bps) + (8 * WebpConstants.Bps)]; // I16+Chroma+I4 preds
             this.YLeft = new byte[32];
             this.UvLeft = new byte[32];
             this.TopNz = new int[9];
@@ -355,7 +355,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             uint m2;
             for (k = 0; k < 16; k += 4)
             {
-                this.Mean16x4(this.YuvIn.AsSpan(YOffEnc + (k * WebPConstants.Bps)), dc.AsSpan(k));
+                this.Mean16x4(this.YuvIn.AsSpan(YOffEnc + (k * WebpConstants.Bps)), dc.AsSpan(k));
             }
 
             for (m = 0, m2 = 0, k = 0; k < 16; ++k)
@@ -466,7 +466,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             int y = this.I4 >> 2;
             int left = (x == 0) ? this.Preds[predIdx + (y * predsWidth) - 1] : modes[this.I4 - 1];
             int top = (y == 0) ? this.Preds[predIdx - predsWidth + x] : modes[this.I4 - 4];
-            return WebPLookupTables.Vp8FixedCostsI4[top, left];
+            return WebpLookupTables.Vp8FixedCostsI4[top, left];
         }
 
         public void SetIntraUvMode(int mode)
@@ -526,13 +526,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 // left
                 for (int i = 0; i < 16; ++i)
                 {
-                    this.YLeft[i + 1] = ySrc[15 + (i * WebPConstants.Bps)];
+                    this.YLeft[i + 1] = ySrc[15 + (i * WebpConstants.Bps)];
                 }
 
                 for (int i = 0; i < 8; ++i)
                 {
-                    this.UvLeft[i + 1] = uvSrc[7 + (i * WebPConstants.Bps)];
-                    this.UvLeft[i + 16 + 1] = uvSrc[15 + (i * WebPConstants.Bps)];
+                    this.UvLeft[i + 1] = uvSrc[7 + (i * WebpConstants.Bps)];
+                    this.UvLeft[i + 16 + 1] = uvSrc[15 + (i * WebpConstants.Bps)];
                 }
 
                 // top-left (before 'top'!)
@@ -544,14 +544,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             if (y < this.mbh - 1)
             {
                 // top
-                ySrc.Slice(15 * WebPConstants.Bps, 16).CopyTo(this.YTop.AsSpan(this.yTopIdx));
-                uvSrc.Slice(7 * WebPConstants.Bps, 8 + 8).CopyTo(this.UvTop.AsSpan(this.uvTopIdx));
+                ySrc.Slice(15 * WebpConstants.Bps, 16).CopyTo(this.YTop.AsSpan(this.yTopIdx));
+                uvSrc.Slice(7 * WebpConstants.Bps, 8 + 8).CopyTo(this.UvTop.AsSpan(this.uvTopIdx));
             }
         }
 
         public bool RotateI4(Span<byte> yuvOut)
         {
-            Span<byte> blk = yuvOut.Slice(WebPLookupTables.Vp8Scan[this.I4]);
+            Span<byte> blk = yuvOut.Slice(WebpLookupTables.Vp8Scan[this.I4]);
             Span<byte> top = this.I4Boundary.AsSpan();
             int topOffset = this.I4BoundaryIdx;
             int i;
@@ -559,7 +559,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
             // Update the cache with 7 fresh samples.
             for (i = 0; i <= 3; ++i)
             {
-                top[topOffset - 4 + i] = blk[i + (3 * WebPConstants.Bps)];   // Store future top samples.
+                top[topOffset - 4 + i] = blk[i + (3 * WebpConstants.Bps)];   // Store future top samples.
             }
 
             if ((this.I4 & 3) != 3)
@@ -568,7 +568,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 for (i = 0; i <= 2; ++i)
                 {
                     // store future left samples
-                    top[topOffset + i] = blk[3 + ((2 - i) * WebPConstants.Bps)];
+                    top[topOffset + i] = blk[3 + ((2 - i) * WebpConstants.Bps)];
                 }
             }
             else
@@ -706,7 +706,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                 {
                     for (int x = 0; x < 4; ++x)
                     {
-                        avg += input[x + (y * WebPConstants.Bps)];
+                        avg += input[x + (y * WebpConstants.Bps)];
                     }
                 }
 
@@ -727,14 +727,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
                     dst.Slice(dstIdx, size - w).Fill(dst[dstIdx + w - 1]);
                 }
 
-                dstIdx += WebPConstants.Bps;
+                dstIdx += WebpConstants.Bps;
                 srcIdx += srcStride;
             }
 
             for (int i = h; i < size; ++i)
             {
-                dst.Slice(dstIdx - WebPConstants.Bps, size).CopyTo(dst);
-                dstIdx += WebPConstants.Bps;
+                dst.Slice(dstIdx - WebpConstants.Bps, size).CopyTo(dst);
+                dstIdx += WebpConstants.Bps;
             }
         }
 

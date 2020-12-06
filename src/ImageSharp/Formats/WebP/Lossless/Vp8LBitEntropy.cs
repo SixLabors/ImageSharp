@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     /// <summary>
     /// Holds bit entropy results and entropy-related functions.

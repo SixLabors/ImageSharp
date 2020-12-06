@@ -1,15 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Experimental.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Tests.Formats.WebP
+namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
     [Trait("Format", "Webp")]
-    public class WebPMetadataTests
+    public class WebpMetaDataTests
     {
         [Theory]
         [WithFile(TestImages.WebP.Lossless.WithExif, PixelTypes.Rgba32, false)]
@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void IgnoreMetadata_ControlsWhetherExifIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decoder = new WebPDecoder { IgnoreMetadata = ignoreMetadata };
+            var decoder = new WebpDecoder { IgnoreMetadata = ignoreMetadata };
 
             using (Image<TPixel> image = provider.GetImage(decoder))
             {
@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void IgnoreMetadata_ControlsWhetherIccpIsParsed<TPixel>(TestImageProvider<TPixel> provider, bool ignoreMetadata)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var decoder = new WebPDecoder { IgnoreMetadata = ignoreMetadata };
+            var decoder = new WebpDecoder { IgnoreMetadata = ignoreMetadata };
 
             using (Image<TPixel> image = provider.GetImage(decoder))
             {

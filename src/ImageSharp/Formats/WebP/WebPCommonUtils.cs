@@ -4,12 +4,12 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 {
     /// <summary>
     /// Utility methods for lossy and lossless webp format.
     /// </summary>
-    internal static class WebPCommonUtils
+    internal static class WebpCommonUtils
     {
         /// <summary>
         /// Returns 31 ^ clz(n) = log2(n).Returns 31 ^ clz(n) = log2(n).
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP
                 n >>= 8;
             }
 
-            return logValue + Unsafe.Add(ref MemoryMarshal.GetReference(WebPLookupTables.LogTable8Bit), (int)n);
+            return logValue + Unsafe.Add(ref MemoryMarshal.GetReference(WebpLookupTables.LogTable8Bit), (int)n);
         }
     }
 }

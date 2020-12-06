@@ -1,17 +1,17 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Formats.Experimental.WebP;
+using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.WebP
+namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
     using static TestImages.WebP;
 
     [Trait("Format", "Webp")]
-    public class WebPEncoderTests
+    public class WebpEncoderTests
     {
         [Theory]
         [WithFile(TestImages.Bmp.Car, PixelTypes.Rgba32, 100)]
@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void Encode_Lossless_WithDifferentQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int quality)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new WebPEncoder()
+            var encoder = new WebpEncoder()
             {
                 Lossy = false,
                 Quality = quality
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void Encode_Lossless_WithDifferentMethods_Works<TPixel>(TestImageProvider<TPixel> provider, int method)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new WebPEncoder()
+            var encoder = new WebpEncoder()
             {
                 Lossy = false,
                 Method = method,
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void Encode_Lossy_WithDifferentQuality_Works<TPixel>(TestImageProvider<TPixel> provider, int quality)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new WebPEncoder()
+            var encoder = new WebpEncoder()
             {
                 Lossy = true,
                 Quality = quality
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int quality = 75;
-            var encoder = new WebPEncoder()
+            var encoder = new WebpEncoder()
             {
                 Lossy = true,
                 Method = method,

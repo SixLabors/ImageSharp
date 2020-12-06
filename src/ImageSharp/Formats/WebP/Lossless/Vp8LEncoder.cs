@@ -8,11 +8,11 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-using SixLabors.ImageSharp.Formats.Experimental.WebP.BitWriter;
+using SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     /// <summary>
     /// Encoder for lossless webp images.
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             this.method = Numerics.Clamp(method, 0, 6);
             this.bitWriter = new Vp8LBitWriter(initialSize);
             this.Bgra = memoryAllocator.Allocate<uint>(pixelCount);
-            this.Palette = memoryAllocator.Allocate<uint>(WebPConstants.MaxPaletteSize);
+            this.Palette = memoryAllocator.Allocate<uint>(WebpConstants.MaxPaletteSize);
             this.Refs = new Vp8LBackwardRefs[3];
             this.HashChain = new Vp8LHashChain(pixelCount);
             this.memoryAllocator = memoryAllocator;
@@ -195,14 +195,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         /// <param name="inputImgHeight">The input image height.</param>
         private void WriteImageSize(int inputImgWidth, int inputImgHeight)
         {
-            Guard.MustBeLessThan(inputImgWidth, WebPConstants.MaxDimension, nameof(inputImgWidth));
-            Guard.MustBeLessThan(inputImgHeight, WebPConstants.MaxDimension, nameof(inputImgHeight));
+            Guard.MustBeLessThan(inputImgWidth, WebpConstants.MaxDimension, nameof(inputImgWidth));
+            Guard.MustBeLessThan(inputImgHeight, WebpConstants.MaxDimension, nameof(inputImgHeight));
 
             uint width = (uint)inputImgWidth - 1;
             uint height = (uint)inputImgHeight - 1;
 
-            this.bitWriter.PutBits(width, WebPConstants.Vp8LImageSizeBits);
-            this.bitWriter.PutBits(height, WebPConstants.Vp8LImageSizeBits);
+            this.bitWriter.PutBits(width, WebpConstants.Vp8LImageSizeBits);
+            this.bitWriter.PutBits(height, WebpConstants.Vp8LImageSizeBits);
         }
 
         /// <summary>
@@ -212,7 +212,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         private void WriteAlphaAndVersion(bool hasAlpha)
         {
             this.bitWriter.PutBits(hasAlpha ? 1U : 0, 1);
-            this.bitWriter.PutBits(WebPConstants.Vp8LVersion, WebPConstants.Vp8LVersionBits);
+            this.bitWriter.PutBits(WebpConstants.Vp8LVersion, WebpConstants.Vp8LVersionBits);
         }
 
         /// <summary>
@@ -270,9 +270,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                     this.MapImageFromPalette(width, height);
 
                     // If using a color cache, do not have it bigger than the number of colors.
-                    if (useCache && this.PaletteSize < (1 << WebPConstants.MaxColorCacheBits))
+                    if (useCache && this.PaletteSize < (1 << WebpConstants.MaxColorCacheBits))
                     {
-                        this.CacheBits = WebPCommonUtils.BitsLog2Floor((uint)this.PaletteSize) + 1;
+                        this.CacheBits = WebpCommonUtils.BitsLog2Floor((uint)this.PaletteSize) + 1;
                     }
                 }
 
@@ -399,7 +399,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         {
             int histogramImageXySize = LosslessUtils.SubSampleSize(width, histogramBits) * LosslessUtils.SubSampleSize(height, histogramBits);
             var histogramSymbols = new ushort[histogramImageXySize];
-            var huffTree = new HuffmanTree[3 * WebPConstants.CodeLengthCodes];
+            var huffTree = new HuffmanTree[3 * WebpConstants.CodeLengthCodes];
             for (int i = 0; i < huffTree.Length; i++)
             {
                 huffTree[i] = default;
@@ -410,7 +410,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 if (cacheBits == 0)
                 {
                     // TODO: not sure if this should be 10 or 11. Original code comment says "The maximum allowed limit is 11.", but the value itself is 10.
-                    cacheBits = WebPConstants.MaxColorCacheBits;
+                    cacheBits = WebpConstants.MaxColorCacheBits;
                 }
             }
             else
@@ -543,10 +543,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         /// </summary>
         private void EncodePalette()
         {
-            Span<uint> tmpPalette = new uint[WebPConstants.MaxPaletteSize];
+            Span<uint> tmpPalette = new uint[WebpConstants.MaxPaletteSize];
             int paletteSize = this.PaletteSize;
             Span<uint> palette = this.Palette.Memory.Span;
-            this.bitWriter.PutBits(WebPConstants.TransformPresent, 1);
+            this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.ColorIndexingTransform, 2);
             this.bitWriter.PutBits((uint)paletteSize - 1, 8);
             for (int i = paletteSize - 1; i >= 1; i--)
@@ -565,7 +565,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         /// <param name="height">The height of the image.</param>
         private void ApplySubtractGreen(int width, int height)
         {
-            this.bitWriter.PutBits(WebPConstants.TransformPresent, 1);
+            this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.SubtractGreen, 2);
             LosslessUtils.SubtractGreenFromBlueAndRed(this.Bgra.GetSpan(), width * height);
         }
@@ -580,7 +580,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 
             PredictorEncoder.ResidualImage(width, height, predBits, this.Bgra.GetSpan(), this.BgraScratch.GetSpan(), this.TransformData.GetSpan(), nearLosslessStrength, exact, usedSubtractGreen);
 
-            this.bitWriter.PutBits(WebPConstants.TransformPresent, 1);
+            this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.PredictorTransform, 2);
             this.bitWriter.PutBits((uint)(predBits - 2), 3);
 
@@ -595,7 +595,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
 
             PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.Bgra.GetSpan(), this.TransformData.GetSpan());
 
-            this.bitWriter.PutBits(WebPConstants.TransformPresent, 1);
+            this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.CrossColorTransform, 2);
             this.bitWriter.PutBits((uint)(colorTransformBits - 2), 3);
 
@@ -613,7 +613,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 huffmanCodes[i] = default;
             }
 
-            var huffTree = new HuffmanTree[3UL * WebPConstants.CodeLengthCodes];
+            var huffTree = new HuffmanTree[3UL * WebpConstants.CodeLengthCodes];
             for (int i = 0; i < huffTree.Length; i++)
             {
                 huffTree[i] = default;
@@ -732,19 +732,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         private void StoreFullHuffmanCode(HuffmanTree[] huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode tree)
         {
             int i;
-            var codeLengthBitDepth = new byte[WebPConstants.CodeLengthCodes];
-            var codeLengthBitDepthSymbols = new short[WebPConstants.CodeLengthCodes];
+            var codeLengthBitDepth = new byte[WebpConstants.CodeLengthCodes];
+            var codeLengthBitDepthSymbols = new short[WebpConstants.CodeLengthCodes];
             var huffmanCode = new HuffmanTreeCode
             {
-                NumSymbols = WebPConstants.CodeLengthCodes,
+                NumSymbols = WebpConstants.CodeLengthCodes,
                 CodeLengths = codeLengthBitDepth,
                 Codes = codeLengthBitDepthSymbols
             };
 
             this.bitWriter.PutBits(0, 1);
             var numTokens = HuffmanUtils.CreateCompressedHuffmanTree(tree, tokens);
-            var histogram = new uint[WebPConstants.CodeLengthCodes + 1];
-            var bufRle = new bool[WebPConstants.CodeLengthCodes + 1];
+            var histogram = new uint[WebpConstants.CodeLengthCodes + 1];
+            var bufRle = new bool[WebpConstants.CodeLengthCodes + 1];
             for (i = 0; i < numTokens; i++)
             {
                 histogram[tokens[i].Code]++;
@@ -790,7 +790,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 }
                 else
                 {
-                    int nBits = WebPCommonUtils.BitsLog2Floor((uint)trimmedLength - 2);
+                    int nBits = WebpCommonUtils.BitsLog2Floor((uint)trimmedLength - 2);
                     int nBitPairs = (nBits / 2) + 1;
                     this.bitWriter.PutBits((uint)nBitPairs - 1, 3);
                     this.bitWriter.PutBits((uint)trimmedLength - 2, nBitPairs * 2);
@@ -830,7 +830,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             byte[] storageOrder = { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
             // Throw away trailing zeros:
-            int codesToStore = WebPConstants.CodeLengthCodes;
+            int codesToStore = WebpConstants.CodeLengthCodes;
             for (; codesToStore > 4; codesToStore--)
             {
                 if (codeLengthBitDepth[storageOrder[codesToStore - 1]] != 0)
@@ -882,7 +882,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 else if (v.IsCacheIdx())
                 {
                     int code = (int)v.CacheIdx();
-                    int literalIx = 256 + WebPConstants.NumLengthCodes + code;
+                    int literalIx = 256 + WebpConstants.NumLengthCodes + code;
                     this.bitWriter.WriteHuffmanCode(codes[0], literalIx);
                 }
                 else
@@ -1084,7 +1084,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
         {
             Span<uint> palette = this.Palette.Memory.Span;
             this.PaletteSize = this.GetColorPalette(image, palette);
-            if (this.PaletteSize > WebPConstants.MaxPaletteSize)
+            if (this.PaletteSize > WebpConstants.MaxPaletteSize)
             {
                 this.PaletteSize = 0;
                 return false;
@@ -1119,10 +1119,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 for (int x = 0; x < rowSpan.Length; x++)
                 {
                     colors.Add(rowSpan[x]);
-                    if (colors.Count > WebPConstants.MaxPaletteSize)
+                    if (colors.Count > WebpConstants.MaxPaletteSize)
                     {
                         // Exact count is not needed, because a palette will not be used then anyway.
-                        return WebPConstants.MaxPaletteSize + 1;
+                        return WebpConstants.MaxPaletteSize + 1;
                     }
                 }
             }
@@ -1464,7 +1464,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 {
                     int numSymbols =
                         (k == 0) ? histo.NumCodes() :
-                        (k == 4) ? WebPConstants.NumDistanceCodes : 256;
+                        (k == 4) ? WebpConstants.NumDistanceCodes : 256;
                     huffmanCodes[startIdx + k].NumSymbols = numSymbols;
                     totalLengthSize += numSymbols;
                 }
@@ -1532,7 +1532,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
             while (true)
             {
                 int huffImageSize = LosslessUtils.SubSampleSize(width, histoBits) * LosslessUtils.SubSampleSize(height, histoBits);
-                if (huffImageSize <= WebPConstants.MaxHuffImageSize)
+                if (huffImageSize <= WebpConstants.MaxHuffImageSize)
                 {
                     break;
                 }
@@ -1540,8 +1540,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossless
                 histoBits++;
             }
 
-            return (histoBits < WebPConstants.MinHuffmanBits) ? WebPConstants.MinHuffmanBits :
-                (histoBits > WebPConstants.MaxHuffmanBits) ? WebPConstants.MaxHuffmanBits : histoBits;
+            return (histoBits < WebpConstants.MinHuffmanBits) ? WebpConstants.MinHuffmanBits :
+                (histoBits > WebpConstants.MaxHuffmanBits) ? WebpConstants.MaxHuffmanBits : histoBits;
         }
 
         /// <summary>

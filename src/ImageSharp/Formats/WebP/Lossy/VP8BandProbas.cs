@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
+namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 {
     /// <summary>
     /// All the probabilities associated to one band.
@@ -13,8 +13,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.WebP.Lossy
         /// </summary>
         public Vp8BandProbas()
         {
-            this.Probabilities = new Vp8ProbaArray[WebPConstants.NumCtx];
-            for (int i = 0; i < WebPConstants.NumCtx; i++)
+            this.Probabilities = new Vp8ProbaArray[WebpConstants.NumCtx];
+            for (int i = 0; i < WebpConstants.NumCtx; i++)
             {
                 this.Probabilities[i] = new Vp8ProbaArray();
             }

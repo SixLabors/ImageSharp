@@ -560,7 +560,8 @@ namespace SixLabors.ImageSharp.Tests
             public const string MultiframeDifferentSize = "Tiff/multipage_differentSize.tiff";
             public const string MultiframeDifferentVariants = "Tiff/multipage_differentVariants.tiff";
 
-            public const string LsbToMsbByteOrder = "Tiff/b0350_lsb_to_msb.tiff";
+            public const string FillOrder2 = "Tiff/b0350_fillorder2.tiff";
+            public const string LittleEndianByteOrder = "Tiff/little_endian.tiff";
 
             public const string SampleMetadata = "Tiff/metadata_sample.tiff";
 
@@ -568,7 +569,7 @@ namespace SixLabors.ImageSharp.Tests
 
             public static readonly string[] Metadata = { SampleMetadata };
 
-            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants };
+            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, FillOrder2 };
         }
     }
 }

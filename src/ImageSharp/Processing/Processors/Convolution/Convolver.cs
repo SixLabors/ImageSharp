@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -100,12 +101,12 @@ namespace SixLabors.ImageSharp
             Vector4 vectorY = default;
             Vector4 vectorX = default;
 
-            ref int sampleOffsetRowBase = ref state.GetSampleOffsetRow(row);
+            ref int sampleOffsetRowBase = ref state.GetSampleRow(row);
             for (int y = 0; y < kernelHeight; y++)
             {
                 int offsetY = Unsafe.Add(ref sampleOffsetRowBase, y);
                 ref TPixel sourceRowBase = ref MemoryMarshal.GetReference(sourcePixels.GetRowSpan(offsetY));
-                ref int sampleOffsetColumnBase = ref state.GetSampleOffsetColumn(column);
+                ref int sampleOffsetColumnBase = ref state.GetSampleColumn(column);
 
                 for (int x = 0; x < kernelWidth; x++)
                 {
@@ -188,6 +189,93 @@ namespace SixLabors.ImageSharp
             target = vector;
         }
 
+        /// <summary>
+        /// Computes the sum of vectors in the span referenced by <paramref name="sourceRow"/> weighted
+        /// by the kernel weight values.
+        /// Using this method the convolution filter is not applied to alpha in addition
+        /// to the color channels.
+        /// </summary>
+        /// <param name="state">The convolution kernel state.</param>
+        /// <param name="sourceRow">The source row.</param>
+        /// <param name="targetRow">The target row.</param>
+        /// <param name="kY">The current kernel row.</param>
+        /// <param name="bX">The interest x-bounds relative to the interest image.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvolveRow3(
+            in ConvolutionState state,
+            Span<Vector4> sourceRow,
+            Span<Vector4> targetRow,
+            int kY,
+            int bX)
+        {
+            ReadOnlyKernel kernel = state.Kernel;
+            ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceRow);
+            ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetRow);
+
+            Numerics.Premultiply(sourceRow);
+
+            for (int x = 0; x < sourceRow.Length; x++)
+            {
+                Vector4 vector = default;
+                ref int sampleOffsetColumnBase = ref state.GetSampleColumn(x);
+
+                for (int kX = 0; kX < kernel.Columns; kX++)
+                {
+                    int offsetX = Unsafe.Add(ref sampleOffsetColumnBase, kX) - bX;
+                    Vector4 sample = Unsafe.Add(ref sourceBase, offsetX);
+                    vector += kernel[kY, kX] * sample;
+                }
+
+                ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+                vector.W = target.W;
+                Numerics.UnPremultiply(ref vector);
+                target = vector;
+            }
+        }
+
+        /// <summary>
+        /// Computes the sum of vectors in the span referenced by <paramref name="sourceRow"/> weighted
+        /// by the kernel weight values.
+        /// Using this method the convolution filter is applied to alpha in addition to the
+        /// color channels.
+        /// </summary>
+        /// <param name="state">The convolution kernel state.</param>
+        /// <param name="sourceRow">The source row.</param>
+        /// <param name="targetRow">The target row.</param>
+        /// <param name="kY">The current kernel row.</param>
+        /// <param name="bX">The interest x-bounds relative to the interest image.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ConvolveRow4<TPixel>(
+            in ConvolutionState state,
+            Span<Vector4> sourceRow,
+            Span<Vector4> targetRow,
+            int kY,
+            int bX)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            ReadOnlyKernel kernel = state.Kernel;
+
+            ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceRow);
+            ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetRow);
+
+            Numerics.Premultiply(sourceRow);
+
+            for (int x = 0; x < sourceRow.Length; x++)
+            {
+                ref int sampleOffsetColumnBase = ref state.GetSampleColumn(x);
+                ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+
+                for (int kX = 0; kX < kernel.Columns; kX++)
+                {
+                    int offsetX = Unsafe.Add(ref sampleOffsetColumnBase, kX) - bX;
+                    Vector4 sample = Unsafe.Add(ref sourceBase, offsetX);
+                    target += kernel[kY, kX] * sample;
+                }
+            }
+
+            Numerics.UnPremultiply(targetRow);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ConvolveImpl<TPixel>(
             in ConvolutionState state,
@@ -201,12 +289,12 @@ namespace SixLabors.ImageSharp
             int kernelHeight = kernel.Rows;
             int kernelWidth = kernel.Columns;
 
-            ref int sampleOffsetRowBase = ref state.GetSampleOffsetRow(row);
+            ref int sampleOffsetRowBase = ref state.GetSampleRow(row);
             for (int y = 0; y < kernelHeight; y++)
             {
                 int offsetY = Unsafe.Add(ref sampleOffsetRowBase, y);
                 ref TPixel sourceRowBase = ref MemoryMarshal.GetReference(sourcePixels.GetRowSpan(offsetY));
-                ref int sampleOffsetColumnBase = ref state.GetSampleOffsetColumn(column);
+                ref int sampleOffsetColumnBase = ref state.GetSampleColumn(column);
 
                 for (int x = 0; x < kernelWidth; x++)
                 {

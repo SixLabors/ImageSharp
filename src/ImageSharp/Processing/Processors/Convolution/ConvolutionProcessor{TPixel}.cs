@@ -57,6 +57,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             source.CopyTo(targetPixels);
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+
+            // We use a rectangle 2x the interest width to allocate a buffer big enough
+            // for source and target bulk pixel conversion.
+            var operationBounds = new Rectangle(interest.X, interest.Y, interest.Width * 2, interest.Height);
             using (var map = new KernelSamplingMap(allocator))
             {
                 map.BuildSamplingOffsetMap(this.KernelXY, interest);
@@ -64,7 +68,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 var operation = new RowOperation(interest, targetPixels, source.PixelBuffer, map, this.KernelXY, this.Configuration, this.PreserveAlpha);
                 ParallelRowIterator.IterateRows<RowOperation, Vector4>(
                    this.Configuration,
-                   interest,
+                   operationBounds,
                    in operation);
             }
 
@@ -107,39 +111,93 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y, Span<Vector4> span)
             {
+                // Span is 2x bounds.
+                int boundsX = this.bounds.X;
+                int boundsWidth = this.bounds.Width;
+                Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
+                Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
+
                 ref Vector4 targetRowRef = ref MemoryMarshal.GetReference(span);
-                Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
+                Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
 
                 var state = new ConvolutionState(in this.kernel, this.map);
                 int row = y - this.bounds.Y;
+                ref int sampleRowBase = ref state.GetSampleRow(row);
 
                 if (this.preserveAlpha)
                 {
-                    for (int column = 0; column < this.bounds.Width; column++)
+                    // Clear the target buffer for each row run.
+                    targetBuffer.Clear();
+                    ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
+
+                    Span<TPixel> sourceRow;
+                    for (int kY = 0; kY < state.Kernel.Rows; kY++)
                     {
-                        Convolver.Convolve3(
-                            in state,
-                            this.sourcePixels,
-                            ref targetRowRef,
-                            row,
-                            column);
+                        // Get the precalculated source sample row for this kernel row and copy to our buffer.
+                        int offsetY = Unsafe.Add(ref sampleRowBase, kY);
+                        sourceRow = this.sourcePixels.GetRowSpan(offsetY).Slice(boundsX, boundsWidth);
+                        PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+
+                        ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
+
+                        for (int x = 0; x < sourceBuffer.Length; x++)
+                        {
+                            ref int sampleColumnBase = ref state.GetSampleColumn(x);
+                            ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+
+                            for (int kX = 0; kX < state.Kernel.Columns; kX++)
+                            {
+                                int offsetX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
+                                Vector4 sample = Unsafe.Add(ref sourceBase, offsetX);
+                                target += state.Kernel[kY, kX] * sample;
+                            }
+                        }
+                    }
+
+                    // Now we need to copy the original alpha values from the source row.
+                    sourceRow = this.sourcePixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+
+                    for (int x = 0; x < sourceRow.Length; x++)
+                    {
+                        ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+                        target.W = Unsafe.Add(ref MemoryMarshal.GetReference(sourceBuffer), x).W;
                     }
                 }
                 else
                 {
-                    for (int column = 0; column < this.bounds.Width; column++)
+                    // Clear the target buffer for each row run.
+                    targetBuffer.Clear();
+                    ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
+
+                    for (int kY = 0; kY < state.Kernel.Rows; kY++)
                     {
-                        Convolver.Convolve4(
-                            in state,
-                            this.sourcePixels,
-                            ref targetRowRef,
-                            row,
-                            column);
+                        // Get the precalculated source sample row for this kernel row and copy to our buffer.
+                        int offsetY = Unsafe.Add(ref sampleRowBase, kY);
+                        Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(offsetY).Slice(boundsX, boundsWidth);
+                        PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+
+                        Numerics.Premultiply(sourceBuffer);
+                        ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
+
+                        for (int x = 0; x < sourceBuffer.Length; x++)
+                        {
+                            ref int sampleColumnBase = ref state.GetSampleColumn(x);
+                            ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+
+                            for (int kX = 0; kX < state.Kernel.Columns; kX++)
+                            {
+                                int offsetX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
+                                Vector4 sample = Unsafe.Add(ref sourceBase, offsetX);
+                                target += state.Kernel[kY, kX] * sample;
+                            }
+                        }
                     }
+
+                    Numerics.UnPremultiply(targetBuffer);
                 }
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRowSpan);
             }
         }
     }

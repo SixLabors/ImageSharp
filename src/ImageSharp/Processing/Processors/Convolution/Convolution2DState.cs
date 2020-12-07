@@ -44,11 +44,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly ref int GetSampleOffsetRow(int row)
+        public readonly ref int GetSampleRow(int row)
             => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.rowOffsetMap), row * this.kernelHeight);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly ref int GetSampleOffsetColumn(int column)
+        public readonly ref int GetSampleColumn(int column)
             => ref Unsafe.Add(ref MemoryMarshal.GetReference(this.columnOffsetMap), column * this.kernelWidth);
     }
 }

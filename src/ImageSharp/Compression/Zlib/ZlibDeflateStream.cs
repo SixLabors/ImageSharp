@@ -4,10 +4,10 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Compression;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Png.Zlib
+namespace SixLabors.ImageSharp.Compression.Zlib
 {
     /// <summary>
     /// Provides methods and properties for compressing streams by using the Zlib Deflate algorithm.

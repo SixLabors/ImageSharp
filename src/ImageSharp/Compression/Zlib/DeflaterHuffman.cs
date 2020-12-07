@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Png.Zlib
+namespace SixLabors.ImageSharp.Compression.Zlib
 {
     /// <summary>
     /// Performs Deflate Huffman encoding.

@@ -6,7 +6,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Png.Zlib
+namespace SixLabors.ImageSharp.Compression.Zlib
 {
     /// <summary>
     /// Stores pending data for writing data to the Deflater.

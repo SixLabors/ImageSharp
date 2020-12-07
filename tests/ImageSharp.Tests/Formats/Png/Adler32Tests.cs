@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.Compression.Zlib;
 using Xunit;
 using SharpAdler32 = ICSharpCode.SharpZipLib.Checksum.Adler32;
 

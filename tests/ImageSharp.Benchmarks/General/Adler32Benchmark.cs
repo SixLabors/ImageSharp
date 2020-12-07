@@ -3,7 +3,7 @@
 
 using System;
 using BenchmarkDotNet.Attributes;
-using SixLabors.ImageSharp.Formats.Png.Zlib;
+using SixLabors.ImageSharp.Compression.Zlib;
 using SharpAdler32 = ICSharpCode.SharpZipLib.Checksum.Adler32;
 
 namespace SixLabors.ImageSharp.Benchmarks.General

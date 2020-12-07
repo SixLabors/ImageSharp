@@ -2,10 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-using SixLabors.ImageSharp.Compression;
+using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Png.Zlib;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression

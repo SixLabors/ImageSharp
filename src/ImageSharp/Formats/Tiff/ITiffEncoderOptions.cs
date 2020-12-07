@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using SixLabors.ImageSharp.Compression;
+using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff

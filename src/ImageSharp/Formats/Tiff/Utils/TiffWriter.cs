@@ -764,7 +764,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Worst case is that the actual compressed data is larger then the input data. In this case we need 1 additional byte per 127 bits.
-            int additionalBytes = (image.Width / 127) + 1;
+            int additionalBytes = (image.Width / 127) + 2;
             int compressedRowBytes = (image.Width / 8) + additionalBytes;
             using IManagedByteBuffer compressedRow = this.memoryAllocator.AllocateManagedByteBuffer(compressedRowBytes, AllocationOptions.Clean);
             Span<byte> compressedRowSpan = compressedRow.GetSpan();

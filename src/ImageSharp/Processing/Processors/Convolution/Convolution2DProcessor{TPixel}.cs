@@ -66,12 +66,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             source.CopyTo(targetPixels);
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+
+            // We use a rectangle 3x the interest width to allocate a buffer big enough
+            // for source and target bulk pixel conversion.
+            var operationBounds = new Rectangle(interest.X, interest.Y, interest.Width * 3, interest.Height);
+
             using (var map = new KernelSamplingMap(allocator))
             {
                 // Since the kernel sizes are identical we can use a single map.
                 map.BuildSamplingOffsetMap(this.KernelY, interest);
 
-                var operation = new RowOperation(
+                var operation = new Convolution2DRowOperation<TPixel>(
                     interest,
                     targetPixels,
                     source.PixelBuffer,
@@ -81,9 +86,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     this.Configuration,
                     this.PreserveAlpha);
 
-                ParallelRowIterator.IterateRows<RowOperation, Vector4>(
+                ParallelRowIterator.IterateRows<Convolution2DRowOperation<TPixel>, Vector4>(
                     this.Configuration,
-                    interest,
+                    operationBounds,
                     in operation);
             }
 

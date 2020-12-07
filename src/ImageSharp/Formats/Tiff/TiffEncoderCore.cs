@@ -426,79 +426,37 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         private ushort GetCompressionType()
         {
-            if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.Default)
+            switch (this.CompressionType)
             {
-                return (ushort)TiffCompression.Deflate;
-            }
+                case TiffEncoderCompression.Deflate:
+                    // Deflate is allowed for all modes.
+                    return (ushort)TiffCompression.Deflate;
+                case TiffEncoderCompression.PackBits:
+                    // PackBits is allowed for all modes.
+                    return (ushort)TiffCompression.PackBits;
+                case TiffEncoderCompression.Lzw:
+                    if (this.Mode == TiffEncodingMode.Rgb || this.Mode == TiffEncodingMode.Gray || this.Mode == TiffEncodingMode.ColorPalette)
+                    {
+                        return (ushort)TiffCompression.Lzw;
+                    }
 
-            if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.Rgb)
-            {
-                return (ushort)TiffCompression.Deflate;
-            }
+                    break;
 
-            if (this.CompressionType == TiffEncoderCompression.Lzw && this.Mode == TiffEncodingMode.Rgb)
-            {
-                return (ushort)TiffCompression.Lzw;
-            }
+                case TiffEncoderCompression.CcittGroup3Fax:
+                    if (this.Mode == TiffEncodingMode.BiColor)
+                    {
+                        return (ushort)TiffCompression.CcittGroup3Fax;
+                    }
 
-            if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.Default)
-            {
-                return (ushort)TiffCompression.PackBits;
-            }
+                    break;
 
-            if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.Rgb)
-            {
-                return (ushort)TiffCompression.PackBits;
-            }
+                case TiffEncoderCompression.ModifiedHuffman:
+                    if (this.Mode == TiffEncodingMode.BiColor)
+                    {
+                        return (ushort)TiffCompression.Ccitt1D;
+                    }
 
-            if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.Gray)
-            {
-                return (ushort)TiffCompression.Deflate;
-            }
-
-            if (this.CompressionType == TiffEncoderCompression.Lzw && this.Mode == TiffEncodingMode.Gray)
-            {
-                return (ushort)TiffCompression.Lzw;
-            }
-
-            if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.Gray)
-            {
-                return (ushort)TiffCompression.PackBits;
-            }
-
-            if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.ColorPalette)
-            {
-                return (ushort)TiffCompression.Deflate;
-            }
-
-            if (this.CompressionType == TiffEncoderCompression.Lzw && this.Mode == TiffEncodingMode.ColorPalette)
-            {
-                return (ushort)TiffCompression.Lzw;
-            }
-
-            if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.ColorPalette)
-            {
-                return (ushort)TiffCompression.PackBits;
-            }
-
-            if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.BiColor)
-            {
-                return (ushort)TiffCompression.Deflate;
-            }
-
-            if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.BiColor)
-            {
-                return (ushort)TiffCompression.PackBits;
-            }
-
-            if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax && this.Mode == TiffEncodingMode.BiColor)
-            {
-                return (ushort)TiffCompression.CcittGroup3Fax;
-            }
-
-            if (this.CompressionType == TiffEncoderCompression.ModifiedHuffman && this.Mode == TiffEncodingMode.BiColor)
-            {
-                return (ushort)TiffCompression.Ccitt1D;
+                    break;
             }
 
             return (ushort)TiffCompression.None;

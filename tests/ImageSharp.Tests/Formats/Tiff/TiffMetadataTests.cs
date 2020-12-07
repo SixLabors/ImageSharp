@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [InlineData(GrayscaleUncompressed, ByteOrder.BigEndian)]
-        [InlineData(LsbToMsbByteOrder, ByteOrder.LittleEndian)]
+        [InlineData(LittleEndianByteOrder, ByteOrder.LittleEndian)]
         public void Identify_DetectsCorrectByteOrder(string imagePath, ByteOrder expectedByteOrder)
         {
             var testFile = TestFile.Create(imagePath);

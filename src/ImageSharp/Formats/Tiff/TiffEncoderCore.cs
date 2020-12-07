@@ -426,6 +426,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         private ushort GetCompressionType()
         {
+            if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.Default)
+            {
+                return (ushort)TiffCompression.Deflate;
+            }
+
             if (this.CompressionType == TiffEncoderCompression.Deflate && this.Mode == TiffEncodingMode.Rgb)
             {
                 return (ushort)TiffCompression.Deflate;
@@ -434,6 +439,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             if (this.CompressionType == TiffEncoderCompression.Lzw && this.Mode == TiffEncodingMode.Rgb)
             {
                 return (ushort)TiffCompression.Lzw;
+            }
+
+            if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.Default)
+            {
+                return (ushort)TiffCompression.PackBits;
             }
 
             if (this.CompressionType == TiffEncoderCompression.PackBits && this.Mode == TiffEncodingMode.Rgb)

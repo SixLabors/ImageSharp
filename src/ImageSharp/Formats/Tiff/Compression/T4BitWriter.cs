@@ -314,9 +314,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             }
 
             // Write the compressed data to the stream.
-            stream.Write(compressedData.Slice(0, this.bytePosition));
+            int bytesToWrite = this.bitPosition != 0 ? this.bytePosition + 1 : this.bytePosition;
+            stream.Write(compressedData.Slice(0, bytesToWrite));
 
-            return this.bytePosition;
+            return bytesToWrite;
         }
 
         private void WriteEndOfLine(Span<byte> compressedData)

@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Compression;
+using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 

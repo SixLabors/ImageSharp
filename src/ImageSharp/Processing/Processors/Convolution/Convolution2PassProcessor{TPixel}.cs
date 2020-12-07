@@ -63,12 +63,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
+            // We use a rectangle 2x the interest width to allocate a buffer big enough
+            // for source and target bulk pixel conversion.
+            var operationBounds = new Rectangle(interest.X, interest.Y, interest.Width * 2, interest.Height);
+
             using (var mapX = new KernelSamplingMap(this.Configuration.MemoryAllocator))
             {
                 mapX.BuildSamplingOffsetMap(this.KernelX, interest);
 
                 // Horizontal convolution
-                var horizontalOperation = new RowOperation(
+                var horizontalOperation = new ConvolutionRowOperation<TPixel>(
                     interest,
                     firstPassPixels,
                     source.PixelBuffer,
@@ -77,9 +81,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     this.Configuration,
                     this.PreserveAlpha);
 
-                ParallelRowIterator.IterateRows<RowOperation, Vector4>(
+                ParallelRowIterator.IterateRows<ConvolutionRowOperation<TPixel>, Vector4>(
                     this.Configuration,
-                    interest,
+                    operationBounds,
                     in horizontalOperation);
             }
 
@@ -88,7 +92,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 mapY.BuildSamplingOffsetMap(this.KernelY, interest);
 
                 // Vertical convolution
-                var verticalOperation = new RowOperation(
+                var verticalOperation = new ConvolutionRowOperation<TPixel>(
                     interest,
                     source.PixelBuffer,
                     firstPassPixels,
@@ -97,82 +101,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     this.Configuration,
                     this.PreserveAlpha);
 
-                ParallelRowIterator.IterateRows<RowOperation, Vector4>(
+                ParallelRowIterator.IterateRows<ConvolutionRowOperation<TPixel>, Vector4>(
                     this.Configuration,
-                    interest,
+                    operationBounds,
                     in verticalOperation);
-            }
-        }
-
-        /// <summary>
-        /// A <see langword="struct"/> implementing the convolution logic for <see cref="Convolution2PassProcessor{T}"/>.
-        /// </summary>
-        private readonly struct RowOperation : IRowOperation<Vector4>
-        {
-            private readonly Rectangle bounds;
-            private readonly Buffer2D<TPixel> targetPixels;
-            private readonly Buffer2D<TPixel> sourcePixels;
-            private readonly KernelSamplingMap map;
-            private readonly DenseMatrix<float> kernel;
-            private readonly Configuration configuration;
-            private readonly bool preserveAlpha;
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public RowOperation(
-                Rectangle bounds,
-                Buffer2D<TPixel> targetPixels,
-                Buffer2D<TPixel> sourcePixels,
-                KernelSamplingMap map,
-                DenseMatrix<float> kernel,
-                Configuration configuration,
-                bool preserveAlpha)
-            {
-                this.bounds = bounds;
-                this.targetPixels = targetPixels;
-                this.sourcePixels = sourcePixels;
-                this.map = map;
-                this.kernel = kernel;
-                this.configuration = configuration;
-                this.preserveAlpha = preserveAlpha;
-            }
-
-            /// <inheritdoc/>
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y, Span<Vector4> span)
-            {
-                ref Vector4 targetRowRef = ref MemoryMarshal.GetReference(span);
-                Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
-
-                var state = new ConvolutionState(in this.kernel, this.map);
-                int row = y - this.bounds.Y;
-
-                if (this.preserveAlpha)
-                {
-                    for (int column = 0; column < this.bounds.Width; column++)
-                    {
-                        Convolver.Convolve3(
-                            in state,
-                            this.sourcePixels,
-                            ref targetRowRef,
-                            row,
-                            column);
-                    }
-                }
-                else
-                {
-                    for (int column = 0; column < this.bounds.Width; column++)
-                    {
-                        Convolver.Convolve4(
-                            in state,
-                            this.sourcePixels,
-                            ref targetRowRef,
-                            row,
-                            column);
-                    }
-                }
-
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
             }
         }
     }

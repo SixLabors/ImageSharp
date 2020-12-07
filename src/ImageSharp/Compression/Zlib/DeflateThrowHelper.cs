@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats.Png.Zlib
+namespace SixLabors.ImageSharp.Compression.Zlib
 {
     internal static class DeflateThrowHelper
     {

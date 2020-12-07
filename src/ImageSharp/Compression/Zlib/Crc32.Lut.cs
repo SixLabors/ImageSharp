@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Png.Zlib
+namespace SixLabors.ImageSharp.Compression.Zlib
 {
     /// <content>
     /// Contains precalulated tables for scalar calculations.

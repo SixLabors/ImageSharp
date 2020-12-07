@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Png.Zlib
+namespace SixLabors.ImageSharp.Compression.Zlib
 {
     /// <summary>
     /// This class compresses input with the deflate algorithm described in RFC 1951.

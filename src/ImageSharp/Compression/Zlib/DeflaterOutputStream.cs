@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Png.Zlib
+namespace SixLabors.ImageSharp.Compression.Zlib
 {
     /// <summary>
     /// A special stream deflating or compressing the bytes that are

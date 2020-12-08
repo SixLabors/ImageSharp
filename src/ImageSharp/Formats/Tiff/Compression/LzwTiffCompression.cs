@@ -3,9 +3,11 @@
 
 using System;
 using System.IO;
+
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
@@ -28,10 +30,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         }
 
         /// <inheritdoc/>
-        public override void Decompress(Stream stream, int byteCount, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
         {
-            var subStream = new SubStream(stream, byteCount);
-            var decoder = new TiffLzwDecoder(subStream, this.Allocator);
+            var decoder = new TiffLzwDecoder(stream, this.Allocator);
             decoder.DecodePixels(buffer.Length, 8, buffer);
 
             if (this.Predictor == TiffPredictor.Horizontal)

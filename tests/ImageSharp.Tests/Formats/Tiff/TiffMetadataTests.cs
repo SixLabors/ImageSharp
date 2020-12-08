@@ -17,6 +17,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     [Trait("Format", "Tiff")]
     public class TiffMetadataTests
     {
+        public TiffMetadataTests()
+        {
+            Configuration.Default.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
+            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
+            Configuration.Default.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
+            Configuration.Default.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
+        }
+
         [Fact]
         public void CloneIsDeep()
         {

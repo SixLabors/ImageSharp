@@ -5,6 +5,7 @@ using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
@@ -26,7 +27,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         }
 
         /// <inheritdoc/>
-        public override void Decompress(Stream stream, int byteCount, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
         {
             bool isWhiteZero = this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
             byte whiteValue = (byte)(isWhiteZero ? 0 : 1);

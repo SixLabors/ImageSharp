@@ -347,8 +347,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     {
                         int stripIndex = (i * stripsPerPixel) + planeIndex;
 
-                        this.inputStream.Seek(stripOffsets[stripIndex], SeekOrigin.Begin);
-                        decompressor.Decompress(this.inputStream, (int)stripByteCounts[stripIndex], stripBuffers[planeIndex].GetSpan());
+                        decompressor.Decompress(this.inputStream, stripOffsets[stripIndex], stripByteCounts[stripIndex], stripBuffers[planeIndex].GetSpan());
                     }
 
                     colorDecoder.Decode(stripBuffers, pixels, 0, rowsPerStrip * i, frame.Width, stripHeight);
@@ -385,8 +384,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             {
                 int stripHeight = stripIndex < stripOffsets.Length - 1 || frame.Height % rowsPerStrip == 0 ? rowsPerStrip : frame.Height % rowsPerStrip;
 
-                this.inputStream.Seek(stripOffsets[stripIndex], SeekOrigin.Begin);
-                decompressor.Decompress(this.inputStream, (int)stripByteCounts[stripIndex], stripBuffer.GetSpan());
+                decompressor.Decompress(this.inputStream, stripOffsets[stripIndex], stripByteCounts[stripIndex], stripBuffer.GetSpan());
 
                 colorDecoder.Decode(stripBuffer.GetSpan(), pixels, 0, rowsPerStrip * stripIndex, frame.Width, stripHeight);
             }

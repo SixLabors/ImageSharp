@@ -5,9 +5,11 @@ using System;
 using System.IO;
 using System.IO.Compression;
 
+using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
@@ -33,34 +35,20 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         }
 
         /// <inheritdoc/>
-        public override void Decompress(Stream stream, int byteCount, Span<byte> buffer)
+        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
         {
-            // Read the 'zlib' header information
-            int cmf = stream.ReadByte();
-            int flag = stream.ReadByte();
-
-            if ((cmf & 0x0f) != 8)
+            long pos = stream.Position;
+            using (var deframeStream = new ZlibInflateStream(
+                stream,
+                () =>
+                {
+                    int left = (int)(byteCount - (stream.Position - pos));
+                    return left > 0 ? left : 0;
+                }))
             {
-                TiffThrowHelper.ThrowBadZlibHeader(cmf);
-            }
-
-            // If the 'fdict' flag is set then we should skip the next four bytes
-            bool fdict = (flag & 32) != 0;
-
-            if (fdict)
-            {
-                stream.ReadByte();
-                stream.ReadByte();
-                stream.ReadByte();
-                stream.ReadByte();
-            }
-
-            // The subsequent data is the Deflate compressed data (except for the last four bytes of checksum)
-            int headerLength = fdict ? 10 : 6;
-            var subStream = new SubStream(stream, byteCount - headerLength);
-            using (var deflateStream = new DeflateStream(subStream, CompressionMode.Decompress, true))
-            {
-                deflateStream.Read(buffer, 0, buffer.Length);
+                deframeStream.AllocateNewBytes(byteCount, true);
+                DeflateStream dataStream = deframeStream.CompressedStream;
+                dataStream.Read(buffer, 0, buffer.Length);
             }
 
             if (this.Predictor == TiffPredictor.Horizontal)

@@ -186,7 +186,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         {
             int bytesWritten = 0;
             using var memoryStream = new MemoryStream();
-            using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, compressionLevel); // TODO: move zlib compression from png to a common place?
+            using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, compressionLevel);
 
             for (int y = 0; y < image.Height; y++)
             {
@@ -534,7 +534,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         {
             int bytesWritten = 0;
             using var memoryStream = new MemoryStream();
-            using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, compressionLevel); // TODO: move zlib compression from png to a common place?
+            using var deflateStream = new ZlibDeflateStream(this.memoryAllocator, memoryStream, compressionLevel);
 
             for (int y = 0; y < image.Height; y++)
             {

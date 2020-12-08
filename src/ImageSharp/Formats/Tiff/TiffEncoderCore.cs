@@ -308,13 +308,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             var xResolution = new ExifRational(ExifTagValue.XResolution)
             {
-                // TODO: what to use here as a default?
+                // TODO: This field is required according to the spec, what to use here as a default?
                 Value = Rational.FromDouble(1.0d)
             };
 
             var yResolution = new ExifRational(ExifTagValue.YResolution)
             {
-                // TODO: what to use here as a default?
+                // TODO: This field is required according to the spec, what to use here as a default?
                 Value = Rational.FromDouble(1.0d)
             };
 

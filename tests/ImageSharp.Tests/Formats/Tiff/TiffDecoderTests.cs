@@ -28,6 +28,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
+        public TiffDecoderTests()
+        {
+            Configuration.Default.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
+            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
+            Configuration.Default.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
+        }
+
         [Theory]
         [WithFileCollection(nameof(NotSupportedImages), PixelTypes.Rgba32)]
         public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)

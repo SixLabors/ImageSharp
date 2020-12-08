@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 {
     /// <summary>
-    /// Image decoder for generating an image out of a TIFF stream.
+    /// EXPERIMENTAL! Image decoder for generating an image out of a TIFF stream.
     /// </summary>
     public class TiffDecoder : IImageDecoder, ITiffDecoderOptions, IImageInfoDetector
     {

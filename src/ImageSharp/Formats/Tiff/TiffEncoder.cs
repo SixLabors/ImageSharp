@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.Processing.Processors.Quantization;
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 {
     /// <summary>
-    /// Encoder for writing the data image to a stream in TIFF format.
+    /// EXPERIMENTAL! Encoder for writing the data image to a stream in TIFF format.
     /// </summary>
     public class TiffEncoder : IImageEncoder, ITiffEncoderOptions
     {

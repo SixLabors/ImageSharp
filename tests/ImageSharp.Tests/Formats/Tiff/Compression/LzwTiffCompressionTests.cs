@@ -16,12 +16,25 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
     public class LzwTiffCompressionTests
     {
         [Theory]
+        [InlineData(new byte[] { 1, 2, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 3, 4 }, new byte[] { 128, 0, 64, 66, 168, 36, 22, 12, 3, 2, 64, 64, 0, 0 })] // Repeated bytes
+
+        public void Compress_Works(byte[] inputData, byte[] expectedCompressedData)
+        {
+            var compressedData = new byte[expectedCompressedData.Length];
+            Stream streamData = CreateCompressedStream(inputData);
+            streamData.Read(compressedData, 0, expectedCompressedData.Length);
+
+            Assert.Equal(expectedCompressedData, compressedData);
+        }
+
+        [Theory]
         [InlineData(new byte[] { })]
         [InlineData(new byte[] { 42 })] // One byte
         [InlineData(new byte[] { 42, 16, 128, 53, 96, 218, 7, 64, 3, 4, 97 })] // Random bytes
         [InlineData(new byte[] { 1, 2, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 3, 4 })] // Repeated bytes
         [InlineData(new byte[] { 1, 2, 42, 53, 42, 53, 42, 53, 42, 53, 42, 53, 3, 4 })] // Repeated sequence
-        public void Decompress_ReadsData(byte[] data)
+
+        public void Compress_Decompress_Roundtrip_Works(byte[] data)
         {
             using Stream stream = CreateCompressedStream(data);
             var buffer = new byte[data.Length];
@@ -37,12 +50,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             using System.Buffers.IMemoryOwner<byte> data = Configuration.Default.MemoryAllocator.Allocate<byte>(inputData.Length);
             inputData.AsSpan().CopyTo(data.GetSpan());
 
-            using (var encoder = new TiffLzwEncoder(Configuration.Default.MemoryAllocator, data, 8))
+            using (var encoder = new TiffLzwEncoder(Configuration.Default.MemoryAllocator, data))
             {
                 encoder.Encode(compressedStream);
             }
 
             compressedStream.Seek(0, SeekOrigin.Begin);
+
             return compressedStream;
         }
     }

@@ -7,6 +7,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using Xunit;
 
@@ -36,15 +37,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
 
         public void Compress_Decompress_Roundtrip_Works(byte[] data)
         {
-            using Stream stream = CreateCompressedStream(data);
+            using BufferedReadStream stream = CreateCompressedStream(data);
             var buffer = new byte[data.Length];
 
-            new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None).Decompress(stream, (int)stream.Length, buffer);
+            new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None).Decompress(stream, 0, (uint)stream.Length, buffer);
 
             Assert.Equal(data, buffer);
         }
 
-        private static Stream CreateCompressedStream(byte[] inputData)
+        private static BufferedReadStream CreateCompressedStream(byte[] inputData)
         {
             Stream compressedStream = new MemoryStream();
             using System.Buffers.IMemoryOwner<byte> data = Configuration.Default.MemoryAllocator.Allocate<byte>(inputData.Length);
@@ -57,7 +58,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
 
             compressedStream.Seek(0, SeekOrigin.Begin);
 
-            return compressedStream;
+            return new BufferedReadStream(Configuration.Default, compressedStream);
         }
     }
 }

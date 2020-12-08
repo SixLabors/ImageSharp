@@ -3,6 +3,8 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.IO;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
@@ -13,12 +15,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
         [Theory]
         [InlineData(new byte[] { 10, 15, 20, 25, 30, 35, 40, 45 }, 8, new byte[] { 10, 15, 20, 25, 30, 35, 40, 45 })]
         [InlineData(new byte[] { 10, 15, 20, 25, 30, 35, 40, 45 }, 5, new byte[] { 10, 15, 20, 25, 30 })]
-        public void Decompress_ReadsData(byte[] inputData, int byteCount, byte[] expectedResult)
+        public void Decompress_ReadsData(byte[] inputData, uint byteCount, byte[] expectedResult)
         {
-            Stream stream = new MemoryStream(inputData);
+            var stream = new BufferedReadStream(Configuration.Default, new MemoryStream(inputData));
             var buffer = new byte[expectedResult.Length];
 
-            new NoneTiffCompression(null).Decompress(stream, byteCount, buffer);
+            new NoneTiffCompression(null).Decompress(stream, 0, byteCount, buffer);
 
             Assert.Equal(expectedResult, buffer);
         }

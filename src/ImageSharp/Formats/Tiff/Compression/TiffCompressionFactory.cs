@@ -13,17 +13,27 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             switch (compressionType)
             {
                 case TiffDecoderCompressionType.None:
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "predictor");
                     return new NoneTiffCompression(allocator);
+
                 case TiffDecoderCompressionType.PackBits:
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "predictor");
                     return new PackBitsTiffCompression(allocator);
+
                 case TiffDecoderCompressionType.Deflate:
                     return new DeflateTiffCompression(allocator, width, bitsPerPixel, predictor);
+
                 case TiffDecoderCompressionType.Lzw:
                     return new LzwTiffCompression(allocator, width, bitsPerPixel, predictor);
+
                 case TiffDecoderCompressionType.T4:
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "predictor");
                     return new T4TiffCompression(allocator, photometricInterpretation, width);
+
                 case TiffDecoderCompressionType.HuffmanRle:
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "predictor");
                     return new ModifiedHuffmanTiffCompression(allocator, photometricInterpretation, width);
+
                 default:
                     throw TiffThrowHelper.NotSupportedCompression(nameof(compressionType));
             }

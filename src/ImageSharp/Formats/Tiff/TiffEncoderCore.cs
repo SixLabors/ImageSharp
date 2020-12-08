@@ -297,7 +297,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             var rowsPerStrip = new ExifLong(ExifTagValue.RowsPerStrip)
             {
-                // TODO: all rows in one strip for the start
+                // All rows in one strip.
                 Value = (uint)image.Height
             };
 

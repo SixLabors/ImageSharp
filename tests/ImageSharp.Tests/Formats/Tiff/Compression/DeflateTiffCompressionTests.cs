@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
         [InlineData(new byte[] { 42, 16, 128, 53, 96, 218, 7, 64, 3, 4, 97 })] // Random bytes
         [InlineData(new byte[] { 1, 2, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 3, 4 })] // Repeated bytes
         [InlineData(new byte[] { 1, 2, 42, 53, 42, 53, 42, 53, 42, 53, 42, 53, 3, 4 })] // Repeated sequence
-        public void Decompress_ReadsData(byte[] data)
+        public void Compress_Decompress_Roundtrip_Works(byte[] data)
         {
             using (Stream stream = CreateCompressedStream(data))
             {

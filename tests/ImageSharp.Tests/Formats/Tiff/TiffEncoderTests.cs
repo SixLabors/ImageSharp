@@ -29,6 +29,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 { RgbUncompressed, TiffBitsPerPixel.Pixel24 },
             };
 
+        public TiffEncoderTests()
+        {
+            Configuration.Default.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
+            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
+            Configuration.Default.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
+            Configuration.Default.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
+        }
+
         [Theory]
         [InlineData(TiffEncodingMode.Default, TiffEncoderCompression.None, TiffBitsPerPixel.Pixel24, TiffCompression.None)]
         [InlineData(TiffEncodingMode.Rgb, TiffEncoderCompression.None, TiffBitsPerPixel.Pixel24, TiffCompression.None)]

@@ -16,12 +16,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Formats\Tiff\__obsolete\**" />
-    <EmbeddedResource Remove="Formats\Tiff\__obsolete\**" />
-    <None Remove="Formats\Tiff\__obsolete\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="..\..\shared-infrastructure\branding\icons\imagesharp\sixlabors.imagesharp.128.png" Pack="true" PackagePath="" />
   </ItemGroup>
 

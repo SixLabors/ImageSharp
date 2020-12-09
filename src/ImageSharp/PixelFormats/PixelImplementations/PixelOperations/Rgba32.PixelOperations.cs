@@ -56,6 +56,23 @@ namespace SixLabors.ImageSharp.PixelFormats
                     MemoryMarshal.Cast<Vector4, float>(sourceVectors),
                     MemoryMarshal.Cast<Rgba32, byte>(destinationPixels));
             }
+
+            /// <inheritdoc />
+            internal override void PackFromRgbPlanes(
+                Configuration configuration,
+                ReadOnlySpan<byte> redChannel,
+                ReadOnlySpan<byte> greenChannel,
+                ReadOnlySpan<byte> blueChannel,
+                Span<Rgba32> destination)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                int count = redChannel.Length;
+                Guard.IsTrue(greenChannel.Length == count, nameof(greenChannel), "Channels must be of same size!");
+                Guard.IsTrue(blueChannel.Length == count, nameof(blueChannel), "Channels must be of same size!");
+                Guard.IsTrue(destination.Length > count, nameof(destination), "'destination' span should not be shorter than the source channels!");
+
+                SimdUtils.PackFromRgbPlanes(configuration, redChannel, greenChannel, blueChannel, destination);
+            }
         }
     }
 }

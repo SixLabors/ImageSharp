@@ -17,12 +17,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     [Trait("Format", "Tiff")]
     public class TiffMetadataTests
     {
+        private readonly Configuration configuration;
+
         public TiffMetadataTests()
         {
-            Configuration.Default.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
-            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
-            Configuration.Default.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
-            Configuration.Default.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
+            this.configuration = new Configuration();
+            this.configuration.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
+            this.configuration.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
+            this.configuration.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
+            this.configuration.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
         }
 
         [Fact]
@@ -58,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
 
-            IImageInfo imageInfo = Image.Identify(stream);
+            IImageInfo imageInfo = Image.Identify(this.configuration, stream);
 
             Assert.NotNull(imageInfo);
             TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
@@ -79,7 +82,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
 
-            IImageInfo imageInfo = Image.Identify(stream);
+            IImageInfo imageInfo = Image.Identify(this.configuration, stream);
 
             Assert.NotNull(imageInfo);
             TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
@@ -95,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var testFile = TestFile.Create(imagePath);
             using var stream = new MemoryStream(testFile.Bytes, false);
 
-            IImageInfo imageInfo = Image.Identify(stream);
+            IImageInfo imageInfo = Image.Identify(this.configuration, stream);
 
             Assert.NotNull(imageInfo);
             TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();

@@ -21,20 +21,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     {
         private static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder();
 
-        public static readonly TheoryData<string, TiffBitsPerPixel> TiffBitsPerPixelFiles =
-            new TheoryData<string, TiffBitsPerPixel>
-            {
-                { Calliphora_BiColorUncompressed, TiffBitsPerPixel.Pixel1 },
-                { GrayscaleUncompressed, TiffBitsPerPixel.Pixel8 },
-                { RgbUncompressed, TiffBitsPerPixel.Pixel24 },
-            };
+        private readonly Configuration configuration;
 
         public TiffEncoderTests()
         {
-            Configuration.Default.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
-            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
-            Configuration.Default.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
-            Configuration.Default.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
+            this.configuration = new Configuration();
+            this.configuration.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
+            this.configuration.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
+            this.configuration.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
+            this.configuration.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
         }
 
         [Theory]
@@ -70,20 +65,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(memStream);
+            using var output = Image.Load<Rgba32>(this.configuration, memStream);
             TiffMetadata meta = output.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, meta.BitsPerPixel);
             Assert.Equal(expectedCompression, meta.Compression);
         }
 
         [Theory]
-        [MemberData(nameof(TiffBitsPerPixelFiles))]
-        public void TiffEncoder_PreserveBitsPerPixel(string imagePath, TiffBitsPerPixel expectedBitsPerPixel)
+        [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32, TiffBitsPerPixel.Pixel1)]
+        [WithFile(GrayscaleUncompressed, PixelTypes.Rgba32, TiffBitsPerPixel.Pixel8)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffBitsPerPixel.Pixel24)]
+        public void TiffEncoder_PreserveBitsPerPixel<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel expectedBitsPerPixel)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             // arrange
             var tiffEncoder = new TiffEncoder();
-            var testFile = TestFile.Create(imagePath);
-            using Image<Rgba32> input = testFile.CreateRgba32Image();
+            using Image<TPixel> input = provider.GetImage();
             using var memStream = new MemoryStream();
 
             // act
@@ -91,7 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(memStream);
+            using var output = Image.Load<Rgba32>(this.configuration, memStream);
             TiffMetadata meta = output.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, meta.BitsPerPixel);
         }
@@ -163,7 +160,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.None };
 
-            TiffEncoderPaletteTest(provider, encoder);
+            this.TiffEncoderPaletteTest(provider, encoder);
         }
 
         [Theory]
@@ -173,7 +170,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Deflate };
 
-            TiffEncoderPaletteTest(provider, encoder);
+            this.TiffEncoderPaletteTest(provider, encoder);
         }
 
         [Theory]
@@ -183,7 +180,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Deflate, UseHorizontalPredictor = true };
 
-            TiffEncoderPaletteTest(provider, encoder);
+            this.TiffEncoderPaletteTest(provider, encoder);
         }
 
         [Theory]
@@ -193,7 +190,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw };
 
-            TiffEncoderPaletteTest(provider, encoder);
+            this.TiffEncoderPaletteTest(provider, encoder);
         }
 
         [Theory]
@@ -203,7 +200,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw, UseHorizontalPredictor = true };
 
-            TiffEncoderPaletteTest(provider, encoder);
+            this.TiffEncoderPaletteTest(provider, encoder);
         }
 
         [Theory]
@@ -213,10 +210,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.PackBits };
 
-            TiffEncoderPaletteTest(provider, encoder);
+            this.TiffEncoderPaletteTest(provider, encoder);
         }
 
-        private static void TiffEncoderPaletteTest<TPixel>(TestImageProvider<TPixel> provider, TiffEncoder encoder)
+        private void TiffEncoderPaletteTest<TPixel>(TestImageProvider<TPixel> provider, TiffEncoder encoder)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Because a quantizer is used to create the palette (and therefore changes to the original are expected),
@@ -228,7 +225,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             image.Save(memStream, encoder);
             memStream.Position = 0;
 
-            using var encodedImage = (Image<TPixel>)Image.Load(memStream);
+            using var encodedImage = (Image<TPixel>)Image.Load(this.configuration, memStream);
             var encodedImagePath = provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
             TiffTestUtils.CompareWithReferenceDecoder(encodedImagePath, encodedImage);
         }

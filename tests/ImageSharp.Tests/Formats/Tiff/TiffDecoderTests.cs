@@ -28,11 +28,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
+        private readonly Configuration configuration;
+
         public TiffDecoderTests()
         {
-            Configuration.Default.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
-            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
-            Configuration.Default.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
+            this.configuration = new Configuration();
+            this.configuration.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
+            this.configuration.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
+            this.configuration.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
         }
 
         [Theory]
@@ -52,7 +55,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo info = Image.Identify(stream);
+                IImageInfo info = Image.Identify(this.configuration, stream);
 
                 Assert.Equal(expectedPixelSize, info.PixelType?.BitsPerPixel);
                 Assert.Equal(expectedWidth, info.Width);
@@ -72,14 +75,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo info = Image.Identify(stream);
+                IImageInfo info = Image.Identify(this.configuration, stream);
 
                 Assert.NotNull(info.Metadata);
                 Assert.Equal(expectedByteOrder, info.Metadata.GetTiffMetadata().ByteOrder);
 
                 stream.Seek(0, SeekOrigin.Begin);
 
-                using var img = Image.Load(stream);
+                using var img = Image.Load(this.configuration, stream);
                 Assert.Equal(expectedByteOrder, img.Metadata.GetTiffMetadata().ByteOrder);
             }
         }

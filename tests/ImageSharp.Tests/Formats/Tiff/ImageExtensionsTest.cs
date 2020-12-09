@@ -13,12 +13,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     [Trait("Format", "Tiff")]
     public class ImageExtensionsTest
     {
+        private readonly Configuration configuration;
+
         public ImageExtensionsTest()
         {
-            Configuration.Default.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
-            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
-            Configuration.Default.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
-            Configuration.Default.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
+            this.configuration = new Configuration();
+            this.configuration.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
+            this.configuration.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
+            this.configuration.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
+            this.configuration.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
         }
 
         [Fact]
@@ -27,12 +30,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
             string file = Path.Combine(dir, "SaveAsTiff_Path.tiff");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 image.SaveAsTiff(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
+            using (Image.Load(this.configuration, file, out IImageFormat mime))
             {
                 Assert.Equal("image/tiff", mime.DefaultMimeType);
             }
@@ -44,12 +47,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
             string file = Path.Combine(dir, "SaveAsTiffAsync_Path.tiff");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 await image.SaveAsTiffAsync(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
+            using (Image.Load(this.configuration, file, out IImageFormat mime))
             {
                 Assert.Equal("image/tiff", mime.DefaultMimeType);
             }
@@ -61,12 +64,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
             string file = Path.Combine(dir, "SaveAsTiff_Path_Encoder.tiff");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 image.SaveAsTiff(file, new TiffEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
+            using (Image.Load(this.configuration, file, out IImageFormat mime))
             {
                 Assert.Equal("image/tiff", mime.DefaultMimeType);
             }
@@ -78,12 +81,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
             string file = Path.Combine(dir, "SaveAsTiffAsync_Path_Encoder.tiff");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 await image.SaveAsTiffAsync(file, new TiffEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
+            using (Image.Load(this.configuration, file, out IImageFormat mime))
             {
                 Assert.Equal("image/tiff", mime.DefaultMimeType);
             }
@@ -94,14 +97,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             using var memoryStream = new MemoryStream();
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 image.SaveAsTiff(memoryStream);
             }
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
+            using (Image.Load(this.configuration, memoryStream, out IImageFormat mime))
             {
                 Assert.Equal("image/tiff", mime.DefaultMimeType);
             }
@@ -112,14 +115,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             using var memoryStream = new MemoryStream();
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 await image.SaveAsTiffAsync(memoryStream);
             }
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
+            using (Image.Load(this.configuration, memoryStream, out IImageFormat mime))
             {
                 Assert.Equal("image/tiff", mime.DefaultMimeType);
             }
@@ -130,14 +133,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             using var memoryStream = new MemoryStream();
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 image.SaveAsTiff(memoryStream, new TiffEncoder());
             }
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
+            using (Image.Load(this.configuration, memoryStream, out IImageFormat mime))
             {
                 Assert.Equal("image/tiff", mime.DefaultMimeType);
             }
@@ -148,14 +151,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             using var memoryStream = new MemoryStream();
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 await image.SaveAsTiffAsync(memoryStream, new TiffEncoder());
             }
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
+            using (Image.Load(this.configuration, memoryStream, out IImageFormat mime))
             {
                 Assert.Equal("image/tiff", mime.DefaultMimeType);
             }

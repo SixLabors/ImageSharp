@@ -497,12 +497,16 @@ namespace SixLabors.ImageSharp.Tests
 
         public static class Tiff
         {
-            public const string Benchmark_GrayscaleUncompressed = "Tiff/Benchmarks/jpeg444_big_grayscale_uncompressed.tiff";
-            public const string Benchmark_PaletteUncompressed = "Tiff/Benchmarks/jpeg444_big_palette_uncompressed.tiff";
-            public const string Benchmark_RgbDeflate = "Tiff/Benchmarks/jpeg444_big_rgb_deflate.tiff";
-            public const string Benchmark_RgbLzw = "Tiff/Benchmarks/jpeg444_big_rgb_lzw.tiff";
-            public const string Benchmark_RgbPackbits = "Tiff/Benchmarks/jpeg444_big_rgb_packbits.tiff";
-            public const string Benchmark_RgbUncompressed = "Tiff/Benchmarks/jpeg444_big_rgb_uncompressed.tiff";
+            public const string Benchmark_Path = "Tiff/Benchmarks/";
+            public const string Benchmark_BwFax3 = "medium_bw_Fax3.tiff";
+            public const string Benchmark_BwFax4 = "medium_bw_Fax4.tiff";
+            public const string Benchmark_BwRle = "medium_bw_Rle.tiff";
+            public const string Benchmark_GrayscaleUncompressed = "medium_grayscale_uncompressed.tiff";
+            public const string Benchmark_PaletteUncompressed = "medium_palette_uncompressed.tiff";
+            public const string Benchmark_RgbDeflate = "medium_rgb_deflate.tiff";
+            public const string Benchmark_RgbLzw = "medium_rgb_lzw.tiff";
+            public const string Benchmark_RgbPackbits = "medium_rgb_packbits.tiff";
+            public const string Benchmark_RgbUncompressed = "medium_rgb_uncompressed.tiff";
 
             public const string Calliphora_GrayscaleUncompressed = "Tiff/Calliphora_grayscale_uncompressed.tiff";
             public const string Calliphora_GrayscaleDeflate_Predictor = "Tiff/Calliphora_gray_deflate_predictor.tiff";

@@ -18,9 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <param name="errorMessage">The error message for the exception.</param>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void ThrowImageFormatException(string errorMessage)
-        {
-            throw new ImageFormatException(errorMessage);
-        }
+            => throw new ImageFormatException(errorMessage);
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static Exception TagNotFound(string tagName)

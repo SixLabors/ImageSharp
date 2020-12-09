@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 for (int x = left; x < left + width; x++)
                 {
                     int value = bitReader.ReadBits(this.bitsPerSample0);
-                    float intensity = 1.0f - (((float)value) / this.factor);
+                    float intensity = 1.0f - (value / this.factor);
 
                     color.FromVector4(new Vector4(intensity, intensity, intensity, 1.0f));
                     pixels[x, y] = color;

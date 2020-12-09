@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -24,13 +25,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             int offset = 0;
 
+            var l8 = default(L8);
             for (int y = top; y < top + height; y++)
             {
                 for (int x = left; x < left + width; x++)
                 {
                     byte intensity = (byte)(255 - data[offset++]);
 
-                    color.FromRgba32(new Rgba32(intensity, intensity, intensity, 255));
+                    l8.PackedValue = intensity;
+                    color.FromL8(l8);
+
                     pixels[x, y] = color;
                 }
             }

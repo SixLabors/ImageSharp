@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
 {
@@ -21,6 +22,20 @@ namespace SixLabors.ImageSharp
             private static ReadOnlySpan<byte> ShuffleMaskPad4Nx16 => new byte[] { 0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80 };
 
             private static ReadOnlySpan<byte> ShuffleMaskSlice4Nx16 => new byte[] { 0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80 };
+
+            private static ReadOnlySpan<byte> ShuffleMaskShiftAlpha =>
+                new byte[]
+                {
+                    0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15,
+                    0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 3, 7, 11, 15
+                };
+
+            public static ReadOnlySpan<byte> PermuteMaskShiftAlpha8x32 =>
+                new byte[]
+                {
+                    0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 4, 0, 0, 0,
+                    5, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0, 7, 0, 0, 0
+                };
 
             /// <summary>
             /// Shuffle single-precision (32-bit) floating-point elements in <paramref name="source"/>
@@ -788,6 +803,138 @@ namespace SixLabors.ImageSharp
                         Unsafe.Add(ref destBase, i) = Sse2.PackUnsignedSaturate(u0, u1);
                     }
                 }
+            }
+
+            internal static void PackFromRgbPlanesAvx2Reduce(
+                ref ReadOnlySpan<byte> redChannel,
+                ref ReadOnlySpan<byte> greenChannel,
+                ref ReadOnlySpan<byte> blueChannel,
+                ref Span<Rgb24> destination)
+            {
+                ref Vector256<byte> rBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(redChannel));
+                ref Vector256<byte> gBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(greenChannel));
+                ref Vector256<byte> bBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(blueChannel));
+                ref byte dBase = ref Unsafe.As<Rgb24, byte>(ref MemoryMarshal.GetReference(destination));
+
+                int count = redChannel.Length / Vector256<byte>.Count;
+
+                ref byte control1Bytes = ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskEvenOdd8x32);
+                Vector256<uint> control1 = Unsafe.As<byte, Vector256<uint>>(ref control1Bytes);
+
+                ref byte control2Bytes = ref MemoryMarshal.GetReference(PermuteMaskShiftAlpha8x32);
+                Vector256<uint> control2 = Unsafe.As<byte, Vector256<uint>>(ref control2Bytes);
+
+                Vector256<byte> a = Vector256.Create((byte)255);
+
+                Vector256<byte> shuffleAlpha = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(ShuffleMaskShiftAlpha));
+
+                for (int i = 0; i < count; i++)
+                {
+                    Vector256<byte> r0 = Unsafe.Add(ref rBase, i);
+                    Vector256<byte> g0 = Unsafe.Add(ref gBase, i);
+                    Vector256<byte> b0 = Unsafe.Add(ref bBase, i);
+
+                    r0 = Avx2.PermuteVar8x32(r0.AsUInt32(), control1).AsByte();
+                    g0 = Avx2.PermuteVar8x32(g0.AsUInt32(), control1).AsByte();
+                    b0 = Avx2.PermuteVar8x32(b0.AsUInt32(), control1).AsByte();
+
+                    Vector256<byte> rg = Avx2.UnpackLow(r0, g0);
+                    Vector256<byte> b1 = Avx2.UnpackLow(b0, a);
+
+                    Vector256<byte> rgb1 = Avx2.UnpackLow(rg.AsUInt16(), b1.AsUInt16()).AsByte();
+                    Vector256<byte> rgb2 = Avx2.UnpackHigh(rg.AsUInt16(), b1.AsUInt16()).AsByte();
+
+                    rg = Avx2.UnpackHigh(r0, g0);
+                    b1 = Avx2.UnpackHigh(b0, a);
+
+                    Vector256<byte> rgb3 = Avx2.UnpackLow(rg.AsUInt16(), b1.AsUInt16()).AsByte();
+                    Vector256<byte> rgb4 = Avx2.UnpackHigh(rg.AsUInt16(), b1.AsUInt16()).AsByte();
+
+                    rgb1 = Avx2.Shuffle(rgb1, shuffleAlpha);
+                    rgb2 = Avx2.Shuffle(rgb2, shuffleAlpha);
+                    rgb3 = Avx2.Shuffle(rgb3, shuffleAlpha);
+                    rgb4 = Avx2.Shuffle(rgb4, shuffleAlpha);
+
+                    rgb1 = Avx2.PermuteVar8x32(rgb1.AsUInt32(), control2).AsByte();
+                    rgb2 = Avx2.PermuteVar8x32(rgb2.AsUInt32(), control2).AsByte();
+                    rgb3 = Avx2.PermuteVar8x32(rgb3.AsUInt32(), control2).AsByte();
+                    rgb4 = Avx2.PermuteVar8x32(rgb4.AsUInt32(), control2).AsByte();
+
+                    ref byte d1 = ref Unsafe.Add(ref dBase, 24 * 4 * i);
+                    ref byte d2 = ref Unsafe.Add(ref d1, 24);
+                    ref byte d3 = ref Unsafe.Add(ref d2, 24);
+                    ref byte d4 = ref Unsafe.Add(ref d3, 24);
+
+                    Unsafe.As<byte, Vector256<byte>>(ref d1) = rgb1;
+                    Unsafe.As<byte, Vector256<byte>>(ref d2) = rgb2;
+                    Unsafe.As<byte, Vector256<byte>>(ref d3) = rgb3;
+                    Unsafe.As<byte, Vector256<byte>>(ref d4) = rgb4;
+                }
+
+                int slice = count * Vector256<byte>.Count;
+                redChannel = redChannel.Slice(slice);
+                greenChannel = greenChannel.Slice(slice);
+                blueChannel = blueChannel.Slice(slice);
+                destination = destination.Slice(slice);
+            }
+
+            internal static void PackFromRgbPlanesAvx2Reduce(
+                ref ReadOnlySpan<byte> redChannel,
+                ref ReadOnlySpan<byte> greenChannel,
+                ref ReadOnlySpan<byte> blueChannel,
+                ref Span<Rgba32> destination)
+            {
+                ref Vector256<byte> rBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(redChannel));
+                ref Vector256<byte> gBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(greenChannel));
+                ref Vector256<byte> bBase = ref Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(blueChannel));
+                ref Vector256<byte> dBase = ref Unsafe.As<Rgba32, Vector256<byte>>(ref MemoryMarshal.GetReference(destination));
+
+                int count = redChannel.Length / Vector256<byte>.Count;
+
+                ref byte control1Bytes = ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskEvenOdd8x32);
+                Vector256<uint> control1 = Unsafe.As<byte, Vector256<uint>>(ref control1Bytes);
+
+                ref byte control2Bytes = ref MemoryMarshal.GetReference(PermuteMaskShiftAlpha8x32);
+                Vector256<uint> control2 = Unsafe.As<byte, Vector256<uint>>(ref control2Bytes);
+
+                Vector256<byte> a = Vector256.Create((byte)255);
+
+                Vector256<byte> shuffleAlpha = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(ShuffleMaskShiftAlpha));
+
+                for (int i = 0; i < count; i++)
+                {
+                    Vector256<byte> r0 = Unsafe.Add(ref rBase, i);
+                    Vector256<byte> g0 = Unsafe.Add(ref gBase, i);
+                    Vector256<byte> b0 = Unsafe.Add(ref bBase, i);
+
+                    r0 = Avx2.PermuteVar8x32(r0.AsUInt32(), control1).AsByte();
+                    g0 = Avx2.PermuteVar8x32(g0.AsUInt32(), control1).AsByte();
+                    b0 = Avx2.PermuteVar8x32(b0.AsUInt32(), control1).AsByte();
+
+                    Vector256<byte> rg = Avx2.UnpackLow(r0, g0);
+                    Vector256<byte> b1 = Avx2.UnpackLow(b0, a);
+
+                    Vector256<byte> rgb1 = Avx2.UnpackLow(rg.AsUInt16(), b1.AsUInt16()).AsByte();
+                    Vector256<byte> rgb2 = Avx2.UnpackHigh(rg.AsUInt16(), b1.AsUInt16()).AsByte();
+
+                    rg = Avx2.UnpackHigh(r0, g0);
+                    b1 = Avx2.UnpackHigh(b0, a);
+
+                    Vector256<byte> rgb3 = Avx2.UnpackLow(rg.AsUInt16(), b1.AsUInt16()).AsByte();
+                    Vector256<byte> rgb4 = Avx2.UnpackHigh(rg.AsUInt16(), b1.AsUInt16()).AsByte();
+
+                    ref Vector256<byte> d0 = ref Unsafe.Add(ref dBase, i * 4);
+                    d0 = rgb1;
+                    Unsafe.Add(ref d0, 1) = rgb2;
+                    Unsafe.Add(ref d0, 2) = rgb3;
+                    Unsafe.Add(ref d0, 3) = rgb4;
+                }
+
+                int slice = count * Vector256<byte>.Count;
+                redChannel = redChannel.Slice(slice);
+                greenChannel = greenChannel.Slice(slice);
+                blueChannel = blueChannel.Slice(slice);
+                destination = destination.Slice(slice);
             }
         }
     }

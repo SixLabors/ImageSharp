@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.ColorSpaces.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Common;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
@@ -1002,6 +1003,19 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 (s, d) => this.Operations.ToRgba64Bytes(this.Configuration, s, d.GetSpan(), count));
         }
 
+        [Theory]
+        [MemberData(nameof(ArraySizesData))]
+        public void PackFromRgbPlanes(int count)
+        {
+            SimdUtilsTests.TestPackFromRgbPlanes<TPixel>(
+                count,
+                (
+                    r,
+                    g,
+                    b,
+                    actual) => PixelOperations<TPixel>.Instance.PackFromRgbPlanes(this.Configuration, r, g, b, actual));
+        }
+
         public delegate void RefAction<T1>(ref T1 arg1);
 
         internal static Vector4[] CreateExpectedVector4Data(TPixel[] source, RefAction<Vector4> vectorModifier = null)
@@ -1102,10 +1116,10 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
             return result;
         }
 
-        internal static byte[] CreateByteTestData(int length)
+        internal static byte[] CreateByteTestData(int length, int seed = 42)
         {
             byte[] result = new byte[length];
-            var rnd = new Random(42); // Deterministic random values
+            var rnd = new Random(seed); // Deterministic random values
 
             for (int i = 0; i < result.Length; i++)
             {

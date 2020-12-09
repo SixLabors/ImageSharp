@@ -89,7 +89,7 @@ namespace SixLabors.ImageSharp
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #7FFF00.
         /// </summary>
         public static readonly Color Chartreuse = FromRgba(127, 255, 0, 255);
-
+        // anh quang
         /// <summary>
         /// Represents a <see paramref="Color"/> matching the W3C definition that has an hex value of #D2691E.
         /// </summary>

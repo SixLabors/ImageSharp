@@ -196,10 +196,10 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="alpha">The new value of alpha [0..1].</param>
         /// <returns>The color having it's alpha channel altered.</returns>
-        public Color WithAlpha(float alpha)
+        public Color WithAlpha(float alpha1)
         {
             var v = (Vector4)this;
-            v.W = alpha;
+            v.W = alpha1;
             return new Color(v);
         }
 

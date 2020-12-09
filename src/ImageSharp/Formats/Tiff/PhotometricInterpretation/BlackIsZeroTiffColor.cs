@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public BlackIsZeroTiffColor(ushort[] bitsPerSample)
         {
             this.bitsPerSample0 = bitsPerSample[0];
-            this.factor = (float)(1 << this.bitsPerSample0) - 1.0f;
+            this.factor = (1 << this.bitsPerSample0) - 1.0f;
         }
 
         /// <inheritdoc/>
@@ -37,7 +37,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 for (int x = left; x < left + width; x++)
                 {
                     int value = bitReader.ReadBits(this.bitsPerSample0);
-                    float intensity = ((float)value) / this.factor;
+                    float intensity = value / this.factor;
 
                     color.FromVector4(new Vector4(intensity, intensity, intensity, 1.0f));
                     pixels[x, y] = color;

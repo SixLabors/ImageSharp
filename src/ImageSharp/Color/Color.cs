@@ -247,9 +247,9 @@ namespace SixLabors.ImageSharp
 
         /// <inheritdoc />
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool Equals(Color other)
+        public bool Equals(Color other1)
         {
-            return this.data.PackedValue == other.data.PackedValue;
+            return this.data.PackedValue == other1.data.PackedValue;
         }
 
         /// <inheritdoc />

@@ -5,8 +5,10 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Common.Tuples;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics.X86;
+#endif
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
@@ -169,7 +171,7 @@ namespace SixLabors.ImageSharp.Tests.Common
         public static readonly TheoryData<int> ArbitraryArraySizes =
             new TheoryData<int>
                 {
-                    0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 63, 64, 255, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520, 520,
+                    0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 63, 64, 255, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520,
                 };
 
         [Theory]
@@ -336,6 +338,117 @@ namespace SixLabors.ImageSharp.Tests.Common
             }
         }
 
+        [Theory]
+        [MemberData(nameof(ArbitraryArraySizes))]
+        public void PackFromRgbPlanes_Rgb24(int count)
+        {
+            TestPackFromRgbPlanes<Rgb24>(
+                count,
+                (r, g, b, actual) =>
+                    SimdUtils.PackFromRgbPlanes(Configuration.Default, r, g, b, actual));
+        }
+
+        [Theory]
+        [MemberData(nameof(ArbitraryArraySizes))]
+        public void PackFromRgbPlanes_Rgba32(int count)
+        {
+            TestPackFromRgbPlanes<Rgba32>(
+                count,
+                (r, g, b, actual) =>
+                    SimdUtils.PackFromRgbPlanes(Configuration.Default, r, g, b, actual));
+        }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void PackFromRgbPlanesAvx2Reduce_Rgb24()
+        {
+            if (!Avx2.IsSupported)
+            {
+                return;
+            }
+
+            byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
+            byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
+            byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();
+            const int padding = 4;
+            Rgb24[] d = new Rgb24[32 + padding];
+
+            ReadOnlySpan<byte> rr = r.AsSpan();
+            ReadOnlySpan<byte> gg = g.AsSpan();
+            ReadOnlySpan<byte> bb = b.AsSpan();
+            Span<Rgb24> dd = d.AsSpan();
+
+            SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref rr, ref gg, ref bb, ref dd);
+
+            for (int i = 0; i < 32; i++)
+            {
+                Assert.Equal(i, d[i].R);
+                Assert.Equal(i + 100, d[i].G);
+                Assert.Equal(i + 200, d[i].B);
+            }
+
+            Assert.Equal(0, rr.Length);
+            Assert.Equal(0, gg.Length);
+            Assert.Equal(0, bb.Length);
+            Assert.Equal(padding, dd.Length);
+        }
+
+        [Fact]
+        public void PackFromRgbPlanesAvx2Reduce_Rgba32()
+        {
+            if (!Avx2.IsSupported)
+            {
+                return;
+            }
+
+            byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
+            byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
+            byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();
+
+            Rgba32[] d = new Rgba32[32];
+
+            ReadOnlySpan<byte> rr = r.AsSpan();
+            ReadOnlySpan<byte> gg = g.AsSpan();
+            ReadOnlySpan<byte> bb = b.AsSpan();
+            Span<Rgba32> dd = d.AsSpan();
+
+            SimdUtils.HwIntrinsics.PackFromRgbPlanesAvx2Reduce(ref rr, ref gg, ref bb, ref dd);
+
+            for (int i = 0; i < 32; i++)
+            {
+                Assert.Equal(i, d[i].R);
+                Assert.Equal(i + 100, d[i].G);
+                Assert.Equal(i + 200, d[i].B);
+                Assert.Equal(255, d[i].A);
+            }
+
+            Assert.Equal(0, rr.Length);
+            Assert.Equal(0, gg.Length);
+            Assert.Equal(0, bb.Length);
+            Assert.Equal(0, dd.Length);
+        }
+#endif
+
+        internal static void TestPackFromRgbPlanes<TPixel>(int count, Action<byte[], byte[], byte[], TPixel[]> packMethod)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Random rnd = new Random(42);
+            byte[] r = rnd.GenerateRandomByteArray(count);
+            byte[] g = rnd.GenerateRandomByteArray(count);
+            byte[] b = rnd.GenerateRandomByteArray(count);
+
+            TPixel[] expected = new TPixel[count];
+            for (int i = 0; i < count; i++)
+            {
+                expected[i].FromRgb24(new Rgb24(r[i], g[i], b[i]));
+            }
+
+            TPixel[] actual = new TPixel[count + 3]; // padding for Rgb24 AVX2
+            packMethod(r, g, b, actual);
+
+            Assert.True(expected.AsSpan().SequenceEqual(actual.AsSpan().Slice(0, count)));
+        }
+
         private static void TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
             int count,
             Action<Memory<float>,
@@ -353,72 +466,6 @@ namespace SixLabors.ImageSharp.Tests.Common
         }
 
         private static byte NormalizedFloatToByte(float f) => (byte)Math.Min(255f, Math.Max(0f, (f * 255f) + 0.5f));
-
-        [Theory]
-        [InlineData(0)]
-        [InlineData(7)]
-        [InlineData(42)]
-        [InlineData(255)]
-        [InlineData(256)]
-        [InlineData(257)]
-        private void MagicConvertToByte(float value)
-        {
-            byte actual = MagicConvert(value / 256f);
-            var expected = (byte)value;
-
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        private void BulkConvertNormalizedFloatToByte_Step()
-        {
-            if (this.SkipOnNonAvx2())
-            {
-                return;
-            }
-
-            float[] source = { 0, 7, 42, 255, 0.5f, 1.1f, 2.6f, 16f };
-
-            byte[] expected = source.Select(f => (byte)Math.Round(f)).ToArray();
-
-            source = source.Select(f => f / 255f).ToArray();
-
-            Span<byte> dest = stackalloc byte[8];
-
-            this.MagicConvert(source, dest);
-
-            Assert.True(dest.SequenceEqual(expected));
-        }
-
-        private static byte MagicConvert(float x)
-        {
-            float f = 32768.0f + x;
-            uint i = Unsafe.As<float, uint>(ref f);
-            return (byte)i;
-        }
-
-        private void MagicConvert(Span<float> source, Span<byte> dest)
-        {
-            var magick = new Vector<float>(32768.0f);
-
-            var scale = new Vector<float>(255f) / new Vector<float>(256f);
-
-            Vector<float> x = MemoryMarshal.Cast<float, Vector<float>>(source)[0];
-
-            x = (x * scale) + magick;
-
-            Tuple8.OfUInt32 ii = default;
-
-            ref Vector<float> iiRef = ref Unsafe.As<Tuple8.OfUInt32, Vector<float>>(ref ii);
-
-            iiRef = x;
-
-            ref Tuple8.OfByte d = ref MemoryMarshal.Cast<byte, Tuple8.OfByte>(dest)[0];
-            d.LoadFrom(ref ii);
-
-            this.Output.WriteLine(ii.ToString());
-            this.Output.WriteLine(d.ToString());
-        }
 
         private static void AssertEvenRoundIsCorrect(Vector<float> r, Vector<float> v)
         {

@@ -21,6 +21,23 @@ namespace SixLabors.ImageSharp.PixelFormats
 
             /// <inheritdoc />
             public override PixelTypeInfo GetPixelTypeInfo() => LazyInfo.Value;
+
+            /// <inheritdoc />
+            internal override void PackFromRgbPlanes(
+                Configuration configuration,
+                ReadOnlySpan<byte> redChannel,
+                ReadOnlySpan<byte> greenChannel,
+                ReadOnlySpan<byte> blueChannel,
+                Span<Rgb24> destination)
+            {
+                Guard.NotNull(configuration, nameof(configuration));
+                int count = redChannel.Length;
+                Guard.IsTrue(greenChannel.Length == count, nameof(greenChannel), "Channels must be of same size!");
+                Guard.IsTrue(blueChannel.Length == count, nameof(blueChannel), "Channels must be of same size!");
+                Guard.IsTrue(destination.Length > count + 2, nameof(destination), "'destination' must contain a padding of 3 elements!");
+
+                SimdUtils.PackFromRgbPlanes(configuration, redChannel, greenChannel, blueChannel, destination);
+            }
         }
     }
 }

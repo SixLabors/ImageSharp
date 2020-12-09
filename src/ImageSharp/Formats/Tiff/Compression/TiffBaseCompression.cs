@@ -64,7 +64,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         {
             if (stripByteCount > int.MaxValue)
             {
-                TiffThrowHelper.ThrowImageFormatException("Too big value of StripByteCount.");
+                TiffThrowHelper.ThrowImageFormatException("The StripByteCount value is too big.");
             }
 
             stream.Seek(stripOffset, SeekOrigin.Begin);

@@ -5,6 +5,7 @@ using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
 using Xunit;
@@ -25,10 +26,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
         [InlineData(new byte[] { 0xFE, 0xAA, 0x02, 0x80, 0x00, 0x2A, 0xFD, 0xAA, 0x03, 0x80, 0x00, 0x2A, 0x22, 0xF7, 0xAA }, new byte[] { 0xAA, 0xAA, 0xAA, 0x80, 0x00, 0x2A, 0xAA, 0xAA, 0xAA, 0xAA, 0x80, 0x00, 0x2A, 0x22, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA })] // Apple PackBits sample
         public void Decompress_ReadsData(byte[] inputData, byte[] expectedResult)
         {
-            Stream stream = new MemoryStream(inputData);
+            var stream = new BufferedReadStream(Configuration.Default, new MemoryStream(inputData));
             var buffer = new byte[expectedResult.Length];
 
-            new PackBitsTiffCompression(new ArrayPoolMemoryAllocator()).Decompress(stream, inputData.Length, buffer);
+            new PackBitsTiffCompression(new ArrayPoolMemoryAllocator()).Decompress(stream, 0, (uint)inputData.Length, buffer);
 
             Assert.Equal(expectedResult, buffer);
         }

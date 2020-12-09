@@ -5,6 +5,8 @@ using System.IO;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.IO;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
@@ -20,17 +22,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
         [InlineData(new byte[] { 1, 2, 42, 53, 42, 53, 42, 53, 42, 53, 42, 53, 3, 4 })] // Repeated sequence
         public void Compress_Decompress_Roundtrip_Works(byte[] data)
         {
-            using (Stream stream = CreateCompressedStream(data))
+            using (BufferedReadStream stream = CreateCompressedStream(data))
             {
                 var buffer = new byte[data.Length];
 
-                new DeflateTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None).Decompress(stream, (int)stream.Length, buffer);
+                new DeflateTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None).Decompress(stream, 0, (uint)stream.Length, buffer);
 
                 Assert.Equal(data, buffer);
             }
         }
 
-        private static Stream CreateCompressedStream(byte[] data)
+        private static BufferedReadStream CreateCompressedStream(byte[] data)
         {
             Stream compressedStream = new MemoryStream();
 
@@ -41,7 +43,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             }
 
             compressedStream.Seek(0, SeekOrigin.Begin);
-            return compressedStream;
+            return new BufferedReadStream(Configuration.Default, compressedStream);
         }
     }
 }

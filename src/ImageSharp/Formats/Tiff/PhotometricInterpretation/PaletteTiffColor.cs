@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         {
             var palette = new TPixel[colorCount];
 
-            int rOffset = 0;
+            const int rOffset = 0;
             int gOffset = colorCount;
             int bOffset = colorCount * 2;
 

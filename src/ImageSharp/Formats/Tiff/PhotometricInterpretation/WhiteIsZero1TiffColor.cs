@@ -25,8 +25,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             int offset = 0;
 
-            var black = new Rgba32(0, 0, 0, 0xff);
-            var white = new Rgba32(0xff, 0xff, 0xff, 0xff);
+            var black = Color.Black.ToRgba32();
+            var white = Color.White.ToRgba32();
             for (int y = top; y < top + height; y++)
             {
                 for (int x = left; x < left + width; x += 8)

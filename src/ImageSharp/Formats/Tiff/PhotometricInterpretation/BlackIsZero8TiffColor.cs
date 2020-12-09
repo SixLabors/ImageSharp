@@ -25,15 +25,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             int offset = 0;
 
-            var rgba = default(Rgba32);
+            var l8 = default(L8);
             for (int y = top; y < top + height; y++)
             {
                 for (int x = left; x < left + width; x++)
                 {
                     byte intensity = data[offset++];
 
-                    rgba.PackedValue = (uint)(intensity | (intensity << 8) | (intensity << 16) | (0xff << 24));
-                    color.FromRgba32(rgba);
+                    l8.PackedValue = intensity;
+                    color.FromL8(l8);
 
                     pixels[x, y] = color;
                 }

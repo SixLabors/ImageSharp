@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 {
+    [Trait("Category", "PixelFormats")]
     public partial class PixelOperationsTests
     {
         public partial class Rgba32_OperationsTests : PixelOperationsTests<Rgba32>

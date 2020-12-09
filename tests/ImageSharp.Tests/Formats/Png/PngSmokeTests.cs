@@ -10,6 +10,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
+    [Trait("Format", "Png")]
     public class PngSmokeTests
     {
         [Theory]

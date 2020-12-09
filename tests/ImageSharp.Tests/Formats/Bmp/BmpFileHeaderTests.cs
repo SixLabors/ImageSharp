@@ -7,6 +7,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
+    [Trait("Format", "Bmp")]
     public class BmpFileHeaderTests
     {
         [Fact]

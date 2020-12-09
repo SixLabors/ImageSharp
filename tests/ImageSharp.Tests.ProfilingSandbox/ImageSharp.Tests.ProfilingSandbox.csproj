@@ -12,6 +12,7 @@
     <StartupObject>SixLabors.ImageSharp.Tests.ProfilingSandbox.Program</StartupObject>
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
+    <EnsureNETCoreAppRuntime>false</EnsureNETCoreAppRuntime>
   </PropertyGroup>
 
   <ItemGroup>

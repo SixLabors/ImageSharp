@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp
     /// </content>
     public partial struct Color
     {
+
         private static readonly Lazy<Color[]> WernerPaletteLazy = new Lazy<Color[]>(CreateWernerPalette, true);
 
         /// <summary>

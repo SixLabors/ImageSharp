@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Page Title</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			padding: 0;
+			margin: 0;
+		}
+		:root {
+			--bg-color: #0e080f;
+			--brown: #6b2412;
+			--orange: #e5501b;
+			--light-brown: #983315;
+			--white: #f5e1c4;
+			--skin-color: #e19d61;
+			--lighter-brown: #a45a3a;
+		}
+		body {
+			height: 100vh;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			background: var(--white)
+		}
+		.container {
+			position: relative;
+			background: rgb(68,39,17);
+			background: radial-gradient(circle, rgba(68,39,17,1) 0%, rgba(14,8,15,1) 57%); 
+			height: 600px;
+			width: 800px;
+			overflow: hidden;
+		}
+		.c1 {
+			position: absolute; 
+			background: rgb(64,32,4);
+			background: radial-gradient(circle, rgba(64,32,4,1) 0%, rgba(66,35,17,1) 3%, rgba(14,8,15,1) 44%); 
+			height: 900px;
+			width: 900px;
+			border-radius: 100%;
+			top: -189px;
+			left: -50px;
+			animation: glowing 5s forwards linear infinite;
+			animation-delay: 9s;
+		}
+		.c2 {
+			position: absolute;
+			background: rgb(117,58,6);
+			background: radial-gradient(circle, rgba(117,58,6,1) 6%, rgba(66,35,17,1) 26%, rgba(14,8,15,1) 72%);
+			height: 700px;
+			width: 700px;
+			border-radius: 100%;
+			top: -100px;
+			left: 50px;
+			animation: glowing 5s forwards linear infinite;
+			animation-delay: 8s;
+		}
+		.c3 {
+			position: absolute;
+			background: rgb(163,85,18);
+			background: radial-gradient(circle, rgba(163,85,18,1) 0%, rgba(31,16,14,1) 74%, rgba(14,8,15,1) 100%); 
+			height: 500px;
+			width: 500px;
+			border-radius: 100%;
+			top: -9px;
+			left: 150px;
+			animation: glowing 5s forwards linear infinite;
+			animation-delay: 7s;
+		}
+		.c4 {
+			position: absolute;
+			background: rgb(177,92,19);
+			background: radial-gradient(circle, rgba(177,92,19,1) 6%, rgba(66,35,17,1) 63%, rgba(14,8,15,1) 100%); 
+			height: 380px;
+			width: 380px;
+			border-radius: 100%;
+			top: 45px;
+			left: 210px;
+			animation: glowing 5s forwards linear infinite;
+			animation-delay: 6s;
+		}
+		.c5 {
+			position: absolute;
+			background: rgb(203,106,22);
+			background: radial-gradient(circle, rgba(203,106,22,1) 6%, rgba(66,35,17,1) 77%, rgba(14,8,15,1) 100%);  
+			height: 280px;
+			width: 280px;
+			border-radius: 100%;
+			top: 90px;
+			left: 260px;
+			animation: glowing 5s forwards linear infinite;
+			animation-delay: 5s;
+		}
+		.c6 {
+			position: absolute;
+			background: rgb(224,118,26);
+			background: radial-gradient(circle, rgba(224,118,26,1) 6%, rgba(66,35,17,1) 93%, rgba(14,8,15,1) 100%);  
+			height: 180px;
+			width: 180px;
+			border-radius: 100%;
+			top: 136px;
+			left: 312px;
+			animation: glowing 5s forwards linear infinite;
+			animation-delay: 4s;
+		}
+		.c7 {
+			position: absolute;
+			background: rgb(224,117,25);
+			background: radial-gradient(circle, rgba(224,117,25,1) 43%, rgba(14,8,15,1) 100%); 
+			height: 130px;
+			width: 130px;
+			border-radius: 100%;
+			top: 160px;
+			left: 337px;
+			animation: glowing 5s forwards linear infinite;
+			animation-delay: 3s;
+		}
+		.c8 {
+			position: absolute;
+			background: var(--skin-color);
+			height: 90px;
+			width: 90px;
+			border-radius: 100%;
+			top: 180px;
+			left: 357px;
+			animation: glowing 5s forwards linear infinite;
+			animation-delay: 2s;
+		}
+		.c9 {
+			position: absolute;
+			background: var(--orange);
+			height: 50px;
+			width: 50px;
+			border-radius: 100%;
+			top: 200px;
+			left: 376px;
+			animation: glowing 5s forwards linear infinite;
+			animation-delay: 1s;
+		}
+		.c10 {
+			position: absolute;
+			background: var(--white);
+			height: 30px;
+			width: 30px;
+			border-radius: 100%;
+			top: 210px;
+			left: 386px;
+			animation: glowing 5s forwards linear infinite;
+		}
+		.lh1 {
+			position: absolute;
+			background: rgb(14,8,15);
+			background: linear-gradient(0deg, rgba(14,8,15,1) 23%, rgba(47,19,17,1) 75%, rgba(90,34,19,1) 98%); 
+			height: 240px;
+			width: 100px;
+			clip-path: polygon(20% 0%, 80% 0%, 90% 100%, 10% 100%);
+			top: 280px;
+			left: 350px;
+		}
+		.lh2 {
+			position: absolute;
+			background: rgb(14,8,15);
+			background: linear-gradient(0deg, rgba(14,8,15,1) 11%, rgba(47,19,17,1) 44%, rgba(90,34,19,1) 81%);  
+			height: 240px;
+			width: 40px;
+			clip-path: polygon(20% 0%, 80% 0%, 90% 100%, 10% 100%);
+			top: 280px;
+			left: 380px;
+		}
+		.window {
+			position: absolute;
+			width: 15px;
+			height: 25px;
+			border-radius: 50px 50px 0 0;
+			background: var(--bg-color);
+			left: 13px;
+			top: 30px;
+		}
+		.door {
+			position: absolute;
+			width: 25px;
+			height: 60px;
+			border-radius: 50px 50px 0 0;
+			background: var(--bg-color);
+			left: 8px;
+			top: 200px;
+		}
+		.lh3 {
+			position: absolute;
+			background:  background: rgb(122,64,12);
+			background: linear-gradient(0deg, rgba(122,64,12,1) 0%, rgba(66,35,17,1) 19%, rgba(14,8,15,1) 92%); ;
+			height: 35px;
+			width: 75px;
+			top: 245px;
+			left: 361.3px;
+			clip-path: polygon(20% 0%, 85% 0%, 90% 100%, 15% 100%);
+		}
+		.r1 {
+			background: var(--bg-color);
+			position: absolute;
+			height: 3px;
+			width: 80px;
+			top: 243px;
+			left: 361px;
+		}
+		.r2 {
+			background: var(--bg-color);
+			position: absolute;
+			height: 3px;
+			width: 80px;
+			top: 205px;
+			left: 361px;
+		}
+		.r3 {
+			background: var(--bg-color);
+			position: absolute;
+			height: 3px;
+			width: 40px;
+			top: 223px;
+			left: 350px;
+			transform: rotate(90deg);
+		}
+		.r4 {
+			background: var(--bg-color);
+			position: absolute;
+			height: 3px;
+			width: 40px;
+			top: 223px;
+			left: 370px;
+			transform: rotate(90deg);
+		}
+		.r5 {
+			background: var(--bg-color);
+			position: absolute;
+			height: 3px;
+			width: 40px;
+			top: 223px;
+			left: 390px;
+			transform: rotate(90deg);
+		}
+		.r6 {
+			background: var(--bg-color);
+			position: absolute;
+			height: 3px;
+			width: 40px;
+			top: 223px;
+			left: 410px;
+			transform: rotate(90deg);
+		}
+		.r7 {
+			background: var(--bg-color);
+			position: absolute;
+			height: 3px;
+			width: 84px;
+			top: 278px;
+			left: 358px;
+		}
+		.r8 {
+			background: var(--bg-color);
+			clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%);
+			position: absolute;
+			height: 10px;
+			width: 90px;
+			transform: rotate(180deg);
+			top: 278px;
+			left: 356px;
+		}
+		.top {
+			position: absolute;
+			clip-path: polygon(50% 0%, 0 60%, 99% 60%);
+			background: var(--bg-color);
+			height: 60px;
+			width: 60px;
+			top: 169px;
+			left: 372px;
+		}
+		.water {
+			position: absolute;
+			height : 100px;
+			width: 1000px;
+			background: rgb(87,46,13);
+			background: linear-gradient(180deg, rgba(87,46,13,1) 2%, rgba(47,25,14,1) 26%, rgba(14,8,15,1) 70%); 
+			bottom: 15px;
+			right: 0;
+		}
+		.rock1 {
+			position: absolute;
+			height: 50px;
+			width: 100px;
+			border-radius: 200px 200px 0 0;
+			background: rgb(120,50,16);
+			background: linear-gradient(180deg, rgba(120,50,16,1) 0%, rgba(47,25,14,1) 54%, rgba(14,8,15,1) 100%); 
+			bottom: 48px;
+			left: 300px;
+		}
+		.rock2 {
+			position: absolute;
+			height: 50px;
+			width: 100px;
+			border-radius: 200px 200px 0 0;
+			background: rgb(47,25,14);
+			background: linear-gradient(180deg, rgba(47,25,14,1) 54%, rgba(14,8,15,1) 100%); 
+			bottom: 40px;
+			left: 280px;
+		}
+		.rock3 {
+			position: absolute;
+			height: 50px;
+			width: 100px;
+			border-radius: 200px 200px 0 0;
+			background: rgb(91,38,12);
+			background: linear-gradient(180deg, rgba(91,38,12,1) 0%, rgba(47,25,14,1) 54%, rgba(14,8,15,1) 100%); 
+			bottom: 40px;
+			left: 330px;
+		}
+		.rock4 {
+			position: absolute;
+			height: 50px;
+			width: 100px;
+			border-radius: 200px 200px 0 0;
+			background: rgb(47,25,14);
+			background: linear-gradient(180deg, rgba(47,25,14,1) 4%, rgba(14,8,15,1) 70%); 
+			bottom: 40px;
+			left: 390px;
+		}
+		@keyframes glowing {
+			0% {
+				transform: scale(1);
+			}
+			50% {
+				transform: scale(1.2);
+			}
+			100% {
+				transform: scale(1);
+			}
+		}
+	</style>
+	<script src="https://dribbble.com/shots/6699266-Lighthouse"></script>
+</head>
+<body>
+
+	<div class="container">
+		<div class="c1"></div>
+		<div class="c2"></div>
+		<div class="c3"></div>
+		<div class="c4"></div>
+		<div class="c5"></div>
+		<div class="c6"></div>
+		<div class="c7"></div>
+		<div class="c8"></div>
+		<div class="c9"></div>
+		<div class="c10"></div>
+		<div class="water"></div>
+		<div class="lh1"></div>
+		<div class="lh2">
+			<div class="window"></div>
+			<div class="door"></div>
+		</div>
+		<div class="lh3"></div>
+		<div class="lh4"></div>
+		<div class="lh5"></div>
+		<div class="r1"></div>
+		<div class="r2"></div>
+		<div class="r3"></div>
+		<div class="r4"></div>
+		<div class="r5"></div>
+		<div class="r6"></div>
+		<div class="r7"></div>
+		<div class="r8"></div>
+		<div class="top"></div>
+		<div class="rock1"></div>
+		<div class="rock2"></div>
+		<div class="rock3"></div>
+		<div class="rock4"></div>
+	</div>
+
+</body>
+</html>

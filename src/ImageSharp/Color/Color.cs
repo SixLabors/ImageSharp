@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp
         [MethodImpl(InliningOptions.ShortMethod)]
         public static bool operator ==(Color left, Color right)
         {
-            return left.Equals(right);
+                return left.Equals(right);
         }
 
         /// <summary>
@@ -92,7 +92,8 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see cref="Color"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static Color FromRgb(byte r, byte g, byte b) => new Color(r, g, b);
-
+        // abc
+        // anh quang
         /// <summary>
         /// Creates a new instance of the <see cref="Color"/> struct
         /// from the given hexadecimal string.
@@ -105,7 +106,7 @@ namespace SixLabors.ImageSharp
         /// The <see cref="Color"/>.
         /// </returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static Color ParseHex(string hex)
+           public static Color ParseHex(string hex)
         {
             var rgba = Rgba32.ParseHex(hex);
 

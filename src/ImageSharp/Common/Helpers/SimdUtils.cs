@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.PixelFormats;
 #if SUPPORTS_RUNTIME_INTRINSICS
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -219,6 +220,14 @@ namespace SixLabors.ImageSharp
                 Numerics.ModuloP2(dest.Length, shouldBeDivisibleBy) == 0,
                 nameof(source),
                 $"length should be divisible by {shouldBeDivisibleBy}!");
+        }
+
+        private struct ByteTuple4
+        {
+            public byte V0;
+            public byte V1;
+            public byte V2;
+            public byte V3;
         }
     }
 }

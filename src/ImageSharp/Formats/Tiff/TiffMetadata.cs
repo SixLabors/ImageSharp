@@ -45,8 +45,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         /// <summary>
         /// Gets or sets the XMP profile.
+        /// For internal use only. ImageSharp not support XMP profile.
         /// </summary>
-        public byte[] XmpProfile { get; set; }
+        internal byte[] XmpProfile { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new TiffMetadata(this);

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -154,7 +155,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             var framesMetadata = new List<TiffFrameMetadata>();
             foreach (IExifValue[] ifd in directories)
             {
-                framesMetadata.Add(new TiffFrameMetadata() { Tags = ifd });
+                var meta = new TiffFrameMetadata();
+                meta.FrameTags.AddRange(ifd);
+                framesMetadata.Add(meta);
             }
 
             this.SetTiffFormatMetaData(framesMetadata, tiffStream.ByteOrder);
@@ -173,32 +176,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         {
             this.metadata = framesMetadata.CreateMetadata(this.ignoreMetadata, byteOrder);
             this.tiffMetaData = this.metadata.GetTiffMetadata();
-            TiffFrameMetadata firstFrameMetaData = framesMetadata.First();
-            this.SetBitsPerPixel(firstFrameMetaData);
-            this.tiffMetaData.Compression = firstFrameMetaData.Compression;
-        }
-
-        private void SetBitsPerPixel(TiffFrameMetadata firstFrameMetaData)
-        {
-            ushort[] bitsPerSample = firstFrameMetaData.BitsPerSample;
-            var bitsPerPixel = 0;
-            foreach (var bps in bitsPerSample)
-            {
-                bitsPerPixel += bps;
-            }
-
-            if (bitsPerPixel == 24)
-            {
-                this.tiffMetaData.BitsPerPixel = TiffBitsPerPixel.Pixel24;
-            }
-            else if (bitsPerPixel == 8)
-            {
-                this.tiffMetaData.BitsPerPixel = TiffBitsPerPixel.Pixel8;
-            }
-            else if (bitsPerPixel == 1)
-            {
-                this.tiffMetaData.BitsPerPixel = TiffBitsPerPixel.Pixel1;
-            }
         }
 
         private static TiffStream CreateStream(Stream stream)
@@ -246,7 +223,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         {
             var coreMetadata = new ImageFrameMetadata();
             frameMetaData = coreMetadata.GetTiffMetadata();
-            frameMetaData.Tags = tags;
+            frameMetaData.FrameTags.AddRange(tags);
             TiffFrameMetadata tiffFormatMetaData = coreMetadata.GetFormatMetadata(TiffFormat.Instance);
             TiffPredictor predictor = tiffFormatMetaData.Predictor;
 

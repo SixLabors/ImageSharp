@@ -13,12 +13,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
     [Trait("Format", "Webp")]
     public class ImageExtensionsTest
     {
+        private readonly Configuration configuration;
+
         public ImageExtensionsTest()
         {
-            Configuration.Default.ImageFormatsManager.AddImageFormat(WebpFormat.Instance);
-            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new WebpImageFormatDetector());
-            Configuration.Default.ImageFormatsManager.SetDecoder(WebpFormat.Instance, new WebpDecoder());
-            Configuration.Default.ImageFormatsManager.SetEncoder(WebpFormat.Instance, new WebpEncoder());
+            this.configuration = new Configuration();
+            this.configuration.ImageFormatsManager.AddImageFormat(WebpFormat.Instance);
+            this.configuration.ImageFormatsManager.AddImageFormatDetector(new WebpImageFormatDetector());
+            this.configuration.ImageFormatsManager.SetDecoder(WebpFormat.Instance, new WebpDecoder());
+            this.configuration.ImageFormatsManager.SetEncoder(WebpFormat.Instance, new WebpEncoder());
         }
 
         [Fact]
@@ -27,12 +30,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
             string file = Path.Combine(dir, "SaveAsWebp_Path.webp");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 image.SaveAsWebp(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
+            using (Image.Load(this.configuration, file, out IImageFormat mime))
             {
                 Assert.Equal("image/webp", mime.DefaultMimeType);
             }
@@ -44,12 +47,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
             string file = Path.Combine(dir, "SaveAsWebpAsync_Path.webp");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 await image.SaveAsWebpAsync(file);
             }
 
-            using (Image.Load(file, out IImageFormat mime))
+            using (Image.Load(this.configuration, file, out IImageFormat mime))
             {
                 Assert.Equal("image/webp", mime.DefaultMimeType);
             }
@@ -61,12 +64,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
             string file = Path.Combine(dir, "SaveAsWebp_Path_Encoder.webp");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 image.SaveAsWebp(file, new WebpEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
+            using (Image.Load(this.configuration, file, out IImageFormat mime))
             {
                 Assert.Equal("image/webp", mime.DefaultMimeType);
             }
@@ -78,12 +81,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
             string file = Path.Combine(dir, "SaveAsWebpAsync_Path_Encoder.webp");
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 await image.SaveAsWebpAsync(file, new WebpEncoder());
             }
 
-            using (Image.Load(file, out IImageFormat mime))
+            using (Image.Load(this.configuration, file, out IImageFormat mime))
             {
                 Assert.Equal("image/webp", mime.DefaultMimeType);
             }
@@ -94,14 +97,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             using var memoryStream = new MemoryStream();
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 image.SaveAsWebp(memoryStream);
             }
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
+            using (Image.Load(this.configuration, memoryStream, out IImageFormat mime))
             {
                 Assert.Equal("image/webp", mime.DefaultMimeType);
             }
@@ -112,14 +115,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             using var memoryStream = new MemoryStream();
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 await image.SaveAsWebpAsync(memoryStream);
             }
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
+            using (Image.Load(this.configuration, memoryStream, out IImageFormat mime))
             {
                 Assert.Equal("image/webp", mime.DefaultMimeType);
             }
@@ -130,14 +133,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             using var memoryStream = new MemoryStream();
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 image.SaveAsWebp(memoryStream, new WebpEncoder());
             }
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
+            using (Image.Load(this.configuration, memoryStream, out IImageFormat mime))
             {
                 Assert.Equal("image/webp", mime.DefaultMimeType);
             }
@@ -148,14 +151,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         {
             using var memoryStream = new MemoryStream();
 
-            using (var image = new Image<Rgba32>(10, 10))
+            using (var image = new Image<Rgba32>(this.configuration, 10, 10))
             {
                 await image.SaveAsWebpAsync(memoryStream, new WebpEncoder());
             }
 
             memoryStream.Position = 0;
 
-            using (Image.Load(memoryStream, out IImageFormat mime))
+            using (Image.Load(this.configuration, memoryStream, out IImageFormat mime))
             {
                 Assert.Equal("image/webp", mime.DefaultMimeType);
             }

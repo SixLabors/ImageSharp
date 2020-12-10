@@ -36,5 +36,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// Gets the quantizer for creating a color palette image.
         /// </summary>
         IQuantizer Quantizer { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether preserve metadata.
+        /// </summary>
+        bool PreserveMetadata { get; }
     }
 }

@@ -9,23 +9,26 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
 
+using static SixLabors.ImageSharp.Tests.TestImages.WebP;
+
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
-    using static SixLabors.ImageSharp.Tests.TestImages.WebP;
-
     [Trait("Format", "Webp")]
     public class WebpDecoderTests
     {
+        private readonly Configuration configuration;
+
         private static WebpDecoder WebpDecoder => new WebpDecoder();
 
         private static MagickReferenceDecoder ReferenceDecoder => new MagickReferenceDecoder();
 
         public WebpDecoderTests()
         {
-            Configuration.Default.ImageFormatsManager.AddImageFormat(WebpFormat.Instance);
-            Configuration.Default.ImageFormatsManager.AddImageFormatDetector(new WebpImageFormatDetector());
-            Configuration.Default.ImageFormatsManager.SetDecoder(WebpFormat.Instance, new WebpDecoder());
+            this.configuration = new Configuration();
+            this.configuration.ImageFormatsManager.AddImageFormat(WebpFormat.Instance);
+            this.configuration.ImageFormatsManager.AddImageFormatDetector(new WebpImageFormatDetector());
+            this.configuration.ImageFormatsManager.SetDecoder(WebpFormat.Instance, new WebpDecoder());
         }
 
         [Theory]
@@ -44,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
             var testFile = TestFile.Create(imagePath);
             using (var stream = new MemoryStream(testFile.Bytes, false))
             {
-                IImageInfo imageInfo = Image.Identify(stream);
+                IImageInfo imageInfo = Image.Identify(this.configuration, stream);
                 Assert.NotNull(imageInfo);
                 Assert.Equal(expectedWidth, imageInfo.Width);
                 Assert.Equal(expectedHeight, imageInfo.Height);

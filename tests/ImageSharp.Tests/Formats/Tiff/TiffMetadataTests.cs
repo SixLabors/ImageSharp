@@ -3,6 +3,7 @@
 
 using System.IO;
 using System.Linq;
+
 using SixLabors.ImageSharp.Formats.Experimental.Tiff;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
@@ -126,7 +127,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [WithFile(TestImages.Tiff.SampleMetadata, PixelTypes.Rgba32)]
+        [WithFile(SampleMetadata, PixelTypes.Rgba32)]
         public void BaselineTags<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -175,7 +176,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [WithFile(TestImages.Tiff.MultiframeDeflateWithPreview, PixelTypes.Rgba32)]
+        [WithFile(MultiframeDeflateWithPreview, PixelTypes.Rgba32)]
         public void SubfileType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -197,6 +198,120 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(TiffSubfileType.Preview, frame1.SubfileType);
                 Assert.Equal(255u, frame1.Width);
                 Assert.Equal(255u, frame1.Height);
+            }
+        }
+
+        [Theory]
+        [WithFile(SampleMetadata, PixelTypes.Rgba32, true)]
+        [WithFile(SampleMetadata, PixelTypes.Rgba32, false)]
+        public void Tiff_PreserveMetadata<TPixel>(TestImageProvider<TPixel> provider, bool preserveMetadata)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(new TiffDecoder() { IgnoreMetadata = false });
+
+            ImageMetadata coreMeta = image.Metadata;
+            TiffMetadata tiffMeta = image.Metadata.GetTiffMetadata();
+            TiffFrameMetadata frameMeta = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+            var tiffEncoder = new TiffEncoder() { PreserveMetadata = preserveMetadata };
+            using var ms = new MemoryStream();
+
+            // act
+            image.Save(ms, tiffEncoder);
+
+            // assert
+            ms.Position = 0;
+            using var output = Image.Load<Rgba32>(ms);
+
+            ImageMetadata coreMetaOut = output.Metadata;
+            TiffMetadata tiffMetaOut = output.Metadata.GetTiffMetadata();
+            TiffFrameMetadata frameMetaOut = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+            Assert.Equal(coreMeta.HorizontalResolution, coreMetaOut.HorizontalResolution);
+            Assert.Equal(coreMeta.VerticalResolution, coreMetaOut.VerticalResolution);
+            Assert.Equal(coreMeta.ResolutionUnits, coreMetaOut.ResolutionUnits);
+
+            Assert.Equal(frameMeta.Width, frameMetaOut.Width);
+            Assert.Equal(frameMeta.Height, frameMetaOut.Height);
+            Assert.Equal(frameMeta.ResolutionUnit, frameMetaOut.ResolutionUnit);
+            Assert.Equal(frameMeta.HorizontalResolution, frameMetaOut.HorizontalResolution);
+            Assert.Equal(frameMeta.VerticalResolution, frameMetaOut.VerticalResolution);
+
+            Assert.Equal("IrfanView", frameMeta.Software);
+            Assert.Equal("This is Название", frameMeta.ImageDescription);
+            Assert.Equal("This is Изготовитель камеры", frameMeta.Make);
+            Assert.Equal("This is Авторские права", frameMeta.Copyright);
+
+            if (preserveMetadata)
+            {
+                Assert.Equal("ImageSharp", frameMetaOut.Software);
+
+                Assert.Equal(frameMeta.ImageDescription, frameMetaOut.ImageDescription);
+                Assert.Equal(frameMeta.Make, frameMetaOut.Make);
+                Assert.Equal(frameMeta.Copyright, frameMetaOut.Copyright);
+            }
+            else
+            {
+                Assert.Equal("ImageSharp", frameMetaOut.Software);
+
+                Assert.Null(frameMetaOut.ImageDescription);
+                Assert.Null(frameMetaOut.Make);
+                Assert.Null(frameMetaOut.Copyright);
+            }
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Tiff_CreateMetadata(bool preserveMetadata)
+        {
+            var tiffEncoder = new TiffEncoder { Mode = TiffEncodingMode.Default, Compression = TiffEncoderCompression.Deflate, PreserveMetadata = preserveMetadata };
+
+            int w = 10;
+            int h = 20;
+            using Image input = new Image<Rgb24>(w, h);
+            ImageMetadata coreMeta = input.Metadata;
+            TiffMetadata tiffMeta = input.Metadata.GetTiffMetadata();
+            TiffFrameMetadata frameMeta = input.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+            coreMeta.ResolutionUnits = PixelResolutionUnit.PixelsPerInch;
+            coreMeta.HorizontalResolution = 45;
+            coreMeta.VerticalResolution = 54;
+
+            frameMeta.ImageDescription = "test ImageDescription";
+            frameMeta.DateTime = System.DateTime.Now.ToString();
+
+            using var ms = new MemoryStream();
+            input.Save(ms, tiffEncoder);
+
+            // assert
+            ms.Position = 0;
+            using var output = Image.Load<Rgba32>(ms);
+            TiffMetadata meta = output.Metadata.GetTiffMetadata();
+
+            ImageMetadata coreMetaOut = output.Metadata;
+            TiffMetadata tiffMetaOut = output.Metadata.GetTiffMetadata();
+            TiffFrameMetadata frameMetaOut = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+
+            Assert.Equal(coreMeta.HorizontalResolution, coreMetaOut.HorizontalResolution);
+            Assert.Equal(coreMeta.VerticalResolution, coreMetaOut.VerticalResolution);
+            Assert.Equal(coreMeta.ResolutionUnits, coreMetaOut.ResolutionUnits);
+
+            Assert.Equal((uint)w, frameMetaOut.Width);
+            Assert.Equal((uint)h, frameMetaOut.Height);
+            Assert.Equal(frameMeta.ResolutionUnit, frameMetaOut.ResolutionUnit);
+            Assert.Equal(frameMeta.HorizontalResolution, frameMetaOut.HorizontalResolution);
+            Assert.Equal(frameMeta.VerticalResolution, frameMetaOut.VerticalResolution);
+
+            if (preserveMetadata)
+            {
+                Assert.Equal(frameMeta.ImageDescription, frameMetaOut.ImageDescription);
+                Assert.Equal(frameMeta.DateTime, frameMetaOut.DateTime);
+            }
+            else
+            {
+                Assert.Null(frameMetaOut.ImageDescription);
+                Assert.Null(frameMetaOut.DateTime);
             }
         }
     }

@@ -18,10 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         public ImageExtensionsTest()
         {
             this.configuration = new Configuration();
-            this.configuration.ImageFormatsManager.AddImageFormat(WebpFormat.Instance);
-            this.configuration.ImageFormatsManager.AddImageFormatDetector(new WebpImageFormatDetector());
-            this.configuration.ImageFormatsManager.SetDecoder(WebpFormat.Instance, new WebpDecoder());
-            this.configuration.ImageFormatsManager.SetEncoder(WebpFormat.Instance, new WebpEncoder());
+            this.configuration.AddWebp();
         }
 
         [Fact]

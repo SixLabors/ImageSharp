@@ -175,6 +175,17 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Registers the TIFF format detector, decoder and encoder.
+        /// </summary>
+        public void AddTiff()
+        {
+            this.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
+            this.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
+            this.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
+            this.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
+        }
+
+        /// <summary>
         /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
         /// <see cref="PngConfigurationModule"/>
         /// <see cref="JpegConfigurationModule"/>

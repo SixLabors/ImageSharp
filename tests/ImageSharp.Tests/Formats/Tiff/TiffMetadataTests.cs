@@ -22,10 +22,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public TiffMetadataTests()
         {
             this.configuration = new Configuration();
-            this.configuration.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
-            this.configuration.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
-            this.configuration.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
-            this.configuration.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
+            this.configuration.AddTiff();
         }
 
         [Fact]

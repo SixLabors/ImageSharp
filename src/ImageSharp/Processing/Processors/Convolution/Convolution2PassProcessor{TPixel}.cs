@@ -42,12 +42,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         }
 
         /// <summary>
-        /// Gets the horizontal gradient operator.
+        /// Gets the horizontal convolution kernel.
         /// </summary>
         public DenseMatrix<float> KernelX { get; }
 
         /// <summary>
-        /// Gets the vertical gradient operator.
+        /// Gets the vertical convolution kernel.
         /// </summary>
         public DenseMatrix<float> KernelY { get; }
 
@@ -63,96 +63,48 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
             var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-            // Horizontal convolution
-            var horizontalOperation = new RowOperation(interest, firstPassPixels, source.PixelBuffer, this.KernelX, this.Configuration, this.PreserveAlpha);
-            ParallelRowIterator.IterateRows<RowOperation, Vector4>(
-                this.Configuration,
-                interest,
-                in horizontalOperation);
+            // We use a rectangle 2x the interest width to allocate a buffer big enough
+            // for source and target bulk pixel conversion.
+            var operationBounds = new Rectangle(interest.X, interest.Y, interest.Width * 2, interest.Height);
 
-            // Vertical convolution
-            var verticalOperation = new RowOperation(interest, source.PixelBuffer, firstPassPixels, this.KernelY, this.Configuration, this.PreserveAlpha);
-            ParallelRowIterator.IterateRows<RowOperation, Vector4>(
-                this.Configuration,
-                interest,
-                in verticalOperation);
-        }
-
-        /// <summary>
-        /// A <see langword="struct"/> implementing the convolution logic for <see cref="Convolution2PassProcessor{T}"/>.
-        /// </summary>
-        private readonly struct RowOperation : IRowOperation<Vector4>
-        {
-            private readonly Rectangle bounds;
-            private readonly Buffer2D<TPixel> targetPixels;
-            private readonly Buffer2D<TPixel> sourcePixels;
-            private readonly DenseMatrix<float> kernel;
-            private readonly Configuration configuration;
-            private readonly bool preserveAlpha;
-
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public RowOperation(
-                Rectangle bounds,
-                Buffer2D<TPixel> targetPixels,
-                Buffer2D<TPixel> sourcePixels,
-                DenseMatrix<float> kernel,
-                Configuration configuration,
-                bool preserveAlpha)
+            using (var mapX = new KernelSamplingMap(this.Configuration.MemoryAllocator))
             {
-                this.bounds = bounds;
-                this.targetPixels = targetPixels;
-                this.sourcePixels = sourcePixels;
-                this.kernel = kernel;
-                this.configuration = configuration;
-                this.preserveAlpha = preserveAlpha;
+                mapX.BuildSamplingOffsetMap(this.KernelX, interest);
+
+                // Horizontal convolution
+                var horizontalOperation = new ConvolutionRowOperation<TPixel>(
+                    interest,
+                    firstPassPixels,
+                    source.PixelBuffer,
+                    mapX,
+                    this.KernelX,
+                    this.Configuration,
+                    this.PreserveAlpha);
+
+                ParallelRowIterator.IterateRows<ConvolutionRowOperation<TPixel>, Vector4>(
+                    this.Configuration,
+                    operationBounds,
+                    in horizontalOperation);
             }
 
-            /// <inheritdoc/>
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y, Span<Vector4> span)
+            using (var mapY = new KernelSamplingMap(this.Configuration.MemoryAllocator))
             {
-                ref Vector4 spanRef = ref MemoryMarshal.GetReference(span);
+                mapY.BuildSamplingOffsetMap(this.KernelY, interest);
 
-                int maxY = this.bounds.Bottom - 1;
-                int maxX = this.bounds.Right - 1;
+                // Vertical convolution
+                var verticalOperation = new ConvolutionRowOperation<TPixel>(
+                    interest,
+                    source.PixelBuffer,
+                    firstPassPixels,
+                    mapY,
+                    this.KernelY,
+                    this.Configuration,
+                    this.PreserveAlpha);
 
-                Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span);
-
-                if (this.preserveAlpha)
-                {
-                    for (int x = 0; x < this.bounds.Width; x++)
-                    {
-                        DenseMatrixUtils.Convolve3(
-                            in this.kernel,
-                            this.sourcePixels,
-                            ref spanRef,
-                            y,
-                            x,
-                            this.bounds.Y,
-                            maxY,
-                            this.bounds.X,
-                            maxX);
-                    }
-                }
-                else
-                {
-                    for (int x = 0; x < this.bounds.Width; x++)
-                    {
-                        DenseMatrixUtils.Convolve4(
-                            in this.kernel,
-                            this.sourcePixels,
-                            ref spanRef,
-                            y,
-                            x,
-                            this.bounds.Y,
-                            maxY,
-                            this.bounds.X,
-                            maxX);
-                    }
-                }
-
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
+                ParallelRowIterator.IterateRows<ConvolutionRowOperation<TPixel>, Vector4>(
+                    this.Configuration,
+                    operationBounds,
+                    in verticalOperation);
             }
         }
     }

@@ -53,8 +53,13 @@ namespace SixLabors.ImageSharp.Memory
                 {
                     ThrowObjectDisposedException();
                 }
-
+#if SUPPORTS_CREATESPAN
+                ref byte r0 = ref MemoryMarshal.GetReference<byte>(this.Data);
+                return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref r0), this.length);
+#else
                 return MemoryMarshal.Cast<byte, T>(this.Data.AsSpan()).Slice(0, this.length);
+#endif
+
             }
 
             /// <inheritdoc />

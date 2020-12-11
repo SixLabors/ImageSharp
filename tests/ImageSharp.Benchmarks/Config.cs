@@ -27,6 +27,14 @@ namespace SixLabors.ImageSharp.Benchmarks
 
         }
 
+        public class MultiFramework : Config
+        {
+            public MultiFramework() => this.AddJob(
+                    Job.Default.WithRuntime(ClrRuntime.Net472),
+                    Job.Default.WithRuntime(CoreRuntime.Core21),
+                    Job.Default.WithRuntime(CoreRuntime.Core31));
+        }
+
         public class ShortClr : Config
         {
             public ShortClr() => this.AddJob(

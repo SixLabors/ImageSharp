@@ -33,9 +33,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public TiffDecoderTests()
         {
             this.configuration = new Configuration();
-            this.configuration.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
-            this.configuration.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
-            this.configuration.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
+            this.configuration.AddTiff();
         }
 
         [Theory]

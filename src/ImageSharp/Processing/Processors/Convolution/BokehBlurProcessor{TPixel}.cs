@@ -77,26 +77,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
+            var sourceRectangle = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+
             // Preliminary gamma highlight pass
-            var gammaOperation = new ApplyGammaExposureRowOperation(this.SourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
+            var gammaOperation = new ApplyGammaExposureRowOperation(sourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
             ParallelRowIterator.IterateRows<ApplyGammaExposureRowOperation, Vector4>(
                 this.Configuration,
-                this.SourceRectangle,
+                sourceRectangle,
                 in gammaOperation);
 
             // Create a 0-filled buffer to use to store the result of the component convolutions
             using Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean);
 
             // Perform the 1D convolutions on all the kernel components and accumulate the results
-            this.OnFrameApplyCore(source, this.SourceRectangle, this.Configuration, processingBuffer);
+            this.OnFrameApplyCore(source, sourceRectangle, this.Configuration, processingBuffer);
 
             float inverseGamma = 1 / this.gamma;
 
             // Apply the inverse gamma exposure pass, and write the final pixel data
-            var operation = new ApplyInverseGammaExposureRowOperation(this.SourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, inverseGamma);
+            var operation = new ApplyInverseGammaExposureRowOperation(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, inverseGamma);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
-                this.SourceRectangle,
+                sourceRectangle,
                 in operation);
         }
 
@@ -116,8 +118,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // Allocate the buffer with the intermediate convolution results
             using Buffer2D<ComplexVector4> firstPassBuffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size());
 
-            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-
             // Unlike in the standard 2 pass convolution processor, we use a rectangle of 1x the interest width
             // to speedup the actual convolution, by applying bulk pixel conversion and clamping calculation.
             // The second half of the buffer will just target the temporary buffer of complex pixel values.
@@ -128,8 +128,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             using var mapX = new KernelSamplingMap(configuration.MemoryAllocator);
             using var mapY = new KernelSamplingMap(configuration.MemoryAllocator);
 
-            mapX.BuildSamplingOffsetMap(1, this.kernelSize, interest);
-            mapY.BuildSamplingOffsetMap(this.kernelSize, 1, interest);
+            mapX.BuildSamplingOffsetMap(1, this.kernelSize, sourceRectangle);
+            mapY.BuildSamplingOffsetMap(this.kernelSize, 1, sourceRectangle);
 
             ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
             ref Vector4 paramsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
@@ -143,7 +143,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 // Horizontal convolution
                 var horizontalOperation = new FirstPassConvolutionRowOperation(
-                    interest,
+                    sourceRectangle,
                     firstPassBuffer,
                     source.PixelBuffer,
                     mapX,
@@ -152,12 +152,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 ParallelRowIterator.IterateRows<FirstPassConvolutionRowOperation, Vector4>(
                     configuration,
-                    interest,
+                    sourceRectangle,
                     in horizontalOperation);
 
                 // Vertical 1D convolutions to accumulate the partial results on the target buffer
                 var verticalOperation = new BokehBlurProcessor.SecondPassConvolutionRowOperation(
-                    interest,
+                    sourceRectangle,
                     processingBuffer,
                     firstPassBuffer,
                     mapY,
@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 ParallelRowIterator.IterateRows(
                     configuration,
-                    interest,
+                    sourceRectangle,
                     in verticalOperation);
             }
         }

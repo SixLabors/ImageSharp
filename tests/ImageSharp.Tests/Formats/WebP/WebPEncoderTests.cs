@@ -5,11 +5,10 @@ using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
+using static SixLabors.ImageSharp.Tests.TestImages.WebP;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Webp
 {
-    using static TestImages.WebP;
-
     [Trait("Format", "Webp")]
     public class WebpEncoderTests
     {

@@ -6,7 +6,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
@@ -172,17 +171,6 @@ namespace SixLabors.ImageSharp
                 FileSystem = this.FileSystem,
                 WorkingBufferSizeHintInBytes = this.WorkingBufferSizeHintInBytes,
             };
-        }
-
-        /// <summary>
-        /// Registers the webp format detector, encoder and decoder.
-        /// </summary>
-        public void AddWebp()
-        {
-            this.ImageFormatsManager.AddImageFormat(WebpFormat.Instance);
-            this.ImageFormatsManager.AddImageFormatDetector(new WebpImageFormatDetector());
-            this.ImageFormatsManager.SetDecoder(WebpFormat.Instance, new WebpDecoder());
-            this.ImageFormatsManager.SetEncoder(WebpFormat.Instance, new WebpEncoder());
         }
 
         /// <summary>

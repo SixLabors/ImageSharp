@@ -136,14 +136,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 // The target buffer is zeroed initially and then it accumulates the results
                 // of each partial convolution, so we don't have to clear it here as well
-                ref Vector4 targetBase = ref this.targetValues.GetElementUnsafe(0, y);
+                ref Vector4 targetBase = ref this.targetValues.GetElementUnsafe(boundsX, y);
                 ref Complex64 kernelBase = ref this.kernel[0];
 
                 for (int kY = 0; kY < kernelSize; kY++)
                 {
                     // Get the precalculated source sample row for this kernel row and copy to our buffer
                     int sampleY = Unsafe.Add(ref sampleRowBase, kY);
-                    ref ComplexVector4 sourceBase = ref this.sourceValues.GetElementUnsafe(boundsX, sampleY);
+                    ref ComplexVector4 sourceBase = ref this.sourceValues.GetElementUnsafe(0, sampleY);
                     Complex64 factor = Unsafe.Add(ref kernelBase, kY);
 
                     for (int x = 0; x < boundsWidth; x++)

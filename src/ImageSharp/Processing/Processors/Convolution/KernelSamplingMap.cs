@@ -99,8 +99,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             if (!this.isDisposed)
             {
-                this.yOffsets.Dispose();
-                this.xOffsets.Dispose();
+                this.yOffsets?.Dispose();
+                this.xOffsets?.Dispose();
 
                 this.isDisposed = true;
             }

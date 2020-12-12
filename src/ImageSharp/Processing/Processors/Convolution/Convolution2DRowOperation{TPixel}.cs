@@ -80,8 +80,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             ref Vector4 targetBaseY = ref MemoryMarshal.GetReference(targetYBuffer);
             ref Vector4 targetBaseX = ref MemoryMarshal.GetReference(targetXBuffer);
 
-            ReadOnlyKernel kernelY = state.KernelY;
-            ReadOnlyKernel kernelX = state.KernelX;
+            ReadOnlyKernel<float> kernelY = state.KernelY;
+            ReadOnlyKernel<float> kernelX = state.KernelX;
             Span<TPixel> sourceRow;
             for (int kY = 0; kY < kernelY.Rows; kY++)
             {
@@ -146,8 +146,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             ref Vector4 targetBaseY = ref MemoryMarshal.GetReference(targetYBuffer);
             ref Vector4 targetBaseX = ref MemoryMarshal.GetReference(targetXBuffer);
 
-            ReadOnlyKernel kernelY = state.KernelY;
-            ReadOnlyKernel kernelX = state.KernelX;
+            ReadOnlyKernel<float> kernelY = state.KernelY;
+            ReadOnlyKernel<float> kernelX = state.KernelX;
             for (int kY = 0; kY < kernelY.Rows; kY++)
             {
                 // Get the precalculated source sample row for this kernel row and copy to our buffer.

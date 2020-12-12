@@ -120,7 +120,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 ref Vector4 targetRowRef = ref MemoryMarshal.GetReference(span);
                 Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
 
-                var state = new ConvolutionState(in this.kernel, this.map);
+                var state = new ConvolutionState<float>(in this.kernel, this.map);
                 int row = y - this.bounds.Y;
                 ref int sampleRowBase = ref state.GetSampleRow(row);
 

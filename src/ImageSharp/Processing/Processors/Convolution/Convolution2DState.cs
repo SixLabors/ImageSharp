@@ -23,21 +23,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             KernelSamplingMap map)
         {
             // We check the kernels are the same size upstream.
-            this.KernelY = new ReadOnlyKernel(kernelY);
-            this.KernelX = new ReadOnlyKernel(kernelX);
+            this.KernelY = new ReadOnlyKernel<float>(kernelY);
+            this.KernelX = new ReadOnlyKernel<float>(kernelX);
             this.kernelHeight = kernelY.Rows;
             this.kernelWidth = kernelY.Columns;
             this.rowOffsetMap = map.GetRowOffsetSpan();
             this.columnOffsetMap = map.GetColumnOffsetSpan();
         }
 
-        public readonly ReadOnlyKernel KernelY
+        public readonly ReadOnlyKernel<float> KernelY
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get;
         }
 
-        public readonly ReadOnlyKernel KernelX
+        public readonly ReadOnlyKernel<float> KernelX
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get;

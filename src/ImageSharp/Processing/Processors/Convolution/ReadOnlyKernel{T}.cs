@@ -12,15 +12,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// A stack only, readonly, kernel matrix that can be indexed without
     /// bounds checks when compiled in release mode.
     /// </summary>
-    internal readonly ref struct ReadOnlyKernel
+    /// <typeparam name="T">The type of items in the kernel.</typeparam>
+    internal readonly ref struct ReadOnlyKernel<T>
+        where T : unmanaged, IEquatable<T>
     {
-        private readonly ReadOnlySpan<float> values;
+        private readonly ReadOnlySpan<T> values;
 
-        public ReadOnlyKernel(DenseMatrix<float> matrix)
+        public ReadOnlyKernel(DenseMatrix<T> matrix)
         {
             this.Columns = matrix.Columns;
             this.Rows = matrix.Rows;
             this.values = matrix.Span;
+        }
+
+        public ReadOnlyKernel(T[] kernel, int height, int width)
+        {
+            this.Columns = width;
+            this.Rows = height;
+            this.values = kernel;
         }
 
         public int Columns
@@ -35,13 +44,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             get;
         }
 
-        public float this[int row, int column]
+        public T this[int row, int column]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 this.CheckCoordinates(row, column);
-                ref float vBase = ref MemoryMarshal.GetReference(this.values);
+                ref T vBase = ref MemoryMarshal.GetReference(this.values);
                 return Unsafe.Add(ref vBase, (row * this.Columns) + column);
             }
         }

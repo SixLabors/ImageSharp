@@ -10,7 +10,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
     /// <summary>
     /// A stack only struct used for reducing reference indirection during convolution operations.
     /// </summary>
-    internal readonly ref struct ConvolutionState
+    /// <typeparam name="T">The type of values for the kernel in use.</typeparam>
+    internal readonly ref struct ConvolutionState<T>
+        where T : unmanaged, IEquatable<T>
     {
         private readonly Span<int> rowOffsetMap;
         private readonly Span<int> columnOffsetMap;
@@ -18,17 +20,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly int kernelWidth;
 
         public ConvolutionState(
-            in DenseMatrix<float> kernel,
+            in DenseMatrix<T> kernel,
             KernelSamplingMap map)
         {
-            this.Kernel = new ReadOnlyKernel(kernel);
+            this.Kernel = new ReadOnlyKernel<T>(kernel);
             this.kernelHeight = kernel.Rows;
             this.kernelWidth = kernel.Columns;
             this.rowOffsetMap = map.GetRowOffsetSpan();
             this.columnOffsetMap = map.GetColumnOffsetSpan();
         }
 
-        public readonly ReadOnlyKernel Kernel
+        public ConvolutionState(
+            T[] kernel,
+            int height,
+            int width,
+            KernelSamplingMap map)
+        {
+            this.Kernel = new ReadOnlyKernel<T>(kernel, height, width);
+            this.kernelHeight = height;
+            this.kernelWidth = width;
+            this.rowOffsetMap = map.GetRowOffsetSpan();
+            this.columnOffsetMap = map.GetColumnOffsetSpan();
+        }
+
+        public readonly ReadOnlyKernel<T> Kernel
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get;

@@ -27,6 +27,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         private readonly float gamma;
 
         /// <summary>
+        /// The size of each complex convolution kernel.
+        /// </summary>
+        private readonly int kernelSize;
+
+        /// <summary>
         /// The kernel parameters to use for the current instance (a: X, b: Y, A: Z, B: W)
         /// </summary>
         private readonly Vector4[] kernelParameters;
@@ -47,11 +52,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             : base(configuration, source, sourceRectangle)
         {
             this.gamma = definition.Gamma;
+            this.kernelSize = (definition.Radius * 2) + 1;
 
             // Get the bokeh blur data
             BokehBlurKernelData data = BokehBlurKernelDataProvider.GetBokehBlurKernelData(
                 definition.Radius,
-                (definition.Radius * 2) + 1,
+                this.kernelSize,
                 definition.Components);
 
             this.kernelParameters = data.Parameters;
@@ -108,69 +114,132 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             Buffer2D<Vector4> processingBuffer)
         {
             // Allocate the buffer with the intermediate convolution results
-            using Buffer2D<ComplexVector4> firstPassBuffer = this.Configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size());
+            using Buffer2D<ComplexVector4> firstPassBuffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size());
 
-            // Perform two 1D convolutions for each component in the current instance
+            var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
+
+            // Unlike in the standard 2 pass convolution processor, we use a rectangle of 1x the interest width
+            // to speedup the actual convolution, by applying bulk pixel conversion and clamping calculation.
+            // The second half of the buffer will just target the temporary buffer of complex pixel values.
+            // This is needed because the bokeh blur operates as TPixel -> complex -> TPixel, so we cannot
+            // convert back to standard pixels after each separate 1D convolution pass. Like in the gaussian
+            // blur though, we preallocate and compute the kernel sampling maps before processing each complex
+            // component, to avoid recomputing the same sampling map once per convolution pass.
+            using var mapX = new KernelSamplingMap(configuration.MemoryAllocator);
+            using var mapY = new KernelSamplingMap(configuration.MemoryAllocator);
+
+            mapX.BuildSamplingOffsetMap(1, this.kernelSize, interest);
+            mapY.BuildSamplingOffsetMap(this.kernelSize, 1, interest);
+
             ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
             ref Vector4 paramsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
+
+            // Perform two 1D convolutions for each component in the current instance
             for (int i = 0; i < this.kernels.Length; i++)
             {
                 // Compute the resulting complex buffer for the current component
                 Complex64[] kernel = Unsafe.Add(ref baseRef, i);
                 Vector4 parameters = Unsafe.Add(ref paramsRef, i);
 
-                // Compute the vertical 1D convolution
-                var verticalOperation = new ApplyVerticalConvolutionRowOperation(sourceRectangle, firstPassBuffer, source.PixelBuffer, kernel);
-                ParallelRowIterator.IterateRows(
-                    configuration,
-                    sourceRectangle,
-                    in verticalOperation);
+                // Horizontal convolution
+                var horizontalOperation = new FirstPassConvolutionRowOperation(
+                    interest,
+                    firstPassBuffer,
+                    source.PixelBuffer,
+                    mapX,
+                    kernel,
+                    configuration);
 
-                // Compute the horizontal 1D convolutions and accumulate the partial results on the target buffer
-                var horizontalOperation = new BokehBlurProcessor.ApplyHorizontalConvolutionRowOperation(sourceRectangle, processingBuffer, firstPassBuffer, kernel, parameters.Z, parameters.W);
+                ParallelRowIterator.IterateRows<FirstPassConvolutionRowOperation, Vector4>(
+                    configuration,
+                    interest,
+                    in horizontalOperation);
+
+                // Vertical 1D convolutions to accumulate the partial results on the target buffer
+                var verticalOperation = new BokehBlurProcessor.SecondPassConvolutionRowOperation(
+                    interest,
+                    processingBuffer,
+                    firstPassBuffer,
+                    mapY,
+                    kernel,
+                    parameters.Z,
+                    parameters.W);
+
                 ParallelRowIterator.IterateRows(
                     configuration,
-                    sourceRectangle,
-                    in horizontalOperation);
+                    interest,
+                    in verticalOperation);
             }
         }
 
         /// <summary>
         /// A <see langword="struct"/> implementing the vertical convolution logic for <see cref="BokehBlurProcessor{T}"/>.
         /// </summary>
-        private readonly struct ApplyVerticalConvolutionRowOperation : IRowOperation
+        private readonly struct FirstPassConvolutionRowOperation : IRowOperation<Vector4>
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<ComplexVector4> targetValues;
             private readonly Buffer2D<TPixel> sourcePixels;
+            private readonly KernelSamplingMap map;
             private readonly Complex64[] kernel;
-            private readonly int maxY;
-            private readonly int maxX;
+            private readonly Configuration configuration;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyVerticalConvolutionRowOperation(
+            public FirstPassConvolutionRowOperation(
                 Rectangle bounds,
                 Buffer2D<ComplexVector4> targetValues,
                 Buffer2D<TPixel> sourcePixels,
-                Complex64[] kernel)
+                KernelSamplingMap map,
+                Complex64[] kernel,
+                Configuration configuration)
             {
                 this.bounds = bounds;
-                this.maxY = this.bounds.Bottom - 1;
-                this.maxX = this.bounds.Right - 1;
                 this.targetValues = targetValues;
                 this.sourcePixels = sourcePixels;
+                this.map = map;
                 this.kernel = kernel;
+                this.configuration = configuration;
             }
 
             /// <inheritdoc/>
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y)
+            public void Invoke(int y, Span<Vector4> span)
             {
-                Span<ComplexVector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
+                int boundsX = this.bounds.X;
+                int boundsWidth = this.bounds.Width;
 
-                for (int x = 0; x < this.bounds.Width; x++)
+                var state = new ConvolutionState<Complex64>(this.kernel, 1, this.kernel.Length, this.map);
+                ref int sampleRowBase = ref state.GetSampleRow(y - this.bounds.Y);
+
+                Span<ComplexVector4> targetBuffer = this.targetValues.GetRowSpan(y);
+
+                // Clear the target buffer
+                targetBuffer.Clear();
+                ref ComplexVector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
+
+                ReadOnlyKernel<Complex64> kernel = state.Kernel;
+
+                for (int kY = 0; kY < kernel.Rows; kY++)
                 {
-                    Buffer2DUtils.Convolve4(this.kernel, this.sourcePixels, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX);
+                    // Get the precalculated source sample row for this kernel row and copy to our buffer.
+                    int sampleY = Unsafe.Add(ref sampleRowBase, kY);
+                    Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(sampleY).Slice(boundsX, boundsWidth);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, span);
+
+                    ref Vector4 sourceBase = ref MemoryMarshal.GetReference(span);
+
+                    for (int x = 0; x < span.Length; x++)
+                    {
+                        ref int sampleColumnBase = ref state.GetSampleColumn(x);
+                        ref ComplexVector4 target = ref Unsafe.Add(ref targetBase, x);
+
+                        for (int kX = 0; kX < kernel.Columns; kX++)
+                        {
+                            int sampleX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
+                            Vector4 sample = Unsafe.Add(ref sourceBase, sampleX);
+                            target.Sum(kernel[kY, kX] * sample);
+                        }
+                    }
                 }
             }
         }

@@ -207,39 +207,41 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 int boundsX = this.bounds.X;
                 int boundsWidth = this.bounds.Width;
+                int kernelSize = this.kernel.Length;
 
-                var state = new ConvolutionState<Complex64>(this.kernel, 1, this.kernel.Length, this.map);
-                ref int sampleRowBase = ref state.GetSampleRow(y - this.bounds.Y);
+                Span<int> rowOffsets = this.map.GetRowOffsetSpan();
+                Span<int> columnOffsets = this.map.GetColumnOffsetSpan();
+                int sampleY = Unsafe.Add(ref MemoryMarshal.GetReference(rowOffsets), y - this.bounds.Y);
+                ref int sampleColumnBase = ref MemoryMarshal.GetReference(columnOffsets);
 
+                // Clear the target buffer for each row run
                 Span<ComplexVector4> targetBuffer = this.targetValues.GetRowSpan(y);
-
-                // Clear the target buffer
                 targetBuffer.Clear();
                 ref ComplexVector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
 
-                ReadOnlyKernel<Complex64> kernel = state.Kernel;
+                // Execute the bulk pixel format conversion for the current row
+                Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(sampleY).Slice(boundsX, boundsWidth);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, span);
 
-                for (int kY = 0; kY < kernel.Rows; kY++)
+                ref Vector4 sourceBase = ref MemoryMarshal.GetReference(span);
+                ref Complex64 kernelBase = ref this.kernel[0];
+
+                for (int x = 0; x < span.Length; x++)
                 {
-                    // Get the precalculated source sample row for this kernel row and copy to our buffer.
-                    int sampleY = Unsafe.Add(ref sampleRowBase, kY);
-                    Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(sampleY).Slice(boundsX, boundsWidth);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, span);
+                    ref ComplexVector4 target = ref Unsafe.Add(ref targetBase, x);
 
-                    ref Vector4 sourceBase = ref MemoryMarshal.GetReference(span);
-
-                    for (int x = 0; x < span.Length; x++)
+                    for (int kX = 0; kX < kernelSize; kX++)
                     {
-                        ref int sampleColumnBase = ref state.GetSampleColumn(x);
-                        ref ComplexVector4 target = ref Unsafe.Add(ref targetBase, x);
+                        int sampleX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
+                        Vector4 sample = Unsafe.Add(ref sourceBase, sampleX);
+                        Complex64 factor = Unsafe.Add(ref kernelBase, kX);
 
-                        for (int kX = 0; kX < kernel.Columns; kX++)
-                        {
-                            int sampleX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
-                            Vector4 sample = Unsafe.Add(ref sourceBase, sampleX);
-                            target.Sum(kernel[kY, kX] * sample);
-                        }
+                        target.Sum(factor * sample);
                     }
+
+                    // Shift the base column sampling reference by one row at the end of each outer
+                    // iteration so that the inner tight loop indexing can skip the multiplication
+                    sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, kernelSize);
                 }
             }
         }

@@ -2,9 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using System.Linq;
 
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
@@ -14,7 +15,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     /// </summary>
     public class TiffFrameMetadata : IDeepCloneable
     {
-        private const TiffResolutionUnit DefaultResolutionUnit = TiffResolutionUnit.Inch;
+        // 2 (Inch)
+        private const ushort DefaultResolutionUnit = 2;
 
         private const TiffPlanarConfiguration DefaultPlanarConfiguration = TiffPlanarConfiguration.Chunky;
 
@@ -28,9 +30,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         }
 
         /// <summary>
-        /// Gets or sets the Tiff directory tags list.
+        /// Gets the Tiff directory tags list.
         /// </summary>
-        public List<IExifValue> FrameTags { get; set; } = new List<IExifValue>();
+        public List<IExifValue> FrameTags { get; internal set; } = new List<IExifValue>();
 
         /// <summary>Gets a general indication of the kind of data contained in this subfile.</summary>
         /// <value>A general indication of the kind of data contained in this subfile.</value>
@@ -53,7 +55,41 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets the number of bits per component.
         /// </summary>
-        public ushort[] BitsPerSample => this.GetArray<ushort>(ExifTag.BitsPerSample, true);
+        public ushort[] BitsPerSample
+        {
+            get
+            {
+                var bits = this.GetArray<ushort>(ExifTag.BitsPerSample, true);
+                if (bits == null)
+                {
+                    if (this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero
+                        || this.PhotometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
+                    {
+                        bits = new[] { (ushort)1 };
+                    }
+                    else
+                    {
+                        TiffThrowHelper.ThrowNotSupported("The TIFF BitsPerSample entry is missing.");
+                    }
+                }
+
+                return bits;
+            }
+        }
+
+        internal int BitsPerPixel
+        {
+            get
+            {
+                int bitsPerPixel = 0;
+                foreach (var bits in this.BitsPerSample)
+                {
+                    bitsPerPixel += bits;
+                }
+
+                return bitsPerPixel;
+            }
+        }
 
         /// <summary>Gets the compression scheme used on the image data.</summary>
         /// <value>The compression scheme used on the image data.</value>
@@ -116,61 +152,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         /// <summary>Gets the resolution of the image in x- direction.</summary>
         /// <value>The density of the image in x- direction.</value>
-        public double? HorizontalResolution
-        {
-            get
-            {
-                if (this.TryGetSingle(ExifTag.XResolution, out Rational xResolution))
-                {
-                    return xResolution.ToDouble() * this.ResolutionFactor;
-                }
-
-                return null;
-            }
-
-            internal set
-            {
-                if (value == null)
-                {
-                    this.Remove(ExifTag.XResolution);
-                }
-                else
-                {
-                    double tag = value.Value / this.ResolutionFactor;
-                    this.SetSingle(ExifTag.XResolution, new Rational(tag));
-                }
-            }
-        }
+        public double? HorizontalResolution => this.GetResolution(ExifTag.XResolution);
 
         /// <summary>
         /// Gets the resolution of the image in y- direction.
         /// </summary>
         /// <value>The density of the image in y- direction.</value>
-        public double? VerticalResolution
-        {
-            get
-            {
-                if (this.TryGetSingle(ExifTag.YResolution, out Rational yResolution))
-                {
-                    return yResolution.ToDouble() * this.ResolutionFactor;
-                }
-
-                return null;
-            }
-
-            internal set
-            {
-                if (value == null)
-                {
-                    this.Remove(ExifTag.YResolution);
-                }
-                else
-                {
-                    double tag = value.Value / this.ResolutionFactor;
-                    this.SetSingle(ExifTag.YResolution, new Rational(tag));
-                }
-            }
-        }
+        public double? VerticalResolution => this.GetResolution(ExifTag.YResolution);
 
         /// <summary>
         /// Gets how the components of each pixel are stored.
@@ -180,10 +168,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets the unit of measurement for XResolution and YResolution.
         /// </summary>
-        public TiffResolutionUnit ResolutionUnit
+        public PixelResolutionUnit ResolutionUnit
         {
-            get => this.GetSingleEnum<TiffResolutionUnit, ushort>(ExifTag.ResolutionUnit, DefaultResolutionUnit);
-            internal set => this.SetSingleEnum<TiffResolutionUnit, ushort>(ExifTag.ResolutionUnit, value);
+            get
+            {
+                if (!this.TryGetSingle(ExifTag.ResolutionUnit, out ushort res))
+                {
+                    res = DefaultResolutionUnit;
+                }
+
+                return (PixelResolutionUnit)(res - 1);
+            }
         }
 
         /// <summary>
@@ -252,23 +247,34 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// </summary>
         public TiffSampleFormat[] SampleFormat => this.GetEnumArray<TiffSampleFormat, ushort>(ExifTag.SampleFormat, true);
 
-        private double ResolutionFactor
-        {
-            get
-            {
-                TiffResolutionUnit unit = this.ResolutionUnit;
-                if (unit == TiffResolutionUnit.Centimeter)
-                {
-                    return 2.54;
-                }
-                else if (unit == TiffResolutionUnit.Inch)
-                {
-                    return 1.0;
-                }
 
-                // DefaultResolutionUnit is Inch
-                return 1.0;
+        /// <summary>
+        /// Clears the metadata.
+        /// </summary>
+        public void ClearMetadata()
+        {
+            var tags = new List<IExifValue>();
+            foreach (IExifValue entry in this.FrameTags)
+            {
+                switch ((ExifTagValue)(ushort)entry.Tag)
+                {
+                    case ExifTagValue.ImageWidth:
+                    case ExifTagValue.ImageLength:
+                    case ExifTagValue.ResolutionUnit:
+                    case ExifTagValue.XResolution:
+                    case ExifTagValue.YResolution:
+                    //// image format tags
+                    case ExifTagValue.Predictor:
+                    case ExifTagValue.PlanarConfiguration:
+                    case ExifTagValue.PhotometricInterpretation:
+                    case ExifTagValue.BitsPerSample:
+                    case ExifTagValue.ColorMap:
+                        tags.Add(entry);
+                        break;
+                }
             }
+
+            this.FrameTags = tags;
         }
 
         /// <inheritdoc/>
@@ -281,6 +287,85 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             }
 
             return new TiffFrameMetadata() { FrameTags = tags };
+        }
+
+        internal void SetResolutions(PixelResolutionUnit unit, double horizontal, double vertical)
+        {
+            switch (unit)
+            {
+                case PixelResolutionUnit.AspectRatio:
+                case PixelResolutionUnit.PixelsPerInch:
+                case PixelResolutionUnit.PixelsPerCentimeter:
+                    break;
+                case PixelResolutionUnit.PixelsPerMeter:
+                    {
+                        unit = PixelResolutionUnit.PixelsPerCentimeter;
+                        horizontal = UnitConverter.MeterToCm(horizontal);
+                        vertical = UnitConverter.MeterToCm(vertical);
+                    }
+
+                    break;
+                default:
+                    unit = PixelResolutionUnit.PixelsPerInch;
+                    break;
+            }
+
+            this.SetSingle(ExifTag.ResolutionUnit, (ushort)unit + 1);
+            this.SetResolution(ExifTag.XResolution, horizontal);
+            this.SetResolution(ExifTag.YResolution, vertical);
+        }
+
+        private double? GetResolution(ExifTag tag)
+        {
+            if (!this.TryGetSingle(tag, out Rational resolution))
+            {
+                return null;
+            }
+
+            double res = resolution.ToDouble();
+            switch (this.ResolutionUnit)
+            {
+                case PixelResolutionUnit.AspectRatio:
+                    return 0;
+                case PixelResolutionUnit.PixelsPerCentimeter:
+                    return UnitConverter.CmToInch(res);
+                case PixelResolutionUnit.PixelsPerMeter:
+                    return UnitConverter.MeterToInch(res);
+                case PixelResolutionUnit.PixelsPerInch:
+                default:
+                    // DefaultResolutionUnit is Inch
+                    return res;
+            }
+        }
+
+        private void SetResolution(ExifTag tag, double? value)
+        {
+            if (value == null)
+            {
+                this.Remove(tag);
+                return;
+            }
+            else
+            {
+                double res = value.Value;
+                switch (this.ResolutionUnit)
+                {
+                    case PixelResolutionUnit.AspectRatio:
+                        res = 0;
+                        break;
+                    case PixelResolutionUnit.PixelsPerCentimeter:
+                        res = UnitConverter.InchToCm(res);
+                        break;
+                    case PixelResolutionUnit.PixelsPerMeter:
+                        res = UnitConverter.InchToMeter(res);
+                        break;
+                    case PixelResolutionUnit.PixelsPerInch:
+                    default:
+                        break;
+                }
+
+                this.SetSingle(tag, new Rational(res));
+            }
         }
     }
 }

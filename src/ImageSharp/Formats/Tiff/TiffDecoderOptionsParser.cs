@@ -8,16 +8,16 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 {
     /// <summary>
-    /// The decoder helper methods.
+    /// The decoder options parser.
     /// </summary>
-    internal static class TiffDecoderHelpers
+    internal static class TiffDecoderOptionsParser
     {
         /// <summary>
         /// Determines the TIFF compression and color types, and reads any associated parameters.
         /// </summary>
         /// <param name="options">The options.</param>
         /// <param name="entries">The IFD entries container to read the image format information for.</param>
-        public static void VerifyAndParseOptions(this TiffDecoderCore options, TiffFrameMetadata entries)
+        public static void VerifyAndParse(this TiffDecoderCore options, TiffFrameMetadata entries)
         {
             if (entries.ExtraSamples != null)
             {
@@ -50,15 +50,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 }
             }
 
-            ParseCompression(options, entries.Compression);
-
             options.PlanarConfiguration = entries.PlanarConfiguration;
+            options.Predictor = entries.Predictor;
 
-            ParsePhotometric(options, entries);
-
-            ParseBitsPerSample(options, entries);
+            // todo: There is no default for PhotometricInterpretation, and it is required.
+            options.PhotometricInterpretation = entries.PhotometricInterpretation;
+            options.BitsPerSample = entries.BitsPerSample;
+            options.ChunkyBitsPerPixel = entries.BitsPerPixel;
 
             ParseColorType(options, entries);
+            ParseCompression(options, entries.Compression);
         }
 
         private static void ParseColorType(this TiffDecoderCore options, TiffFrameMetadata entries)
@@ -207,29 +208,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                 break;
             }
-        }
-
-        private static void ParseBitsPerSample(this TiffDecoderCore options, TiffFrameMetadata entries)
-        {
-            options.BitsPerSample = entries.BitsPerSample;
-            if (options.BitsPerSample == null)
-            {
-                if (options.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero
-                    || options.PhotometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
-                {
-                    options.BitsPerSample = new[] { (ushort)1 };
-                }
-                else
-                {
-                    TiffThrowHelper.ThrowNotSupported("The TIFF BitsPerSample entry is missing.");
-                }
-            }
-        }
-
-        private static void ParsePhotometric(this TiffDecoderCore options, TiffFrameMetadata entries)
-        {
-            // There is no default for PhotometricInterpretation, and it is required.
-            options.PhotometricInterpretation = entries.PhotometricInterpretation;
         }
 
         private static void ParseCompression(this TiffDecoderCore options, TiffCompression compression)

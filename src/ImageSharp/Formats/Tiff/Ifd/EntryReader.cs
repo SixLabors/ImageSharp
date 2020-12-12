@@ -116,6 +116,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         private bool ReadValueOrOffset(ExifValue entry, ExifDataType rawDataType, uint count)
         {
+            if (entry.Tag == ExifTag.SubIFDOffset
+                || entry.Tag == ExifTag.GPSIFDOffset
+                /*|| entry.Tag == ExifTagValue.SubIFDs*/)
+            {
+                // todo: ignore subIfds (exif, gps)
+                this.stream.Skip(4);
+                return false;
+            }
+
             if (HasExtData(entry, count))
             {
                 uint offset = this.stream.ReadUInt32();

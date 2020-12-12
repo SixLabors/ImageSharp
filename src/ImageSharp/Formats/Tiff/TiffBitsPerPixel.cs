@@ -14,6 +14,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         Pixel1 = 1,
 
         /// <summary>
+        /// 4 bits per pixel, grayscale or indexed image. Each pixel consists of 4 bit.
+        /// </summary>
+        Pixel4 = 4,
+
+        /// <summary>
         /// 8 bits per pixel, grayscale or indexed image. Each pixel consists of 1 byte.
         /// </summary>
         Pixel8 = 8,

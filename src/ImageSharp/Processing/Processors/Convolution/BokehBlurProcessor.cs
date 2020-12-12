@@ -127,39 +127,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             {
                 int boundsX = this.bounds.X;
                 int boundsWidth = this.bounds.Width;
-                Span<Vector4> targetBuffer = this.targetValues.GetRowSpan(y);
+                int kernelSize = this.kernel.Length;
 
-                var state = new ConvolutionState<Complex64>(this.kernel, this.kernel.Length, 1, this.map);
-                ref int sampleRowBase = ref state.GetSampleRow(y - this.bounds.Y);
+                Span<int> rowOffsets = this.map.GetRowOffsetSpan();
+                Span<int> columnOffsets = this.map.GetColumnOffsetSpan();
+                ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowOffsets), (y - this.bounds.Y) * kernelSize);
+                ref int sampleColumnBase = ref MemoryMarshal.GetReference(columnOffsets);
 
                 // The target buffer is zeroed initially and then it accumulates the results
-                // of each partial convolution, so we don't have to clear it here as well.
+                // of each partial convolution, so we don't have to clear it here as well
+                Span<Vector4> targetBuffer = this.targetValues.GetRowSpan(y);
+
                 ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
+                ref Complex64 kernelBase = ref this.kernel[0];
 
-                ReadOnlyKernel<Complex64> kernel = state.Kernel;
-
-                for (int kY = 0; kY < kernel.Rows; kY++)
+                for (int kY = 0; kY < kernelSize; kY++)
                 {
-                    // Get the precalculated source sample row for this kernel row and copy to our buffer.
+                    // Get the precalculated source sample row for this kernel row and copy to our buffer
                     int sampleY = Unsafe.Add(ref sampleRowBase, kY);
                     Span<ComplexVector4> sourceRow = this.sourceValues.GetRowSpan(sampleY).Slice(boundsX, boundsWidth);
                     ref ComplexVector4 sourceBase = ref MemoryMarshal.GetReference(sourceRow);
+                    Complex64 factor = Unsafe.Add(ref kernelBase, kY);
 
                     for (int x = 0; x < boundsWidth; x++)
                     {
-                        ref int sampleColumnBase = ref state.GetSampleColumn(x);
+                        int sampleX = Unsafe.Add(ref sampleColumnBase, x) - boundsX;
                         ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
-                        ComplexVector4 pixel4 = default;
 
-                        for (int kX = 0; kX < kernel.Columns; kX++)
-                        {
-                            int sampleX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
-                            ComplexVector4 sample = Unsafe.Add(ref sourceBase, sampleX);
+                        ComplexVector4 sample = Unsafe.Add(ref sourceBase, sampleX);
+                        ComplexVector4 partial = factor * sample;
 
-                            pixel4.Sum(kernel[kY, kX] * sample);
-                        }
-
-                        target += pixel4.WeightedSum(this.z, this.w);
+                        target += partial.WeightedSum(this.z, this.w);
                     }
                 }
             }

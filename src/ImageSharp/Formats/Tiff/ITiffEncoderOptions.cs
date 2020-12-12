@@ -12,6 +12,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     internal interface ITiffEncoderOptions
     {
         /// <summary>
+        /// Gets the byte order to use.
+        /// </summary>
+        ByteOrder ByteOrder { get; }
+
+        /// <summary>
         /// Gets the compression type to use.
         /// </summary>
         TiffEncoderCompression Compression { get; }
@@ -36,10 +41,5 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// Gets the quantizer for creating a color palette image.
         /// </summary>
         IQuantizer Quantizer { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether preserve metadata.
-        /// </summary>
-        bool PreserveMetadata { get; }
     }
 }

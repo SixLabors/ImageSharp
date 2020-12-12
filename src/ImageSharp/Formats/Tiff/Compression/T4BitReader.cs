@@ -5,7 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
@@ -673,27 +673,27 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             {
                 case 4:
                 {
-                    return WhiteLen4TermCodes.Keys.Contains(this.value);
+                    return WhiteLen4TermCodes.ContainsKey(this.value);
                 }
 
                 case 5:
                 {
-                    return WhiteLen5TermCodes.Keys.Contains(this.value);
+                    return WhiteLen5TermCodes.ContainsKey(this.value);
                 }
 
                 case 6:
                 {
-                    return WhiteLen6TermCodes.Keys.Contains(this.value);
+                    return WhiteLen6TermCodes.ContainsKey(this.value);
                 }
 
                 case 7:
                 {
-                    return WhiteLen7TermCodes.Keys.Contains(this.value);
+                    return WhiteLen7TermCodes.ContainsKey(this.value);
                 }
 
                 case 8:
                 {
-                    return WhiteLen8TermCodes.Keys.Contains(this.value);
+                    return WhiteLen8TermCodes.ContainsKey(this.value);
                 }
             }
 

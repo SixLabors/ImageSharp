@@ -4,6 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -91,31 +92,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// it is actually used, because it does not use any generic parameters internally. Defining in a non-generic class means that there will only
         /// ever be a single instantiation of this type for the JIT/AOT compilers to process, instead of having duplicate versions for each pixel type.
         /// </remarks>
-        internal readonly struct ApplyHorizontalConvolutionRowOperation : IRowOperation
+        internal readonly struct SecondPassConvolutionRowOperation : IRowOperation
         {
             private readonly Rectangle bounds;
             private readonly Buffer2D<Vector4> targetValues;
             private readonly Buffer2D<ComplexVector4> sourceValues;
+            private readonly KernelSamplingMap map;
             private readonly Complex64[] kernel;
             private readonly float z;
             private readonly float w;
-            private readonly int maxY;
-            private readonly int maxX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public ApplyHorizontalConvolutionRowOperation(
+            public SecondPassConvolutionRowOperation(
                 Rectangle bounds,
                 Buffer2D<Vector4> targetValues,
                 Buffer2D<ComplexVector4> sourceValues,
+                KernelSamplingMap map,
                 Complex64[] kernel,
                 float z,
                 float w)
             {
                 this.bounds = bounds;
-                this.maxY = this.bounds.Bottom - 1;
-                this.maxX = this.bounds.Right - 1;
                 this.targetValues = targetValues;
                 this.sourceValues = sourceValues;
+                this.map = map;
                 this.kernel = kernel;
                 this.z = z;
                 this.w = w;
@@ -125,11 +125,42 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                Span<Vector4> targetRowSpan = this.targetValues.GetRowSpan(y).Slice(this.bounds.X);
+                int boundsX = this.bounds.X;
+                int boundsWidth = this.bounds.Width;
+                Span<Vector4> targetBuffer = this.targetValues.GetRowSpan(y);
 
-                for (int x = 0; x < this.bounds.Width; x++)
+                var state = new ConvolutionState<Complex64>(this.kernel, this.kernel.Length, 1, this.map);
+                ref int sampleRowBase = ref state.GetSampleRow(y - this.bounds.Y);
+
+                // The target buffer is zeroed initially and then it accumulates the results
+                // of each partial convolution, so we don't have to clear it here as well.
+                ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
+
+                ReadOnlyKernel<Complex64> kernel = state.Kernel;
+
+                for (int kY = 0; kY < kernel.Rows; kY++)
                 {
-                    Buffer2DUtils.Convolve4AndAccumulatePartials(this.kernel, this.sourceValues, targetRowSpan, y, x, this.bounds.Y, this.maxY, this.bounds.X, this.maxX, this.z, this.w);
+                    // Get the precalculated source sample row for this kernel row and copy to our buffer.
+                    int sampleY = Unsafe.Add(ref sampleRowBase, kY);
+                    Span<ComplexVector4> sourceRow = this.sourceValues.GetRowSpan(sampleY).Slice(boundsX, boundsWidth);
+                    ref ComplexVector4 sourceBase = ref MemoryMarshal.GetReference(sourceRow);
+
+                    for (int x = 0; x < boundsWidth; x++)
+                    {
+                        ref int sampleColumnBase = ref state.GetSampleColumn(x);
+                        ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+                        ComplexVector4 pixel4 = default;
+
+                        for (int kX = 0; kX < kernel.Columns; kX++)
+                        {
+                            int sampleX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
+                            ComplexVector4 sample = Unsafe.Add(ref sourceBase, sampleX);
+
+                            pixel4.Sum(kernel[kY, kX] * sample);
+                        }
+
+                        target += pixel4.WeightedSum(this.z, this.w);
+                    }
                 }
             }
         }

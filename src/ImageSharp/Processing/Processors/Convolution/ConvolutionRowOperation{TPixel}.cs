@@ -67,14 +67,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
             Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
 
-            var state = new ConvolutionState<float>(in this.kernelMatrix, this.map);
+            var state = new ConvolutionState(in this.kernelMatrix, this.map);
             ref int sampleRowBase = ref state.GetSampleRow(y - this.bounds.Y);
 
             // Clear the target buffer for each row run.
             targetBuffer.Clear();
             ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
 
-            ReadOnlyKernel<float> kernel = state.Kernel;
+            ReadOnlyKernel kernel = state.Kernel;
             Span<TPixel> sourceRow;
             for (int kY = 0; kY < kernel.Rows; kY++)
             {
@@ -119,17 +119,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // Span is 2x bounds.
             int boundsX = this.bounds.X;
             int boundsWidth = this.bounds.Width;
-            Span<Vector4> sourceBuffer = span.Slice(0, boundsWidth);
-            Span<Vector4> targetBuffer = span.Slice(boundsWidth);
+            Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
+            Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
 
-            var state = new ConvolutionState<float>(in this.kernelMatrix, this.map);
+            var state = new ConvolutionState(in this.kernelMatrix, this.map);
             ref int sampleRowBase = ref state.GetSampleRow(y - this.bounds.Y);
 
             // Clear the target buffer for each row run.
             targetBuffer.Clear();
             ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
 
-            ReadOnlyKernel<float> kernel = state.Kernel;
+            ReadOnlyKernel kernel = state.Kernel;
             for (int kY = 0; kY < kernel.Rows; kY++)
             {
                 // Get the precalculated source sample row for this kernel row and copy to our buffer.

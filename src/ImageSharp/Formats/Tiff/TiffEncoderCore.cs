@@ -24,6 +24,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     /// </summary>
     internal sealed class TiffEncoderCore : IImageEncoderInternals
     {
+        public static readonly ByteOrder ByteOrder = BitConverter.IsLittleEndian ? ByteOrder.LittleEndian : ByteOrder.BigEndian;
+
+        private static readonly ushort ByteOrderMarker = BitConverter.IsLittleEndian
+                ? TiffConstants.ByteOrderLittleEndianShort
+                : TiffConstants.ByteOrderBigEndianShort;
+
         /// <summary>
         /// Used for allocating memory during processing operations.
         /// </summary>
@@ -54,8 +60,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// </summary>
         private readonly DeflateCompressionLevel compressionLevel;
 
-        private readonly bool preserveMetadata;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
         /// </summary>
@@ -69,7 +73,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
             this.useHorizontalPredictor = options.UseHorizontalPredictor;
             this.compressionLevel = options.CompressionLevel;
-            this.preserveMetadata = options.PreserveMetadata;
         }
 
         /// <summary>
@@ -137,12 +140,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <returns>The marker to write the first IFD offset.</returns>
         public long WriteHeader(TiffWriter writer)
         {
-            ushort byteOrderMarker = BitConverter.IsLittleEndian
-                ? TiffConstants.ByteOrderLittleEndianShort
-                : TiffConstants.ByteOrderBigEndianShort;
-
-            writer.Write(byteOrderMarker);
-            writer.Write((ushort)42);
+            writer.Write(ByteOrderMarker);
+            writer.Write((ushort)TiffConstants.HeaderMagicNumber);
             long firstIfdMarker = writer.PlaceMarker();
 
             return firstIfdMarker;
@@ -182,7 +181,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             this.AddStripTags(image, entriesCollector, imageDataStart, imageDataBytes);
             entriesCollector.ProcessImageFormat(this);
-            entriesCollector.ProcessGeneral(image, this.preserveMetadata);
+            entriesCollector.ProcessGeneral(image);
 
             writer.WriteMarker(ifdOffset, (uint)writer.Position);
             long nextIfdMarker = this.WriteIfd(writer, entriesCollector.Entries);

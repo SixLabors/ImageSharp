@@ -15,9 +15,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     {
         public List<IExifValue> Entries { get; } = new List<IExifValue>();
 
-        public void ProcessGeneral<TPixel>(Image<TPixel> image, bool preserveMetadata)
+        public void ProcessGeneral<TPixel>(Image<TPixel> image)
                 where TPixel : unmanaged, IPixel<TPixel>
-            => new GeneralProcessor(this).Process(image, preserveMetadata);
+            => new GeneralProcessor(this).Process(image);
 
         public void ProcessImageFormat(TiffEncoderCore encoder)
             => new ImageFormatProcessor(this).Process(encoder);
@@ -41,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             public GeneralProcessor(TiffEncoderEntriesCollector collector) => this.collector = collector;
 
-            public void Process<TPixel>(Image<TPixel> image, bool preserveMetadata)
+            public void Process<TPixel>(Image<TPixel> image)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
                 TiffFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetTiffMetadata();
@@ -67,99 +67,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                 this.ProcessResolution(image.Metadata, frameMetadata);
 
-                if (preserveMetadata)
-                {
-                    this.ProcessMetadata(frameMetadata);
-                }
-            }
-
-            private void ProcessResolution(ImageMetadata imageMetadata, TiffFrameMetadata frameMetadata)
-            {
-                SynchResolution(imageMetadata, frameMetadata);
-
-                var xResolution = new ExifRational(ExifTagValue.XResolution)
-                {
-                    Value = frameMetadata.GetSingle<Rational>(ExifTag.XResolution)
-                };
-
-                var yResolution = new ExifRational(ExifTagValue.YResolution)
-                {
-                    Value = frameMetadata.GetSingle<Rational>(ExifTag.YResolution)
-                };
-
-                var resolutionUnit = new ExifShort(ExifTagValue.ResolutionUnit)
-                {
-                    Value = frameMetadata.GetSingle<ushort>(ExifTag.ResolutionUnit)
-                };
-
-                this.collector.AddInternal(xResolution);
-                this.collector.AddInternal(yResolution);
-                this.collector.AddInternal(resolutionUnit);
-            }
-
-            private void ProcessMetadata(TiffFrameMetadata frameMetadata)
-            {
-                foreach (IExifValue entry in frameMetadata.FrameTags)
-                {
-                    // todo: skip subIfd
-                    if (entry.DataType == ExifDataType.Ifd)
-                    {
-                        continue;
-                    }
-
-                    switch (ExifTags.GetPart(entry.Tag))
-                    {
-                        case ExifParts.ExifTags:
-                        case ExifParts.GpsTags:
-                            break;
-
-                        case ExifParts.IfdTags:
-                            if (!IsMetadata(entry.Tag))
-                            {
-                                continue;
-                            }
-
-                            break;
-                    }
-
-                    if (!this.collector.Entries.Exists(t => t.Tag == entry.Tag))
-                    {
-                        this.collector.AddInternal(entry.DeepClone());
-                    }
-                }
-            }
-
-            private static void SynchResolution(ImageMetadata imageMetadata, TiffFrameMetadata tiffFrameMetadata)
-            {
-                double xres = imageMetadata.HorizontalResolution;
-                double yres = imageMetadata.VerticalResolution;
-
-                switch (imageMetadata.ResolutionUnits)
-                {
-                    case PixelResolutionUnit.AspectRatio:
-                        tiffFrameMetadata.ResolutionUnit = TiffResolutionUnit.None;
-                        break;
-                    case PixelResolutionUnit.PixelsPerInch:
-                        tiffFrameMetadata.ResolutionUnit = TiffResolutionUnit.Inch;
-                        break;
-                    case PixelResolutionUnit.PixelsPerCentimeter:
-                        tiffFrameMetadata.ResolutionUnit = TiffResolutionUnit.Centimeter;
-                        break;
-                    case PixelResolutionUnit.PixelsPerMeter:
-                    {
-                        tiffFrameMetadata.ResolutionUnit = TiffResolutionUnit.Centimeter;
-                        xres = UnitConverter.MeterToCm(xres);
-                        yres = UnitConverter.MeterToCm(yres);
-                    }
-
-                    break;
-                    default:
-                        tiffFrameMetadata.ResolutionUnit = TiffResolutionUnit.None;
-                        break;
-                }
-
-                tiffFrameMetadata.HorizontalResolution = xres;
-                tiffFrameMetadata.VerticalResolution = yres;
+                this.ProcessProfiles(image.Metadata, frameMetadata);
+                this.ProcessMetadata(frameMetadata);
             }
 
             private static bool IsMetadata(ExifTag tag)
@@ -194,6 +103,132 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                         return true;
                     default:
                         return false;
+                }
+            }
+
+            private void ProcessResolution(ImageMetadata imageMetadata, TiffFrameMetadata frameMetadata)
+            {
+                frameMetadata.SetResolutions(
+                    imageMetadata.ResolutionUnits,
+                    imageMetadata.HorizontalResolution,
+                    imageMetadata.VerticalResolution);
+
+                var xResolution = new ExifRational(ExifTagValue.XResolution)
+                {
+                    Value = frameMetadata.GetSingle<Rational>(ExifTag.XResolution)
+                };
+
+                var yResolution = new ExifRational(ExifTagValue.YResolution)
+                {
+                    Value = frameMetadata.GetSingle<Rational>(ExifTag.YResolution)
+                };
+
+                var resolutionUnit = new ExifShort(ExifTagValue.ResolutionUnit)
+                {
+                    Value = frameMetadata.GetSingle<ushort>(ExifTag.ResolutionUnit)
+                };
+
+                this.collector.AddInternal(xResolution);
+                this.collector.AddInternal(yResolution);
+                this.collector.AddInternal(resolutionUnit);
+            }
+
+            private void ProcessMetadata(TiffFrameMetadata frameMetadata)
+            {
+                foreach (IExifValue entry in frameMetadata.FrameTags)
+                {
+                    // todo: skip subIfd
+                    if (entry.DataType == ExifDataType.Ifd)
+                    {
+                        continue;
+                    }
+
+                    switch ((ExifTagValue)(ushort)entry.Tag)
+                    {
+                        case ExifTagValue.SubIFDOffset:
+                        case ExifTagValue.GPSIFDOffset:
+                        case ExifTagValue.SubIFDs:
+                        case ExifTagValue.XMP:
+                        case ExifTagValue.IPTC:
+                        case ExifTagValue.IccProfile:
+                            continue;
+                    }
+
+                    switch (ExifTags.GetPart(entry.Tag))
+                    {
+                        case ExifParts.ExifTags:
+                        case ExifParts.GpsTags:
+                            break;
+
+                        case ExifParts.IfdTags:
+                            if (!IsMetadata(entry.Tag))
+                            {
+                                continue;
+                            }
+
+                            break;
+                    }
+
+                    if (!this.collector.Entries.Exists(t => t.Tag == entry.Tag))
+                    {
+                        this.collector.AddInternal(entry.DeepClone());
+                    }
+                }
+            }
+
+            private void ProcessProfiles(ImageMetadata imageMetadata, TiffFrameMetadata tiffFrameMetadata)
+            {
+                if (imageMetadata.ExifProfile != null)
+                {
+                    // todo: implement processing exif profile
+                }
+                else
+                {
+                    tiffFrameMetadata.Remove(ExifTag.SubIFDOffset);
+                }
+
+                if (imageMetadata.IptcProfile != null)
+                {
+                    imageMetadata.IptcProfile.UpdateData();
+                    var iptc = new ExifByteArray(ExifTagValue.IPTC, ExifDataType.Byte)
+                    {
+                        Value = imageMetadata.IptcProfile.Data
+                    };
+
+                    this.collector.AddInternal(iptc);
+                }
+                else
+                {
+                    tiffFrameMetadata.Remove(ExifTag.IPTC);
+                }
+
+                if (imageMetadata.IccProfile != null)
+                {
+                    var icc = new ExifByteArray(ExifTagValue.IccProfile, ExifDataType.Undefined)
+                    {
+                        Value = imageMetadata.IccProfile.ToByteArray()
+                    };
+
+                    this.collector.AddInternal(icc);
+                }
+                else
+                {
+                    tiffFrameMetadata.Remove(ExifTag.IccProfile);
+                }
+
+                TiffMetadata tiffMetadata = imageMetadata.GetTiffMetadata();
+                if (tiffMetadata.XmpProfile != null)
+                {
+                    var xmp = new ExifByteArray(ExifTagValue.XMP, ExifDataType.Byte)
+                    {
+                        Value = tiffMetadata.XmpProfile
+                    };
+
+                    this.collector.AddInternal(xmp);
+                }
+                else
+                {
+                    tiffFrameMetadata.Remove(ExifTag.XMP);
                 }
             }
         }

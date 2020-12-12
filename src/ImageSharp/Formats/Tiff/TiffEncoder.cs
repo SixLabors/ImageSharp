@@ -18,6 +18,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     public class TiffEncoder : IImageEncoder, ITiffEncoderOptions
     {
         /// <inheritdoc/>
+        public ByteOrder ByteOrder { get; } = TiffEncoderCore.ByteOrder;
+
+        /// <inheritdoc/>
         public TiffEncoderCompression Compression { get; set; } = TiffEncoderCompression.None;
 
         /// <inheritdoc/>
@@ -31,9 +34,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         /// <inheritdoc/>
         public IQuantizer Quantizer { get; set; }
-
-        /// <inheritdoc/>
-        public bool PreserveMetadata { get; set; }
 
         /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)

@@ -2,9 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using System.Linq;
 
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -13,28 +11,21 @@ using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 {
     /// <summary>
-    /// The decoder metadata helper methods.
+    /// The decoder metadata creator.
     /// </summary>
-    internal static class TiffDecoderMetadataHelpers
+    internal static class TiffDecoderMetadataCreator
     {
-        public static ImageMetadata CreateMetadata(this IList<TiffFrameMetadata> frames, bool ignoreMetadata, ByteOrder byteOrder)
+        public static ImageMetadata Create(List<TiffFrameMetadata> frames, bool ignoreMetadata, ByteOrder byteOrder)
         {
-            var coreMetadata = new ImageMetadata();
-
-            TiffFrameMetadata rootFrameMetadata = frames.First();
-            switch (rootFrameMetadata.ResolutionUnit)
+            if (frames.Count < 1)
             {
-                case TiffResolutionUnit.None:
-                    coreMetadata.ResolutionUnits = PixelResolutionUnit.AspectRatio;
-                    break;
-                case TiffResolutionUnit.Inch:
-                    coreMetadata.ResolutionUnits = PixelResolutionUnit.PixelsPerInch;
-                    break;
-                case TiffResolutionUnit.Centimeter:
-                    coreMetadata.ResolutionUnits = PixelResolutionUnit.PixelsPerCentimeter;
-                    break;
+                TiffThrowHelper.ThrowImageFormatException("Expected at least one frame.");
             }
 
+            var coreMetadata = new ImageMetadata();
+            TiffFrameMetadata rootFrameMetadata = frames[0];
+
+            coreMetadata.ResolutionUnits = rootFrameMetadata.ResolutionUnit;
             if (rootFrameMetadata.HorizontalResolution != null)
             {
                 coreMetadata.HorizontalResolution = rootFrameMetadata.HorizontalResolution.Value;
@@ -63,6 +54,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                         }
                     }
 
+                    if (coreMetadata.ExifProfile == null)
+                    {
+                        byte[] buf = frame.GetArray<byte>(ExifTag.SubIFDOffset, true);
+                        if (buf != null)
+                        {
+                            coreMetadata.ExifProfile = new ExifProfile(buf);
+                        }
+                    }
+
                     if (coreMetadata.IptcProfile == null)
                     {
                         byte[] buf = frame.GetArray<byte>(ExifTag.IPTC, true);
@@ -87,28 +87,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         }
 
         private static TiffBitsPerPixel GetBitsPerPixel(TiffFrameMetadata firstFrameMetaData)
-        {
-            ushort[] bitsPerSample = firstFrameMetaData.BitsPerSample;
-            var bitsPerPixel = 0;
-            foreach (var bps in bitsPerSample)
-            {
-                bitsPerPixel += bps;
-            }
-
-            if (bitsPerPixel == 24)
-            {
-                return TiffBitsPerPixel.Pixel24;
-            }
-            else if (bitsPerPixel == 8)
-            {
-                return TiffBitsPerPixel.Pixel8;
-            }
-            else if (bitsPerPixel == 1)
-            {
-                return TiffBitsPerPixel.Pixel1;
-            }
-
-            return 0;
-        }
+            => (TiffBitsPerPixel)firstFrameMetaData.BitsPerPixel;
     }
 }

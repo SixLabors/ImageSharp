@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -16,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     public class TiffFrameMetadata : IDeepCloneable
     {
         // 2 (Inch)
-        private const ushort DefaultResolutionUnit = 2;
+        internal const ushort DefaultResolutionUnit = 2;
 
         private const TiffPlanarConfiguration DefaultPlanarConfiguration = TiffPlanarConfiguration.Chunky;
 
@@ -168,18 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets the unit of measurement for XResolution and YResolution.
         /// </summary>
-        public PixelResolutionUnit ResolutionUnit
-        {
-            get
-            {
-                if (!this.TryGetSingle(ExifTag.ResolutionUnit, out ushort res))
-                {
-                    res = DefaultResolutionUnit;
-                }
-
-                return (PixelResolutionUnit)(res - 1);
-            }
-        }
+        public PixelResolutionUnit ResolutionUnit => this.GetResolutionUnit();
 
         /// <summary>
         /// Gets or sets the name and version number of the software package(s) used to create the image.
@@ -247,7 +235,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// </summary>
         public TiffSampleFormat[] SampleFormat => this.GetEnumArray<TiffSampleFormat, ushort>(ExifTag.SampleFormat, true);
 
-
         /// <summary>
         /// Clears the metadata.
         /// </summary>
@@ -287,85 +274,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             }
 
             return new TiffFrameMetadata() { FrameTags = tags };
-        }
-
-        internal void SetResolutions(PixelResolutionUnit unit, double horizontal, double vertical)
-        {
-            switch (unit)
-            {
-                case PixelResolutionUnit.AspectRatio:
-                case PixelResolutionUnit.PixelsPerInch:
-                case PixelResolutionUnit.PixelsPerCentimeter:
-                    break;
-                case PixelResolutionUnit.PixelsPerMeter:
-                    {
-                        unit = PixelResolutionUnit.PixelsPerCentimeter;
-                        horizontal = UnitConverter.MeterToCm(horizontal);
-                        vertical = UnitConverter.MeterToCm(vertical);
-                    }
-
-                    break;
-                default:
-                    unit = PixelResolutionUnit.PixelsPerInch;
-                    break;
-            }
-
-            this.SetSingle(ExifTag.ResolutionUnit, (ushort)unit + 1);
-            this.SetResolution(ExifTag.XResolution, horizontal);
-            this.SetResolution(ExifTag.YResolution, vertical);
-        }
-
-        private double? GetResolution(ExifTag tag)
-        {
-            if (!this.TryGetSingle(tag, out Rational resolution))
-            {
-                return null;
-            }
-
-            double res = resolution.ToDouble();
-            switch (this.ResolutionUnit)
-            {
-                case PixelResolutionUnit.AspectRatio:
-                    return 0;
-                case PixelResolutionUnit.PixelsPerCentimeter:
-                    return UnitConverter.CmToInch(res);
-                case PixelResolutionUnit.PixelsPerMeter:
-                    return UnitConverter.MeterToInch(res);
-                case PixelResolutionUnit.PixelsPerInch:
-                default:
-                    // DefaultResolutionUnit is Inch
-                    return res;
-            }
-        }
-
-        private void SetResolution(ExifTag tag, double? value)
-        {
-            if (value == null)
-            {
-                this.Remove(tag);
-                return;
-            }
-            else
-            {
-                double res = value.Value;
-                switch (this.ResolutionUnit)
-                {
-                    case PixelResolutionUnit.AspectRatio:
-                        res = 0;
-                        break;
-                    case PixelResolutionUnit.PixelsPerCentimeter:
-                        res = UnitConverter.InchToCm(res);
-                        break;
-                    case PixelResolutionUnit.PixelsPerMeter:
-                        res = UnitConverter.InchToMeter(res);
-                        break;
-                    case PixelResolutionUnit.PixelsPerInch:
-                    default:
-                        break;
-                }
-
-                this.SetSingle(tag, new Rational(res));
-            }
         }
     }
 }

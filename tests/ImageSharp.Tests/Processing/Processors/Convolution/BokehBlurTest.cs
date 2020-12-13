@@ -173,13 +173,5 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
                 testOutputDetails: value.ToString(),
                 appendPixelTypeToFileName: false);
         }
-
-        [Theory]
-        [WithTestPatternImages(100, 300, PixelTypes.Bgr24)]
-        public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            provider.RunBufferCapacityLimitProcessorTest(41, c => c.BokehBlur());
-        }
     }
 }

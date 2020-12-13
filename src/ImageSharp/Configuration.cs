@@ -6,7 +6,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
@@ -175,24 +174,12 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
-        /// Registers the TIFF format detector, decoder and encoder.
-        /// </summary>
-        public void AddTiff()
-        {
-            this.ImageFormatsManager.AddImageFormat(TiffFormat.Instance);
-            this.ImageFormatsManager.AddImageFormatDetector(new TiffImageFormatDetector());
-            this.ImageFormatsManager.SetDecoder(TiffFormat.Instance, new TiffDecoder());
-            this.ImageFormatsManager.SetEncoder(TiffFormat.Instance, new TiffEncoder());
-        }
-
-        /// <summary>
         /// Creates the default instance with the following <see cref="IConfigurationModule"/>s preregistered:
         /// <see cref="PngConfigurationModule"/>
         /// <see cref="JpegConfigurationModule"/>
         /// <see cref="GifConfigurationModule"/>
         /// <see cref="BmpConfigurationModule"/>.
         /// <see cref="TgaConfigurationModule"/>.
-        /// <see cref="TiffConfigurationModule"/>
         /// </summary>
         /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
         internal static Configuration CreateDefaultInstance()

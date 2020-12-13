@@ -124,12 +124,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // This is needed because the bokeh blur operates as TPixel -> complex -> TPixel, so we cannot
             // convert back to standard pixels after each separate 1D convolution pass. Like in the gaussian
             // blur though, we preallocate and compute the kernel sampling maps before processing each complex
-            // component, to avoid recomputing the same sampling map once per convolution pass.
-            using var mapX = new KernelSamplingMap(configuration.MemoryAllocator);
-            using var mapY = new KernelSamplingMap(configuration.MemoryAllocator);
+            // component, to avoid recomputing the same sampling map once per convolution pass. Since we are
+            // doing two 1D convolutions with the same kernel, we can use a single kernel sampling map as if
+            // we were using a 2D kernel with each dimension being the same as the length of our kernel, and
+            // use the two sampling offset spans resulting from this same map. This saves some extra work.
+            using var mapXY = new KernelSamplingMap(configuration.MemoryAllocator);
 
-            mapX.BuildSamplingOffsetMap(1, this.kernelSize, sourceRectangle);
-            mapY.BuildSamplingOffsetMap(this.kernelSize, 1, sourceRectangle);
+            mapXY.BuildSamplingOffsetMap(this.kernelSize, this.kernelSize, sourceRectangle);
 
             ref Complex64[] baseRef = ref MemoryMarshal.GetReference(this.kernels.AsSpan());
             ref Vector4 paramsRef = ref MemoryMarshal.GetReference(this.kernelParameters.AsSpan());
@@ -146,7 +147,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     sourceRectangle,
                     firstPassBuffer,
                     source.PixelBuffer,
-                    mapX,
+                    mapXY,
                     kernel,
                     configuration);
 
@@ -160,7 +161,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     sourceRectangle,
                     processingBuffer,
                     firstPassBuffer,
-                    mapY,
+                    mapXY,
                     kernel,
                     parameters.Z,
                     parameters.W);
@@ -209,22 +210,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 int boundsWidth = this.bounds.Width;
                 int kernelSize = this.kernel.Length;
 
-                Span<int> rowOffsets = this.map.GetRowOffsetSpan();
-                Span<int> columnOffsets = this.map.GetColumnOffsetSpan();
-                int sampleY = Unsafe.Add(ref MemoryMarshal.GetReference(rowOffsets), y - this.bounds.Y);
-                ref int sampleColumnBase = ref MemoryMarshal.GetReference(columnOffsets);
-
                 // Clear the target buffer for each row run
                 Span<ComplexVector4> targetBuffer = this.targetValues.GetRowSpan(y);
                 targetBuffer.Clear();
                 ref ComplexVector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
 
                 // Execute the bulk pixel format conversion for the current row
-                Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(sampleY).Slice(boundsX, boundsWidth);
+                Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, span);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(span);
                 ref Complex64 kernelBase = ref this.kernel[0];
+                ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
                 for (int x = 0; x < span.Length; x++)
                 {

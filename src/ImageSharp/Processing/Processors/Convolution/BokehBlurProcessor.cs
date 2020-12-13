@@ -130,9 +130,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 int kernelSize = this.kernel.Length;
 
                 Span<int> rowOffsets = this.map.GetRowOffsetSpan();
-                Span<int> columnOffsets = this.map.GetColumnOffsetSpan();
                 ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowOffsets), (y - this.bounds.Y) * kernelSize);
-                ref int sampleColumnBase = ref MemoryMarshal.GetReference(columnOffsets);
 
                 // The target buffer is zeroed initially and then it accumulates the results
                 // of each partial convolution, so we don't have to clear it here as well
@@ -148,9 +146,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                     for (int x = 0; x < boundsWidth; x++)
                     {
-                        int sampleX = Unsafe.Add(ref sampleColumnBase, x) - boundsX;
                         ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
-                        ComplexVector4 sample = Unsafe.Add(ref sourceBase, sampleX);
+                        ComplexVector4 sample = Unsafe.Add(ref sourceBase, x);
                         ComplexVector4 partial = factor * sample;
 
                         target += partial.WeightedSum(this.z, this.w);

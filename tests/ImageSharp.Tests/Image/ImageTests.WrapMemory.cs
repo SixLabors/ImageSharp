@@ -307,7 +307,7 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Fact]
-            public unsafe void WrapSystemDrawingBitmap_FromPointer_WhenObserved()
+            public unsafe void WrapSystemDrawingBitmap_FromPointer()
             {
                 if (ShouldSkipBitmapTest)
                 {

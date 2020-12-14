@@ -631,7 +631,9 @@ namespace SixLabors.ImageSharp
 
                 return;
             }
-#else
+#endif
+
+            // Fallback with scalar preprocessing and vectorized approximation steps
             for (int x = 0; x < length; x++)
             {
                 ref Vector4 v = ref Unsafe.Add(ref vectorsRef, x);
@@ -671,7 +673,6 @@ namespace SixLabors.ImageSharp
 
                 v = y4;
             }
-#endif
         }
     }
 }

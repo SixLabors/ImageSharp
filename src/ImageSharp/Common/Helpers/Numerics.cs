@@ -590,12 +590,12 @@ namespace SixLabors.ImageSharp
                 ref Vector128<float> vectors128Ref = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
                 ref Vector128<float> vectors128End = ref Unsafe.Add(ref vectors128Ref, vectors.Length);
 
-                var v128_0x7FFFFFFF = Vector128.Create(0x7FFFFFFF);
-                var v128_0x3F8000000 = Vector128.Create(0x3F800000);
                 var v128_341 = Vector128.Create(341);
-                var v128_0x80000000 = Vector128.Create(unchecked((int)0x80000000));
-                var v4_23rds = Vector128.Create(2 / 3f);
-                var v4_13rds = Vector128.Create(1 / 3f);
+                Vector128<int> v128_negativeZero = Vector128.Create(-0.0f).AsInt32();
+                Vector128<int> v128_one = Vector128.Create(1.0f).AsInt32();
+
+                var v128_13rd = Vector128.Create(1 / 3f);
+                var v128_23rds = Vector128.Create(2 / 3f);
 
                 while (Unsafe.IsAddressLessThan(ref vectors128Ref, ref vectors128End))
                 {
@@ -607,18 +607,27 @@ namespace SixLabors.ImageSharp
                     // https://www.musicdsp.org/en/latest/Other/206-fast-cube-root-square-root-and-reciprocal-for-x86-sse-cpus.html.
                     // Furthermore, after the initial setup in vectorized form, we're doing two Newton approximations here
                     // using a different succession (the same used below), which should be less unstable due to not having cube pow.
-                    veax = Sse2.And(veax, v128_0x7FFFFFFF);
-                    veax = Sse2.Subtract(veax, v128_0x3F8000000);
+                    veax = Sse2.AndNot(v128_negativeZero, veax);
+                    veax = Sse2.Subtract(veax, v128_one);
                     veax = Sse2.ShiftRightArithmetic(veax, 10);
                     veax = Sse41.MultiplyLow(veax, v128_341);
-                    veax = Sse2.Add(veax, v128_0x3F8000000);
-                    veax = Sse2.And(veax, v128_0x7FFFFFFF);
-                    veax = Sse2.Or(veax, Sse2.And(vecx.AsInt32(), v128_0x80000000));
+                    veax = Sse2.Add(veax, v128_one);
+                    veax = Sse2.AndNot(v128_negativeZero, veax);
+                    veax = Sse2.Or(veax, Sse2.And(vecx.AsInt32(), v128_negativeZero));
 
                     Vector128<float> y4 = veax.AsSingle();
 
-                    y4 = Sse.Add(Sse.Multiply(v4_23rds, y4), Sse.Multiply(v4_13rds, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
-                    y4 = Sse.Add(Sse.Multiply(v4_23rds, y4), Sse.Multiply(v4_13rds, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
+                    if (Fma.IsSupported)
+                    {
+                        y4 = Fma.MultiplyAdd(v128_23rds, y4, Sse.Multiply(v128_13rd, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
+                        y4 = Fma.MultiplyAdd(v128_23rds, y4, Sse.Multiply(v128_13rd, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
+                    }
+                    else
+                    {
+                        y4 = Sse.Add(Sse.Multiply(v128_23rds, y4), Sse.Multiply(v128_13rd, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
+                        y4 = Sse.Add(Sse.Multiply(v128_23rds, y4), Sse.Multiply(v128_13rd, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
+                    }
+
                     y4 = Sse41.Insert(y4, vecx, 0xF0);
 
                     vectors128Ref = y4;

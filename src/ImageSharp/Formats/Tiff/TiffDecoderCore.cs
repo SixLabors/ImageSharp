@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// </summary>
         public ushort[] BitsPerSample { get; set; }
 
-        public int ChunkyBitsPerPixel { get; set; }
+        public int BitsPerPixel { get; set; }
 
         /// <summary>
         /// Gets or sets the lookup table for RGB palette colored images.
@@ -243,7 +243,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
             {
                 DebugGuard.IsTrue(plane == -1, "Excepted Chunky planar.");
-                bitsPerPixel = this.ChunkyBitsPerPixel;
+                bitsPerPixel = this.BitsPerPixel;
             }
             else
             {
@@ -270,7 +270,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         {
             int stripsPerPixel = this.BitsPerSample.Length;
             int stripsPerPlane = stripOffsets.Length / stripsPerPixel;
-            int bitsPerPixel = this.ChunkyBitsPerPixel; // todo?
+            int bitsPerPixel = this.BitsPerPixel;
 
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
@@ -315,7 +315,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
            where TPixel : unmanaged, IPixel<TPixel>
         {
             int uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip);
-            int bitsPerPixel = this.ChunkyBitsPerPixel;
+            int bitsPerPixel = this.BitsPerPixel;
 
             using IManagedByteBuffer stripBuffer = this.memoryAllocator.AllocateManagedByteBuffer(uncompressedStripSize, AllocationOptions.Clean);
 

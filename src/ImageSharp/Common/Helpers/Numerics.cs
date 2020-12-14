@@ -587,22 +587,20 @@ namespace SixLabors.ImageSharp
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported)
             {
-                ref Vector4 vectors4Ref = ref MemoryMarshal.GetReference(vectors);
-                ref Vector4 vectors4End = ref Unsafe.Add(ref vectors4Ref, vectors.Length);
+                ref Vector128<float> vectors128Ref = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
+                ref Vector128<float> vectors128End = ref Unsafe.Add(ref vectors128Ref, vectors.Length);
 
                 var v128_0x7FFFFFFF = Vector128.Create(0x7FFFFFFF);
                 var v128_0x3F8000000 = Vector128.Create(0x3F800000);
                 var v128_341 = Vector128.Create(341);
                 var v128_0x80000000 = Vector128.Create(unchecked((int)0x80000000));
-                var v4_23rds = new Vector4(2 / 3f);
-                var v4_13rds = new Vector4(1 / 3f);
+                var v4_23rds = Vector128.Create(2 / 3f);
+                var v4_13rds = Vector128.Create(1 / 3f);
 
-                while (Unsafe.IsAddressLessThan(ref vectors4Ref, ref vectors4End))
+                while (Unsafe.IsAddressLessThan(ref vectors128Ref, ref vectors128End))
                 {
-                    Vector4 vx = vectors4Ref;
-                    float a = vx.W;
-                    Vector128<int> veax = Unsafe.As<Vector4, Vector128<int>>(ref vx);
-                    Vector128<int> vecx = veax;
+                    Vector128<float> vecx = vectors128Ref;
+                    Vector128<int> veax = vecx.AsInt32();
 
                     // If we can use SSE41 instructions, we can vectorize the entire cube root calculation, and also execute it
                     // directly on 32 bit floating point values. What follows is a vectorized implementation of this method:
@@ -615,17 +613,16 @@ namespace SixLabors.ImageSharp
                     veax = Sse41.MultiplyLow(veax, v128_341);
                     veax = Sse2.Add(veax, v128_0x3F8000000);
                     veax = Sse2.And(veax, v128_0x7FFFFFFF);
-                    vecx = Sse2.And(vecx, v128_0x80000000);
-                    veax = Sse2.Or(veax, vecx);
+                    veax = Sse2.Or(veax, Sse2.And(vecx.AsInt32(), v128_0x80000000));
 
-                    Vector4 y4 = *(Vector4*)&veax;
+                    Vector128<float> y4 = veax.AsSingle();
 
-                    y4 = (v4_23rds * y4) + (v4_13rds * (vx / (y4 * y4)));
-                    y4 = (v4_23rds * y4) + (v4_13rds * (vx / (y4 * y4)));
-                    y4.W = a;
+                    y4 = Sse.Add(Sse.Multiply(v4_23rds, y4), Sse.Multiply(v4_13rds, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
+                    y4 = Sse.Add(Sse.Multiply(v4_23rds, y4), Sse.Multiply(v4_13rds, Sse.Divide(vecx, Sse.Multiply(y4, y4))));
+                    y4 = Sse41.Insert(y4, vecx, 0xF0);
 
-                    vectors4Ref = y4;
-                    vectors4Ref = ref Unsafe.Add(ref vectors4Ref, 1);
+                    vectors128Ref = y4;
+                    vectors128Ref = ref Unsafe.Add(ref vectors128Ref, 1);
                 }
 
                 return;

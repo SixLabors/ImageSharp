@@ -242,7 +242,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
                     RemoteExecutor.Invoke(
                         action,
                         BasicSerializer.Serialize(arg1),
-                        BasicSerializer.Serialize(arg1),
+                        BasicSerializer.Serialize(arg2),
                         new RemoteInvokeOptions
                         {
                             StartInfo = processStartInfo

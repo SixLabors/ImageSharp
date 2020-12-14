@@ -547,5 +547,131 @@ namespace SixLabors.ImageSharp
                 }
             }
         }
+
+        /// <summary>
+        /// Calculates the cube pow of all the XYZ channels of the input vectors.
+        /// </summary>
+        /// <param name="vectors">The span of vectors</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void CubePowOnXYZ(Span<Vector4> vectors)
+        {
+            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+            int length = vectors.Length;
+
+            for (int x = 0; x < length; x++)
+            {
+                ref Vector4 pixel4 = ref Unsafe.Add(ref baseRef, x);
+                Vector4 v = pixel4;
+                float a = v.W;
+
+                // Fast path for the default gamma exposure, which is 3. In this case we can skip
+                // calling Math.Pow 3 times (one per component), as the method is an internal call and
+                // introduces quite a bit of overhead. Instead, we can just manually multiply the whole
+                // pixel in Vector4 format 3 times, and then restore the alpha channel before copying it
+                // back to the target index in the temporary span. The whole iteration will get completely
+                // inlined and traslated into vectorized instructions, with much better performance.
+                v = v * v * v;
+                v.W = a;
+
+                pixel4 = v;
+            }
+        }
+
+        /// <summary>
+        /// Calculates the cube root of all the XYZ channels of the input vectors.
+        /// </summary>
+        /// <param name="vectors">The span of vectors</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void CubeRootOnXYZ(Span<Vector4> vectors)
+        {
+            ref Vector4 vectorsRef = ref MemoryMarshal.GetReference(vectors);
+            int length = vectors.Length;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse41.IsSupported)
+            {
+                var v128_0x7FFFFFFF = Vector128.Create(0x7FFFFFFF);
+                var v128_0x3F8000000 = Vector128.Create(0x3F800000);
+                var v128_341 = Vector128.Create(341);
+                var v128_0x80000000 = Vector128.Create(unchecked((int)0x80000000));
+                var v4_23rds = new Vector4(2 / 3f);
+                var v4_13rds = new Vector4(1 / 3f);
+
+                for (int x = 0; x < length; x++)
+                {
+                    ref Vector4 v4 = ref Unsafe.Add(ref vectorsRef, x);
+
+                    Vector4 vx = v4;
+                    float a = vx.W;
+                    Vector128<int> veax = Unsafe.As<Vector4, Vector128<int>>(ref vx);
+                    Vector128<int> vecx = veax;
+
+                    // If we can use SSE41 instructions, we can vectorize the entire cube root calculation, and also execute it
+                    // directly on 32 bit floating point values. What follows is a vectorized implementation of this method:
+                    // https://www.musicdsp.org/en/latest/Other/206-fast-cube-root-square-root-and-reciprocal-for-x86-sse-cpus.html.
+                    // Furthermore, after the initial setup in vectorized form, we're doing two Newton approximations here
+                    // using a different succession (the same used below), which should be less unstable due to not having cube pow.
+                    veax = Sse2.And(veax, v128_0x7FFFFFFF);
+                    veax = Sse2.Subtract(veax, v128_0x3F8000000);
+                    veax = Sse2.ShiftRightArithmetic(veax, 10);
+                    veax = Sse41.MultiplyLow(veax, v128_341);
+                    veax = Sse2.Add(veax, v128_0x3F8000000);
+                    veax = Sse2.And(veax, v128_0x7FFFFFFF);
+                    vecx = Sse2.And(vecx, v128_0x80000000);
+                    veax = Sse2.Or(veax, vecx);
+
+                    Vector4 y4 = *(Vector4*)&veax;
+
+                    y4 = (v4_23rds * y4) + (v4_13rds * (vx / (y4 * y4)));
+                    y4 = (v4_23rds * y4) + (v4_13rds * (vx / (y4 * y4)));
+                    y4.W = a;
+
+                    v4 = y4;
+                }
+
+                return;
+            }
+#else
+            for (int x = 0; x < length; x++)
+            {
+                ref Vector4 v = ref Unsafe.Add(ref vectorsRef, x);
+
+                double
+                    x64 = v.X,
+                    y64 = v.Y,
+                    z64 = v.Z;
+                float a = v.W;
+
+                ulong
+                    xl = *(ulong*)&x64,
+                    yl = *(ulong*)&y64,
+                    zl = *(ulong*)&z64;
+
+                // Here we use a trick to compute the starting value x0 for the cube root. This is because doing
+                // pow(x, 1 / gamma) is the same as the gamma-th root of x, and since gamme is 3 in this case,
+                // this means what we actually want is to find the cube root of our clamped values.
+                // For more info on the  constant below, see:
+                // https://community.intel.com/t5/Intel-C-Compiler/Fast-approximate-of-transcendental-operations/td-p/1044543.
+                // Here we perform the same trick on all RGB channels separately to help the CPU execute them in paralle, and
+                // store the alpha channel to preserve it. Then we set these values to the fields of a temporary 128-bit
+                // register, and use it to accelerate two steps of the Newton approximation using SIMD.
+                xl = 0x2a9f8a7be393b600 + (xl / 3);
+                yl = 0x2a9f8a7be393b600 + (yl / 3);
+                zl = 0x2a9f8a7be393b600 + (zl / 3);
+
+                Vector4 y4;
+                y4.X = (float)*(double*)&xl;
+                y4.Y = (float)*(double*)&yl;
+                y4.Z = (float)*(double*)&zl;
+                y4.W = 0;
+
+                y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
+                y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
+                y4.W = a;
+
+                v = y4;
+            }
+#endif
+        }
     }
 }

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Linq;
+
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
@@ -50,7 +52,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         {
             if (meta.TryGetArray(tag, out TTagValue[] result))
             {
-                return System.Array.ConvertAll(result, a => (TEnum)(object)a);
+                return result.Select(a => (TEnum)(object)a).ToArray();
             }
 
             if (!optional)

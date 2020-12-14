@@ -331,27 +331,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             public void Invoke(int y, Span<Vector4> span)
             {
                 Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Premultiply);
-                ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
-                int length = this.bounds.Width;
 
-                for (int x = 0; x < length; x++)
-                {
-                    ref Vector4 pixel4 = ref Unsafe.Add(ref baseRef, x);
-                    Vector4 v = pixel4;
-                    float a = v.W;
-
-                    // Fast path for the default gamma exposure, which is 3. In this case we can skip
-                    // calling Math.Pow 3 times (one per component), as the method is an internal call and
-                    // introduces quite a bit of overhead. Instead, we can just manually multiply the whole
-                    // pixel in Vector4 format 3 times, and then restore the alpha channel before copying it
-                    // back to the target index in the temporary span. The whole iteration will get completely
-                    // inlined and traslated into vectorized instructions, with much better performance.
-                    v = v * v * v;
-                    v.W = a;
-
-                    pixel4 = v;
-                }
+                Numerics.CubePowOnXYZ(span);
 
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
             }
@@ -438,47 +421,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
 
                 Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, float.PositiveInfinity);
+                Numerics.CubeRootOnXYZ(sourceRowSpan);
 
                 Span<TPixel> targetPixelSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                int length = this.bounds.Width;
-
-                for (int x = 0; x < length; x++)
-                {
-                    ref Vector4 v = ref Unsafe.Add(ref sourceRef, x);
-
-                    double
-                        x64 = v.X,
-                        y64 = v.Y,
-                        z64 = v.Z;
-                    float a = v.W;
-
-                    ulong
-                        xl = *(ulong*)&x64,
-                        yl = *(ulong*)&y64,
-                        zl = *(ulong*)&z64;
-
-                    // Here we use a trick to compute the starting value x0 for the cube root. This is because doing pow(x, 1 / gamma) is the same as the gamma-th root
-                    // of x, and since gamme is 3 in this case, this means what we actually want is to find the cube root of our clamped values. For more info on the
-                    // constant below, see https://community.intel.com/t5/Intel-C-Compiler/Fast-approximate-of-transcendental-operations/td-p/1044543. Here we perform
-                    // the same trick on all RGB channels separately to help the CPU execute them in paralle, and store the alpha channel to preserve it. Then we set
-                    // these values to the fields of a temporary 128-bit register, and use it to accelerate two steps of the Newton approximation using SIMD.
-                    // As a note for possible future improvements, we should come up with a good bitmask to perform the x0 approximation directly on float values.
-                    xl = 0x2a9f8a7be393b600 + (xl / 3);
-                    yl = 0x2a9f8a7be393b600 + (yl / 3);
-                    zl = 0x2a9f8a7be393b600 + (zl / 3);
-
-                    Vector4 y4;
-                    y4.X = (float)*(double*)&xl;
-                    y4.Y = (float)*(double*)&yl;
-                    y4.Z = (float)*(double*)&zl;
-                    y4.W = 0;
-
-                    y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
-                    y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
-                    y4.W = a;
-
-                    v = y4;
-                }
 
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan.Slice(0, this.bounds.Width), targetPixelSpan, PixelConversionModifiers.Premultiply);
             }

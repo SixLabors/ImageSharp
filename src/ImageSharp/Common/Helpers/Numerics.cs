@@ -556,12 +556,11 @@ namespace SixLabors.ImageSharp
         public static unsafe void CubePowOnXYZ(Span<Vector4> vectors)
         {
             ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
-            int length = vectors.Length;
+            ref Vector4 endRef = ref Unsafe.Add(ref baseRef, vectors.Length);
 
-            for (int x = 0; x < length; x++)
+            while (Unsafe.IsAddressLessThan(ref baseRef, ref endRef))
             {
-                ref Vector4 pixel4 = ref Unsafe.Add(ref baseRef, x);
-                Vector4 v = pixel4;
+                Vector4 v = baseRef;
                 float a = v.W;
 
                 // Fast path for the default gamma exposure, which is 3. In this case we can skip
@@ -573,7 +572,8 @@ namespace SixLabors.ImageSharp
                 v = v * v * v;
                 v.W = a;
 
-                pixel4 = v;
+                baseRef = v;
+                baseRef = ref Unsafe.Add(ref baseRef, 1);
             }
         }
 
@@ -638,12 +638,12 @@ namespace SixLabors.ImageSharp
             }
 #endif
             ref Vector4 vectorsRef = ref MemoryMarshal.GetReference(vectors);
-            int length = vectors.Length;
+            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsRef, vectors.Length);
 
             // Fallback with scalar preprocessing and vectorized approximation steps
-            for (int x = 0; x < length; x++)
+            while (Unsafe.IsAddressLessThan(ref vectorsRef, ref vectorsEnd))
             {
-                ref Vector4 v = ref Unsafe.Add(ref vectorsRef, x);
+                Vector4 v = vectorsRef;
 
                 double
                     x64 = v.X,
@@ -678,7 +678,8 @@ namespace SixLabors.ImageSharp
                 y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
                 y4.W = a;
 
-                v = y4;
+                vectorsRef = y4;
+                vectorsRef = ref Unsafe.Add(ref vectorsRef, 1);
             }
         }
     }

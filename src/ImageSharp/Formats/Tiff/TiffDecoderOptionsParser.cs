@@ -52,11 +52,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             options.PlanarConfiguration = entries.PlanarConfiguration;
             options.Predictor = entries.Predictor;
-
-            // todo: There is no default for PhotometricInterpretation, and it is required.
             options.PhotometricInterpretation = entries.PhotometricInterpretation;
             options.BitsPerSample = entries.BitsPerSample;
-            options.ChunkyBitsPerPixel = entries.BitsPerPixel;
+            options.BitsPerPixel = entries.BitsPerPixel;
 
             ParseColorType(options, entries);
             ParseCompression(options, entries.Compression);

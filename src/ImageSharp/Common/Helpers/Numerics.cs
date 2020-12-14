@@ -584,12 +584,12 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void CubeRootOnXYZ(Span<Vector4> vectors)
         {
-            ref Vector4 vectorsRef = ref MemoryMarshal.GetReference(vectors);
-            int length = vectors.Length;
-
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported)
             {
+                ref Vector4 vectors4Ref = ref MemoryMarshal.GetReference(vectors);
+                ref Vector4 vectors4End = ref Unsafe.Add(ref vectors4Ref, vectors.Length);
+
                 var v128_0x7FFFFFFF = Vector128.Create(0x7FFFFFFF);
                 var v128_0x3F8000000 = Vector128.Create(0x3F800000);
                 var v128_341 = Vector128.Create(341);
@@ -597,11 +597,9 @@ namespace SixLabors.ImageSharp
                 var v4_23rds = new Vector4(2 / 3f);
                 var v4_13rds = new Vector4(1 / 3f);
 
-                for (int x = 0; x < length; x++)
+                while (Unsafe.IsAddressLessThan(ref vectors4Ref, ref vectors4End))
                 {
-                    ref Vector4 v4 = ref Unsafe.Add(ref vectorsRef, x);
-
-                    Vector4 vx = v4;
+                    Vector4 vx = vectors4Ref;
                     float a = vx.W;
                     Vector128<int> veax = Unsafe.As<Vector4, Vector128<int>>(ref vx);
                     Vector128<int> vecx = veax;
@@ -626,12 +624,15 @@ namespace SixLabors.ImageSharp
                     y4 = (v4_23rds * y4) + (v4_13rds * (vx / (y4 * y4)));
                     y4.W = a;
 
-                    v4 = y4;
+                    vectors4Ref = y4;
+                    vectors4Ref = ref Unsafe.Add(ref vectors4Ref, 1);
                 }
 
                 return;
             }
 #endif
+            ref Vector4 vectorsRef = ref MemoryMarshal.GetReference(vectors);
+            int length = vectors.Length;
 
             // Fallback with scalar preprocessing and vectorized approximation steps
             for (int x = 0; x < length; x++)

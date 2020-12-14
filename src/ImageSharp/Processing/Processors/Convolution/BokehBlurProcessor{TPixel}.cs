@@ -333,8 +333,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Span<TPixel> targetRowSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan.Slice(0, span.Length), span, PixelConversionModifiers.Premultiply);
                 ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
+                int length = this.bounds.Width;
 
-                for (int x = 0; x < this.bounds.Width; x++)
+                for (int x = 0; x < length; x++)
                 {
                     ref Vector4 pixel4 = ref Unsafe.Add(ref baseRef, x);
                     Vector4 v = pixel4;
@@ -433,23 +434,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             [MethodImpl(InliningOptions.ShortMethod)]
             public unsafe void Invoke(int y)
             {
-                Vector4 low = Vector4.Zero;
-                var high = new Vector4(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-
-                Span<TPixel> targetPixelSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
-                Span<Vector4> sourceRowSpan = this.sourceValues.GetRowSpan(y).Slice(this.bounds.X);
+                Span<Vector4> sourceRowSpan = this.sourceValues.GetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
                 ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
 
-                for (int x = 0; x < this.bounds.Width; x++)
+                Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, float.PositiveInfinity);
+
+                Span<TPixel> targetPixelSpan = this.targetPixels.GetRowSpan(y).Slice(this.bounds.X);
+                int length = this.bounds.Width;
+
+                for (int x = 0; x < length; x++)
                 {
                     ref Vector4 v = ref Unsafe.Add(ref sourceRef, x);
-                    Vector4 clamp = Numerics.Clamp(v, low, high);
 
                     double
-                        x64 = clamp.X,
-                        y64 = clamp.Y,
-                        z64 = clamp.Z;
-                    float a = clamp.W;
+                        x64 = v.X,
+                        y64 = v.Y,
+                        z64 = v.Z;
+                    float a = v.W;
 
                     ulong
                         xl = *(ulong*)&x64,
@@ -472,8 +473,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     y4.Z = (float)*(double*)&zl;
                     y4.W = 0;
 
-                    y4 = (2 / 3f * y4) + (1 / 3f * (clamp / (y4 * y4)));
-                    y4 = (2 / 3f * y4) + (1 / 3f * (clamp / (y4 * y4)));
+                    y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
+                    y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
                     y4.W = a;
 
                     v = y4;

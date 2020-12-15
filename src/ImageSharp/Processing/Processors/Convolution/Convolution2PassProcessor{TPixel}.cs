@@ -22,34 +22,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// Initializes a new instance of the <see cref="Convolution2PassProcessor{TPixel}"/> class.
         /// </summary>
         /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-        /// <param name="kernelX">The horizontal gradient operator.</param>
-        /// <param name="kernelY">The vertical gradient operator.</param>
+        /// <param name="kernel">The 1D convolution kernel.</param>
         /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
         /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public Convolution2PassProcessor(
             Configuration configuration,
-            in DenseMatrix<float> kernelX,
-            in DenseMatrix<float> kernelY,
+            float[] kernel,
             bool preserveAlpha,
             Image<TPixel> source,
             Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
         {
-            this.KernelX = kernelX;
-            this.KernelY = kernelY;
+            this.Kernel = kernel;
             this.PreserveAlpha = preserveAlpha;
         }
 
         /// <summary>
-        /// Gets the horizontal convolution kernel.
+        /// Gets the convolution kernel.
         /// </summary>
-        public DenseMatrix<float> KernelX { get; }
-
-        /// <summary>
-        /// Gets the vertical convolution kernel.
-        /// </summary>
-        public DenseMatrix<float> KernelY { get; }
+        public float[] Kernel { get; }
 
         /// <summary>
         /// Gets a value indicating whether the convolution filter is applied to alpha as well as the color channels.
@@ -71,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // the two 1D kernels represent, and reuse it across both convolution steps, like in the bokeh blur.
             using var mapXY = new KernelSamplingMap(this.Configuration.MemoryAllocator);
 
-            mapXY.BuildSamplingOffsetMap(this.KernelY.Rows, this.KernelX.Columns, interest);
+            mapXY.BuildSamplingOffsetMap(this.Kernel.Length, this.Kernel.Length, interest);
 
             // Horizontal convolution
             var horizontalOperation = new HorizontalConvolutionRowOperation(
@@ -79,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 firstPassPixels,
                 source.PixelBuffer,
                 mapXY,
-                this.KernelX,
+                this.Kernel,
                 this.Configuration,
                 this.PreserveAlpha);
 
@@ -94,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 source.PixelBuffer,
                 firstPassPixels,
                 mapXY,
-                this.KernelY,
+                this.Kernel,
                 this.Configuration,
                 this.PreserveAlpha);
 
@@ -113,7 +105,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly Buffer2D<TPixel> targetPixels;
             private readonly Buffer2D<TPixel> sourcePixels;
             private readonly KernelSamplingMap map;
-            private readonly DenseMatrix<float> kernelMatrix;
+            private readonly float[] kernel;
             private readonly Configuration configuration;
             private readonly bool preserveAlpha;
 
@@ -123,7 +115,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<TPixel> sourcePixels,
                 KernelSamplingMap map,
-                DenseMatrix<float> kernelMatrix,
+                float[] kernel,
                 Configuration configuration,
                 bool preserveAlpha)
             {
@@ -131,7 +123,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 this.targetPixels = targetPixels;
                 this.sourcePixels = sourcePixels;
                 this.map = map;
-                this.kernelMatrix = kernelMatrix;
+                this.kernel = kernel;
                 this.configuration = configuration;
                 this.preserveAlpha = preserveAlpha;
             }
@@ -156,7 +148,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 // Span is 2x bounds.
                 int boundsX = this.bounds.X;
                 int boundsWidth = this.bounds.Width;
-                int kernelSize = this.kernelMatrix.Columns;
+                int kernelSize = this.kernel.Length;
 
                 Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
                 Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
@@ -170,7 +162,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
-                ref float kernelBase = ref this.kernelMatrix[0, 0];
+                ref float kernelBase = ref this.kernel[0];
                 ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
                 for (int x = 0; x < sourceBuffer.Length; x++)
@@ -210,7 +202,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 // Span is 2x bounds.
                 int boundsX = this.bounds.X;
                 int boundsWidth = this.bounds.Width;
-                int kernelSize = this.kernelMatrix.Columns;
+                int kernelSize = this.kernel.Length;
 
                 Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
                 Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
@@ -226,7 +218,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Numerics.Premultiply(sourceBuffer);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
-                ref float kernelBase = ref this.kernelMatrix[0, 0];
+                ref float kernelBase = ref this.kernel[0];
                 ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
                 for (int x = 0; x < sourceBuffer.Length; x++)
@@ -261,7 +253,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             private readonly Buffer2D<TPixel> targetPixels;
             private readonly Buffer2D<TPixel> sourcePixels;
             private readonly KernelSamplingMap map;
-            private readonly DenseMatrix<float> kernelMatrix;
+            private readonly float[] kernel;
             private readonly Configuration configuration;
             private readonly bool preserveAlpha;
 
@@ -271,7 +263,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Buffer2D<TPixel> targetPixels,
                 Buffer2D<TPixel> sourcePixels,
                 KernelSamplingMap map,
-                DenseMatrix<float> kernelMatrix,
+                float[] kernel,
                 Configuration configuration,
                 bool preserveAlpha)
             {
@@ -279,7 +271,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 this.targetPixels = targetPixels;
                 this.sourcePixels = sourcePixels;
                 this.map = map;
-                this.kernelMatrix = kernelMatrix;
+                this.kernel = kernel;
                 this.configuration = configuration;
                 this.preserveAlpha = preserveAlpha;
             }
@@ -304,7 +296,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 // Span is 2x bounds.
                 int boundsX = this.bounds.X;
                 int boundsWidth = this.bounds.Width;
-                int kernelSize = this.kernelMatrix.Rows;
+                int kernelSize = this.kernel.Length;
 
                 Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
                 Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
@@ -315,7 +307,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 targetBuffer.Clear();
 
                 ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
-                ref float kernelBase = ref this.kernelMatrix[0, 0];
+                ref float kernelBase = ref this.kernel[0];
 
                 Span<TPixel> sourceRow;
                 for (int kY = 0; kY < kernelSize; kY++)
@@ -358,19 +350,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 // Span is 2x bounds.
                 int boundsX = this.bounds.X;
                 int boundsWidth = this.bounds.Width;
-                int kernelSize = this.kernelMatrix.Rows;
+                int kernelSize = this.kernel.Length;
 
                 Span<Vector4> sourceBuffer = span.Slice(0, this.bounds.Width);
                 Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
 
-                var state = new ConvolutionState(in this.kernelMatrix, this.map);
-                ref int sampleRowBase = ref state.GetSampleRow(y - this.bounds.Y);
+                ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (y - this.bounds.Y) * kernelSize);
 
                 // Clear the target buffer for each row run.
                 targetBuffer.Clear();
 
                 ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
-                ref float kernelBase = ref this.kernelMatrix[0, 0];
+                ref float kernelBase = ref this.kernel[0];
 
                 for (int kY = 0; kY < kernelSize; kY++)
                 {

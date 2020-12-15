@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         /// <summary>
         /// Gets or sets a value indicating whether the webp file contains an animation.
         /// </summary>
-        public bool Animated { get; set; } = false;
+        public bool Animated { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new WebpMetadata(this);

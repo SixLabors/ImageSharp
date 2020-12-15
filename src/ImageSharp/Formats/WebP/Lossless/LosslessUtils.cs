@@ -14,8 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
     /// </summary>
     internal static unsafe class LosslessUtils
     {
-        private const uint Predictor0 = WebpConstants.ArgbBlack;
-
         private const int PrefixLookupIdxMax = 512;
 
         private const int LogLookupIdxMax = 256;
@@ -298,8 +296,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 Span<uint> transformData = transform.Data.GetSpan();
 
                 // First Row follows the L (mode=1) mode.
-                PredictorAdd0(input, null, 1, output);
-                PredictorAdd1(input + 1, null, width - 1, output + 1);
+                PredictorAdd0(input, 1, output);
+                PredictorAdd1(input + 1, width - 1, output + 1);
                 input += width;
                 output += width;
 
@@ -333,10 +331,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                         switch (predictorMode)
                         {
                             case 0:
-                                PredictorAdd0(input + x, output + x - width, xEnd - x, output + x);
+                                PredictorAdd0(input + x, xEnd - x, output + x);
                                 break;
                             case 1:
-                                PredictorAdd1(input + x, output + x - width, xEnd - x, output + x);
+                                PredictorAdd1(input + x, xEnd - x, output + x);
                                 break;
                             case 2:
                                 PredictorAdd2(input + x, output + x - width, xEnd - x, output + x);
@@ -549,14 +547,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             {
                 int logCnt = 0;
                 uint y = 1;
-                int correction = 0;
-                float vF = (float)v;
+                float vF = v;
                 uint origV = v;
                 do
                 {
                     ++logCnt;
-                    v = v >> 1;
-                    y = y << 1;
+                    v >>= 1;
+                    y <<= 1;
                 }
                 while (v >= LogLookupIdxMax);
 
@@ -566,7 +563,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 // The correction factor: log(1 + d) ~ d; for very small d values, so
                 // log2(1 + (v % y) / v) ~ LOG_2_RECIPROCAL * (v % y)/v
                 // LOG_2_RECIPROCAL ~ 23/16
-                correction = (int)((23 * (origV & (y - 1))) >> 4);
+                var correction = (int)((23 * (origV & (y - 1))) >> 4);
                 return (vF * (WebpLookupTables.Log2Table[v] + logCnt)) + correction;
             }
             else
@@ -633,7 +630,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static void PredictorAdd0(uint* input, uint* upper, int numberOfPixels, uint* output)
+        private static void PredictorAdd0(uint* input, int numberOfPixels, uint* output)
         {
             for (int x = 0; x < numberOfPixels; ++x)
             {
@@ -642,7 +639,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static void PredictorAdd1(uint* input, uint* upper, int numberOfPixels, uint* output)
+        private static void PredictorAdd1(uint* input, int numberOfPixels, uint* output)
         {
             uint left = output[-1];
             for (int x = 0; x < numberOfPixels; ++x)
@@ -1092,7 +1089,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int ColorTransformDelta(sbyte colorPred, sbyte color)
         {
-            return ((int)colorPred * color) >> 5;
+            return (colorPred * color) >> 5;
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

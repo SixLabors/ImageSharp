@@ -239,13 +239,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
         /// </summary>
         public Vp8FilterInfo[] FilterInfo { get; set; }
 
-        public Vp8MacroBlock CurrentMacroBlock
-        {
-            get
-            {
-                return this.MacroBlockInfo[this.MbX];
-            }
-        }
+        public Vp8MacroBlock CurrentMacroBlock => this.MacroBlockInfo[this.MbX];
 
         public Vp8MacroBlock LeftMacroBlock
         {
@@ -260,13 +254,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
             }
         }
 
-        public Vp8MacroBlockData CurrentBlockData
-        {
-            get
-            {
-                return this.MacroBlockData[this.MbX];
-            }
-        }
+        public Vp8MacroBlockData CurrentBlockData => this.MacroBlockData[this.MbX];
 
         public void PrecomputeFilterStrengths()
         {

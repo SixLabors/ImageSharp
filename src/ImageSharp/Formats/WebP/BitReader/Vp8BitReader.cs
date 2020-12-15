@@ -80,10 +80,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader
             this.InitBitreader(partitionLength, startPos);
         }
 
-        public int Pos
-        {
-            get { return (int)this.pos; }
-        }
+        public int Pos => (int)this.pos;
 
         public uint ImageDataSize { get; }
 

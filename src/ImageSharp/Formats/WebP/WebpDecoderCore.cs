@@ -193,8 +193,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
             // The first two bit of it are reserved and should be 0.
             if (imageFeatures >> 6 != 0)
             {
-                WebpThrowHelper.ThrowImageFormatException(
-                    "first two bits of the VP8X header are expected to be zero");
+                WebpThrowHelper.ThrowImageFormatException("first two bits of the VP8X header are expected to be zero");
             }
 
             // If bit 3 is set, a ICC Profile Chunk should be present.

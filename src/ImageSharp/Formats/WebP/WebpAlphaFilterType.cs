@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
     /// <summary>
     /// Enum for the different alpha filter types.
     /// </summary>
-    internal enum WebpAlphaFilterType : int
+    internal enum WebpAlphaFilterType
     {
         /// <summary>
         /// No filtering.

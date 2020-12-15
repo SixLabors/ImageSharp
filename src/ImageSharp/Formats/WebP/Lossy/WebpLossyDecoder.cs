@@ -807,8 +807,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
                 case 1:
                     LossyUtils.TransformDc(src, dst);
                     break;
-                default:
-                    break;
             }
         }
 

@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
         /// <param name="expectedSize">The expected size in bytes.</param>
         protected BitWriterBase(int expectedSize)
         {
-            // TODO: use memory allocator here.
+            // TODO: should we use memory allocator here?
             this.buffer = new byte[expectedSize];
         }
 
@@ -30,10 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
         /// </summary>
         private protected BitWriterBase(byte[] buffer) => this.buffer = buffer;
 
-        public byte[] Buffer
-        {
-            get { return this.buffer; }
-        }
+        public byte[] Buffer => this.buffer;
 
         /// <summary>
         /// Writes the encoded bytes of the image to the stream. Call Finish() before this.

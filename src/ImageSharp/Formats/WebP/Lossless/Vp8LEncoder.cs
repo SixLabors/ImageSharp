@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
     /// <summary>
     /// Encoder for lossless webp images.
     /// </summary>
-    internal partial class Vp8LEncoder : IDisposable
+    internal class Vp8LEncoder : IDisposable
     {
         /// <summary>
         /// Maximum number of reference blocks the image will be segmented into.
@@ -1452,7 +1452,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 
         private static void GetHuffBitLengthsAndCodes(List<Vp8LHistogram> histogramImage, HuffmanTreeCode[] huffmanCodes)
         {
-            long totalLengthSize = 0;
             int maxNumSymbols = 0;
 
             // Iterate over all histograms and get the aggregate number of codes used.
@@ -1466,7 +1465,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                         (k == 0) ? histo.NumCodes() :
                         (k == 4) ? WebpConstants.NumDistanceCodes : 256;
                     huffmanCodes[startIdx + k].NumSymbols = numSymbols;
-                    totalLengthSize += numSymbols;
                 }
             }
 

@@ -259,8 +259,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 doContinue = false;
                 for (int i = 0; i < numClusters; i++)
                 {
-                    int k;
-                    k = clusterMappings[i];
+                    int k = clusterMappings[i];
                     while (k != clusterMappings[k])
                     {
                         clusterMappings[k] = clusterMappings[clusterMappings[k]];
@@ -336,8 +335,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             for (int iter = 0; iter < outerIters && numUsed >= minClusterSize && ++triesWithNoSuccess < numTriesNoSuccess; iter++)
             {
                 double bestCost = (histoPriorityList.Count == 0) ? 0.0d : histoPriorityList[0].CostDiff;
-                int bestIdx1 = -1;
-                int bestIdx2 = 1;
                 int numTries = numUsed / 2;
                 uint randRange = (uint)((numUsed - 1) * numUsed);
 
@@ -377,8 +374,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 }
 
                 // Get the best histograms.
-                bestIdx1 = histoPriorityList[0].Idx1;
-                bestIdx2 = histoPriorityList[0].Idx2;
+                var bestIdx1 = histoPriorityList[0].Idx1;
+                var bestIdx2 = histoPriorityList[0].Idx2;
 
                 var mappingIndex = Array.IndexOf(mappings, bestIdx2);
                 Span<int> src = mappings.AsSpan(mappingIndex + 1, numUsed - mappingIndex - 1);

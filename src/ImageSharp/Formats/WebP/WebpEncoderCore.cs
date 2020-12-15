@@ -4,11 +4,9 @@
 using System.IO;
 using System.Threading.Tasks;
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Webp
@@ -24,14 +22,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
-        /// The global configuration.
-        /// </summary>
-        private Configuration configuration;
-
-        /// <summary>
+        /// TODO: not used at the moment.
         /// Indicating whether the alpha plane should be compressed with WebP lossless format.
         /// </summary>
-        private bool alphaCompression;
+        private readonly bool alphaCompression;
 
         /// <summary>
         /// Indicating whether lossy compression should be used. If false, lossless compression will be used.
@@ -79,9 +73,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         {
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
-
-            this.configuration = image.GetConfiguration();
-            ImageMetadata metadata = image.Metadata;
 
             if (this.lossy)
             {

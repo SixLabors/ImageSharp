@@ -358,8 +358,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
             var alphas = new int[WebpConstants.MaxAlpha + 1];
             this.alpha = this.MacroBlockAnalysis(width, height, it, y, u, v, yStride, uvStride, alphas, out this.uvAlpha);
             int totalMb = this.mbw * this.mbw;
-            this.alpha = this.alpha / totalMb;
-            this.uvAlpha = this.uvAlpha / totalMb;
+            this.alpha /= totalMb;
+            this.uvAlpha /= totalMb;
 
             // Analysis is done, proceed to actual encoding.
             this.segmentHeader = new Vp8EncSegmentHeader(4);
@@ -601,7 +601,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
             var centers = new int[NumMbSegments];
             int weightedAverage = 0;
             var map = new int[WebpConstants.MaxAlpha + 1];
-            int a, n, k;
+            int n, k;
             var accum = new int[NumMbSegments];
             var distAccum = new int[NumMbSegments];
 
@@ -635,6 +635,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 
                 // Assign nearest center for each 'a'
                 n = 0;    // track the nearest center for current 'a'
+                int a;
                 for (a = minA; a <= maxA; ++a)
                 {
                     if (alphas[a] != 0)
@@ -871,8 +872,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
                 m.Uv.Q[1] = WebpLookupTables.AcTable[Clip(q + this.dqUvAc, 0, 127)];
 
                 var qi4 = m.Y1.Expand(0);
-                var qi16 = m.Y2.Expand(1);
-                var quv = m.Uv.Expand(2);
+                m.Y2.Expand(1); // qi16
+                m.Uv.Expand(2); // quv
 
                 m.I4Penalty = 1000 * qi4 * qi4;
             }

@@ -24,8 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 
         public static int Quantize2Blocks(Span<short> input, Span<short> output, Vp8Matrix mtx)
         {
-            int nz;
-            nz = QuantEnc.QuantizeBlock(input, output, mtx) << 0;
+            var nz = QuantEnc.QuantizeBlock(input, output, mtx) << 0;
             nz |= QuantEnc.QuantizeBlock(input.Slice(1 * 16), output.Slice(1 * 16), mtx) << 1;
             return nz;
         }
@@ -110,16 +109,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
             {
                 Span<sbyte> top = it.TopDerr.AsSpan((it.X * 4) + ch, 2);
                 Span<sbyte> left = it.LeftDerr.AsSpan(ch, 2);
-                int err0, err1, err2, err3;
                 Span<short> c = tmp.AsSpan(ch * 4 * 16, 4 * 16);
                 c[0] += (short)(((C1 * top[0]) + (C2 * left[0])) >> (DSHIFT - DSCALE));
-                err0 = QuantEnc.QuantizeSingle(c, mtx);
+                var err0 = QuantEnc.QuantizeSingle(c, mtx);
                 c[1 * 16] += (short)(((C1 * top[1]) + (C2 * err0)) >> (DSHIFT - DSCALE));
-                err1 = QuantEnc.QuantizeSingle(c.Slice(1 * 16), mtx);
+                var err1 = QuantEnc.QuantizeSingle(c.Slice(1 * 16), mtx);
                 c[2 * 16] += (short)(((C1 * err0) + (C2 * left[1])) >> (DSHIFT - DSCALE));
-                err2 = QuantEnc.QuantizeSingle(c.Slice(2 * 16), mtx);
+                var err2 = QuantEnc.QuantizeSingle(c.Slice(2 * 16), mtx);
                 c[3 * 16] += (short)(((C1 * err1) + (C2 * err2)) >> (DSHIFT - DSCALE));
-                err3 = QuantEnc.QuantizeSingle(c.Slice(3 * 16), mtx);
+                var err3 = QuantEnc.QuantizeSingle(c.Slice(3 * 16), mtx);
 
                 // TODO: set errors in rd
                 // rd->derr[ch][0] = (int8_t)err1;

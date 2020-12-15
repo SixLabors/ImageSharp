@@ -18,9 +18,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     public class TiffEncoder : IImageEncoder, ITiffEncoderOptions
     {
         /// <inheritdoc/>
-        public ByteOrder ByteOrder { get; } = TiffEncoderCore.ByteOrder;
-
-        /// <inheritdoc/>
         public TiffEncoderCompression Compression { get; set; } = TiffEncoderCompression.None;
 
         /// <inheritdoc/>

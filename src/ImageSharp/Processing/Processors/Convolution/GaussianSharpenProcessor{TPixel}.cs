@@ -27,24 +27,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             : base(configuration, source, sourceRectangle)
         {
             int kernelSize = (definition.Radius * 2) + 1;
-            this.KernelX = ConvolutionProcessorHelpers.CreateGaussianSharpenKernel(kernelSize, definition.Sigma);
-            this.KernelY = this.KernelX.Transpose();
+            this.Kernel = ConvolutionProcessorHelpers.CreateGaussianSharpenKernel(kernelSize, definition.Sigma);
         }
 
         /// <summary>
-        /// Gets the horizontal gradient operator.
+        /// Gets the 1D convolution kernel.
         /// </summary>
-        public DenseMatrix<float> KernelX { get; }
-
-        /// <summary>
-        /// Gets the vertical gradient operator.
-        /// </summary>
-        public DenseMatrix<float> KernelY { get; }
+        public float[] Kernel { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            using var processor = new Convolution2PassProcessor<TPixel>(this.Configuration, this.KernelX, this.KernelY, false, this.Source, this.SourceRectangle);
+            using var processor = new Convolution2PassProcessor<TPixel>(this.Configuration, this.Kernel, false, this.Source, this.SourceRectangle);
 
             processor.Apply(source);
         }

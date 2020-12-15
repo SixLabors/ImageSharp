@@ -26,27 +26,29 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             this.ByteOrder = other.ByteOrder;
             this.XmpProfile = other.XmpProfile;
             this.BitsPerPixel = other.BitsPerPixel;
+            this.Compression = other.Compression;
         }
 
         /// <summary>
-        /// Gets or sets the byte order.
+        /// Gets the byte order.
         /// </summary>
-        public ByteOrder ByteOrder { get; set; }
+        public ByteOrder ByteOrder { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the number of bits per pixel.
+        /// Gets the number of bits per pixel.
         /// </summary>
-        public TiffBitsPerPixel BitsPerPixel { get; set; } = TiffBitsPerPixel.Pixel24;
+        public TiffBitsPerPixel BitsPerPixel { get; internal set; } = TiffBitsPerPixel.Pixel24;
 
         /// <summary>
-        /// Gets or sets the compression used to create the TIFF file.
+        /// Gets the compression used to create the TIFF file.
         /// </summary>
-        public TiffCompression Compression { get; set; } = TiffCompression.None;
+        public TiffCompression Compression { get; internal set; } = TiffCompression.None;
 
         /// <summary>
         /// Gets or sets the XMP profile.
+        /// For internal use only. ImageSharp not support XMP profile.
         /// </summary>
-        public byte[] XmpProfile { get; set; }
+        internal byte[] XmpProfile { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new TiffMetadata(this);

@@ -12,6 +12,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     internal interface ITiffEncoderOptions
     {
         /// <summary>
+        /// Gets the byte order to use.
+        /// </summary>
+        ByteOrder ByteOrder { get; }
+
+        /// <summary>
         /// Gets the compression type to use.
         /// </summary>
         TiffEncoderCompression Compression { get; }

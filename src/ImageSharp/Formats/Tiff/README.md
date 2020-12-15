@@ -50,7 +50,7 @@ Decoder:
 |PackBits                   |   Y   |   Y   |                          |
 |CcittGroup3Fax             |   Y   |   Y   |                          |
 |CcittGroup4Fax             |       |       |                          |
-|Lzw                        |       |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case |
+|Lzw                        |   Y   |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case |
 |Old Jpeg                   |       |       | We should not even try to support this |
 |Jpeg (Technote 2)          |       |       |                          |
 |Deflate (Technote 2)       |   Y   |   Y   | Based on PNG Deflate. |
@@ -103,14 +103,14 @@ Decoder:
 |FreeByteCounts             |       |       |                          |
 |GrayResponseUnit           |       |       |                          |
 |GrayResponseCurve          |       |       |                          |
-|ResolutionUnit             |       |   Y   |                          |
+|ResolutionUnit             |   Y   |   Y   |                          |
 |Software                   |   Y   |   Y   |                          |
-|DateTime                   |       |   Y   |                          |
-|Artist                     |       |   Y   |                          |
-|HostComputer               |       |   Y   |                          |
-|ColorMap                   |       |   Y   |                          |
+|DateTime                   |   Y   |   Y   |                          |
+|Artist                     |   Y   |   Y   |                          |
+|HostComputer               |   Y   |   Y   |                          |
+|ColorMap                   |   Y   |   Y   |                          |
 |ExtraSamples               |       |   -   |                          |
-|Copyright                  |       |   Y   |                          |
+|Copyright                  |   Y   |   Y   |                          |
 
 ### Extension TIFF Tags
 
@@ -125,7 +125,7 @@ Decoder:
 |T6Options                  |       |       |                          |
 |PageNumber                 |       |       |                          |
 |TransferFunction           |       |       |                          |
-|Predictor                  |       |   -   | priority                 |
+|Predictor                  |   Y   |   Y   | only Horizontal          |
 |WhitePoint                 |       |       |                          |
 |PrimaryChromaticities      |       |       |                          |
 |HalftoneHints              |       |       |                          |
@@ -174,7 +174,7 @@ Decoder:
 |YCbCrPositioning           |       |       |                          |
 |ReferenceBlackWhite        |       |       |                          |
 |StripRowCounts             |       |   -   |                          |
-|XMP                        |       |   Y   |                          |
+|XMP                        |   Y   |   Y   |                          |
 |ImageID                    |       |       |                          |
 |ImageLayer                 |       |       |                          |
 
@@ -192,7 +192,7 @@ Decoder:
 |MD PrepTime                |       |       |                          |
 |MD FileUnits               |       |       |                          |
 |ModelPixelScaleTag         |       |       |                          |
-|IPTC                       |       |   Y   |                          |
+|IPTC                       |   Y   |   Y   |                          |
 |INGR Packet Data Tag       |       |       |                          |
 |INGR Flag Registers        |       |       |                          |
 |IrasB Transformation Matrix|       |       |                          |
@@ -200,7 +200,7 @@ Decoder:
 |ModelTransformationTag     |       |       |                          |
 |Photoshop                  |       |       |                          |
 |Exif IFD                   |       |   -   | 0x8769 SubExif           |
-|ICC Profile                |       |   Y   |                          |
+|ICC Profile                |   Y   |   Y   |                          |
 |GeoKeyDirectoryTag         |       |       |                          |
 |GeoDoubleParamsTag         |       |       |                          |
 |GeoAsciiParamsTag          |       |       |                          |

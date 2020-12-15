@@ -255,17 +255,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         /// </summary>
         private void PositionOrphanInterval(CostInterval current, CostInterval previous)
         {
-            if (previous == null)
-            {
-                previous = this.head;
-            }
+            previous ??= this.head;
 
             while (previous != null && current.Start < previous.Start)
             {
                 previous = previous.Previous;
             }
 
-            while (previous != null && previous.Next != null && previous.Next.Start < current.Start)
+            while (previous?.Next != null && previous.Next.Start < current.Start)
             {
                 previous = previous.Next;
             }

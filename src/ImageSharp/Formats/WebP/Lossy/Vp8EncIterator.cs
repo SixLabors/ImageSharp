@@ -153,13 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
         /// <summary>
         /// Gets the current start index of the intra mode predictors.
         /// </summary>
-        public int PredIdx
-        {
-            get
-            {
-                return this.predIdx;
-            }
-        }
+        public int PredIdx => this.predIdx;
 
         /// <summary>
         /// Gets the non-zero pattern.
@@ -216,13 +210,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
         /// </summary>
         public int CountDown { get; set; }
 
-        public Vp8MacroBlockInfo CurrentMacroBlockInfo
-        {
-            get
-            {
-                return this.Mb[this.currentMbIdx];
-            }
-        }
+        public Vp8MacroBlockInfo CurrentMacroBlockInfo => this.Mb[this.currentMbIdx];
 
         private Vp8MacroBlockInfo[] Mb { get; }
 

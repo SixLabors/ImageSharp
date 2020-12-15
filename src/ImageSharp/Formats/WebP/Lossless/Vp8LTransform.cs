@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
     /// <summary>
     /// Data associated with a VP8L transformation to reduce the entropy.
     /// </summary>
-    [DebuggerDisplay("Transformtype: {TransformType}")]
+    [DebuggerDisplay("Transformtype: {" + nameof(TransformType) + "}")]
     internal class Vp8LTransform
     {
         public Vp8LTransform(Vp8LTransformType transformType, int xSize, int ySize)

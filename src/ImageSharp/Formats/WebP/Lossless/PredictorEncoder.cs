@@ -210,7 +210,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 
             for (int mode = 0; mode < numPredModes; mode++)
             {
-                float curDiff;
                 for (int i = 0; i < 4; i++)
                 {
                     histoArgb[i].AsSpan().Fill(0);
@@ -256,7 +255,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                     }
                 }
 
-                curDiff = PredictionCostSpatialHistogram(accumulated, histoArgb);
+                var curDiff = PredictionCostSpatialHistogram(accumulated, histoArgb);
 
                 // Favor keeping the areas locally similar.
                 if (mode == leftMode)
@@ -436,16 +435,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         /// </summary>
         private static uint NearLossless(uint value, uint predict, int maxQuantization, int maxDiff, bool usedSubtractGreen)
         {
-            int quantization;
             byte newGreen = 0;
             byte greenDiff = 0;
-            byte a, r, g, b;
+            byte a;
             if (maxDiff <= 2)
             {
                 return LosslessUtils.SubPixels(value, predict);
             }
 
-            quantization = maxQuantization;
+            var quantization = maxQuantization;
             while (quantization >= maxDiff)
             {
                 quantization >>= 1;
@@ -461,7 +459,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 a = NearLosslessComponent((byte)(value >> 24), (byte)(predict >> 24), 0xff, quantization);
             }
 
-            g = NearLosslessComponent((byte)((value >> 8) & 0xff), (byte)((predict >> 8) & 0xff), 0xff, quantization);
+            var g = NearLosslessComponent((byte)((value >> 8) & 0xff), (byte)((predict >> 8) & 0xff), 0xff, quantization);
 
             if (usedSubtractGreen)
             {
@@ -475,8 +473,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 greenDiff = NearLosslessDiff(newGreen, (byte)((value >> 8) & 0xff));
             }
 
-            r = NearLosslessComponent(NearLosslessDiff((byte)((value >> 16) & 0xff), greenDiff), (byte)((predict >> 16) & 0xff), (byte)(0xff - newGreen), quantization);
-            b = NearLosslessComponent(NearLosslessDiff((byte)(value & 0xff), greenDiff), (byte)(predict & 0xff), (byte)(0xff - newGreen), quantization);
+            var r = NearLosslessComponent(NearLosslessDiff((byte)((value >> 16) & 0xff), greenDiff), (byte)((predict >> 16) & 0xff), (byte)(0xff - newGreen), quantization);
+            var b = NearLosslessComponent(NearLosslessDiff((byte)(value & 0xff), greenDiff), (byte)(predict & 0xff), (byte)(0xff - newGreen), quantization);
 
             return ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | b;
         }

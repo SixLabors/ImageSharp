@@ -167,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
             // If needed, make some room by flushing some bits out.
             if (this.cur + WriterBytes > this.end)
             {
-                var extraSize = (this.end - this.cur) + MinExtraSize;
+                var extraSize = this.end - this.cur + MinExtraSize;
                 this.BitWriterResize(extraSize);
             }
 

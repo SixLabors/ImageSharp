@@ -50,7 +50,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
 
         private uint pos;
 
-        private int maxPos;
+        private readonly int maxPos;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8BitWriter"/> class.

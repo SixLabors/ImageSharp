@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         public const uint HuffmanPackedTableSize = 1u << HuffmanPackedBits;
 
         // Pre-reversed 4-bit values.
-        private static byte[] reversedBits =
+        private static readonly byte[] ReversedBits =
         {
             0x0, 0x8, 0x4, 0xc, 0x2, 0xa, 0x6, 0xe,
             0x1, 0x9, 0x5, 0xd, 0x3, 0xb, 0x7, 0xf
@@ -427,7 +427,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                         tableSize = 1 << tableBits;
                         totalSize += tableSize;
                         low = key & mask;
-                        uint v = (uint)(tablePos - low);
                         table[low] = new HuffmanCode
                         {
                             BitsUsed = tableBits + rootBits,
@@ -589,7 +588,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             while (i < numBits)
             {
                 i += 4;
-                retval |= (uint)(reversedBits[bits & 0xf] << (WebpConstants.MaxAllowedCodeLength + 1 - i));
+                retval |= (uint)(ReversedBits[bits & 0xf] << (WebpConstants.MaxAllowedCodeLength + 1 - i));
                 bits >>= 4;
             }
 

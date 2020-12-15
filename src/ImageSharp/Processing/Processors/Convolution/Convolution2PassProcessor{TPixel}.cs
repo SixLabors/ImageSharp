@@ -155,13 +155,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 // Clear the target buffer for each row run.
                 targetBuffer.Clear();
-                ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
 
                 // Get the precalculated source sample row for this kernel row and copy to our buffer.
                 Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
+                ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
                 ref float kernelBase = ref this.kernel[0];
                 ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
@@ -209,7 +209,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 // Clear the target buffer for each row run.
                 targetBuffer.Clear();
-                ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
 
                 // Get the precalculated source sample row for this kernel row and copy to our buffer.
                 Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
@@ -218,6 +217,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Numerics.Premultiply(sourceBuffer);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
+                ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
                 ref float kernelBase = ref this.kernel[0];
                 ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 

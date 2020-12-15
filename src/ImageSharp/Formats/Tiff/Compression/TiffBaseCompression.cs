@@ -5,7 +5,6 @@ using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -18,24 +17,24 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
     {
         private readonly MemoryAllocator allocator;
 
-        private TiffPhotometricInterpretation photometricInterpretation;
+        private readonly TiffPhotometricInterpretation photometricInterpretation;
 
-        private int width;
+        private readonly int width;
 
-        private int bitsPerPixel;
+        private readonly int bitsPerPixel;
 
-        private TiffPredictor predictor;
+        private readonly TiffPredictor predictor;
 
-        public TiffBaseCompression(MemoryAllocator allocator) => this.allocator = allocator;
+        protected TiffBaseCompression(MemoryAllocator allocator) => this.allocator = allocator;
 
-        public TiffBaseCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
+        protected TiffBaseCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
             : this(allocator)
         {
             this.photometricInterpretation = photometricInterpretation;
             this.width = width;
         }
 
-        public TiffBaseCompression(MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor)
+        protected TiffBaseCompression(MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor)
             : this(allocator)
         {
             this.width = width;

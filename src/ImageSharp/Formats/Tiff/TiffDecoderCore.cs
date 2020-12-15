@@ -238,7 +238,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <returns>The size (in bytes) of the required pixel buffer.</returns>
         private int CalculateStripBufferSize(int width, int height, int plane = -1)
         {
-            int bitsPerPixel = 0;
+            int bitsPerPixel;
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
             {

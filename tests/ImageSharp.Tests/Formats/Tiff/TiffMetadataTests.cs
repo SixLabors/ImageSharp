@@ -229,7 +229,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // Assert
             ms.Position = 0;
-            using var output = Image.Load<Rgba32>(ms);
+            using var output = Image.Load<Rgba32>(this.configuration, ms);
 
             ImageMetadata coreMetaOut = output.Metadata;
             TiffMetadata tiffMetaOut = output.Metadata.GetTiffMetadata();
@@ -300,19 +300,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             coreMeta.IptcProfile = new IptcProfile();
             coreMeta.IptcProfile.SetValue(IptcTag.Caption, "iptc caption");
 
-            coreMeta.IccProfile = new IccProfile(
-                new IccProfileHeader() { CreationDate = DateTime.Now },
-                new IccTagDataEntry[]
-                {
-                    new IccTextTagDataEntry("test string"),
-                    new IccDataTagDataEntry(new byte[] { 11, 22, 33, 44 })
-                });
+            coreMeta.IccProfile = new IccProfile(new IccProfileHeader() { CreationDate = DateTime.Now }, new IccTagDataEntry[] { new IccTextTagDataEntry("test string"), new IccDataTagDataEntry(new byte[] { 11, 22, 33, 44 }) });
 
             coreMeta.ResolutionUnits = PixelResolutionUnit.PixelsPerMeter;
             coreMeta.HorizontalResolution = 4500;
             coreMeta.VerticalResolution = 5400;
 
-            var datetime = System.DateTime.Now.ToString();
+            var datetime = DateTime.Now.ToString();
             frameMeta.ImageDescription = "test ImageDescription";
             frameMeta.DateTime = datetime;
 
@@ -328,7 +322,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // Assert
             ms.Position = 0;
-            using var output = Image.Load<Rgba32>(ms);
+            using var output = Image.Load<Rgba32>(this.configuration, ms);
             TiffMetadata meta = output.Metadata.GetTiffMetadata();
 
             ImageMetadata coreMetaOut = output.Metadata;
@@ -357,7 +351,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.NotNull(coreMeta.IccProfile);
 
                 Assert.Equal(tiffMeta.XmpProfile, tiffMetaOut.XmpProfile);
-                //// todo: failure Assert.Equal(coreMeta.IptcProfile, coreMetaOut.IptcProfile);
                 Assert.Equal(coreMeta.IptcProfile.Data, coreMetaOut.IptcProfile.Data);
                 Assert.Equal(coreMeta.IccProfile.ToByteArray(), coreMetaOut.IccProfile.ToByteArray());
 

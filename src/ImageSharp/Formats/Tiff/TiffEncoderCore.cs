@@ -141,7 +141,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public long WriteHeader(TiffWriter writer)
         {
             writer.Write(ByteOrderMarker);
-            writer.Write((ushort)TiffConstants.HeaderMagicNumber);
+            writer.Write(TiffConstants.HeaderMagicNumber);
             long firstIfdMarker = writer.PlaceMarker();
 
             return firstIfdMarker;
@@ -239,7 +239,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                 if (dataBlock.Length % 2 == 1)
                 {
-                    writer.Write((byte)0);
+                    writer.Write(0);
                 }
             }
 

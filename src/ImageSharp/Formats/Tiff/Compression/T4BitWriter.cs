@@ -187,7 +187,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         /// <summary>
         /// The modified huffman is basically the same as CCITT T4, but without EOL markers and padding at the end of the rows.
         /// </summary>
-        private bool useModifiedHuffman;
+        private readonly bool useModifiedHuffman;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T4BitWriter" /> class.

@@ -152,7 +152,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             IExifValue obj = FindOrCreate(meta, tag);
             DebugGuard.IsTrue(!obj.IsArray, "Expected non array entry");
 
-            object val = (T)(object)value;
+            object val = value;
             return obj.TrySetValue(val);
         }
 

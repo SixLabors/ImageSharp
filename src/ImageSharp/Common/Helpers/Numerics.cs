@@ -425,7 +425,6 @@ namespace SixLabors.ImageSharp
             where T : unmanaged
         {
             ref T sRef = ref MemoryMarshal.GetReference(span);
-            ref Vector<T> vsBase = ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));
             var vmin = new Vector<T>(min);
             var vmax = new Vector<T>(max);
 
@@ -433,25 +432,35 @@ namespace SixLabors.ImageSharp
             int m = Modulo4(n);
             int u = n - m;
 
-            for (int i = 0; i < u; i += 4)
-            {
-                ref Vector<T> vs0 = ref Unsafe.Add(ref vsBase, i);
-                ref Vector<T> vs1 = ref Unsafe.Add(ref vs0, 1);
-                ref Vector<T> vs2 = ref Unsafe.Add(ref vs0, 2);
-                ref Vector<T> vs3 = ref Unsafe.Add(ref vs0, 3);
+            ref Vector<T> vs0 = ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));
+            ref Vector<T> vs1 = ref Unsafe.Add(ref vs0, 1);
+            ref Vector<T> vs2 = ref Unsafe.Add(ref vs0, 2);
+            ref Vector<T> vs3 = ref Unsafe.Add(ref vs0, 3);
+            ref Vector<T> vsEnd = ref Unsafe.Add(ref vs0, u);
 
+            while (Unsafe.IsAddressLessThan(ref vs0, ref vsEnd))
+            {
                 vs0 = Vector.Min(Vector.Max(vmin, vs0), vmax);
                 vs1 = Vector.Min(Vector.Max(vmin, vs1), vmax);
                 vs2 = Vector.Min(Vector.Max(vmin, vs2), vmax);
                 vs3 = Vector.Min(Vector.Max(vmin, vs3), vmax);
+
+                vs0 = ref Unsafe.Add(ref vs0, 4);
+                vs1 = ref Unsafe.Add(ref vs1, 4);
+                vs2 = ref Unsafe.Add(ref vs2, 4);
+                vs3 = ref Unsafe.Add(ref vs3, 4);
             }
 
             if (m > 0)
             {
-                for (int i = u; i < n; i++)
+                vs0 = ref vsEnd;
+                vsEnd = ref Unsafe.Add(ref vsEnd, m);
+
+                while (Unsafe.IsAddressLessThan(ref vs0, ref vsEnd))
                 {
-                    ref Vector<T> vs0 = ref Unsafe.Add(ref vsBase, i);
                     vs0 = Vector.Min(Vector.Max(vmin, vs0), vmax);
+
+                    vs0 = ref Unsafe.Add(ref vs0, 1);
                 }
             }
         }

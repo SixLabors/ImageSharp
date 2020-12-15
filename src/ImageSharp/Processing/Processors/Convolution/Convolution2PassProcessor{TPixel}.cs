@@ -161,24 +161,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
-                ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
+                ref Vector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
+                ref Vector4 targetEnd = ref Unsafe.Add(ref targetStart, sourceBuffer.Length);
                 ref float kernelBase = ref this.kernel[0];
+                ref float kernelEnd = ref Unsafe.Add(ref kernelBase, kernelSize);
                 ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
-                for (int x = 0; x < sourceBuffer.Length; x++)
+                while (Unsafe.IsAddressLessThan(ref targetStart, ref targetEnd))
                 {
-                    ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+                    ref float kernelStart = ref kernelBase;
+                    ref int sampleColumnStart = ref sampleColumnBase;
 
-                    for (int kX = 0; kX < kernelSize; kX++)
+                    while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
                     {
-                        int sampleX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
-                        Vector4 sample = Unsafe.Add(ref sourceBase, sampleX);
-                        float factor = Unsafe.Add(ref kernelBase, kX);
+                        Vector4 sample = Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
 
-                        target += factor * sample;
+                        targetStart += kernelStart * sample;
+
+                        kernelStart = ref Unsafe.Add(ref kernelStart, 1);
+                        sampleColumnStart = ref Unsafe.Add(ref sampleColumnStart, 1);
                     }
 
-                    // Shift the base column sampling reference by one row
+                    targetStart = ref Unsafe.Add(ref targetStart, 1);
                     sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, kernelSize);
                 }
 
@@ -186,10 +190,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 sourceRow = this.sourcePixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
-                for (int x = 0; x < sourceRow.Length; x++)
+                targetStart = ref MemoryMarshal.GetReference(targetBuffer);
+
+                while (Unsafe.IsAddressLessThan(ref targetStart, ref targetEnd))
                 {
-                    ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
-                    target.W = Unsafe.Add(ref MemoryMarshal.GetReference(sourceBuffer), x).W;
+                    targetStart.W = sourceBase.W;
+
+                    targetStart = ref Unsafe.Add(ref targetStart, 1);
+                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
                 }
 
                 Span<TPixel> targetRow = this.targetPixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
@@ -217,23 +225,28 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Numerics.Premultiply(sourceBuffer);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
-                ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
+                ref Vector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
+                ref Vector4 targetEnd = ref Unsafe.Add(ref targetStart, sourceBuffer.Length);
                 ref float kernelBase = ref this.kernel[0];
+                ref float kernelEnd = ref Unsafe.Add(ref kernelBase, kernelSize);
                 ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
-                for (int x = 0; x < sourceBuffer.Length; x++)
+                while (Unsafe.IsAddressLessThan(ref targetStart, ref targetEnd))
                 {
-                    ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
+                    ref float kernelStart = ref kernelBase;
+                    ref int sampleColumnStart = ref sampleColumnBase;
 
-                    for (int kX = 0; kX < kernelSize; kX++)
+                    while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
                     {
-                        int sampleX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
-                        Vector4 sample = Unsafe.Add(ref sourceBase, sampleX);
-                        float factor = Unsafe.Add(ref kernelBase, kX);
+                        Vector4 sample = Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
 
-                        target += factor * sample;
+                        targetStart += kernelStart * sample;
+
+                        kernelStart = ref Unsafe.Add(ref kernelStart, 1);
+                        sampleColumnStart = ref Unsafe.Add(ref sampleColumnStart, 1);
                     }
 
+                    targetStart = ref Unsafe.Add(ref targetStart, 1);
                     sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, kernelSize);
                 }
 
@@ -307,37 +320,48 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 targetBuffer.Clear();
 
                 ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
-                ref float kernelBase = ref this.kernel[0];
+                ref float kernelStart = ref this.kernel[0];
+                ref float kernelEnd = ref Unsafe.Add(ref kernelStart, kernelSize);
 
                 Span<TPixel> sourceRow;
-                for (int kY = 0; kY < kernelSize; kY++)
+                while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
                 {
                     // Get the precalculated source sample row for this kernel row and copy to our buffer.
-                    int sampleY = Unsafe.Add(ref sampleRowBase, kY);
-                    sourceRow = this.sourcePixels.GetRowSpan(sampleY).Slice(boundsX, boundsWidth);
+                    sourceRow = this.sourcePixels.GetRowSpan(sampleRowBase).Slice(boundsX, boundsWidth);
 
                     PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
-                    float factor = Unsafe.Add(ref kernelBase, kY);
+                    ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, sourceBuffer.Length);
+                    ref Vector4 targetStart = ref targetBase;
+                    float factor = kernelStart;
 
-                    for (int x = 0; x < sourceBuffer.Length; x++)
+                    while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
                     {
-                        ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
-                        Vector4 sample = Unsafe.Add(ref sourceBase, x);
+                        targetStart += factor * sourceBase;
 
-                        target += factor * sample;
+                        sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                        targetStart = ref Unsafe.Add(ref targetStart, 1);
                     }
+
+                    kernelStart = ref Unsafe.Add(ref kernelStart, 1);
+                    sampleRowBase = ref Unsafe.Add(ref sampleRowBase, 1);
                 }
 
                 // Now we need to copy the original alpha values from the source row.
                 sourceRow = this.sourcePixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
-
-                for (int x = 0; x < sourceRow.Length; x++)
                 {
-                    ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
-                    target.W = Unsafe.Add(ref MemoryMarshal.GetReference(sourceBuffer), x).W;
+                    ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
+                    ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, sourceBuffer.Length);
+
+                    while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
+                    {
+                        targetBase.W = sourceBase.W;
+
+                        targetBase = ref Unsafe.Add(ref targetBase, 1);
+                        sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    }
                 }
 
                 Span<TPixel> targetRow = this.targetPixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
@@ -361,28 +385,32 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 targetBuffer.Clear();
 
                 ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
-                ref float kernelBase = ref this.kernel[0];
+                ref float kernelStart = ref this.kernel[0];
+                ref float kernelEnd = ref Unsafe.Add(ref kernelStart, kernelSize);
 
-                for (int kY = 0; kY < kernelSize; kY++)
+                Span<TPixel> sourceRow;
+                while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
                 {
                     // Get the precalculated source sample row for this kernel row and copy to our buffer.
-                    int sampleY = Unsafe.Add(ref sampleRowBase, kY);
-                    Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(sampleY).Slice(boundsX, boundsWidth);
+                    sourceRow = this.sourcePixels.GetRowSpan(sampleRowBase).Slice(boundsX, boundsWidth);
 
                     PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
-                    Numerics.Premultiply(sourceBuffer);
-
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
-                    float factor = Unsafe.Add(ref kernelBase, kY);
+                    ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, sourceBuffer.Length);
+                    ref Vector4 targetStart = ref targetBase;
+                    float factor = kernelStart;
 
-                    for (int x = 0; x < sourceBuffer.Length; x++)
+                    while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
                     {
-                        ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
-                        Vector4 sample = Unsafe.Add(ref sourceBase, x);
+                        targetStart += factor * sourceBase;
 
-                        target += factor * sample;
+                        sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                        targetStart = ref Unsafe.Add(ref targetStart, 1);
                     }
+
+                    kernelStart = ref Unsafe.Add(ref kernelStart, 1);
+                    sampleRowBase = ref Unsafe.Add(ref sampleRowBase, 1);
                 }
 
                 Numerics.UnPremultiply(targetBuffer);

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
     /// <summary>
     /// Methods for undoing the horizontal prediction used in combination with deflate and LZW compressed TIFF images.
     /// </summary>
-    public static class HorizontalPredictor
+    internal static class HorizontalPredictor
     {
         /// <summary>
         /// Inverts the horizontal prediction.

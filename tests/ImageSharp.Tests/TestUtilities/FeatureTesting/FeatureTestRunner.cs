@@ -216,6 +216,53 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities
         /// where the given <paramref name="intrinsics"/> features.
         /// </summary>
         /// <param name="action">The test action to run.</param>
+        /// <param name="intrinsics">The intrinsics features.</param>
+        /// <param name="arg1">The value to pass as a parameter to the test action.</param>
+        /// <param name="arg2">The second value to pass as a parameter to the test action.</param>
+        public static void RunWithHwIntrinsicsFeature<T, T2>(
+            Action<string, string> action,
+            HwIntrinsics intrinsics,
+            T arg1,
+            T2 arg2)
+            where T : IXunitSerializable
+            where T2 : IXunitSerializable
+        {
+            if (!RemoteExecutor.IsSupported)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<HwIntrinsics, string> intrinsic in intrinsics.ToFeatureKeyValueCollection())
+            {
+                var processStartInfo = new ProcessStartInfo();
+                if (intrinsic.Key != HwIntrinsics.AllowAll)
+                {
+                    processStartInfo.Environment[$"COMPlus_{intrinsic.Value}"] = "0";
+
+                    RemoteExecutor.Invoke(
+                        action,
+                        BasicSerializer.Serialize(arg1),
+                        BasicSerializer.Serialize(arg2),
+                        new RemoteInvokeOptions
+                        {
+                            StartInfo = processStartInfo
+                        })
+                        .Dispose();
+                }
+                else
+                {
+                    // Since we are running using the default architecture there is no
+                    // point creating the overhead of running the action in a separate process.
+                    action(BasicSerializer.Serialize(arg1), BasicSerializer.Serialize(arg2));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Runs the given test <paramref name="action"/> within an environment
+        /// where the given <paramref name="intrinsics"/> features.
+        /// </summary>
+        /// <param name="action">The test action to run.</param>
         /// <param name="serializable">The value to pass as a parameter to the test action.</param>
         /// <param name="intrinsics">The intrinsics features.</param>
         public static void RunWithHwIntrinsicsFeature<T>(

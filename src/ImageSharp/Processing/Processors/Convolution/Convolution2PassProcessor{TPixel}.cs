@@ -164,7 +164,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
 
                 var state = new ConvolutionState(in this.kernelMatrix, this.map);
-                ref int sampleRowBase = ref state.GetSampleRow(y - this.bounds.Y);
 
                 // Clear the target buffer for each row run.
                 targetBuffer.Clear();
@@ -172,8 +171,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 // Get the precalculated source sample row for this kernel row and copy to our buffer.
                 ReadOnlyKernel kernel = state.Kernel;
-                int sampleY = Unsafe.Add(ref sampleRowBase, 0);
-                Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(sampleY).Slice(boundsX, boundsWidth);
+                Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
@@ -215,7 +213,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 Span<Vector4> targetBuffer = span.Slice(this.bounds.Width);
 
                 var state = new ConvolutionState(in this.kernelMatrix, this.map);
-                ref int sampleRowBase = ref state.GetSampleRow(y - this.bounds.Y);
 
                 // Clear the target buffer for each row run.
                 targetBuffer.Clear();
@@ -223,8 +220,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                 // Get the precalculated source sample row for this kernel row and copy to our buffer.
                 ReadOnlyKernel kernel = state.Kernel;
-                int sampleY = Unsafe.Add(ref sampleRowBase, 0);
-                Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(sampleY).Slice(boundsX, boundsWidth);
+                Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
 
                 Numerics.Premultiply(sourceBuffer);
@@ -325,10 +321,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                     for (int x = 0; x < sourceBuffer.Length; x++)
                     {
-                        ref int sampleColumnBase = ref state.GetSampleColumn(x);
                         ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
-                        int sampleX = Unsafe.Add(ref sampleColumnBase, 0) - boundsX;
-                        Vector4 sample = Unsafe.Add(ref sourceBase, sampleX);
+                        Vector4 sample = Unsafe.Add(ref sourceBase, x);
 
                         target += kernel[kY, 0] * sample;
                     }
@@ -377,10 +371,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
 
                     for (int x = 0; x < sourceBuffer.Length; x++)
                     {
-                        ref int sampleColumnBase = ref state.GetSampleColumn(x);
                         ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
-                        int sampleX = Unsafe.Add(ref sampleColumnBase, 0) - boundsX;
-                        Vector4 sample = Unsafe.Add(ref sourceBase, sampleX);
+                        Vector4 sample = Unsafe.Add(ref sourceBase, x);
 
                         target += kernel[kY, 0] * sample;
                     }

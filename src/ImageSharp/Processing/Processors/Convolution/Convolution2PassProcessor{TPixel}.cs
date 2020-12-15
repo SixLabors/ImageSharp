@@ -67,45 +67,41 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             // for source and target bulk pixel conversion.
             var operationBounds = new Rectangle(interest.X, interest.Y, interest.Width * 2, interest.Height);
 
-            using (var mapX = new KernelSamplingMap(this.Configuration.MemoryAllocator))
-            {
-                mapX.BuildSamplingOffsetMap(this.KernelX, interest);
+            // We can create a single sampling map with the size as if we were using the non separated 2D kernel
+            // the two 1D kernels represent, and reuse it across both convolution steps, like in the bokeh blur.
+            using var mapXY = new KernelSamplingMap(this.Configuration.MemoryAllocator);
 
-                // Horizontal convolution
-                var horizontalOperation = new HorizontalConvolutionRowOperation(
-                    interest,
-                    firstPassPixels,
-                    source.PixelBuffer,
-                    mapX,
-                    this.KernelX,
-                    this.Configuration,
-                    this.PreserveAlpha);
+            mapXY.BuildSamplingOffsetMap(this.KernelY.Rows, this.KernelX.Columns, interest);
 
-                ParallelRowIterator.IterateRows<HorizontalConvolutionRowOperation, Vector4>(
-                    this.Configuration,
-                    operationBounds,
-                    in horizontalOperation);
-            }
+            // Horizontal convolution
+            var horizontalOperation = new HorizontalConvolutionRowOperation(
+                interest,
+                firstPassPixels,
+                source.PixelBuffer,
+                mapXY,
+                this.KernelX,
+                this.Configuration,
+                this.PreserveAlpha);
 
-            using (var mapY = new KernelSamplingMap(this.Configuration.MemoryAllocator))
-            {
-                mapY.BuildSamplingOffsetMap(this.KernelY, interest);
+            ParallelRowIterator.IterateRows<HorizontalConvolutionRowOperation, Vector4>(
+                this.Configuration,
+                operationBounds,
+                in horizontalOperation);
 
-                // Vertical convolution
-                var verticalOperation = new VerticalConvolutionRowOperation(
-                    interest,
-                    source.PixelBuffer,
-                    firstPassPixels,
-                    mapY,
-                    this.KernelY,
-                    this.Configuration,
-                    this.PreserveAlpha);
+            // Vertical convolution
+            var verticalOperation = new VerticalConvolutionRowOperation(
+                interest,
+                source.PixelBuffer,
+                firstPassPixels,
+                mapXY,
+                this.KernelY,
+                this.Configuration,
+                this.PreserveAlpha);
 
-                ParallelRowIterator.IterateRows<VerticalConvolutionRowOperation, Vector4>(
-                    this.Configuration,
-                    operationBounds,
-                    in verticalOperation);
-            }
+            ParallelRowIterator.IterateRows<VerticalConvolutionRowOperation, Vector4>(
+                this.Configuration,
+                operationBounds,
+                in verticalOperation);
         }
 
         /// <summary>

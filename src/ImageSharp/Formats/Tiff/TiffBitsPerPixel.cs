@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 {
     /// <summary>
-    /// Enumerates the available bits per pixel the tiff encoder supports.
+    /// Enumerates the available bits per pixel for the tiff format.
     /// </summary>
     public enum TiffBitsPerPixel
     {

@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public IExifValue ReadNext()
         {
             var tagId = (ExifTagValue)this.stream.ReadUInt16();
-            var dataType = (ExifDataType)EnumUtils.Parse(this.stream.ReadUInt16(), ExifDataType.Unknown);
+            ExifDataType dataType = EnumUtils.Parse(this.stream.ReadUInt16(), ExifDataType.Unknown);
             uint count = this.stream.ReadUInt32();
 
             ExifDataType rawDataType = dataType;
@@ -116,9 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         private bool ReadValueOrOffset(ExifValue entry, ExifDataType rawDataType, uint count)
         {
-            if (entry.Tag == ExifTag.SubIFDOffset
-                || entry.Tag == ExifTag.GPSIFDOffset
-                /*|| entry.Tag == ExifTagValue.SubIFDs*/)
+            if (entry.Tag == ExifTag.SubIFDOffset || entry.Tag == ExifTag.GPSIFDOffset /*|| entry.Tag == ExifTagValue.SubIFDs*/)
             {
                 // todo: ignore subIfds (exif, gps)
                 this.stream.Skip(4);

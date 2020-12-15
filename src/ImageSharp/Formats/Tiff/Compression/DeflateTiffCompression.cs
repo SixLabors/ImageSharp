@@ -2,12 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.IO;
 using System.IO.Compression;
 
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;

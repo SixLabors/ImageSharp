@@ -33,9 +33,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             this.bitsPerSampleG = bitsPerSample[1];
             this.bitsPerSampleB = bitsPerSample[2];
 
-            this.rFactor = (float)(1 << this.bitsPerSampleR) - 1.0f;
-            this.gFactor = (float)(1 << this.bitsPerSampleG) - 1.0f;
-            this.bFactor = (float)(1 << this.bitsPerSampleB) - 1.0f;
+            this.rFactor = (1 << this.bitsPerSampleR) - 1.0f;
+            this.gFactor = (1 << this.bitsPerSampleG) - 1.0f;
+            this.bFactor = (1 << this.bitsPerSampleB) - 1.0f;
         }
 
         /// <inheritdoc/>
@@ -49,9 +49,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             {
                 for (int x = left; x < left + width; x++)
                 {
-                    float r = ((float)bitReader.ReadBits(this.bitsPerSampleR)) / this.rFactor;
-                    float g = ((float)bitReader.ReadBits(this.bitsPerSampleG)) / this.gFactor;
-                    float b = ((float)bitReader.ReadBits(this.bitsPerSampleB)) / this.bFactor;
+                    float r = bitReader.ReadBits(this.bitsPerSampleR) / this.rFactor;
+                    float g = bitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
+                    float b = bitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
 
                     color.FromVector4(new Vector4(r, g, b, 1.0f));
                     pixels[x, y] = color;

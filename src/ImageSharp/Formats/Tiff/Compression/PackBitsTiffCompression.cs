@@ -3,9 +3,7 @@
 
 using System;
 using System.Buffers;
-using System.IO;
 
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -40,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             {
                 byte headerByte = compressedData[compressedOffset];
 
-                if (headerByte <= (byte)127)
+                if (headerByte <= 127)
                 {
                     int literalOffset = compressedOffset + 1;
                     int literalLength = compressedData[compressedOffset] + 1;
@@ -50,7 +48,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
                     compressedOffset += literalLength + 1;
                     decompressedOffset += literalLength;
                 }
-                else if (headerByte == (byte)0x80)
+                else if (headerByte == 0x80)
                 {
                     compressedOffset += 1;
                 }

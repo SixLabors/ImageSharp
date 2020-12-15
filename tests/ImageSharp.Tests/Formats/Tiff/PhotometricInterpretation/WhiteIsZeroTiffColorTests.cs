@@ -10,18 +10,19 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
 {
+    [Trait("Format", "Tiff")]
     public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
-        private static Rgba32 gray000 = new Rgba32(255, 255, 255, 255);
-        private static Rgba32 gray128 = new Rgba32(127, 127, 127, 255);
-        private static Rgba32 gray255 = new Rgba32(0, 0, 0, 255);
-        private static Rgba32 gray0 = new Rgba32(255, 255, 255, 255);
-        private static Rgba32 gray8 = new Rgba32(119, 119, 119, 255);
-        private static Rgba32 grayF = new Rgba32(0, 0, 0, 255);
-        private static Rgba32 bit0 = new Rgba32(255, 255, 255, 255);
-        private static Rgba32 bit1 = new Rgba32(0, 0, 0, 255);
+        private static readonly Rgba32 Gray000 = new Rgba32(255, 255, 255, 255);
+        private static readonly Rgba32 Gray128 = new Rgba32(127, 127, 127, 255);
+        private static readonly Rgba32 Gray255 = new Rgba32(0, 0, 0, 255);
+        private static readonly Rgba32 Gray0 = new Rgba32(255, 255, 255, 255);
+        private static readonly Rgba32 Gray8 = new Rgba32(119, 119, 119, 255);
+        private static readonly Rgba32 GrayF = new Rgba32(0, 0, 0, 255);
+        private static readonly Rgba32 Bit0 = new Rgba32(255, 255, 255, 255);
+        private static readonly Rgba32 Bit1 = new Rgba32(0, 0, 0, 255);
 
-        private static readonly byte[] Bilevel_Bytes4x4 =
+        private static readonly byte[] BilevelBytes4X4 =
         {
             0b01010000,
             0b11110000,
@@ -29,15 +30,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
             0b10010000
         };
 
-        private static readonly Rgba32[][] Bilevel_Result4x4 =
+        private static readonly Rgba32[][] BilevelResult4X4 =
         {
-            new[] { bit0, bit1, bit0, bit1 },
-            new[] { bit1, bit1, bit1, bit1 },
-            new[] { bit0, bit1, bit1, bit1 },
-            new[] { bit1, bit0, bit0, bit1 }
+            new[] { Bit0, Bit1, Bit0, Bit1 },
+            new[] { Bit1, Bit1, Bit1, Bit1 },
+            new[] { Bit0, Bit1, Bit1, Bit1 },
+            new[] { Bit1, Bit0, Bit0, Bit1 }
         };
 
-        private static readonly byte[] Bilevel_Bytes12x4 =
+        private static readonly byte[] BilevelBytes12X4 =
         {
             0b01010101, 0b01010000,
             0b11111111, 0b11111111,
@@ -45,15 +46,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
             0b10010000, 0b01100000
         };
 
-        private static readonly Rgba32[][] Bilevel_Result12x4 =
+        private static readonly Rgba32[][] BilevelResult12X4 =
         {
-            new[] { bit0, bit1, bit0, bit1, bit0, bit1, bit0, bit1, bit0, bit1, bit0, bit1 },
-            new[] { bit1, bit1, bit1, bit1, bit1, bit1, bit1, bit1, bit1, bit1, bit1, bit1 },
-            new[] { bit0, bit1, bit1, bit0, bit1, bit0, bit0, bit1, bit1, bit0, bit1, bit0 },
-            new[] { bit1, bit0, bit0, bit1, bit0, bit0, bit0, bit0, bit0, bit1, bit1, bit0 }
+            new[] { Bit0, Bit1, Bit0, Bit1, Bit0, Bit1, Bit0, Bit1, Bit0, Bit1, Bit0, Bit1 },
+            new[] { Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1, Bit1 },
+            new[] { Bit0, Bit1, Bit1, Bit0, Bit1, Bit0, Bit0, Bit1, Bit1, Bit0, Bit1, Bit0 },
+            new[] { Bit1, Bit0, Bit0, Bit1, Bit0, Bit0, Bit0, Bit0, Bit0, Bit1, Bit1, Bit0 }
         };
 
-        private static readonly byte[] Grayscale4_Bytes4x4 =
+        private static readonly byte[] Grayscale4Bytes4X4 =
         {
             0x8F, 0x0F,
             0xFF, 0xFF,
@@ -61,15 +62,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
             0xF0, 0xF8
         };
 
-        private static readonly Rgba32[][] Grayscale4_Result4x4 =
+        private static readonly Rgba32[][] Grayscale4Result4X4 =
         {
-            new[] { gray8, grayF, gray0, grayF },
-            new[] { grayF, grayF, grayF, grayF },
-            new[] { gray0, gray8, gray8, grayF },
-            new[] { grayF, gray0, grayF, gray8 }
+            new[] { Gray8, GrayF, Gray0, GrayF },
+            new[] { GrayF, GrayF, GrayF, GrayF },
+            new[] { Gray0, Gray8, Gray8, GrayF },
+            new[] { GrayF, Gray0, GrayF, Gray8 }
         };
 
-        private static readonly byte[] Grayscale4_Bytes3x4 =
+        private static readonly byte[] Grayscale4Bytes3X4 =
         {
             0x8F, 0x00,
             0xFF, 0xF0,
@@ -77,15 +78,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
             0xF0, 0xF0
         };
 
-        private static readonly Rgba32[][] Grayscale4_Result3x4 =
+        private static readonly Rgba32[][] Grayscale4Result3X4 =
         {
-            new[] { gray8, grayF, gray0 },
-            new[] { grayF, grayF, grayF },
-            new[] { gray0, gray8, gray8 },
-            new[] { grayF, gray0, grayF }
+            new[] { Gray8, GrayF, Gray0 },
+            new[] { GrayF, GrayF, GrayF },
+            new[] { Gray0, Gray8, Gray8 },
+            new[] { GrayF, Gray0, GrayF }
         };
 
-        private static readonly byte[] Grayscale8_Bytes4x4 =
+        private static readonly byte[] Grayscale8Bytes4X4 =
         {
             128, 255, 000, 255,
             255, 255, 255, 255,
@@ -93,66 +94,66 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
             255, 000, 255, 128
         };
 
-        private static readonly Rgba32[][] Grayscale8_Result4x4 =
+        private static readonly Rgba32[][] Grayscale8Result4X4 =
         {
-            new[] { gray128, gray255, gray000, gray255 },
-            new[] { gray255, gray255, gray255, gray255 },
-            new[] { gray000, gray128, gray128, gray255 },
-            new[] { gray255, gray000, gray255, gray128 }
+            new[] { Gray128, Gray255, Gray000, Gray255 },
+            new[] { Gray255, Gray255, Gray255, Gray255 },
+            new[] { Gray000, Gray128, Gray128, Gray255 },
+            new[] { Gray255, Gray000, Gray255, Gray128 }
         };
 
-        public static IEnumerable<object[]> Bilevel_Data
+        public static IEnumerable<object[]> BilevelData
         {
             get
             {
-                yield return new object[] { Bilevel_Bytes4x4, 1, 0, 0, 4, 4, Bilevel_Result4x4 };
-                yield return new object[] { Bilevel_Bytes4x4, 1, 0, 0, 4, 4, Offset(Bilevel_Result4x4, 0, 0, 6, 6) };
-                yield return new object[] { Bilevel_Bytes4x4, 1, 1, 0, 4, 4, Offset(Bilevel_Result4x4, 1, 0, 6, 6) };
-                yield return new object[] { Bilevel_Bytes4x4, 1, 0, 1, 4, 4, Offset(Bilevel_Result4x4, 0, 1, 6, 6) };
-                yield return new object[] { Bilevel_Bytes4x4, 1, 1, 1, 4, 4, Offset(Bilevel_Result4x4, 1, 1, 6, 6) };
+                yield return new object[] { BilevelBytes4X4, 1, 0, 0, 4, 4, BilevelResult4X4 };
+                yield return new object[] { BilevelBytes4X4, 1, 0, 0, 4, 4, Offset(BilevelResult4X4, 0, 0, 6, 6) };
+                yield return new object[] { BilevelBytes4X4, 1, 1, 0, 4, 4, Offset(BilevelResult4X4, 1, 0, 6, 6) };
+                yield return new object[] { BilevelBytes4X4, 1, 0, 1, 4, 4, Offset(BilevelResult4X4, 0, 1, 6, 6) };
+                yield return new object[] { BilevelBytes4X4, 1, 1, 1, 4, 4, Offset(BilevelResult4X4, 1, 1, 6, 6) };
 
-                yield return new object[] { Bilevel_Bytes12x4, 1, 0, 0, 12, 4, Bilevel_Result12x4 };
-                yield return new object[] { Bilevel_Bytes12x4, 1, 0, 0, 12, 4, Offset(Bilevel_Result12x4, 0, 0, 18, 6) };
-                yield return new object[] { Bilevel_Bytes12x4, 1, 1, 0, 12, 4, Offset(Bilevel_Result12x4, 1, 0, 18, 6) };
-                yield return new object[] { Bilevel_Bytes12x4, 1, 0, 1, 12, 4, Offset(Bilevel_Result12x4, 0, 1, 18, 6) };
-                yield return new object[] { Bilevel_Bytes12x4, 1, 1, 1, 12, 4, Offset(Bilevel_Result12x4, 1, 1, 18, 6) };
+                yield return new object[] { BilevelBytes12X4, 1, 0, 0, 12, 4, BilevelResult12X4 };
+                yield return new object[] { BilevelBytes12X4, 1, 0, 0, 12, 4, Offset(BilevelResult12X4, 0, 0, 18, 6) };
+                yield return new object[] { BilevelBytes12X4, 1, 1, 0, 12, 4, Offset(BilevelResult12X4, 1, 0, 18, 6) };
+                yield return new object[] { BilevelBytes12X4, 1, 0, 1, 12, 4, Offset(BilevelResult12X4, 0, 1, 18, 6) };
+                yield return new object[] { BilevelBytes12X4, 1, 1, 1, 12, 4, Offset(BilevelResult12X4, 1, 1, 18, 6) };
             }
         }
 
-        public static IEnumerable<object[]> Grayscale4_Data
+        public static IEnumerable<object[]> Grayscale4Data
         {
             get
             {
-                yield return new object[] { Grayscale4_Bytes4x4, 4, 0, 0, 4, 4, Grayscale4_Result4x4 };
-                yield return new object[] { Grayscale4_Bytes4x4, 4, 0, 0, 4, 4, Offset(Grayscale4_Result4x4, 0, 0, 6, 6) };
-                yield return new object[] { Grayscale4_Bytes4x4, 4, 1, 0, 4, 4, Offset(Grayscale4_Result4x4, 1, 0, 6, 6) };
-                yield return new object[] { Grayscale4_Bytes4x4, 4, 0, 1, 4, 4, Offset(Grayscale4_Result4x4, 0, 1, 6, 6) };
-                yield return new object[] { Grayscale4_Bytes4x4, 4, 1, 1, 4, 4, Offset(Grayscale4_Result4x4, 1, 1, 6, 6) };
+                yield return new object[] { Grayscale4Bytes4X4, 4, 0, 0, 4, 4, Grayscale4Result4X4 };
+                yield return new object[] { Grayscale4Bytes4X4, 4, 0, 0, 4, 4, Offset(Grayscale4Result4X4, 0, 0, 6, 6) };
+                yield return new object[] { Grayscale4Bytes4X4, 4, 1, 0, 4, 4, Offset(Grayscale4Result4X4, 1, 0, 6, 6) };
+                yield return new object[] { Grayscale4Bytes4X4, 4, 0, 1, 4, 4, Offset(Grayscale4Result4X4, 0, 1, 6, 6) };
+                yield return new object[] { Grayscale4Bytes4X4, 4, 1, 1, 4, 4, Offset(Grayscale4Result4X4, 1, 1, 6, 6) };
 
-                yield return new object[] { Grayscale4_Bytes3x4, 4, 0, 0, 3, 4, Grayscale4_Result3x4 };
-                yield return new object[] { Grayscale4_Bytes3x4, 4, 0, 0, 3, 4, Offset(Grayscale4_Result3x4, 0, 0, 6, 6) };
-                yield return new object[] { Grayscale4_Bytes3x4, 4, 1, 0, 3, 4, Offset(Grayscale4_Result3x4, 1, 0, 6, 6) };
-                yield return new object[] { Grayscale4_Bytes3x4, 4, 0, 1, 3, 4, Offset(Grayscale4_Result3x4, 0, 1, 6, 6) };
-                yield return new object[] { Grayscale4_Bytes3x4, 4, 1, 1, 3, 4, Offset(Grayscale4_Result3x4, 1, 1, 6, 6) };
+                yield return new object[] { Grayscale4Bytes3X4, 4, 0, 0, 3, 4, Grayscale4Result3X4 };
+                yield return new object[] { Grayscale4Bytes3X4, 4, 0, 0, 3, 4, Offset(Grayscale4Result3X4, 0, 0, 6, 6) };
+                yield return new object[] { Grayscale4Bytes3X4, 4, 1, 0, 3, 4, Offset(Grayscale4Result3X4, 1, 0, 6, 6) };
+                yield return new object[] { Grayscale4Bytes3X4, 4, 0, 1, 3, 4, Offset(Grayscale4Result3X4, 0, 1, 6, 6) };
+                yield return new object[] { Grayscale4Bytes3X4, 4, 1, 1, 3, 4, Offset(Grayscale4Result3X4, 1, 1, 6, 6) };
             }
         }
 
-        public static IEnumerable<object[]> Grayscale8_Data
+        public static IEnumerable<object[]> Grayscale8Data
         {
             get
             {
-                yield return new object[] { Grayscale8_Bytes4x4, 8, 0, 0, 4, 4, Grayscale8_Result4x4 };
-                yield return new object[] { Grayscale8_Bytes4x4, 8, 0, 0, 4, 4, Offset(Grayscale8_Result4x4, 0, 0, 6, 6) };
-                yield return new object[] { Grayscale8_Bytes4x4, 8, 1, 0, 4, 4, Offset(Grayscale8_Result4x4, 1, 0, 6, 6) };
-                yield return new object[] { Grayscale8_Bytes4x4, 8, 0, 1, 4, 4, Offset(Grayscale8_Result4x4, 0, 1, 6, 6) };
-                yield return new object[] { Grayscale8_Bytes4x4, 8, 1, 1, 4, 4, Offset(Grayscale8_Result4x4, 1, 1, 6, 6) };
+                yield return new object[] { Grayscale8Bytes4X4, 8, 0, 0, 4, 4, Grayscale8Result4X4 };
+                yield return new object[] { Grayscale8Bytes4X4, 8, 0, 0, 4, 4, Offset(Grayscale8Result4X4, 0, 0, 6, 6) };
+                yield return new object[] { Grayscale8Bytes4X4, 8, 1, 0, 4, 4, Offset(Grayscale8Result4X4, 1, 0, 6, 6) };
+                yield return new object[] { Grayscale8Bytes4X4, 8, 0, 1, 4, 4, Offset(Grayscale8Result4X4, 0, 1, 6, 6) };
+                yield return new object[] { Grayscale8Bytes4X4, 8, 1, 1, 4, 4, Offset(Grayscale8Result4X4, 1, 1, 6, 6) };
             }
         }
 
         [Theory]
-        [MemberData(nameof(Bilevel_Data))]
-        [MemberData(nameof(Grayscale4_Data))]
-        [MemberData(nameof(Grayscale8_Data))]
+        [MemberData(nameof(BilevelData))]
+        [MemberData(nameof(Grayscale4Data))]
+        [MemberData(nameof(Grayscale8Data))]
         public void Decode_WritesPixelData(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         {
             AssertDecode(expectedResult, pixels =>
@@ -162,7 +163,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         }
 
         [Theory]
-        [MemberData(nameof(Bilevel_Data))]
+        [MemberData(nameof(BilevelData))]
         public void Decode_WritesPixelData_Bilevel(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         {
             AssertDecode(expectedResult, pixels =>
@@ -172,7 +173,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         }
 
         [Theory]
-        [MemberData(nameof(Grayscale4_Data))]
+        [MemberData(nameof(Grayscale4Data))]
         public void Decode_WritesPixelData_4Bit(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         {
             AssertDecode(expectedResult, pixels =>
@@ -182,7 +183,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         }
 
         [Theory]
-        [MemberData(nameof(Grayscale8_Data))]
+        [MemberData(nameof(Grayscale8Data))]
         public void Decode_WritesPixelData_8Bit(byte[] inputData, int bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         {
             AssertDecode(expectedResult, pixels =>

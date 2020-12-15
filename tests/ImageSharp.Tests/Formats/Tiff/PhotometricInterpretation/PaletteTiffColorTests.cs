@@ -10,22 +10,23 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
 {
+    [Trait("Format", "Tiff")]
     public class PaletteTiffColorTests : PhotometricInterpretationTestBase
     {
-        public static uint[][] Palette4_ColorPalette { get => GeneratePalette(16); }
+        public static uint[][] Palette4ColorPalette { get => GeneratePalette(16); }
 
-        public static ushort[] Palette4_ColorMap { get => GenerateColorMap(Palette4_ColorPalette); }
+        public static ushort[] Palette4ColorMap { get => GenerateColorMap(Palette4ColorPalette); }
 
-        private static readonly byte[] Palette4_Bytes4x4 =
+        private static readonly byte[] Palette4Bytes4X4 =
         {
             0x01, 0x23, 0x4A, 0xD2, 0x12, 0x34, 0xAB, 0xEF
         };
 
-        private static readonly Rgba32[][] Palette4_Result4x4 = GenerateResult(
-            Palette4_ColorPalette,
+        private static readonly Rgba32[][] Palette4Result4X4 = GenerateResult(
+            Palette4ColorPalette,
             new[] { new[] { 0x00, 0x01, 0x02, 0x03 }, new[] { 0x04, 0x0A, 0x0D, 0x02 }, new[] { 0x01, 0x02, 0x03, 0x04 }, new[] { 0x0A, 0x0B, 0x0E, 0x0F } });
 
-        private static readonly byte[] Palette4_Bytes3x4 =
+        private static readonly byte[] Palette4Bytes3X4 =
         {
             0x01, 0x20,
             0x4A, 0xD0,
@@ -33,31 +34,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
             0xAB, 0xE0
         };
 
-        private static readonly Rgba32[][] Palette4_Result3x4 = GenerateResult(Palette4_ColorPalette, new[] { new[] { 0x00, 0x01, 0x02 }, new[] { 0x04, 0x0A, 0x0D }, new[] { 0x01, 0x02, 0x03 }, new[] { 0x0A, 0x0B, 0x0E } });
+        private static readonly Rgba32[][] Palette4Result3X4 = GenerateResult(Palette4ColorPalette, new[] { new[] { 0x00, 0x01, 0x02 }, new[] { 0x04, 0x0A, 0x0D }, new[] { 0x01, 0x02, 0x03 }, new[] { 0x0A, 0x0B, 0x0E } });
 
-        public static IEnumerable<object[]> Palette4_Data
+        public static IEnumerable<object[]> Palette4Data
         {
             get
             {
-                yield return new object[] { Palette4_Bytes4x4, 4, Palette4_ColorMap, 0, 0, 4, 4, Palette4_Result4x4 };
-                yield return new object[] { Palette4_Bytes4x4, 4, Palette4_ColorMap, 0, 0, 4, 4, Offset(Palette4_Result4x4, 0, 0, 6, 6) };
-                yield return new object[] { Palette4_Bytes4x4, 4, Palette4_ColorMap, 1, 0, 4, 4, Offset(Palette4_Result4x4, 1, 0, 6, 6) };
-                yield return new object[] { Palette4_Bytes4x4, 4, Palette4_ColorMap, 0, 1, 4, 4, Offset(Palette4_Result4x4, 0, 1, 6, 6) };
-                yield return new object[] { Palette4_Bytes4x4, 4, Palette4_ColorMap, 1, 1, 4, 4, Offset(Palette4_Result4x4, 1, 1, 6, 6) };
+                yield return new object[] { Palette4Bytes4X4, 4, Palette4ColorMap, 0, 0, 4, 4, Palette4Result4X4 };
+                yield return new object[] { Palette4Bytes4X4, 4, Palette4ColorMap, 0, 0, 4, 4, Offset(Palette4Result4X4, 0, 0, 6, 6) };
+                yield return new object[] { Palette4Bytes4X4, 4, Palette4ColorMap, 1, 0, 4, 4, Offset(Palette4Result4X4, 1, 0, 6, 6) };
+                yield return new object[] { Palette4Bytes4X4, 4, Palette4ColorMap, 0, 1, 4, 4, Offset(Palette4Result4X4, 0, 1, 6, 6) };
+                yield return new object[] { Palette4Bytes4X4, 4, Palette4ColorMap, 1, 1, 4, 4, Offset(Palette4Result4X4, 1, 1, 6, 6) };
 
-                yield return new object[] { Palette4_Bytes3x4, 4, Palette4_ColorMap, 0, 0, 3, 4, Palette4_Result3x4 };
-                yield return new object[] { Palette4_Bytes3x4, 4, Palette4_ColorMap, 0, 0, 3, 4, Offset(Palette4_Result3x4, 0, 0, 6, 6) };
-                yield return new object[] { Palette4_Bytes3x4, 4, Palette4_ColorMap, 1, 0, 3, 4, Offset(Palette4_Result3x4, 1, 0, 6, 6) };
-                yield return new object[] { Palette4_Bytes3x4, 4, Palette4_ColorMap, 0, 1, 3, 4, Offset(Palette4_Result3x4, 0, 1, 6, 6) };
-                yield return new object[] { Palette4_Bytes3x4, 4, Palette4_ColorMap, 1, 1, 3, 4, Offset(Palette4_Result3x4, 1, 1, 6, 6) };
+                yield return new object[] { Palette4Bytes3X4, 4, Palette4ColorMap, 0, 0, 3, 4, Palette4Result3X4 };
+                yield return new object[] { Palette4Bytes3X4, 4, Palette4ColorMap, 0, 0, 3, 4, Offset(Palette4Result3X4, 0, 0, 6, 6) };
+                yield return new object[] { Palette4Bytes3X4, 4, Palette4ColorMap, 1, 0, 3, 4, Offset(Palette4Result3X4, 1, 0, 6, 6) };
+                yield return new object[] { Palette4Bytes3X4, 4, Palette4ColorMap, 0, 1, 3, 4, Offset(Palette4Result3X4, 0, 1, 6, 6) };
+                yield return new object[] { Palette4Bytes3X4, 4, Palette4ColorMap, 1, 1, 3, 4, Offset(Palette4Result3X4, 1, 1, 6, 6) };
             }
         }
 
-        public static uint[][] Palette8_ColorPalette { get => GeneratePalette(256); }
+        public static uint[][] Palette8ColorPalette { get => GeneratePalette(256); }
 
-        public static ushort[] Palette8_ColorMap { get => GenerateColorMap(Palette8_ColorPalette); }
+        public static ushort[] Palette8ColorMap { get => GenerateColorMap(Palette8ColorPalette); }
 
-        private static readonly byte[] Palette8_Bytes4x4 =
+        private static readonly byte[] Palette8Bytes4X4 =
         {
             000, 001, 002, 003,
             100, 110, 120, 130,
@@ -65,28 +66,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
             050, 100, 150, 200
         };
 
-        private static readonly Rgba32[][] Palette8_Result4x4 = GenerateResult(Palette8_ColorPalette, new[] { new[] { 000, 001, 002, 003 }, new[] { 100, 110, 120, 130 }, new[] { 000, 255, 128, 255 }, new[] { 050, 100, 150, 200 } });
+        private static readonly Rgba32[][] Palette8Result4X4 = GenerateResult(Palette8ColorPalette, new[] { new[] { 000, 001, 002, 003 }, new[] { 100, 110, 120, 130 }, new[] { 000, 255, 128, 255 }, new[] { 050, 100, 150, 200 } });
 
-        public static IEnumerable<object[]> Palette8_Data
+        public static IEnumerable<object[]> Palette8Data
         {
             get
             {
-                yield return new object[] { Palette8_Bytes4x4, 8, Palette8_ColorMap, 0, 0, 4, 4, Palette8_Result4x4 };
-                yield return new object[] { Palette8_Bytes4x4, 8, Palette8_ColorMap, 0, 0, 4, 4, Offset(Palette8_Result4x4, 0, 0, 6, 6) };
-                yield return new object[] { Palette8_Bytes4x4, 8, Palette8_ColorMap, 1, 0, 4, 4, Offset(Palette8_Result4x4, 1, 0, 6, 6) };
-                yield return new object[] { Palette8_Bytes4x4, 8, Palette8_ColorMap, 0, 1, 4, 4, Offset(Palette8_Result4x4, 0, 1, 6, 6) };
-                yield return new object[] { Palette8_Bytes4x4, 8, Palette8_ColorMap, 1, 1, 4, 4, Offset(Palette8_Result4x4, 1, 1, 6, 6) };
+                yield return new object[] { Palette8Bytes4X4, 8, Palette8ColorMap, 0, 0, 4, 4, Palette8Result4X4 };
+                yield return new object[] { Palette8Bytes4X4, 8, Palette8ColorMap, 0, 0, 4, 4, Offset(Palette8Result4X4, 0, 0, 6, 6) };
+                yield return new object[] { Palette8Bytes4X4, 8, Palette8ColorMap, 1, 0, 4, 4, Offset(Palette8Result4X4, 1, 0, 6, 6) };
+                yield return new object[] { Palette8Bytes4X4, 8, Palette8ColorMap, 0, 1, 4, 4, Offset(Palette8Result4X4, 0, 1, 6, 6) };
+                yield return new object[] { Palette8Bytes4X4, 8, Palette8ColorMap, 1, 1, 4, 4, Offset(Palette8Result4X4, 1, 1, 6, 6) };
             }
         }
 
         [Theory]
-        [MemberData(nameof(Palette4_Data))]
-        [MemberData(nameof(Palette8_Data))]
+        [MemberData(nameof(Palette4Data))]
+        [MemberData(nameof(Palette8Data))]
         public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, ushort[] colorMap, int left, int top, int width, int height, Rgba32[][] expectedResult)
         {
             AssertDecode(expectedResult, pixels =>
                 {
-                    new PaletteTiffColor<Rgba32>(new[] { (ushort)bitsPerSample }, colorMap).Decode(inputData, pixels, left, top, width, height);
+                    new PaletteTiffColor<Rgba32>(new[] { bitsPerSample }, colorMap).Decode(inputData, pixels, left, top, width, height);
                 });
         }
 

@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Tiff
+namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
 {
     [Trait("Format", "Tiff")]
     public abstract class PhotometricInterpretationTestBase
@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             int inputHeight = input.Length;
             int inputWidth = input[0].Length;
 
-            Rgba32[][] output = new Rgba32[height][];
+            var output = new Rgba32[height][];
 
             for (int y = 0; y < output.Length; y++)
             {
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             int resultWidth = expectedResult[0].Length;
             int resultHeight = expectedResult.Length;
 
-            using (Image<Rgba32> image = new Image<Rgba32>(resultWidth, resultHeight))
+            using (var image = new Image<Rgba32>(resultWidth, resultHeight))
             {
                 image.Mutate(x => x.BackgroundColor(DefaultColor));
                 Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();

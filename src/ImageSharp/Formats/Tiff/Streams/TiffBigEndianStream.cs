@@ -4,8 +4,6 @@
 using System;
 using System.IO;
 
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Streams
 {
     internal class TiffBigEndianStream : TiffStream

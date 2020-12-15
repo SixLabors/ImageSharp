@@ -24,6 +24,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     /// </summary>
     internal sealed class TiffEncoderCore : IImageEncoderInternals
     {
+        public static readonly ByteOrder ByteOrder = BitConverter.IsLittleEndian ? ByteOrder.LittleEndian : ByteOrder.BigEndian;
+
+        private static readonly ushort ByteOrderMarker = BitConverter.IsLittleEndian
+                ? TiffConstants.ByteOrderLittleEndianShort
+                : TiffConstants.ByteOrderBigEndianShort;
+
         /// <summary>
         /// Used for allocating memory during processing operations.
         /// </summary>
@@ -70,19 +76,21 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         }
 
         /// <summary>
-        /// Gets or sets the photometric interpretation implementation to use when encoding the image.
+        /// Gets the photometric interpretation implementation to use when encoding the image.
         /// </summary>
-        private TiffPhotometricInterpretation PhotometricInterpretation { get; set; }
+        internal TiffPhotometricInterpretation PhotometricInterpretation { get; private set; }
 
         /// <summary>
         /// Gets the compression implementation to use when encoding the image.
         /// </summary>
-        private TiffEncoderCompression CompressionType { get; }
+        internal TiffEncoderCompression CompressionType { get; }
 
         /// <summary>
-        /// Gets or sets the encoding mode to use. RGB, RGB with color palette or gray.
+        /// Gets the encoding mode to use. RGB, RGB with color palette or gray.
         /// </summary>
-        private TiffEncodingMode Mode { get; set; }
+        internal TiffEncodingMode Mode { get; private set; }
+
+        internal bool UseHorizontalPredictor => this.useHorizontalPredictor;
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -132,12 +140,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <returns>The marker to write the first IFD offset.</returns>
         public long WriteHeader(TiffWriter writer)
         {
-            ushort byteOrderMarker = BitConverter.IsLittleEndian
-                ? TiffConstants.ByteOrderLittleEndianShort
-                : TiffConstants.ByteOrderBigEndianShort;
-
-            writer.Write(byteOrderMarker);
-            writer.Write((ushort)42);
+            writer.Write(ByteOrderMarker);
+            writer.Write((ushort)TiffConstants.HeaderMagicNumber);
             long firstIfdMarker = writer.PlaceMarker();
 
             return firstIfdMarker;
@@ -154,8 +158,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public long WriteImage<TPixel>(TiffWriter writer, Image<TPixel> image, long ifdOffset)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            IExifValue colorMap = null;
-            var ifdEntries = new List<IExifValue>();
+            var entriesCollector = new TiffEncoderEntriesCollector();
 
             // Write the image bytes to the steam.
             var imageDataStart = (uint)writer.Position;
@@ -163,7 +166,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             switch (this.Mode)
             {
                 case TiffEncodingMode.ColorPalette:
-                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor, out colorMap);
+                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor, entriesCollector);
                     break;
                 case TiffEncodingMode.Gray:
                     imageDataBytes = writer.WriteGray(image, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor);
@@ -176,15 +179,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     break;
             }
 
-            // Write info's about the image to the stream.
-            this.AddImageFormat(image, ifdEntries, imageDataStart, imageDataBytes);
-            if (this.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor)
-            {
-                ifdEntries.Add(colorMap);
-            }
+            this.AddStripTags(image, entriesCollector, imageDataStart, imageDataBytes);
+            entriesCollector.ProcessImageFormat(this);
+            entriesCollector.ProcessGeneral(image);
 
             writer.WriteMarker(ifdOffset, (uint)writer.Position);
-            long nextIfdMarker = this.WriteIfd(writer, ifdEntries);
+            long nextIfdMarker = this.WriteIfd(writer, entriesCollector.Entries);
 
             return nextIfdMarker + imageDataBytes;
         }
@@ -250,49 +250,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// Adds image format information to the specified IFD.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
-        /// <param name="ifdEntries">The image format entries to add to the IFD.</param>
+        /// <param name="image">The <see cref="Image{TPixel}" /> to encode from.</param>
+        /// <param name="entriesCollector">The entries collector.</param>
         /// <param name="imageDataStartOffset">The start of the image data in the stream.</param>
         /// <param name="imageDataBytes">The image data in bytes to write.</param>
-        public void AddImageFormat<TPixel>(Image<TPixel> image, List<IExifValue> ifdEntries, uint imageDataStartOffset, int imageDataBytes)
+        public void AddStripTags<TPixel>(Image<TPixel> image, TiffEncoderEntriesCollector entriesCollector, uint imageDataStartOffset, int imageDataBytes)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var width = new ExifLong(ExifTagValue.ImageWidth)
-            {
-                Value = (uint)image.Width
-            };
-
-            var height = new ExifLong(ExifTagValue.ImageLength)
-            {
-                Value = (uint)image.Height
-            };
-
-            ushort[] bitsPerSampleValue = this.GetBitsPerSampleValue();
-            var bitPerSample = new ExifShortArray(ExifTagValue.BitsPerSample)
-            {
-                Value = bitsPerSampleValue
-            };
-
-            ushort compressionType = this.GetCompressionType();
-            var compression = new ExifShort(ExifTagValue.Compression)
-            {
-                Value = compressionType
-            };
-
-            var photometricInterpretation = new ExifShort(ExifTagValue.PhotometricInterpretation)
-            {
-                Value = (ushort)this.PhotometricInterpretation
-            };
-
             var stripOffsets = new ExifLongArray(ExifTagValue.StripOffsets)
             {
                 // TODO: we only write one image strip for the start.
                 Value = new[] { imageDataStartOffset }
-            };
-
-            var samplesPerPixel = new ExifLong(ExifTagValue.SamplesPerPixel)
-            {
-                Value = this.GetSamplesPerPixel()
             };
 
             var rowsPerStrip = new ExifLong(ExifTagValue.RowsPerStrip)
@@ -306,51 +274,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 Value = new[] { (uint)imageDataBytes }
             };
 
-            var xResolution = new ExifRational(ExifTagValue.XResolution)
-            {
-                // TODO: This field is required according to the spec, what to use here as a default?
-                Value = Rational.FromDouble(1.0d)
-            };
-
-            var yResolution = new ExifRational(ExifTagValue.YResolution)
-            {
-                // TODO: This field is required according to the spec, what to use here as a default?
-                Value = Rational.FromDouble(1.0d)
-            };
-
-            var resolutionUnit = new ExifShort(ExifTagValue.ResolutionUnit)
-            {
-                Value = 3 // 3 is centimeter.
-            };
-
-            var software = new ExifString(ExifTagValue.Software)
-            {
-                Value = "ImageSharp"
-            };
-
-            ifdEntries.Add(width);
-            ifdEntries.Add(height);
-            ifdEntries.Add(bitPerSample);
-            ifdEntries.Add(compression);
-            ifdEntries.Add(photometricInterpretation);
-            ifdEntries.Add(stripOffsets);
-            ifdEntries.Add(samplesPerPixel);
-            ifdEntries.Add(rowsPerStrip);
-            ifdEntries.Add(stripByteCounts);
-            ifdEntries.Add(xResolution);
-            ifdEntries.Add(yResolution);
-            ifdEntries.Add(resolutionUnit);
-            ifdEntries.Add(software);
-
-            if (this.useHorizontalPredictor)
-            {
-                if (this.Mode == TiffEncodingMode.Rgb || this.Mode == TiffEncodingMode.Gray || this.Mode == TiffEncodingMode.ColorPalette)
-                {
-                    var predictor = new ExifShort(ExifTagValue.Predictor) { Value = (ushort)TiffPredictor.Horizontal };
-
-                    ifdEntries.Add(predictor);
-                }
-            }
+            entriesCollector.Add(stripOffsets);
+            entriesCollector.Add(rowsPerStrip);
+            entriesCollector.Add(stripByteCounts);
         }
 
         private void SetPhotometricInterpretation()
@@ -380,86 +306,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     this.PhotometricInterpretation = TiffPhotometricInterpretation.Rgb;
                     break;
             }
-        }
-
-        private uint GetSamplesPerPixel()
-        {
-            switch (this.PhotometricInterpretation)
-            {
-                case TiffPhotometricInterpretation.Rgb:
-                    return 3;
-                case TiffPhotometricInterpretation.PaletteColor:
-                case TiffPhotometricInterpretation.BlackIsZero:
-                case TiffPhotometricInterpretation.WhiteIsZero:
-                    return 1;
-                default:
-                    return 3;
-            }
-        }
-
-        private ushort[] GetBitsPerSampleValue()
-        {
-            switch (this.PhotometricInterpretation)
-            {
-                case TiffPhotometricInterpretation.PaletteColor:
-                    return new ushort[] { 8 };
-                case TiffPhotometricInterpretation.Rgb:
-                    return new ushort[] { 8, 8, 8 };
-                case TiffPhotometricInterpretation.WhiteIsZero:
-                    if (this.Mode == TiffEncodingMode.BiColor)
-                    {
-                        return new ushort[] { 1 };
-                    }
-
-                    return new ushort[] { 8 };
-                case TiffPhotometricInterpretation.BlackIsZero:
-                    if (this.Mode == TiffEncodingMode.BiColor)
-                    {
-                        return new ushort[] { 1 };
-                    }
-
-                    return new ushort[] { 8 };
-                default:
-                    return new ushort[] { 8, 8, 8 };
-            }
-        }
-
-        private ushort GetCompressionType()
-        {
-            switch (this.CompressionType)
-            {
-                case TiffEncoderCompression.Deflate:
-                    // Deflate is allowed for all modes.
-                    return (ushort)TiffCompression.Deflate;
-                case TiffEncoderCompression.PackBits:
-                    // PackBits is allowed for all modes.
-                    return (ushort)TiffCompression.PackBits;
-                case TiffEncoderCompression.Lzw:
-                    if (this.Mode == TiffEncodingMode.Rgb || this.Mode == TiffEncodingMode.Gray || this.Mode == TiffEncodingMode.ColorPalette)
-                    {
-                        return (ushort)TiffCompression.Lzw;
-                    }
-
-                    break;
-
-                case TiffEncoderCompression.CcittGroup3Fax:
-                    if (this.Mode == TiffEncodingMode.BiColor)
-                    {
-                        return (ushort)TiffCompression.CcittGroup3Fax;
-                    }
-
-                    break;
-
-                case TiffEncoderCompression.ModifiedHuffman:
-                    if (this.Mode == TiffEncodingMode.BiColor)
-                    {
-                        return (ushort)TiffCompression.Ccitt1D;
-                    }
-
-                    break;
-            }
-
-            return (ushort)TiffCompression.None;
         }
     }
 }

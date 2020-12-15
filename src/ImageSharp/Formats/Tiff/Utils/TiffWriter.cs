@@ -285,9 +285,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <param name="compression">The compression to use.</param>
         /// <param name="compressionLevel">The compression level for deflate compression.</param>
         /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used. Should only be used in combination with deflate or LZW compression.</param>
-        /// <param name="colorMap">The color map.</param>
+        /// <param name="entriesCollector">The entries collector.</param>
         /// <returns>The number of bytes written.</returns>
-        public int WritePalettedRgb<TPixel>(Image<TPixel> image, IQuantizer quantizer, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor, out IExifValue colorMap)
+        public int WritePalettedRgb<TPixel>(Image<TPixel> image, IQuantizer quantizer, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor, TiffEncoderEntriesCollector entriesCollector)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int colorsPerChannel = 256;
@@ -332,10 +332,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                 palette[paletteIdx++] = quantizedColorRgb48[i].B;
             }
 
-            colorMap = new ExifShortArray(ExifTagValue.ColorMap)
+            var colorMap = new ExifShortArray(ExifTagValue.ColorMap)
             {
                 Value = palette
             };
+
+            entriesCollector.Add(colorMap);
 
             if (compression == TiffEncoderCompression.Deflate)
             {

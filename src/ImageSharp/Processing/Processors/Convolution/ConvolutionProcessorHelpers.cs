@@ -12,17 +12,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// See <see href="http://chemaguerra.com/gaussian-filter-radius/"/>.
         /// </summary>
         internal static int GetDefaultGaussianRadius(float sigma)
-        {
-            return (int)MathF.Ceiling(sigma * 3);
-        }
+            => (int)MathF.Ceiling(sigma * 3);
 
         /// <summary>
         /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function.
         /// </summary>
-        /// <returns>The <see cref="DenseMatrix{T}"/>.</returns>
-        internal static DenseMatrix<float> CreateGaussianBlurKernel(int size, float weight)
+        /// <returns>The convolution kernel.</returns>
+        internal static float[] CreateGaussianBlurKernel(int size, float weight)
         {
-            var kernel = new DenseMatrix<float>(size, 1);
+            var kernel = new float[size];
 
             float sum = 0F;
             float midpoint = (size - 1) / 2F;
@@ -32,13 +30,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 float x = i - midpoint;
                 float gx = Numerics.Gaussian(x, weight);
                 sum += gx;
-                kernel[0, i] = gx;
+                kernel[i] = gx;
             }
 
             // Normalize kernel so that the sum of all weights equals 1
             for (int i = 0; i < size; i++)
             {
-                kernel[0, i] /= sum;
+                kernel[i] /= sum;
             }
 
             return kernel;
@@ -47,10 +45,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <summary>
         /// Create a 1 dimensional Gaussian kernel using the Gaussian G(x) function
         /// </summary>
-        /// <returns>The <see cref="DenseMatrix{T}"/>.</returns>
-        internal static DenseMatrix<float> CreateGaussianSharpenKernel(int size, float weight)
+        /// <returns>The convolution kernel.</returns>
+        internal static float[] CreateGaussianSharpenKernel(int size, float weight)
         {
-            var kernel = new DenseMatrix<float>(size, 1);
+            var kernel = new float[size];
 
             float sum = 0;
 
@@ -60,7 +58,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 float x = i - midpoint;
                 float gx = Numerics.Gaussian(x, weight);
                 sum += gx;
-                kernel[0, i] = gx;
+                kernel[i] = gx;
             }
 
             // Invert the kernel for sharpening.
@@ -70,19 +68,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 if (i == midpointRounded)
                 {
                     // Calculate central value
-                    kernel[0, i] = (2F * sum) - kernel[0, i];
+                    kernel[i] = (2F * sum) - kernel[i];
                 }
                 else
                 {
                     // invert value
-                    kernel[0, i] = -kernel[0, i];
+                    kernel[i] = -kernel[i];
                 }
             }
 
             // Normalize kernel so that the sum of all weights equals 1
             for (int i = 0; i < size; i++)
             {
-                kernel[0, i] /= sum;
+                kernel[i] /= sum;
             }
 
             return kernel;

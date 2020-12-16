@@ -41,13 +41,11 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Determine the Least Common Multiple (LCM) of two numbers.
+        /// See https://en.wikipedia.org/wiki/Least_common_multiple#Reduction_by_the_greatest_common_divisor.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int LeastCommonMultiple(int a, int b)
-        {
-            // https://en.wikipedia.org/wiki/Least_common_multiple#Reduction_by_the_greatest_common_divisor
-            return (a / GreatestCommonDivisor(a, b)) * b;
-        }
+            => a / GreatestCommonDivisor(a, b) * b;
 
         /// <summary>
         /// Calculates <paramref name="x"/> % 2
@@ -290,10 +288,14 @@ namespace SixLabors.ImageSharp
 
             if (remainder.Length > 0)
             {
-                for (int i = 0; i < remainder.Length; i++)
+                ref byte remainderStart = ref MemoryMarshal.GetReference(remainder);
+                ref byte remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+
+                while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
                 {
-                    ref byte v = ref remainder[i];
-                    v = Clamp(v, min, max);
+                    remainderStart = Clamp(remainderStart, min, max);
+
+                    remainderStart = ref Unsafe.Add(ref remainderStart, 1);
                 }
             }
         }
@@ -311,10 +313,14 @@ namespace SixLabors.ImageSharp
 
             if (remainder.Length > 0)
             {
-                for (int i = 0; i < remainder.Length; i++)
+                ref uint remainderStart = ref MemoryMarshal.GetReference(remainder);
+                ref uint remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+
+                while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
                 {
-                    ref uint v = ref remainder[i];
-                    v = Clamp(v, min, max);
+                    remainderStart = Clamp(remainderStart, min, max);
+
+                    remainderStart = ref Unsafe.Add(ref remainderStart, 1);
                 }
             }
         }
@@ -332,10 +338,14 @@ namespace SixLabors.ImageSharp
 
             if (remainder.Length > 0)
             {
-                for (int i = 0; i < remainder.Length; i++)
+                ref int remainderStart = ref MemoryMarshal.GetReference(remainder);
+                ref int remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+
+                while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
                 {
-                    ref int v = ref remainder[i];
-                    v = Clamp(v, min, max);
+                    remainderStart = Clamp(remainderStart, min, max);
+
+                    remainderStart = ref Unsafe.Add(ref remainderStart, 1);
                 }
             }
         }
@@ -353,10 +363,14 @@ namespace SixLabors.ImageSharp
 
             if (remainder.Length > 0)
             {
-                for (int i = 0; i < remainder.Length; i++)
+                ref float remainderStart = ref MemoryMarshal.GetReference(remainder);
+                ref float remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+
+                while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
                 {
-                    ref float v = ref remainder[i];
-                    v = Clamp(v, min, max);
+                    remainderStart = Clamp(remainderStart, min, max);
+
+                    remainderStart = ref Unsafe.Add(ref remainderStart, 1);
                 }
             }
         }
@@ -374,10 +388,14 @@ namespace SixLabors.ImageSharp
 
             if (remainder.Length > 0)
             {
-                for (int i = 0; i < remainder.Length; i++)
+                ref double remainderStart = ref MemoryMarshal.GetReference(remainder);
+                ref double remainderEnd = ref Unsafe.Add(ref remainderStart, remainder.Length);
+
+                while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
                 {
-                    ref double v = ref remainder[i];
-                    v = Clamp(v, min, max);
+                    remainderStart = Clamp(remainderStart, min, max);
+
+                    remainderStart = ref Unsafe.Add(ref remainderStart, 1);
                 }
             }
         }
@@ -407,7 +425,6 @@ namespace SixLabors.ImageSharp
             where T : unmanaged
         {
             ref T sRef = ref MemoryMarshal.GetReference(span);
-            ref Vector<T> vsBase = ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));
             var vmin = new Vector<T>(min);
             var vmax = new Vector<T>(max);
 
@@ -415,25 +432,35 @@ namespace SixLabors.ImageSharp
             int m = Modulo4(n);
             int u = n - m;
 
-            for (int i = 0; i < u; i += 4)
-            {
-                ref Vector<T> vs0 = ref Unsafe.Add(ref vsBase, i);
-                ref Vector<T> vs1 = ref Unsafe.Add(ref vs0, 1);
-                ref Vector<T> vs2 = ref Unsafe.Add(ref vs0, 2);
-                ref Vector<T> vs3 = ref Unsafe.Add(ref vs0, 3);
+            ref Vector<T> vs0 = ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));
+            ref Vector<T> vs1 = ref Unsafe.Add(ref vs0, 1);
+            ref Vector<T> vs2 = ref Unsafe.Add(ref vs0, 2);
+            ref Vector<T> vs3 = ref Unsafe.Add(ref vs0, 3);
+            ref Vector<T> vsEnd = ref Unsafe.Add(ref vs0, u);
 
+            while (Unsafe.IsAddressLessThan(ref vs0, ref vsEnd))
+            {
                 vs0 = Vector.Min(Vector.Max(vmin, vs0), vmax);
                 vs1 = Vector.Min(Vector.Max(vmin, vs1), vmax);
                 vs2 = Vector.Min(Vector.Max(vmin, vs2), vmax);
                 vs3 = Vector.Min(Vector.Max(vmin, vs3), vmax);
+
+                vs0 = ref Unsafe.Add(ref vs0, 4);
+                vs1 = ref Unsafe.Add(ref vs1, 4);
+                vs2 = ref Unsafe.Add(ref vs2, 4);
+                vs3 = ref Unsafe.Add(ref vs3, 4);
             }
 
             if (m > 0)
             {
-                for (int i = u; i < n; i++)
+                vs0 = ref vsEnd;
+                vsEnd = ref Unsafe.Add(ref vsEnd, m);
+
+                while (Unsafe.IsAddressLessThan(ref vs0, ref vsEnd))
                 {
-                    ref Vector<T> vs0 = ref Unsafe.Add(ref vsBase, i);
                     vs0 = Vector.Min(Vector.Max(vmin, vs0), vmax);
+
+                    vs0 = ref Unsafe.Add(ref vs0, 1);
                 }
             }
         }
@@ -472,10 +499,8 @@ namespace SixLabors.ImageSharp
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported && vectors.Length >= 2)
             {
-                ref Vector256<float> vectorsBase =
-                    ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
-
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
+                ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
                 ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
 
                 while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
@@ -495,12 +520,14 @@ namespace SixLabors.ImageSharp
             else
 #endif
             {
-                ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+                ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
+                ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, vectors.Length);
 
-                for (int i = 0; i < vectors.Length; i++)
+                while (Unsafe.IsAddressLessThan(ref vectorsStart, ref vectorsEnd))
                 {
-                    ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                    Premultiply(ref v);
+                    Premultiply(ref vectorsStart);
+
+                    vectorsStart = ref Unsafe.Add(ref vectorsStart, 1);
                 }
             }
         }
@@ -515,10 +542,8 @@ namespace SixLabors.ImageSharp
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Avx2.IsSupported && vectors.Length >= 2)
             {
-                ref Vector256<float> vectorsBase =
-                    ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
-
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
+                ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));
                 ref Vector256<float> vectorsLast = ref Unsafe.Add(ref vectorsBase, (IntPtr)((uint)vectors.Length / 2u));
 
                 while (Unsafe.IsAddressLessThan(ref vectorsBase, ref vectorsLast))
@@ -538,12 +563,14 @@ namespace SixLabors.ImageSharp
             else
 #endif
             {
-                ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+                ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
+                ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, vectors.Length);
 
-                for (int i = 0; i < vectors.Length; i++)
+                while (Unsafe.IsAddressLessThan(ref vectorsStart, ref vectorsEnd))
                 {
-                    ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                    UnPremultiply(ref v);
+                    UnPremultiply(ref vectorsStart);
+
+                    vectorsStart = ref Unsafe.Add(ref vectorsStart, 1);
                 }
             }
         }
@@ -633,53 +660,54 @@ namespace SixLabors.ImageSharp
                     vectors128Ref = y4;
                     vectors128Ref = ref Unsafe.Add(ref vectors128Ref, 1);
                 }
-
-                return;
             }
+            else
 #endif
-            ref Vector4 vectorsRef = ref MemoryMarshal.GetReference(vectors);
-            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsRef, vectors.Length);
-
-            // Fallback with scalar preprocessing and vectorized approximation steps
-            while (Unsafe.IsAddressLessThan(ref vectorsRef, ref vectorsEnd))
             {
-                Vector4 v = vectorsRef;
+                ref Vector4 vectorsRef = ref MemoryMarshal.GetReference(vectors);
+                ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsRef, vectors.Length);
 
-                double
-                    x64 = v.X,
-                    y64 = v.Y,
-                    z64 = v.Z;
-                float a = v.W;
+                // Fallback with scalar preprocessing and vectorized approximation steps
+                while (Unsafe.IsAddressLessThan(ref vectorsRef, ref vectorsEnd))
+                {
+                    Vector4 v = vectorsRef;
 
-                ulong
-                    xl = *(ulong*)&x64,
-                    yl = *(ulong*)&y64,
-                    zl = *(ulong*)&z64;
+                    double
+                        x64 = v.X,
+                        y64 = v.Y,
+                        z64 = v.Z;
+                    float a = v.W;
 
-                // Here we use a trick to compute the starting value x0 for the cube root. This is because doing
-                // pow(x, 1 / gamma) is the same as the gamma-th root of x, and since gamme is 3 in this case,
-                // this means what we actually want is to find the cube root of our clamped values.
-                // For more info on the  constant below, see:
-                // https://community.intel.com/t5/Intel-C-Compiler/Fast-approximate-of-transcendental-operations/td-p/1044543.
-                // Here we perform the same trick on all RGB channels separately to help the CPU execute them in paralle, and
-                // store the alpha channel to preserve it. Then we set these values to the fields of a temporary 128-bit
-                // register, and use it to accelerate two steps of the Newton approximation using SIMD.
-                xl = 0x2a9f8a7be393b600 + (xl / 3);
-                yl = 0x2a9f8a7be393b600 + (yl / 3);
-                zl = 0x2a9f8a7be393b600 + (zl / 3);
+                    ulong
+                        xl = *(ulong*)&x64,
+                        yl = *(ulong*)&y64,
+                        zl = *(ulong*)&z64;
 
-                Vector4 y4;
-                y4.X = (float)*(double*)&xl;
-                y4.Y = (float)*(double*)&yl;
-                y4.Z = (float)*(double*)&zl;
-                y4.W = 0;
+                    // Here we use a trick to compute the starting value x0 for the cube root. This is because doing
+                    // pow(x, 1 / gamma) is the same as the gamma-th root of x, and since gamme is 3 in this case,
+                    // this means what we actually want is to find the cube root of our clamped values.
+                    // For more info on the  constant below, see:
+                    // https://community.intel.com/t5/Intel-C-Compiler/Fast-approximate-of-transcendental-operations/td-p/1044543.
+                    // Here we perform the same trick on all RGB channels separately to help the CPU execute them in paralle, and
+                    // store the alpha channel to preserve it. Then we set these values to the fields of a temporary 128-bit
+                    // register, and use it to accelerate two steps of the Newton approximation using SIMD.
+                    xl = 0x2a9f8a7be393b600 + (xl / 3);
+                    yl = 0x2a9f8a7be393b600 + (yl / 3);
+                    zl = 0x2a9f8a7be393b600 + (zl / 3);
 
-                y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
-                y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
-                y4.W = a;
+                    Vector4 y4;
+                    y4.X = (float)*(double*)&xl;
+                    y4.Y = (float)*(double*)&yl;
+                    y4.Z = (float)*(double*)&zl;
+                    y4.W = 0;
 
-                vectorsRef = y4;
-                vectorsRef = ref Unsafe.Add(ref vectorsRef, 1);
+                    y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
+                    y4 = (2 / 3f * y4) + (1 / 3f * (v / (y4 * y4)));
+                    y4.W = a;
+
+                    vectorsRef = y4;
+                    vectorsRef = ref Unsafe.Add(ref vectorsRef, 1);
+                }
             }
         }
     }

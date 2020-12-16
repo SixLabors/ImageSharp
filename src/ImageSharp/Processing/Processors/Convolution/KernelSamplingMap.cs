@@ -31,9 +31,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// <param name="kernel">The convolution kernel.</param>
         /// <param name="bounds">The source bounds.</param>
         public void BuildSamplingOffsetMap(DenseMatrix<float> kernel, Rectangle bounds)
+            => this.BuildSamplingOffsetMap(kernel.Rows, kernel.Columns, bounds);
+
+        /// <summary>
+        /// Builds a map of the sampling offsets for the kernel clamped by the given bounds.
+        /// </summary>
+        /// <param name="kernelHeight">The height (number of rows) of the convolution kernel to use.</param>
+        /// <param name="kernelWidth">The width (number of columns) of the convolution kernel to use.</param>
+        /// <param name="bounds">The source bounds.</param>
+        public void BuildSamplingOffsetMap(int kernelHeight, int kernelWidth, Rectangle bounds)
         {
-            int kernelHeight = kernel.Rows;
-            int kernelWidth = kernel.Columns;
             this.yOffsets = this.allocator.Allocate<int>(bounds.Height * kernelHeight);
             this.xOffsets = this.allocator.Allocate<int>(bounds.Width * kernelWidth);
 
@@ -92,8 +99,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         {
             if (!this.isDisposed)
             {
-                this.yOffsets.Dispose();
-                this.xOffsets.Dispose();
+                this.yOffsets?.Dispose();
+                this.xOffsets?.Dispose();
 
                 this.isDisposed = true;
             }

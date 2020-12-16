@@ -233,32 +233,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 // Clear the target buffer for each row run
                 Span<ComplexVector4> targetBuffer = this.targetValues.GetRowSpan(y);
                 targetBuffer.Clear();
-                ref ComplexVector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
 
                 // Execute the bulk pixel format conversion for the current row
                 Span<TPixel> sourceRow = this.sourcePixels.GetRowSpan(y).Slice(boundsX, boundsWidth);
                 PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, span);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(span);
+                ref ComplexVector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
+                ref ComplexVector4 targetEnd = ref Unsafe.Add(ref targetStart, span.Length);
                 ref Complex64 kernelBase = ref this.kernel[0];
+                ref Complex64 kernelEnd = ref Unsafe.Add(ref kernelBase, kernelSize);
                 ref int sampleColumnBase = ref MemoryMarshal.GetReference(this.map.GetColumnOffsetSpan());
 
-                for (int x = 0; x < span.Length; x++)
+                while (Unsafe.IsAddressLessThan(ref targetStart, ref targetEnd))
                 {
-                    ref ComplexVector4 target = ref Unsafe.Add(ref targetBase, x);
+                    ref Complex64 kernelStart = ref kernelBase;
+                    ref int sampleColumnStart = ref sampleColumnBase;
 
-                    for (int kX = 0; kX < kernelSize; kX++)
+                    while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
                     {
-                        int sampleX = Unsafe.Add(ref sampleColumnBase, kX) - boundsX;
-                        Vector4 sample = Unsafe.Add(ref sourceBase, sampleX);
-                        Complex64 factor = Unsafe.Add(ref kernelBase, kX);
+                        Vector4 sample = Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
 
-                        target.Sum(factor * sample);
+                        targetStart.Sum(kernelStart * sample);
+
+                        kernelStart = ref Unsafe.Add(ref kernelStart, 1);
+                        sampleColumnStart = ref Unsafe.Add(ref sampleColumnStart, 1);
                     }
 
                     // Shift the base column sampling reference by one row at the end of each outer
                     // iteration so that the inner tight loop indexing can skip the multiplication
                     sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, kernelSize);
+                    targetStart = ref Unsafe.Add(ref targetStart, 1);
                 }
             }
         }

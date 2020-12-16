@@ -129,29 +129,34 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                 int boundsWidth = this.bounds.Width;
                 int kernelSize = this.kernel.Length;
 
-                Span<int> rowOffsets = this.map.GetRowOffsetSpan();
-                ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(rowOffsets), (y - this.bounds.Y) * kernelSize);
+                ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (y - this.bounds.Y) * kernelSize);
 
                 // The target buffer is zeroed initially and then it accumulates the results
                 // of each partial convolution, so we don't have to clear it here as well
                 ref Vector4 targetBase = ref this.targetValues.GetElementUnsafe(boundsX, y);
-                ref Complex64 kernelBase = ref this.kernel[0];
+                ref Complex64 kernelStart = ref this.kernel[0];
+                ref Complex64 kernelEnd = ref Unsafe.Add(ref kernelStart, kernelSize);
 
-                for (int kY = 0; kY < kernelSize; kY++)
+                while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
                 {
                     // Get the precalculated source sample row for this kernel row and copy to our buffer
-                    int sampleY = Unsafe.Add(ref sampleRowBase, kY);
-                    ref ComplexVector4 sourceBase = ref this.sourceValues.GetElementUnsafe(0, sampleY);
-                    Complex64 factor = Unsafe.Add(ref kernelBase, kY);
+                    ref ComplexVector4 sourceBase = ref this.sourceValues.GetElementUnsafe(0, sampleRowBase);
+                    ref ComplexVector4 sourceEnd = ref Unsafe.Add(ref sourceBase, boundsWidth);
+                    ref Vector4 targetStart = ref targetBase;
+                    Complex64 factor = kernelStart;
 
-                    for (int x = 0; x < boundsWidth; x++)
+                    while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
                     {
-                        ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
-                        ComplexVector4 sample = Unsafe.Add(ref sourceBase, x);
-                        ComplexVector4 partial = factor * sample;
+                        ComplexVector4 partial = factor * sourceBase;
 
-                        target += partial.WeightedSum(this.z, this.w);
+                        targetStart += partial.WeightedSum(this.z, this.w);
+
+                        sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                        targetStart = ref Unsafe.Add(ref targetStart, 1);
                     }
+
+                    kernelStart = ref Unsafe.Add(ref kernelStart, 1);
+                    sampleRowBase = ref Unsafe.Add(ref sampleRowBase, 1);
                 }
             }
         }

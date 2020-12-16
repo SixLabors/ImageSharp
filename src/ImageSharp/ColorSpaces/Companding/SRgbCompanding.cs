@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -25,12 +25,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void Expand(Span<Vector4> vectors)
         {
-            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+            ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
+            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, vectors.Length);
 
-            for (int i = 0; i < vectors.Length; i++)
+            while (Unsafe.IsAddressLessThan(ref vectorsStart, ref vectorsEnd))
             {
-                ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                Expand(ref v);
+                Expand(ref vectorsStart);
+
+                vectorsStart = ref Unsafe.Add(ref vectorsStart, 1);
             }
         }
 
@@ -41,12 +43,14 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void Compress(Span<Vector4> vectors)
         {
-            ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
+            ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
+            ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, vectors.Length);
 
-            for (int i = 0; i < vectors.Length; i++)
+            while (Unsafe.IsAddressLessThan(ref vectorsStart, ref vectorsEnd))
             {
-                ref Vector4 v = ref Unsafe.Add(ref baseRef, i);
-                Compress(ref v);
+                Compress(ref vectorsStart);
+
+                vectorsStart = ref Unsafe.Add(ref vectorsStart, 1);
             }
         }
 

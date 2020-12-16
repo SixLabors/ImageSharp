@@ -75,7 +75,7 @@ jobs:
                   CI: True
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
-            - name: Store Output Images after failed tests
+            - name: Export Failed Output
               uses: actions/upload-artifact@v2
               if: failure()
               with:

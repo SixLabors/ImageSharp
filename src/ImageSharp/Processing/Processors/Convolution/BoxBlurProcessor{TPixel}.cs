@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
@@ -23,24 +24,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
             : base(configuration, source, sourceRectangle)
         {
             int kernelSize = (definition.Radius * 2) + 1;
-            this.KernelX = CreateBoxKernel(kernelSize);
-            this.KernelY = this.KernelX.Transpose();
+            this.Kernel = CreateBoxKernel(kernelSize);
         }
 
         /// <summary>
-        /// Gets the horizontal gradient operator.
+        /// Gets the 1D convolution kernel.
         /// </summary>
-        public DenseMatrix<float> KernelX { get; }
-
-        /// <summary>
-        /// Gets the vertical gradient operator.
-        /// </summary>
-        public DenseMatrix<float> KernelY { get; }
+        public float[] Kernel { get; }
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
         {
-            using var processor = new Convolution2PassProcessor<TPixel>(this.Configuration, this.KernelX, this.KernelY, false, this.Source, this.SourceRectangle);
+            using var processor = new Convolution2PassProcessor<TPixel>(this.Configuration, this.Kernel, false, this.Source, this.SourceRectangle);
 
             processor.Apply(source);
         }
@@ -50,10 +45,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         /// </summary>
         /// <param name="kernelSize">The maximum size of the kernel in either direction.</param>
         /// <returns>The <see cref="DenseMatrix{T}"/>.</returns>
-        private static DenseMatrix<float> CreateBoxKernel(int kernelSize)
+        private static float[] CreateBoxKernel(int kernelSize)
         {
-            var kernel = new DenseMatrix<float>(kernelSize, 1);
-            kernel.Fill(1F / kernelSize);
+            var kernel = new float[kernelSize];
+
+            kernel.AsSpan().Fill(1F / kernelSize);
+
             return kernel;
         }
     }

@@ -6,12 +6,11 @@ using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
-using CoreSize = SixLabors.ImageSharp.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    [Config(typeof(Config.ShortClr))]
-    public class DecodeFilteredPng : BenchmarkBase
+    [Config(typeof(Config.ShortMultiFramework))]
+    public class DecodeFilteredPng
     {
         private byte[] filter0;
         private byte[] filter1;
@@ -30,44 +29,33 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         }
 
         [Benchmark(Baseline = true, Description = "None-filtered PNG file")]
-        public CoreSize PngFilter0()
-        {
-            return LoadPng(this.filter0);
-        }
+        public Size PngFilter0()
+            => LoadPng(this.filter0);
 
         [Benchmark(Description = "Sub-filtered PNG file")]
-        public CoreSize PngFilter1()
-        {
-            return LoadPng(this.filter1);
-        }
+        public Size PngFilter1()
+            => LoadPng(this.filter1);
 
         [Benchmark(Description = "Up-filtered PNG file")]
-        public CoreSize PngFilter2()
-        {
-            return LoadPng(this.filter2);
-        }
+        public Size PngFilter2()
+            => LoadPng(this.filter2);
 
         [Benchmark(Description = "Average-filtered PNG file")]
-        public CoreSize PngFilter3()
-        {
-            return LoadPng(this.filter3);
-        }
+        public Size PngFilter3()
+            => LoadPng(this.filter3);
 
         [Benchmark(Description = "Paeth-filtered PNG file")]
-        public CoreSize PngFilter4()
-        {
-            return LoadPng(this.filter4);
-        }
+        public Size PngFilter4()
+            => LoadPng(this.filter4);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static CoreSize LoadPng(byte[] bytes)
+        private static Size LoadPng(byte[] bytes)
         {
-            using (var image = Image.Load<Rgba32>(bytes))
-            {
-                return image.Size();
-            }
+            using var image = Image.Load<Rgba32>(bytes);
+            return image.Size();
         }
 
-        private static string TestImageFullPath(string path) => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, path);
+        private static string TestImageFullPath(string path)
+            => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, path);
     }
 }

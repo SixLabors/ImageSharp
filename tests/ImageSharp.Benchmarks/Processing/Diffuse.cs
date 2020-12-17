@@ -5,31 +5,27 @@ using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace SixLabors.ImageSharp.Benchmarks.Samplers
+namespace SixLabors.ImageSharp.Benchmarks.Processing
 {
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.MultiFramework))]
     public class Diffuse
     {
         [Benchmark]
         public Size DoDiffuse()
         {
-            using (var image = new Image<Rgba32>(Configuration.Default, 800, 800, Color.BlanchedAlmond))
-            {
-                image.Mutate(x => x.Dither(KnownDitherings.FloydSteinberg));
+            using var image = new Image<Rgba32>(Configuration.Default, 800, 800, Color.BlanchedAlmond);
+            image.Mutate(x => x.Dither(KnownDitherings.FloydSteinberg));
 
-                return image.Size();
-            }
+            return image.Size();
         }
 
         [Benchmark]
         public Size DoDither()
         {
-            using (var image = new Image<Rgba32>(Configuration.Default, 800, 800, Color.BlanchedAlmond))
-            {
-                image.Mutate(x => x.Dither());
+            using var image = new Image<Rgba32>(Configuration.Default, 800, 800, Color.BlanchedAlmond);
+            image.Mutate(x => x.Dither());
 
-                return image.Size();
-            }
+            return image.Size();
         }
     }
 }

@@ -13,10 +13,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Samplers
         [Benchmark]
         public void Blur()
         {
-            using (var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.White))
-            {
-                image.Mutate(c => c.GaussianBlur());
-            }
+            using var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.White);
+            image.Mutate(c => c.GaussianBlur());
         }
     }
 }

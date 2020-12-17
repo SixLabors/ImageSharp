@@ -10,8 +10,8 @@ using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Processing
 {
-    [Config(typeof(Config.ShortClr))]
-    public class HistogramEqualization : BenchmarkBase
+    [Config(typeof(Config.MultiFramework))]
+    public class HistogramEqualization
     {
         private Image<Rgba32> image;
 
@@ -28,26 +28,25 @@ namespace SixLabors.ImageSharp.Benchmarks.Processing
         public void Cleanup()
         {
             this.image.Dispose();
+            this.image = null;
         }
 
         [Benchmark(Description = "Global Histogram Equalization")]
         public void GlobalHistogramEqualization()
-        {
-            this.image.Mutate(img => img.HistogramEqualization(new HistogramEqualizationOptions()
-            {
-                LuminanceLevels = 256,
-                Method = HistogramEqualizationMethod.Global
-            }));
-        }
+            => this.image.Mutate(img => img.HistogramEqualization(
+                new HistogramEqualizationOptions()
+                {
+                    LuminanceLevels = 256,
+                    Method = HistogramEqualizationMethod.Global
+                }));
 
         [Benchmark(Description = "AdaptiveHistogramEqualization (Tile interpolation)")]
         public void AdaptiveHistogramEqualization()
-        {
-            this.image.Mutate(img => img.HistogramEqualization(new HistogramEqualizationOptions()
-            {
-                LuminanceLevels = 256,
-                Method = HistogramEqualizationMethod.AdaptiveTileInterpolation
-            }));
-        }
+            => this.image.Mutate(img => img.HistogramEqualization(
+                new HistogramEqualizationOptions()
+                {
+                    LuminanceLevels = 256,
+                    Method = HistogramEqualizationMethod.AdaptiveTileInterpolation
+                }));
     }
 }

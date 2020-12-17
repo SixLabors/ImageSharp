@@ -4,26 +4,22 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
-
 using BenchmarkDotNet.Attributes;
-
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    [Config(typeof(Config.ShortClr))]
-#pragma warning disable SA1649 // File name should match first type name
-    public abstract class ResizeBenchmarkBase<TPixel>
-#pragma warning restore SA1649 // File name should match first type name
+    [Config(typeof(Config.MultiFramework))]
+    public abstract class Resize<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        protected readonly Configuration Configuration = new Configuration(new JpegConfigurationModule());
-
         private Image<TPixel> sourceImage;
 
         private Bitmap sourceBitmap;
+
+        protected Configuration Configuration { get; } = new Configuration(new JpegConfigurationModule());
 
         [Params("3032-400")]
         public virtual string SourceToDest { get; set; }
@@ -96,12 +92,10 @@ namespace SixLabors.ImageSharp.Benchmarks
         protected abstract void ExecuteResizeOperation(IImageProcessingContext ctx);
     }
 
-    public class Resize_Bicubic_Rgba32 : ResizeBenchmarkBase<Rgba32>
+    public class Resize_Bicubic_Rgba32 : Resize<Rgba32>
     {
         protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
-        {
-            ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
-        }
+            => ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
 
         // RESULTS - 2019 April - ResizeWorker:
         //
@@ -143,12 +137,10 @@ namespace SixLabors.ImageSharp.Benchmarks
         }
     }
 
-    public class Resize_Bicubic_Bgra32 : ResizeBenchmarkBase<Bgra32>
+    public class Resize_Bicubic_Bgra32 : Resize<Bgra32>
     {
         protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
-        {
-            ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
-        }
+            => ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
 
         // RESULTS (2019 April):
         //
@@ -171,12 +163,10 @@ namespace SixLabors.ImageSharp.Benchmarks
         //  'ImageSharp, MaxDegreeOfParallelism = 1' | Core |    Core |       3032 |      400 |  96.96 ms |  7.899 ms | 0.4329 ms |  0.80 |           - |           - |           - |             44512 B |
     }
 
-    public class Resize_Bicubic_Rgb24 : ResizeBenchmarkBase<Rgb24>
+    public class Resize_Bicubic_Rgb24 : Resize<Rgb24>
     {
         protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
-        {
-            ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
-        }
+            => ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
 
         // RESULTS (2019 April):
         //
@@ -197,12 +187,10 @@ namespace SixLabors.ImageSharp.Benchmarks
         //  'ImageSharp, MaxDegreeOfParallelism = 1' | Core |    Core |       3032 |      400 |  92.47 ms |  5.683 ms | 0.3115 ms |  0.78 |    0.01 |           - |           - |           - |             44512 B |
     }
 
-    public class Resize_BicubicCompand_Rgba32 : ResizeBenchmarkBase<Rgba32>
+    public class Resize_BicubicCompand_Rgba32 : Resize<Rgba32>
     {
         protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
-        {
-            ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic, true);
-        }
+            => ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic, true);
 
         // RESULTS (2019 April):
         //

@@ -13,8 +13,8 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    [Config(typeof(Config.ShortClr))]
-    public class EncodeGif : BenchmarkBase
+    [Config(typeof(Config.ShortMultiFramework))]
+    public class EncodeGif
     {
         // System.Drawing needs this.
         private Stream bmpStream;
@@ -46,6 +46,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void Cleanup()
         {
             this.bmpStream.Dispose();
+            this.bmpStream = null;
             this.bmpCore.Dispose();
             this.bmpDrawing.Dispose();
         }
@@ -53,19 +54,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [Benchmark(Baseline = true, Description = "System.Drawing Gif")]
         public void GifSystemDrawing()
         {
-            using (var memoryStream = new MemoryStream())
-            {
-                this.bmpDrawing.Save(memoryStream, ImageFormat.Gif);
-            }
+            using var memoryStream = new MemoryStream();
+            this.bmpDrawing.Save(memoryStream, ImageFormat.Gif);
         }
 
         [Benchmark(Description = "ImageSharp Gif")]
-        public void GifCore()
+        public void GifImageSharp()
         {
-            using (var memoryStream = new MemoryStream())
-            {
-                this.bmpCore.SaveAsGif(memoryStream, this.encoder);
-            }
+            using var memoryStream = new MemoryStream();
+            this.bmpCore.SaveAsGif(memoryStream, this.encoder);
         }
     }
 }

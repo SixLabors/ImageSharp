@@ -3,11 +3,6 @@
 
 using System.IO;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Diagnosers;
-using BenchmarkDotNet.Environments;
-using BenchmarkDotNet.Jobs;
-
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
@@ -20,22 +15,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
     /// <summary>
     /// Image-specific Jpeg benchmarks
     /// </summary>
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.ShortMultiFramework))]
     public class DecodeJpeg_ImageSpecific
     {
-        public class Config : ManualConfig
-        {
-            public Config() => this.AddDiagnoser(MemoryDiagnoser.Default);
-
-            public class ShortClr : Benchmarks.Config
-            {
-                public ShortClr() =>
-
-                    // Job.Default.With(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3),
-                    this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(2).WithIterationCount(3));
-            }
-        }
-
         private byte[] jpegBytes;
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);

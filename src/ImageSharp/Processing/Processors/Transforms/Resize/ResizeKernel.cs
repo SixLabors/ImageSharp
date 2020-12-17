@@ -61,9 +61,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>The weighted sum</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 Convolve(Span<Vector4> rowSpan)
-        {
-            return this.ConvolveCore(ref rowSpan[this.StartIndex]);
-        }
+            => this.ConvolveCore(ref rowSpan[this.StartIndex]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 ConvolveCore(ref Vector4 rowStartRef)
@@ -91,9 +89,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
         internal ResizeKernel AlterLeftValue(int left)
-        {
-            return new ResizeKernel(left, this.bufferPtr, this.Length);
-        }
+            => new ResizeKernel(left, this.bufferPtr, this.Length);
 
         internal void Fill(Span<double> values)
         {

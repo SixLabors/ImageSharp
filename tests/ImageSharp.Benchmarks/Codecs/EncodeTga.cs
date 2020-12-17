@@ -2,23 +2,21 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
 using BenchmarkDotNet.Attributes;
-
 using ImageMagick;
-
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    [Config(typeof(Config.ShortClr))]
-    public class EncodeTga : BenchmarkBase
+    [Config(typeof(Config.ShortMultiFramework))]
+    public class EncodeTga
     {
         private MagickImage tgaMagick;
         private Image<Rgba32> tgaCore;
 
-        private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
+        private string TestImageFullPath
+            => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
         [Params(TestImages.Tga.Bit24BottomLeft)]
         public string TestImage { get; set; }
@@ -33,22 +31,26 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             }
         }
 
-        [Benchmark(Baseline = true, Description = "Magick Tga")]
-        public void BmpSystemDrawing()
+        [GlobalCleanup]
+        public void Cleanup()
         {
-            using (var memoryStream = new MemoryStream())
-            {
-                this.tgaMagick.Write(memoryStream, MagickFormat.Tga);
-            }
+            this.tgaCore.Dispose();
+            this.tgaCore = null;
+            this.tgaMagick.Dispose();
+        }
+
+        [Benchmark(Baseline = true, Description = "Magick Tga")]
+        public void BmpImageMagick()
+        {
+            using var memoryStream = new MemoryStream();
+            this.tgaMagick.Write(memoryStream, MagickFormat.Tga);
         }
 
         [Benchmark(Description = "ImageSharp Tga")]
-        public void BmpCore()
+        public void BmpImageSharp()
         {
-            using (var memoryStream = new MemoryStream())
-            {
-                this.tgaCore.SaveAsBmp(memoryStream);
-            }
+            using var memoryStream = new MemoryStream();
+            this.tgaCore.SaveAsBmp(memoryStream);
         }
     }
 }

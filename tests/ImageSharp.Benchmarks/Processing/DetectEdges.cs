@@ -1,18 +1,16 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.IO;
+using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    using System.IO;
-
-    using BenchmarkDotNet.Attributes;
-
-    using SixLabors.ImageSharp.Processing;
-    using CoreImage = SixLabors.ImageSharp.Image;
-
-    public class DetectEdges : BenchmarkBase
+    [Config(typeof(Config.MultiFramework))]
+    public class DetectEdges
     {
         private Image<Rgba32> image;
 
@@ -21,10 +19,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         {
             if (this.image == null)
             {
-                using (FileStream stream = File.OpenRead("../ImageSharp.Tests/TestImages/Formats/Bmp/Car.bmp"))
-                {
-                    this.image = CoreImage.Load<Rgba32>(stream);
-                }
+                this.image = Image.Load<Rgba32>(File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Bmp.Car)));
             }
         }
 
@@ -32,6 +27,7 @@ namespace SixLabors.ImageSharp.Benchmarks
         public void Cleanup()
         {
             this.image.Dispose();
+            this.image = null;
         }
 
         [Benchmark(Description = "ImageSharp DetectEdges")]

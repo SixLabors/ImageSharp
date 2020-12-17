@@ -3,7 +3,6 @@
 
 using System.IO;
 using BenchmarkDotNet.Attributes;
-
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Tests;
@@ -11,7 +10,7 @@ using SDSize = System.Drawing.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.ShortMultiFramework))]
     public class DecodeJpegParseStreamOnly
     {
         [Params(TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr)]
@@ -23,9 +22,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
         [GlobalSetup]
         public void Setup()
-        {
-            this.jpegBytes = File.ReadAllBytes(this.TestImageFullPath);
-        }
+            => this.jpegBytes = File.ReadAllBytes(this.TestImageFullPath);
 
         [Benchmark(Baseline = true, Description = "System.Drawing FULL")]
         public SDSize JpegSystemDrawing()

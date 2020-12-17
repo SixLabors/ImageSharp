@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -11,27 +11,27 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
     public abstract class ColorConversionBenchmark
     {
         private readonly int componentCount;
-        protected Buffer2D<float>[] input;
-        protected Vector4[] output;
-
-        protected ColorConversionBenchmark(int componentCount)
-        {
-            this.componentCount = componentCount;
-        }
 
         public const int Count = 128;
+
+        protected ColorConversionBenchmark(int componentCount)
+            => this.componentCount = componentCount;
+
+        protected Buffer2D<float>[] Input { get; private set; }
+
+        protected Vector4[] Output { get; private set; }
 
         [GlobalSetup]
         public void Setup()
         {
-            this.input = CreateRandomValues(this.componentCount, Count);
-            this.output = new Vector4[Count];
+            this.Input = CreateRandomValues(this.componentCount, Count);
+            this.Output = new Vector4[Count];
         }
 
         [GlobalCleanup]
         public void Cleanup()
         {
-            foreach (Buffer2D<float> buffer in this.input)
+            foreach (Buffer2D<float> buffer in this.Input)
             {
                 buffer.Dispose();
             }

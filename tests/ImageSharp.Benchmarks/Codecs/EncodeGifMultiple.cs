@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.ShortMultiFramework))]
     public class EncodeGifMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
     {
         [Params(InputImageCategory.AllImages)]
@@ -20,8 +20,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         [Benchmark(Description = "EncodeGifMultiple - ImageSharp")]
         public void EncodeGifImageSharp()
-        {
-            this.ForEachImageSharpImage((img, ms) =>
+            => this.ForEachImageSharpImage((img, ms) =>
             {
                 // Try to get as close to System.Drawing's output as possible
                 var options = new GifEncoder
@@ -32,16 +31,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                 img.Save(ms, options);
                 return null;
             });
-        }
 
         [Benchmark(Baseline = true, Description = "EncodeGifMultiple - System.Drawing")]
         public void EncodeGifSystemDrawing()
-        {
-            this.ForEachSystemDrawingImage((img, ms) =>
+            => this.ForEachSystemDrawingImage((img, ms) =>
             {
                 img.Save(ms, ImageFormat.Gif);
                 return null;
             });
-        }
     }
 }

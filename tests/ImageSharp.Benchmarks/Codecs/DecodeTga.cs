@@ -5,7 +5,6 @@ using System.Buffers;
 using System.IO;
 using System.Threading;
 using BenchmarkDotNet.Attributes;
-
 using ImageMagick;
 using Pfim;
 using SixLabors.ImageSharp.Formats.Tga;
@@ -14,8 +13,8 @@ using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    [Config(typeof(Config.ShortClr))]
-    public class DecodeTga : BenchmarkBase
+    [Config(typeof(Config.ShortMultiFramework))]
+    public class DecodeTga
     {
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
@@ -28,36 +27,28 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         [GlobalSetup]
         public void SetupData()
-        {
-            this.data = File.ReadAllBytes(this.TestImageFullPath);
-        }
+            => this.data = File.ReadAllBytes(this.TestImageFullPath);
 
         [Benchmark(Baseline = true, Description = "ImageMagick Tga")]
         public int TgaImageMagick()
         {
             var settings = new MagickReadSettings { Format = MagickFormat.Tga };
-            using (var image = new MagickImage(new MemoryStream(this.data), settings))
-            {
-                return image.Width;
-            }
+            using var image = new MagickImage(new MemoryStream(this.data), settings);
+            return image.Width;
         }
 
         [Benchmark(Description = "ImageSharp Tga")]
-        public int TgaCore()
+        public int TgaImageSharp()
         {
-            using (var image = Image.Load<Bgr24>(this.data, new TgaDecoder()))
-            {
-                return image.Width;
-            }
+            using var image = Image.Load<Bgr24>(this.data, new TgaDecoder());
+            return image.Width;
         }
 
         [Benchmark(Description = "Pfim Tga")]
         public int TgaPfim()
         {
-            using (var image = Targa.Create(this.data, this.pfimConfig))
-            {
-                return image.Width;
-            }
+            using var image = Targa.Create(this.data, this.pfimConfig);
+            return image.Width;
         }
 
         private class PfimAllocator : IImageAllocator
@@ -65,10 +56,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             private int rented;
             private readonly ArrayPool<byte> shared = ArrayPool<byte>.Shared;
 
-            public byte[] Rent(int size)
-            {
-                return this.shared.Rent(size);
-            }
+            public byte[] Rent(int size) => this.shared.Rent(size);
 
             public void Return(byte[] data)
             {

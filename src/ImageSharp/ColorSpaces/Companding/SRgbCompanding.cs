@@ -69,8 +69,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
             return result;
         });
 
-        private static readonly float[] ExpandTable = LazyExpandTable.Value;
-        private static readonly float[] CompressTable = LazyCompressTable.Value;
+        private static float[] ExpandTable => LazyExpandTable.Value;
+
+        private static float[] CompressTable => LazyCompressTable.Value;
 
         /// <summary>
         /// Expands the companded vectors to their linear equivalents with respect to the energy.

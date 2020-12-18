@@ -21,6 +21,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         private const TiffPredictor DefaultPredictor = TiffPredictor.None;
 
+        private ExifProfile frameTags;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffFrameMetadata"/> class.
         /// </summary>
@@ -29,9 +31,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         }
 
         /// <summary>
-        /// Gets the Tiff directory tags list.
+        /// Gets the Tiff directory tags.
         /// </summary>
-        public List<IExifValue> FrameTags { get; internal set; } = new List<IExifValue>();
+        public ExifProfile FrameTags
+        {
+            get => this.frameTags ??= new ExifProfile();
+            internal set => this.frameTags = value;
+        }
 
         /// <summary>Gets a general indication of the kind of data contained in this subfile.</summary>
         /// <value>A general indication of the kind of data contained in this subfile.</value>
@@ -241,7 +247,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public void ClearMetadata()
         {
             var tags = new List<IExifValue>();
-            foreach (IExifValue entry in this.FrameTags)
+            foreach (IExifValue entry in this.FrameTags.Values)
             {
                 switch ((ExifTagValue)(ushort)entry.Tag)
                 {
@@ -261,19 +267,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 }
             }
 
-            this.FrameTags = tags;
+            var profile = new ExifProfile();
+            profile.InitializeInternal(tags);
+            this.FrameTags = profile;
         }
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone()
-        {
-            var tags = new List<IExifValue>();
-            foreach (IExifValue entry in this.FrameTags)
-            {
-                tags.Add(entry.DeepClone());
-            }
-
-            return new TiffFrameMetadata() { FrameTags = tags };
-        }
+        public IDeepCloneable DeepClone() => new TiffFrameMetadata() { FrameTags = this.FrameTags.DeepClone() };
     }
 }

@@ -106,11 +106,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             TiffStream tiffStream = CreateStream(stream);
             var reader = new DirectoryReader(tiffStream);
 
-            IEnumerable<IExifValue[]> directories = reader.Read();
+            IEnumerable<ExifProfile> directories = reader.Read();
 
             var frames = new List<ImageFrame<TPixel>>();
             var framesMetadata = new List<TiffFrameMetadata>();
-            foreach (IExifValue[] ifd in directories)
+            foreach (ExifProfile ifd in directories)
             {
                 ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, out TiffFrameMetadata frameMetadata);
                 frames.Add(frame);
@@ -144,13 +144,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             TiffStream tiffStream = CreateStream(stream);
             var reader = new DirectoryReader(tiffStream);
 
-            IEnumerable<IExifValue[]> directories = reader.Read();
+            IEnumerable<ExifProfile> directories = reader.Read();
 
             var framesMetadata = new List<TiffFrameMetadata>();
-            foreach (IExifValue[] ifd in directories)
+            foreach (ExifProfile ifd in directories)
             {
-                var meta = new TiffFrameMetadata();
-                meta.FrameTags.AddRange(ifd);
+                var meta = new TiffFrameMetadata() { FrameTags = ifd };
                 framesMetadata.Add(meta);
             }
 
@@ -200,12 +199,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <returns>
         /// The tiff frame.
         /// </returns>
-        private ImageFrame<TPixel> DecodeFrame<TPixel>(IExifValue[] tags, out TiffFrameMetadata frameMetaData)
+        private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags, out TiffFrameMetadata frameMetaData)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var coreMetadata = new ImageFrameMetadata();
             frameMetaData = coreMetadata.GetTiffMetadata();
-            frameMetaData.FrameTags.AddRange(tags);
+            frameMetaData.FrameTags = tags;
 
             this.VerifyAndParse(frameMetaData);
 

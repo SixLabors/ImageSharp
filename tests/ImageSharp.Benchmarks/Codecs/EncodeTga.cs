@@ -2,23 +2,21 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
 using BenchmarkDotNet.Attributes;
-
 using ImageMagick;
-
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    [Config(typeof(Config.ShortClr))]
-    public class EncodeTga : BenchmarkBase
+    [Config(typeof(Config.ShortMultiFramework))]
+    public class EncodeTga
     {
         private MagickImage tgaMagick;
         private Image<Rgba32> tga;
 
-        private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
+        private string TestImageFullPath
+            => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
         [Params(TestImages.Tga.Bit24BottomLeft)]
         public string TestImage { get; set; }
@@ -37,6 +35,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void Cleanup()
         {
             this.tga.Dispose();
+            this.tga = null;
             this.tgaMagick.Dispose();
         }
 

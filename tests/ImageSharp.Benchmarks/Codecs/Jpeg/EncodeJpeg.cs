@@ -1,23 +1,20 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Drawing.Imaging;
+using System.IO;
 using BenchmarkDotNet.Attributes;
-
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests;
+using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
-    using System.Drawing;
-    using System.Drawing.Imaging;
-    using System.IO;
-    using SixLabors.ImageSharp.Tests;
-    using CoreImage = SixLabors.ImageSharp.Image;
-
-    public class EncodeJpeg : BenchmarkBase
+    public class EncodeJpeg
     {
         // System.Drawing needs this.
         private Stream bmpStream;
-        private Image bmpDrawing;
+        private SDImage bmpDrawing;
         private Image<Rgba32> bmpCore;
 
         [GlobalSetup]
@@ -27,9 +24,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             {
                 const string TestImage = TestImages.Bmp.Car;
                 this.bmpStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
-                this.bmpCore = CoreImage.Load<Rgba32>(this.bmpStream);
+                this.bmpCore = Image.Load<Rgba32>(this.bmpStream);
                 this.bmpStream.Position = 0;
-                this.bmpDrawing = Image.FromStream(this.bmpStream);
+                this.bmpDrawing = SDImage.FromStream(this.bmpStream);
             }
         }
 
@@ -37,6 +34,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         public void Cleanup()
         {
             this.bmpStream.Dispose();
+            this.bmpStream = null;
             this.bmpCore.Dispose();
             this.bmpDrawing.Dispose();
         }
@@ -44,19 +42,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark(Baseline = true, Description = "System.Drawing Jpeg")]
         public void JpegSystemDrawing()
         {
-            using (var stream = new MemoryStream())
-            {
-                this.bmpDrawing.Save(stream, ImageFormat.Jpeg);
-            }
+            using var stream = new MemoryStream();
+            this.bmpDrawing.Save(stream, ImageFormat.Jpeg);
         }
 
         [Benchmark(Description = "ImageSharp Jpeg")]
         public void JpegCore()
         {
-            using (var stream = new MemoryStream())
-            {
-                this.bmpCore.SaveAsJpeg(stream);
-            }
+            using var stream = new MemoryStream();
+            this.bmpCore.SaveAsJpeg(stream);
         }
     }
 }

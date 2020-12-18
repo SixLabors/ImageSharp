@@ -110,15 +110,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 int i;
                 fixed (uint* p = pixelData)
                 {
-                    for (i = 0; i < numPixels; i += 4)
+                    for (i = 0; i + 4 <= numPixels; i += 4)
                     {
-                        var idx = (ushort*)p + i;
-                        Vector128<ushort> input = Sse2.LoadVector128(idx);
+                        var idx = p + i;
+                        Vector128<ushort> input = Sse2.LoadVector128((ushort*)idx);
                         Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
                         Vector128<ushort> b = Sse2.ShuffleLow(a, mask);
                         Vector128<ushort> c = Sse2.ShuffleHigh(b, mask); // 0g0g
-                        Vector128<ushort> output = Sse2.Add(input, c);
-                        Sse2.Store(idx, output);
+                        Vector128<byte> output = Sse2.Add(input.AsByte(), c.AsByte());
+                        Sse2.Store((byte*)idx, output);
                     }
 
                     if (i != numPixels)
@@ -158,15 +158,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 int i;
                 fixed (uint* p = pixelData)
                 {
-                    for (i = 0; i < numPixels; i += 4)
+                    for (i = 0; i + 4 <= numPixels; i += 4)
                     {
-                        var idx = (ushort*)p + i;
-                        Vector128<ushort> input = Sse2.LoadVector128(idx);
+                        var idx = p + i;
+                        Vector128<ushort> input = Sse2.LoadVector128((ushort*)idx);
                         Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
                         Vector128<ushort> b = Sse2.ShuffleLow(a, mask);
                         Vector128<ushort> c = Sse2.ShuffleHigh(b, mask); // 0g0g
-                        Vector128<ushort> output = Sse2.Subtract(input, c);
-                        Sse2.Store(idx, output);
+                        Vector128<byte> output = Sse2.Subtract(input.AsByte(), c.AsByte());
+                        Sse2.Store((byte*)idx, output);
                     }
 
                     if (i != numPixels)

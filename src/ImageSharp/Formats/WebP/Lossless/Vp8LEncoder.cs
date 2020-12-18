@@ -567,7 +567,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         {
             this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.SubtractGreen, 2);
-            LosslessUtils.SubtractGreenFromBlueAndRed(this.Bgra.GetSpan(), width * height);
+            LosslessUtils.SubtractGreenFromBlueAndRed(this.Bgra.GetSpan());
         }
 
         private void ApplyPredictFilter(int width, int height, bool usedSubtractGreen)

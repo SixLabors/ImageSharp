@@ -22,8 +22,8 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
     /// </remarks>
     public static class SRgbCompanding
     {
-        private const int Length = Scale + 2;
-        private const int Scale = (1 << 14) - 1;
+        private const int Length = Scale + 2; // 256kb @ 16bit precision.
+        private const int Scale = (1 << 16) - 1;
 
         private static readonly Lazy<float[]> LazyCompressTable = new Lazy<float[]>(() =>
         {
@@ -129,10 +129,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Expand(ref Vector4 vector)
         {
+            // Alpha is already a linear representation of opacity so we do not want to convert it.
             vector.X = Expand(vector.X);
             vector.Y = Expand(vector.Y);
             vector.Z = Expand(vector.Z);
-            vector.W = Expand(vector.W);
         }
 
         /// <summary>
@@ -142,10 +142,10 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Compress(ref Vector4 vector)
         {
+            // Alpha is already a linear representation of opacity so we do not want to convert it.
             vector.X = Compress(vector.X);
             vector.Y = Compress(vector.Y);
             vector.Z = Compress(vector.Z);
-            vector.W = Compress(vector.W);
         }
 
         /// <summary>
@@ -192,7 +192,9 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
                     Vector256<float> low = Avx2.GatherVector256(tablePointer, truncated, sizeof(float));
                     Vector256<float> high = Avx2.GatherVector256(tablePointer, Avx2.Add(truncated, offset), sizeof(float));
 
-                    vectorsBase = Numerics.Lerp(low, high, Avx.Subtract(multiplied, truncatedF));
+                    // Alpha is already a linear representation of opacity so we do not want to convert it.
+                    Vector256<float> companded = Numerics.Lerp(low, high, Avx.Subtract(multiplied, truncatedF));
+                    vectorsBase = Avx.Blend(companded, vectorsBase, Numerics.BlendAlphaControl);
                     vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
                 }
             }
@@ -216,17 +218,15 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
                     float f0 = multiplied.X;
                     float f1 = multiplied.Y;
                     float f2 = multiplied.Z;
-                    float f3 = multiplied.W;
 
                     uint i0 = (uint)f0;
                     uint i1 = (uint)f1;
                     uint i2 = (uint)f2;
-                    uint i3 = (uint)f3;
 
+                    // Alpha is already a linear representation of opacity so we do not want to convert it.
                     vectorsBase.X = Numerics.Lerp(tablePointer[i0], tablePointer[i0 + 1], f0 - (int)i0);
                     vectorsBase.Y = Numerics.Lerp(tablePointer[i1], tablePointer[i1 + 1], f1 - (int)i1);
                     vectorsBase.Z = Numerics.Lerp(tablePointer[i2], tablePointer[i2 + 1], f2 - (int)i2);
-                    vectorsBase.W = Numerics.Lerp(tablePointer[i3], tablePointer[i3 + 1], f3 - (int)i3);
 
                     vectorsBase = ref Unsafe.Add(ref vectorsBase, 1);
                 }

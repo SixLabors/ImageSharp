@@ -25,49 +25,53 @@ namespace SixLabors.ImageSharp.ColorSpaces.Companding
         private const int Length = Scale + 2; // 256kb @ 16bit precision.
         private const int Scale = (1 << 16) - 1;
 
-        private static readonly Lazy<float[]> LazyCompressTable = new Lazy<float[]>(() =>
-        {
-            var result = new float[Length];
-
-            for (int i = 0; i < result.Length; i++)
+        private static readonly Lazy<float[]> LazyCompressTable = new Lazy<float[]>(
+            () =>
             {
-                double d = (double)i / Scale;
-                if (d <= (0.04045 / 12.92))
+                var result = new float[Length];
+
+                for (int i = 0; i < result.Length; i++)
                 {
-                    d *= 12.92;
+                    double d = (double)i / Scale;
+                    if (d <= (0.04045 / 12.92))
+                    {
+                        d *= 12.92;
+                    }
+                    else
+                    {
+                        d = (1.055 * Math.Pow(d, 1.0 / 2.4)) - 0.055;
+                    }
+
+                    result[i] = (float)d;
                 }
-                else
-                {
-                    d = (1.055 * Math.Pow(d, 1.0 / 2.4)) - 0.055;
-                }
 
-                result[i] = (float)d;
-            }
+                return result;
+            },
+            true);
 
-            return result;
-        });
-
-        private static readonly Lazy<float[]> LazyExpandTable = new Lazy<float[]>(() =>
-        {
-            var result = new float[Length];
-
-            for (int i = 0; i < result.Length; i++)
+        private static readonly Lazy<float[]> LazyExpandTable = new Lazy<float[]>(
+            () =>
             {
-                double d = (double)i / Scale;
-                if (d <= 0.04045)
+                var result = new float[Length];
+
+                for (int i = 0; i < result.Length; i++)
                 {
-                    d /= 12.92;
-                }
-                else
-                {
-                    d = Math.Pow((d + 0.055) / 1.055, 2.4);
+                    double d = (double)i / Scale;
+                    if (d <= 0.04045)
+                    {
+                        d /= 12.92;
+                    }
+                    else
+                    {
+                        d = Math.Pow((d + 0.055) / 1.055, 2.4);
+                    }
+
+                    result[i] = (float)d;
                 }
 
-                result[i] = (float)d;
-            }
-
-            return result;
-        });
+                return result;
+            },
+            true);
 
         private static float[] ExpandTable => LazyExpandTable.Value;
 

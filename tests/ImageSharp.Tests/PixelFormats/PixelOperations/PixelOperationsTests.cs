@@ -1152,7 +1152,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 {
                     Span<Vector4> expected = MemoryMarshal.Cast<TDest, Vector4>(this.ExpectedDestBuffer.AsSpan());
                     Span<Vector4> actual = MemoryMarshal.Cast<TDest, Vector4>(this.ActualDestBuffer.GetSpan());
-                    var comparer = new ApproximateFloatComparer(0.0001F);
+                    var comparer = new ApproximateFloatComparer(TestEnvironment.Is64BitProcess ? 0.0001F : 0.001F);
 
                     for (int i = 0; i < count; i++)
                     {
@@ -1163,7 +1163,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 {
                     Span<TDest> expected = this.ExpectedDestBuffer.AsSpan();
                     Span<TDest> actual = this.ActualDestBuffer.GetSpan();
-                    var comparer = new ApproximateFloatComparer(0.0001F);
+                    var comparer = new ApproximateFloatComparer(TestEnvironment.Is64BitProcess ? 0.0001F : 0.001F);
 
                     for (int i = 0; i < count; i++)
                     {

@@ -1,21 +1,17 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Buffers;
 using System.Numerics;
-
 using BenchmarkDotNet.Attributes;
-
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    using CoreSize = SixLabors.ImageSharp.Size;
-
-    public class PorterDuffBulkVsPixel : BenchmarkBase
+    public class PorterDuffBulkVsPixel
     {
         private Configuration Configuration => Configuration.Default;
 
@@ -30,23 +26,21 @@ namespace SixLabors.ImageSharp.Benchmarks
             Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(source.Length));
             Guard.MustBeGreaterThanOrEqualTo(amount.Length, destination.Length, nameof(amount.Length));
 
-            using (IMemoryOwner<Vector4> buffer =
-                Configuration.Default.MemoryAllocator.Allocate<Vector4>(destination.Length * 3))
+            using IMemoryOwner<Vector4> buffer =
+                Configuration.Default.MemoryAllocator.Allocate<Vector4>(destination.Length * 3);
+            Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
+            Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
+            Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
+
+            PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, background, backgroundSpan);
+            PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, source, sourceSpan);
+
+            for (int i = 0; i < destination.Length; i++)
             {
-                Span<Vector4> destinationSpan = buffer.Slice(0, destination.Length);
-                Span<Vector4> backgroundSpan = buffer.Slice(destination.Length, destination.Length);
-                Span<Vector4> sourceSpan = buffer.Slice(destination.Length * 2, destination.Length);
-
-                PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, background, backgroundSpan);
-                PixelOperations<TPixel>.Instance.ToVector4(this.Configuration, source, sourceSpan);
-
-                for (int i = 0; i < destination.Length; i++)
-                {
-                    destinationSpan[i] = PorterDuffFunctions.NormalSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
-                }
-
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, destinationSpan, destination);
+                destinationSpan[i] = PorterDuffFunctions.NormalSrcOver(backgroundSpan[i], sourceSpan[i], amount[i]);
             }
+
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, destinationSpan, destination);
         }
 
         private void BulkPixelConvert<TPixel>(
@@ -67,44 +61,36 @@ namespace SixLabors.ImageSharp.Benchmarks
         }
 
         [Benchmark(Description = "ImageSharp BulkVectorConvert")]
-        public CoreSize BulkVectorConvert()
+        public Size BulkVectorConvert()
         {
-            using (var image = new Image<Rgba32>(800, 800))
+            using var image = new Image<Rgba32>(800, 800);
+            using IMemoryOwner<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width);
+            amounts.GetSpan().Fill(1);
+
+            Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
+            for (int y = 0; y < image.Height; y++)
             {
-                using (IMemoryOwner<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
-                {
-                    amounts.GetSpan().Fill(1);
-
-                    Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
-                    for (int y = 0; y < image.Height; y++)
-                    {
-                        Span<Rgba32> span = pixels.GetRowSpan(y);
-                        this.BulkVectorConvert(span, span, span, amounts.GetSpan());
-                    }
-
-                    return new CoreSize(image.Width, image.Height);
-                }
+                Span<Rgba32> span = pixels.GetRowSpan(y);
+                this.BulkVectorConvert(span, span, span, amounts.GetSpan());
             }
+
+            return new Size(image.Width, image.Height);
         }
 
         [Benchmark(Description = "ImageSharp BulkPixelConvert")]
-        public CoreSize BulkPixelConvert()
+        public Size BulkPixelConvert()
         {
-            using (var image = new Image<Rgba32>(800, 800))
+            using var image = new Image<Rgba32>(800, 800);
+            using IMemoryOwner<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width);
+            amounts.GetSpan().Fill(1);
+            Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
+            for (int y = 0; y < image.Height; y++)
             {
-                using (IMemoryOwner<float> amounts = Configuration.Default.MemoryAllocator.Allocate<float>(image.Width))
-                {
-                    amounts.GetSpan().Fill(1);
-                    Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();
-                    for (int y = 0; y < image.Height; y++)
-                    {
-                        Span<Rgba32> span = pixels.GetRowSpan(y);
-                        this.BulkPixelConvert(span, span, span, amounts.GetSpan());
-                    }
-
-                    return new CoreSize(image.Width, image.Height);
-                }
+                Span<Rgba32> span = pixels.GetRowSpan(y);
+                this.BulkPixelConvert(span, span, span, amounts.GetSpan());
             }
+
+            return new Size(image.Width, image.Height);
         }
     }
 }

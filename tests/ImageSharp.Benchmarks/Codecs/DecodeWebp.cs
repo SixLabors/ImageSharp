@@ -11,8 +11,8 @@ using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    [Config(typeof(Config.ShortClr))]
-    public class DecodeWebp : BenchmarkBase
+    [Config(typeof(Config.ShortMultiFramework))]
+    public class DecodeWebp
     {
         private Configuration configuration;
 

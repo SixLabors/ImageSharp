@@ -10,8 +10,8 @@ using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    [Config(typeof(Config.ShortClr))]
-    public class EncodeWebp : BenchmarkBase
+    [Config(typeof(Config.ShortMultiFramework))]
+    public class EncodeWebp
     {
         private MagickImage webpMagick;
         private Image<Rgba32> webp;

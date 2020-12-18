@@ -10,12 +10,13 @@ using SDSize = System.Drawing.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    [Config(typeof(Config.ShortClr))]
-    public class DecodePng : BenchmarkBase
+    [Config(typeof(Config.ShortMultiFramework))]
+    public class DecodePng
     {
         private byte[] pngBytes;
 
-        private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
+        private string TestImageFullPath
+            => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
         [Params(TestImages.Png.Splash)]
         public string TestImage { get; set; }
@@ -32,25 +33,17 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [Benchmark(Baseline = true, Description = "System.Drawing Png")]
         public SDSize PngSystemDrawing()
         {
-            using (var memoryStream = new MemoryStream(this.pngBytes))
-            {
-                using (var image = SDImage.FromStream(memoryStream))
-                {
-                    return image.Size;
-                }
-            }
+            using var memoryStream = new MemoryStream(this.pngBytes);
+            using var image = SDImage.FromStream(memoryStream);
+            return image.Size;
         }
 
         [Benchmark(Description = "ImageSharp Png")]
-        public Size PngCore()
+        public Size PngImageSharp()
         {
-            using (var memoryStream = new MemoryStream(this.pngBytes))
-            {
-                using (var image = Image.Load<Rgba32>(memoryStream))
-                {
-                    return image.Size();
-                }
-            }
+            using var memoryStream = new MemoryStream(this.pngBytes);
+            using var image = Image.Load<Rgba32>(memoryStream);
+            return image.Size();
         }
     }
 }

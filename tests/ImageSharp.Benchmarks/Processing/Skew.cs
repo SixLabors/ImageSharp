@@ -5,20 +5,18 @@ using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace SixLabors.ImageSharp.Benchmarks.Samplers
+namespace SixLabors.ImageSharp.Benchmarks.Processing
 {
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.MultiFramework))]
     public class Skew
     {
         [Benchmark]
         public Size DoSkew()
         {
-            using (var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.BlanchedAlmond))
-            {
-                image.Mutate(x => x.Skew(20, 10));
+            using var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.BlanchedAlmond);
+            image.Mutate(x => x.Skew(20, 10));
 
-                return image.Size();
-            }
+            return image.Size();
         }
     }
 }

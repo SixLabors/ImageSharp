@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp
     internal static class Numerics
     {
 #if SUPPORTS_RUNTIME_INTRINSICS
-        private const int BlendAlphaControl = 0b_10_00_10_00;
+        public const int BlendAlphaControl = 0b_10_00_10_00;
         private const int ShuffleAlphaControl = 0b_11_11_11_11;
 #endif
 

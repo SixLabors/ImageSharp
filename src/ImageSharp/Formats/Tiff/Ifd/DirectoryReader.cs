@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             this.tagReader = new EntryReader(stream);
         }
 
-        public IEnumerable<IExifValue[]> Read()
+        public IEnumerable<ExifProfile> Read()
         {
             if (this.ReadHeader())
             {
@@ -55,13 +55,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             return true;
         }
 
-        private IEnumerable<IExifValue[]> ReadIfds()
+        private IEnumerable<ExifProfile> ReadIfds()
         {
-            var list = new List<IExifValue[]>();
+            var list = new List<ExifProfile>();
             while (this.nextIfdOffset != 0)
             {
                 this.stream.Seek(this.nextIfdOffset);
-                IExifValue[] ifd = this.ReadIfd();
+                ExifProfile ifd = this.ReadIfd();
                 list.Add(ifd);
             }
 
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             return list;
         }
 
-        private IExifValue[] ReadIfd()
+        private ExifProfile ReadIfd()
         {
             long pos = this.stream.Position;
 
@@ -99,7 +99,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 TiffThrowHelper.ThrowOutOfRange("IFD");
             }
 
-            return entries.ToArray();
+            var profile = new ExifProfile();
+            profile.InitializeInternal(entries);
+            return profile;
         }
     }
 }

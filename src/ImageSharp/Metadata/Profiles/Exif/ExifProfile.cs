@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
@@ -257,6 +258,9 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             this.SyncResolution(ExifTag.XResolution, metadata.HorizontalResolution);
             this.SyncResolution(ExifTag.YResolution, metadata.VerticalResolution);
         }
+
+        internal void InitializeInternal(List<IExifValue> values) =>
+            this.values = values;
 
         private void SyncResolution(ExifTag<Rational> tag, double resolution)
         {

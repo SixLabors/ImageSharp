@@ -182,7 +182,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                     this.Configuration,
                     s,
                     d.GetSpan(),
-                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale));
+                    PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale),
+                false);
         }
 
         [Theory]
@@ -302,7 +303,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                                         s,
                                         d.GetSpan(),
                                         modifiers | PixelConversionModifiers.SRgbCompand | PixelConversionModifiers.Scale);
-                });
+                },
+                false);
         }
 
         [Theory]
@@ -1030,11 +1032,12 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
         internal static void TestOperation<TSource, TDest>(
             TSource[] source,
             TDest[] expected,
-            Action<TSource[], IMemoryOwner<TDest>> action)
+            Action<TSource[], IMemoryOwner<TDest>> action,
+            bool preferExactComparison = true)
             where TSource : struct
             where TDest : struct
         {
-            using (var buffers = new TestBuffers<TSource, TDest>(source, expected))
+            using (var buffers = new TestBuffers<TSource, TDest>(source, expected, preferExactComparison))
             {
                 action(buffers.SourceBuffer, buffers.ActualDestBuffer);
                 buffers.Verify();
@@ -1135,11 +1138,14 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 
             public TDest[] ExpectedDestBuffer { get; }
 
-            public TestBuffers(TSource[] source, TDest[] expectedDest)
+            public bool PreferExactComparison { get; }
+
+            public TestBuffers(TSource[] source, TDest[] expectedDest, bool preferExactComparison = true)
             {
                 this.SourceBuffer = source;
                 this.ExpectedDestBuffer = expectedDest;
                 this.ActualDestBuffer = Configuration.Default.MemoryAllocator.Allocate<TDest>(expectedDest.Length);
+                this.PreferExactComparison = preferExactComparison;
             }
 
             public void Dispose() => this.ActualDestBuffer.Dispose();
@@ -1159,7 +1165,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                         Assert.Equal(expected[i], actual[i], comparer);
                     }
                 }
-                else if (typeof(IPixel).IsAssignableFrom(typeof(TDest)))
+                else if (!this.PreferExactComparison && typeof(IPixel).IsAssignableFrom(typeof(TDest)) && IsComplexPixel())
                 {
                     Span<TDest> expected = this.ExpectedDestBuffer.AsSpan();
                     Span<TDest> actual = this.ActualDestBuffer.GetSpan();
@@ -1174,10 +1180,30 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
                 {
                     Span<TDest> expected = this.ExpectedDestBuffer.AsSpan();
                     Span<TDest> actual = this.ActualDestBuffer.GetSpan();
+
                     for (int i = 0; i < count; i++)
                     {
                         Assert.Equal(expected[i], actual[i]);
                     }
+                }
+            }
+
+            // TODO: We really need a PixelTypeInfo.BitsPerComponent property!!
+            private static bool IsComplexPixel()
+            {
+                switch (default(TDest))
+                {
+                    case HalfSingle _:
+                    case HalfVector2 _:
+                    case L16 _:
+                    case La32 _:
+                    case NormalizedShort2 _:
+                    case Rg32 _:
+                    case Short2 _:
+                        return true;
+
+                    default:
+                        return Unsafe.SizeOf<TDest>() > sizeof(int);
                 }
             }
         }

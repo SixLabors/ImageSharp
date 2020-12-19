@@ -386,14 +386,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
                     ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, sourceBuffer.Length);
                     ref Vector4 targetStart = ref targetBase;
-                    var factor = new Vector4(kernelStart);
 
-                    while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
+#if SUPPORTS_RUNTIME_INTRINSICS
+                    if (Fma.IsSupported)
                     {
-                        targetStart += factor * sourceBase;
+                        var factor128 = Vector128.Create(kernelStart);
 
-                        sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                        targetStart = ref Unsafe.Add(ref targetStart, 1);
+                        while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
+                        {
+                            Vector128<float> source128 = Unsafe.As<Vector4, Vector128<float>>(ref sourceBase);
+                            Vector128<float> target128 = Unsafe.As<Vector4, Vector128<float>>(ref targetStart);
+
+                            target128 = Fma.MultiplyAdd(factor128, source128, target128);
+
+                            Unsafe.As<Vector4, Vector128<float>>(ref targetStart) = target128;
+
+                            sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                            targetStart = ref Unsafe.Add(ref targetStart, 1);
+                        }
+                    }
+                    else
+#endif
+                    {
+                        var factor = new Vector4(kernelStart);
+
+                        while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
+                        {
+                            targetStart += factor * sourceBase;
+
+                            sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                            targetStart = ref Unsafe.Add(ref targetStart, 1);
+                        }
                     }
 
                     kernelStart = ref Unsafe.Add(ref kernelStart, 1);
@@ -451,14 +474,37 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
                     ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, sourceBuffer.Length);
                     ref Vector4 targetStart = ref targetBase;
-                    var factor = new Vector4(kernelStart);
 
-                    while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
+#if SUPPORTS_RUNTIME_INTRINSICS
+                    if (Fma.IsSupported)
                     {
-                        targetStart += factor * sourceBase;
+                        var factor128 = Vector128.Create(kernelStart);
 
-                        sourceBase = ref Unsafe.Add(ref sourceBase, 1);
-                        targetStart = ref Unsafe.Add(ref targetStart, 1);
+                        while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
+                        {
+                            Vector128<float> source128 = Unsafe.As<Vector4, Vector128<float>>(ref sourceBase);
+                            Vector128<float> target128 = Unsafe.As<Vector4, Vector128<float>>(ref targetStart);
+
+                            target128 = Fma.MultiplyAdd(factor128, source128, target128);
+
+                            Unsafe.As<Vector4, Vector128<float>>(ref targetStart) = target128;
+
+                            sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                            targetStart = ref Unsafe.Add(ref targetStart, 1);
+                        }
+                    }
+                    else
+#endif
+                    {
+                        var factor = new Vector4(kernelStart);
+
+                        while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
+                        {
+                            targetStart += factor * sourceBase;
+
+                            sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                            targetStart = ref Unsafe.Add(ref targetStart, 1);
+                        }
                     }
 
                     kernelStart = ref Unsafe.Add(ref kernelStart, 1);

@@ -103,7 +103,29 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         public static void AddGreenToBlueAndRed(Span<uint> pixelData)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse.IsSupported)
+            if (Ssse3.IsSupported)
+            {
+                var mask = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
+                int numPixels = pixelData.Length;
+                int i;
+                fixed (uint* p = pixelData)
+                {
+                    for (i = 0; i + 4 <= numPixels; i += 4)
+                    {
+                        var idx = p + i;
+                        Vector128<byte> input = Sse2.LoadVector128((ushort*)idx).AsByte();
+                        Vector128<byte> in0g0g = Ssse3.Shuffle(input, mask);
+                        Vector128<byte> output = Sse2.Add(input, in0g0g);
+                        Sse2.Store((byte*)idx, output.AsByte());
+                    }
+
+                    if (i != numPixels)
+                    {
+                        AddGreenToBlueAndRedNoneVectorized(pixelData.Slice(i));
+                    }
+                }
+            }
+            else if (Sse.IsSupported)
             {
                 var mask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
                 int numPixels = pixelData.Length;
@@ -123,18 +145,18 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 
                     if (i != numPixels)
                     {
-                        AddGreenToBlueAndRedSequential(pixelData.Slice(i));
+                        AddGreenToBlueAndRedNoneVectorized(pixelData.Slice(i));
                     }
                 }
             }
             else
 #endif
             {
-                AddGreenToBlueAndRedSequential(pixelData);
+                AddGreenToBlueAndRedNoneVectorized(pixelData);
             }
         }
 
-        private static void AddGreenToBlueAndRedSequential(Span<uint> pixelData)
+        private static void AddGreenToBlueAndRedNoneVectorized(Span<uint> pixelData)
         {
             int numPixels = pixelData.Length;
             for (int i = 0; i < numPixels; i++)
@@ -151,7 +173,29 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         public static void SubtractGreenFromBlueAndRed(Span<uint> pixelData)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Sse.IsSupported)
+            if (Ssse3.IsSupported)
+            {
+                var mask = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
+                int numPixels = pixelData.Length;
+                int i;
+                fixed (uint* p = pixelData)
+                {
+                    for (i = 0; i + 4 <= numPixels; i += 4)
+                    {
+                        var idx = p + i;
+                        Vector128<byte> input = Sse2.LoadVector128((ushort*)idx).AsByte();
+                        Vector128<byte> in0g0g = Ssse3.Shuffle(input, mask);
+                        Vector128<byte> output = Sse2.Subtract(input, in0g0g);
+                        Sse2.Store((byte*)idx, output.AsByte());
+                    }
+
+                    if (i != numPixels)
+                    {
+                        SubtractGreenFromBlueAndRedNoneVectorized(pixelData.Slice(i));
+                    }
+                }
+            }
+            else if (Sse.IsSupported)
             {
                 var mask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
                 int numPixels = pixelData.Length;
@@ -171,18 +215,18 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 
                     if (i != numPixels)
                     {
-                        SubtractGreenFromBlueAndRedSequential(pixelData.Slice(i));
+                        SubtractGreenFromBlueAndRedNoneVectorized(pixelData.Slice(i));
                     }
                 }
             }
             else
 #endif
             {
-                SubtractGreenFromBlueAndRedSequential(pixelData);
+                SubtractGreenFromBlueAndRedNoneVectorized(pixelData);
             }
         }
 
-        private static void SubtractGreenFromBlueAndRedSequential(Span<uint> pixelData)
+        private static void SubtractGreenFromBlueAndRedNoneVectorized(Span<uint> pixelData)
         {
             int numPixels = pixelData.Length;
             for (int i = 0; i < numPixels; i++)

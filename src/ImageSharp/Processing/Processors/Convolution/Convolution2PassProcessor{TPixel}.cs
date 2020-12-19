@@ -5,6 +5,10 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -169,19 +173,42 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     ref float kernelStart = ref kernelBase;
                     ref int sampleColumnStart = ref sampleColumnBase;
 
-                    Vector4 target = Vector4.Zero;
-
-                    while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
+#if SUPPORTS_RUNTIME_INTRINSICS
+                    if (Fma.IsSupported)
                     {
-                        Vector4 sample = Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
+                        Vector128<float> target128 = Vector128<float>.Zero;
 
-                        target += kernelStart * sample;
+                        while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
+                        {
+                            ref Vector4 sample = ref Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
+                            Vector128<float> sample128 = Unsafe.As<Vector4, Vector128<float>>(ref sample);
+                            var kernel128 = Vector128.Create(kernelStart);
 
-                        kernelStart = ref Unsafe.Add(ref kernelStart, 1);
-                        sampleColumnStart = ref Unsafe.Add(ref sampleColumnStart, 1);
+                            target128 = Fma.MultiplyAdd(sample128, kernel128, target128);
+
+                            kernelStart = ref Unsafe.Add(ref kernelStart, 1);
+                            sampleColumnStart = ref Unsafe.Add(ref sampleColumnStart, 1);
+                        }
+
+                        targetStart = Unsafe.As<Vector128<float>, Vector4>(ref target128);
                     }
+                    else
+#endif
+                    {
+                        Vector4 target = Vector4.Zero;
 
-                    targetStart = target;
+                        while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
+                        {
+                            Vector4 sample = Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
+
+                            target += kernelStart * sample;
+
+                            kernelStart = ref Unsafe.Add(ref kernelStart, 1);
+                            sampleColumnStart = ref Unsafe.Add(ref sampleColumnStart, 1);
+                        }
+
+                        targetStart = target;
+                    }
 
                     targetStart = ref Unsafe.Add(ref targetStart, 1);
                     sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, kernelSize);
@@ -234,19 +261,42 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     ref float kernelStart = ref kernelBase;
                     ref int sampleColumnStart = ref sampleColumnBase;
 
-                    Vector4 target = Vector4.Zero;
-
-                    while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
+#if SUPPORTS_RUNTIME_INTRINSICS
+                    if (Fma.IsSupported)
                     {
-                        Vector4 sample = Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
+                        Vector128<float> target128 = Vector128<float>.Zero;
 
-                        target += kernelStart * sample;
+                        while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
+                        {
+                            ref Vector4 sample = ref Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
+                            Vector128<float> sample128 = Unsafe.As<Vector4, Vector128<float>>(ref sample);
+                            var kernel128 = Vector128.Create(kernelStart);
 
-                        kernelStart = ref Unsafe.Add(ref kernelStart, 1);
-                        sampleColumnStart = ref Unsafe.Add(ref sampleColumnStart, 1);
+                            target128 = Fma.MultiplyAdd(sample128, kernel128, target128);
+
+                            kernelStart = ref Unsafe.Add(ref kernelStart, 1);
+                            sampleColumnStart = ref Unsafe.Add(ref sampleColumnStart, 1);
+                        }
+
+                        targetStart = Unsafe.As<Vector128<float>, Vector4>(ref target128);
                     }
+                    else
+#endif
+                    {
+                        Vector4 target = Vector4.Zero;
 
-                    targetStart = target;
+                        while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
+                        {
+                            Vector4 sample = Unsafe.Add(ref sourceBase, sampleColumnStart - boundsX);
+
+                            target += kernelStart * sample;
+
+                            kernelStart = ref Unsafe.Add(ref kernelStart, 1);
+                            sampleColumnStart = ref Unsafe.Add(ref sampleColumnStart, 1);
+                        }
+
+                        targetStart = target;
+                    }
 
                     targetStart = ref Unsafe.Add(ref targetStart, 1);
                     sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, kernelSize);
@@ -336,7 +386,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
                     ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, sourceBuffer.Length);
                     ref Vector4 targetStart = ref targetBase;
-                    float factor = kernelStart;
+                    var factor = new Vector4(kernelStart);
 
                     while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
                     {
@@ -401,7 +451,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
                     ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, sourceBuffer.Length);
                     ref Vector4 targetStart = ref targetBase;
-                    float factor = kernelStart;
+                    var factor = new Vector4(kernelStart);
 
                     while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
                     {

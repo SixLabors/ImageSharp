@@ -103,7 +103,29 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         public static void AddGreenToBlueAndRed(Span<uint> pixelData)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Ssse3.IsSupported)
+            if (Avx2.IsSupported)
+            {
+                var mask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
+                int numPixels = pixelData.Length;
+                int i;
+                fixed (uint* p = pixelData)
+                {
+                    for (i = 0; i + 8 <= numPixels; i += 8)
+                    {
+                        var idx = p + i;
+                        Vector256<byte> input = Avx.LoadVector256((ushort*)idx).AsByte();
+                        Vector256<byte> in0g0g = Avx2.Shuffle(input, mask);
+                        Vector256<byte> output = Avx2.Add(input, in0g0g);
+                        Avx.Store((byte*)idx, output.AsByte());
+                    }
+
+                    if (i != numPixels)
+                    {
+                        AddGreenToBlueAndRedNoneVectorized(pixelData.Slice(i));
+                    }
+                }
+            }
+            else if (Ssse3.IsSupported)
             {
                 var mask = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
                 int numPixels = pixelData.Length;
@@ -173,7 +195,29 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         public static void SubtractGreenFromBlueAndRed(Span<uint> pixelData)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Ssse3.IsSupported)
+            if (Avx2.IsSupported)
+            {
+                var mask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
+                int numPixels = pixelData.Length;
+                int i;
+                fixed (uint* p = pixelData)
+                {
+                    for (i = 0; i + 8 <= numPixels; i += 8)
+                    {
+                        var idx = p + i;
+                        Vector256<byte> input = Avx.LoadVector256((ushort*)idx).AsByte();
+                        Vector256<byte> in0g0g = Avx2.Shuffle(input, mask);
+                        Vector256<byte> output = Avx2.Subtract(input, in0g0g);
+                        Avx.Store((byte*)idx, output.AsByte());
+                    }
+
+                    if (i != numPixels)
+                    {
+                        SubtractGreenFromBlueAndRedNoneVectorized(pixelData.Slice(i));
+                    }
+                }
+            }
+            else if (Ssse3.IsSupported)
             {
                 var mask = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
                 int numPixels = pixelData.Length;

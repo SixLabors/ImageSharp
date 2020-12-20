@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                     }
                 }
             }
-            else if (Sse.IsSupported)
+            else if (Sse2.IsSupported)
             {
                 var mask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
                 int numPixels = pixelData.Length;
@@ -239,7 +239,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                     }
                 }
             }
-            else if (Sse.IsSupported)
+            else if (Sse2.IsSupported)
             {
                 var mask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
                 int numPixels = pixelData.Length;

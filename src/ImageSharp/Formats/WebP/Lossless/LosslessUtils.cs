@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                         Vector256<byte> input = Avx.LoadVector256((ushort*)idx).AsByte();
                         Vector256<byte> in0g0g = Avx2.Shuffle(input, mask);
                         Vector256<byte> output = Avx2.Add(input, in0g0g);
-                        Avx.Store((byte*)idx, output.AsByte());
+                        Avx.Store((byte*)idx, output);
                     }
 
                     if (i != numPixels)
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                         Vector256<byte> input = Avx.LoadVector256((ushort*)idx).AsByte();
                         Vector256<byte> in0g0g = Avx2.Shuffle(input, mask);
                         Vector256<byte> output = Avx2.Subtract(input, in0g0g);
-                        Avx.Store((byte*)idx, output.AsByte());
+                        Avx.Store((byte*)idx, output);
                     }
 
                     if (i != numPixels)

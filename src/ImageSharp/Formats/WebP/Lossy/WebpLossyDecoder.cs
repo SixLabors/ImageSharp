@@ -112,43 +112,38 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
             }
         }
 
-        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> pixels)
+        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> decodedPixels)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int widthMul3 = width * 3;
             for (int y = 0; y < height; y++)
             {
                 Span<byte> row = pixelData.Slice(y * widthMul3, widthMul3);
-                Span<TPixel> pixelSpan = pixels.GetRowSpan(y);
+                Span<TPixel> decodedPixelRow = decodedPixels.GetRowSpan(y);
                 PixelOperations<TPixel>.Instance.FromBgr24Bytes(
                     this.configuration,
                     row,
-                    pixelSpan,
+                    decodedPixelRow,
                     width);
             }
         }
 
-        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> pixels, IMemoryOwner<byte> alpha)
+        private void DecodePixelValues<TPixel>(int width, int height, Span<byte> pixelData, Buffer2D<TPixel> decodedPixels, IMemoryOwner<byte> alpha)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             TPixel color = default;
             Span<byte> alphaSpan = alpha.Memory.Span;
+            Span<Bgr24> pixelsBgr = MemoryMarshal.Cast<byte, Bgr24>(pixelData);
             for (int y = 0; y < height; y++)
             {
-                // TODO: Can we use span.Length here?
                 int yMulWidth = y * width;
-                Span<TPixel> pixelRow = pixels.GetRowSpan(y);
+                Span<TPixel> decodedPixelRow = decodedPixels.GetRowSpan(y);
                 for (int x = 0; x < width; x++)
                 {
-                    // TODO: Could use cast to Bgr24/Bgra32 then set alpha.
                     int offset = yMulWidth + x;
-                    int idxBgr = offset * 3;
-                    byte b = pixelData[idxBgr];
-                    byte g = pixelData[idxBgr + 1];
-                    byte r = pixelData[idxBgr + 2];
-                    byte a = alphaSpan[offset];
-                    color.FromBgra32(new Bgra32(r, g, b, a));
-                    pixelRow[x] = color;
+                    Bgr24 bgr = pixelsBgr[offset];
+                    color.FromBgra32(new Bgra32(bgr.R, bgr.G, bgr.B, alphaSpan[offset]));
+                    decodedPixelRow[x] = color;
                 }
             }
         }

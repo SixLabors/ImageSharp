@@ -138,12 +138,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 colorCache[i].Init(i);
             }
 
-            // TODO: Don't use the enumerator here.
             // Find the cacheBits giving the lowest entropy.
-            using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
-            while (c.MoveNext())
+            for (int idx = 0; idx < refs.Refs.Count; idx++)
             {
-                PixOrCopy v = c.Current;
+                PixOrCopy v = refs.Refs[idx];
                 if (v.IsLiteral())
                 {
                     uint pix = bgra[pos++];
@@ -743,14 +741,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         /// </summary>
         private static void BackwardRefsWithLocalCache(Span<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
         {
-            // TODO: Don't use enumerator.
             int pixelIndex = 0;
-            using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
             var colorCache = new ColorCache();
             colorCache.Init(cacheBits);
-            while (c.MoveNext())
+            for (int idx = 0; idx < refs.Refs.Count; idx++)
             {
-                PixOrCopy v = c.Current;
+                PixOrCopy v = refs.Refs[idx];
                 if (v.IsLiteral())
                 {
                     uint bgraLiteral = v.BgraOrDistance;

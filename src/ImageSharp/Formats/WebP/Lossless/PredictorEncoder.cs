@@ -5,6 +5,11 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
+
 namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 {
     /// <summary>
@@ -84,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 usedSubtractGreen);
         }
 
-        public static void ColorSpaceTransform(int width, int height, int bits, int quality, Span<uint> argb, Span<uint> image)
+        public static void ColorSpaceTransform(int width, int height, int bits, int quality, Span<uint> bgra, Span<uint> image)
         {
             int maxTileSize = 1 << bits;
             int tileXSize = LosslessUtils.SubSampleSize(width, bits);
@@ -118,10 +123,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                         height,
                         accumulatedRedHisto,
                         accumulatedBlueHisto,
-                        argb);
+                        bgra);
 
                     image[offset] = MultipliersToColorCode(prevX);
-                    CopyTileWithColorTransform(width, height, tileXOffset, tileYOffset, maxTileSize, prevX, argb);
+                    CopyTileWithColorTransform(width, height, tileXOffset, tileYOffset, maxTileSize, prevX, bgra);
 
                     // Gather accumulated histogram data.
                     for (int y = tileYOffset; y < allYMax; y++)
@@ -131,13 +136,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 
                         for (; ix < ixEnd; ix++)
                         {
-                            uint pix = argb[ix];
-                            if (ix >= 2 && pix == argb[ix - 2] && pix == argb[ix - 1])
+                            uint pix = bgra[ix];
+                            if (ix >= 2 && pix == bgra[ix - 2] && pix == bgra[ix - 1])
                             {
                                 continue;  // Repeated pixels are handled by backward references.
                             }
 
-                            if (ix >= width + 2 && argb[ix - 2] == argb[ix - width - 2] && argb[ix - 1] == argb[ix - width - 1] && pix == argb[ix - width])
+                            if (ix >= width + 2 && bgra[ix - 2] == bgra[ix - width - 2] && bgra[ix - 1] == bgra[ix - width - 1] && pix == bgra[ix - width])
                             {
                                 continue;  // Repeated pixels are handled by backward references.
                             }
@@ -766,11 +771,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             }
         }
 
-        private static Vp8LMultipliers GetBestColorTransformForTile(int tile_x, int tile_y, int bits, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int quality, int xSize, int ySize, int[] accumulatedRedHisto, int[] accumulatedBlueHisto, Span<uint> argb)
+        private static Vp8LMultipliers GetBestColorTransformForTile(int tileX, int tileY, int bits, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int quality, int xSize, int ySize, int[] accumulatedRedHisto, int[] accumulatedBlueHisto, Span<uint> argb)
         {
             int maxTileSize = 1 << bits;
-            int tileYOffset = tile_y * maxTileSize;
-            int tileXOffset = tile_x * maxTileSize;
+            int tileYOffset = tileY * maxTileSize;
+            int tileXOffset = tileX * maxTileSize;
             int allXMax = GetMin(tileXOffset + maxTileSize, xSize);
             int allYMax = GetMin(tileYOffset + maxTileSize, ySize);
             int tileWidth = allXMax - tileXOffset;
@@ -921,29 +926,84 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             return curDiff;
         }
 
-        private static void CollectColorRedTransforms(Span<uint> argb, int stride, int tileWidth, int tileHeight, int greenToRed, int[] histo)
+        private static void CollectColorRedTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, int[] histo)
         {
-            int startIdx = 0;
-            while (tileHeight-- > 0)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse41.IsSupported)
             {
-                for (int x = 0; x < tileWidth; x++)
+                var multsg = Vector128.Create((short)((greenToRed << 8) >> 5));
+                var maskgreen = Vector128.Create(0x00ff00);
+                var mask = Vector128.Create((short)0xff);
+
+                const int span = 8;
+                int y;
+                Span<ushort> values = stackalloc ushort[span];
+                for (y = 0; y < tileHeight; ++y)
                 {
-                    int idx = LosslessUtils.TransformColorRed((sbyte)greenToRed, argb[startIdx + x]);
-                    ++histo[idx];
+                    Span<uint> srcSpan = bgra.Slice(y * stride);
+                    fixed (uint* src = srcSpan)
+                    fixed (ushort* dst = values)
+                    {
+                        for (int x = 0; x + span <= tileWidth; x += span)
+                        {
+                            uint* input0Idx = src + x;
+                            uint* input1Idx = src + x + (span / 2);
+                            Vector128<byte> input0 = Sse2.LoadVector128((ushort*)input0Idx).AsByte();
+                            Vector128<byte> input1 = Sse2.LoadVector128((ushort*)input1Idx).AsByte();
+                            Vector128<byte> g0 = Sse2.And(input0, maskgreen.AsByte()); // 0 0  | g 0
+                            Vector128<byte> g1 = Sse2.And(input1, maskgreen.AsByte());
+                            Vector128<ushort> g = Sse41.PackUnsignedSaturate(g0.AsInt32(), g1.AsInt32()); // g 0
+                            Vector128<int> a0 = Sse2.ShiftRightLogical(input0.AsInt32(), 16); // 0 0  | x r
+                            Vector128<int> a1 = Sse2.ShiftRightLogical(input1.AsInt32(), 16);
+                            Vector128<ushort> a = Sse41.PackUnsignedSaturate(a0, a1); // x r
+                            Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg); // x dr
+                            Vector128<byte> c = Sse2.Subtract(a.AsByte(), b.AsByte()); // x r'
+                            Vector128<byte> d = Sse2.And(c, mask.AsByte()); // 0 r'
+                            Sse2.Store(dst, d.AsUInt16());
+                            for (int i = 0; i < span; ++i)
+                            {
+                                ++histo[values[i]];
+                            }
+                        }
+                    }
                 }
 
-                startIdx += stride;
+                int leftOver = tileWidth & (span - 1);
+                if (leftOver > 0)
+                {
+                    CollectColorRedTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToRed, histo);
+                }
+            }
+            else
+#endif
+            {
+                CollectColorRedTransformsNoneVectorized(bgra, stride, tileWidth, tileHeight, greenToRed, histo);
             }
         }
 
-        private static void CollectColorBlueTransforms(Span<uint> argb, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, int[] histo)
+        private static void CollectColorRedTransformsNoneVectorized(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, int[] histo)
         {
             int pos = 0;
             while (tileHeight-- > 0)
             {
                 for (int x = 0; x < tileWidth; x++)
                 {
-                    int idx = LosslessUtils.TransformColorBlue((sbyte)greenToBlue, (sbyte)redToBlue, argb[pos + x]);
+                    int idx = LosslessUtils.TransformColorRed((sbyte)greenToRed, bgra[pos + x]);
+                    ++histo[idx];
+                }
+
+                pos += stride;
+            }
+        }
+
+        private static void CollectColorBlueTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, int[] histo)
+        {
+            int pos = 0;
+            while (tileHeight-- > 0)
+            {
+                for (int x = 0; x < tileWidth; x++)
+                {
+                    int idx = LosslessUtils.TransformColorBlue((sbyte)greenToBlue, (sbyte)redToBlue, bgra[pos + x]);
                     ++histo[idx];
                 }
 

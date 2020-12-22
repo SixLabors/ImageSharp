@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp
     internal static class Numerics
     {
 #if SUPPORTS_RUNTIME_INTRINSICS
-        private const int BlendAlphaControl = 0b_10_00_10_00;
+        public const int BlendAlphaControl = 0b_10_00_10_00;
         private const int ShuffleAlphaControl = 0b_11_11_11_11;
 #endif
 
@@ -710,5 +710,43 @@ namespace SixLabors.ImageSharp
                 }
             }
         }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+
+        /// <summary>
+        /// Performs a linear interpolation between two values based on the given weighting.
+        /// </summary>
+        /// <param name="value1">The first value.</param>
+        /// <param name="value2">The second value.</param>
+        /// <param name="amount">Values between 0 and 1 that indicates the weight of <paramref name="value2"/>.</param>
+        /// <returns>The <see cref="Vector256{Single}"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<float> Lerp(
+            in Vector256<float> value1,
+            in Vector256<float> value2,
+            in Vector256<float> amount)
+        {
+            Vector256<float> diff = Avx.Subtract(value2, value1);
+            if (Fma.IsSupported)
+            {
+                return Fma.MultiplyAdd(diff, amount, value1);
+            }
+            else
+            {
+                return Avx.Add(Avx.Multiply(diff, amount), value1);
+            }
+        }
+#endif
+
+        /// <summary>
+        /// Performs a linear interpolation between two values based on the given weighting.
+        /// </summary>
+        /// <param name="value1">The first value.</param>
+        /// <param name="value2">The second value.</param>
+        /// <param name="amount">A value between 0 and 1 that indicates the weight of <paramref name="value2"/>.</param>
+        /// <returns>The <see cref="float"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Lerp(float value1, float value2, float amount)
+            => ((value2 - value1) * amount) + value1;
     }
 }

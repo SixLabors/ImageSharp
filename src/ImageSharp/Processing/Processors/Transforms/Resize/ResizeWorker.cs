@@ -105,14 +105,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public Span<Vector4> GetColumnSpan(int x, int startY)
-        {
-            return this.transposedFirstPassBuffer.GetRowSpan(x).Slice(startY - this.currentWindow.Min);
-        }
+            => this.transposedFirstPassBuffer.GetRowSpan(x).Slice(startY - this.currentWindow.Min);
 
         public void Initialize()
-        {
-            this.CalculateFirstPassValues(this.currentWindow);
-        }
+            => this.CalculateFirstPassValues(this.currentWindow);
 
         public void FillDestinationPixels(RowInterval rowInterval, Buffer2D<TPixel> destination)
         {

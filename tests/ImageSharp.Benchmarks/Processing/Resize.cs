@@ -4,10 +4,13 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
+using System.IO;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests;
+using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
@@ -15,32 +18,35 @@ namespace SixLabors.ImageSharp.Benchmarks
     public abstract class Resize<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        private byte[] bytes = null;
+
         private Image<TPixel> sourceImage;
 
-        private Bitmap sourceBitmap;
+        private SDImage sourceBitmap;
 
         protected Configuration Configuration { get; } = new Configuration(new JpegConfigurationModule());
-
-        [Params("3032-400")]
-        public virtual string SourceToDest { get; set; }
-
-        protected int SourceSize { get; private set; }
 
         protected int DestSize { get; private set; }
 
         [GlobalSetup]
         public virtual void Setup()
         {
-            string[] stuff = this.SourceToDest.Split('-');
-            this.SourceSize = int.Parse(stuff[0], CultureInfo.InvariantCulture);
-            this.DestSize = int.Parse(stuff[1], CultureInfo.InvariantCulture);
-            this.sourceImage = new Image<TPixel>(this.Configuration, this.SourceSize, this.SourceSize);
-            this.sourceBitmap = new Bitmap(this.SourceSize, this.SourceSize);
+            if (this.bytes is null)
+            {
+                this.bytes = File.ReadAllBytes(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Snake));
+
+                this.sourceImage = Image.Load<TPixel>(this.bytes);
+
+                var ms1 = new MemoryStream(this.bytes);
+                this.sourceBitmap = SDImage.FromStream(ms1);
+                this.DestSize = this.sourceBitmap.Width / 2;
+            }
         }
 
         [GlobalCleanup]
         public void Cleanup()
         {
+            this.bytes = null;
             this.sourceImage.Dispose();
             this.sourceBitmap.Dispose();
         }
@@ -126,9 +132,6 @@ namespace SixLabors.ImageSharp.Benchmarks
     {
         [Params(128, 512, 1024, 8 * 1024)]
         public int WorkingBufferSizeHintInKilobytes { get; set; }
-
-        [Params("3032-400", "4000-300")]
-        public override string SourceToDest { get; set; }
 
         public override void Setup()
         {

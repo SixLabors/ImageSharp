@@ -936,9 +936,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 var mask = Vector128.Create((short)0xff);
 
                 const int span = 8;
-                int y;
                 Span<ushort> values = stackalloc ushort[span];
-                for (y = 0; y < tileHeight; ++y)
+                for (int y = 0; y < tileHeight; ++y)
                 {
                     Span<uint> srcSpan = bgra.Slice(y * stride);
                     fixed (uint* src = srcSpan)
@@ -997,6 +996,67 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         }
 
         private static void CollectColorBlueTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, int[] histo)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse41.IsSupported)
+            {
+                const int span = 8;
+                Span<ushort> values = stackalloc ushort[span];
+                var multsr = Vector128.Create((short)((redToBlue << 8) >> 5));
+                var multsg = Vector128.Create((short)((greenToBlue << 8) >> 5));
+                var maskgreen = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+                var maskgreenblue = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
+                Vector128<byte> maskblue = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+                var shufflerLow = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
+                var shufflerHigh = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
+
+                for (int y = 0; y < tileHeight; ++y)
+                {
+                    Span<uint> srcSpan = bgra.Slice(y * stride);
+                    fixed (uint* src = srcSpan)
+                    fixed (ushort* dst = values)
+                    {
+                        for (int x = 0; x + span <= tileWidth; x += span)
+                        {
+                            uint* input0Idx = src + x;
+                            uint* input1Idx = src + x + (span / 2);
+                            Vector128<byte> input0 = Sse2.LoadVector128((ushort*)input0Idx).AsByte();
+                            Vector128<byte> input1 = Sse2.LoadVector128((ushort*)input1Idx).AsByte();
+                            Vector128<byte> r0 = Ssse3.Shuffle(input0, shufflerLow);
+                            Vector128<byte> r1 = Ssse3.Shuffle(input1, shufflerHigh);
+                            Vector128<byte> r = Sse2.Or(r0, r1);
+                            Vector128<byte> gb0 = Sse2.And(input0, maskgreenblue);
+                            Vector128<byte> gb1 = Sse2.And(input1, maskgreenblue);
+                            Vector128<ushort> gb = Sse41.PackUnsignedSaturate(gb0.AsInt32(), gb1.AsInt32());
+                            Vector128<byte> g = Sse2.And(gb.AsByte(), maskgreen);
+                            Vector128<short> a = Sse2.MultiplyHigh(r.AsInt16(), multsr);
+                            Vector128<short> b = Sse2.MultiplyHigh(g.AsInt16(), multsg);
+                            Vector128<byte> c = Sse2.Subtract(gb.AsByte(), b.AsByte());
+                            Vector128<byte> d = Sse2.Subtract(c, a.AsByte());
+                            Vector128<byte> e = Sse2.And(d, maskblue);
+                            Sse2.Store(dst, e.AsUInt16());
+                            for (int i = 0; i < span; ++i)
+                            {
+                                ++histo[values[i]];
+                            }
+                        }
+                    }
+                }
+
+                int leftOver = tileWidth & (span - 1);
+                if (leftOver > 0)
+                {
+                    CollectColorBlueTransformsNoneVectorized(bgra.Slice(tileWidth - leftOver), stride, leftOver, tileHeight, greenToBlue, redToBlue, histo);
+                }
+            }
+            else
+#endif
+            {
+                CollectColorBlueTransformsNoneVectorized(bgra, stride, tileWidth, tileHeight, greenToBlue, redToBlue, histo);
+            }
+        }
+
+        private static void CollectColorBlueTransformsNoneVectorized(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, int[] histo)
         {
             int pos = 0;
             while (tileHeight-- > 0)

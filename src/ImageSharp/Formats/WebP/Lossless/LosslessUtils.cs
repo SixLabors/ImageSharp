@@ -391,6 +391,49 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 
         public static void TransformColor(Vp8LMultipliers m, Span<uint> data, int numPixels)
         {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
+                Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
+                var maskalphagreen = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+                var maskredblue = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+                var shufflemask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
+                int idx;
+                fixed (uint* src = data)
+                {
+                    for (idx = 0; idx + 4 <= numPixels; idx += 4)
+                    {
+                        var pos = src + idx;
+                        Vector128<uint> input = Sse2.LoadVector128(pos);
+                        Vector128<byte> a = Sse2.And(input.AsByte(), maskalphagreen);
+                        Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), shufflemask);
+                        Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), shufflemask);
+                        Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
+                        Vector128<short> e = Sse2.ShiftLeftLogical(input.AsInt16(), 8);
+                        Vector128<short> f = Sse2.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
+                        Vector128<int> g = Sse2.ShiftRightLogical(f.AsInt32(), 16);
+                        Vector128<byte> h = Sse2.Add(g.AsByte(), d.AsByte());
+                        Vector128<byte> i = Sse2.And(h, maskredblue);
+                        Vector128<byte> output = Sse2.Subtract(input.AsByte(), i);
+                        Sse2.Store((byte*)pos, output);
+                    }
+
+                    if (idx != numPixels)
+                    {
+                        TransformColorNoneVectorized(m, data.Slice(idx), numPixels - idx);
+                    }
+                }
+            }
+            else
+#endif
+            {
+                TransformColorNoneVectorized(m, data, numPixels);
+            }
+        }
+
+        public static void TransformColorNoneVectorized(Vp8LMultipliers m, Span<uint> data, int numPixels)
+        {
             for (int i = 0; i < numPixels; i++)
             {
                 uint argb = data[i];
@@ -1140,6 +1183,33 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             }
         }
 
+        /// <summary>
+        /// Computes sampled size of 'size' when sampling using 'sampling bits'.
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static int SubSampleSize(int size, int samplingBits)
+        {
+            return (size + (1 << samplingBits) - 1) >> samplingBits;
+        }
+
+        /// <summary>
+        /// Sum of each component, mod 256.
+        /// </summary>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static uint AddPixels(uint a, uint b)
+        {
+            uint alphaAndGreen = (a & 0xff00ff00u) + (b & 0xff00ff00u);
+            uint redAndBlue = (a & 0x00ff00ffu) + (b & 0x00ff00ffu);
+            return (alphaAndGreen & 0xff00ff00u) | (redAndBlue & 0x00ff00ffu);
+        }
+
+        // For sign-extended multiplying constants, pre-shifted by 5:
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public static short Cst5b(int x)
+        {
+            return (short)(((short)(x << 8)) >> 5);
+        }
+
         private static uint ClampedAddSubtractFull(uint c0, uint c1, uint c2)
         {
             int a = AddSubtractComponentFull(
@@ -1186,6 +1256,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             return a < 256 ? a : ~a >> 24;
         }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static Vector128<int> MkCst16(int hi, int lo)
+        {
+            return Vector128.Create((hi << 16) | (lo & 0xffff));
+        }
+#endif
+
         private static uint Select(uint a, uint b, uint c)
         {
             int paMinusPb =
@@ -1220,26 +1298,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         private static uint Average4(uint a0, uint a1, uint a2, uint a3)
         {
             return Average2(Average2(a0, a1), Average2(a2, a3));
-        }
-
-        /// <summary>
-        /// Computes sampled size of 'size' when sampling using 'sampling bits'.
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static int SubSampleSize(int size, int samplingBits)
-        {
-            return (size + (1 << samplingBits) - 1) >> samplingBits;
-        }
-
-        /// <summary>
-        /// Sum of each component, mod 256.
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint AddPixels(uint a, uint b)
-        {
-            uint alphaAndGreen = (a & 0xff00ff00u) + (b & 0xff00ff00u);
-            uint redAndBlue = (a & 0x00ff00ffu) + (b & 0x00ff00ffu);
-            return (alphaAndGreen & 0xff00ff00u) | (redAndBlue & 0x00ff00ffu);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
-        [Params(TestImages.WebP.Peak)]
+        [Params(TestImages.Png.Bike)] // The bike image will have all 3 transforms as lossless webp.
         public string TestImage { get; set; }
 
         [GlobalSetup]
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             });
         }
 
-        /* Results 14.11.2020
+        /* Results 25.12.2020
          * Summary *
         BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.630 (2004/?/20H1)
         Intel Core i7-6700K CPU 4.00GHz (Skylake), 1 CPU, 8 logical and 4 physical cores
@@ -84,22 +84,22 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
           Job-GAIITM : .NET Core 2.1.23 (CoreCLR 4.6.29321.03, CoreFX 4.6.29321.01), X64 RyuJIT
           Job-HWOBSO : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
 
-        |                     Method |        Job |       Runtime |     TestImage |      Mean |     Error |    StdDev | Ratio | RatioSD |     Gen 0 |    Gen 1 |    Gen 2 |  Allocated |
-        |--------------------------- |----------- |-------------- |-------------- |----------:|----------:|----------:|------:|--------:|----------:|---------:|---------:|-----------:|
-        |        'Magick Webp Lossy' | Job-MYNMXL |    .NET 4.7.2 | WebP/Peak.png |  1.744 ms | 0.0399 ms | 0.0022 ms |  0.35 |    0.00 |    1.9531 |        - |        - |   13.58 KB |
-        |    'ImageSharp Webp Lossy' | Job-MYNMXL |    .NET 4.7.2 | WebP/Peak.png |  5.195 ms | 0.4241 ms | 0.0232 ms |  1.04 |    0.01 |  398.4375 |  93.7500 |        - | 1661.83 KB |
-        |     'Magick Webp Lossless' | Job-MYNMXL |    .NET 4.7.2 | WebP/Peak.png |  4.993 ms | 0.5097 ms | 0.0279 ms |  1.00 |    0.00 |    7.8125 |        - |        - |    35.7 KB |
-        | 'ImageSharp Webp Lossless' | Job-MYNMXL |    .NET 4.7.2 | WebP/Peak.png | 12.174 ms | 1.2476 ms | 0.0684 ms |  2.44 |    0.02 | 1000.0000 | 984.3750 | 984.3750 | 8197.11 KB |
-        |                            |            |               |               |           |           |           |       |         |           |          |          |            |
-        |        'Magick Webp Lossy' | Job-MPXHSM | .NET Core 2.1 | WebP/Peak.png |  1.747 ms | 0.0581 ms | 0.0032 ms |  0.35 |    0.00 |    1.9531 |        - |        - |   13.34 KB |
-        |    'ImageSharp Webp Lossy' | Job-MPXHSM | .NET Core 2.1 | WebP/Peak.png |  3.527 ms | 0.0972 ms | 0.0053 ms |  0.71 |    0.00 |  402.3438 |  97.6563 |        - | 1656.92 KB |
-        |     'Magick Webp Lossless' | Job-MPXHSM | .NET Core 2.1 | WebP/Peak.png |  5.001 ms | 0.4543 ms | 0.0249 ms |  1.00 |    0.00 |    7.8125 |        - |        - |   35.39 KB |
-        | 'ImageSharp Webp Lossless' | Job-MPXHSM | .NET Core 2.1 | WebP/Peak.png | 10.704 ms | 0.9844 ms | 0.0540 ms |  2.14 |    0.02 | 1000.0000 | 984.3750 | 984.3750 |  8182.6 KB |
-        |                            |            |               |               |           |           |           |       |         |           |          |          |            |
-        |        'Magick Webp Lossy' | Job-SYDSGM | .NET Core 3.1 | WebP/Peak.png |  1.742 ms | 0.0279 ms | 0.0015 ms |  0.35 |    0.01 |    1.9531 |        - |        - |   13.31 KB |
-        |    'ImageSharp Webp Lossy' | Job-SYDSGM | .NET Core 3.1 | WebP/Peak.png |  3.347 ms | 0.0638 ms | 0.0035 ms |  0.68 |    0.01 |  402.3438 |  97.6563 |        - | 1656.93 KB |
-        |     'Magick Webp Lossless' | Job-SYDSGM | .NET Core 3.1 | WebP/Peak.png |  4.954 ms | 1.4131 ms | 0.0775 ms |  1.00 |    0.00 |    7.8125 |        - |        - |   35.35 KB |
-        | 'ImageSharp Webp Lossless' | Job-SYDSGM | .NET Core 3.1 | WebP/Peak.png | 10.737 ms | 2.5604 ms | 0.1403 ms |  2.17 |    0.05 | 1000.0000 | 984.3750 | 984.3750 | 8182.49 KB |
+        |                     Method |        Job |       Runtime |    TestImage |      Mean |      Error |    StdDev | Ratio | RatioSD |      Gen 0 |     Gen 1 |     Gen 2 |    Allocated |
+        |--------------------------- |----------- |-------------- |------------- |----------:|-----------:|----------:|------:|--------:|-----------:|----------:|----------:|-------------:|
+        |        'Magick Webp Lossy' | Job-NTTOHF |    .NET 4.7.2 | Png/Bike.png |  23.89 ms |   3.742 ms |  0.205 ms |  0.14 |    0.00 |          - |         - |         - |     68.19 KB |
+        |    'ImageSharp Webp Lossy' | Job-NTTOHF |    .NET 4.7.2 | Png/Bike.png |  72.27 ms |  20.228 ms |  1.109 ms |  0.43 |    0.01 |  6142.8571 |  142.8571 |         - |  26360.05 KB |
+        |     'Magick Webp Lossless' | Job-NTTOHF |    .NET 4.7.2 | Png/Bike.png | 167.75 ms |  41.847 ms |  2.294 ms |  1.00 |    0.00 |          - |         - |         - |    520.28 KB |
+        | 'ImageSharp Webp Lossless' | Job-NTTOHF |    .NET 4.7.2 | Png/Bike.png | 388.12 ms |  84.867 ms |  4.652 ms |  2.31 |    0.03 | 34000.0000 | 5000.0000 | 2000.0000 |  163174.2 KB |
+        |                            |            |               |              |           |            |           |       |         |            |           |           |              |
+        |        'Magick Webp Lossy' | Job-RXOYDK | .NET Core 2.1 | Png/Bike.png |  24.00 ms |   7.621 ms |  0.418 ms |  0.14 |    0.00 |          - |         - |         - |     67.67 KB |
+        |    'ImageSharp Webp Lossy' | Job-RXOYDK | .NET Core 2.1 | Png/Bike.png |  47.77 ms |   6.498 ms |  0.356 ms |  0.29 |    0.00 |  6272.7273 |  272.7273 |   90.9091 |  26284.65 KB |
+        |     'Magick Webp Lossless' | Job-RXOYDK | .NET Core 2.1 | Png/Bike.png | 166.07 ms |  25.133 ms |  1.378 ms |  1.00 |    0.00 |          - |         - |         - |    519.06 KB |
+        | 'ImageSharp Webp Lossless' | Job-RXOYDK | .NET Core 2.1 | Png/Bike.png | 356.60 ms | 249.912 ms | 13.699 ms |  2.15 |    0.10 | 34000.0000 | 5000.0000 | 2000.0000 | 162719.59 KB |
+        |                            |            |               |              |           |            |           |       |         |            |           |           |              |
+        |        'Magick Webp Lossy' | Job-UDPFDM | .NET Core 3.1 | Png/Bike.png |  23.95 ms |   5.531 ms |  0.303 ms |  0.14 |    0.00 |          - |         - |         - |     67.57 KB |
+        |    'ImageSharp Webp Lossy' | Job-UDPFDM | .NET Core 3.1 | Png/Bike.png |  44.12 ms |   4.250 ms |  0.233 ms |  0.27 |    0.01 |  6250.0000 |  250.0000 |   83.3333 |  26284.72 KB |
+        |     'Magick Webp Lossless' | Job-UDPFDM | .NET Core 3.1 | Png/Bike.png | 165.94 ms |  66.670 ms |  3.654 ms |  1.00 |    0.00 |          - |         - |         - |    523.05 KB |
+        | 'ImageSharp Webp Lossless' | Job-UDPFDM | .NET Core 3.1 | Png/Bike.png | 342.97 ms |  92.856 ms |  5.090 ms |  2.07 |    0.05 | 34000.0000 | 5000.0000 | 2000.0000 | 162725.32 KB |
         */
     }
 }

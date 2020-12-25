@@ -68,6 +68,38 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             Assert.Equal(expectedOutput, pixelData);
         }
 
+        private static void RunTransformColorTest()
+        {
+            uint[] pixelData =
+            {
+                5998579, 65790, 130301, 16646653, 196350, 130565, 16712702, 16583164, 16452092, 65790, 782600,
+                647446, 16571414, 16448771, 263931, 132601, 16711935, 131072, 511, 16711679, 132350, 329469,
+                16647676, 132093, 66303, 16647169, 16515584, 196607, 196096, 16646655, 514, 131326, 16712192,
+                327169, 16646655, 16776960, 3, 16712190, 511, 16646401, 16580612, 65535, 196092, 327425, 16319743,
+                392450, 196861, 16712192, 16711680, 130564, 16451071
+            };
+
+            var m = new Vp8LMultipliers()
+            {
+                GreenToBlue = 240,
+                GreenToRed = 232,
+                RedToBlue = 0
+            };
+
+            uint[] expectedOutput =
+            {
+                100279, 65790, 16710907, 16712190, 130813, 65028, 131840, 264449, 133377, 65790, 61697, 15917319,
+                14801924, 16317698, 591614, 394748, 16711935, 131072, 65792, 16711679, 328704, 656896, 132607,
+                328703, 197120, 66563, 16646657, 196607, 130815, 16711936, 131587, 131326, 66049, 261632, 16711936,
+                16776960, 3, 511, 65792, 16711938, 16580612, 65535, 65019, 327425, 16516097, 261377, 196861, 66049,
+                16711680, 65027, 16712962
+            };
+
+            LosslessUtils.TransformColor(m, pixelData, pixelData.Length);
+
+            Assert.Equal(expectedOutput, pixelData);
+        }
+
         [Fact]
         public void SubtractGreen_Works()
         {
@@ -78,6 +110,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void AddGreenToBlueAndRed_Works()
         {
             RunAddGreenToBlueAndRedTest();
+        }
+
+        [Fact]
+        public void TrannsformColor_Works()
+        {
+            RunTransformColorTest();
         }
 
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -115,6 +153,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         public void AddGreenToBlueAndRed_WithoutAvxOrSSSE3_Works()
         {
             FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableSSSE3);
+        }
+
+        [Fact]
+        public void TransformColor_WithHardwareIntrinsics_Works()
+        {
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorTest, HwIntrinsics.AllowAll);
+        }
+
+        [Fact]
+        public void TransformColor_WithoutSSE2_Works()
+        {
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorTest, HwIntrinsics.DisableSSE2);
         }
 #endif
     }

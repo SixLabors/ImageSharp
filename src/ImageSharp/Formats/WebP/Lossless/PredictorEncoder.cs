@@ -720,6 +720,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             }
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int MaxDiffBetweenPixels(uint p1, uint p2)
         {
             int diffA = Math.Abs((int)(p1 >> 24) - (int)(p2 >> 24));
@@ -729,6 +730,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             return GetMax(GetMax(diffA, diffR), GetMax(diffG, diffB));
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int MaxDiffAroundPixel(uint current, uint up, uint down, uint left, uint right)
         {
             int diffUp = MaxDiffBetweenPixels(current, up);
@@ -738,6 +740,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             return GetMax(GetMax(diffUp, diffDown), GetMax(diffLeft, diffRight));
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static void UpdateHisto(int[][] histoArgb, uint argb)
         {
             ++histoArgb[0][argb >> 24];
@@ -931,7 +934,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 #if SUPPORTS_RUNTIME_INTRINSICS
             if (Sse41.IsSupported)
             {
-                var multsg = Vector128.Create((short)((greenToRed << 8) >> 5));
+                var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToRed));
                 var maskgreen = Vector128.Create(0x00ff00);
                 var mask = Vector128.Create((short)0xff);
 
@@ -1002,11 +1005,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             {
                 const int span = 8;
                 Span<ushort> values = stackalloc ushort[span];
-                var multsr = Vector128.Create((short)((redToBlue << 8) >> 5));
-                var multsg = Vector128.Create((short)((greenToBlue << 8) >> 5));
+                var multsr = Vector128.Create(LosslessUtils.Cst5b(redToBlue));
+                var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToBlue));
                 var maskgreen = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
                 var maskgreenblue = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
-                Vector128<byte> maskblue = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+                var maskblue = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
                 var shufflerLow = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
                 var shufflerHigh = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
 
@@ -1084,6 +1087,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             return (float)retVal;
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static float PredictionCostCrossColor(int[] accumulated, int[] counts)
         {
             // Favor low entropy, locally and globally.
@@ -1092,6 +1096,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             return LosslessUtils.CombinedShannonEntropy(counts, accumulated) + PredictionCostSpatial(counts, 3, expValue);
         }
 
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static float PredictionCostSpatial(int[] counts, int weight0, double expVal)
         {
             int significantSymbols = 256 >> 4;

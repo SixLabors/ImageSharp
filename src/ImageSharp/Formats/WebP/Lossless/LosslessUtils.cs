@@ -369,7 +369,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 {
                     uint colorCode = transformData[predRowIdx++];
                     ColorCodeToMultipliers(colorCode, ref m);
-                    TransformColorInverse(m, pixelData, pixelPos, tileWidth);
+                    TransformColorInverse(m, pixelData.Slice(pixelPos, tileWidth));
                     pixelPos += tileWidth;
                 }
 
@@ -377,7 +377,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 {
                     uint colorCode = transformData[predRowIdx];
                     ColorCodeToMultipliers(colorCode, ref m);
-                    TransformColorInverse(m, pixelData, pixelPos, remainingWidth);
+                    TransformColorInverse(m, pixelData.Slice(pixelPos, remainingWidth));
                     pixelPos += remainingWidth;
                 }
 
@@ -389,6 +389,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             }
         }
 
+        /// <summary>
+        /// Color transform keeps the green (G) value as it is, transforms red (R) based on green and transforms blue (B) based on green and then based on red.
+        /// </summary>
+        /// <param name="m">The Vp8LMultipliers.</param>
+        /// <param name="data">The pixel data to transform.</param>
+        /// <param name="numPixels">The number of pixels to process.</param>
         public static void TransformColor(Vp8LMultipliers m, Span<uint> data, int numPixels)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
@@ -432,7 +438,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             }
         }
 
-        public static void TransformColorNoneVectorized(Vp8LMultipliers m, Span<uint> data, int numPixels)
+        private static void TransformColorNoneVectorized(Vp8LMultipliers m, Span<uint> data, int numPixels)
         {
             for (int i = 0; i < numPixels; i++)
             {
@@ -455,12 +461,52 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         /// </summary>
         /// <param name="m">The color transform element.</param>
         /// <param name="pixelData">The pixel data to apply the inverse transform on.</param>
-        /// <param name="start">The start index of reverse transform.</param>
-        /// <param name="numPixels">The number of pixels to apply the transform.</param>
-        public static void TransformColorInverse(Vp8LMultipliers m, Span<uint> pixelData, int start, int numPixels)
+        public static void TransformColorInverse(Vp8LMultipliers m, Span<uint> pixelData)
         {
-            int end = start + numPixels;
-            for (int i = start; i < end; i++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Sse2.IsSupported)
+            {
+                Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
+                Vector128<int> multsb2 = MkCst16(Cst5b(m.RedToBlue), 0);
+                var maskalphagreen = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+                var shufflemask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
+                fixed (uint* src = pixelData)
+                {
+                    int idx;
+                    for (idx = 0; idx + 4 <= pixelData.Length; idx += 4)
+                    {
+                        var pos = src + idx;
+                        Vector128<uint> input = Sse2.LoadVector128(pos);
+                        Vector128<byte> a = Sse2.And(input.AsByte(), maskalphagreen);
+                        Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), shufflemask);
+                        Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), shufflemask);
+                        Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
+                        Vector128<byte> e = Sse2.Add(input.AsByte(), d.AsByte());
+                        Vector128<short> f = Sse2.ShiftLeftLogical(e.AsInt16(), 8);
+                        Vector128<short> g = Sse2.MultiplyHigh(f, multsb2.AsInt16());
+                        Vector128<int> h = Sse2.ShiftRightLogical(g.AsInt32(), 8);
+                        Vector128<byte> i = Sse2.Add(h.AsByte(), f.AsByte());
+                        Vector128<short> j = Sse2.ShiftRightLogical(i.AsInt16(), 8);
+                        Vector128<byte> output = Sse2.Or(j.AsByte(), a);
+                        Sse2.Store((byte*)pos, output);
+                    }
+
+                    if (idx != pixelData.Length)
+                    {
+                        TransformColorInverseNoneVectorized(m, pixelData.Slice(idx));
+                    }
+                }
+            }
+            else
+#endif
+            {
+                TransformColorInverseNoneVectorized(m, pixelData);
+            }
+        }
+
+        private static void TransformColorInverseNoneVectorized(Vp8LMultipliers m, Span<uint> pixelData)
+        {
+            for (int i = 0; i < pixelData.Length; i++)
             {
                 uint argb = pixelData[i];
                 sbyte green = (sbyte)(argb >> 8);

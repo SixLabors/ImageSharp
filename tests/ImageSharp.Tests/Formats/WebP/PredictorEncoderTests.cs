@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
     public class PredictorEncoderTests
     {
         [Fact]
-        public void ColorSpaceTransform_ProducesExpectedData()
+        public static void ColorSpaceTransform_ProducesExpectedData()
         {
             RunColorSpaceTransformTest();
         }

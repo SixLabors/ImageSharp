@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -547,6 +548,19 @@ namespace SixLabors.ImageSharp
                 return data.Image;
             }
 
+            ThrowForLoadingError(configuration);
+
+            return null;
+        }
+
+        /// <summary>
+        /// Throws an <see cref="UnknownImageFormatException"/> when <see cref="Load(Configuration, Stream, out IImageFormat)"/> fails.
+        /// </summary>
+        /// <param name="configuration">The configuration options.</param>
+        /// <remarks>This method is separate to improve codegen and avoid repeated JITting with different type arguments.</remarks>
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowForLoadingError(Configuration configuration)
+        {
             var sb = new StringBuilder();
             sb.AppendLine("Image cannot be loaded. Available decoders:");
 

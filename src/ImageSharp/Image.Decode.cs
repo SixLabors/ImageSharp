@@ -3,9 +3,9 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -167,6 +167,27 @@ namespace SixLabors.ImageSharp
         /// Decodes the image stream to the current image.
         /// </summary>
         /// <param name="stream">The stream.</param>
+        /// <param name="image">The image.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>The identified <see cref="IImageFormat"/> instance.</returns>
+        private static IImageFormat Decode<TPixel>(Stream stream, Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            IImageDecoder decoder = DiscoverDecoder(stream, image.GetConfiguration(), out IImageFormat format);
+            if (decoder is null)
+            {
+                return null;
+            }
+
+            decoder.Decode(stream, image);
+
+            return format;
+        }
+
+        /// <summary>
+        /// Decodes the image stream to the current image.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
         /// <param name="config">the configuration.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -177,16 +198,38 @@ namespace SixLabors.ImageSharp
             CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            (IImageDecoder decoder, IImageFormat format) = await DiscoverDecoderAsync(stream, config)
-                .ConfigureAwait(false);
+            (IImageDecoder decoder, IImageFormat format) = await DiscoverDecoderAsync(stream, config).ConfigureAwait(false);
             if (decoder is null)
             {
                 return (null, null);
             }
 
-            Image<TPixel> img = await decoder.DecodeAsync<TPixel>(config, stream, cancellationToken)
-                .ConfigureAwait(false);
+            Image<TPixel> img = await decoder.DecodeAsync<TPixel>(config, stream, cancellationToken).ConfigureAwait(false);
             return (img, format);
+        }
+
+        /// <summary>
+        /// Decodes the image stream to the current image.
+        /// </summary>
+        /// <param name="stream">The stream.</param>
+        /// <param name="image">The image.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation.</returns>
+        private static async Task<IImageFormat> DecodeAsync<TPixel>(
+            Stream stream,
+            Image<TPixel> image,
+            CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            (IImageDecoder decoder, IImageFormat format) = await DiscoverDecoderAsync(stream, image.GetConfiguration()).ConfigureAwait(false);
+            if (decoder is null)
+            {
+                return null;
+            }
+
+            await decoder.DecodeAsync(stream, image, cancellationToken).ConfigureAwait(false);
+            return format;
         }
 
         private static (Image Image, IImageFormat Format) Decode(Stream stream, Configuration config)

@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -331,6 +332,37 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Load an image into a target <see cref="Image{TPixel}"/> instance from the given file.
+        /// </summary>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="ArgumentNullException">The image is null.</exception>
+        /// <exception cref="ArgumentNullException">The decoder is null.</exception>
+        /// <exception cref="ArgumentException">The size of the image is invalid.</exception>
+        /// <exception cref="NotSupportedException">The image format is not supported for the operation.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task LoadAsync<TPixel>(
+            string path,
+            Image<TPixel> image,
+            IImageDecoder decoder,
+            CancellationToken cancellationToken = default)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(path, nameof(path));
+            Guard.NotNull(image, nameof(image));
+
+            Configuration configuration = image.GetConfiguration();
+            using Stream stream = configuration.FileSystem.OpenRead(path);
+            return LoadAsync(stream, image, decoder, cancellationToken);
+        }
+
+        /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// </summary>
         /// <param name="path">The file path to the image.</param>
@@ -456,6 +488,31 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Load an image into a target <see cref="Image{TPixel}"/> instance from the given file.
+        /// </summary>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="format">The mime type of the decoded image.</param>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="ArgumentNullException">The image is null.</exception>
+        /// <exception cref="ArgumentException">The size of the image is invalid.</exception>
+        /// <exception cref="NotSupportedException">The image format is not supported for the operation.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        public static void Load<TPixel>(string path, Image<TPixel> image, out IImageFormat format)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(path, nameof(path));
+            Guard.NotNull(image, nameof(image));
+
+            using (Stream stream = image.GetConfiguration().FileSystem.OpenRead(path))
+            {
+                Load(stream, image, out format);
+            }
+        }
+
+        /// <summary>
         /// Create a new instance of the <see cref="Image"/> class from the given file.
         /// The pixel type is selected by the decoder.
         /// </summary>
@@ -514,6 +571,32 @@ namespace SixLabors.ImageSharp
             using (Stream stream = configuration.FileSystem.OpenRead(path))
             {
                 return Load<TPixel>(configuration, stream, decoder);
+            }
+        }
+
+        /// <summary>
+        /// Load an image into a target <see cref="Image{TPixel}"/> instance from the given file.
+        /// </summary>
+        /// <param name="path">The file path to the image.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <exception cref="ArgumentNullException">The path is null.</exception>
+        /// <exception cref="ArgumentNullException">The image is null.</exception>
+        /// <exception cref="ArgumentNullException">The decoder is null.</exception>
+        /// <exception cref="ArgumentException">The size of the image is invalid.</exception>
+        /// <exception cref="NotSupportedException">The image format is not supported for the operation.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        public static void Load<TPixel>(string path, Image<TPixel> image, IImageDecoder decoder)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(path, nameof(path));
+            Guard.NotNull(image, nameof(image));
+
+            using (Stream stream = image.GetConfiguration().FileSystem.OpenRead(path))
+            {
+                Load(stream, image, decoder);
             }
         }
     }

@@ -8,9 +8,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp
@@ -445,6 +445,27 @@ namespace SixLabors.ImageSharp
             => WithSeekableStream(Configuration.Default, stream, (s, _) => decoder.Decode<TPixel>(Configuration.Default, s));
 
         /// <summary>
+        /// Load an image into a target <see cref="Image{TPixel}"/> instance from the given encoded byte array.
+        /// </summary>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="ArgumentException">The size of the image is invalid.</exception>
+        /// <exception cref="NotSupportedException">The image format is not supported for the operation.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        public static void Load<TPixel>(Stream stream, Image<TPixel> image, IImageDecoder decoder)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => WithSeekableStream(stream, image, (s, i) =>
+            {
+                decoder.Decode(s, i);
+                return default(object);
+            });
+
+        /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
         /// </summary>
         /// <param name="stream">The stream containing image information.</param>
@@ -508,6 +529,34 @@ namespace SixLabors.ImageSharp
                 cancellationToken);
 
         /// <summary>
+        /// Load an image into a target <see cref="Image{TPixel}"/> instance from the given stream.
+        /// </summary>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="ArgumentException">The size of the image is invalid.</exception>
+        /// <exception cref="NotSupportedException">The image format is not supported for the operation.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        public static Task LoadAsync<TPixel>(
+            Stream stream,
+            Image<TPixel> image,
+            IImageDecoder decoder,
+            CancellationToken cancellationToken = default)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => WithSeekableStreamAsync(
+                stream,
+                image,
+                (s, i, ct) => decoder.DecodeAsync(s, i, ct),
+                cancellationToken);
+
+        /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
         /// </summary>
         /// <param name="configuration">The configuration options.</param>
@@ -535,7 +584,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
         /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        /// <returns>The loaded <see cref="Image{TPixel}"/> instance.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration configuration, Stream stream, out IImageFormat format)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -551,6 +600,33 @@ namespace SixLabors.ImageSharp
             ThrowForLoadingError(configuration);
 
             return null;
+        }
+
+        /// <summary>
+        /// Load an image into a target <see cref="Image{TPixel}"/> instance from the given stream.
+        /// </summary>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="format">The format type of the decoded image.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="ArgumentException">The size of the image is invalid.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="NotSupportedException">The image format is not supported for the operation.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        public static void Load<TPixel>(Stream stream, Image<TPixel> image, out IImageFormat format)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            format = WithSeekableStream(stream, image, (s, i) => Decode(s, i));
+
+            if (format != null)
+            {
+                return;
+            }
+
+            ThrowForLoadingError(image.GetConfiguration());
         }
 
         /// <summary>
@@ -601,15 +677,9 @@ namespace SixLabors.ImageSharp
                 return data;
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine("Image cannot be loaded. Available decoders:");
+            ThrowForLoadingError(configuration);
 
-            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in configuration.ImageFormatsManager.ImageDecoders)
-            {
-                sb.AppendFormat(" - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
-            }
-
-            throw new UnknownImageFormatException(sb.ToString());
+            return default;
         }
 
         /// <summary>
@@ -644,15 +714,47 @@ namespace SixLabors.ImageSharp
                 return data;
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine("Image cannot be loaded. Available decoders:");
+            ThrowForLoadingError(configuration);
 
-            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in configuration.ImageFormatsManager.ImageDecoders)
+            return default;
+        }
+
+        /// <summary>
+        /// Load an image into a target <see cref="Image{TPixel}"/> instance from the given stream.
+        /// </summary>
+        /// <param name="stream">The stream containing image information.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The stream is null.</exception>
+        /// <exception cref="ArgumentException">The size of the image is invalid.</exception>
+        /// <exception cref="NotSupportedException">The image format is not supported for the operation.</exception>
+        /// <exception cref="NotSupportedException">The stream is not readable.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <returns>A <see cref="Task{IImageFormat}"/> representing the asynchronous operation.</returns>
+        public static async Task<IImageFormat> LoadWithFormatAsync<TPixel>(
+            Stream stream,
+            Image<TPixel> image,
+            CancellationToken cancellationToken = default)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            IImageFormat format = await WithSeekableStreamAsync(
+                    stream,
+                    image,
+                    (s, i, ct) => DecodeAsync(s, i, ct),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (format != null)
             {
-                sb.AppendFormat(" - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
+                return format;
             }
 
-            throw new UnknownImageFormatException(sb.ToString());
+            ThrowForLoadingError(image.GetConfiguration());
+
+            return default;
         }
 
         /// <summary>
@@ -703,15 +805,9 @@ namespace SixLabors.ImageSharp
                 return data.img;
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine("Image cannot be loaded. Available decoders:");
+            ThrowForLoadingError(configuration);
 
-            foreach (KeyValuePair<IImageFormat, IImageDecoder> val in configuration.ImageFormatsManager.ImageDecoders)
-            {
-                sb.AppendFormat(" - {0} : {1}{2}", val.Key.Name, val.Value.GetType().Name, Environment.NewLine);
-            }
-
-            throw new UnknownImageFormatException(sb.ToString());
+            return null;
         }
 
         /// <summary>
@@ -751,6 +847,49 @@ namespace SixLabors.ImageSharp
             memoryStream.Position = 0;
 
             return action(memoryStream, configuration);
+        }
+
+        /// <summary>
+        /// Performs the given action against the stream ensuring that it is seekable.
+        /// </summary>
+        /// <typeparam name="T">The type of object returned from the action.</typeparam>
+        /// <typeparam name="TPixel">The pixel type in use.</typeparam>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="image">The input image.</param>
+        /// <param name="action">The action to perform.</param>
+        /// <returns>The <typeparamref name="T"/>.</returns>
+        private static T WithSeekableStream<T, TPixel>(
+            Stream stream,
+            Image<TPixel> image,
+            Func<Stream, Image<TPixel>, T> action)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(stream, nameof(stream));
+            Guard.NotNull(image, nameof(image));
+
+            if (!stream.CanRead)
+            {
+                throw new NotSupportedException("Cannot read from the stream.");
+            }
+
+            Configuration configuration = image.GetConfiguration();
+
+            if (stream.CanSeek)
+            {
+                if (configuration.ReadOrigin == ReadOrigin.Begin)
+                {
+                    stream.Position = 0;
+                }
+
+                return action(stream, image);
+            }
+
+            // We want to be able to load images from things like HttpContext.Request.Body
+            using var memoryStream = new ChunkedMemoryStream(configuration.MemoryAllocator);
+            stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
+            memoryStream.Position = 0;
+
+            return action(memoryStream, image);
         }
 
         /// <summary>
@@ -795,6 +934,95 @@ namespace SixLabors.ImageSharp
             memoryStream.Position = 0;
 
             return await action(memoryStream, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Performs the given action asynchronously against the stream ensuring that it is seekable.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type in use.</typeparam>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="image">The input image.</param>
+        /// <param name="action">The action to perform.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The <see cref="Task{T}"/>.</returns>
+        private static async Task WithSeekableStreamAsync<TPixel>(
+            Stream stream,
+            Image<TPixel> image,
+            Func<Stream, Image<TPixel>, CancellationToken, Task> action,
+            CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(stream, nameof(stream));
+            Guard.NotNull(image, nameof(image));
+
+            if (!stream.CanRead)
+            {
+                throw new NotSupportedException("Cannot read from the stream.");
+            }
+
+            Configuration configuration = image.GetConfiguration();
+
+            if (stream.CanSeek)
+            {
+                if (configuration.ReadOrigin == ReadOrigin.Begin)
+                {
+                    stream.Position = 0;
+                }
+
+                await action(stream, image, cancellationToken).ConfigureAwait(false);
+
+                return;
+            }
+
+            using var memoryStream = new ChunkedMemoryStream(configuration.MemoryAllocator);
+            await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
+            memoryStream.Position = 0;
+
+            await action(memoryStream, image, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Performs the given action asynchronously against the stream ensuring that it is seekable.
+        /// </summary>
+        /// <typeparam name="T">The type of object returned from the action.</typeparam>
+        /// <typeparam name="TPixel">The pixel type in use.</typeparam>
+        /// <param name="stream">The input stream.</param>
+        /// <param name="image">The input image.</param>
+        /// <param name="action">The action to perform.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The <see cref="Task{T}"/>.</returns>
+        private static async Task<T> WithSeekableStreamAsync<T, TPixel>(
+            Stream stream,
+            Image<TPixel> image,
+            Func<Stream, Image<TPixel>, CancellationToken, Task<T>> action,
+            CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(stream, nameof(stream));
+            Guard.NotNull(image, nameof(image));
+
+            if (!stream.CanRead)
+            {
+                throw new NotSupportedException("Cannot read from the stream.");
+            }
+
+            Configuration configuration = image.GetConfiguration();
+
+            if (stream.CanSeek)
+            {
+                if (configuration.ReadOrigin == ReadOrigin.Begin)
+                {
+                    stream.Position = 0;
+                }
+
+                return await action(stream, image, cancellationToken).ConfigureAwait(false);
+            }
+
+            using var memoryStream = new ChunkedMemoryStream(configuration.MemoryAllocator);
+            await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
+            memoryStream.Position = 0;
+
+            return await action(memoryStream, image, cancellationToken).ConfigureAwait(false);
         }
     }
 }

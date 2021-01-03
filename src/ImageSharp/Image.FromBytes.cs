@@ -168,6 +168,30 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Load an image into a target <see cref="Image{TPixel}"/> instance from the given encoded byte array.
+        /// </summary>
+        /// <param name="data">The byte array containing encoded image data.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="format">The <see cref="IImageFormat"/> of the decoded image.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <exception cref="ArgumentNullException">The image is null.</exception>
+        /// <exception cref="ArgumentNullException">The data is null.</exception>
+        /// <exception cref="ArgumentException">The size of the image is invalid.</exception>
+        /// <exception cref="NotSupportedException">The image format is not supported for the operation.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        public static void Load<TPixel>(byte[] data, Image<TPixel> image, out IImageFormat format)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(data, nameof(data));
+
+            using (var stream = new MemoryStream(data, 0, data.Length, false, true))
+            {
+                Load(stream, image, out format);
+            }
+        }
+
+        /// <summary>
         /// Load a new instance of <see cref="Image{TPixel}"/> from the given encoded byte array.
         /// </summary>
         /// <param name="data">The byte array containing encoded image data.</param>
@@ -208,6 +232,30 @@ namespace SixLabors.ImageSharp
             using (var stream = new MemoryStream(data, 0, data.Length, false, true))
             {
                 return Load<TPixel>(configuration, stream, decoder);
+            }
+        }
+
+        /// <summary>
+        /// Load an image into a target <see cref="Image{TPixel}"/> instance from the given encoded byte array.
+        /// </summary>
+        /// <param name="data">The byte array containing encoded image data.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The data is null.</exception>
+        /// <exception cref="ArgumentException">The size of the image is invalid.</exception>
+        /// <exception cref="NotSupportedException">The image format is not supported for the operation.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        public static void Load<TPixel>(byte[] data, Image<TPixel> image, IImageDecoder decoder)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(data, nameof(data));
+
+            using (var stream = new MemoryStream(data, 0, data.Length, false, true))
+            {
+                Load(stream, image, decoder);
             }
         }
 
@@ -338,6 +386,31 @@ namespace SixLabors.ImageSharp
         }
 
         /// <summary>
+        /// Load an image into a target <see cref="Image{TPixel}"/> instance from the given encoded byte span.
+        /// </summary>
+        /// <param name="data">The byte span containing encoded image data.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="decoder">The decoder.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <exception cref="ArgumentException">The size of the image is invalid.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        public static unsafe void Load<TPixel>(
+            ReadOnlySpan<byte> data,
+            Image<TPixel> image,
+            IImageDecoder decoder)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            fixed (byte* ptr = &data.GetPinnableReference())
+            {
+                using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
+                {
+                    Load(stream, image, decoder);
+                }
+            }
+        }
+
+        /// <summary>
         /// Load a new instance of <see cref="Image{TPixel}"/> from the given encoded byte span.
         /// </summary>
         /// <param name="configuration">The configuration options.</param>
@@ -359,6 +432,31 @@ namespace SixLabors.ImageSharp
                 using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
                 {
                     return Load<TPixel>(configuration, stream, out format);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Load an image into a target <see cref="Image{TPixel}"/> instance from the given encoded byte span.
+        /// </summary>
+        /// <param name="data">The byte span containing image data.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="format">The mime type of the decoded image.</param>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <exception cref="ArgumentException">The size of the image is invalid.</exception>
+        /// <exception cref="UnknownImageFormatException">Image format not recognised.</exception>
+        /// <exception cref="InvalidImageContentException">Image contains invalid content.</exception>
+        public static unsafe void Load<TPixel>(
+            ReadOnlySpan<byte> data,
+            Image<TPixel> image,
+            out IImageFormat format)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            fixed (byte* ptr = &data.GetPinnableReference())
+            {
+                using (var stream = new UnmanagedMemoryStream(ptr, data.Length))
+                {
+                    Load(stream, image, out format);
                 }
             }
         }

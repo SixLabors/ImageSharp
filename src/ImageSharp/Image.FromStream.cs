@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp
         /// <exception cref="NotSupportedException">The stream is not readable.</exception>
         /// <returns>The format type or null if none found.</returns>
         public static IImageFormat DetectFormat(Configuration configuration, Stream stream)
-            => WithSeekableStream(configuration, stream, s => InternalDetectFormat(s, configuration));
+            => WithSeekableStream(configuration, stream, (s, c) => InternalDetectFormat(s, c));
 
         /// <summary>
         /// By reading the header on the provided stream this calculates the images format type.
@@ -161,7 +161,7 @@ namespace SixLabors.ImageSharp
         /// </returns>
         public static IImageInfo Identify(Configuration configuration, Stream stream, out IImageFormat format)
         {
-            (IImageInfo ImageInfo, IImageFormat Format) data = WithSeekableStream(configuration, stream, s => InternalIdentity(s, configuration ?? Configuration.Default));
+            (IImageInfo ImageInfo, IImageFormat Format) data = WithSeekableStream(configuration, stream, (s, c) => InternalIdentity(s, c ?? Configuration.Default));
 
             format = data.Format;
             return data.ImageInfo;
@@ -307,7 +307,7 @@ namespace SixLabors.ImageSharp
         public static Image Load(Configuration configuration, Stream stream, IImageDecoder decoder)
         {
             Guard.NotNull(decoder, nameof(decoder));
-            return WithSeekableStream(configuration, stream, s => decoder.Decode(configuration, s));
+            return WithSeekableStream(configuration, stream, (s, c) => decoder.Decode(c, s));
         }
 
         /// <summary>
@@ -441,7 +441,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
-            => WithSeekableStream(Configuration.Default, stream, s => decoder.Decode<TPixel>(Configuration.Default, s));
+            => WithSeekableStream(Configuration.Default, stream, (s, _) => decoder.Decode<TPixel>(Configuration.Default, s));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -478,7 +478,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image<TPixel> Load<TPixel>(Configuration configuration, Stream stream, IImageDecoder decoder)
             where TPixel : unmanaged, IPixel<TPixel>
-            => WithSeekableStream(configuration, stream, s => decoder.Decode<TPixel>(configuration, s));
+            => WithSeekableStream(configuration, stream, (s, c) => decoder.Decode<TPixel>(c, s));
 
         /// <summary>
         /// Create a new instance of the <see cref="Image{TPixel}"/> class from the given stream.
@@ -538,7 +538,7 @@ namespace SixLabors.ImageSharp
         public static Image<TPixel> Load<TPixel>(Configuration configuration, Stream stream, out IImageFormat format)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            (Image<TPixel> Image, IImageFormat Format) data = WithSeekableStream(configuration, stream, s => Decode<TPixel>(s, configuration));
+            (Image<TPixel> Image, IImageFormat Format) data = WithSeekableStream(configuration, stream, (s, c) => Decode<TPixel>(s, c));
 
             format = data.Format;
 
@@ -680,7 +680,7 @@ namespace SixLabors.ImageSharp
         /// <returns>A new <see cref="Image{TPixel}"/>.</returns>
         public static Image Load(Configuration configuration, Stream stream, out IImageFormat format)
         {
-            (Image img, IImageFormat format) data = WithSeekableStream(configuration, stream, s => Decode(s, configuration));
+            (Image img, IImageFormat format) data = WithSeekableStream(configuration, stream, (s, c) => Decode(s, c));
 
             format = data.format;
 
@@ -711,7 +711,7 @@ namespace SixLabors.ImageSharp
         private static T WithSeekableStream<T>(
             Configuration configuration,
             Stream stream,
-            Func<Stream, T> action)
+            Func<Stream, Configuration, T> action)
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(stream, nameof(stream));
@@ -728,7 +728,7 @@ namespace SixLabors.ImageSharp
                     stream.Position = 0;
                 }
 
-                return action(stream);
+                return action(stream, configuration);
             }
 
             // We want to be able to load images from things like HttpContext.Request.Body
@@ -736,7 +736,7 @@ namespace SixLabors.ImageSharp
             stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
             memoryStream.Position = 0;
 
-            return action(memoryStream);
+            return action(memoryStream, configuration);
         }
 
         /// <summary>

@@ -77,9 +77,20 @@ namespace SixLabors.ImageSharp
                 // Does the given stream contain enough data to fit in the header for the format
                 // and does that data match the format specification?
                 // Individual formats should still check since they are public.
-                return config.ImageFormatsManager.FormatDetectors
-                    .Where(x => x.HeaderSize <= headerSize)
-                    .Select(x => x.DetectFormat(buffer.GetSpan())).LastOrDefault(x => x != null);
+                foreach (IImageFormatDetector detector in config.ImageFormatsManager.FormatDetectors)
+                {
+                    if (detector.HeaderSize <= headerSize)
+                    {
+                        IImageFormat format = detector.DetectFormat(buffer.GetSpan());
+
+                        if (format != null)
+                        {
+                            return format;
+                        }
+                    }
+                }
+
+                return null;
             }
         }
 

@@ -10,7 +10,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
 using SixLabors.ImageSharp.Formats.Png.Zlib;
@@ -136,11 +135,29 @@ namespace SixLabors.ImageSharp.Formats.Png
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Image<TPixel> image = null;
+
+            this.Decode(stream, ref image);
+
+            return image;
+        }
+
+        /// <inheritdoc/>
+        public void Decode<TPixel>(BufferedReadStream stream, Image<TPixel> image, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => this.Decode(stream, ref image);
+
+        /// <summary>
+        /// Performs the decoding operation for a given image.
+        /// </summary>
+        public void Decode<TPixel>(BufferedReadStream stream, ref Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
             var metadata = new ImageMetadata();
             PngMetadata pngMetadata = metadata.GetPngMetadata();
             this.currentStream = stream;
             this.currentStream.Skip(8);
-            Image<TPixel> image = null;
+            bool isInitialized = false;
             try
             {
                 while (!this.isEndChunkReached && this.TryReadChunk(out PngChunk chunk))
@@ -159,9 +176,23 @@ namespace SixLabors.ImageSharp.Formats.Png
                                 this.ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
                                 break;
                             case PngChunkType.Data:
-                                if (image is null)
+                                if (!isInitialized)
                                 {
-                                    this.InitializeImage(metadata, out image);
+                                    isInitialized = true;
+
+                                    // We need an extra check for initialization to ensure we don't stumble upon
+                                    // cases where the data segment is indeed missing, but the image is still not
+                                    // null after the decoding loop, due to it being given as an explicit target.
+                                    if (image is null)
+                                    {
+                                        this.InitializeImage(metadata, out image);
+                                    }
+                                    else
+                                    {
+                                        this.InitializeImage(image);
+
+                                        image.Metadata = metadata;
+                                    }
                                 }
 
                                 this.ReadScanlines(chunk, image.Frames.RootFrame, pngMetadata);
@@ -210,12 +241,10 @@ namespace SixLabors.ImageSharp.Formats.Png
                     }
                 }
 
-                if (image is null)
+                if (!isInitialized)
                 {
                     PngThrowHelper.ThrowNoData();
                 }
-
-                return image;
             }
             finally
             {
@@ -384,6 +413,31 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.header.Width,
                 this.header.Height,
                 metadata);
+
+            this.bytesPerPixel = this.CalculateBytesPerPixel();
+            this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
+            this.bytesPerSample = 1;
+            if (this.header.BitDepth >= 8)
+            {
+                this.bytesPerSample = this.header.BitDepth / 8;
+            }
+
+            this.previousScanline = this.memoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
+            this.scanline = this.Configuration.MemoryAllocator.AllocateManagedByteBuffer(this.bytesPerScanline, AllocationOptions.Clean);
+        }
+
+        /// <summary>
+        /// Initializes the image and various buffers needed for processing
+        /// </summary>
+        /// <typeparam name="TPixel">The type the pixels will be</typeparam>
+        /// <param name="image">The target image that we will populate</param>
+        private void InitializeImage<TPixel>(Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (this.header.Width != image.Width || this.header.Height != image.Height)
+            {
+                ThrowHelper.ThrowArgumentException("The input image has an invalid size", nameof(image));
+            }
 
             this.bytesPerPixel = this.CalculateBytesPerPixel();
             this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;

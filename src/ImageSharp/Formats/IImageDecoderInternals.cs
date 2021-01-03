@@ -39,6 +39,21 @@ namespace SixLabors.ImageSharp.Formats
             where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
+        /// Decodes the image from the specified stream.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The stream, where the image should be decoded from. Cannot be null.</param>
+        /// <param name="image">The target image to decode into.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
+        /// <remarks>
+        /// Cancellable synchronous method. In case of cancellation,
+        /// an <see cref="OperationCanceledException"/> shall be thrown which will be handled on the call site.
+        /// </remarks>
+        void Decode<TPixel>(BufferedReadStream stream, Image<TPixel> image, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>;
+
+        /// <summary>
         /// Reads the raw image information from the specified stream.
         /// </summary>
         /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>

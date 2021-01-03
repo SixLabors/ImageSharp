@@ -81,6 +81,23 @@ namespace SixLabors.ImageSharp.Formats.Tga
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Image<TPixel> image = null;
+
+            this.Decode(stream, ref image, cancellationToken);
+
+            return image;
+        }
+
+        /// <inheritdoc />
+        public void Decode<TPixel>(BufferedReadStream stream, Image<TPixel> image, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            this.Decode(stream, ref image, cancellationToken);
+        }
+
+        private Image<TPixel> Decode<TPixel>(BufferedReadStream stream, ref Image<TPixel> image, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
             try
             {
                 TgaImageOrigin origin = this.ReadFileHeader(stream);
@@ -97,7 +114,20 @@ namespace SixLabors.ImageSharp.Formats.Tga
                     throw new UnknownImageFormatException("Width or height cannot be 0");
                 }
 
-                var image = Image.CreateUninitialized<TPixel>(this.Configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
+                if (image is null)
+                {
+                    image = Image.CreateUninitialized<TPixel>(this.Configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
+                }
+                else
+                {
+                    if (image.Height != this.fileHeader.Height || image.Width != this.fileHeader.Width)
+                    {
+                        ThrowHelper.ThrowArgumentException("The input image has an invalid size", nameof(image));
+                    }
+
+                    image.Metadata = this.metadata;
+                }
+
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
                 if (this.fileHeader.ColorMapType == 1)

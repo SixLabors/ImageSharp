@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -157,6 +156,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
 
             return image;
         }
+
+        /// <inheritdoc />
+        public void Decode<TPixel>(BufferedReadStream stream, Image<TPixel> image, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => throw new NotSupportedException("The current decoder doesn't support decoding to a target image");
 
         /// <inheritdoc />
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)

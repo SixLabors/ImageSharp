@@ -122,11 +122,41 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            Image<TPixel> image = null;
+
+            this.Decode(stream, ref image);
+
+            return image;
+        }
+
+        /// <inheritdoc />
+        public void Decode<TPixel>(BufferedReadStream stream, Image<TPixel> image, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => this.Decode(stream, ref image);
+
+        /// <summary>
+        /// Implements the internal decoding logic for an image.
+        /// </summary>
+        private void Decode<TPixel>(BufferedReadStream stream, ref Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
             try
             {
                 int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
-                var image = new Image<TPixel>(this.Configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
+                if (image is null)
+                {
+                    image = new Image<TPixel>(this.Configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
+                }
+                else
+                {
+                    if (image.Height != this.infoHeader.Height || image.Width != this.infoHeader.Width)
+                    {
+                        ThrowHelper.ThrowArgumentException("The input image has an invalid size", nameof(image));
+                    }
+
+                    image.Metadata = this.metadata;
+                }
 
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -188,8 +218,6 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                         break;
                 }
-
-                return image;
             }
             catch (IndexOutOfRangeException e)
             {

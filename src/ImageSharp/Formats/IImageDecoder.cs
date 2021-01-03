@@ -25,6 +25,16 @@ namespace SixLabors.ImageSharp.Formats
             where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>
+        /// Decodes the image from the specified stream to an <see cref="Image{TPixel}"/> of a specific pixel type.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        // TODO: Document ImageFormatExceptions (https://github.com/SixLabors/ImageSharp/issues/1110)
+        void Decode<TPixel>(Stream stream, Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>;
+
+        /// <summary>
         /// Decodes the image from the specified stream to an <see cref="Image"/>.
         /// </summary>
         /// <param name="configuration">The configuration for the image.</param>
@@ -43,6 +53,18 @@ namespace SixLabors.ImageSharp.Formats
         /// <returns>The <see cref="Image{TPixel}"/>.</returns>
         // TODO: Document ImageFormatExceptions (https://github.com/SixLabors/ImageSharp/issues/1110)
         Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>;
+
+        /// <summary>
+        /// Decodes the image from the specified stream to an <see cref="Image{TPixel}"/> of a specific pixel type.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+        /// <param name="image">The target <see cref="Image{TPixel}"/> instance.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>A <see cref="Task"/> that indicates when the decoding has completed..</returns>
+        // TODO: Document ImageFormatExceptions (https://github.com/SixLabors/ImageSharp/issues/1110)
+        Task DecodeAsync<TPixel>(Stream stream, Image<TPixel> image, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>;
 
         /// <summary>

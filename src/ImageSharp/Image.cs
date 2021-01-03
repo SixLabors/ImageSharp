@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp
         public int Height => this.size.Height;
 
         /// <inheritdoc/>
-        public ImageMetadata Metadata { get; }
+        public ImageMetadata Metadata { get; internal set; }
 
         /// <summary>
         /// Gets the frames of the image as (non-generic) <see cref="ImageFrameCollection"/>.

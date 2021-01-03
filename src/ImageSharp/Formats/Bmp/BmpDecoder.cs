@@ -4,8 +4,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -44,6 +43,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public Image Decode(Configuration configuration, Stream stream)
             => this.Decode<Rgba32>(configuration, stream);
 
+        /// <inheritdoc />
+        public void Decode<TPixel>(Stream stream, Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(stream, nameof(stream));
+            Guard.NotNull(image, nameof(image));
+
+            var decoder = new BmpDecoderCore(image.GetConfiguration(), this);
+            decoder.Decode(stream, image);
+        }
+
         /// <inheritdoc/>
         public Task<Image<TPixel>> DecodeAsync<TPixel>(Configuration configuration, Stream stream, CancellationToken cancellationToken)
            where TPixel : unmanaged, IPixel<TPixel>
@@ -58,6 +68,17 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken)
             .ConfigureAwait(false);
+
+        /// <inheritdoc />
+        public Task DecodeAsync<TPixel>(Stream stream, Image<TPixel> image, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(stream, nameof(stream));
+            Guard.NotNull(image, nameof(image));
+
+            var decoder = new BmpDecoderCore(image.GetConfiguration(), this);
+            return decoder.DecodeAsync(stream, image, cancellationToken);
+        }
 
         /// <inheritdoc/>
         public IImageInfo Identify(Configuration configuration, Stream stream)

@@ -217,7 +217,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.InitIccProfile();
             this.InitIptcProfile();
             this.InitDerivedMetadataProperties();
-            return this.PostProcessIntoImage<TPixel>(cancellationToken);
+
+            Image<TPixel> image = null;
+
+            this.PostProcessIntoImage(ref image, cancellationToken);
+
+            return image;
+        }
+
+        /// <inheritdoc/>
+        public void Decode<TPixel>(BufferedReadStream stream, Image<TPixel> image, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            this.ParseStream(stream, cancellationToken: cancellationToken);
+            this.InitExifProfile();
+            this.InitIccProfile();
+            this.InitIptcProfile();
+            this.InitDerivedMetadataProperties();
+            this.PostProcessIntoImage(ref image, cancellationToken);
         }
 
         /// <inheritdoc/>
@@ -1087,8 +1104,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Post processes the pixels into the destination image.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <returns>The <see cref="Image{TPixel}"/>.</returns>
-        private Image<TPixel> PostProcessIntoImage<TPixel>(CancellationToken cancellationToken)
+        /// <param name="image">The destination image.</param>
+        /// <param name="cancellationToken">The cancellation token for the operation.</param>
+        private void PostProcessIntoImage<TPixel>(ref Image<TPixel> image, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (this.ImageWidth == 0 || this.ImageHeight == 0)
@@ -1096,18 +1114,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 JpegThrowHelper.ThrowInvalidImageDimensions(this.ImageWidth, this.ImageHeight);
             }
 
-            var image = Image.CreateUninitialized<TPixel>(
-                this.Configuration,
-                this.ImageWidth,
-                this.ImageHeight,
-                this.Metadata);
-
-            using (var postProcessor = new JpegImagePostProcessor(this.Configuration, this))
+            if (image is null)
             {
-                postProcessor.PostProcess(image.Frames.RootFrame, cancellationToken);
+                image = Image.CreateUninitialized<TPixel>(
+                    this.Configuration,
+                    this.ImageWidth,
+                    this.ImageHeight,
+                    this.Metadata);
+            }
+            else
+            {
+                if (this.ImageWidth != image.Width || this.ImageHeight != image.Height)
+                {
+                    ThrowHelper.ThrowArgumentException("The input image has an invalid size", nameof(image));
+                }
+
+                image.Metadata = this.Metadata;
             }
 
-            return image;
+            using var postProcessor = new JpegImagePostProcessor(this.Configuration, this);
+
+            postProcessor.PostProcess(image.Frames.RootFrame, cancellationToken);
         }
     }
 }

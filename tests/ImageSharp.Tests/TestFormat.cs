@@ -249,6 +249,14 @@ namespace SixLabors.ImageSharp.Tests
 
             public async Task<IImageInfo> IdentifyAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
                 => await this.DecodeImpl<Rgba32>(configuration, stream, cancellationToken);
+
+            public void Decode<TPixel>(Stream stream, Image<TPixel> image)
+                where TPixel : unmanaged, IPixel<TPixel>
+                => throw new NotImplementedException();
+
+            public Task DecodeAsync<TPixel>(Stream stream, Image<TPixel> image, CancellationToken cancellationToken)
+                where TPixel : unmanaged, IPixel<TPixel>
+                => throw new NotImplementedException();
         }
 
         public class TestEncoder : ImageSharp.Formats.IImageEncoder

@@ -394,6 +394,14 @@ namespace SixLabors.ImageSharp.Tests
 
             public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
                 => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken);
+
+            public void Decode<TPixel>(Stream stream, Image<TPixel> image)
+                where TPixel : unmanaged, IPixel<TPixel>
+                => throw new NotImplementedException();
+
+            public Task DecodeAsync<TPixel>(Stream stream, Image<TPixel> image, CancellationToken cancellationToken)
+                where TPixel : unmanaged, IPixel<TPixel>
+                => throw new NotImplementedException();
         }
 
         private class TestDecoderWithParameters : IImageDecoder
@@ -449,6 +457,14 @@ namespace SixLabors.ImageSharp.Tests
 
             public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
                 => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken);
+
+            public void Decode<TPixel>(Stream stream, Image<TPixel> image)
+                where TPixel : unmanaged, IPixel<TPixel>
+                => throw new NotImplementedException();
+
+            public Task DecodeAsync<TPixel>(Stream stream, Image<TPixel> image, CancellationToken cancellationToken)
+                where TPixel : unmanaged, IPixel<TPixel>
+                => throw new NotImplementedException();
         }
     }
 }

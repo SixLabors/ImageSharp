@@ -4,7 +4,6 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -65,5 +64,13 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs
 
         public async Task<Image> DecodeAsync(Configuration configuration, Stream stream, CancellationToken cancellationToken)
             => await this.DecodeAsync<Rgba32>(configuration, stream, cancellationToken);
+
+        public void Decode<TPixel>(Stream stream, Image<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => throw new System.NotImplementedException();
+
+        public Task DecodeAsync<TPixel>(Stream stream, Image<TPixel> image, CancellationToken cancellationToken)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => throw new System.NotImplementedException();
     }
 }

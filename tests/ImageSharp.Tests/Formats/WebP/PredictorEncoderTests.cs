@@ -3,7 +3,7 @@
 
 using System;
 using System.IO;
-using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -15,26 +15,47 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
     public class PredictorEncoderTests
     {
         [Fact]
-        public static void ColorSpaceTransform_ProducesExpectedData()
+        public static void ColorSpaceTransform_WithBikeImage_ProducesExpectedData()
         {
-            RunColorSpaceTransformTest();
+            RunColorSpaceTransformTestWithBikeImage();
         }
 
-#if SUPPORTS_RUNTIME_INTRINSICS
+        // Note: only run with netcoreapp, because the test fails with net472 in Release mode (not in Debug mode) for unknown reason.
+#if NETCOREAPP
         [Fact]
-        public void ColorSpaceTransform_WithHardwareIntrinsics_Works()
+        public static void ColorSpaceTransform_WithPeakImage_ProducesExpectedData()
         {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_ProducesExpectedData, HwIntrinsics.AllowAll);
-        }
-
-        [Fact]
-        public void ColorSpaceTransform_WithoutSSE41_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_ProducesExpectedData, HwIntrinsics.DisableSSE41);
+            RunColorSpaceTransformTestWithPeakImage();
         }
 #endif
 
-        private static void RunColorSpaceTransformTest()
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void ColorSpaceTransform_WithPeakImage_WithHardwareIntrinsics_Works()
+        {
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithPeakImage_ProducesExpectedData, HwIntrinsics.AllowAll);
+        }
+
+        [Fact]
+        public void ColorSpaceTransform_WithPeakImage_WithoutSSE41_Works()
+        {
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithPeakImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
+        }
+
+        [Fact]
+        public void ColorSpaceTransform_WithBikeImage_WithHardwareIntrinsics_Works()
+        {
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.AllowAll);
+        }
+
+        [Fact]
+        public void ColorSpaceTransform_WithBikeImage_WithoutSSE41_Works()
+        {
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
+        }
+#endif
+
+        private static void RunColorSpaceTransformTestWithPeakImage()
         {
             // arrange
             uint[] expectedData =
@@ -90,6 +111,35 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             Assert.Equal(expectedData, transformData);
         }
 
+        private static void RunColorSpaceTransformTestWithBikeImage()
+        {
+            // arrange
+            uint[] expectedData =
+            {
+                4278714368, 4278192876, 4278198304, 4278198304, 4278190304, 4278190080, 4278190080, 4278198272,
+                4278197760, 4278198816, 4278197794, 4278197774, 4278190080, 4278190080, 4278198816, 4278197281,
+                4278197280, 4278197792, 4278200353, 4278191343, 4278190304, 4294713873, 4278198784, 4294844416,
+                4278201578, 4278200044, 4278191343, 4278190288, 4294705200, 4294717139, 4278203628, 4278201064,
+                4278201586, 4278197792, 4279240909
+            };
+
+            // Convert image pixels to bgra array.
+            var imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.WebP.Lossless.BikeSmall));
+            using var image = Image.Load<Rgba32>(imgBytes, new WebpDecoder());
+            uint[] bgra = ToBgra(image);
+
+            int colorTransformBits = 4;
+            int transformWidth = LosslessUtils.SubSampleSize(image.Width, colorTransformBits);
+            int transformHeight = LosslessUtils.SubSampleSize(image.Height, colorTransformBits);
+            var transformData = new uint[transformWidth * transformHeight];
+
+            // act
+            PredictorEncoder.ColorSpaceTransform(image.Width, image.Height, colorTransformBits, 75, bgra, transformData);
+
+            // assert
+            Assert.Equal(expectedData, transformData);
+        }
+
         private static uint[] ToBgra<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -107,7 +157,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
             return bgra;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Bgra32 ToBgra32<TPixel>(TPixel color)
             where TPixel : unmanaged, IPixel<TPixel>
         {

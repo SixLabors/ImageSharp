@@ -798,7 +798,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         {
             int maxIters = 4 + ((7 * quality) >> 8);  // in range [4..6]
             int greenToRedBest = 0;
-            float bestDiff = GetPredictionCostCrossColorRed(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToRedBest, accumulatedRedHisto);
+            double bestDiff = GetPredictionCostCrossColorRed(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToRedBest, accumulatedRedHisto);
             for (int iter = 0; iter < maxIters; iter++)
             {
                 // ColorTransformDelta is a 3.5 bit fixed point, so 32 is equal to
@@ -810,7 +810,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 for (int offset = -delta; offset <= delta; offset += 2 * delta)
                 {
                     int greenToRedCur = offset + greenToRedBest;
-                    float curDiff = GetPredictionCostCrossColorRed(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToRedCur, accumulatedRedHisto);
+                    double curDiff = GetPredictionCostCrossColorRed(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToRedCur, accumulatedRedHisto);
                     if (curDiff < bestDiff)
                     {
                         bestDiff = curDiff;
@@ -831,7 +831,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             sbyte[] deltaLut = { 16, 16, 8, 4, 2, 2, 2 };
 
             // Initial value at origin:
-            float bestDiff = GetPredictionCostCrossColorBlue(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToBlueBest, redToBlueBest, accumulatedBlueHisto);
+            double bestDiff = GetPredictionCostCrossColorBlue(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToBlueBest, redToBlueBest, accumulatedBlueHisto);
             for (int iter = 0; iter < iters; iter++)
             {
                 int delta = deltaLut[iter];
@@ -839,7 +839,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 {
                     int greenToBlueCur = (offset[axis][0] * delta) + greenToBlueBest;
                     int redToBlueCur = (offset[axis][1] * delta) + redToBlueBest;
-                    float curDiff = GetPredictionCostCrossColorBlue(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToBlueCur, redToBlueCur, accumulatedBlueHisto);
+                    double curDiff = GetPredictionCostCrossColorBlue(argb, stride, tileWidth, tileHeight, prevX, prevY, greenToBlueCur, redToBlueCur, accumulatedBlueHisto);
                     if (curDiff < bestDiff)
                     {
                         bestDiff = curDiff;
@@ -865,12 +865,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             bestTx.RedToBlue = (byte)(redToBlueBest & 0xff);
         }
 
-        private static float GetPredictionCostCrossColorRed(Span<uint> argb, int stride, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int greenToRed, int[] accumulatedRedHisto)
+        private static double GetPredictionCostCrossColorRed(Span<uint> argb, int stride, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int greenToRed, int[] accumulatedRedHisto)
         {
             int[] histo = new int[256];
 
             CollectColorRedTransforms(argb, stride, tileWidth, tileHeight, greenToRed, histo);
-            float curDiff = PredictionCostCrossColor(accumulatedRedHisto, histo);
+            double curDiff = PredictionCostCrossColor(accumulatedRedHisto, histo);
 
             if ((byte)greenToRed == prevX.GreenToRed)
             {
@@ -890,12 +890,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             return curDiff;
         }
 
-        private static float GetPredictionCostCrossColorBlue(Span<uint> argb, int stride, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int greenToBlue, int redToBlue, int[] accumulatedBlueHisto)
+        private static double GetPredictionCostCrossColorBlue(Span<uint> argb, int stride, int tileWidth, int tileHeight, Vp8LMultipliers prevX, Vp8LMultipliers prevY, int greenToBlue, int redToBlue, int[] accumulatedBlueHisto)
         {
             int[] histo = new int[256];
 
             CollectColorBlueTransforms(argb, stride, tileWidth, tileHeight, greenToBlue, redToBlue, histo);
-            float curDiff = PredictionCostCrossColor(accumulatedBlueHisto, histo);
+            double curDiff = PredictionCostCrossColor(accumulatedBlueHisto, histo);
             if ((byte)greenToBlue == prevX.GreenToBlue)
             {
                 curDiff -= 3;  // Favor keeping the areas locally similar.
@@ -1088,7 +1088,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static float PredictionCostCrossColor(int[] accumulated, int[] counts)
+        private static double PredictionCostCrossColor(int[] accumulated, int[] counts)
         {
             // Favor low entropy, locally and globally.
             // Favor small absolute values for PredictionCostSpatial.

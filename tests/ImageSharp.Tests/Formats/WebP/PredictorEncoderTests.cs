@@ -6,7 +6,9 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
 using SixLabors.ImageSharp.PixelFormats;
+#if SUPPORTS_RUNTIME_INTRINSICS
 using SixLabors.ImageSharp.Tests.TestUtilities;
+#endif
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.WebP
@@ -16,18 +18,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
     {
         [Fact]
         public static void ColorSpaceTransform_WithBikeImage_ProducesExpectedData()
-        {
-            RunColorSpaceTransformTestWithBikeImage();
-        }
+            => RunColorSpaceTransformTestWithBikeImage();
 
-        // Note: only run with netcoreapp, because the test fails with net472 in Release mode (not in Debug mode) for unknown reason.
-#if NETCOREAPP
         [Fact]
         public static void ColorSpaceTransform_WithPeakImage_ProducesExpectedData()
-        {
-            RunColorSpaceTransformTestWithPeakImage();
-        }
-#endif
+            => RunColorSpaceTransformTestWithPeakImage();
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]

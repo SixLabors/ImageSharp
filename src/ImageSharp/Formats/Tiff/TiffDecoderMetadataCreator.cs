@@ -54,15 +54,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                         }
                     }
 
-                    if (coreMetadata.ExifProfile == null)
-                    {
-                        byte[] buf = frame.GetArray<byte>(ExifTag.SubIFDOffset, true);
-                        if (buf != null)
-                        {
-                            coreMetadata.ExifProfile = new ExifProfile(buf);
-                        }
-                    }
-
                     if (coreMetadata.IptcProfile == null)
                     {
                         byte[] buf = frame.GetArray<byte>(ExifTag.IPTC, true);

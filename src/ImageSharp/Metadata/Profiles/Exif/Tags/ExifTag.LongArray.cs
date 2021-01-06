@@ -57,11 +57,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static ExifTag<uint[]> StripRowCounts { get; } = new ExifTag<uint[]>(ExifTagValue.StripRowCounts);
 
         /// <summary>
-        /// Gets the StripByteCounts exif tag.
-        /// </summary>
-        public static ExifTag<uint[]> StripByteCounts { get; } = new ExifTag<uint[]>(ExifTagValue.StripByteCounts);
-
-        /// <summary>
         /// Gets the IntergraphRegisters exif tag.
         /// </summary>
         public static ExifTag<uint[]> IntergraphRegisters { get; } = new ExifTag<uint[]>(ExifTagValue.IntergraphRegisters);

@@ -41,21 +41,21 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         /// <summary>Gets a general indication of the kind of data contained in this subfile.</summary>
         /// <value>A general indication of the kind of data contained in this subfile.</value>
-        public TiffNewSubfileType NewSubfileType => this.GetSingleEnum<TiffNewSubfileType, uint>(ExifTag.SubfileType, TiffNewSubfileType.FullImage);
+        public TiffNewSubfileType SubfileType => this.GetSingleEnum<TiffNewSubfileType, uint>(ExifTag.SubfileType, TiffNewSubfileType.FullImage);
 
         /// <summary>Gets a general indication of the kind of data contained in this subfile.</summary>
         /// <value>A general indication of the kind of data contained in this subfile.</value>
-        public TiffSubfileType? SubfileType => this.GetSingleEnumNullable<TiffSubfileType, uint>(ExifTag.OldSubfileType);
+        public TiffSubfileType? OldSubfileType => this.GetSingleEnumNullable<TiffSubfileType, ushort>(ExifTag.OldSubfileType);
 
         /// <summary>
         /// Gets the number of columns in the image, i.e., the number of pixels per row.
         /// </summary>
-        public uint Width => this.GetSingle<uint>(ExifTag.ImageWidth);
+        public Number Width => this.GetSingle<Number>(ExifTag.ImageWidth);
 
         /// <summary>
         /// Gets the number of rows of pixels in the image.
         /// </summary>
-        public uint Height => this.GetSingle<uint>(ExifTag.ImageLength);
+        public Number Height => this.GetSingle<Number>(ExifTag.ImageLength);
 
         /// <summary>
         /// Gets the number of bits per component.
@@ -138,7 +138,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         }
 
         /// <summary>Gets for each strip, the byte offset of that strip..</summary>
-        public uint[] StripOffsets => this.GetArray<uint>(ExifTag.StripOffsets);
+        public Number[] StripOffsets => this.GetArray<Number>(ExifTag.StripOffsets);
 
         /// <summary>
         /// Gets the number of components per pixel.
@@ -148,12 +148,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets the number of rows per strip.
         /// </summary>
-        public uint RowsPerStrip => this.GetSingle<uint>(ExifTag.RowsPerStrip);
+        public Number RowsPerStrip => this.GetSingle<Number>(ExifTag.RowsPerStrip);
 
         /// <summary>
         /// Gets for each strip, the number of bytes in the strip after compression.
         /// </summary>
-        public uint[] StripByteCounts => this.GetArray<uint>(ExifTag.StripByteCounts);
+        public Number[] StripByteCounts => this.GetArray<Number>(ExifTag.StripByteCounts);
 
         /// <summary>Gets the resolution of the image in x- direction.</summary>
         /// <value>The density of the image in x- direction.</value>

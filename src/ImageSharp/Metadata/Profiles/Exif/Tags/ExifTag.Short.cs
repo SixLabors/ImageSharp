@@ -57,6 +57,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         public static ExifTag<ushort> PlanarConfiguration { get; } = new ExifTag<ushort>(ExifTagValue.PlanarConfiguration);
 
         /// <summary>
+        /// Gets the Predictor exif tag.
+        /// </summary>
+        public static ExifTag<ushort> Predictor { get; } = new ExifTag<ushort>(ExifTagValue.Predictor);
+
+        /// <summary>
         /// Gets the GrayResponseUnit exif tag.
         /// </summary>
         public static ExifTag<ushort> GrayResponseUnit { get; } = new ExifTag<ushort>(ExifTagValue.GrayResponseUnit);

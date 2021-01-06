@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using System.IO;
 
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Streams;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
@@ -14,94 +13,60 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     /// </summary>
     internal class DirectoryReader
     {
-        private readonly TiffStream stream;
+        private readonly ByteOrder byteOrder;
 
-        private readonly EntryReader tagReader;
+        private readonly Stream stream;
 
         private uint nextIfdOffset;
 
-        public DirectoryReader(TiffStream stream)
+        public DirectoryReader(ByteOrder byteOrder, Stream stream)
         {
+            this.byteOrder = byteOrder;
             this.stream = stream;
-            this.tagReader = new EntryReader(stream);
         }
 
         public IEnumerable<ExifProfile> Read()
         {
-            if (this.ReadHeader())
-            {
-                return this.ReadIfds();
-            }
+            this.nextIfdOffset = new HeaderReader(this.byteOrder, this.stream).ReadFileHeader();
 
-            return null;
-        }
+            IEnumerable<List<IExifValue>> ifdList = this.ReadIfds();
 
-        private bool ReadHeader()
-        {
-            ushort magic = this.stream.ReadUInt16();
-            if (magic != TiffConstants.HeaderMagicNumber)
-            {
-                TiffThrowHelper.ThrowInvalidHeader();
-            }
-
-            uint firstIfdOffset = this.stream.ReadUInt32();
-            if (firstIfdOffset == 0)
-            {
-                TiffThrowHelper.ThrowInvalidHeader();
-            }
-
-            this.nextIfdOffset = firstIfdOffset;
-
-            return true;
-        }
-
-        private IEnumerable<ExifProfile> ReadIfds()
-        {
             var list = new List<ExifProfile>();
-            while (this.nextIfdOffset != 0)
+            foreach (List<IExifValue> ifd in ifdList)
             {
-                this.stream.Seek(this.nextIfdOffset);
-                ExifProfile ifd = this.ReadIfd();
-                list.Add(ifd);
+                var profile = new ExifProfile();
+                profile.InitializeInternal(ifd);
+                list.Add(profile);
             }
-
-            this.tagReader.LoadExtendedData();
 
             return list;
         }
 
-        private ExifProfile ReadIfd()
+        private IEnumerable<List<IExifValue>> ReadIfds()
         {
-            long pos = this.stream.Position;
-
-            ushort entryCount = this.stream.ReadUInt16();
-            var entries = new List<IExifValue>(entryCount);
-            for (int i = 0; i < entryCount; i++)
+            var valuesList = new List<List<IExifValue>>();
+            var readersList = new SortedList<uint, EntryReader>();
+            while (this.nextIfdOffset != 0)
             {
-                IExifValue tag = this.tagReader.ReadNext();
-                if (tag != null)
+                var reader = new EntryReader(this.byteOrder, this.stream, this.nextIfdOffset);
+                List<IExifValue> values = reader.ReadValues();
+                valuesList.Add(values);
+
+                this.nextIfdOffset = reader.NextIfdOffset;
+
+                if (reader.BigValuesOffset.HasValue)
                 {
-                    entries.Add(tag);
+                    readersList.Add(reader.BigValuesOffset.Value, reader);
                 }
             }
 
-            this.nextIfdOffset = this.stream.ReadUInt32();
-
-            int ifdSize = 2 + (entryCount * TiffConstants.SizeOfIfdEntry) + 4;
-            int readedBytes = (int)(this.stream.Position - pos);
-            int leftBytes = ifdSize - readedBytes;
-            if (leftBytes > 0)
+            // sequential reading big values
+            foreach (EntryReader reader in readersList.Values)
             {
-                this.stream.Skip(leftBytes);
-            }
-            else if (leftBytes < 0)
-            {
-                TiffThrowHelper.ThrowOutOfRange("IFD");
+                reader.LoadBigValues();
             }
 
-            var profile = new ExifProfile();
-            profile.InitializeInternal(entries);
-            return profile;
+            return valuesList;
         }
     }
 }

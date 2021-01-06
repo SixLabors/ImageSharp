@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
     /// <summary>
     /// Enumeration representing the sub-file types defined by the Tiff file-format.
     /// </summary>
-    public enum TiffSubfileType : uint
+    public enum TiffSubfileType : ushort
     {
         /// <summary>
         /// Full-resolution image data.

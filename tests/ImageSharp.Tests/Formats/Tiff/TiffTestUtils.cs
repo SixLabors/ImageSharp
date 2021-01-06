@@ -5,6 +5,7 @@ using System;
 using System.IO;
 
 using ImageMagick;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -52,6 +53,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 resultPixels.Length);
 
             return result;
+        }
+
+        public static void Compare(Number[] a1, Number[] a2)
+        {
+            Assert.True(a1 == null ^ a2 != null);
+            if (a1 == null /*&& a2 == null*/)
+            {
+                return;
+            }
+
+            Assert.Equal(a1.Length, a2.Length);
+            for (int i = 0; i < a1.Length; i++)
+            {
+                Assert.Equal((int)a1[i], (int)a2[i]);
+            }
         }
     }
 }

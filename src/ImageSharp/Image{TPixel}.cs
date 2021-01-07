@@ -87,6 +87,7 @@ namespace SixLabors.ImageSharp
             memoryAllocator.LockingOnThread();
             if(memoryAllocator != null) memoryAllocator.RawData = RawData;
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
+            memoryAllocator.RawData = null;
             memoryAllocator.Unlock();
         }
 
@@ -104,6 +105,7 @@ namespace SixLabors.ImageSharp
             memoryAllocator.LockingOnThread();
             if(memoryAllocator != null) memoryAllocator.RawData = MemoryMarshal.Cast<TPixel, byte>(Span<TPixel>(RawData)).ToArray();
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
+            memoryAllocator.RawData = null;
             memoryAllocator.Unlock();
         }
 

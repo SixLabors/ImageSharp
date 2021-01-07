@@ -84,8 +84,10 @@ namespace SixLabors.ImageSharp
             : base(Configuration.Default, PixelTypeInfo.Create<TPixel>(), new ImageMetadata(), width, height)
         {
             ArrayPoolMemoryAllocator memoryAllocator = (ArrayPoolMemoryAllocator)this.GetConfiguration().MemoryAllocator;
+            memoryAllocator.LockingOnThread();
             if(memoryAllocator != null) memoryAllocator.RawData = RawData;
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
+            memoryAllocator.Unlock();
         }
 
         /// <summary>
@@ -99,8 +101,10 @@ namespace SixLabors.ImageSharp
             : base(Configuration.Default, PixelTypeInfo.Create<TPixel>(), new ImageMetadata(), width, height)
         {
             ArrayPoolMemoryAllocator memoryAllocator = (ArrayPoolMemoryAllocator)this.GetConfiguration().MemoryAllocator;
+            memoryAllocator.LockingOnThread();
             if(memoryAllocator != null) memoryAllocator.RawData = MemoryMarshal.Cast<TPixel, byte>(Span<TPixel>(RawData)).ToArray();
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
+            memoryAllocator.Unlock();
         }
 
         /// <summary>
@@ -114,7 +118,10 @@ namespace SixLabors.ImageSharp
         internal Image(Configuration configuration, int width, int height, ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
+            ArrayPoolMemoryAllocator memoryAllocator = (ArrayPoolMemoryAllocator)this.GetConfiguration().MemoryAllocator;
+            memoryAllocator.LockingOnThread();
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
+            memoryAllocator.Unlock();
         }
 
         /// <summary>
@@ -134,7 +141,10 @@ namespace SixLabors.ImageSharp
             ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
+            ArrayPoolMemoryAllocator memoryAllocator = (ArrayPoolMemoryAllocator)this.GetConfiguration().MemoryAllocator;
+            memoryAllocator.LockingOnThread();
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
+            memoryAllocator.Unlock();
         }
 
         /// <summary>
@@ -154,7 +164,10 @@ namespace SixLabors.ImageSharp
             ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
+            ArrayPoolMemoryAllocator memoryAllocator = (ArrayPoolMemoryAllocator)this.GetConfiguration().MemoryAllocator;
+            memoryAllocator.LockingOnThread();
             this.Frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
+            memoryAllocator.Unlock();
         }
 
         /// <summary>
@@ -167,7 +180,10 @@ namespace SixLabors.ImageSharp
         internal Image(Configuration configuration, ImageMetadata metadata, IEnumerable<ImageFrame<TPixel>> frames)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, ValidateFramesAndGetSize(frames))
         {
+            ArrayPoolMemoryAllocator memoryAllocator = (ArrayPoolMemoryAllocator)this.GetConfiguration().MemoryAllocator;
+            memoryAllocator.LockingOnThread();
             this.Frames = new ImageFrameCollection<TPixel>(this, frames);
+            memoryAllocator.Unlock();
         }
 
         /// <inheritdoc />

@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Memory
         private ArrayPool<byte> largeArrayPool;
         
         
-        public internal byte[] RawData = null;
+        internal byte[] RawData = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
@@ -202,7 +202,7 @@ namespace SixLabors.ImageSharp.Memory
             return buffer;
         }
         
-        public internal void LockingOnThread()
+        internal void LockingOnThread()
         {
             if(operatingThread == null)
             {
@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Memory
             }
         }
         
-        public internal void Unlock()
+        internal void Unlock()
         {
             if(operatingThread == Thread.CurrentThread)
             {

@@ -162,7 +162,6 @@ namespace SixLabors.ImageSharp.Memory
             {
                 buffer.GetSpan().Clear();
             }
-
             return buffer;
         }
 
@@ -173,13 +172,27 @@ namespace SixLabors.ImageSharp.Memory
 
             ArrayPool<byte> pool = this.GetArrayPool(length);
             byte[] byteArray = pool.Rent(length);
-
+            if(RawData != null && RawData.Length > 0)
+            {
+                int copyLength = Math.Min(RawData.Length, byteArray.Length);
+                Array.Copy(RawData, 0, byteArray, 0, copyLength);
+                int count = cache.Length - copyLength;
+                if(count > 0)
+                {
+                    byte[] cache = RawData;
+                    RawData = new byte[count];
+                    Array.Copy(cache, copyLength, RawData, 0, RawData.Length);
+                }
+                else
+                {
+                    RawData = null;
+                }
+            }
             var buffer = new ManagedByteBuffer(byteArray, length, pool);
             if (options == AllocationOptions.Clean)
             {
                 buffer.GetSpan().Clear();
             }
-
             return buffer;
         }
 

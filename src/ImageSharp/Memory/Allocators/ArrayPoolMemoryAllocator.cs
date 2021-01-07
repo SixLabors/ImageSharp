@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Threading;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Memory
@@ -15,6 +16,8 @@ namespace SixLabors.ImageSharp.Memory
         private readonly int maxArraysPerBucketNormalPool;
 
         private readonly int maxArraysPerBucketLargePool;
+        
+        private Thread operatingThread = null;
 
         /// <summary>
         /// The <see cref="ArrayPool{T}"/> for small-to-medium buffers which is not kept clean.
@@ -27,7 +30,7 @@ namespace SixLabors.ImageSharp.Memory
         private ArrayPool<byte> largeArrayPool;
         
         
-        public byte[] RawData = null;
+        public internal byte[] RawData = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
@@ -131,6 +134,7 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc />
         public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         {
+            while(operatingThread != Thread.CurrentThread && operatingThread != null){}
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
             int itemSizeBytes = Unsafe.SizeOf<T>();
             int bufferSizeInBytes = length * itemSizeBytes;
@@ -168,6 +172,8 @@ namespace SixLabors.ImageSharp.Memory
         /// <inheritdoc />
         public override IManagedByteBuffer AllocateManagedByteBuffer(int length, AllocationOptions options = AllocationOptions.None)
         {
+        
+            while(operatingThread != Thread.CurrentThread && operatingThread != null){}
             Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
 
             ArrayPool<byte> pool = this.GetArrayPool(length);
@@ -194,6 +200,22 @@ namespace SixLabors.ImageSharp.Memory
                 buffer.GetSpan().Clear();
             }
             return buffer;
+        }
+        
+        public internal void LockingOnThread()
+        {
+            if(operatingThread == null)
+            {
+                operatingThread = Thread.CurrentThread;
+            }
+        }
+        
+        public internal void Unlock()
+        {
+            if(operatingThread == Thread.CurrentThread)
+            {
+                operatingThread = null;
+            }
         }
 
         private static int GetLargeBufferThresholdInBytes(int maxPoolSizeInBytes)

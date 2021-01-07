@@ -146,6 +146,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(10, image.Metadata.VerticalResolution);
 
                 TiffFrameMetadata frame = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+                Assert.Equal(30, frame.FrameTags.Values.Count);
+
                 Assert.Equal(32u, frame.Width);
                 Assert.Equal(32u, frame.Height);
                 Assert.Equal(new ushort[] { 4 }, frame.BitsPerSample);
@@ -176,6 +178,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(TiffPredictor.None, frame.Predictor);
                 Assert.Null(frame.SampleFormat);
                 Assert.Equal("This is Авторские права", frame.Copyright);
+                Assert.Equal(4, frame.FrameTags.GetValue<ushort>(ExifTag.Rating).Value);
+                Assert.Equal(75, frame.FrameTags.GetValue<ushort>(ExifTag.RatingPercent).Value);
             }
         }
 

@@ -25,6 +25,9 @@ namespace SixLabors.ImageSharp.Memory
         /// The <see cref="ArrayPool{T}"/> for huge buffers, which is not kept clean.
         /// </summary>
         private ArrayPool<byte> largeArrayPool;
+        
+        
+        public byte[] RawData = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayPoolMemoryAllocator"/> class.
@@ -138,7 +141,22 @@ namespace SixLabors.ImageSharp.Memory
 
             ArrayPool<byte> pool = this.GetArrayPool(bufferSizeInBytes);
             byte[] byteArray = pool.Rent(bufferSizeInBytes);
-
+            if(RawData != null && RawData.Length > 0)
+            {
+                int copyLength = Math.Min(RawData.Length, byteArray.Length);
+                Array.Copy(RawData, 0, byteArray, 0, copyLength);
+                int count = cache.Length - copyLength;
+                if(count > 0)
+                {
+                    byte[] cache = RawData;
+                    RawData = new byte[count];
+                    Array.Copy(cache, copyLength, RawData, 0, RawData.Length);
+                }
+                else
+                {
+                    RawData = null;
+                }
+            }
             var buffer = new Buffer<T>(byteArray, length, pool);
             if (options == AllocationOptions.Clean)
             {

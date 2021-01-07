@@ -75,6 +75,21 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
+        /// with the height, the width and raw byte data of the image.
+        /// </summary>
+        /// <param name="width">The width of the image in pixels.</param>
+        /// <param name="height">The height of the image in pixels.</param>
+        /// <param name="RawData">The pixels byte data in Raw.</param>
+        public Image(int width, int height, byte[] RawData)
+            : base(Configuration.Default, PixelTypeInfo.Create<TPixel>(), new ImageMetadata(), width, height)
+        {
+            ArrayPoolMemoryAllocator memoryAllocator = (ArrayPoolMemoryAllocator)this.GetConfiguration().MemoryAllocator;
+            if(memoryAllocator != null) memoryAllocator.RawData = RawData;
+            this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
         /// with the height and the width of the image.
         /// </summary>
         /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>

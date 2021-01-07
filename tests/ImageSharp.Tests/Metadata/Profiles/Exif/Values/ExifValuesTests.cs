@@ -6,6 +6,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
 {
+    [Trait("Profile", "Exif")]
     public class ExifValuesTests
     {
         public static TheoryData<ExifTag> ByteTags => new TheoryData<ExifTag>
@@ -94,6 +95,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
         public static TheoryData<ExifTag> NumberArrayTags => new TheoryData<ExifTag>
         {
             { ExifTag.StripOffsets },
+            { ExifTag.StripByteCounts },
             { ExifTag.TileByteCounts },
             { ExifTag.ImageLayer }
         };
@@ -160,6 +162,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.Orientation },
             { ExifTag.SamplesPerPixel },
             { ExifTag.PlanarConfiguration },
+            { ExifTag.Predictor },
             { ExifTag.GrayResponseUnit },
             { ExifTag.ResolutionUnit },
             { ExifTag.CleanFaxData },
@@ -208,7 +211,6 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values
             { ExifTag.ExtraSamples },
             { ExifTag.PageNumber },
             { ExifTag.TransferFunction },
-            { ExifTag.Predictor },
             { ExifTag.HalftoneHints },
             { ExifTag.SampleFormat },
             { ExifTag.TransferRange },

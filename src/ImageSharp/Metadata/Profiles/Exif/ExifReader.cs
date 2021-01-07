@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -23,11 +24,16 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         private readonly byte[] buf2 = new byte[2];
 
         // used for sequential read big values (actual for multiframe big files)
-        private readonly SortedList<uint, Action> lazyLoaders = new SortedList<uint, Action>();
+        // todo: different tags can link to the same data (stream offset) - investigate
+        private readonly SortedList<uint, Action> lazyLoaders = new SortedList<uint, Action>(new DuplicateKeyComparer<uint>());
 
         private bool isBigEndian;
 
         private List<ExifTag> invalidTags;
+
+        private uint exifOffset = 0;
+
+        private uint gpsOffset = 0;
 
         public ExifReader(bool isBigEndian, Stream stream)
         {
@@ -91,7 +97,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
 
             uint ifdOffset = this.ReadUInt32();
-
             this.AddValues(values, ifdOffset);
 
             uint thumbnailOffset = this.ReadUInt32();
@@ -134,43 +139,15 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         protected void AddSubIfdValues(List<IExifValue> values)
         {
-            uint exifOffset = 0;
-            uint gpsOffset = 0;
-            foreach (IExifValue value in values)
+            if (this.exifOffset != 0)
             {
-                if (value.Tag == ExifTag.SubIFDOffset)
-                {
-                    exifOffset = ((ExifLong)value).Value;
-                }
-
-                if (value.Tag == ExifTag.GPSIFDOffset)
-                {
-                    gpsOffset = ((ExifLong)value).Value;
-                }
+                this.AddValues(values, this.exifOffset);
             }
 
-            if (exifOffset != 0)
+            if (this.gpsOffset != 0)
             {
-                this.AddValues(values, exifOffset);
+                this.AddValues(values, this.gpsOffset);
             }
-
-            if (gpsOffset != 0)
-            {
-                this.AddValues(values, gpsOffset);
-            }
-        }
-
-        private static bool IsDuplicate(IList<IExifValue> values, IExifValue value)
-        {
-            foreach (IExifValue val in values)
-            {
-                if (val == value)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static TDataType[] ToArray<TDataType>(ExifDataType dataType, ReadOnlySpan<byte> data, ConverterMethod<TDataType> converter)
@@ -337,7 +314,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             }
 
             uint size = numberOfComponents * ExifDataTypes.GetSize(dataType);
-            object value = null;
             if (size > 4)
             {
                 uint newIndex = this.ConvertToUInt32(this.offsetBuffer);
@@ -349,29 +325,60 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                     return;
                 }
 
+                if (this.lazyLoaders.ContainsKey(newIndex))
+                {
+                    Debug.WriteLine($"Duplicate offset: tag={tag}, size={size}, offset={newIndex}");
+                }
+
                 this.lazyLoaders.Add(newIndex, () =>
                 {
                     var dataBuffer = new byte[size];
                     this.Seek(newIndex);
                     if (this.TryReadSpan(dataBuffer))
                     {
-                        value = this.ConvertValue(dataType, dataBuffer, numberOfComponents);
-                    }
+                        object value = this.ConvertValue(dataType, dataBuffer, numberOfComponents);
 
-                    if (exifValue.TrySetValue(value) && !IsDuplicate(values, exifValue))
-                    {
-                        values.Add(exifValue);
+                        this.Add(values, exifValue, value);
                     }
                 });
             }
             else
             {
-                value = this.ConvertValue(dataType, this.offsetBuffer, numberOfComponents);
+                object value = this.ConvertValue(dataType, this.offsetBuffer, numberOfComponents);
+
+                this.Add(values, exifValue, value);
+            }
+        }
+
+        private void Add(IList<IExifValue> values, IExifValue exif, object value)
+        {
+            if (!exif.TrySetValue(value))
+            {
+                return;
             }
 
-            if (exifValue.TrySetValue(value) && !IsDuplicate(values, exifValue))
+            foreach (IExifValue val in values)
             {
-                values.Add(exifValue);
+                // sometimes duplicates appear,
+                // can compare val.Tag == exif.Tag
+                if (val == exif)
+                {
+                    Debug.WriteLine($"Duplicate Exif tag: tag={exif.Tag}, dataType={exif.DataType}");
+                    return;
+                }
+            }
+
+            if (exif.Tag == ExifTag.SubIFDOffset)
+            {
+                this.exifOffset = (uint)value;
+            }
+            else if (exif.Tag == ExifTag.GPSIFDOffset)
+            {
+                this.gpsOffset = (uint)value;
+            }
+            else
+            {
+                values.Add(exif);
             }
         }
 
@@ -387,12 +394,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             if (this.RemainingLength < length)
             {
                 span = default;
-
                 return false;
             }
 
             int readed = this.data.Read(span);
-
             return readed == length;
         }
 
@@ -408,6 +413,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private void GetThumbnail(uint offset)
         {
+            if (offset == 0)
+            {
+                return;
+            }
+
             var values = new List<IExifValue>();
             this.AddValues(values, offset);
 
@@ -527,6 +537,20 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             return this.isBigEndian
                 ? BinaryPrimitives.ReadInt16BigEndian(buffer)
                 : BinaryPrimitives.ReadInt16LittleEndian(buffer);
+        }
+
+        /// <summary><see cref="DuplicateKeyComparer{TKey}"/> used for possiblity add a duplicate offsets (but tags don't duplicate).</summary>
+        /// <typeparam name="TKey">The type of the key.</typeparam>
+        public class DuplicateKeyComparer<TKey> : IComparer<TKey>
+            where TKey : IComparable
+        {
+            public int Compare(TKey x, TKey y)
+            {
+                int result = x.CompareTo(y);
+
+                // Handle equality as beeing greater
+                return (result == 0) ? 1 : result;
+            }
         }
     }
 }

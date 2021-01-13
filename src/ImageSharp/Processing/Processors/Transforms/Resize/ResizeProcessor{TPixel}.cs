@@ -163,6 +163,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 in operation);
         }
 
+        private static PixelConversionModifiers GetModifiers(bool compand, bool premultiplyAlpha)
+        {
+            if (premultiplyAlpha)
+            {
+                return PixelConversionModifiers.Premultiply.ApplyCompanding(compand);
+            }
+            else
+            {
+                return PixelConversionModifiers.None.ApplyCompanding(compand);
+            }
+        }
+
         private static void ApplyResizeFrameTransform(
             Configuration configuration,
             ImageFrame<TPixel> source,
@@ -175,9 +187,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             bool compand,
             bool premultiplyAlpha)
         {
-            PixelConversionModifiers conversionModifiers = premultiplyAlpha ?
-                PixelConversionModifiers.Premultiply.ApplyCompanding(compand) :
-                PixelConversionModifiers.None.ApplyCompanding(compand);
+            PixelConversionModifiers conversionModifiers = GetModifiers(compand, premultiplyAlpha);
 
             Buffer2DRegion<TPixel> sourceRegion = source.PixelBuffer.GetRegion(sourceRectangle);
 

@@ -110,6 +110,21 @@ namespace SixLabors.ImageSharp.Tests
             }
         }
 
+        // Test case for issue: https://github.com/SixLabors/ImageSharp/issues/1505
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.Issue1505, PixelTypes.Rgba32)]
+        public void Issue1505<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                var octreeQuantizer = new OctreeQuantizer();
+                IQuantizer<TPixel> quantizer = octreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new QuantizerOptions() { MaxColors = 128 });
+                ImageFrame<TPixel> frame = image.Frames[0];
+                quantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds());
+            }
+        }
+
         private int GetTransparentIndex<TPixel>(IndexedImageFrame<TPixel> quantized)
             where TPixel : unmanaged, IPixel<TPixel>
         {

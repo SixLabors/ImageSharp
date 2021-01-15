@@ -2,8 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using System.Buffers;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -19,78 +18,56 @@ namespace SixLabors.ImageSharp.Processing
         /// Apply an image integral. See https://en.wikipedia.org/wiki/Summed-area_table
         /// </summary>
         /// <param name="source">The image on which to apply the integral.</param>
-        /// <returns>The <see cref="Buffer2D{ulong}" containing all the sums</returns>
-        public static Buffer2D<ulong> CalculateIntegralImage(this Image<L8> source)
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <returns>The <see cref="Buffer2D{T}"/> containing all the sums.</returns>
+        public static Buffer2D<ulong> CalculateIntegralImage<TPixel>(this Image<TPixel> source)
+            where TPixel : unmanaged, IPixel<TPixel>
         {
             Configuration configuration = source.GetConfiguration();
 
-            int startY = 0;
             int endY = source.Height;
-            int startX = 0;
             int endX = source.Width;
 
             Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(source.Width, source.Height);
+            ulong sumX0 = 0;
 
-            for (int x = startX; x < endX; x++)
+            using (IMemoryOwner<L8> tempRow = configuration.MemoryAllocator.Allocate<L8>(source.Width))
             {
-                ulong sum = 0;
-                for (int y = startY; y < endY; y++)
+                Span<L8> tempSpan = tempRow.GetSpan();
+                Span<TPixel> sourceRow = source.GetPixelRowSpan(0);
+                Span<ulong> destRow = intImage.GetRowSpan(0);
+
+                PixelOperations<TPixel>.Instance.ToL8(configuration, sourceRow, tempSpan);
+
+                // First row
+                for (int x = 0; x < endX; x++)
                 {
-                    Span<L8> row = source.GetPixelRowSpan(y);
-                    ref L8 rowRef = ref MemoryMarshal.GetReference(row);
-                    ref L8 color = ref Unsafe.Add(ref rowRef, x);
-
-                    sum += (ulong)color.PackedValue;
-
-                    if (x - startX != 0)
-                    {
-                        intImage[x - startX, y - startY] = intImage[x - startX - 1, y - startY] + sum;
-                    }
-                    else
-                    {
-                        intImage[x - startX, y - startY] = sum;
-                    }
+                    sumX0 += tempSpan[x].PackedValue;
+                    destRow[x] = sumX0;
                 }
-            }
 
-            return intImage;
-        }
+                Span<ulong> previousDestRow = destRow;
 
-        /// <summary>
-        /// Apply an image integral. See https://en.wikipedia.org/wiki/Summed-area_table
-        /// </summary>
-        /// <param name="source">The image on which to apply the integral.</param>
-        /// <returns>The <see cref="Buffer2D{ulong}" containing all the sums</returns>
-        public static Buffer2D<ulong> CalculateIntegralImage(this Image<Rgba32> source)
-        {
-            Configuration configuration = source.GetConfiguration();
-
-            int startY = 0;
-            int endY = source.Height;
-            int startX = 0;
-            int endX = source.Width;
-
-            Buffer2D<ulong> intImage = configuration.MemoryAllocator.Allocate2D<ulong>(source.Width, source.Height);
-
-            for (int x = startX; x < endX; x++)
-            {
-                ulong sum = 0;
-                for (int y = startY; y < endY; y++)
+                // All other rows
+                for (int y = 1; y < endY; y++)
                 {
-                    Span<Rgba32> row = source.GetPixelRowSpan(y);
-                    ref Rgba32 rowRef = ref MemoryMarshal.GetReference(row);
-                    ref Rgba32 color = ref Unsafe.Add(ref rowRef, x);
+                    sourceRow = source.GetPixelRowSpan(y);
+                    destRow = intImage.GetRowSpan(y);
 
-                    sum += (ulong)(color.R + color.G + color.B);
+                    PixelOperations<TPixel>.Instance.ToL8(configuration, sourceRow, tempSpan);
 
-                    if (x - startX != 0)
+                    // Process first column
+                    sumX0 = tempSpan[0].PackedValue;
+                    destRow[0] = sumX0 + previousDestRow[0];
+
+                    // Process all other colmns
+                    for (int x = 1; x < endX; x++)
                     {
-                        intImage[x - startX, y - startY] = intImage[x - startX - 1, y - startY] + sum;
+                        sumX0 += tempSpan[x].PackedValue;
+                        destRow[x] = sumX0 + previousDestRow[x];
                     }
-                    else
-                    {
-                        intImage[x - startX, y - startY] = sum;
-                    }
+
+                    previousDestRow = destRow;
                 }
             }
 

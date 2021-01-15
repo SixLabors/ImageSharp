@@ -22,7 +22,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             Buffer2D<ulong> integralBuffer = image.CalculateIntegralImage();
 
             // Assert:
-            VerifySumValues(provider, integralBuffer, (Rgba32 pixel) => { return (ulong)(pixel.R + pixel.G + pixel.B); });
+            VerifySumValues(provider, integralBuffer, (Rgba32 pixel) =>
+            {
+                L8 outputPixel = default;
+
+                outputPixel.FromRgba32(pixel);
+
+                return outputPixel.PackedValue;
+            });
         }
 
         [Theory]

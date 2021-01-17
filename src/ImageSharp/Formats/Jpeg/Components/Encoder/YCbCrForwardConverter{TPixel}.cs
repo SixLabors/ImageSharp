@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public static YCbCrForwardConverter<TPixel> Create()
         {
             var result = default(YCbCrForwardConverter<TPixel>);
-            if (RgbToYCbCrConverterVectorized.IsSupported)
+            if (!RgbToYCbCrConverterVectorized.IsSupported)
             {
                 // Avoid creating lookup tables, when vectorized converter is supported
                 result.colorTables = RgbToYCbCrConverterLut.Create();

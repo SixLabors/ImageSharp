@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
             cbResult[i] = (this.CbRTable[r] + this.CbGTable[g] + this.CbBTable[b]) >> ScaleBits;
 
-            // float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b))
+            // float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b));
             crResult[i] = (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
         }
 

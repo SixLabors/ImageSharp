@@ -169,11 +169,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 
                     Vector256<float> tmpCb = Avx.Permute2x128(cb0, cb1, 0b0010_0001);
                     Unsafe.Add(ref destCbRef, j) = Avx.Blend(cb0, tmpCb, 0b1111_0000);
-                    Unsafe.Add(ref destCbRef, j + 2) = Avx.Blend(cb0, tmpCb, 0b0000_1111);
+                    Unsafe.Add(ref destCbRef, j + 2) = Avx.Blend(cb1, tmpCb, 0b0000_1111);
 
                     Vector256<float> tmpCr = Avx.Permute2x128(cr0, cr1, 0b0010_0001);
                     Unsafe.Add(ref destCrRef, j) = Avx.Blend(cr0, tmpCr, 0b1111_0000);
-                    Unsafe.Add(ref destCrRef, j + 2) = Avx.Blend(cr0, tmpCr, 0b0000_1111);
+                    Unsafe.Add(ref destCrRef, j + 2) = Avx.Blend(cr1, tmpCr, 0b0000_1111);
                 }
             }
         }

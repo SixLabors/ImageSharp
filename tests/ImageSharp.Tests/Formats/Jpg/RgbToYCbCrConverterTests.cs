@@ -48,17 +48,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             Rgb24[] data = CreateTestData();
 
-            // RgbToYCbCrConverterVectorized uses `data` as working memory so we need a copy for verification below
-            Rgb24[] dataCopy = new Rgb24[data.Length];
-            data.CopyTo(dataCopy, 0);
-
             Block8x8F y = default;
             Block8x8F cb = default;
             Block8x8F cr = default;
 
             RgbToYCbCrConverterVectorized.Convert(data.AsSpan(), ref y, ref cb, ref cr);
 
-            Verify(dataCopy, ref y, ref cb, ref cr, new ApproximateColorSpaceComparer(0.0001F));
+            Verify(data, ref y, ref cb, ref cr, new ApproximateColorSpaceComparer(0.0001F));
         }
 
         private static void Verify(ReadOnlySpan<Rgb24> data, ref Block8x8F yResult, ref Block8x8F cbResult, ref Block8x8F crResult, ApproximateColorSpaceComparer comparer)
@@ -73,7 +69,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
                 float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b));
 
-                Assert.Equal(new YCbCr(y, cb, cr), new YCbCr(yResult[i], cbResult[i], crResult[i]), comparer);
+                Assert.True(comparer.Equals(new YCbCr(y, cb, cr), new YCbCr(yResult[i], cbResult[i], crResult[i])), $"Pos {i}, Expected {y} == {yResult[i]}, {cb} == {cbResult[i]}, {cr} == {crResult[i]}");
             }
         }
 

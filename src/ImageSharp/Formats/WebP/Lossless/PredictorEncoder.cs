@@ -1112,27 +1112,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static byte NearLosslessDiff(byte a, byte b)
-        {
-            return (byte)((a - b) & 0xff);
-        }
+        private static byte NearLosslessDiff(byte a, byte b) => (byte)((a - b) & 0xff);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint MultipliersToColorCode(Vp8LMultipliers m)
-        {
-            return 0xff000000u | ((uint)m.RedToBlue << 16) | ((uint)m.GreenToBlue << 8) | m.GreenToRed;
-        }
+        private static uint MultipliersToColorCode(Vp8LMultipliers m) => 0xff000000u | ((uint)m.RedToBlue << 16) | ((uint)m.GreenToBlue << 8) | m.GreenToRed;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int GetMin(int a, int b)
-        {
-            return (a > b) ? b : a;
-        }
+        private static int GetMin(int a, int b) => (a > b) ? b : a;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int GetMax(int a, int b)
-        {
-            return (a < b) ? b : a;
-        }
+        private static int GetMax(int a, int b) => (a < b) ? b : a;
     }
 }

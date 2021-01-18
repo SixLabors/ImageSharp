@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 // Apply transforms and write transform data.
                 if (this.UseSubtractGreenTransform)
                 {
-                    this.ApplySubtractGreen(this.CurrentWidth, height);
+                    this.ApplySubtractGreen();
                 }
 
                 if (this.UsePredictorTransform)
@@ -409,7 +409,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             {
                 if (cacheBits == 0)
                 {
-                    // TODO: not sure if this should be 10 or 11. Original code comment says "The maximum allowed limit is 11.", but the value itself is 10.
                     cacheBits = WebpConstants.MaxColorCacheBits;
                 }
             }
@@ -441,7 +440,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 // two as a temporary for later usage.
                 Vp8LBackwardRefs refsTmp = refsArray[refsBest.Equals(refsArray[0]) ? 1 : 0];
 
-                // TODO : Loop based on cache/no cache
                 this.bitWriter.Reset(bwInit);
                 var tmpHisto = new Vp8LHistogram(cacheBits);
                 var histogramImage = new List<Vp8LHistogram>(histogramImageXySize);
@@ -561,9 +559,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         /// <summary>
         /// Applies the subtract green transformation to the pixel data of the image.
         /// </summary>
-        /// <param name="width">The width of the image.</param>
-        /// <param name="height">The height of the image.</param>
-        private void ApplySubtractGreen(int width, int height)
+        private void ApplySubtractGreen()
         {
             this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
             this.bitWriter.PutBits((uint)Vp8LTransformType.SubtractGreen, 2);
@@ -1642,45 +1638,24 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint ApplyPaletteHash0(uint color)
-        {
-            // Focus on the green color.
-            return (color >> 8) & 0xff;
-        }
+        private static uint ApplyPaletteHash0(uint color) => (color >> 8) & 0xff; // Focus on the green color.
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint ApplyPaletteHash1(uint color)
-        {
-            // Forget about alpha.
-            return ((uint)((color & 0x00ffffffu) * 4222244071ul)) >> (32 - PaletteInvSizeBits);
-        }
+        private static uint ApplyPaletteHash1(uint color) => ((uint)((color & 0x00ffffffu) * 4222244071ul)) >> (32 - PaletteInvSizeBits); // Forget about alpha.
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint ApplyPaletteHash2(uint color)
-        {
-            // Forget about alpha.
-            return ((uint)((color & 0x00ffffffu) * ((1ul << 31) - 1))) >> (32 - PaletteInvSizeBits);
-        }
+        private static uint ApplyPaletteHash2(uint color) => ((uint)((color & 0x00ffffffu) * ((1ul << 31) - 1))) >> (32 - PaletteInvSizeBits); // Forget about alpha.
+
+        // Note that masking with 0xffffffffu is for preventing an
+        // 'unsigned int overflow' warning. Doesn't impact the compiled code.
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static uint HashPix(uint pix) => (uint)((((long)pix + (pix >> 19)) * 0x39c5fba7L) & 0xffffffffu) >> 24;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint HashPix(uint pix)
-        {
-            // Note that masking with 0xffffffffu is for preventing an
-            // 'unsigned int overflow' warning. Doesn't impact the compiled code.
-            return (uint)((((long)pix + (pix >> 19)) * 0x39c5fba7L) & 0xffffffffu) >> 24;
-        }
+        private static int PaletteCompareColorsForSort(uint p1, uint p2) => (p1 < p2) ? -1 : 1;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int PaletteCompareColorsForSort(uint p1, uint p2)
-        {
-            return (p1 < p2) ? -1 : 1;
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint PaletteComponentDistance(uint v)
-        {
-            return (v <= 128) ? v : (256 - v);
-        }
+        private static uint PaletteComponentDistance(uint v) => (v <= 128) ? v : (256 - v);
 
         public void AllocateTransformBuffer(int width, int height)
         {

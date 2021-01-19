@@ -115,6 +115,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
                         Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)bufferStart).AsSingle(), mask),
                         result256_0);
+
+                    bufferStart += 2;
+                    rowStartRef = ref Unsafe.Add(ref rowStartRef, 2);
                 }
 
                 Vector128<float> result128 = Sse.Add(result256_0.GetLower(), result256_0.GetUpper());

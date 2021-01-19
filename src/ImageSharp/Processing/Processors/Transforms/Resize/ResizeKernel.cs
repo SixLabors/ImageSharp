@@ -76,11 +76,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float* bufferStart = this.bufferPtr;
                 float* bufferEnd = bufferStart + (this.Length & ~1);
                 Vector256<float> result256 = Vector256<float>.Zero;
+                var mask = Vector256.Create(0, 0, 0, 0, 1, 1, 1, 1);
 
                 while (bufferStart < bufferEnd)
                 {
                     Vector256<float> rowItem256 = Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef);
-                    var bufferItem256 = Vector256.Create(Vector128.Create(bufferStart[0]), Vector128.Create(bufferStart[1]));
+                    Vector256<float> bufferItem256 = Avx2.PermuteVar8x32(Vector256.Create(*(double*)bufferStart).AsSingle(), mask);
 
                     result256 = Fma.MultiplyAdd(rowItem256, bufferItem256, result256);
 

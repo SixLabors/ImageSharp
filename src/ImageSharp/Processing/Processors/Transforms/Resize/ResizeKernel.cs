@@ -4,6 +4,10 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -66,21 +70,55 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 ConvolveCore(ref Vector4 rowStartRef)
         {
-            ref float horizontalValues = ref Unsafe.AsRef<float>(this.bufferPtr);
-
-            // Destination color components
-            Vector4 result = Vector4.Zero;
-
-            for (int i = 0; i < this.Length; i++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Fma.IsSupported)
             {
-                float weight = Unsafe.Add(ref horizontalValues, i);
+                float* bufferStart = this.bufferPtr;
+                float* bufferEnd = bufferStart + (this.Length & ~1);
+                Vector256<float> result256 = Vector256<float>.Zero;
 
-                // Vector4 v = offsetedRowSpan[i];
-                Vector4 v = Unsafe.Add(ref rowStartRef, i);
-                result += v * weight;
+                while (bufferStart < bufferEnd)
+                {
+                    Vector256<float> rowItem256 = Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef);
+                    var bufferItem256 = Vector256.Create(Vector128.Create(bufferStart[0]), Vector128.Create(bufferStart[1]));
+
+                    result256 = Fma.MultiplyAdd(rowItem256, bufferItem256, result256);
+
+                    bufferStart += 2;
+                    rowStartRef = ref Unsafe.Add(ref rowStartRef, 2);
+                }
+
+                Vector128<float> result128 = Sse.Add(result256.GetLower(), result256.GetUpper());
+
+                if ((this.Length & 1) != 0)
+                {
+                    Vector128<float> rowItem128 = Unsafe.As<Vector4, Vector128<float>>(ref rowStartRef);
+                    var bufferItem128 = Vector128.Create(*bufferStart);
+
+                    result128 = Fma.MultiplyAdd(rowItem128, bufferItem128, result128);
+                }
+
+                return *(Vector4*)&result128;
             }
+            else
+#endif
+            {
+                // Destination color components
+                Vector4 result = Vector4.Zero;
+                float* bufferStart = this.bufferPtr;
+                float* bufferEnd = this.bufferPtr + this.Length;
 
-            return result;
+                while (bufferStart < bufferEnd)
+                {
+                    // Vector4 v = offsetedRowSpan[i];
+                    result += rowStartRef * *bufferStart;
+
+                    rowStartRef = ref Unsafe.Add(ref rowStartRef, 1);
+                    bufferStart++;
+                }
+
+                return result;
+            }
         }
 
         /// <summary>

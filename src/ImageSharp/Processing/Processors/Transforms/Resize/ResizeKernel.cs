@@ -74,8 +74,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (Fma.IsSupported)
             {
                 float* bufferStart = this.bufferPtr;
-                float* bufferEnd = bufferStart + (this.Length & ~1);
-                Vector256<float> result256 = Vector256<float>.Zero;
+                float* bufferEnd = bufferStart + (this.Length & ~3);
+                Vector256<float> result256_0 = Vector256<float>.Zero;
+                Vector256<float> result256_1 = Vector256<float>.Zero;
                 var mask = Vector256.Create(0, 0, 0, 0, 1, 1, 1, 1);
 
                 while (bufferStart < bufferEnd)
@@ -87,19 +88,36 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     //
                     // vmovsd xmm2, [rax]               ; load *(double*)bufferStart into xmm2 as [ab, _]
                     // vpermps ymm2, ymm1, ymm2         ; permute as a float YMM register to [a, a, a, a, b, b, b, b]
-                    // vfmadd231ps ymm0, ymm2, [r8]     ; result256 = FMA(pixels, factors) + result256
+                    // vfmadd231ps ymm0, ymm2, [r8]     ; result256_0 = FMA(pixels, factors) + result256_0
                     //
                     // For tracking the codegen issue with FMA, see: https://github.com/dotnet/runtime/issues/12212.
-                    result256 = Fma.MultiplyAdd(
+                    // Additionally, we're also unrolling two computations per each loop iterations to leverage the
+                    // fact that most CPUs have two ports to schedule multiply operations for FMA instructions.
+                    result256_0 = Fma.MultiplyAdd(
                         Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
                         Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)bufferStart).AsSingle(), mask),
-                        result256);
+                        result256_0);
 
-                    bufferStart += 2;
-                    rowStartRef = ref Unsafe.Add(ref rowStartRef, 2);
+                    result256_1 = Fma.MultiplyAdd(
+                        Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref rowStartRef, 2)),
+                        Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)(bufferStart + 2)).AsSingle(), mask),
+                        result256_1);
+
+                    bufferStart += 4;
+                    rowStartRef = ref Unsafe.Add(ref rowStartRef, 4);
                 }
 
-                Vector128<float> result128 = Sse.Add(result256.GetLower(), result256.GetUpper());
+                result256_0 = Avx.Add(result256_0, result256_1);
+
+                if ((this.Length & 3) >= 2)
+                {
+                    result256_0 = Fma.MultiplyAdd(
+                        Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
+                        Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)bufferStart).AsSingle(), mask),
+                        result256_0);
+                }
+
+                Vector128<float> result128 = Sse.Add(result256_0.GetLower(), result256_0.GetUpper());
 
                 if ((this.Length & 1) != 0)
                 {

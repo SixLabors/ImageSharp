@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Vector4 ConvolveCore(ref Vector4 rowStartRef)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx2.IsSupported)
+            if (Fma.IsSupported)
             {
                 float* bufferStart = this.bufferPtr;
                 float* bufferEnd = bufferStart + (this.Length & ~1);
@@ -80,11 +80,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 while (bufferStart < bufferEnd)
                 {
-                    Vector256<float> rowItem256 = Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef);
-                    Vector256<float> bufferItem256 = Avx2.PermuteVar8x32(Vector256.Create(*(double*)bufferStart).AsSingle(), mask);
-                    Vector256<float> multiply256 = Avx.Multiply(rowItem256, bufferItem256);
-
-                    result256 = Avx.Add(multiply256, result256);
+                    // It is important to use a single expression here so that the JIT will correctly use vfmadd231ps
+                    // for the FMA operation, and execute it directly on the target register and reading directly from
+                    // memory for the first parameter. This skips initializing a SIMD register, and an extra copy.
+                    // The code below should compile in the following assembly on .NET 5 x64:
+                    //
+                    // vmovsd xmm2, [rax]               ; load *(double*)bufferStart into xmm2 as [ab, _]
+                    // vpermps ymm2, ymm1, ymm2         ; permute as a float YMM register to [a, a, a, a, b, b, b, b]
+                    // vfmadd231ps ymm0, ymm2, [r8]     ; result256 = FMA(pixels, factors) + result256
+                    //
+                    // For tracking the codegen issue with FMA, see: https://github.com/dotnet/runtime/issues/12212.
+                    result256 = Fma.MultiplyAdd(
+                        Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
+                        Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)bufferStart).AsSingle(), mask),
+                        result256);
 
                     bufferStart += 2;
                     rowStartRef = ref Unsafe.Add(ref rowStartRef, 2);
@@ -94,11 +103,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 if ((this.Length & 1) != 0)
                 {
-                    Vector128<float> rowItem128 = Unsafe.As<Vector4, Vector128<float>>(ref rowStartRef);
-                    var bufferItem128 = Vector128.Create(*bufferStart);
-                    Vector128<float> multiply128 = Sse.Multiply(rowItem128, bufferItem128);
-
-                    result128 = Sse.Add(multiply128, result128);
+                    result128 = Fma.MultiplyAdd(
+                        Unsafe.As<Vector4, Vector128<float>>(ref rowStartRef),
+                        Vector128.Create(*bufferStart),
+                        result128);
                 }
 
                 return *(Vector4*)&result128;

@@ -71,7 +71,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Vector4 ConvolveCore(ref Vector4 rowStartRef)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Fma.IsSupported)
+            if (Avx2.IsSupported)
             {
                 float* bufferStart = this.bufferPtr;
                 float* bufferEnd = bufferStart + (this.Length & ~1);
@@ -82,8 +82,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 {
                     Vector256<float> rowItem256 = Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef);
                     Vector256<float> bufferItem256 = Avx2.PermuteVar8x32(Vector256.Create(*(double*)bufferStart).AsSingle(), mask);
+                    Vector256<float> multiply256 = Avx.Multiply(rowItem256, bufferItem256);
 
-                    result256 = Fma.MultiplyAdd(rowItem256, bufferItem256, result256);
+                    result256 = Avx.Add(multiply256, result256);
 
                     bufferStart += 2;
                     rowStartRef = ref Unsafe.Add(ref rowStartRef, 2);
@@ -95,8 +96,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 {
                     Vector128<float> rowItem128 = Unsafe.As<Vector4, Vector128<float>>(ref rowStartRef);
                     var bufferItem128 = Vector128.Create(*bufferStart);
+                    Vector128<float> multiply128 = Sse.Multiply(rowItem128, bufferItem128);
 
-                    result128 = Fma.MultiplyAdd(rowItem128, bufferItem128, result128);
+                    result128 = Sse.Add(multiply128, result128);
                 }
 
                 return *(Vector4*)&result128;
@@ -114,8 +116,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     // Vector4 v = offsetedRowSpan[i];
                     result += rowStartRef * *bufferStart;
 
-                    rowStartRef = ref Unsafe.Add(ref rowStartRef, 1);
                     bufferStart++;
+                    rowStartRef = ref Unsafe.Add(ref rowStartRef, 1);
                 }
 
                 return result;

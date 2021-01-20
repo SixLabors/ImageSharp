@@ -147,7 +147,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
         /// <summary>
         /// Gets the probabilities.
         /// </summary>
-        public Vp8EncProba Proba { get; private set; }
+        public Vp8EncProba Proba { get; }
 
         /// <summary>
         /// Gets the segment features.
@@ -157,17 +157,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
         /// <summary>
         /// Gets the segment infos.
         /// </summary>
-        public Vp8SegmentInfo[] SegmentInfos { get; private set; }
+        public Vp8SegmentInfo[] SegmentInfos { get; }
 
         /// <summary>
         /// Gets the macro block info's.
         /// </summary>
-        public Vp8MacroBlockInfo[] MbInfo { get; private set; }
+        public Vp8MacroBlockInfo[] MbInfo { get; }
 
         /// <summary>
         /// Gets the filter header.
         /// </summary>
-        public Vp8FilterHeader FilterHeader { get; private set; }
+        public Vp8FilterHeader FilterHeader { get; }
 
         /// <summary>
         /// Gets or sets the global susceptibility.
@@ -825,15 +825,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
             it.SetSkip(false);       // not skipped.
             it.SetSegment(0);        // default segment, spec-wise.
 
-            int bestAlpha;
-            if (this.method <= 1)
-            {
-                bestAlpha = it.FastMbAnalyze(this.quality);
-            }
-            else
-            {
-                bestAlpha = it.MbAnalyzeBestIntra16Mode();
-            }
+            int bestAlpha = this.method <= 1 ? it.FastMbAnalyze(this.quality) : it.MbAnalyzeBestIntra16Mode();
 
             bestUvAlpha = it.MbAnalyzeBestUvMode();
 
@@ -1348,10 +1340,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static double GetPsnr(long mse, long size)
-        {
-            return (mse > 0 && size > 0) ? 10.0f * Math.Log10(255.0f * 255.0f * size / mse) : 99;
-        }
+        private static double GetPsnr(long mse, long size) => (mse > 0 && size > 0) ? 10.0f * Math.Log10(255.0f * 255.0f * size / mse) : 99;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetProba(int a, int b)

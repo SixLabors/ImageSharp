@@ -133,89 +133,47 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         }
 
         [Fact]
-        public void SubtractGreen_Works()
-        {
-            RunSubstractGreenTest();
-        }
+        public void SubtractGreen_Works() => RunSubstractGreenTest();
 
         [Fact]
-        public void AddGreenToBlueAndRed_Works()
-        {
-            RunAddGreenToBlueAndRedTest();
-        }
+        public void AddGreenToBlueAndRed_Works() => RunAddGreenToBlueAndRedTest();
 
         [Fact]
-        public void TransformColor_Works()
-        {
-            RunTransformColorTest();
-        }
+        public void TransformColor_Works() => RunTransformColorTest();
 
         [Fact]
-        public void TransformColorInverse_Works()
-        {
-            RunTransformColorInverseTest();
-        }
+        public void TransformColorInverse_Works() => RunTransformColorInverseTest();
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
-        public void SubtractGreen_WithHardwareIntrinsics_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubstractGreenTest, HwIntrinsics.AllowAll);
-        }
+        public void SubtractGreen_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubstractGreenTest, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void SubtractGreen_WithoutAvx_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubstractGreenTest, HwIntrinsics.DisableAVX);
-        }
+        public void SubtractGreen_WithoutAvx_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubstractGreenTest, HwIntrinsics.DisableAVX);
 
         [Fact]
-        public void SubtractGreen_WithoutAvxOrSSSE3_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubstractGreenTest, HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSSE3);
-        }
+        public void SubtractGreen_WithoutAvxOrSSSE3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubstractGreenTest, HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSSE3);
 
         [Fact]
-        public void AddGreenToBlueAndRed_WithHardwareIntrinsics_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.AllowAll);
-        }
+        public void AddGreenToBlueAndRed_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void AddGreenToBlueAndRed_WithoutAvx_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.DisableAVX);
-        }
+        public void AddGreenToBlueAndRed_WithoutAvx_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.DisableAVX);
 
         [Fact]
-        public void AddGreenToBlueAndRed_WithoutAvxOrSSSE3_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableSSSE3);
-        }
+        public void AddGreenToBlueAndRed_WithoutAvxOrSSSE3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableSSSE3);
 
         [Fact]
-        public void TransformColor_WithHardwareIntrinsics_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorTest, HwIntrinsics.AllowAll);
-        }
+        public void TransformColor_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorTest, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void TransformColor_WithoutSSE2_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorTest, HwIntrinsics.DisableSSE2);
-        }
+        public void TransformColor_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorTest, HwIntrinsics.DisableSSE2);
 
         [Fact]
-        public void TransformColorInverse_WithHardwareIntrinsics_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.AllowAll);
-        }
+        public void TransformColorInverse_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void TransformColorInverse_WithoutSSE2_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.DisableSSE2);
-        }
+        public void TransformColorInverse_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTransformColorInverseTest, HwIntrinsics.DisableSSE2);
 #endif
     }
 }

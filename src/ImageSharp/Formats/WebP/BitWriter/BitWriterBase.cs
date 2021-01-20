@@ -18,11 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
         /// Initializes a new instance of the <see cref="BitWriterBase"/> class.
         /// </summary>
         /// <param name="expectedSize">The expected size in bytes.</param>
-        protected BitWriterBase(int expectedSize)
-        {
-            // TODO: should we use memory allocator here?
-            this.buffer = new byte[expectedSize];
-        }
+        protected BitWriterBase(int expectedSize) => this.buffer = new byte[expectedSize];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BitWriterBase"/> class.
@@ -36,10 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
         /// Writes the encoded bytes of the image to the stream. Call Finish() before this.
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
-        public void WriteToStream(Stream stream)
-        {
-            stream.Write(this.Buffer.AsSpan(0, this.NumBytes()));
-        }
+        public void WriteToStream(Stream stream) => stream.Write(this.Buffer.AsSpan(0, this.NumBytes()));
 
         /// <summary>
         /// Resizes the buffer to write to.
@@ -79,8 +72,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
 
             // Make new size multiple of 1k.
             newSize = ((newSize >> 10) + 1) << 10;
-
-            // TODO: use memory allocator.
             Array.Resize(ref this.buffer, newSize);
 
             return false;

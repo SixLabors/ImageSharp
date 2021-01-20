@@ -336,8 +336,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [Theory]
         [WithFile(Lossless.LossLessCorruptImage3, PixelTypes.Rgba32)]
         public void WebpDecoder_ThrowImageFormatException_OnInvalidImages<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
+            where TPixel : unmanaged, IPixel<TPixel> =>
             Assert.Throws<ImageFormatException>(
                 () =>
                 {
@@ -345,14 +344,5 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
                     {
                     }
                 });
-        }
-
-        [Theory]
-        [WithFile(Lossless.Earth, PixelTypes.Rgba32)]
-        public void ProfileTestLossless<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using Image<TPixel> image = provider.GetImage(WebpDecoder);
-        }
     }
 }

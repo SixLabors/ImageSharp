@@ -213,7 +213,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
 
             // 3 reserved bytes should follow which are supposed to be zero.
             this.currentStream.Read(this.buffer, 0, 3);
-            if (this.buffer[0] != 0 || this.buffer[1] != 0 | this.buffer[2] != 0)
+            if (this.buffer[0] != 0 || this.buffer[1] != 0 || this.buffer[2] != 0)
             {
                 WebpThrowHelper.ThrowImageFormatException("reserved bytes should be zero");
             }
@@ -527,15 +527,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         /// </summary>
         /// <param name="chunkType">The chunk type.</param>
         /// <returns>True, if its an optional chunk type.</returns>
-        private static bool IsOptionalVp8XChunk(WebpChunkType chunkType)
+        private static bool IsOptionalVp8XChunk(WebpChunkType chunkType) => chunkType switch
         {
-            return chunkType switch
-            {
-                WebpChunkType.Alpha => true,
-                WebpChunkType.Animation => true,
-                WebpChunkType.Iccp => true,
-                _ => false
-            };
-        }
+            WebpChunkType.Alpha => true,
+            WebpChunkType.Animation => true,
+            WebpChunkType.Iccp => true,
+            _ => false
+        };
     }
 }

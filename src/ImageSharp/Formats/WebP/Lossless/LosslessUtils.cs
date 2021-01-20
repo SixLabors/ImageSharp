@@ -61,10 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int MaxFindCopyLength(int len)
-        {
-            return (len < BackwardReferenceEncoder.MaxLength) ? len : BackwardReferenceEncoder.MaxLength;
-        }
+        public static int MaxFindCopyLength(int len) => (len < BackwardReferenceEncoder.MaxLength) ? len : BackwardReferenceEncoder.MaxLength;
 
         public static int PrefixEncodeBits(int distance, ref int extraBits)
         {
@@ -92,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             }
             else
             {
-                return PrefixEncodeNoLUT(distance, ref extraBits, ref extraBitsValue);
+                return PrefixEncodeNoLut(distance, ref extraBits, ref extraBitsValue);
             }
         }
 
@@ -107,9 +104,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             {
                 var mask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
                 int numPixels = pixelData.Length;
-                int i;
                 fixed (uint* p = pixelData)
                 {
+                    int i;
                     for (i = 0; i + 8 <= numPixels; i += 8)
                     {
                         var idx = p + i;
@@ -129,9 +126,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             {
                 var mask = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
                 int numPixels = pixelData.Length;
-                int i;
                 fixed (uint* p = pixelData)
                 {
+                    int i;
                     for (i = 0; i + 4 <= numPixels; i += 4)
                     {
                         var idx = p + i;
@@ -151,9 +148,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             {
                 var mask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
                 int numPixels = pixelData.Length;
-                int i;
                 fixed (uint* p = pixelData)
                 {
+                    int i;
                     for (i = 0; i + 4 <= numPixels; i += 4)
                     {
                         var idx = p + i;
@@ -199,9 +196,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             {
                 var mask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
                 int numPixels = pixelData.Length;
-                int i;
                 fixed (uint* p = pixelData)
                 {
+                    int i;
                     for (i = 0; i + 8 <= numPixels; i += 8)
                     {
                         var idx = p + i;
@@ -221,9 +218,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             {
                 var mask = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
                 int numPixels = pixelData.Length;
-                int i;
                 fixed (uint* p = pixelData)
                 {
+                    int i;
                     for (i = 0; i + 4 <= numPixels; i += 4)
                     {
                         var idx = p + i;
@@ -243,9 +240,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             {
                 var mask = SimdUtils.Shuffle.MmShuffle(2, 2, 0, 0);
                 int numPixels = pixelData.Length;
-                int i;
                 fixed (uint* p = pixelData)
                 {
+                    int i;
                     for (i = 0; i + 4 <= numPixels; i += 4)
                     {
                         var idx = p + i;
@@ -757,19 +754,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         /// <summary>
         /// Fast calculation of log2(v) for integer input.
         /// </summary>
-        public static float FastLog2(uint v)
-        {
-            return (v < LogLookupIdxMax) ? WebpLookupTables.Log2Table[v] : FastLog2Slow(v);
-        }
+        public static float FastLog2(uint v) => (v < LogLookupIdxMax) ? WebpLookupTables.Log2Table[v] : FastLog2Slow(v);
 
         /// <summary>
         /// Fast calculation of v * log2(v) for integer input.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static float FastSLog2(uint v)
-        {
-            return (v < LogLookupIdxMax) ? WebpLookupTables.SLog2Table[v] : FastSLog2Slow(v);
-        }
+        public static float FastSLog2(uint v) => (v < LogLookupIdxMax) ? WebpLookupTables.SLog2Table[v] : FastSLog2Slow(v);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ColorCodeToMultipliers(uint colorCode, ref Vp8LMultipliers m)
@@ -779,17 +770,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             m.RedToBlue = (byte)((colorCode >> 16) & 0xff);
         }
 
+        // 100 -> 0
+        // 80..99 -> 1
+        // 60..79 -> 2
+        // 40..59 -> 3
+        // 20..39 -> 4
+        //  0..19 -> 5
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int NearLosslessBits(int nearLosslessQuality)
-        {
-            // 100 -> 0
-            // 80..99 -> 1
-            // 60..79 -> 2
-            // 40..59 -> 3
-            // 20..39 -> 4
-            //  0..19 -> 5
-            return 5 - (nearLosslessQuality / 20);
-        }
+        public static int NearLosslessBits(int nearLosslessQuality) => 5 - (nearLosslessQuality / 20);
 
         private static float FastSLog2Slow(uint v)
         {
@@ -834,8 +822,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 do
                 {
                     ++logCnt;
-                    v = v >> 1;
-                    y = y << 1;
+                    v >>= 1;
+                    y <<= 1;
                 }
                 while (v >= LogLookupIdxMax);
 
@@ -870,7 +858,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             return code;
         }
 
-        private static int PrefixEncodeNoLUT(int distance, ref int extraBits, ref int extraBitsValue)
+        private static int PrefixEncodeNoLut(int distance, ref int extraBits, ref int extraBitsValue)
         {
             int highestBit = WebpCommonUtils.BitsLog2Floor((uint)--distance);
             int secondHighestBit = (distance >> (highestBit - 1)) & 1;
@@ -1020,76 +1008,40 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor2(uint left, uint* top)
-        {
-            return top[0];
-        }
+        public static uint Predictor2(uint left, uint* top) => top[0];
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor3(uint left, uint* top)
-        {
-            return top[1];
-        }
+        public static uint Predictor3(uint left, uint* top) => top[1];
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor4(uint left, uint* top)
-        {
-            return top[-1];
-        }
+        public static uint Predictor4(uint left, uint* top) => top[-1];
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor5(uint left, uint* top)
-        {
-            return Average3(left, top[0], top[1]);
-        }
+        public static uint Predictor5(uint left, uint* top) => Average3(left, top[0], top[1]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor6(uint left, uint* top)
-        {
-            return Average2(left, top[-1]);
-        }
+        public static uint Predictor6(uint left, uint* top) => Average2(left, top[-1]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor7(uint left, uint* top)
-        {
-            return Average2(left, top[0]);
-        }
+        public static uint Predictor7(uint left, uint* top) => Average2(left, top[0]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor8(uint left, uint* top)
-        {
-            return Average2(top[-1], top[0]);
-        }
+        public static uint Predictor8(uint left, uint* top) => Average2(top[-1], top[0]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor9(uint left, uint* top)
-        {
-            return Average2(top[0], top[1]);
-        }
+        public static uint Predictor9(uint left, uint* top) => Average2(top[0], top[1]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor10(uint left, uint* top)
-        {
-            return Average4(left, top[-1], top[0], top[1]);
-        }
+        public static uint Predictor10(uint left, uint* top) => Average4(left, top[-1], top[0], top[1]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor11(uint left, uint* top)
-        {
-            return Select(top[0], left, top[-1]);
-        }
+        public static uint Predictor11(uint left, uint* top) => Select(top[0], left, top[-1]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor12(uint left, uint* top)
-        {
-            return ClampedAddSubtractFull(left, top[0], top[-1]);
-        }
+        public static uint Predictor12(uint left, uint* top) => ClampedAddSubtractFull(left, top[0], top[-1]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static uint Predictor13(uint left, uint* top)
-        {
-            return ClampedAddSubtractHalf(left, top[0], top[-1]);
-        }
+        public static uint Predictor13(uint left, uint* top) => ClampedAddSubtractHalf(left, top[0], top[-1]);
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void PredictorSub0(uint* input, int numPixels, uint* output)
@@ -1233,10 +1185,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         /// Computes sampled size of 'size' when sampling using 'sampling bits'.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int SubSampleSize(int size, int samplingBits)
-        {
-            return (size + (1 << samplingBits) - 1) >> samplingBits;
-        }
+        public static int SubSampleSize(int size, int samplingBits) => (size + (1 << samplingBits) - 1) >> samplingBits;
 
         /// <summary>
         /// Sum of each component, mod 256.
@@ -1251,10 +1200,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 
         // For sign-extended multiplying constants, pre-shifted by 5:
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static short Cst5b(int x)
-        {
-            return (short)(((short)(x << 8)) >> 5);
-        }
+        public static short Cst5b(int x) => (short)(((short)(x << 8)) >> 5);
 
         private static uint ClampedAddSubtractFull(uint c0, uint c1, uint c2)
         {
@@ -1285,29 +1231,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int AddSubtractComponentHalf(int a, int b)
-        {
-            return (int)Clip255((uint)(a + ((a - b) / 2)));
-        }
+        private static int AddSubtractComponentHalf(int a, int b) => (int)Clip255((uint)(a + ((a - b) / 2)));
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int AddSubtractComponentFull(int a, int b, int c)
-        {
-            return (int)Clip255((uint)(a + b - c));
-        }
+        private static int AddSubtractComponentFull(int a, int b, int c) => (int)Clip255((uint)(a + b - c));
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Clip255(uint a)
-        {
-            return a < 256 ? a : ~a >> 24;
-        }
+        private static uint Clip255(uint a) => a < 256 ? a : ~a >> 24;
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static Vector128<int> MkCst16(int hi, int lo)
-        {
-            return Vector128.Create((hi << 16) | (lo & 0xffff));
-        }
+        private static Vector128<int> MkCst16(int hi, int lo) => Vector128.Create((hi << 16) | (lo & 0xffff));
 #endif
 
         private static uint Select(uint a, uint b, uint c)
@@ -1329,39 +1263,21 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Average2(uint a0, uint a1)
-        {
-            return (((a0 ^ a1) & 0xfefefefeu) >> 1) + (a0 & a1);
-        }
+        private static uint Average2(uint a0, uint a1) => (((a0 ^ a1) & 0xfefefefeu) >> 1) + (a0 & a1);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Average3(uint a0, uint a1, uint a2)
-        {
-            return Average2(Average2(a0, a2), a1);
-        }
+        private static uint Average3(uint a0, uint a1, uint a2) => Average2(Average2(a0, a2), a1);
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint Average4(uint a0, uint a1, uint a2, uint a3)
-        {
-            return Average2(Average2(a0, a1), Average2(a2, a3));
-        }
+        private static uint Average4(uint a0, uint a1, uint a2, uint a3) => Average2(Average2(a0, a1), Average2(a2, a3));
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static uint GetArgbIndex(uint idx)
-        {
-            return (idx >> 8) & 0xff;
-        }
+        private static uint GetArgbIndex(uint idx) => (idx >> 8) & 0xff;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int ColorTransformDelta(sbyte colorPred, sbyte color)
-        {
-            return (colorPred * color) >> 5;
-        }
+        private static int ColorTransformDelta(sbyte colorPred, sbyte color) => (colorPred * color) >> 5;
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static sbyte U32ToS8(uint v)
-        {
-            return (sbyte)(v & 0xff);
-        }
+        private static sbyte U32ToS8(uint v) => (sbyte)(v & 0xff);
     }
 }

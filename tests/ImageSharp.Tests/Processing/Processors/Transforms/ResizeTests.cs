@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                         testOutputDetails: workingBufferLimitInRows,
                         appendPixelTypeToFileName: false);
                     image.CompareToReferenceOutput(
-                        ImageComparer.TolerantPercentage(0.001f),
+                        ImageComparer.TolerantPercentage(0.004f),
                         provider,
                         testOutputDetails: workingBufferLimitInRows,
                         appendPixelTypeToFileName: false);

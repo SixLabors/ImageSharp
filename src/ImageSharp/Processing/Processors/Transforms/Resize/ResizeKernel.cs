@@ -5,6 +5,7 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 #if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 #endif
@@ -77,7 +78,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 float* bufferEnd = bufferStart + (this.Length & ~3);
                 Vector256<float> result256_0 = Vector256<float>.Zero;
                 Vector256<float> result256_1 = Vector256<float>.Zero;
-                var mask = Vector256.Create(0, 0, 0, 0, 1, 1, 1, 1);
+                ReadOnlySpan<byte> maskBytes = new byte[]
+                {
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    1, 0, 0, 0, 1, 0, 0, 0,
+                    1, 0, 0, 0, 1, 0, 0, 0,
+                };
+                Vector256<int> mask = Unsafe.ReadUnaligned<Vector256<int>>(ref MemoryMarshal.GetReference(maskBytes));
 
                 while (bufferStart < bufferEnd)
                 {

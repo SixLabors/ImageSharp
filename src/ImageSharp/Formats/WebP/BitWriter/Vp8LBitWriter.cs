@@ -49,10 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
         /// </summary>
         /// <param name="expectedSize">The expected size in bytes.</param>
         public Vp8LBitWriter(int expectedSize)
-            : base(expectedSize)
-        {
-            this.end = this.Buffer.Length;
-        }
+            : base(expectedSize) => this.end = this.Buffer.Length;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LBitWriter"/> class.
@@ -106,10 +103,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
         }
 
         /// <inheritdoc/>
-        public override int NumBytes()
-        {
-            return this.cur + ((this.used + 7) >> 3);
-        }
+        public override int NumBytes() => this.cur + ((this.used + 7) >> 3);
 
         public Vp8LBitWriter Clone()
         {

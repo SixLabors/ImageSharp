@@ -241,18 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy
 
         public Vp8MacroBlock CurrentMacroBlock => this.MacroBlockInfo[this.MbX];
 
-        public Vp8MacroBlock LeftMacroBlock
-        {
-            get
-            {
-                if (this.leftMacroBlock == null)
-                {
-                    this.leftMacroBlock = new Vp8MacroBlock();
-                }
-
-                return this.leftMacroBlock;
-            }
-        }
+        public Vp8MacroBlock LeftMacroBlock => this.leftMacroBlock ??= new Vp8MacroBlock();
 
         public Vp8MacroBlockData CurrentBlockData => this.MacroBlockData[this.MbX];
 

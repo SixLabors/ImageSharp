@@ -267,15 +267,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
                 previous = previous.Next;
             }
 
-            if (previous != null)
-            {
-                this.ConnectIntervals(current, previous.Next);
-            }
-            else
-            {
-                this.ConnectIntervals(current, this.head);
-            }
-
+            this.ConnectIntervals(current, previous != null ? previous.Next : this.head);
             this.ConnectIntervals(previous, current);
         }
 

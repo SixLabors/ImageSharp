@@ -157,20 +157,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader
         /// </summary>
         /// <param name="numberOfBits">The number of bits to advance the position.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void AdvanceBitPosition(int numberOfBits)
-        {
-            this.bitPos += numberOfBits;
-        }
+        public void AdvanceBitPosition(int numberOfBits) => this.bitPos += numberOfBits;
 
         /// <summary>
         /// Return the pre-fetched bits, so they can be looked up.
         /// </summary>
         /// <returns>The pre-fetched bits.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public ulong PrefetchBits()
-        {
-            return this.value >> (this.bitPos & (Lbits - 1));
-        }
+        public ulong PrefetchBits() => this.value >> (this.bitPos & (Lbits - 1));
 
         /// <summary>
         /// Advances the read buffer by 4 bytes to make room for reading next 32 bits.
@@ -187,16 +181,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader
         /// Returns true if there was an attempt at reading bit past the end of the buffer.
         /// </summary>
         /// <returns>True, if end of buffer was reached.</returns>
-        public bool IsEndOfStream()
-        {
-            return this.Eos || ((this.pos == this.len) && (this.bitPos > Lbits));
-        }
+        public bool IsEndOfStream() => this.Eos || ((this.pos == this.len) && (this.bitPos > Lbits));
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private void DoFillBitWindow()
-        {
-            this.ShiftBytes();
-        }
+        private void DoFillBitWindow() => this.ShiftBytes();
 
         /// <summary>
         /// If not at EOS, reload up to Vp8LLbits byte-by-byte.

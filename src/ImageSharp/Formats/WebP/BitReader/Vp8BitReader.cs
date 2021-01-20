@@ -140,10 +140,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitReader
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        public bool ReadBool()
-        {
-            return this.ReadValue(1) is 1;
-        }
+        public bool ReadBool() => this.ReadValue(1) is 1;
 
         public uint ReadValue(int nBits)
         {

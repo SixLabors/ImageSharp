@@ -54,10 +54,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         /// <param name="refs">The backward references to initialize the histogram with.</param>
         /// <param name="paletteCodeBits">The palette code bits.</param>
         public Vp8LHistogram(Vp8LBackwardRefs refs, int paletteCodeBits)
-            : this(paletteCodeBits)
-        {
-            this.StoreRefs(refs);
-        }
+            : this(paletteCodeBits) => this.StoreRefs(refs);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Vp8LHistogram"/> class.
@@ -171,10 +168,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             }
         }
 
-        public int NumCodes()
-        {
-            return WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + ((this.PaletteCodeBits > 0) ? (1 << this.PaletteCodeBits) : 0);
-        }
+        public int NumCodes() => WebpConstants.NumLiteralCodes + WebpConstants.NumLengthCodes + ((this.PaletteCodeBits > 0) ? (1 << this.PaletteCodeBits) : 0);
 
         /// <summary>
         /// Estimate how many bits the combined entropy of literals and distance approximately maps to.
@@ -631,9 +625,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static int ClipMax(int v, int max)
-        {
-            return (v > max) ? max : v;
-        }
+        private static int ClipMax(int v, int max) => (v > max) ? max : v;
     }
 }

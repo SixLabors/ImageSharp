@@ -139,7 +139,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                         testOutputDetails: workingBufferLimitInRows,
                         appendPixelTypeToFileName: false);
                     image.CompareToReferenceOutput(
-                        ImageComparer.TolerantPercentage(0.001f),
+                        ImageComparer.TolerantPercentage(0.004f),
                         provider,
                         testOutputDetails: workingBufferLimitInRows,
                         appendPixelTypeToFileName: false);
@@ -211,6 +211,32 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
 
             provider.RunValidatingProcessorTest(
                 x => x.Resize(x.GetCurrentSize() / 2, compand),
+                details,
+                appendPixelTypeToFileName: false,
+                appendSourceFileOrDescription: false);
+        }
+
+        [Theory]
+        [WithFile(TestImages.Png.Kaboom, DefaultPixelType, false)]
+        [WithFile(TestImages.Png.Kaboom, DefaultPixelType, true)]
+        public void Resize_PremultiplyAlpha<TPixel>(TestImageProvider<TPixel> provider, bool premultiplyAlpha)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            string details = premultiplyAlpha ? "On" : "Off";
+
+            provider.RunValidatingProcessorTest(
+                x =>
+                {
+                    var resizeOptions = new ResizeOptions()
+                    {
+                        Size = x.GetCurrentSize() / 2,
+                        Mode = ResizeMode.Crop,
+                        Sampler = KnownResamplers.Bicubic,
+                        Compand = false,
+                        PremultiplyAlpha = premultiplyAlpha
+                    };
+                    x.Resize(resizeOptions);
+                },
                 details,
                 appendPixelTypeToFileName: false,
                 appendSourceFileOrDescription: false);

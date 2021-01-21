@@ -4,47 +4,49 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
-
+using System.IO;
 using BenchmarkDotNet.Attributes;
-
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests;
+using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    [Config(typeof(Config.ShortClr))]
-#pragma warning disable SA1649 // File name should match first type name
-    public abstract class ResizeBenchmarkBase<TPixel>
-#pragma warning restore SA1649 // File name should match first type name
+    [Config(typeof(Config.MultiFramework))]
+    public abstract class Resize<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        protected readonly Configuration Configuration = new Configuration(new JpegConfigurationModule());
+        private byte[] bytes = null;
 
         private Image<TPixel> sourceImage;
 
-        private Bitmap sourceBitmap;
+        private SDImage sourceBitmap;
 
-        [Params("3032-400")]
-        public virtual string SourceToDest { get; set; }
-
-        protected int SourceSize { get; private set; }
+        protected Configuration Configuration { get; } = new Configuration(new JpegConfigurationModule());
 
         protected int DestSize { get; private set; }
 
         [GlobalSetup]
         public virtual void Setup()
         {
-            string[] stuff = this.SourceToDest.Split('-');
-            this.SourceSize = int.Parse(stuff[0], CultureInfo.InvariantCulture);
-            this.DestSize = int.Parse(stuff[1], CultureInfo.InvariantCulture);
-            this.sourceImage = new Image<TPixel>(this.Configuration, this.SourceSize, this.SourceSize);
-            this.sourceBitmap = new Bitmap(this.SourceSize, this.SourceSize);
+            if (this.bytes is null)
+            {
+                this.bytes = File.ReadAllBytes(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Jpeg.Baseline.Snake));
+
+                this.sourceImage = Image.Load<TPixel>(this.bytes);
+
+                var ms1 = new MemoryStream(this.bytes);
+                this.sourceBitmap = SDImage.FromStream(ms1);
+                this.DestSize = this.sourceBitmap.Width / 2;
+            }
         }
 
         [GlobalCleanup]
         public void Cleanup()
         {
+            this.bytes = null;
             this.sourceImage.Dispose();
             this.sourceBitmap.Dispose();
         }
@@ -96,12 +98,10 @@ namespace SixLabors.ImageSharp.Benchmarks
         protected abstract void ExecuteResizeOperation(IImageProcessingContext ctx);
     }
 
-    public class Resize_Bicubic_Rgba32 : ResizeBenchmarkBase<Rgba32>
+    public class Resize_Bicubic_Rgba32 : Resize<Rgba32>
     {
         protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
-        {
-            ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
-        }
+            => ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
 
         // RESULTS - 2019 April - ResizeWorker:
         //
@@ -133,9 +133,6 @@ namespace SixLabors.ImageSharp.Benchmarks
         [Params(128, 512, 1024, 8 * 1024)]
         public int WorkingBufferSizeHintInKilobytes { get; set; }
 
-        [Params("3032-400", "4000-300")]
-        public override string SourceToDest { get; set; }
-
         public override void Setup()
         {
             this.Configuration.WorkingBufferSizeHintInBytes = this.WorkingBufferSizeHintInKilobytes * 1024;
@@ -143,12 +140,10 @@ namespace SixLabors.ImageSharp.Benchmarks
         }
     }
 
-    public class Resize_Bicubic_Bgra32 : ResizeBenchmarkBase<Bgra32>
+    public class Resize_Bicubic_Bgra32 : Resize<Bgra32>
     {
         protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
-        {
-            ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
-        }
+            => ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
 
         // RESULTS (2019 April):
         //
@@ -171,12 +166,10 @@ namespace SixLabors.ImageSharp.Benchmarks
         //  'ImageSharp, MaxDegreeOfParallelism = 1' | Core |    Core |       3032 |      400 |  96.96 ms |  7.899 ms | 0.4329 ms |  0.80 |           - |           - |           - |             44512 B |
     }
 
-    public class Resize_Bicubic_Rgb24 : ResizeBenchmarkBase<Rgb24>
+    public class Resize_Bicubic_Rgb24 : Resize<Rgb24>
     {
         protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
-        {
-            ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
-        }
+            => ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic);
 
         // RESULTS (2019 April):
         //
@@ -197,12 +190,10 @@ namespace SixLabors.ImageSharp.Benchmarks
         //  'ImageSharp, MaxDegreeOfParallelism = 1' | Core |    Core |       3032 |      400 |  92.47 ms |  5.683 ms | 0.3115 ms |  0.78 |    0.01 |           - |           - |           - |             44512 B |
     }
 
-    public class Resize_BicubicCompand_Rgba32 : ResizeBenchmarkBase<Rgba32>
+    public class Resize_BicubicCompand_Rgba32 : Resize<Rgba32>
     {
         protected override void ExecuteResizeOperation(IImageProcessingContext ctx)
-        {
-            ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic, true);
-        }
+            => ctx.Resize(this.DestSize, this.DestSize, KnownResamplers.Bicubic, true);
 
         // RESULTS (2019 April):
         //

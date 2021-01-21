@@ -168,15 +168,5 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(InliningOptions.ShortMethod)]
         internal ResizeKernel AlterLeftValue(int left)
             => new ResizeKernel(left, this.bufferPtr, this.Length);
-
-        internal void Fill(Span<double> values)
-        {
-            DebugGuard.IsTrue(values.Length == this.Length, nameof(values), "ResizeKernel.Fill: values.Length != this.Length!");
-
-            for (int i = 0; i < this.Length; i++)
-            {
-                this.Values[i] = (float)values[i];
-            }
-        }
     }
 }

@@ -34,7 +34,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private bool isDisposed;
 
         // To avoid both GC allocations, and MemoryAllocator ceremony:
-        private readonly double[] tempValues;
+        private readonly float[] tempValues;
 
         private ResizeKernelMap(
             MemoryAllocator memoryAllocator,
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight, AllocationOptions.Clean);
             this.pinHandle = this.data.GetSingleMemory().Pin();
             this.kernels = new ResizeKernel[destinationLength];
-            this.tempValues = new double[this.MaxDiameter];
+            this.tempValues = new float[this.MaxDiameter];
         }
 
         /// <summary>
@@ -199,7 +199,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private ResizeKernel BuildKernel<TResampler>(in TResampler sampler, int destRowIndex, int dataRowIndex)
             where TResampler : struct, IResampler
         {
-            double center = ((destRowIndex + .5) * this.ratio) - .5;
+            float center = (float)(((destRowIndex + .5) * this.ratio) - .5);
+            float scale = (float)this.scale;
 
             // Keep inside bounds.
             int left = (int)TolerantMath.Ceiling(center - this.radius);
@@ -216,12 +217,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             ResizeKernel kernel = this.CreateKernel(dataRowIndex, left, right);
 
-            Span<double> kernelValues = this.tempValues.AsSpan().Slice(0, kernel.Length);
-            double sum = 0;
+            Span<float> kernelValues = this.tempValues.AsSpan().Slice(0, kernel.Length);
+            float sum = 0;
 
             for (int j = left; j <= right; j++)
             {
-                double value = sampler.GetValue((float)((j - center) / this.scale));
+                float value = sampler.GetValue((j - center) / scale);
                 sum += value;
 
                 kernelValues[j - left] = value;
@@ -233,12 +234,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 for (int j = 0; j < kernel.Length; j++)
                 {
                     // weights[w] = weights[w] / sum:
-                    ref double kRef = ref kernelValues[j];
+                    ref float kRef = ref kernelValues[j];
                     kRef /= sum;
                 }
             }
 
-            kernel.Fill(kernelValues);
+            kernelValues.CopyTo(kernel.Values);
 
             return kernel;
         }

@@ -13,6 +13,7 @@ using Xunit.Abstractions;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public partial class Block8x8FTests
     {
         public class CopyToBufferArea : JpegFixture

@@ -8,12 +8,13 @@ using System.Diagnostics;
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public partial class Block8x8FTests : JpegFixture
     {
 #if BENCHMARKING
@@ -45,20 +46,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Measure(
                 Times,
                 () =>
+                {
+                    var block = default(Block8x8F);
+
+                    for (int i = 0; i < Block8x8F.Size; i++)
                     {
-                        var block = default(Block8x8F);
+                        block[i] = i;
+                    }
 
-                        for (int i = 0; i < Block8x8F.Size; i++)
-                        {
-                            block[i] = i;
-                        }
-
-                        sum = 0;
-                        for (int i = 0; i < Block8x8F.Size; i++)
-                        {
-                            sum += block[i];
-                        }
-                    });
+                    sum = 0;
+                    for (int i = 0; i < Block8x8F.Size; i++)
+                    {
+                        sum += block[i];
+                    }
+                });
             Assert.Equal(sum, 64f * 63f * 0.5f);
         }
 
@@ -70,20 +71,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Measure(
                 Times,
                 () =>
+                {
+                    // Block8x8F block = new Block8x8F();
+                    float[] block = new float[64];
+                    for (int i = 0; i < Block8x8F.Size; i++)
                     {
-                        // Block8x8F block = new Block8x8F();
-                        float[] block = new float[64];
-                        for (int i = 0; i < Block8x8F.Size; i++)
-                        {
-                            block[i] = i;
-                        }
+                        block[i] = i;
+                    }
 
-                        sum = 0;
-                        for (int i = 0; i < Block8x8F.Size; i++)
-                        {
-                            sum += block[i];
-                        }
-                    });
+                    sum = 0;
+                    for (int i = 0; i < Block8x8F.Size; i++)
+                    {
+                        sum += block[i];
+                    }
+                });
             Assert.Equal(sum, 64f * 63f * 0.5f);
         }
 
@@ -101,11 +102,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Measure(
                 Times,
                 () =>
-                    {
-                        var b = default(Block8x8F);
-                        b.LoadFrom(data);
-                        b.ScaledCopyTo(mirror);
-                    });
+                {
+                    var b = default(Block8x8F);
+                    b.LoadFrom(data);
+                    b.ScaledCopyTo(mirror);
+                });
 
             Assert.Equal(data, mirror);
 
@@ -126,11 +127,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Measure(
                 Times,
                 () =>
-                    {
-                        var b = default(Block8x8F);
-                        Block8x8F.LoadFrom(&b, data);
-                        Block8x8F.ScaledCopyTo(&b, mirror);
-                    });
+                {
+                    var b = default(Block8x8F);
+                    Block8x8F.LoadFrom(&b, data);
+                    Block8x8F.ScaledCopyTo(&b, mirror);
+                });
 
             Assert.Equal(data, mirror);
 
@@ -151,11 +152,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.Measure(
                 Times,
                 () =>
-                    {
-                        var v = default(Block8x8F);
-                        v.LoadFrom(data);
-                        v.ScaledCopyTo(mirror);
-                    });
+                {
+                    var v = default(Block8x8F);
+                    v.LoadFrom(data);
+                    v.ScaledCopyTo(mirror);
+                });
 
             Assert.Equal(data, mirror);
 
@@ -165,19 +166,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void TransposeInto()
         {
-            float[] expected = Create8x8FloatData();
-            ReferenceImplementations.Transpose8x8(expected);
+            static void RunTest()
+            {
+                float[] expected = Create8x8FloatData();
+                ReferenceImplementations.Transpose8x8(expected);
 
-            var source = default(Block8x8F);
-            source.LoadFrom(Create8x8FloatData());
+                var source = default(Block8x8F);
+                source.LoadFrom(Create8x8FloatData());
 
-            var dest = default(Block8x8F);
-            source.TransposeInto(ref dest);
+                var dest = default(Block8x8F);
+                source.TransposeInto(ref dest);
 
-            float[] actual = new float[64];
-            dest.ScaledCopyTo(actual);
+                float[] actual = new float[64];
+                dest.ScaledCopyTo(actual);
 
-            Assert.Equal(expected, actual);
+                Assert.Equal(expected, actual);
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
         }
 
         private class BufferHolder
@@ -228,7 +236,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             this.PrintLinearData(input);
 
             Block8x8F dest = block;
-            dest.NormalizeColorsInplace(255);
+            dest.NormalizeColorsInPlace(255);
 
             float[] array = new float[64];
             dest.ScaledCopyTo(array);
@@ -253,11 +261,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             Block8x8F source = CreateRandomFloatBlock(-200, 200, seed);
 
             Block8x8F expected = source;
-            expected.NormalizeColorsInplace(255);
-            expected.RoundInplace();
+            expected.NormalizeColorsInPlace(255);
+            expected.RoundInPlace();
 
             Block8x8F actual = source;
-            actual.NormalizeColorsAndRoundInplaceVector8(255);
+            actual.NormalizeColorsAndRoundInPlaceVector8(255);
 
             this.Output.WriteLine(expected.ToString());
             this.Output.WriteLine(actual.ToString());
@@ -318,12 +326,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [InlineData(1)]
         [InlineData(2)]
         [InlineData(3)]
-        public void RoundInplaceSlow(int seed)
+        public void RoundInPlaceSlow(int seed)
         {
             Block8x8F s = CreateRandomFloatBlock(-500, 500, seed);
 
             Block8x8F d = s;
-            d.RoundInplace();
+            d.RoundInPlace();
 
             this.Output.WriteLine(s.ToString());
             this.Output.WriteLine(d.ToString());
@@ -338,19 +346,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         }
 
         [Fact]
-        public void MultiplyInplace_ByOtherBlock()
+        public void MultiplyInPlace_ByOtherBlock()
         {
-            Block8x8F original = CreateRandomFloatBlock(-500, 500, 42);
-            Block8x8F m = CreateRandomFloatBlock(-500, 500, 42);
-
-            Block8x8F actual = original;
-
-            actual.MultiplyInplace(ref m);
-
-            for (int i = 0; i < Block8x8F.Size; i++)
+            static void RunTest()
             {
-                Assert.Equal(original[i] * m[i], actual[i]);
+                Block8x8F original = CreateRandomFloatBlock(-500, 500, 42);
+                Block8x8F m = CreateRandomFloatBlock(-500, 500, 42);
+
+                Block8x8F actual = original;
+
+                actual.MultiplyInPlace(ref m);
+
+                for (int i = 0; i < Block8x8F.Size; i++)
+                {
+                    Assert.Equal(original[i] * m[i], actual[i]);
+                }
             }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
         }
 
         [Theory]
@@ -390,23 +405,51 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
             ReferenceImplementations.DequantizeBlock(&expected, &qt, unzig.Data);
 
-            actual.MultiplyInplace(ref zigQt);
+            actual.MultiplyInPlace(ref zigQt);
 
             this.CompareBlocks(expected, actual, 0);
         }
 
         [Fact]
-        public void MultiplyInplace_ByScalar()
+        public void AddToAllInPlace()
         {
-            Block8x8F original = CreateRandomFloatBlock(-500, 500);
-
-            Block8x8F actual = original;
-            actual.MultiplyInplace(42f);
-
-            for (int i = 0; i < 64; i++)
+            static void RunTest()
             {
-                Assert.Equal(original[i] * 42f, actual[i]);
+                Block8x8F original = CreateRandomFloatBlock(-500, 500);
+
+                Block8x8F actual = original;
+                actual.AddInPlace(42f);
+
+                for (int i = 0; i < 64; i++)
+                {
+                    Assert.Equal(original[i] + 42f, actual[i]);
+                }
             }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
+        }
+
+        [Fact]
+        public void MultiplyInPlace_ByScalar()
+        {
+            static void RunTest()
+            {
+                Block8x8F original = CreateRandomFloatBlock(-500, 500);
+
+                Block8x8F actual = original;
+                actual.MultiplyInPlace(42f);
+
+                for (int i = 0; i < 64; i++)
+                {
+                    Assert.Equal(original[i] * 42f, actual[i]);
+                }
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX);
         }
 
         [Fact]

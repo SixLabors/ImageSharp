@@ -7,6 +7,7 @@ using Microsoft.DotNet.RemoteExecutor;
 
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -14,12 +15,12 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
 
+using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
+
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
-    using SixLabors.ImageSharp.Metadata;
-    using static TestImages.Bmp;
-
+    [Trait("Format", "Bmp")]
     public class BmpDecoderTests
     {
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
@@ -39,22 +40,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         };
 
         [Theory]
-        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32, false)]
-        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32, true)]
-        public void BmpDecoder_CanDecode_MiscellaneousBitmaps<TPixel>(TestImageProvider<TPixel> provider, bool enforceDiscontiguousBuffers)
+        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_MiscellaneousBitmaps<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(BmpDecoder);
+            image.DebugSave(provider);
+
+            if (TestEnvironment.IsWindows)
+            {
+                image.CompareToOriginal(provider);
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
+        public void BmpDecoder_CanDecode_MiscellaneousBitmaps_WithLimitedAllocatorBufferCapacity(
+            TestImageProvider<Rgba32> provider)
         {
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
-                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+                TestImageProvider<Rgba32> provider = BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
 
-                if (!string.IsNullOrEmpty(nonContiguousBuffersStr))
-                {
-                    provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
-                }
+                provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-                using Image<TPixel> image = provider.GetImage(BmpDecoder);
-                image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
+                using Image<Rgba32> image = provider.GetImage(BmpDecoder);
+                image.DebugSave(provider, nonContiguousBuffersStr);
 
                 if (TestEnvironment.IsWindows)
                 {
@@ -66,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             RemoteExecutor.Invoke(
                     RunTest,
                     providerDump,
-                    enforceDiscontiguousBuffers ? "Disco" : string.Empty)
+                    "Disco")
                 .Dispose();
         }
 
@@ -348,7 +359,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             using (Image<TPixel> image = provider.GetImage(BmpDecoder))
             {
                 image.DebugSave(provider);
-                image.CompareToOriginal(provider);
+
+                // Do not validate. Reference files will fail validation.
+                image.CompareToOriginal(provider, new MagickReferenceDecoder(false));
             }
         }
 

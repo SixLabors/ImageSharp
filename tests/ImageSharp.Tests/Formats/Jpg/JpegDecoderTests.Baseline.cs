@@ -1,16 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using Microsoft.DotNet.RemoteExecutor;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
-using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
 using Xunit;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public partial class JpegDecoderTests
     {
         [Theory]

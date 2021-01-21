@@ -9,6 +9,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public class ProfileResolverTests
     {
         private static readonly byte[] JFifMarker = Encoding.ASCII.GetBytes("JFIF\0");

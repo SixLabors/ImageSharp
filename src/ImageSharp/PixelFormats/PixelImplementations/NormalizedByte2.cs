@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [-1, -1, 0, 1] to [1, 1, 0, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<ushort>
+    public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<ushort>
     {
         private static readonly Vector2 Half = new Vector2(127);
         private static readonly Vector2 MinusOne = new Vector2(-1F);
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(NormalizedByte2 left, NormalizedByte2 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<NormalizedByte2> CreatePixelOperations() => new PixelOperations<NormalizedByte2>();
+        public readonly PixelOperations<NormalizedByte2> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

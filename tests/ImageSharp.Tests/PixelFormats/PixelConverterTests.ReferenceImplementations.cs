@@ -7,40 +7,58 @@ using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.PixelFormats;
 
+using Xunit;
+
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
+    [Trait("Category", "PixelFormats")]
     public abstract partial class PixelConverterTests
     {
         public static class ReferenceImplementations
         {
-            public static Rgba32 MakeRgba32(byte r, byte g, byte b, byte a)
+            public static byte[] MakeRgba32ByteArray(byte r, byte g, byte b, byte a)
             {
-                Rgba32 d = default;
-                d.R = r;
-                d.G = g;
-                d.B = b;
-                d.A = a;
-                return d;
+                var buffer = new byte[256];
+
+                for (int i = 0; i < buffer.Length; i += 4)
+                {
+                    buffer[i] = r;
+                    buffer[i + 1] = g;
+                    buffer[i + 2] = b;
+                    buffer[i + 3] = a;
+                }
+
+                return buffer;
             }
 
-            public static Argb32 MakeArgb32(byte r, byte g, byte b, byte a)
+            public static byte[] MakeArgb32ByteArray(byte r, byte g, byte b, byte a)
             {
-                Argb32 d = default;
-                d.R = r;
-                d.G = g;
-                d.B = b;
-                d.A = a;
-                return d;
+                var buffer = new byte[256];
+
+                for (int i = 0; i < buffer.Length; i += 4)
+                {
+                    buffer[i] = a;
+                    buffer[i + 1] = r;
+                    buffer[i + 2] = g;
+                    buffer[i + 3] = b;
+                }
+
+                return buffer;
             }
 
-            public static Bgra32 MakeBgra32(byte r, byte g, byte b, byte a)
+            public static byte[] MakeBgra32ByteArray(byte r, byte g, byte b, byte a)
             {
-                Bgra32 d = default;
-                d.R = r;
-                d.G = g;
-                d.B = b;
-                d.A = a;
-                return d;
+                var buffer = new byte[256];
+
+                for (int i = 0; i < buffer.Length; i += 4)
+                {
+                    buffer[i] = b;
+                    buffer[i + 1] = g;
+                    buffer[i + 2] = r;
+                    buffer[i + 3] = a;
+                }
+
+                return buffer;
             }
 
             internal static void To<TSourcePixel, TDestinationPixel>(
@@ -83,8 +101,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
 
                 if (typeof(TDestinationPixel) == typeof(L8))
                 {
-                    ref L8 l8Ref = ref MemoryMarshal.GetReference(
-                                             MemoryMarshal.Cast<TDestinationPixel, L8>(destinationPixels));
+                    ref L8 l8Ref = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<TDestinationPixel, L8>(destinationPixels));
                     for (int i = 0; i < count; i++)
                     {
                         ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);

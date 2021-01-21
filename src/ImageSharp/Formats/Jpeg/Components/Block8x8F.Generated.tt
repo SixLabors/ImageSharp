@@ -24,41 +24,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 	internal partial struct Block8x8F
     {
 		/// <summary>
-        /// Transpose the block into the destination block.
-        /// </summary>
-        /// <param name="d">The destination block</param>
-		[MethodImpl(InliningOptions.ShortMethod)]
-        public void TransposeInto(ref Block8x8F d)
-        {
-            <#
-			PushIndent("            ");
-
-            for (int i = 0; i < 8; i++)
-            {
-                char destCoord = coordz[i % 4];
-                char destSide = (i / 4) % 2 == 0 ? 'L' : 'R';
-
-                for (int j = 0; j < 8; j++)
-                {
-					if(i > 0 && j == 0){
-					WriteLine("");
-					}
-
-                    char srcCoord = coordz[j % 4];
-                    char srcSide = (j / 4) % 2 == 0 ? 'L' : 'R';
-
-                    var expression = $"d.V{j}{destSide}.{destCoord} = V{i}{srcSide}.{srcCoord};\r\n";
-					Write(expression);
-                }
-            }
-			PopIndent();
-			#>
-        }
-
-		/// <summary>
         /// Level shift by +maximum/2, clip to [0, maximum]
         /// </summary>
-        public void NormalizeColorsInplace(float maximum)
+        public void NormalizeColorsInPlace(float maximum)
         {
             var CMin4 = new Vector4(0F);
             var CMax4 = new Vector4(maximum);
@@ -73,7 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 for (int j = 0; j < 2; j++)
                 {
 					char side = j == 0 ? 'L' : 'R';
-					Write($"this.V{i}{side} = Vector4Utilities.FastClamp(this.V{i}{side} + COff4, CMin4, CMax4);\r\n");
+					Write($"this.V{i}{side} = Numerics.Clamp(this.V{i}{side} + COff4, CMin4, CMax4);\r\n");
                 }
             }
 			PopIndent();
@@ -81,10 +49,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         }
 
         /// <summary>
-        /// AVX2-only variant for executing <see cref="NormalizeColorsInplace"/> and <see cref="RoundInplace"/> in one step.
+        /// AVX2-only variant for executing <see cref="NormalizeColorsInPlace"/> and <see cref="RoundInPlace"/> in one step.
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void NormalizeColorsAndRoundInplaceVector8(float maximum)
+        public void NormalizeColorsAndRoundInPlaceVector8(float maximum)
         {
             var off = new Vector<float>(MathF.Ceiling(maximum / 2));
             var max = new Vector<float>(maximum);

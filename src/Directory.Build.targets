@@ -5,82 +5,15 @@
     Directory.Build.targets is automatically picked up and imported by
     Microsoft.Common.targets. This file needs to exist, even if empty so that
     files in the parent directory tree, with the same name, are not imported
-    instead. The import fairly late and most other props/targets will have
+    instead. They import fairly late and most other props/targets will have
     been imported beforehand. We also don't need to add ourselves to
     MSBuildAllProjects, as that is done by the file that imports us.
   -->
 
-  <PropertyGroup>
-    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileDirectory)..\Directory.Build.targets</MSBuildAllProjects>
-  </PropertyGroup>
+  <!-- Import the shared src .targets file -->
+  <Import Project="$(MSBuildThisFileDirectory)..\shared-infrastructure\msbuild\targets\SixLabors.Src.targets" />
 
+  <!-- Import the solution .targets file. -->
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.targets" />
 
-  <PropertyGroup>
-    <GeneratedInternalsVisibleToFile Condition="'$(GeneratedInternalsVisibleToFile)' == ''">$(IntermediateOutputPath)$(MSBuildProjectName).InternalsVisibleTo$(DefaultLanguageSourceExtension)</GeneratedInternalsVisibleToFile>
-  </PropertyGroup>
-
-  <!-- Workaround for running Coverlet with Determenistic builds -->
-  <!-- https://github.com/coverlet-coverage/coverlet/blob/master/Documentation/DeterministicBuild.md -->
-  <Target Name="CoverletGetPathMap"
-            DependsOnTargets="InitializeSourceRootMappedPaths"
-            Returns="@(_LocalTopLevelSourceRoot)"
-            Condition="'$(DeterministicSourcePaths)' == 'true'">
-    <ItemGroup>
-      <_LocalTopLevelSourceRoot Include="@(SourceRoot)" Condition="'%(SourceRoot.NestedRoot)' == ''"/>
-    </ItemGroup>
-  </Target>
-  
-  <ItemDefinitionGroup>
-    <InternalsVisibleTo>
-      <Visible>false</Visible>
-    </InternalsVisibleTo>
-  </ItemDefinitionGroup>
-
-  <Target Name="GenerateInternalsVisibleTo"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="PrepareForBuild;CoreGenerateInternalsVisibleTo"
-          Condition="'@(InternalsVisibleTo)' != ''" />
-
-  <Target Name="CoreGenerateInternalsVisibleTo"
-          Condition="'$(Language)' == 'VB' or '$(Language)' == 'C#'"
-          Inputs="$(MSBuildAllProjects)"
-          Outputs="$(GeneratedInternalsVisibleToFile)">
-    <CreateItem Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute" AdditionalMetadata="_Parameter1=%(InternalsVisibleTo.Identity)" Condition="'%(InternalsVisibleTo.Key)' == ''">
-      <Output TaskParameter="Include" ItemName="InternalsVisibleToAttribute" />
-    </CreateItem>
-    <CreateItem Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute" AdditionalMetadata="_Parameter1=%(InternalsVisibleTo.Identity), PublicKey=%(InternalsVisibleTo.Key)" Condition="'%(InternalsVisibleTo.Key)' != ''">
-      <Output TaskParameter="Include" ItemName="InternalsVisibleToAttribute" />
-    </CreateItem>
-
-    <WriteCodeFragment AssemblyAttributes="@(InternalsVisibleToAttribute)" Language="$(Language)" OutputFile="$(GeneratedInternalsVisibleToFile)">
-      <Output TaskParameter="OutputFile" ItemName="Compile" />
-      <Output TaskParameter="OutputFile" ItemName="FileWrites" />
-    </WriteCodeFragment>
-  </Target>
-
-  <!-- Empty target so that `dotnet test` will work on the solution -->
-  <!-- https://github.com/Microsoft/vstest/issues/411 -->
-  <Target Name="VSTest" Condition="'$(IsTestProject)' == 'true'"/>
-  
-  <ItemGroup>
-    <!--Shared config files that have to exist at root level.-->
-    <ConfigFilesToCopy Include="..\..\shared-infrastructure\.editorconfig;..\..\shared-infrastructure\.gitattributes" />
-  </ItemGroup>
-
-  <!--Ensures our config files are up to date.-->
-  <Target Name="CopyFiles" BeforeTargets="Build">
-    <Copy SourceFiles="@(ConfigFilesToCopy)"
-          SkipUnchangedFiles = "true"
-          DestinationFolder="..\..\" />
-  </Target>
-  
-  <!-- Allows regenerating T4-generated files at build time using MsBuild -->
-  <!-- Enable on Windows OS to build all T4 templates. TODO: XPlat
-  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TextTemplating\Microsoft.TextTemplating.targets" />
-  <PropertyGroup>
-    <TransformOnBuild>true</TransformOnBuild>
-  </PropertyGroup>
-  -->
-  
 </Project>

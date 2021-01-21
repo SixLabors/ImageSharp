@@ -17,6 +17,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
+    [Trait("Format", "Gif")]
     public class GifDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
@@ -198,17 +199,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         [WithFile(TestImages.Gif.Kumin, PixelTypes.Rgba32)]
-        public void GifDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public void GifDecoder_CanDecode_WithLimitedAllocatorBufferCapacity(
+            TestImageProvider<Rgba32> provider)
         {
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
-                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+                TestImageProvider<Rgba32> provider
+                    = BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
 
                 provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-                using Image<TPixel> image = provider.GetImage(GifDecoder);
-                image.DebugSave(provider);
+                using Image<Rgba32> image = provider.GetImage(GifDecoder);
+                image.DebugSave(provider, nonContiguousBuffersStr);
                 image.CompareToOriginal(provider);
             }
 

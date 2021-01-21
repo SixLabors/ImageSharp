@@ -5,39 +5,12 @@
     Directory.Build.targets is automatically picked up and imported by
     Microsoft.Common.targets. This file needs to exist, even if empty so that
     files in the parent directory tree, with the same name, are not imported
-    instead. The import fairly late and most other props/targets will have been
+    instead. They import fairly late and most other props/targets will have been
     imported beforehand. We also don't need to add ourselves to
     MSBuildAllProjects, as that is done by the file that imports us.
   -->
 
-  <!-- Settings that append the existing setting value -->
-  <PropertyGroup>
-    <DefineConstants>$(DefineConstants);$(OS)</DefineConstants>
-  </PropertyGroup>
-
-  <!-- Package versions for package references across all projects -->
-  <ItemGroup>
-    <!--Global Dependencies-->
-    <PackageReference Update="Microsoft.Net.Compilers.Toolset" PrivateAssets="All" Version="3.3.1" />
-    <PackageReference Update="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="All" Version="1.0.0" />
-    <PackageReference Update="StyleCop.Analyzers" PrivateAssets="All" Version="1.1.118" />
-    
-    <!--Src Dependencies-->
-    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
-    <PackageReference Update="MinVer" PrivateAssets="All" Version="2.3.0" />
-    <PackageReference Update="System.Buffers" Version="4.5.1" />
-    <PackageReference Update="System.IO.Compression" Version="4.3.0" />
-    <PackageReference Update="System.IO.UnmanagedMemoryStream" Version="4.3.0" />
-    <PackageReference Update="System.Numerics.Vectors" Version="4.5.0" />
-    <!--
-    Do no update System.Memory as it currently breaks the CI build
-    with FileNotFoundException for SixLabors.ImageSharp.Tests.dll.config
-    -->
-    <PackageReference Update="System.Memory" Version="4.5.3" />
-    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
-    <PackageReference Update="System.Threading.Tasks.Parallel" Version="4.3.0" />
-    <PackageReference Update="System.ValueTuple" Version="4.5.0" />
-
-  </ItemGroup>
+  <!-- Import the shared global .props file -->
+  <Import Project="$(MSBuildThisFileDirectory)shared-infrastructure\msbuild\targets\SixLabors.Global.targets"/>
 
 </Project>

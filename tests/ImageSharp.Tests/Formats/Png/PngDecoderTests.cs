@@ -16,6 +16,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
+    [Trait("Format", "Png")]
     public partial class PngDecoderTests
     {
         private const PixelTypes PixelTypes = Tests.PixelTypes.Rgba32 | Tests.PixelTypes.RgbaVector | Tests.PixelTypes.Argb32;
@@ -404,16 +405,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
         [Theory]
         [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
         [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32)]
-        public void PngDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public void PngDecoder_CanDecode_WithLimitedAllocatorBufferCapacity(TestImageProvider<Rgba32> provider)
         {
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
-                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+                TestImageProvider<Rgba32> provider = BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
 
                 provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-                using Image<TPixel> image = provider.GetImage(PngDecoder);
+                using Image<Rgba32> image = provider.GetImage(PngDecoder);
                 image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
                 image.CompareToOriginal(provider);
             }

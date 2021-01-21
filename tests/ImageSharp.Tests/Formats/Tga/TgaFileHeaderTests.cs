@@ -1,15 +1,16 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tga;
+
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
+    [Trait("Format", "Tga")]
     public class TgaFileHeaderTests
     {
         [Theory]

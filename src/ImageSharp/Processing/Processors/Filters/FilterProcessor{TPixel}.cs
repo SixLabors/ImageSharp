@@ -72,11 +72,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Filters
             public void Invoke(int y, Span<Vector4> span)
             {
                 Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale);
 
-                Vector4Utilities.Transform(span, ref Unsafe.AsRef(this.matrix));
+                ColorNumerics.Transform(span, ref Unsafe.AsRef(this.matrix));
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, PixelConversionModifiers.Scale);
             }
         }
     }

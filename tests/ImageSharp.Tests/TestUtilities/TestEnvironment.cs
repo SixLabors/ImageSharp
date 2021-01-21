@@ -108,6 +108,8 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 
+        internal static bool IsOSX => RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+
         internal static bool IsMono => Type.GetType("Mono.Runtime") != null; // https://stackoverflow.com/a/721194
 
         internal static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
@@ -170,7 +172,10 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             string testProjectConfigPath = TestAssemblyFile.FullName + ".config";
-            File.Copy(testProjectConfigPath, remoteExecutorConfigPath);
+            if (File.Exists(testProjectConfigPath))
+            {
+                File.Copy(testProjectConfigPath, remoteExecutorConfigPath);
+            }
 
             if (Is64BitProcess)
             {

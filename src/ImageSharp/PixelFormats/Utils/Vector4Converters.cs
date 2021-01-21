@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -24,7 +24,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
 
             if (modifiers.IsDefined(PixelConversionModifiers.Premultiply))
             {
-                Vector4Utilities.Premultiply(vectors);
+                Numerics.Premultiply(vectors);
             }
         }
 
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
         {
             if (modifiers.IsDefined(PixelConversionModifiers.Premultiply))
             {
-                Vector4Utilities.UnPremultiply(vectors);
+                Numerics.UnPremultiply(vectors);
             }
 
             if (modifiers.IsDefined(PixelConversionModifiers.SRgbCompand))

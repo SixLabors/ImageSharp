@@ -51,10 +51,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.sourceLength = sourceLength;
             this.DestinationLength = destinationLength;
             this.MaxDiameter = (radius * 2) + 1;
-            this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight);
-            this.pinHandle = this.data.GetSingleMemory().Pin();
             this.kernels = new ResizeKernel[destinationLength];
             this.tempValues = new float[this.MaxDiameter];
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (System.Runtime.Intrinsics.X86.Fma.IsSupported)
+            {
+                this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter * 4, bufferHeight);
+            }
+            else
+#endif
+            {
+                this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight);
+            }
+
+            this.pinHandle = this.data.GetSingleMemory().Pin();
         }
 
         /// <summary>
@@ -238,7 +249,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 Numerics.Normalize(kernelValues, sum);
             }
 
-            kernelValues.CopyTo(kernel.Values);
+            kernel.FillOrCopyAndExpandForFma(kernelValues);
 
             return kernel;
         }

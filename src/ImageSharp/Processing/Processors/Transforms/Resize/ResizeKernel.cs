@@ -17,6 +17,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     /// </summary>
     internal readonly unsafe struct ResizeKernel
     {
+        /// <summary>
+        /// The buffer with the convolution factors.
+        /// Note that when FMA is supported, this is of size 4x that reported in <see cref="Length"/>.
+        /// </summary>
         private readonly float* bufferPtr;
 
         /// <summary>
@@ -75,43 +79,35 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             if (Fma.IsSupported)
             {
                 float* bufferStart = this.bufferPtr;
-                float* bufferEnd = bufferStart + (this.Length & ~3);
+                ref Vector4 rowEndRef = ref Unsafe.Add(ref rowStartRef, this.Length & ~3);
                 Vector256<float> result256_0 = Vector256<float>.Zero;
                 Vector256<float> result256_1 = Vector256<float>.Zero;
-                ReadOnlySpan<byte> maskBytes = new byte[]
-                {
-                    0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0,
-                    1, 0, 0, 0, 1, 0, 0, 0,
-                    1, 0, 0, 0, 1, 0, 0, 0,
-                };
-                Vector256<int> mask = Unsafe.ReadUnaligned<Vector256<int>>(ref MemoryMarshal.GetReference(maskBytes));
 
-                while (bufferStart < bufferEnd)
+                while (Unsafe.IsAddressLessThan(ref rowStartRef, ref rowEndRef))
                 {
-                    // It is important to use a single expression here so that the JIT will correctly use vfmadd231ps
+                    // It is important to use a single expression here so that the JIT will correctly use vfmadd132ps
                     // for the FMA operation, and execute it directly on the target register and reading directly from
-                    // memory for the first parameter. This skips initializing a SIMD register, and an extra copy.
+                    // memory for the first parameter. This skips extra copies compared to using local variables.
                     // The code below should compile in the following assembly on .NET 5 x64:
                     //
-                    // vmovsd xmm2, [rax]               ; load *(double*)bufferStart into xmm2 as [ab, _]
-                    // vpermps ymm2, ymm1, ymm2         ; permute as a float YMM register to [a, a, a, a, b, b, b, b]
-                    // vfmadd231ps ymm0, ymm2, [r8]     ; result256_0 = FMA(pixels, factors) + result256_0
+                    // vmovupd ymm2, [r8]               ; load ref *bufferStart into ymm2 as [a, a, a, a, b, b, b, b]
+                    // vfmadd132ps ymm2, ymm0, [rax]    ; FMA operation with a pair of pixels, into ymm2
+                    // vmovaps ymm0, ymm2               ; copy the partial results to the accumulator result256_0
                     //
                     // For tracking the codegen issue with FMA, see: https://github.com/dotnet/runtime/issues/12212.
                     // Additionally, we're also unrolling two computations per each loop iterations to leverage the
                     // fact that most CPUs have two ports to schedule multiply operations for FMA instructions.
                     result256_0 = Fma.MultiplyAdd(
                         Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
-                        Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)bufferStart).AsSingle(), mask),
+                        Unsafe.As<float, Vector256<float>>(ref *bufferStart),
                         result256_0);
 
                     result256_1 = Fma.MultiplyAdd(
                         Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref rowStartRef, 2)),
-                        Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)(bufferStart + 2)).AsSingle(), mask),
+                        Unsafe.As<float, Vector256<float>>(ref bufferStart[8]),
                         result256_1);
 
-                    bufferStart += 4;
+                    bufferStart += 16;
                     rowStartRef = ref Unsafe.Add(ref rowStartRef, 4);
                 }
 
@@ -121,10 +117,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 {
                     result256_0 = Fma.MultiplyAdd(
                         Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
-                        Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)bufferStart).AsSingle(), mask),
+                        Unsafe.As<float, Vector256<float>>(ref *bufferStart),
                         result256_0);
 
-                    bufferStart += 2;
+                    bufferStart += 8;
                     rowStartRef = ref Unsafe.Add(ref rowStartRef, 2);
                 }
 
@@ -134,7 +130,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 {
                     result128 = Fma.MultiplyAdd(
                         Unsafe.As<Vector4, Vector128<float>>(ref rowStartRef),
-                        Vector128.Create(*bufferStart),
+                        Unsafe.As<float, Vector128<float>>(ref *bufferStart),
                         result128);
                 }
 
@@ -168,5 +164,31 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(InliningOptions.ShortMethod)]
         internal ResizeKernel AlterLeftValue(int left)
             => new ResizeKernel(left, this.bufferPtr, this.Length);
+
+        internal void FillOrCopyAndExpandForFma(Span<float> values)
+        {
+            DebugGuard.IsTrue(values.Length == this.Length, nameof(values), "ResizeKernel.Fill: values.Length != this.Length!");
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Fma.IsSupported)
+            {
+                var bufferStart = (Vector4*)this.bufferPtr;
+                ref float valuesStart = ref MemoryMarshal.GetReference(values);
+                ref float valuesEnd = ref Unsafe.Add(ref valuesStart, values.Length);
+
+                while (Unsafe.IsAddressLessThan(ref valuesStart, ref valuesEnd))
+                {
+                    *bufferStart = new Vector4(valuesStart);
+
+                    bufferStart++;
+                    valuesStart = ref Unsafe.Add(ref valuesStart, 1);
+                }
+            }
+            else
+#endif
+            {
+                values.CopyTo(this.Values);
+            }
+        }
     }
 }

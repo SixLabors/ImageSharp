@@ -748,5 +748,65 @@ namespace SixLabors.ImageSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Lerp(float value1, float value2, float amount)
             => ((value2 - value1) * amount) + value1;
+
+        /// <summary>
+        /// Normalizes the values in a given <see cref="Span{T}"/>.
+        /// </summary>
+        /// <param name="span">The sequence of <see cref="float"/> values to normalize.</param>
+        /// <param name="sum">The sum of the values in <paramref name="span"/>.</param>
+        public static void Normalize(Span<float> span, float sum)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx.IsSupported)
+            {
+                ref float startRef = ref MemoryMarshal.GetReference(span);
+                ref float endRef = ref Unsafe.Add(ref startRef, span.Length & ~7);
+                var sum256 = Vector256.Create(sum);
+
+                while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
+                {
+                    Vector256<float> div256 = Avx.Divide(
+                        Unsafe.As<float, Vector256<float>>(ref startRef),
+                        sum256);
+
+                    Unsafe.As<float, Vector256<float>>(ref startRef) = div256;
+
+                    startRef = ref Unsafe.Add(ref startRef, 8);
+                }
+
+                if ((span.Length & 7) >= 4)
+                {
+                    Vector128<float> div128 = Sse.Divide(
+                        Unsafe.As<float, Vector128<float>>(ref startRef),
+                        sum256.GetLower());
+
+                    Unsafe.As<float, Vector128<float>>(ref startRef) = div128;
+
+                    startRef = ref Unsafe.Add(ref startRef, 4);
+                }
+
+                endRef = ref Unsafe.Add(ref startRef, span.Length & 3);
+
+                while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
+                {
+                    startRef /= sum;
+
+                    startRef = ref Unsafe.Add(ref startRef, 1);
+                }
+            }
+            else
+#endif
+            {
+                ref float startRef = ref MemoryMarshal.GetReference(span);
+                ref float endRef = ref Unsafe.Add(ref startRef, span.Length);
+
+                while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
+                {
+                    startRef /= sum;
+
+                    startRef = ref Unsafe.Add(ref startRef, 1);
+                }
+            }
+        }
     }
 }

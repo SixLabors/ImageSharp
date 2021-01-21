@@ -231,12 +231,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             // Normalize, best to do it here rather than in the pixel loop later on.
             if (sum > 0)
             {
-                for (int j = 0; j < kernel.Length; j++)
-                {
-                    // weights[w] = weights[w] / sum:
-                    ref float kRef = ref kernelValues[j];
-                    kRef /= sum;
-                }
+                Numerics.Normalize(kernelValues, sum);
             }
 
             kernelValues.CopyTo(kernel.Values);

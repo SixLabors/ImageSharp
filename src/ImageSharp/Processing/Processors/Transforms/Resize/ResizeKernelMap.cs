@@ -51,7 +51,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.sourceLength = sourceLength;
             this.DestinationLength = destinationLength;
             this.MaxDiameter = (radius * 2) + 1;
-            this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight, AllocationOptions.Clean);
+            this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight);
             this.pinHandle = this.data.GetSingleMemory().Pin();
             this.kernels = new ResizeKernel[destinationLength];
             this.tempValues = new float[this.MaxDiameter];

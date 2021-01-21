@@ -754,6 +754,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="span">The sequence of <see cref="float"/> values to normalize.</param>
         /// <param name="sum">The sum of the values in <paramref name="span"/>.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Normalize(Span<float> span, float sum)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS

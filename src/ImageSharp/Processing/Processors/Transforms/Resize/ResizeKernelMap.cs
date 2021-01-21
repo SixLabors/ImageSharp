@@ -218,14 +218,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             ResizeKernel kernel = this.CreateKernel(dataRowIndex, left, right);
 
             Span<float> kernelValues = this.tempValues.AsSpan().Slice(0, kernel.Length);
+            ref float kernelStart = ref MemoryMarshal.GetReference(kernelValues);
             float sum = 0;
 
             for (int j = left; j <= right; j++)
             {
                 float value = sampler.GetValue((j - center) / scale);
+
                 sum += value;
 
-                kernelValues[j - left] = value;
+                kernelStart = value;
+
+                kernelStart = ref Unsafe.Add(ref kernelStart, 1);
             }
 
             // Normalize, best to do it here rather than in the pixel loop later on.

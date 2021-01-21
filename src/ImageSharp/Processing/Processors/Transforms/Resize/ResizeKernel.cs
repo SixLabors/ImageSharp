@@ -4,6 +4,11 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+#if SUPPORTS_RUNTIME_INTRINSICS
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
@@ -66,21 +71,94 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         [MethodImpl(InliningOptions.ShortMethod)]
         public Vector4 ConvolveCore(ref Vector4 rowStartRef)
         {
-            ref float horizontalValues = ref Unsafe.AsRef<float>(this.bufferPtr);
-
-            // Destination color components
-            Vector4 result = Vector4.Zero;
-
-            for (int i = 0; i < this.Length; i++)
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Fma.IsSupported)
             {
-                float weight = Unsafe.Add(ref horizontalValues, i);
+                float* bufferStart = this.bufferPtr;
+                float* bufferEnd = bufferStart + (this.Length & ~3);
+                Vector256<float> result256_0 = Vector256<float>.Zero;
+                Vector256<float> result256_1 = Vector256<float>.Zero;
+                ReadOnlySpan<byte> maskBytes = new byte[]
+                {
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0,
+                    1, 0, 0, 0, 1, 0, 0, 0,
+                    1, 0, 0, 0, 1, 0, 0, 0,
+                };
+                Vector256<int> mask = Unsafe.ReadUnaligned<Vector256<int>>(ref MemoryMarshal.GetReference(maskBytes));
 
-                // Vector4 v = offsetedRowSpan[i];
-                Vector4 v = Unsafe.Add(ref rowStartRef, i);
-                result += v * weight;
+                while (bufferStart < bufferEnd)
+                {
+                    // It is important to use a single expression here so that the JIT will correctly use vfmadd231ps
+                    // for the FMA operation, and execute it directly on the target register and reading directly from
+                    // memory for the first parameter. This skips initializing a SIMD register, and an extra copy.
+                    // The code below should compile in the following assembly on .NET 5 x64:
+                    //
+                    // vmovsd xmm2, [rax]               ; load *(double*)bufferStart into xmm2 as [ab, _]
+                    // vpermps ymm2, ymm1, ymm2         ; permute as a float YMM register to [a, a, a, a, b, b, b, b]
+                    // vfmadd231ps ymm0, ymm2, [r8]     ; result256_0 = FMA(pixels, factors) + result256_0
+                    //
+                    // For tracking the codegen issue with FMA, see: https://github.com/dotnet/runtime/issues/12212.
+                    // Additionally, we're also unrolling two computations per each loop iterations to leverage the
+                    // fact that most CPUs have two ports to schedule multiply operations for FMA instructions.
+                    result256_0 = Fma.MultiplyAdd(
+                        Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
+                        Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)bufferStart).AsSingle(), mask),
+                        result256_0);
+
+                    result256_1 = Fma.MultiplyAdd(
+                        Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref rowStartRef, 2)),
+                        Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)(bufferStart + 2)).AsSingle(), mask),
+                        result256_1);
+
+                    bufferStart += 4;
+                    rowStartRef = ref Unsafe.Add(ref rowStartRef, 4);
+                }
+
+                result256_0 = Avx.Add(result256_0, result256_1);
+
+                if ((this.Length & 3) >= 2)
+                {
+                    result256_0 = Fma.MultiplyAdd(
+                        Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
+                        Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)bufferStart).AsSingle(), mask),
+                        result256_0);
+
+                    bufferStart += 2;
+                    rowStartRef = ref Unsafe.Add(ref rowStartRef, 2);
+                }
+
+                Vector128<float> result128 = Sse.Add(result256_0.GetLower(), result256_0.GetUpper());
+
+                if ((this.Length & 1) != 0)
+                {
+                    result128 = Fma.MultiplyAdd(
+                        Unsafe.As<Vector4, Vector128<float>>(ref rowStartRef),
+                        Vector128.Create(*bufferStart),
+                        result128);
+                }
+
+                return *(Vector4*)&result128;
             }
+            else
+#endif
+            {
+                // Destination color components
+                Vector4 result = Vector4.Zero;
+                float* bufferStart = this.bufferPtr;
+                float* bufferEnd = this.bufferPtr + this.Length;
 
-            return result;
+                while (bufferStart < bufferEnd)
+                {
+                    // Vector4 v = offsetedRowSpan[i];
+                    result += rowStartRef * *bufferStart;
+
+                    bufferStart++;
+                    rowStartRef = ref Unsafe.Add(ref rowStartRef, 1);
+                }
+
+                return result;
+            }
         }
 
         /// <summary>

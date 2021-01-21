@@ -43,7 +43,7 @@
     <Compile Remove="General\BasicMath\ModuloPowerOfTwoConstant.cs" />
     <Compile Remove="General\BasicMath\ModuloPowerOfTwoVariable.cs" />
     <Compile Remove="PixelBlenders\**" />
-    <Compile Remove="Samplers\Resize.cs" />
+    <Compile Remove="Processing\Resize.cs" />
   </ItemGroup>
 
 </Project>

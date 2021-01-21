@@ -35,12 +35,12 @@ namespace SixLabors.ImageSharp.Benchmarks
                     Job.Default.WithRuntime(CoreRuntime.Core31));
         }
 
-        public class ShortClr : Config
+        public class ShortMultiFramework : Config
         {
-            public ShortClr() => this.AddJob(
+            public ShortMultiFramework() => this.AddJob(
                     Job.Default.WithRuntime(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3),
-                    Job.Default.WithRuntime(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3),
-                    Job.Default.WithRuntime(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3));
+                    Job.Default.WithRuntime(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3),
+                    Job.Default.WithRuntime(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3));
         }
 
         public class ShortCore31 : Config

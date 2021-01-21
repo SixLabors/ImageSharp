@@ -125,7 +125,6 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
             this.Output.WriteLine($"Expected KernelMap:\n{PrintKernelMap(referenceMap)}\n");
             this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
 #endif
-            var comparer = new ApproximateFloatComparer(1e-6f);
 
             for (int i = 0; i < kernelMap.DestinationLength; i++)
             {
@@ -140,7 +139,32 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms
                     referenceKernel.Left == kernel.StartIndex,
                     $"referenceKernel.Left != kernel.Left: {referenceKernel.Left} != {kernel.StartIndex}");
                 float[] expectedValues = referenceKernel.Values;
-                Span<float> actualValues = kernel.Values;
+                Span<float> actualValues;
+                ApproximateFloatComparer comparer;
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+                if (System.Runtime.Intrinsics.X86.Fma.IsSupported)
+                {
+                    comparer = new ApproximateFloatComparer(1e-4f);
+
+                    Assert.Equal(expectedValues.Length, kernel.Values.Length / 4);
+
+                    int actualLength = referenceKernel.Length / 4;
+
+                    actualValues = new float[expectedValues.Length];
+
+                    for (int j = 0; j < expectedValues.Length; j++)
+                    {
+                        actualValues[j] = kernel.Values[j * 4];
+                    }
+                }
+                else
+#endif
+                {
+                    comparer = new ApproximateFloatComparer(1e-6f);
+
+                    actualValues = kernel.Values;
+                }
 
                 Assert.Equal(expectedValues.Length, actualValues.Length);
 

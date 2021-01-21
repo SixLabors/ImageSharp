@@ -55,12 +55,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Gets the span representing the portion of the <see cref="ResizeKernelMap"/> that this window covers.
         /// </summary>
-        /// <value>The <see cref="Span{T}"/>.
-        /// </value>
+        /// <value>The <see cref="Span{T}"/>.</value>
+        /// <remarks>When FMA is used, this span is 4x as long as <see cref="Length"/>.</remarks>
         public Span<float> Values
         {
             [MethodImpl(InliningOptions.ShortMethod)]
-            get => new Span<float>(this.bufferPtr, this.Length);
+            get
+            {
+#if SUPPORTS_RUNTIME_INTRINSICS
+                if (Fma.IsSupported)
+                {
+                    return new Span<float>(this.bufferPtr, this.Length * 4);
+                }
+#endif
+                return new Span<float>(this.bufferPtr, this.Length);
+            }
         }
 
         /// <summary>

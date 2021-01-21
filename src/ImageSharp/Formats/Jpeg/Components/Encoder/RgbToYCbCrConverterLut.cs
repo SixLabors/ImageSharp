@@ -1,16 +1,17 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
 {
     /// <summary>
     /// Provides 8-bit lookup tables for converting from Rgb to YCbCr colorspace.
     /// Methods to build the tables are based on libjpeg implementation.
-    /// TODO: Replace this logic with SIMD conversion (similar to the one in the decoder)!
     /// </summary>
-    internal unsafe struct RgbToYCbCrTables
+    internal unsafe struct RgbToYCbCrConverterLut
     {
         /// <summary>
         /// The red luminance table
@@ -63,10 +64,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Initializes the YCbCr tables
         /// </summary>
-        /// <returns>The initialized <see cref="RgbToYCbCrTables"/></returns>
-        public static RgbToYCbCrTables Create()
+        /// <returns>The initialized <see cref="RgbToYCbCrConverterLut"/></returns>
+        public static RgbToYCbCrConverterLut Create()
         {
-            RgbToYCbCrTables tables = default;
+            RgbToYCbCrConverterLut tables = default;
 
             for (int i = 0; i <= 255; i++)
             {
@@ -92,11 +93,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         }
 
         /// <summary>
-        /// TODO: Replace this logic with SIMD conversion (similar to the one in the decoder)!
         /// Optimized method to allocates the correct y, cb, and cr values to the DCT blocks from the given r, g, b values.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ConvertPixelInto(
+        private void ConvertPixelInto(
             int r,
             int g,
             int b,
@@ -111,8 +111,27 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             // float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
             cbResult[i] = (this.CbRTable[r] + this.CbGTable[g] + this.CbBTable[b]) >> ScaleBits;
 
-            // float cr = MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero);
+            // float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b));
             crResult[i] = (this.CbBTable[r] + this.CrGTable[g] + this.CrBTable[b]) >> ScaleBits;
+        }
+
+        public void Convert(Span<Rgb24> rgbSpan, ref Block8x8F yBlock, ref Block8x8F cbBlock, ref Block8x8F crBlock)
+        {
+            ref Rgb24 rgbStart = ref rgbSpan[0];
+
+            for (int i = 0; i < 64; i++)
+            {
+                ref Rgb24 c = ref Unsafe.Add(ref rgbStart, i);
+
+                this.ConvertPixelInto(
+                    c.R,
+                    c.G,
+                    c.B,
+                    ref yBlock,
+                    ref cbBlock,
+                    ref crBlock,
+                    i);
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

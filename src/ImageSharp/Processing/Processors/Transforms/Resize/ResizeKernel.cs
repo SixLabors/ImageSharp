@@ -94,26 +94,30 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 while (Unsafe.IsAddressLessThan(ref rowStartRef, ref rowEndRef))
                 {
-                    // It is important to use a single expression here so that the JIT will correctly use vfmadd132ps
-                    // for the FMA operation, and execute it directly on the target register and reading directly from
-                    // memory for the first parameter. This skips extra copies compared to using local variables.
+                    // The exact sequence and organization of the following statements is crucially important so that the JIT will
+                    // correctly use vfmadd231ps for the FMA operation, and execute it directly on the target register and reading
+                    // directly from memory for the first parameter. This skips all extra copies compared to using local variables.
                     // The code below should compile in the following assembly on .NET 5 x64:
                     //
-                    // vmovupd ymm2, [r8]               ; load ref *bufferStart into ymm2 as [a, a, a, a, b, b, b, b]
-                    // vfmadd132ps ymm2, ymm0, [rax]    ; FMA operation with a pair of pixels, into ymm2
-                    // vmovaps ymm0, ymm2               ; copy the partial results to the accumulator result256_0
+                    // vmovupd ymm2, [r8]                       ; load rowStartRef ymm2 as [r1, g1, b1, a1]
+                    // vmovupd ymm3, [r8 + 0x20]                ; load the second pair of pixels into ymm3
+                    // vfmadd231ps ymm0, ymm2, [rax]            ; result256_0 = FMA(ymm2, factors[..8], result256_0)
+                    // vfmadd231ps ymm1, ymm3, [rax + 0x20]     ; result256_1 = FMA(ymm3, factors[8..16], result256_1)
                     //
                     // For tracking the codegen issue with FMA, see: https://github.com/dotnet/runtime/issues/12212.
                     // Additionally, we're also unrolling two computations per each loop iterations to leverage the
                     // fact that most CPUs have two ports to schedule multiply operations for FMA instructions.
+                    Vector256<float> pixels256_0 = Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef);
+                    Vector256<float> pixels256_1 = Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref rowStartRef, 2));
+
                     result256_0 = Fma.MultiplyAdd(
-                        Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
-                        Unsafe.As<float, Vector256<float>>(ref *bufferStart),
+                        Avx.LoadVector256(bufferStart),
+                        pixels256_0,
                         result256_0);
 
                     result256_1 = Fma.MultiplyAdd(
-                        Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref rowStartRef, 2)),
-                        Unsafe.As<float, Vector256<float>>(ref bufferStart[8]),
+                        Avx.LoadVector256(bufferStart + 8),
+                        pixels256_1,
                         result256_1);
 
                     bufferStart += 16;
@@ -124,9 +128,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 if ((this.Length & 3) >= 2)
                 {
+                    Vector256<float> pixels256_0 = Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef);
+
                     result256_0 = Fma.MultiplyAdd(
-                        Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
-                        Unsafe.As<float, Vector256<float>>(ref *bufferStart),
+                        Avx.LoadVector256(bufferStart),
+                        pixels256_0,
                         result256_0);
 
                     bufferStart += 8;
@@ -137,9 +143,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                 if ((this.Length & 1) != 0)
                 {
+                    Vector128<float> pixels128 = Unsafe.As<Vector4, Vector128<float>>(ref rowStartRef);
+
                     result128 = Fma.MultiplyAdd(
-                        Unsafe.As<Vector4, Vector128<float>>(ref rowStartRef),
-                        Unsafe.As<float, Vector128<float>>(ref *bufferStart),
+                        Sse.LoadVector128(bufferStart),
+                        pixels128,
                         result128);
                 }
 

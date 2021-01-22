@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
             this.Metadata = new ImageMetadata();
             this.currentStream = stream;
 
-            this.ReadImageHeader();
+            var fileSize = this.ReadImageHeader();
 
             using (this.webImageInfo = this.ReadVp8Info())
             {
@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         /// <summary>
         /// Reads and skips over the image header.
         /// </summary>
-        /// <returns>The chunk size in bytes.</returns>
+        /// <returns>The file size in bytes.</returns>
         private uint ReadImageHeader()
         {
             // Skip FourCC header, we already know its a RIFF file at this point.
@@ -140,12 +140,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
             // Read file size.
             // The size of the file in bytes starting at offset 8.
             // The file size in the header is the total size of the chunks that follow plus 4 bytes for the ‘WEBP’ FourCC.
-            uint chunkSize = this.ReadChunkSize();
+            uint fileSize = this.ReadChunkSize();
 
             // Skip 'WEBP' from the header.
             this.currentStream.Skip(4);
 
-            return chunkSize;
+            return fileSize;
         }
 
         /// <summary>
@@ -185,7 +185,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         private WebpImageInfo ReadVp8XHeader()
         {
             var features = new WebpFeatures();
-            uint chunkSize = this.ReadChunkSize();
+            uint fileSize = this.ReadChunkSize();
 
             // The first byte contains information about the image features used.
             byte imageFeatures = (byte)this.currentStream.ReadByte();
@@ -474,7 +474,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
                 WebpChunkType chunkType = this.ReadChunkType();
                 uint chunkLength = this.ReadChunkSize();
 
-                if (chunkType == WebpChunkType.Exif)
+                if (chunkType == WebpChunkType.Exif && this.Metadata.ExifProfile == null)
                 {
                     var exifData = new byte[chunkLength];
                     this.currentStream.Read(exifData, 0, (int)chunkLength);
@@ -482,7 +482,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
                 }
                 else
                 {
-                    // Skip XMP chunk data for now.
+                    // Skip XMP chunk data or any duplicate EXIF chunk.
                     this.currentStream.Skip((int)chunkLength);
                 }
             }

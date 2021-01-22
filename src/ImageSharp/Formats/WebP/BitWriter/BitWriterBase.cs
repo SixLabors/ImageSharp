@@ -4,6 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
 {
@@ -55,7 +56,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
         /// Writes the encoded image to the stream.
         /// </summary>
         /// <param name="stream">The stream to write to.</param>
-        public abstract void WriteEncodedImageToStream(Stream stream);
+        /// <param name="exifProfile">The exif profile.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        public abstract void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, uint width, uint height);
 
         protected bool ResizeBuffer(int maxBytes, int sizeRequired)
         {
@@ -84,12 +88,68 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
         /// <param name="riffSize">The block length.</param>
         protected void WriteRiffHeader(Stream stream, uint riffSize)
         {
-            Span<byte> buffer = stackalloc byte[4];
-
+            Span<byte> buf = stackalloc byte[4];
             stream.Write(WebpConstants.RiffFourCc);
-            BinaryPrimitives.WriteUInt32LittleEndian(buffer, riffSize);
-            stream.Write(buffer);
+            BinaryPrimitives.WriteUInt32LittleEndian(buf, riffSize);
+            stream.Write(buf);
             stream.Write(WebpConstants.WebPHeader);
+        }
+
+        /// <summary>
+        /// Writes the Exif profile to the stream.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="exifBytes">The exif profile bytes.</param>
+        protected void WriteExifProfile(Stream stream, byte[] exifBytes)
+        {
+            DebugGuard.NotNull(exifBytes, nameof(exifBytes));
+
+            Span<byte> buf = stackalloc byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(buf, (uint)WebpChunkType.Exif);
+            stream.Write(buf);
+            BinaryPrimitives.WriteUInt32LittleEndian(buf, (uint)exifBytes.Length);
+            stream.Write(buf);
+            stream.Write(exifBytes);
+        }
+
+        /// <summary>
+        /// Writes a VP8X header to the stream.
+        /// </summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="exifProfile">A exif profile or null, if it does not exist.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="height">The height of the image.</param>
+        protected void WriteVp8XHeader(Stream stream, ExifProfile exifProfile, uint width, uint height)
+        {
+            int maxDimension = 16777215;
+            if (width > maxDimension || height > maxDimension)
+            {
+                WebpThrowHelper.ThrowInvalidImageDimensions($"Image width or height exceeds maximum allowed dimension of {maxDimension}");
+            }
+
+            // The spec states that the product of Canvas Width and Canvas Height MUST be at most 2^32 - 1.
+            if (width * height > 4294967295ul)
+            {
+                WebpThrowHelper.ThrowInvalidImageDimensions("The product of image width and height MUST be at most 2^32 - 1");
+            }
+
+            uint flags = 0;
+            if (exifProfile != null)
+            {
+                // Set exif bit.
+                flags |= 8;
+            }
+
+            Span<byte> buf = stackalloc byte[4];
+            stream.Write(WebpConstants.Vp8XMagicBytes);
+            BinaryPrimitives.WriteUInt32LittleEndian(buf, WebpConstants.Vp8XChunkSize);
+            stream.Write(buf);
+            BinaryPrimitives.WriteUInt32LittleEndian(buf, flags);
+            stream.Write(buf);
+            BinaryPrimitives.WriteUInt32LittleEndian(buf, width - 1);
+            stream.Write(buf.Slice(0, 3));
+            BinaryPrimitives.WriteUInt32LittleEndian(buf, height - 1);
+            stream.Write(buf.Slice(0, 3));
         }
     }
 }

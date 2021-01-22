@@ -58,6 +58,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         };
 
         /// <summary>
+        /// Signature bytes identifying a VP8X header.
+        /// </summary>
+        public static readonly byte[] Vp8XMagicBytes =
+        {
+            0x56, // V
+            0x50, // P
+            0x38, // 8
+            0x58 // X
+        };
+
+        /// <summary>
         /// The header bytes identifying RIFF file.
         /// </summary>
         public static readonly byte[] RiffFourCc =
@@ -93,6 +104,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         /// Size of the frame header within VP8 data.
         /// </summary>
         public const int Vp8FrameHeaderSize = 10;
+
+        /// <summary>
+        /// Size of a VP8X chunk in bytes.
+        /// </summary>
+        public const int Vp8XChunkSize = 10;
 
         /// <summary>
         /// Size of a chunk header.

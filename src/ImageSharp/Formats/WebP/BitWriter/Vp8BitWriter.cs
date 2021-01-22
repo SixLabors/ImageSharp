@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
 {
@@ -73,16 +74,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
         /// <param name="expectedSize">The expected size in bytes.</param>
         /// <param name="enc">The Vp8Encoder.</param>
         public Vp8BitWriter(int expectedSize, Vp8Encoder enc)
-            : this(expectedSize)
-        {
-            this.enc = enc;
-        }
+            : this(expectedSize) => this.enc = enc;
 
         /// <inheritdoc/>
-        public override int NumBytes()
-        {
-            return (int)this.pos;
-        }
+        public override int NumBytes() => (int)this.pos;
 
         public int PutCoeffs(int ctx, Vp8Residual residual)
         {
@@ -290,10 +285,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
             }
         }
 
-        private bool PutBit(bool bit, int prob)
-        {
-            return this.PutBit(bit ? 1 : 0, prob);
-        }
+        private bool PutBit(bool bit, int prob) => this.PutBit(bit ? 1 : 0, prob);
 
         private bool PutBit(int bit, int prob)
         {
@@ -408,8 +400,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
         }
 
         /// <inheritdoc/>
-        public override void WriteEncodedImageToStream(Stream stream)
+        public override void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, uint width, uint height)
         {
+            bool isVp8X = false;
+            byte[] exifBytes = null;
+            uint riffSize = 0;
+            if (exifProfile != null)
+            {
+                isVp8X = true;
+                riffSize += WebpConstants.ChunkHeaderSize + WebpConstants.Vp8XChunkSize;
+                exifBytes = exifProfile.ToByteArray();
+                riffSize += WebpConstants.ChunkHeaderSize + (uint)exifBytes.Length;
+            }
+
             this.Finish();
             uint numBytes = (uint)this.NumBytes();
             int mbSize = this.enc.Mbw * this.enc.Mbh;
@@ -427,10 +430,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
 
             // Compute RIFF size
             // At the minimum it is: "WEBPVP8 nnnn" + VP8 data size.
-            var riffSize = WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + vp8Size;
+            riffSize += WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + vp8Size;
 
             // Emit headers and partition #0
-            this.WriteWebPHeaders(stream, size0, vp8Size, riffSize);
+            this.WriteWebpHeaders(stream, size0, vp8Size, riffSize, isVp8X, width, height, exifProfile);
             bitWriterPartZero.WriteToStream(stream);
 
             // Write the encoded image to the stream.
@@ -438,6 +441,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
             if (pad == 1)
             {
                 stream.WriteByte(0);
+            }
+
+            if (exifProfile != null)
+            {
+                this.WriteExifProfile(stream, exifBytes);
             }
         }
 
@@ -608,9 +616,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
             while (it.Next());
         }
 
-        private void WriteWebPHeaders(Stream stream, uint size0, uint vp8Size, uint riffSize)
+        private void WriteWebpHeaders(Stream stream, uint size0, uint vp8Size, uint riffSize, bool isVp8X, uint width, uint height, ExifProfile exifProfile)
         {
             this.WriteRiffHeader(stream, riffSize);
+
+            // Write VP8X, header if necessary.
+            if (isVp8X)
+            {
+                this.WriteVp8XHeader(stream, exifProfile, width, height);
+            }
+
             this.WriteVp8Header(stream, vp8Size);
             this.WriteFrameHeader(stream, size0);
         }

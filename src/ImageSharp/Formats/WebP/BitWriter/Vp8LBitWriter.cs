@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
 {
@@ -127,9 +128,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
         }
 
         /// <inheritdoc/>
-        public override void WriteEncodedImageToStream(Stream stream)
+        public override void WriteEncodedImageToStream(Stream stream, ExifProfile exifProfile, uint width, uint height)
         {
             Span<byte> buffer = stackalloc byte[4];
+            bool isVp8X = false;
+            byte[] exifBytes = null;
+            uint riffSize = 0;
+            if (exifProfile != null)
+            {
+                isVp8X = true;
+                riffSize += WebpConstants.ChunkHeaderSize + WebpConstants.Vp8XChunkSize;
+                exifBytes = exifProfile.ToByteArray();
+                riffSize += WebpConstants.ChunkHeaderSize + (uint)exifBytes.Length;
+            }
 
             this.Finish();
             uint size = (uint)this.NumBytes();
@@ -137,8 +148,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
 
             // Write RIFF header.
             uint pad = size & 1;
-            uint riffSize = WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + size + pad;
+            riffSize += WebpConstants.TagSize + WebpConstants.ChunkHeaderSize + size + pad;
             this.WriteRiffHeader(stream, riffSize);
+
+            // Write VP8X, header if necessary.
+            if (isVp8X)
+            {
+                this.WriteVp8XHeader(stream, exifProfile, width, height);
+            }
+
+            // Write magic bytes indicating its a lossless webp.
             stream.Write(WebpConstants.Vp8LMagicBytes);
 
             // Write Vp8 Header.
@@ -146,10 +165,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.BitWriter
             stream.Write(buffer);
             stream.WriteByte(WebpConstants.Vp8LHeaderMagicByte);
 
+            // Write the encoded bytes of the image to the stream.
             this.WriteToStream(stream);
             if (pad == 1)
             {
                 stream.WriteByte(0);
+            }
+
+            if (exifProfile != null)
+            {
+                this.WriteExifProfile(stream, exifBytes);
             }
         }
 

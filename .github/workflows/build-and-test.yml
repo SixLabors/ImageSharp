@@ -17,7 +17,7 @@ jobs:
                     - os: ubuntu-latest
                       framework: net5.0
                       runtime: -x64
-                      codecov: true
+                      codecov: false
                     - os: macos-latest
                       framework: net5.0
                       runtime: -x64

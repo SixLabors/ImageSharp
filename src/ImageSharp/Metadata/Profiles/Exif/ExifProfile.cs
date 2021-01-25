@@ -54,6 +54,18 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="ExifProfile" /> class.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        /// <param name="invalidTags">The invalid tags.</param>
+        internal ExifProfile(List<IExifValue> values, IReadOnlyList<ExifTag> invalidTags)
+        {
+            this.Parts = ExifParts.All;
+            this.values = values;
+            this.InvalidTags = invalidTags;
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ExifProfile"/> class
         /// by making a copy from another EXIF profile.
         /// </summary>
@@ -258,9 +270,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             this.SyncResolution(ExifTag.XResolution, metadata.HorizontalResolution);
             this.SyncResolution(ExifTag.YResolution, metadata.VerticalResolution);
         }
-
-        internal void InitializeInternal(List<IExifValue> values) =>
-            this.values = values;
 
         private void SyncResolution(ExifTag<Rational> tag, double resolution)
         {

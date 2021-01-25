@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     break;
             }
 
-            meta.SetSingle(ExifTag.ResolutionUnit, (ushort)unit + 1);
+            meta.Set(ExifTag.ResolutionUnit, (ushort)unit + 1);
             meta.SetResolution(ExifTag.XResolution, horizontal);
             meta.SetResolution(ExifTag.YResolution, vertical);
         }
@@ -94,7 +94,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                         break;
                 }
 
-                meta.SetSingle(tag, new Rational(res));
+                meta.Set(tag, new Rational(res));
             }
         }
     }

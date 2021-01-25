@@ -31,15 +31,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public static bool TryGetArray<T>(this TiffFrameMetadata meta, ExifTag tag, out T[] result)
             where T : struct
         {
-            foreach (IExifValue entry in meta.FrameTags.Values)
+            IExifValue obj = meta.ExifProfile.GetValueInternal(tag);
+            if (obj != null)
             {
-                if (entry.Tag == tag)
-                {
-                    DebugGuard.IsTrue(entry.IsArray, "Expected array entry");
-
-                    result = (T[])entry.GetValue();
-                    return true;
-                }
+                DebugGuard.IsTrue(obj.IsArray, "Expected array entry");
+                object value = obj.GetValue();
+                result = (T[])value;
+                return true;
             }
 
             result = null;
@@ -65,23 +63,20 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         public static string GetString(this TiffFrameMetadata meta, ExifTag tag)
         {
-            foreach (IExifValue entry in meta.FrameTags.Values)
+            IExifValue obj = meta.ExifProfile.GetValueInternal(tag);
+            if (obj != null)
             {
-                if (entry.Tag == tag)
-                {
-                    DebugGuard.IsTrue(entry.DataType == ExifDataType.Ascii, "Expected string entry");
-                    object value = entry.GetValue();
-                    DebugGuard.IsTrue(value is string, "Expected string entry");
-
-                    return (string)value;
-                }
+                DebugGuard.IsTrue(obj.DataType == ExifDataType.Ascii, "Expected string entry");
+                object value = obj.GetValue();
+                DebugGuard.IsTrue(value is string, "Expected string entry");
+                return (string)value;
             }
 
             return null;
         }
 
-        public static void SetString(this TiffFrameMetadata meta, ExifTag tag, string value) =>
-            meta.FrameTags.SetValueInternal(tag, value);
+        public static void Set(this TiffFrameMetadata meta, ExifTag tag, object value) =>
+            meta.ExifProfile.SetValueInternal(tag, value);
 
         public static TEnum? GetSingleEnumNullable<TEnum, TTagValue>(this TiffFrameMetadata meta, ExifTag tag)
           where TEnum : struct
@@ -100,11 +95,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             where TTagValue : struct
         => meta.GetSingleEnumNullable<TEnum, TTagValue>(tag) ?? (defaultValue != null ? defaultValue.Value : throw TiffThrowHelper.TagNotFound(nameof(tag)));
 
-        public static void SetSingleEnum<TEnum, TTagValue>(this TiffFrameMetadata meta, ExifTag tag, TEnum value)
-        where TEnum : struct
-        where TTagValue : struct
-            => meta.FrameTags.SetValueInternal(tag, value);
-
         public static T GetSingle<T>(this TiffFrameMetadata meta, ExifTag tag)
             where T : struct
         {
@@ -119,42 +109,25 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public static bool TryGetSingle<T>(this TiffFrameMetadata meta, ExifTag tag, out T result)
             where T : struct
         {
-            foreach (IExifValue entry in meta.FrameTags.Values)
+            IExifValue obj = meta.ExifProfile.GetValueInternal(tag);
+            if (obj != null)
             {
-                if (entry.Tag == tag)
-                {
-                    DebugGuard.IsTrue(!entry.IsArray, "Expected non array entry");
-
-                    object value = entry.GetValue();
-
-                    result = (T)value;
-                    return true;
-                }
+                DebugGuard.IsTrue(!obj.IsArray, "Expected non array entry");
+                object value = obj.GetValue();
+                result = (T)value;
+                return true;
             }
 
             result = default;
             return false;
         }
 
-        public static void SetSingle<T>(this TiffFrameMetadata meta, ExifTag tag, T value)
-            where T : struct
-            => meta.FrameTags.SetValueInternal(tag, value);
-
         public static bool Remove(this TiffFrameMetadata meta, ExifTag tag)
         {
-            IExifValue obj = null;
-            foreach (IExifValue entry in meta.FrameTags.Values)
-            {
-                if (entry.Tag == tag)
-                {
-                    obj = entry;
-                    break;
-                }
-            }
-
+            IExifValue obj = meta.ExifProfile.GetValueInternal(tag);
             if (obj != null)
             {
-                return meta.FrameTags.RemoveValue(obj.Tag);
+                return meta.ExifProfile.RemoveValue(obj.Tag);
             }
 
             return false;

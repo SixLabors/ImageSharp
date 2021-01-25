@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
@@ -102,8 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.inputStream = stream;
-            ByteOrder byteOrder = ReadByteOrder(stream);
-            var reader = new DirectoryReader(byteOrder, stream);
+            var reader = new DirectoryReader(stream);
 
             IEnumerable<ExifProfile> directories = reader.Read();
 
@@ -116,7 +114,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 framesMetadata.Add(frameMetadata);
             }
 
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.ignoreMetadata, byteOrder);
+            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.ignoreMetadata, reader.ByteOrder);
 
             // todo: tiff frames can have different sizes
             {
@@ -140,38 +138,21 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             this.inputStream = stream;
-            ByteOrder byteOrder = ReadByteOrder(stream);
-            var reader = new DirectoryReader(byteOrder, stream);
+            var reader = new DirectoryReader(stream);
 
             IEnumerable<ExifProfile> directories = reader.Read();
 
             var framesMetadata = new List<TiffFrameMetadata>();
             foreach (ExifProfile ifd in directories)
             {
-                var meta = new TiffFrameMetadata() { FrameTags = ifd };
+                var meta = new TiffFrameMetadata() { ExifProfile = ifd };
                 framesMetadata.Add(meta);
             }
 
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.ignoreMetadata, byteOrder);
+            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.ignoreMetadata, reader.ByteOrder);
 
             TiffFrameMetadata root = framesMetadata[0];
             return new ImageInfo(new PixelTypeInfo(root.BitsPerPixel), (int)root.Width, (int)root.Height, metadata);
-        }
-
-        private static ByteOrder ReadByteOrder(Stream stream)
-        {
-            var headerBytes = new byte[2];
-            stream.Read(headerBytes, 0, 2);
-            if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
-            {
-                return ByteOrder.LittleEndian;
-            }
-            else if (headerBytes[0] == TiffConstants.ByteOrderBigEndian && headerBytes[1] == TiffConstants.ByteOrderBigEndian)
-            {
-                return ByteOrder.BigEndian;
-            }
-
-            throw TiffThrowHelper.InvalidHeader();
         }
 
         /// <summary>
@@ -188,7 +169,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         {
             var coreMetadata = new ImageFrameMetadata();
             frameMetaData = coreMetadata.GetTiffMetadata();
-            frameMetaData.FrameTags = tags;
+            frameMetaData.ExifProfile = tags;
 
             this.VerifyAndParse(frameMetaData);
 

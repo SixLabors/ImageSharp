@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             private void ProcessMetadata(TiffFrameMetadata frameMetadata)
             {
-                foreach (IExifValue entry in frameMetadata.FrameTags.Values)
+                foreach (IExifValue entry in frameMetadata.ExifProfile.Values)
                 {
                     // todo: skip subIfd
                     if (entry.DataType == ExifDataType.Ifd)

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -9,38 +10,41 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 {
-    internal class EntryReader : ExifReader
+    internal class EntryReader : BaseExifReader
     {
         private readonly uint startOffset;
 
-        public EntryReader(ByteOrder byteOrder, Stream stream, uint ifdOffset)
-            : base(byteOrder == ByteOrder.BigEndian, stream) =>
-            this.startOffset = ifdOffset;
+        private readonly SortedList<uint, Action> lazyLoaders;
 
-        public uint? BigValuesOffset => this.LazyStartOffset;
+        public EntryReader(Stream stream, ByteOrder byteOrder, uint ifdOffset, SortedList<uint, Action> lazyLoaders)
+            : base(stream)
+        {
+            this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
+            this.startOffset = ifdOffset;
+            this.lazyLoaders = lazyLoaders;
+        }
+
+        public List<IExifValue> Values { get; } = new List<IExifValue>();
 
         public uint NextIfdOffset { get; private set; }
 
-        public override List<IExifValue> ReadValues()
+        public void ReadTags()
         {
-            var values = new List<IExifValue>();
-            this.AddValues(values, this.startOffset);
-
+            this.ReadValues(this.Values, this.startOffset);
             this.NextIfdOffset = this.ReadUInt32();
 
-            this.AddSubIfdValues(values);
-            return values;
+            this.ReadSubIfd(this.Values);
         }
 
-        public void LoadBigValues() => this.LazyLoad();
+        protected override void RegisterExtLoader(uint offset, Action reader) =>
+            this.lazyLoaders.Add(offset, reader);
     }
 
-    internal class HeaderReader : ExifReader
+    internal class HeaderReader : BaseExifReader
     {
-        public HeaderReader(ByteOrder byteOrder, Stream stream)
-            : base(byteOrder == ByteOrder.BigEndian, stream)
-        {
-        }
+        public HeaderReader(Stream stream, ByteOrder byteOrder)
+            : base(stream) =>
+            this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
 
         public uint FirstIfdOffset { get; private set; }
 
@@ -55,5 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             this.FirstIfdOffset = this.ReadUInt32();
             return this.FirstIfdOffset;
         }
+
+        protected override void RegisterExtLoader(uint offset, Action reader) => throw new NotImplementedException();
     }
 }

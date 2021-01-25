@@ -146,7 +146,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(10, image.Metadata.VerticalResolution);
 
                 TiffFrameMetadata frame = image.Frames.RootFrame.Metadata.GetTiffMetadata();
-                Assert.Equal(30, frame.FrameTags.Values.Count);
+                Assert.Equal(30, frame.ExifProfile.Values.Count);
 
                 Assert.Equal(32u, frame.Width);
                 Assert.Equal(32u, frame.Height);
@@ -156,10 +156,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal("This is Название", frame.ImageDescription);
                 Assert.Equal("This is Изготовитель камеры", frame.Make);
                 Assert.Equal("This is Модель камеры", frame.Model);
-                TiffTestUtils.Compare(new Number[] { 8 }, frame.StripOffsets);
+                Assert.Equal(new Number[] { 8u }, frame.StripOffsets, new NumberComparer());
                 Assert.Equal(1, frame.SamplesPerPixel);
                 Assert.Equal(32u, frame.RowsPerStrip);
-                TiffTestUtils.Compare(new Number[] { 297 }, frame.StripByteCounts);
+                Assert.Equal(new Number[] { 297u }, frame.StripByteCounts, new NumberComparer());
                 Assert.Equal(10, frame.HorizontalResolution);
                 Assert.Equal(10, frame.VerticalResolution);
                 Assert.Equal(TiffPlanarConfiguration.Chunky, frame.PlanarConfiguration);
@@ -178,8 +178,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(TiffPredictor.None, frame.Predictor);
                 Assert.Null(frame.SampleFormat);
                 Assert.Equal("This is Авторские права", frame.Copyright);
-                Assert.Equal(4, frame.FrameTags.GetValue<ushort>(ExifTag.Rating).Value);
-                Assert.Equal(75, frame.FrameTags.GetValue<ushort>(ExifTag.RatingPercent).Value);
+                Assert.Equal(4, frame.ExifProfile.GetValue<ushort>(ExifTag.Rating).Value);
+                Assert.Equal(75, frame.ExifProfile.GetValue<ushort>(ExifTag.RatingPercent).Value);
             }
         }
 

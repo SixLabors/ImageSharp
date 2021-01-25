@@ -33,7 +33,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets the Tiff directory tags.
         /// </summary>
-        public ExifProfile FrameTags
+        public ExifProfile ExifProfile
         {
             get => this.frameTags ??= new ExifProfile();
             internal set => this.frameTags = value;
@@ -116,7 +116,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public string ImageDescription
         {
             get => this.GetString(ExifTag.ImageDescription);
-            set => this.SetString(ExifTag.ImageDescription, value);
+            set => this.Set(ExifTag.ImageDescription, value);
         }
 
         /// <summary>
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public string Make
         {
             get => this.GetString(ExifTag.Make);
-            set => this.SetString(ExifTag.Make, value);
+            set => this.Set(ExifTag.Make, value);
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public string Model
         {
             get => this.GetString(ExifTag.Model);
-            set => this.SetString(ExifTag.Model, value);
+            set => this.Set(ExifTag.Model, value);
         }
 
         /// <summary>Gets for each strip, the byte offset of that strip..</summary>
@@ -181,7 +181,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public string Software
         {
             get => this.GetString(ExifTag.Software);
-            set => this.SetString(ExifTag.Software, value);
+            set => this.Set(ExifTag.Software, value);
         }
 
         /// <summary>
@@ -190,7 +190,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public string DateTime
         {
             get => this.GetString(ExifTag.DateTime);
-            set => this.SetString(ExifTag.DateTime, value);
+            set => this.Set(ExifTag.DateTime, value);
         }
 
         /// <summary>
@@ -199,7 +199,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public string Artist
         {
             get => this.GetString(ExifTag.Artist);
-            set => this.SetString(ExifTag.Artist, value);
+            set => this.Set(ExifTag.Artist, value);
         }
 
         /// <summary>
@@ -208,7 +208,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public string HostComputer
         {
             get => this.GetString(ExifTag.HostComputer);
-            set => this.SetString(ExifTag.HostComputer, value);
+            set => this.Set(ExifTag.HostComputer, value);
         }
 
         /// <summary>
@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public string Copyright
         {
             get => this.GetString(ExifTag.Copyright);
-            set => this.SetString(ExifTag.Copyright, value);
+            set => this.Set(ExifTag.Copyright, value);
         }
 
         /// <summary>
@@ -247,7 +247,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public void ClearMetadata()
         {
             var tags = new List<IExifValue>();
-            foreach (IExifValue entry in this.FrameTags.Values)
+            foreach (IExifValue entry in this.ExifProfile.Values)
             {
                 switch ((ExifTagValue)(ushort)entry.Tag)
                 {
@@ -267,12 +267,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 }
             }
 
-            var profile = new ExifProfile();
-            profile.InitializeInternal(tags);
-            this.FrameTags = profile;
+            this.ExifProfile = new ExifProfile(tags, this.ExifProfile.InvalidTags);
         }
 
         /// <inheritdoc/>
-        public IDeepCloneable DeepClone() => new TiffFrameMetadata() { FrameTags = this.FrameTags.DeepClone() };
+        public IDeepCloneable DeepClone() => new TiffFrameMetadata() { ExifProfile = this.ExifProfile.DeepClone() };
     }
 }

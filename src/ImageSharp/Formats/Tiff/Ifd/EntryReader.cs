@@ -60,6 +60,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             return this.FirstIfdOffset;
         }
 
-        protected override void RegisterExtLoader(uint offset, Action reader) => throw new NotImplementedException();
+        protected override void RegisterExtLoader(uint offset, Action reader) => throw new NotSupportedException();
     }
 }

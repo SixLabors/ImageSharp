@@ -47,28 +47,28 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 {
                     if (tiffMetadata.XmpProfile == null)
                     {
-                        byte[] buf = frame.GetArray<byte>(ExifTag.XMP, true);
-                        if (buf != null)
+                        IExifValue<byte[]> val = frame.ExifProfile.GetValue<byte[]>(ExifTag.XMP);
+                        if (val != null)
                         {
-                            tiffMetadata.XmpProfile = buf;
+                            tiffMetadata.XmpProfile = val.Value;
                         }
                     }
 
                     if (coreMetadata.IptcProfile == null)
                     {
-                        byte[] buf = frame.GetArray<byte>(ExifTag.IPTC, true);
-                        if (buf != null)
+                        IExifValue<byte[]> val = frame.ExifProfile.GetValue<byte[]>(ExifTag.IPTC);
+                        if (val != null)
                         {
-                            coreMetadata.IptcProfile = new IptcProfile(buf);
+                            coreMetadata.IptcProfile = new IptcProfile(val.Value);
                         }
                     }
 
                     if (coreMetadata.IccProfile == null)
                     {
-                        byte[] buf = frame.GetArray<byte>(ExifTag.IccProfile, true);
-                        if (buf != null)
+                        IExifValue<byte[]> val = frame.ExifProfile.GetValue<byte[]>(ExifTag.IccProfile);
+                        if (val != null)
                         {
-                            coreMetadata.IccProfile = new IccProfile(buf);
+                            coreMetadata.IccProfile = new IccProfile(val.Value);
                         }
                     }
                 }

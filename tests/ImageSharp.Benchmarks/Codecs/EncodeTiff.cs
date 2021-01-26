@@ -12,6 +12,8 @@ using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
+    [MarkdownExporter]
+    [HtmlExporter]
     [Config(typeof(Config.ShortMultiFramework))]
     public class EncodeTiff
     {

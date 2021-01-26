@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-//// #define BIG_TESTS
+// Enable this for using larger Tiff files. Those files are very large (> 700MB) and therefor not part of the git repo.
+// Use the scripts gen_big.ps1 and gen_medium.ps1 in tests\Images\Input\Tiff\Benchmarks to generate those images.
+// #define BIG_TESTS
 
 using System.IO;
 
@@ -16,6 +18,8 @@ using SDSize = System.Drawing.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
+    [MarkdownExporter]
+    [HtmlExporter]
     [Config(typeof(Config.ShortMultiFramework))]
     public class DecodeTiff
     {
@@ -32,8 +36,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         [Params(
             TestImages.Tiff.Benchmark_BwFax3,
-            //// TestImages.Tiff.Benchmark_RgbFax4,
-            TestImages.Tiff.Benchmark_BwRle,
+            //// TestImages.Tiff.Benchmark_RgbFax4, // fax4 is not supported yet.
             TestImages.Tiff.Benchmark_GrayscaleUncompressed,
             TestImages.Tiff.Benchmark_PaletteUncompressed,
             TestImages.Tiff.Benchmark_RgbDeflate,

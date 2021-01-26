@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is not supported.");
             }
 
-            if (entries.GetArray<uint>(ExifTag.TileOffsets, true) != null)
+            if (entries.ExifProfile.GetValue<uint[]>(ExifTag.TileOffsets) != null)
             {
                 TiffThrowHelper.ThrowNotSupported("The Tile images is not supported.");
             }

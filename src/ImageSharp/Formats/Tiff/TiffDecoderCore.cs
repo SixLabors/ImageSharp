@@ -20,11 +20,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     internal class TiffDecoderCore : IImageDecoderInternals
     {
         /// <summary>
-        /// The global configuration
-        /// </summary>
-        private readonly Configuration configuration;
-
-        /// <summary>
         /// Used for allocating memory during processing operations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;
@@ -48,9 +43,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         {
             options ??= new TiffDecoder();
 
-            this.configuration = configuration ?? Configuration.Default;
+            this.Configuration = configuration ?? Configuration.Default;
             this.ignoreMetadata = options.IgnoreMetadata;
-            this.memoryAllocator = this.configuration.MemoryAllocator;
+            this.memoryAllocator = this.Configuration.MemoryAllocator;
         }
 
         /// <summary>
@@ -91,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public TiffPredictor Predictor { get; set; }
 
         /// <inheritdoc/>
-        public Configuration Configuration => this.configuration;
+        public Configuration Configuration { get; }
 
         /// <inheritdoc/>
         public Size Dimensions { get; private set; }
@@ -129,7 +124,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 }
             }
 
-            var image = new Image<TPixel>(this.configuration, metadata, frames);
+            var image = new Image<TPixel>(this.Configuration, metadata, frames);
 
             return image;
         }
@@ -175,7 +170,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             int width = (int)frameMetaData.Width;
             int height = (int)frameMetaData.Height;
-            var frame = new ImageFrame<TPixel>(this.configuration, width, height, coreMetadata);
+            var frame = new ImageFrame<TPixel>(this.Configuration, width, height, coreMetadata);
 
             int rowsPerStrip = (int)frameMetaData.RowsPerStrip;
             Number[] stripOffsets = frameMetaData.StripOffsets;

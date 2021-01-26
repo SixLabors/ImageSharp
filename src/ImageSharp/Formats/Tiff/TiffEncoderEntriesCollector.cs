@@ -114,17 +114,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                 var xResolution = new ExifRational(ExifTagValue.XResolution)
                 {
-                    Value = frameMetadata.GetSingle<Rational>(ExifTag.XResolution)
+                    Value = frameMetadata.ExifProfile.GetValue<Rational>(ExifTag.XResolution).Value
                 };
 
                 var yResolution = new ExifRational(ExifTagValue.YResolution)
                 {
-                    Value = frameMetadata.GetSingle<Rational>(ExifTag.YResolution)
+                    Value = frameMetadata.ExifProfile.GetValue<Rational>(ExifTag.YResolution).Value
                 };
 
                 var resolutionUnit = new ExifShort(ExifTagValue.ResolutionUnit)
                 {
-                    Value = frameMetadata.GetSingle<ushort>(ExifTag.ResolutionUnit)
+                    Value = frameMetadata.ExifProfile.GetValue<ushort>(ExifTag.ResolutionUnit).Value
                 };
 
                 this.collector.AddInternal(xResolution);
@@ -183,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 }
                 else
                 {
-                    tiffFrameMetadata.Remove(ExifTag.SubIFDOffset);
+                    tiffFrameMetadata.ExifProfile.RemoveValue(ExifTag.SubIFDOffset);
                 }
 
                 if (imageMetadata.IptcProfile != null)
@@ -198,7 +198,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 }
                 else
                 {
-                    tiffFrameMetadata.Remove(ExifTag.IPTC);
+                    tiffFrameMetadata.ExifProfile.RemoveValue(ExifTag.IPTC);
                 }
 
                 if (imageMetadata.IccProfile != null)
@@ -212,7 +212,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 }
                 else
                 {
-                    tiffFrameMetadata.Remove(ExifTag.IccProfile);
+                    tiffFrameMetadata.ExifProfile.RemoveValue(ExifTag.IccProfile);
                 }
 
                 TiffMetadata tiffMetadata = imageMetadata.GetTiffMetadata();
@@ -227,7 +227,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 }
                 else
                 {
-                    tiffFrameMetadata.Remove(ExifTag.XMP);
+                    tiffFrameMetadata.ExifProfile.RemoveValue(ExifTag.XMP);
                 }
             }
         }

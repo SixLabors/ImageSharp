@@ -418,15 +418,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
             ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
             Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
+            RowOctet<TPixel> currentRows = default;
 
             for (int y = 0; y < pixels.Height; y += 8)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var currentRows = new RowOctet<TPixel>(pixelBuffer, y);
+                currentRows.Update(pixelBuffer, y);
 
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    pixelConverter.Convert(frame, x, y, currentRows);
+                    pixelConverter.Convert(frame, x, y, ref currentRows);
 
                     prevDCY = this.WriteBlock(
                         QuantIndex.Luminance,
@@ -997,6 +998,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
             ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
             Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
+            RowOctet<TPixel> currentRows = default;
 
             for (int y = 0; y < pixels.Height; y += 16)
             {
@@ -1008,10 +1010,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
 
-                        // TODO: Try pushing this to the outer loop!
-                        var currentRows = new RowOctet<TPixel>(pixelBuffer, y + yOff);
-
-                        pixelConverter.Convert(frame, x + xOff, y + yOff, currentRows);
+                        currentRows.Update(pixelBuffer, y + yOff);
+                        pixelConverter.Convert(frame, x + xOff, y + yOff, ref currentRows);
 
                         cb[i] = pixelConverter.Cb;
                         cr[i] = pixelConverter.Cr;

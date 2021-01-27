@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         {
             if (this.bmpStream == null)
             {
-                const string TestImage = TestImages.Bmp.Car;
+                const string TestImage = TestImages.Bmp.NegHeight;
                 this.bmpStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
                 this.bmpCore = Image.Load<Rgba32>(this.bmpStream);
                 this.bmpStream.Position = 0;

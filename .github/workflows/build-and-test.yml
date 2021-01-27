@@ -15,48 +15,39 @@ jobs:
             matrix:
                 options:
                     - os: ubuntu-latest
-                      framework-build: netcoreapp3.1
-                      framework-test: net5.0
+                      framework: net5.0
                       runtime: -x64
                       codecov: false
                     - os: macos-latest
-                      framework-build: netcoreapp3.1
-                      framework-test: net5.0
+                      framework: net5.0
                       runtime: -x64
                       codecov: false
                     - os: windows-latest
-                      framework-build: netcoreapp3.1
-                      framework-test: net5.0
+                      framework: net5.0
                       runtime: -x64
                       codecov: false
                     - os: ubuntu-latest
-                      framework-build: netcoreapp3.1
-                      framework-test: netcoreapp3.1
+                      framework: netcoreapp3.1
                       runtime: -x64
                       codecov: true
                     - os: macos-latest
-                      framework-build: netcoreapp3.1
-                      framework-test: netcoreapp3.1
+                      framework: netcoreapp3.1
                       runtime: -x64
                       codecov: false
                     - os: windows-latest
-                      framework-build: netcoreapp3.1
-                      framework-test: netcoreapp3.1
+                      framework: netcoreapp3.1
                       runtime: -x64
                       codecov: false
                     - os: windows-latest
-                      framework-build: netcoreapp2.1
-                      framework-test: netcoreapp2.1
+                      framework: netcoreapp2.1
                       runtime: -x64
                       codecov: false
                     - os: windows-latest
-                      framework-build: net472
-                      framework-test: net472
+                      framework: net472
                       runtime: -x64
                       codecov: false
                     - os: windows-latest
-                      framework-build: net472
-                      framework-test: net472
+                      framework: net472
                       runtime: -x86
                       codecov: false
 
@@ -87,11 +78,11 @@ jobs:
 
             - name: Build
               shell: pwsh
-              run: ./ci-build.ps1 "${{matrix.options.framework-build}}"
+              run: ./ci-build.ps1 "${{matrix.options.framework}}"
 
             - name: Test
               shell: pwsh
-              run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework-test}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
+              run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
               env:
                   CI: True
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -57,7 +58,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             options.BitsPerPixel = entries.BitsPerPixel;
 
             ParseColorType(options, entries);
-            ParseCompression(options, entries.Compression);
+            ParseCompression(options, entries);
         }
 
         private static void ParseColorType(this TiffDecoderCore options, TiffFrameMetadata entries)
@@ -208,8 +209,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             }
         }
 
-        private static void ParseCompression(this TiffDecoderCore options, TiffCompression compression)
+        private static void ParseCompression(this TiffDecoderCore options, TiffFrameMetadata entries)
         {
+            TiffCompression compression = entries.Compression;
             switch (compression)
             {
                 case TiffCompression.None:
@@ -240,6 +242,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 case TiffCompression.CcittGroup3Fax:
                 {
                     options.CompressionType = TiffDecoderCompressionType.T4;
+                    IExifValue t4options = entries.FrameTags.Find(tag => tag.Tag == ExifTag.T4Options);
+                    if (t4options != null)
+                    {
+                        var t4OptionValue = (FaxCompressionOptions)t4options.GetValue();
+                        options.FaxCompressionOptions = t4OptionValue;
+                    }
+
                     break;
                 }
 

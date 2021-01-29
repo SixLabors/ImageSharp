@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -242,7 +241,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 case TiffCompression.CcittGroup3Fax:
                 {
                     options.CompressionType = TiffDecoderCompressionType.T4;
-                    IExifValue t4options = entries.FrameTags.Find(tag => tag.Tag == ExifTag.T4Options);
+                    IExifValue t4options = entries.ExifProfile.GetValue(ExifTag.T4Options);
                     if (t4options != null)
                     {
                         var t4OptionValue = (FaxCompressionOptions)t4options.GetValue();

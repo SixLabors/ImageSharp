@@ -14,25 +14,32 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
     /// </summary>
     internal class T4TiffCompression : TiffBaseCompression
     {
+        private readonly FaxCompressionOptions faxCompressionOptions;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="T4TiffCompression" /> class.
         /// </summary>
         /// <param name="allocator">The memory allocator.</param>
+        /// <param name="faxOptions">Fax compression options.</param>
         /// <param name="photometricInterpretation">The photometric interpretation.</param>
         /// <param name="width">The image width.</param>
-        public T4TiffCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
-            : base(allocator, photometricInterpretation, width)
-        {
-        }
+        public T4TiffCompression(MemoryAllocator allocator, FaxCompressionOptions faxOptions, TiffPhotometricInterpretation photometricInterpretation, int width)
+            : base(allocator, photometricInterpretation, width) => this.faxCompressionOptions = faxOptions;
 
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
         {
+            if (this.faxCompressionOptions.HasFlag(FaxCompressionOptions.TwoDimensionalCoding))
+            {
+                TiffThrowHelper.ThrowNotSupported("TIFF CCITT 2D compression is not yet supported");
+            }
+
             bool isWhiteZero = this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
             byte whiteValue = (byte)(isWhiteZero ? 0 : 1);
             byte blackValue = (byte)(isWhiteZero ? 1 : 0);
 
-            using var bitReader = new T4BitReader(stream, byteCount, this.Allocator);
+            var eolPadding = this.faxCompressionOptions.HasFlag(FaxCompressionOptions.EolPadding);
+            using var bitReader = new T4BitReader(stream, byteCount, this.Allocator, eolPadding);
 
             buffer.Clear();
             uint bitsWritten = 0;

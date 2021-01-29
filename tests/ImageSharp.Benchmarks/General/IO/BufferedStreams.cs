@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Benchmarks.IO
 {
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.ShortMultiFramework))]
     public class BufferedStreams
     {
         private readonly byte[] buffer = CreateTestBytes();

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         /// <param name="photometricInterpretation">The photometric interpretation.</param>
         /// <param name="width">The image width.</param>
         public ModifiedHuffmanTiffCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
-            : base(allocator, photometricInterpretation, width)
+            : base(allocator, FaxCompressionOptions.None, photometricInterpretation, width)
         {
         }
 
@@ -32,7 +32,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             byte whiteValue = (byte)(isWhiteZero ? 0 : 1);
             byte blackValue = (byte)(isWhiteZero ? 1 : 0);
 
-            using var bitReader = new T4BitReader(stream, byteCount, this.Allocator, isModifiedHuffman: true);
+            using var bitReader = new T4BitReader(stream, byteCount, this.Allocator, eolPadding: false, isModifiedHuffman: true);
 
             buffer.Clear();
             uint bitsWritten = 0;

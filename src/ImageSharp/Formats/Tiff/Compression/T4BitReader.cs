@@ -36,11 +36,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         private ulong position;
 
         /// <summary>
-        /// Indicates, if the current run are white pixels.
-        /// </summary>
-        private bool isWhiteRun;
-
-        /// <summary>
         /// Indicates whether its the first line of data which is read from the image.
         /// </summary>
         private bool isFirstScanLine;
@@ -51,23 +46,26 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         private bool terminationCodeFound;
 
         /// <summary>
-        /// Number of pixels in the current run.
-        /// </summary>
-        private uint runLength;
-
-        /// <summary>
         /// We keep track if its the start of the row, because each run is expected to start with a white run.
         /// If the image row itself starts with black, a white run of zero is expected.
         /// </summary>
         private bool isStartOfRow;
 
+        /// <summary>
+        /// Indicates whether the modified huffman compression, as specified in the TIFF spec in section 10, is used.
+        /// </summary>
         private readonly bool isModifiedHuffmanRle;
+
+        /// <summary>
+        /// Indicates, if fill bits have been added as necessary before EOL codes such that EOL always ends on a byte boundary. Defaults to false.
+        /// </summary>
+        private readonly bool eolPadding;
 
         private readonly int dataLength;
 
         private const int MinCodeLength = 2;
 
-        private const int MaxCodeLength = 13;
+        private readonly int maxCodeLength = 13;
 
         private static readonly Dictionary<uint, uint> WhiteLen4TermCodes = new Dictionary<uint, uint>()
         {
@@ -225,8 +223,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         /// <param name="input">The compressed input stream.</param>
         /// <param name="bytesToRead">The number of bytes to read from the stream.</param>
         /// <param name="allocator">The memory allocator.</param>
-        /// <param name="isModifiedHuffman">Indicates, if its the modified huffman code variation.</param>
-        public T4BitReader(Stream input, int bytesToRead, MemoryAllocator allocator, bool isModifiedHuffman = false)
+        /// <param name="eolPadding">Indicates, if fill bits have been added as necessary before EOL codes such that EOL always ends on a byte boundary. Defaults to false.</param>
+        /// <param name="isModifiedHuffman">Indicates, if its the modified huffman code variation. Defaults to false.</param>
+        public T4BitReader(Stream input, int bytesToRead, MemoryAllocator allocator, bool eolPadding = false, bool isModifiedHuffman = false)
         {
             this.Data = allocator.Allocate<byte>(bytesToRead);
             this.ReadImageDataFromStream(input, bytesToRead);
@@ -237,11 +236,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             this.value = 0;
             this.curValueBitsRead = 0;
             this.position = 0;
-            this.isWhiteRun = true;
+            this.IsWhiteRun = true;
             this.isFirstScanLine = true;
             this.isStartOfRow = true;
             this.terminationCodeFound = false;
-            this.runLength = 0;
+            this.RunLength = 0;
+            this.eolPadding = eolPadding;
+
+            if (this.eolPadding)
+            {
+                this.maxCodeLength = 24;
+            }
         }
 
         /// <summary>
@@ -268,17 +273,28 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         /// <summary>
         /// Gets a value indicating whether the current run is a white pixel run, otherwise its a black pixel run.
         /// </summary>
-        public bool IsWhiteRun => this.isWhiteRun;
+        public bool IsWhiteRun { get; private set; }
 
         /// <summary>
         /// Gets the number of pixels in the current run.
         /// </summary>
-        public uint RunLength => this.runLength;
+        public uint RunLength { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether the end of a pixel row has been reached.
         /// </summary>
-        public bool IsEndOfScanLine => this.curValueBitsRead == 12 && this.value == 1;
+        public bool IsEndOfScanLine
+        {
+            get
+            {
+                if (this.eolPadding)
+                {
+                    return this.curValueBitsRead >= 12 && this.value == 1;
+                }
+
+                return this.curValueBitsRead == 12 && this.value == 1;
+            }
+        }
 
         /// <summary>
         /// Read the next run of pixels.
@@ -287,7 +303,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         {
             if (this.terminationCodeFound)
             {
-                this.isWhiteRun = !this.IsWhiteRun;
+                this.IsWhiteRun = !this.IsWhiteRun;
                 this.terminationCodeFound = false;
             }
 
@@ -296,7 +312,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             if (this.isFirstScanLine && !this.isModifiedHuffmanRle)
             {
                 // We expect an EOL before the first data.
-                this.value = this.ReadValue(12);
+                this.value = this.ReadValue(this.eolPadding ? 16 : 12);
+
                 if (!this.IsEndOfScanLine)
                 {
                     TiffThrowHelper.ThrowImageFormatException("t4 parsing error: expected start of data marker not found");
@@ -310,7 +327,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 
             do
             {
-                if (this.curValueBitsRead > MaxCodeLength)
+                if (this.curValueBitsRead > this.maxCodeLength)
                 {
                     TiffThrowHelper.ThrowImageFormatException("t4 parsing error: invalid code length read");
                 }
@@ -320,11 +337,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
                 {
                     if (this.IsWhiteRun)
                     {
-                        this.runLength += this.WhiteMakeupCodeRunLength();
+                        this.RunLength += this.WhiteMakeupCodeRunLength();
                     }
                     else
                     {
-                        this.runLength += this.BlackMakeupCodeRunLength();
+                        this.RunLength += this.BlackMakeupCodeRunLength();
                     }
 
                     this.isStartOfRow = false;
@@ -338,7 +355,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
                     // Each line starts with a white run. If the image starts with black, a white run with length zero is written.
                     if (this.isStartOfRow && this.IsWhiteRun && this.WhiteTerminatingCodeRunLength() == 0)
                     {
-                        this.isWhiteRun = !this.IsWhiteRun;
+                        this.IsWhiteRun = !this.IsWhiteRun;
                         this.Reset();
                         this.isStartOfRow = false;
                         continue;
@@ -346,11 +363,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 
                     if (this.IsWhiteRun)
                     {
-                        this.runLength += this.WhiteTerminatingCodeRunLength();
+                        this.RunLength += this.WhiteTerminatingCodeRunLength();
                     }
                     else
                     {
-                        this.runLength += this.BlackTerminatingCodeRunLength();
+                        this.RunLength += this.BlackTerminatingCodeRunLength();
                     }
 
                     this.terminationCodeFound = true;
@@ -374,7 +391,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         public void StartNewRow()
         {
             // Each new row starts with a white run.
-            this.isWhiteRun = true;
+            this.IsWhiteRun = true;
             this.isStartOfRow = true;
             this.terminationCodeFound = false;
 
@@ -770,14 +787,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 
             if (resetRunLength)
             {
-                this.runLength = 0;
+                this.RunLength = 0;
             }
         }
 
         private uint ReadValue(int nBits)
         {
             Guard.MustBeGreaterThan(nBits, 0, nameof(nBits));
-            Guard.MustBeLessThanOrEqualTo(nBits, 12, nameof(nBits));
 
             uint v = 0;
             int shift = nBits;

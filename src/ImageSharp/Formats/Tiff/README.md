@@ -121,7 +121,7 @@ Decoder:
 |PageName                   |       |       |                          |
 |XPosition                  |       |       |                          |
 |YPosition                  |       |       |                          |
-|T4Options                  |       |       |                          |
+|T4Options                  |       |   Y   |                          |
 |T6Options                  |       |       |                          |
 |PageNumber                 |       |       |                          |
 |TransferFunction           |       |       |                          |

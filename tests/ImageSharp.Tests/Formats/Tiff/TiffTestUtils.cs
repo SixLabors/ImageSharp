@@ -2,9 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 using ImageMagick;
+
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -53,5 +55,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             return result;
         }
+    }
+
+    internal class NumberComparer : IEqualityComparer<Number>
+    {
+        public bool Equals(Number x, Number y) => x.Equals(y);
+
+        public int GetHashCode(Number obj) => obj.GetHashCode();
     }
 }

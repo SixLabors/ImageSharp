@@ -2,12 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Streams;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -50,9 +48,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         {
             options ??= new TiffDecoder();
 
-            this.configuration = configuration ?? Configuration.Default;
+            this.Configuration = configuration ?? Configuration.Default;
             this.ignoreMetadata = options.IgnoreMetadata;
-            this.memoryAllocator = this.configuration.MemoryAllocator;
+            this.memoryAllocator = this.Configuration.MemoryAllocator;
         }
 
         /// <summary>
@@ -101,7 +99,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public TiffPredictor Predictor { get; set; }
 
         /// <inheritdoc/>
-        public Configuration Configuration => this.configuration;
+        public Configuration Configuration { get; }
 
         /// <inheritdoc/>
         public Size Dimensions { get; private set; }
@@ -111,21 +109,20 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             where TPixel : unmanaged, IPixel<TPixel>
         {
             this.inputStream = stream;
-            TiffStream tiffStream = CreateStream(stream);
-            var reader = new DirectoryReader(tiffStream);
+            var reader = new DirectoryReader(stream);
 
-            IEnumerable<IExifValue[]> directories = reader.Read();
+            IEnumerable<ExifProfile> directories = reader.Read();
 
             var frames = new List<ImageFrame<TPixel>>();
             var framesMetadata = new List<TiffFrameMetadata>();
-            foreach (IExifValue[] ifd in directories)
+            foreach (ExifProfile ifd in directories)
             {
                 ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(ifd, out TiffFrameMetadata frameMetadata);
                 frames.Add(frame);
                 framesMetadata.Add(frameMetadata);
             }
 
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.ignoreMetadata, tiffStream.ByteOrder);
+            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.ignoreMetadata, reader.ByteOrder);
 
             // todo: tiff frames can have different sizes
             {
@@ -140,7 +137,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 }
             }
 
-            var image = new Image<TPixel>(this.configuration, metadata, frames);
+            var image = new Image<TPixel>(this.Configuration, metadata, frames);
 
             return image;
         }
@@ -149,54 +146,21 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
         {
             this.inputStream = stream;
-            TiffStream tiffStream = CreateStream(stream);
-            var reader = new DirectoryReader(tiffStream);
+            var reader = new DirectoryReader(stream);
 
-            IEnumerable<IExifValue[]> directories = reader.Read();
+            IEnumerable<ExifProfile> directories = reader.Read();
 
             var framesMetadata = new List<TiffFrameMetadata>();
-            foreach (IExifValue[] ifd in directories)
+            foreach (ExifProfile ifd in directories)
             {
-                var meta = new TiffFrameMetadata();
-                meta.FrameTags.AddRange(ifd);
+                var meta = new TiffFrameMetadata() { ExifProfile = ifd };
                 framesMetadata.Add(meta);
             }
 
-            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.ignoreMetadata, tiffStream.ByteOrder);
+            ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.ignoreMetadata, reader.ByteOrder);
 
             TiffFrameMetadata root = framesMetadata[0];
             return new ImageInfo(new PixelTypeInfo(root.BitsPerPixel), (int)root.Width, (int)root.Height, metadata);
-        }
-
-        private static TiffStream CreateStream(Stream stream)
-        {
-            ByteOrder byteOrder = ReadByteOrder(stream);
-            if (byteOrder == ByteOrder.BigEndian)
-            {
-                return new TiffBigEndianStream(stream);
-            }
-            else if (byteOrder == ByteOrder.LittleEndian)
-            {
-                return new TiffLittleEndianStream(stream);
-            }
-
-            throw TiffThrowHelper.InvalidHeader();
-        }
-
-        private static ByteOrder ReadByteOrder(Stream stream)
-        {
-            var headerBytes = new byte[2];
-            stream.Read(headerBytes, 0, 2);
-            if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
-            {
-                return ByteOrder.LittleEndian;
-            }
-            else if (headerBytes[0] == TiffConstants.ByteOrderBigEndian && headerBytes[1] == TiffConstants.ByteOrderBigEndian)
-            {
-                return ByteOrder.BigEndian;
-            }
-
-            throw TiffThrowHelper.InvalidHeader();
         }
 
         /// <summary>
@@ -208,22 +172,22 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <returns>
         /// The tiff frame.
         /// </returns>
-        private ImageFrame<TPixel> DecodeFrame<TPixel>(IExifValue[] tags, out TiffFrameMetadata frameMetaData)
+        private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags, out TiffFrameMetadata frameMetaData)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var coreMetadata = new ImageFrameMetadata();
             frameMetaData = coreMetadata.GetTiffMetadata();
-            frameMetaData.FrameTags.AddRange(tags);
+            frameMetaData.ExifProfile = tags;
 
             this.VerifyAndParse(frameMetaData);
 
             int width = (int)frameMetaData.Width;
             int height = (int)frameMetaData.Height;
-            var frame = new ImageFrame<TPixel>(this.configuration, width, height, coreMetadata);
+            var frame = new ImageFrame<TPixel>(this.Configuration, width, height, coreMetadata);
 
             int rowsPerStrip = (int)frameMetaData.RowsPerStrip;
-            uint[] stripOffsets = frameMetaData.StripOffsets;
-            uint[] stripByteCounts = frameMetaData.StripByteCounts;
+            Number[] stripOffsets = frameMetaData.StripOffsets;
+            Number[] stripByteCounts = frameMetaData.StripByteCounts;
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
             {
@@ -273,7 +237,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
         /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
         /// <param name="width">The image width.</param>
-        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts, int width)
+        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts, int width)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int stripsPerPixel = this.BitsPerSample.Length;
@@ -304,7 +268,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     {
                         int stripIndex = (i * stripsPerPixel) + planeIndex;
 
-                        decompressor.Decompress(this.inputStream, stripOffsets[stripIndex], stripByteCounts[stripIndex], stripBuffers[planeIndex].GetSpan());
+                        decompressor.Decompress(this.inputStream, (uint)stripOffsets[stripIndex], (uint)stripByteCounts[stripIndex], stripBuffers[planeIndex].GetSpan());
                     }
 
                     colorDecoder.Decode(stripBuffers, pixels, 0, rowsPerStrip * i, frame.Width, stripHeight);
@@ -319,7 +283,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             }
         }
 
-        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts, int width)
+        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts, int width)
            where TPixel : unmanaged, IPixel<TPixel>
         {
             int uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip);
@@ -337,7 +301,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             {
                 int stripHeight = stripIndex < stripOffsets.Length - 1 || frame.Height % rowsPerStrip == 0 ? rowsPerStrip : frame.Height % rowsPerStrip;
 
-                decompressor.Decompress(this.inputStream, stripOffsets[stripIndex], stripByteCounts[stripIndex], stripBuffer.GetSpan());
+                decompressor.Decompress(this.inputStream, (uint)stripOffsets[stripIndex], (uint)stripByteCounts[stripIndex], stripBuffer.GetSpan());
 
                 colorDecoder.Decode(stripBuffer.GetSpan(), pixels, 0, rowsPerStrip * stripIndex, frame.Width, stripHeight);
             }

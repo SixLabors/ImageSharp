@@ -20,11 +20,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     internal class TiffDecoderCore : IImageDecoderInternals
     {
         /// <summary>
-        /// The global configuration.
-        /// </summary>
-        private readonly Configuration configuration;
-
-        /// <summary>
         /// Used for allocating memory during processing operations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;

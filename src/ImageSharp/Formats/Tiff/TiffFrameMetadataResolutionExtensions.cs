@@ -19,9 +19,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     break;
                 case PixelResolutionUnit.PixelsPerMeter:
                     {
-                        unit = PixelResolutionUnit.PixelsPerCentimeter;
-                        horizontal = UnitConverter.MeterToCm(horizontal);
-                        vertical = UnitConverter.MeterToCm(vertical);
+                    unit = PixelResolutionUnit.PixelsPerCentimeter;
+                    horizontal = UnitConverter.MeterToCm(horizontal);
+                    vertical = UnitConverter.MeterToCm(vertical);
                     }
 
                     break;
@@ -30,29 +30,27 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     break;
             }
 
-            meta.SetSingle(ExifTag.ResolutionUnit, (ushort)unit + 1);
+            meta.ExifProfile.SetValue(ExifTag.ResolutionUnit, (ushort)(unit + 1));
             meta.SetResolution(ExifTag.XResolution, horizontal);
             meta.SetResolution(ExifTag.YResolution, vertical);
         }
 
         public static PixelResolutionUnit GetResolutionUnit(this TiffFrameMetadata meta)
         {
-            if (!meta.TryGetSingle(ExifTag.ResolutionUnit, out ushort res))
-            {
-                res = TiffFrameMetadata.DefaultResolutionUnit;
-            }
+            ushort res = meta.ExifProfile.GetValue<ushort>(ExifTag.ResolutionUnit)?.Value ?? TiffFrameMetadata.DefaultResolutionUnit;
 
             return (PixelResolutionUnit)(res - 1);
         }
 
-        public static double? GetResolution(this TiffFrameMetadata meta, ExifTag tag)
+        public static double? GetResolution(this TiffFrameMetadata meta, ExifTag<Rational> tag)
         {
-            if (!meta.TryGetSingle(tag, out Rational resolution))
+            IExifValue<Rational> resolution = meta.ExifProfile.GetValue<Rational>(tag);
+            if (resolution == null)
             {
                 return null;
             }
 
-            double res = resolution.ToDouble();
+            double res = resolution.Value.ToDouble();
             switch (meta.ResolutionUnit)
             {
                 case PixelResolutionUnit.AspectRatio:
@@ -68,11 +66,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             }
         }
 
-        private static void SetResolution(this TiffFrameMetadata meta, ExifTag tag, double? value)
+        private static void SetResolution(this TiffFrameMetadata meta, ExifTag<Rational> tag, double? value)
         {
             if (value == null)
             {
-                meta.Remove(tag);
+                meta.ExifProfile.RemoveValue(tag);
                 return;
             }
             else
@@ -94,7 +92,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                         break;
                 }
 
-                meta.SetSingle(tag, new Rational(res));
+                meta.ExifProfile.SetValue(tag, new Rational(res));
             }
         }
     }

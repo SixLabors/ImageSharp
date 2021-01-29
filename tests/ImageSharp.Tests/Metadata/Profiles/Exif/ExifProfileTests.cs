@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -14,6 +15,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests
 {
+    [Trait("Profile", "Exif")]
     public class ExifProfileTests
     {
         public enum TestImageWriteFormat
@@ -201,10 +203,14 @@ namespace SixLabors.ImageSharp.Tests
             IExifValue<Rational[]> latitude = image.Metadata.ExifProfile.GetValue(ExifTag.GPSLatitude);
             Assert.Equal(expectedLatitude, latitude.Value);
 
+            // todo: duplicate tags
+            Assert.Equal(2, image.Metadata.ExifProfile.Values.Count(v => (ushort)v.Tag == 59932));
+
             int profileCount = image.Metadata.ExifProfile.Values.Count;
             image = WriteAndRead(image, imageFormat);
 
             Assert.NotNull(image.Metadata.ExifProfile);
+            Assert.Equal(0, image.Metadata.ExifProfile.Values.Count(v => (ushort)v.Tag == 59932));
 
             // Should be 3 less.
             // 1 x due to setting of null "ReferenceBlackWhite" value.
@@ -363,8 +369,14 @@ namespace SixLabors.ImageSharp.Tests
             // Force parsing of the profile.
             Assert.Equal(25, profile.Values.Count);
 
+            // todo: duplicate tags (from root container and subIfd)
+            Assert.Equal(2, profile.Values.Count(v => (ExifTagValue)(ushort)v.Tag == ExifTagValue.DateTime));
+
             byte[] bytes = profile.ToByteArray();
             Assert.Equal(525, bytes.Length);
+
+            var profile2 = new ExifProfile(bytes);
+            Assert.Equal(25, profile2.Values.Count);
         }
 
         [Theory]
@@ -476,6 +488,9 @@ namespace SixLabors.ImageSharp.Tests
         private static void TestProfile(ExifProfile profile)
         {
             Assert.NotNull(profile);
+
+            // todo: duplicate tags
+            Assert.Equal(2, profile.Values.Count(v => (ushort)v.Tag == 59932));
 
             Assert.Equal(16, profile.Values.Count);
 

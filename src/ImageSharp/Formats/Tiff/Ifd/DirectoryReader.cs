@@ -1,10 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
-
+using System.IO;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Streams;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
@@ -14,92 +14,82 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     /// </summary>
     internal class DirectoryReader
     {
-        private readonly TiffStream stream;
-
-        private readonly EntryReader tagReader;
+        private readonly Stream stream;
 
         private uint nextIfdOffset;
 
-        public DirectoryReader(TiffStream stream)
+        // used for sequential read big values (actual for multiframe big files)
+        // todo: different tags can link to the same data (stream offset) - investigate
+        private readonly SortedList<uint, Action> lazyLoaders = new SortedList<uint, Action>(new DuplicateKeyComparer<uint>());
+
+        public DirectoryReader(Stream stream) => this.stream = stream;
+
+        public ByteOrder ByteOrder { get; private set; }
+
+        public IEnumerable<ExifProfile> Read()
         {
-            this.stream = stream;
-            this.tagReader = new EntryReader(stream);
+            this.ByteOrder = ReadByteOrder(this.stream);
+            this.nextIfdOffset = new HeaderReader(this.stream, this.ByteOrder).ReadFileHeader();
+            return this.ReadIfds();
         }
 
-        public IEnumerable<IExifValue[]> Read()
+        private static ByteOrder ReadByteOrder(Stream stream)
         {
-            if (this.ReadHeader())
+            var headerBytes = new byte[2];
+            stream.Read(headerBytes, 0, 2);
+            if (headerBytes[0] == TiffConstants.ByteOrderLittleEndian && headerBytes[1] == TiffConstants.ByteOrderLittleEndian)
             {
-                return this.ReadIfds();
+                return ByteOrder.LittleEndian;
+            }
+            else if (headerBytes[0] == TiffConstants.ByteOrderBigEndian && headerBytes[1] == TiffConstants.ByteOrderBigEndian)
+            {
+                return ByteOrder.BigEndian;
             }
 
-            return null;
+            throw TiffThrowHelper.InvalidHeader();
         }
 
-        private bool ReadHeader()
+        private IEnumerable<ExifProfile> ReadIfds()
         {
-            ushort magic = this.stream.ReadUInt16();
-            if (magic != TiffConstants.HeaderMagicNumber)
+            var readers = new List<EntryReader>();
+            while (this.nextIfdOffset != 0 && this.nextIfdOffset < this.stream.Length)
             {
-                TiffThrowHelper.ThrowInvalidHeader();
+                var reader = new EntryReader(this.stream, this.ByteOrder, this.nextIfdOffset, this.lazyLoaders);
+                reader.ReadTags();
+
+                this.nextIfdOffset = reader.NextIfdOffset;
+
+                readers.Add(reader);
             }
 
-            uint firstIfdOffset = this.stream.ReadUInt32();
-            if (firstIfdOffset == 0)
+            // sequential reading big values
+            foreach (Action loader in this.lazyLoaders.Values)
             {
-                TiffThrowHelper.ThrowInvalidHeader();
+                loader();
             }
 
-            this.nextIfdOffset = firstIfdOffset;
-
-            return true;
-        }
-
-        private IEnumerable<IExifValue[]> ReadIfds()
-        {
-            var list = new List<IExifValue[]>();
-            while (this.nextIfdOffset != 0)
+            var list = new List<ExifProfile>();
+            foreach (EntryReader reader in readers)
             {
-                this.stream.Seek(this.nextIfdOffset);
-                IExifValue[] ifd = this.ReadIfd();
-                list.Add(ifd);
+                var profile = new ExifProfile(reader.Values, reader.InvalidTags);
+                list.Add(profile);
             }
-
-            this.tagReader.LoadExtendedData();
 
             return list;
         }
 
-        private IExifValue[] ReadIfd()
+        /// <summary><see cref="DuplicateKeyComparer{TKey}"/> used for possiblity add a duplicate offsets (but tags don't duplicate).</summary>
+        /// <typeparam name="TKey">The type of the key.</typeparam>
+        private class DuplicateKeyComparer<TKey> : IComparer<TKey>
+            where TKey : IComparable
         {
-            long pos = this.stream.Position;
-
-            ushort entryCount = this.stream.ReadUInt16();
-            var entries = new List<IExifValue>(entryCount);
-            for (int i = 0; i < entryCount; i++)
+            public int Compare(TKey x, TKey y)
             {
-                IExifValue tag = this.tagReader.ReadNext();
-                if (tag != null)
-                {
-                    entries.Add(tag);
-                }
-            }
+                int result = x.CompareTo(y);
 
-            this.nextIfdOffset = this.stream.ReadUInt32();
-
-            int ifdSize = 2 + (entryCount * TiffConstants.SizeOfIfdEntry) + 4;
-            int readedBytes = (int)(this.stream.Position - pos);
-            int leftBytes = ifdSize - readedBytes;
-            if (leftBytes > 0)
-            {
-                this.stream.Skip(leftBytes);
+                // Handle equality as beeing greater
+                return (result == 0) ? 1 : result;
             }
-            else if (leftBytes < 0)
-            {
-                TiffThrowHelper.ThrowOutOfRange("IFD");
-            }
-
-            return entries.ToArray();
         }
     }
 }

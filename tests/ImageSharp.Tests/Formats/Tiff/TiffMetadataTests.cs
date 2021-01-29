@@ -8,6 +8,7 @@ using System.Linq;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
@@ -145,6 +146,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(10, image.Metadata.VerticalResolution);
 
                 TiffFrameMetadata frame = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+                Assert.Equal(30, frame.ExifProfile.Values.Count);
+
                 Assert.Equal(32u, frame.Width);
                 Assert.Equal(32u, frame.Height);
                 Assert.Equal(new ushort[] { 4 }, frame.BitsPerSample);
@@ -153,10 +156,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal("This is Название", frame.ImageDescription);
                 Assert.Equal("This is Изготовитель камеры", frame.Make);
                 Assert.Equal("This is Модель камеры", frame.Model);
-                Assert.Equal(new uint[] { 8 }, frame.StripOffsets);
+                Assert.Equal(new Number[] { 8u }, frame.StripOffsets, new NumberComparer());
                 Assert.Equal(1, frame.SamplesPerPixel);
                 Assert.Equal(32u, frame.RowsPerStrip);
-                Assert.Equal(new uint[] { 297 }, frame.StripByteCounts);
+                Assert.Equal(new Number[] { 297u }, frame.StripByteCounts, new NumberComparer());
                 Assert.Equal(10, frame.HorizontalResolution);
                 Assert.Equal(10, frame.VerticalResolution);
                 Assert.Equal(TiffPlanarConfiguration.Chunky, frame.PlanarConfiguration);
@@ -175,6 +178,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(TiffPredictor.None, frame.Predictor);
                 Assert.Null(frame.SampleFormat);
                 Assert.Equal("This is Авторские права", frame.Copyright);
+                Assert.Equal(4, frame.ExifProfile.GetValue<ushort>(ExifTag.Rating).Value);
+                Assert.Equal(75, frame.ExifProfile.GetValue<ushort>(ExifTag.RatingPercent).Value);
             }
         }
 
@@ -191,14 +196,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(2, image.Frames.Count);
 
                 TiffFrameMetadata frame0 = image.Frames[0].Metadata.GetTiffMetadata();
-                Assert.Equal(TiffNewSubfileType.FullImage, frame0.NewSubfileType);
-                Assert.Null(frame0.SubfileType);
+                Assert.Equal(TiffNewSubfileType.FullImage, frame0.SubfileType);
+                Assert.Null(frame0.OldSubfileType);
                 Assert.Equal(255u, frame0.Width);
                 Assert.Equal(255u, frame0.Height);
 
                 TiffFrameMetadata frame1 = image.Frames[1].Metadata.GetTiffMetadata();
-                Assert.Equal(TiffNewSubfileType.Preview, frame1.NewSubfileType);
-                Assert.Equal(TiffSubfileType.Preview, frame1.SubfileType);
+                Assert.Equal(TiffNewSubfileType.Preview, frame1.SubfileType);
+                Assert.Null(frame1.OldSubfileType);
                 Assert.Equal(255u, frame1.Width);
                 Assert.Equal(255u, frame1.Height);
             }

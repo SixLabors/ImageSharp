@@ -569,13 +569,15 @@ namespace SixLabors.ImageSharp.Tests
             public const string FillOrder2 = "Tiff/b0350_fillorder2.tiff";
             public const string LittleEndianByteOrder = "Tiff/little_endian.tiff";
 
+            public const string Fax4_Motorola = "Tiff/moy.tiff";
+
             public const string SampleMetadata = "Tiff/metadata_sample.tiff";
 
             public static readonly string[] Multiframes = { MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
 
             public static readonly string[] Metadata = { SampleMetadata };
 
-            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, FillOrder2 };
+            public static readonly string[] NotSupported = { Calliphora_RgbJpeg, RgbJpeg, RgbUncompressedTiled, MultiframeDifferentSize, MultiframeDifferentVariants, FillOrder2, Calliphora_Fax4Compressed, Fax4_Motorola };
         }
     }
 }

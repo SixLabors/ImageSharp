@@ -39,10 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFileCollection(nameof(NotSupportedImages), PixelTypes.Rgba32)]
         public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
-        }
+        where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder));
 
         [Theory]
         [InlineData(TestImages.Tiff.RgbUncompressed, 24, 256, 256, 300, 300, PixelResolutionUnit.PixelsPerInch)]
@@ -91,10 +88,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_Uncompressed<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            TestTiffDecoder(provider);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
@@ -103,10 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(RgbPaletteDeflate, PixelTypes.Rgba32)]
         [WithFile(PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_WithPalette<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            TestTiffDecoder(provider);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(GrayscaleDeflateMultistrip, PixelTypes.Rgba32)]
@@ -118,10 +109,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(RgbDeflatePredictor, PixelTypes.Rgba32)]
         [WithFile(SmallRgbDeflate, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_DeflateCompressed<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            TestTiffDecoder(provider);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(RgbLzwPredictor, PixelTypes.Rgba32)]
@@ -134,10 +122,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Calliphora_GrayscaleLzw_Predictor, PixelTypes.Rgba32)]
         [WithFile(SmallRgbLzw, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_LzwCompressed<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            TestTiffDecoder(provider);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(HuffmanRleAllTermCodes, PixelTypes.Rgba32)]
@@ -145,30 +130,22 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(HuffmanRle_basi3p02, PixelTypes.Rgba32)]
         [WithFile(Calliphora_HuffmanCompressed, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_HuffmanCompressed<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            TestTiffDecoder(provider);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(CcittFax3AllTermCodes, PixelTypes.Rgba32)]
         [WithFile(CcittFax3AllMakeupCodes, PixelTypes.Rgba32)]
         [WithFile(Calliphora_Fax3Compressed, PixelTypes.Rgba32)]
+        [WithFile(Calliphora_Fax3Compressed_WithEolPadding, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_Fax3Compressed<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            TestTiffDecoder(provider);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFile(Calliphora_RgbPackbits, PixelTypes.Rgba32)]
         [WithFile(RgbPackbits, PixelTypes.Rgba32)]
         [WithFile(RgbPackbitsMultistrip, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_PackBitsCompressed<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            TestTiffDecoder(provider);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
         [Theory]
         [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]

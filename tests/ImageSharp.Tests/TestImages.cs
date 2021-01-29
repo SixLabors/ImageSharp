@@ -415,6 +415,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
                 public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
                 public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
+                public const string Issue1505 = "Gif/issues/issue1505_argumentoutofrange.png";
             }
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };
@@ -521,6 +522,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Calliphora_RgbPackbits = "Tiff/Calliphora_rgb_packbits.tiff";
             public const string Calliphora_RgbUncompressed = "Tiff/Calliphora_rgb_uncompressed.tiff";
             public const string Calliphora_Fax3Compressed = "Tiff/Calliphora_ccitt_fax3.tiff";
+            public const string Calliphora_Fax3Compressed_WithEolPadding = "Tiff/Calliphora_ccitt_fax3_with_eol_padding.tiff";
             public const string Calliphora_Fax4Compressed = "Tiff/Calliphora_ccitt_fax4.tiff";
             public const string Calliphora_HuffmanCompressed = "Tiff/Calliphora_huffman_rle.tiff";
             public const string Calliphora_BiColorUncompressed = "Tiff/Calliphora_bicolor_uncompressed.tiff";

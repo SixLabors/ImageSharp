@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     internal class TiffDecoderCore : IImageDecoderInternals
     {
         /// <summary>
-        /// The global configuration
+        /// The global configuration.
         /// </summary>
         private readonly Configuration configuration;
 
@@ -60,6 +60,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// </summary>
         public ushort[] BitsPerSample { get; set; }
 
+        /// <summary>
+        /// Gets or sets the bits per pixel.
+        /// </summary>
         public int BitsPerPixel { get; set; }
 
         /// <summary>
@@ -78,6 +81,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public TiffDecoderCompressionType CompressionType { get; set; }
 
         /// <summary>
+        /// Gets or sets the Fax specific compression options.
+        /// </summary>
+        public FaxCompressionOptions FaxCompressionOptions { get; set; }
+
+        /// <summary>
         /// Gets or sets the planar configuration type to use when decoding the image.
         /// </summary>
         public TiffPlanarConfiguration PlanarConfiguration { get; set; }
@@ -88,7 +96,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public TiffPhotometricInterpretation PhotometricInterpretation { get; set; }
 
         /// <summary>
-        /// Gets or sets the predictor.
+        /// Gets or sets the horizontal predictor.
         /// </summary>
         public TiffPredictor Predictor { get; set; }
 
@@ -284,7 +292,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     stripBuffers[stripIndex] = this.memoryAllocator.AllocateManagedByteBuffer(uncompressedStripSize);
                 }
 
-                TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, this.Predictor);
+                TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
 
                 RgbPlanarTiffColor<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap);
 
@@ -321,7 +329,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
-            TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, this.Predictor);
+            TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
 
             TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap);
 

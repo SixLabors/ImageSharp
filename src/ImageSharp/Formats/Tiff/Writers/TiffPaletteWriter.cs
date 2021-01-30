@@ -8,27 +8,29 @@ using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 {
     /// <summary>
     /// Utility class for writing TIFF data to a <see cref="Stream"/>.
     /// </summary>
-    internal class TiffPaletteWriter : TiffWriter
+    internal class TiffPaletteWriter : TiffBaseColorWriter
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="TiffPaletteWriter"/> class.
+        /// Initializes a new instance of the <see cref="TiffPaletteWriter" /> class.
         /// </summary>
         /// <param name="output">The output stream.</param>
-        /// <param name="memoryMemoryAllocator">The memory allocator.</param>
+        /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="configuration">The configuration.</param>
-        public TiffPaletteWriter(Stream output, MemoryAllocator memoryMemoryAllocator, Configuration configuration)
-             : base(output, memoryMemoryAllocator, configuration)
+        /// <param name="entriesCollector">The entries collector.</param>
+        public TiffPaletteWriter(TiffStreamWriter output, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
+             : base(output, memoryAllocator, configuration, entriesCollector)
         {
         }
 
@@ -41,10 +43,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <param name="compression">The compression to use.</param>
         /// <param name="compressionLevel">The compression level for deflate compression.</param>
         /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used. Should only be used in combination with deflate or LZW compression.</param>
-        /// <param name="entriesCollector">The entries collector.</param>
-        /// <returns>The number of bytes written.</returns>
-        public int WritePalettedRgb<TPixel>(Image<TPixel> image, IQuantizer quantizer, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor, TiffEncoderEntriesCollector entriesCollector)
-            where TPixel : unmanaged, IPixel<TPixel>
+        /// <returns>
+        /// The number of bytes written.
+        /// </returns>
+        public override int Write<TPixel>(Image<TPixel> image, IQuantizer quantizer, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor)
         {
             int colorsPerChannel = 256;
             int colorPaletteSize = colorsPerChannel * 3;
@@ -93,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                 Value = palette
             };
 
-            entriesCollector.Add(colorMap);
+            this.EntriesCollector.Add(colorMap);
 
             if (compression == TiffEncoderCompression.Deflate)
             {

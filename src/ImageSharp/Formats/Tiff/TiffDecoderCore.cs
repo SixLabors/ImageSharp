@@ -35,6 +35,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         private BufferedReadStream inputStream;
 
         /// <summary>
+        /// RowsPerStrip default value, which is effectively infinity.
+        /// </summary>
+        private const int RowsPerStripInfinity = 2147483647;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -281,6 +286,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts, int width)
            where TPixel : unmanaged, IPixel<TPixel>
         {
+            // If the rowsPerStrip has the default value, which is effectively infinity. That is, the entire image is one strip.
+            if (rowsPerStrip == RowsPerStripInfinity)
+            {
+                rowsPerStrip = frame.Height;
+            }
+
             int uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip);
             int bitsPerPixel = this.BitsPerPixel;
 

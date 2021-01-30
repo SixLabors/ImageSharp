@@ -137,6 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(CcittFax3AllMakeupCodes, PixelTypes.Rgba32)]
         [WithFile(Calliphora_Fax3Compressed, PixelTypes.Rgba32)]
         [WithFile(Calliphora_Fax3Compressed_WithEolPadding, PixelTypes.Rgba32)]
+        [WithFile(Fax3Uncompressed, PixelTypes.Rgba32)]
         public void TiffDecoder_CanDecode_Fax3Compressed<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 

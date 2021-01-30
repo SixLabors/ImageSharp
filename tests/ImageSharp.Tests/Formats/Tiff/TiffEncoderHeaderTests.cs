@@ -5,6 +5,7 @@ using System.IO;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
 
 using Xunit;
@@ -24,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             using var stream = new MemoryStream();
             var encoder = new TiffEncoderCore(Options, MemoryAllocator);
 
-            using (var writer = new TiffWriter(stream, MemoryAllocator, Configuration))
+            using (var writer = new TiffStreamWriter(stream))
             {
                 long firstIfdMarker = encoder.WriteHeader(writer);
             }
@@ -38,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             using var stream = new MemoryStream();
             var encoder = new TiffEncoderCore(Options, MemoryAllocator);
 
-            using (var writer = new TiffWriter(stream, MemoryAllocator, Configuration))
+            using (var writer = new TiffStreamWriter(stream))
             {
                 long firstIfdMarker = encoder.WriteHeader(writer);
                 Assert.Equal(4, firstIfdMarker);

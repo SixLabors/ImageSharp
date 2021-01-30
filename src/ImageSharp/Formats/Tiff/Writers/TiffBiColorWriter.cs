@@ -11,16 +11,17 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 {
     /// <summary>
     /// Utility class for writing TIFF data to a <see cref="Stream"/>.
     /// </summary>
-    internal class TiffBiColorWriter : TiffWriter
+    internal class TiffBiColorWriter : TiffBaseColorWriter
     {
-        public TiffBiColorWriter(Stream output, MemoryAllocator memoryAllocator, Configuration configuration)
-            : base(output, memoryAllocator, configuration)
+        public TiffBiColorWriter(TiffStreamWriter output, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
+            : base(output, memoryAllocator, configuration, entriesCollector)
         {
         }
 
@@ -29,11 +30,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// </summary>
         /// <typeparam name="TPixel">The pixel data.</typeparam>
         /// <param name="image">The image to write to the stream.</param>
+        /// <param name="quantizer">The quantizer.</param>
         /// <param name="compression">The compression to use.</param>
         /// <param name="compressionLevel">The compression level for deflate compression.</param>
-        /// <returns>The number of bytes written.</returns>
-        public int WriteBiColor<TPixel>(Image<TPixel> image, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel)
-            where TPixel : unmanaged, IPixel<TPixel>
+        /// <param name="useHorizontalPredictor">if set to <c>true</c> [use horizontal predictor].</param>
+        /// <returns>
+        /// The number of bytes written.
+        /// </returns>
+        public override int Write<TPixel>(Image<TPixel> image, IQuantizer quantizer, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor)
         {
             int padding = image.Width % 8 == 0 ? 0 : 1;
             int bytesPerRow = (image.Width / 8) + padding;
@@ -60,13 +64,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             if (compression == TiffEncoderCompression.CcittGroup3Fax)
             {
                 var bitWriter = new T4BitWriter(this.MemoryAllocator, this.Configuration);
-                return bitWriter.CompressImage(imageBlackWhite, pixelRowAsGraySpan, this.Output);
+                return bitWriter.CompressImage(imageBlackWhite, pixelRowAsGraySpan, this.Output.BaseStream);
             }
 
             if (compression == TiffEncoderCompression.ModifiedHuffman)
             {
                 var bitWriter = new T4BitWriter(this.MemoryAllocator, this.Configuration, useModifiedHuffman: true);
-                return bitWriter.CompressImage(imageBlackWhite, pixelRowAsGraySpan, this.Output);
+                return bitWriter.CompressImage(imageBlackWhite, pixelRowAsGraySpan, this.Output.BaseStream);
             }
 
             // Write image uncompressed.
@@ -93,10 +97,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
                     }
                 }
 
-                this.Output.Write(row);
-                bytesWritten += row.Length();
+                this.Output.Write(outputRow);
+                bytesWritten += outputRow.Length;
 
-                row.Clear();
+                outputRow.Clear();
             }
 
             return bytesWritten;

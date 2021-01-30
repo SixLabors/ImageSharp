@@ -7,19 +7,21 @@ using System.IO;
 
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 {
     /// <summary>
     /// Utility class for writing TIFF data to a <see cref="Stream"/>.
     /// </summary>
-    internal class TiffGrayWriter : TiffWriter
+    internal class TiffGrayWriter : TiffBaseColorWriter
     {
-        public TiffGrayWriter(Stream output, MemoryAllocator memoryMemoryAllocator, Configuration configuration)
-            : base(output, memoryMemoryAllocator, configuration)
+        public TiffGrayWriter(TiffStreamWriter output, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
+            : base(output, memoryAllocator, configuration, entriesCollector)
         {
         }
 
@@ -28,12 +30,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// </summary>
         /// <typeparam name="TPixel">The pixel data.</typeparam>
         /// <param name="image">The image to write to the stream.</param>
+        /// <param name="quantizer">The quantizer.</param>
         /// <param name="compression">The compression to use.</param>
         /// <param name="compressionLevel">The compression level for deflate compression.</param>
         /// <param name="useHorizontalPredictor">Indicates if horizontal prediction should be used. Should only be used with deflate or lzw compression.</param>
-        /// <returns>The number of bytes written.</returns>
-        public int WriteGray<TPixel>(Image<TPixel> image, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor)
-        where TPixel : unmanaged, IPixel<TPixel>
+        /// <returns>
+        /// The number of bytes written.
+        /// </returns>
+        public override int Write<TPixel>(Image<TPixel> image, IQuantizer quantizer, TiffEncoderCompression compression, DeflateCompressionLevel compressionLevel, bool useHorizontalPredictor)
         {
             using IManagedByteBuffer row = this.MemoryAllocator.AllocateManagedByteBuffer(image.Width);
             Span<byte> rowSpan = row.GetSpan();

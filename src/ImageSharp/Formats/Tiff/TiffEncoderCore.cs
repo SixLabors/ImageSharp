@@ -9,7 +9,7 @@ using System.Threading;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             this.SetPhotometricInterpretation();
 
-            using (var writer = new TiffWriter(stream, this.memoryAllocator, this.configuration))
+            using (var writer = new TiffStreamWriter(stream))
             {
                 long firstIfdMarker = this.WriteHeader(writer);
 
@@ -134,9 +134,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Writes the TIFF file header.
         /// </summary>
-        /// <param name="writer">The <see cref="TiffWriter"/> to write data to.</param>
-        /// <returns>The marker to write the first IFD offset.</returns>
-        public long WriteHeader(TiffWriter writer)
+        /// <param name="writer">The <see cref="TiffStreamWriter" /> to write data to.</param>
+        /// <returns>
+        /// The marker to write the first IFD offset.
+        /// </returns>
+        public long WriteHeader(TiffStreamWriter writer)
         {
             writer.Write(ByteOrderMarker);
             writer.Write(TiffConstants.HeaderMagicNumber);
@@ -153,29 +155,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="ifdOffset">The marker to write this IFD offset.</param>
         /// <returns>The marker to write the next IFD offset (if present).</returns>
-        public long WriteImage<TPixel>(TiffWriter writer, Image<TPixel> image, long ifdOffset)
+        public long WriteImage<TPixel>(TiffStreamWriter writer, Image<TPixel> image, long ifdOffset)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var entriesCollector = new TiffEncoderEntriesCollector();
 
             // Write the image bytes to the steam.
             var imageDataStart = (uint)writer.Position;
-            int imageDataBytes;
-            switch (this.Mode)
-            {
-                case TiffEncodingMode.ColorPalette:
-                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.CompressionType, this.compressionLevel, this.UseHorizontalPredictor, entriesCollector);
-                    break;
-                case TiffEncodingMode.Gray:
-                    imageDataBytes = writer.WriteGray(image, this.CompressionType, this.compressionLevel, this.UseHorizontalPredictor);
-                    break;
-                case TiffEncodingMode.BiColor:
-                    imageDataBytes = writer.WriteBiColor(image, this.CompressionType, this.compressionLevel);
-                    break;
-                default:
-                    imageDataBytes = writer.WriteRgb(image, this.CompressionType, this.compressionLevel, this.UseHorizontalPredictor);
-                    break;
-            }
+
+            TiffBaseColorWriter colorWriter = TiffColorWriterFactory.Create(this.Mode, writer, this.memoryAllocator, this.configuration, entriesCollector);
+
+            int imageDataBytes = colorWriter.Write(image, this.quantizer, this.CompressionType, this.compressionLevel, this.UseHorizontalPredictor);
 
             this.AddStripTags(image, entriesCollector, imageDataStart, imageDataBytes);
             entriesCollector.ProcessImageFormat(this);
@@ -193,7 +183,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
         /// <param name="entries">The IFD entries to write to the file.</param>
         /// <returns>The marker to write the next IFD offset (if present).</returns>
-        public long WriteIfd(TiffWriter writer, List<IExifValue> entries)
+        public long WriteIfd(TiffStreamWriter writer, List<IExifValue> entries)
         {
             if (entries.Count == 0)
             {

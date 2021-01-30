@@ -5,27 +5,20 @@ using System;
 using System.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 {
     /// <summary>
     /// Utility class for writing TIFF data to a <see cref="Stream"/>.
     /// </summary>
-    internal class TiffWriter : IDisposable
+    internal class TiffStreamWriter : IDisposable
     {
         private static readonly byte[] PaddingBytes = new byte[4];
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TiffWriter"/> class.
+        /// Initializes a new instance of the <see cref="TiffStreamWriter"/> class.
         /// </summary>
         /// <param name="output">The output stream.</param>
-        /// <param name="memoryAllocator">The memory allocator.</param>
-        /// <param name="configuration">The configuration.</param>
-        public TiffWriter(Stream output, MemoryAllocator memoryAllocator, Configuration configuration)
-        {
-            this.Output = output;
-            this.MemoryAllocator = memoryAllocator;
-            this.Configuration = configuration;
-        }
+        public TiffStreamWriter(Stream output) => this.BaseStream = output;
 
         /// <summary>
         /// Gets a value indicating whether the architecture is little-endian.
@@ -35,9 +28,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <summary>
         /// Gets the current position within the stream.
         /// </summary>
-        public long Position => this.Output.Position;
+        public long Position => this.BaseStream.Position;
 
-        protected Stream Output { get; }
+        public Stream BaseStream { get; }
 
         protected MemoryAllocator MemoryAllocator { get; }
 
@@ -49,7 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <returns>The offset to be written later</returns>
         public long PlaceMarker()
         {
-            long offset = this.Output.Position;
+            long offset = this.BaseStream.Position;
             this.Write(0u);
             return offset;
         }
@@ -58,13 +51,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// Writes an array of bytes to the current stream.
         /// </summary>
         /// <param name="value">The bytes to write.</param>
-        public void Write(byte[] value) => this.Output.Write(value, 0, value.Length);
+        public void Write(byte[] value) => this.BaseStream.Write(value, 0, value.Length);
+
+        public void Write(ReadOnlySpan<byte> value) => this.BaseStream.Write(value);
 
         /// <summary>
         /// Writes a byte to the current stream.
         /// </summary>
         /// <param name="value">The byte to write.</param>
-        public void Write(byte value) => this.Output.Write(new byte[] { value }, 0, 1);
+        public void Write(byte value) => this.BaseStream.Write(new byte[] { value }, 0, 1);
 
         /// <summary>
         /// Writes a two-byte unsigned integer to the current stream.
@@ -73,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         public void Write(ushort value)
         {
             byte[] bytes = BitConverter.GetBytes(value);
-            this.Output.Write(bytes, 0, 2);
+            this.BaseStream.Write(bytes, 0, 2);
         }
 
         /// <summary>
@@ -83,7 +78,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         public void Write(uint value)
         {
             byte[] bytes = BitConverter.GetBytes(value);
-            this.Output.Write(bytes, 0, 4);
+            this.BaseStream.Write(bytes, 0, 4);
         }
 
         /// <summary>
@@ -92,11 +87,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <param name="value">The bytes to write.</param>
         public void WritePadded(byte[] value)
         {
-            this.Output.Write(value, 0, value.Length);
+            this.BaseStream.Write(value, 0, value.Length);
 
             if (value.Length < 4)
             {
-                this.Output.Write(PaddingBytes, 0, 4 - value.Length);
+                this.BaseStream.Write(PaddingBytes, 0, 4 - value.Length);
             }
         }
 
@@ -107,15 +102,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <param name="value">The four-byte unsigned integer to write.</param>
         public void WriteMarker(long offset, uint value)
         {
-            long currentOffset = this.Output.Position;
-            this.Output.Seek(offset, SeekOrigin.Begin);
+            long currentOffset = this.BaseStream.Position;
+            this.BaseStream.Seek(offset, SeekOrigin.Begin);
             this.Write(value);
-            this.Output.Seek(currentOffset, SeekOrigin.Begin);
+            this.BaseStream.Seek(currentOffset, SeekOrigin.Begin);
         }
 
         /// <summary>
-        /// Disposes <see cref="TiffWriter"/> instance, ensuring any unwritten data is flushed.
+        /// Disposes <see cref="TiffStreamWriter"/> instance, ensuring any unwritten data is flushed.
         /// </summary>
-        public void Dispose() => this.Output.Flush();
+        public void Dispose() => this.BaseStream.Flush();
     }
 }

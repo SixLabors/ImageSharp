@@ -522,6 +522,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Calliphora_RgbPackbits = "Tiff/Calliphora_rgb_packbits.tiff";
             public const string Calliphora_RgbUncompressed = "Tiff/Calliphora_rgb_uncompressed.tiff";
             public const string Calliphora_Fax3Compressed = "Tiff/Calliphora_ccitt_fax3.tiff";
+            public const string Fax3Uncompressed = "Tiff/ccitt_fax3_uncompressed.tiff";
             public const string Calliphora_Fax3Compressed_WithEolPadding = "Tiff/Calliphora_ccitt_fax3_with_eol_padding.tiff";
             public const string Calliphora_Fax4Compressed = "Tiff/Calliphora_ccitt_fax4.tiff";
             public const string Calliphora_HuffmanCompressed = "Tiff/Calliphora_huffman_rle.tiff";

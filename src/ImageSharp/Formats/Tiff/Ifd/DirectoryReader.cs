@@ -46,7 +46,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 return ByteOrder.BigEndian;
             }
 
-            throw TiffThrowHelper.InvalidHeader();
+            throw TiffThrowHelper.ThrowInvalidHeader();
         }
 
         private IEnumerable<ExifProfile> ReadIfds()
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 readers.Add(reader);
             }
 
-            // sequential reading big values
+            // Sequential reading big values.
             foreach (Action loader in this.lazyLoaders.Values)
             {
                 loader();
@@ -78,7 +78,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             return list;
         }
 
-        /// <summary><see cref="DuplicateKeyComparer{TKey}"/> used for possiblity add a duplicate offsets (but tags don't duplicate).</summary>
+        /// <summary>
+        /// <see cref="DuplicateKeyComparer{TKey}"/> used for possibility add a duplicate offsets (but tags don't duplicate).
+        /// </summary>
         /// <typeparam name="TKey">The type of the key.</typeparam>
         private class DuplicateKeyComparer<TKey> : IComparer<TKey>
             where TKey : IComparable
@@ -87,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             {
                 int result = x.CompareTo(y);
 
-                // Handle equality as beeing greater
+                // Handle equality as being greater.
                 return (result == 0) ? 1 : result;
             }
         }

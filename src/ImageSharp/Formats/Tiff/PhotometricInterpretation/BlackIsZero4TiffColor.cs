@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 {
     /// <summary>
-    /// Implements the 'BlackIsZero' photometric interpretation (optimised for 4-bit grayscale images).
+    /// Implements the 'BlackIsZero' photometric interpretation (optimized for 4-bit grayscale images).
     /// </summary>
     internal class BlackIsZero4TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>

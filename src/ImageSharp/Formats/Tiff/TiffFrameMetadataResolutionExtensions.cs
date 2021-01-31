@@ -37,14 +37,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         public static PixelResolutionUnit GetResolutionUnit(this TiffFrameMetadata meta)
         {
-            ushort res = meta.ExifProfile.GetValue<ushort>(ExifTag.ResolutionUnit)?.Value ?? TiffFrameMetadata.DefaultResolutionUnit;
+            ushort res = meta.ExifProfile.GetValue(ExifTag.ResolutionUnit)?.Value ?? TiffFrameMetadata.DefaultResolutionUnit;
 
             return (PixelResolutionUnit)(res - 1);
         }
 
         public static double? GetResolution(this TiffFrameMetadata meta, ExifTag<Rational> tag)
         {
-            IExifValue<Rational> resolution = meta.ExifProfile.GetValue<Rational>(tag);
+            IExifValue<Rational> resolution = meta.ExifProfile.GetValue(tag);
             if (resolution == null)
             {
                 return null;
@@ -73,27 +73,25 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 meta.ExifProfile.RemoveValue(tag);
                 return;
             }
-            else
-            {
-                double res = value.Value;
-                switch (meta.ResolutionUnit)
-                {
-                    case PixelResolutionUnit.AspectRatio:
-                        res = 0;
-                        break;
-                    case PixelResolutionUnit.PixelsPerCentimeter:
-                        res = UnitConverter.InchToCm(res);
-                        break;
-                    case PixelResolutionUnit.PixelsPerMeter:
-                        res = UnitConverter.InchToMeter(res);
-                        break;
-                    case PixelResolutionUnit.PixelsPerInch:
-                    default:
-                        break;
-                }
 
-                meta.ExifProfile.SetValue(tag, new Rational(res));
+            double res = value.Value;
+            switch (meta.ResolutionUnit)
+            {
+                case PixelResolutionUnit.AspectRatio:
+                    res = 0;
+                    break;
+                case PixelResolutionUnit.PixelsPerCentimeter:
+                    res = UnitConverter.InchToCm(res);
+                    break;
+                case PixelResolutionUnit.PixelsPerMeter:
+                    res = UnitConverter.InchToMeter(res);
+                    break;
+                case PixelResolutionUnit.PixelsPerInch:
+                default:
+                    break;
             }
+
+            meta.ExifProfile.SetValue(tag, new Rational(res));
         }
     }
 }

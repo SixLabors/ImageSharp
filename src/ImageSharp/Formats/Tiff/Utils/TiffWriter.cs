@@ -69,19 +69,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// Writes an array of bytes to the current stream.
         /// </summary>
         /// <param name="value">The bytes to write.</param>
-        public void Write(byte[] value)
-        {
-            this.output.Write(value, 0, value.Length);
-        }
+        public void Write(byte[] value) => this.output.Write(value, 0, value.Length);
 
         /// <summary>
         /// Writes a byte to the current stream.
         /// </summary>
         /// <param name="value">The byte to write.</param>
-        public void Write(byte value)
-        {
-            this.output.Write(new byte[] { value }, 0, 1);
-        }
+        public void Write(byte value) => this.output.Write(new[] { value }, 0, 1);
 
         /// <summary>
         /// Writes a two-byte unsigned integer to the current stream.
@@ -258,7 +252,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Worst case is that the actual compressed data is larger then the input data. In this case we need 1 additional byte per 127 bytes.
-            int additionalBytes = ((image.Width * 3) / 127) + 1;
+            int additionalBytes = (image.Width * 3 / 127) + 1;
             using IManagedByteBuffer compressedRow = this.memoryAllocator.AllocateManagedByteBuffer((image.Width * 3) + additionalBytes, AllocationOptions.Clean);
             Span<byte> compressedRowSpan = compressedRow.GetSpan();
             int bytesWritten = 0;
@@ -464,7 +458,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Worst case is that the actual compressed data is larger then the input data. In this case we need 1 additional byte per 127 bytes.
-            int additionalBytes = ((image.Width * 3) / 127) + 1;
+            int additionalBytes = (image.Width * 3 / 127) + 1;
             using IManagedByteBuffer compressedRow = this.memoryAllocator.AllocateManagedByteBuffer((image.Width * 3) + additionalBytes, AllocationOptions.Clean);
             Span<byte> compressedRowSpan = compressedRow.GetSpan();
 
@@ -806,9 +800,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <summary>
         /// Disposes <see cref="TiffWriter"/> instance, ensuring any unwritten data is flushed.
         /// </summary>
-        public void Dispose()
-        {
-            this.output.Flush();
-        }
+        public void Dispose() => this.output.Flush();
     }
 }

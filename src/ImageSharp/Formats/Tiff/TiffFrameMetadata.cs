@@ -39,23 +39,27 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             internal set => this.frameTags = value;
         }
 
-        /// <summary>Gets a general indication of the kind of data contained in this subfile.</summary>
+        /// <summary>
+        /// Gets a general indication of the kind of data contained in this subfile.
+        /// </summary>
         /// <value>A general indication of the kind of data contained in this subfile.</value>
-        public TiffNewSubfileType SubfileType => (TiffNewSubfileType?)this.ExifProfile.GetValue<uint>(ExifTag.SubfileType)?.Value ?? TiffNewSubfileType.FullImage;
+        public TiffNewSubfileType SubfileType => (TiffNewSubfileType?)this.ExifProfile.GetValue(ExifTag.SubfileType)?.Value ?? TiffNewSubfileType.FullImage;
 
-        /// <summary>Gets a general indication of the kind of data contained in this subfile.</summary>
+        /// <summary>
+        /// Gets a general indication of the kind of data contained in this subfile.
+        /// </summary>
         /// <value>A general indication of the kind of data contained in this subfile.</value>
-        public TiffSubfileType? OldSubfileType => (TiffSubfileType?)this.ExifProfile.GetValue<ushort>(ExifTag.OldSubfileType)?.Value;
+        public TiffSubfileType? OldSubfileType => (TiffSubfileType?)this.ExifProfile.GetValue(ExifTag.OldSubfileType)?.Value;
 
         /// <summary>
         /// Gets the number of columns in the image, i.e., the number of pixels per row.
         /// </summary>
-        public Number Width => this.ExifProfile.GetValue<Number>(ExifTag.ImageWidth).Value;
+        public Number Width => this.ExifProfile.GetValue(ExifTag.ImageWidth).Value;
 
         /// <summary>
         /// Gets the number of rows of pixels in the image.
         /// </summary>
-        public Number Height => this.ExifProfile.GetValue<Number>(ExifTag.ImageLength).Value;
+        public Number Height => this.ExifProfile.GetValue(ExifTag.ImageLength).Value;
 
         /// <summary>
         /// Gets the number of bits per component.
@@ -64,7 +68,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         {
             get
             {
-                var bits = this.ExifProfile.GetValue<ushort[]>(ExifTag.BitsPerSample)?.Value;
+                var bits = this.ExifProfile.GetValue(ExifTag.BitsPerSample)?.Value;
                 if (bits == null)
                 {
                     if (this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero
@@ -96,19 +100,21 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             }
         }
 
-        /// <summary>Gets the compression scheme used on the image data.</summary>
+        /// <summary>
+        /// Gets the compression scheme used on the image data.
+        /// </summary>
         /// <value>The compression scheme used on the image data.</value>
-        public TiffCompression Compression => (TiffCompression)this.ExifProfile.GetValue<ushort>(ExifTag.Compression).Value;
+        public TiffCompression Compression => (TiffCompression)this.ExifProfile.GetValue(ExifTag.Compression).Value;
 
         /// <summary>
         /// Gets the color space of the image data.
         /// </summary>
-        public TiffPhotometricInterpretation PhotometricInterpretation => (TiffPhotometricInterpretation)this.ExifProfile.GetValue<ushort>(ExifTag.PhotometricInterpretation).Value;
+        public TiffPhotometricInterpretation PhotometricInterpretation => (TiffPhotometricInterpretation)this.ExifProfile.GetValue(ExifTag.PhotometricInterpretation).Value;
 
         /// <summary>
         /// Gets the logical order of bits within a byte.
         /// </summary>
-        internal TiffFillOrder FillOrder => (TiffFillOrder?)this.ExifProfile.GetValue<ushort>(ExifTag.FillOrder)?.Value ?? TiffFillOrder.MostSignificantBitFirst;
+        internal TiffFillOrder FillOrder => (TiffFillOrder?)this.ExifProfile.GetValue(ExifTag.FillOrder)?.Value ?? TiffFillOrder.MostSignificantBitFirst;
 
         /// <summary>
         /// Gets or sets the a string that describes the subject of the image.
@@ -137,25 +143,29 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             set => this.ExifProfile.SetValue(ExifTag.Model, value);
         }
 
-        /// <summary>Gets for each strip, the byte offset of that strip..</summary>
-        public Number[] StripOffsets => this.ExifProfile.GetValue<Number[]>(ExifTag.StripOffsets).Value;
+        /// <summary>
+        /// Gets for each strip, the byte offset of that strip.
+        /// </summary>
+        public Number[] StripOffsets => this.ExifProfile.GetValue(ExifTag.StripOffsets).Value;
 
         /// <summary>
         /// Gets the number of components per pixel.
         /// </summary>
-        public ushort SamplesPerPixel => this.ExifProfile.GetValue<ushort>(ExifTag.SamplesPerPixel).Value;
+        public ushort SamplesPerPixel => this.ExifProfile.GetValue(ExifTag.SamplesPerPixel).Value;
 
         /// <summary>
         /// Gets the number of rows per strip.
         /// </summary>
-        public Number RowsPerStrip => this.ExifProfile.GetValue<Number>(ExifTag.RowsPerStrip).Value;
+        public Number RowsPerStrip => this.ExifProfile.GetValue(ExifTag.RowsPerStrip).Value;
 
         /// <summary>
         /// Gets for each strip, the number of bytes in the strip after compression.
         /// </summary>
-        public Number[] StripByteCounts => this.ExifProfile.GetValue<Number[]>(ExifTag.StripByteCounts).Value;
+        public Number[] StripByteCounts => this.ExifProfile.GetValue(ExifTag.StripByteCounts).Value;
 
-        /// <summary>Gets the resolution of the image in x- direction.</summary>
+        /// <summary>
+        /// Gets the resolution of the image in x- direction.
+        /// </summary>
         /// <value>The density of the image in x- direction.</value>
         public double? HorizontalResolution => this.GetResolution(ExifTag.XResolution);
 
@@ -168,7 +178,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets how the components of each pixel are stored.
         /// </summary>
-        public TiffPlanarConfiguration PlanarConfiguration => (TiffPlanarConfiguration?)this.ExifProfile.GetValue<ushort>(ExifTag.PlanarConfiguration)?.Value ?? DefaultPlanarConfiguration;
+        public TiffPlanarConfiguration PlanarConfiguration => (TiffPlanarConfiguration?)this.ExifProfile.GetValue(ExifTag.PlanarConfiguration)?.Value ?? DefaultPlanarConfiguration;
 
         /// <summary>
         /// Gets the unit of measurement for XResolution and YResolution.
@@ -214,12 +224,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets a color map for palette color images.
         /// </summary>
-        public ushort[] ColorMap => this.ExifProfile.GetValue<ushort[]>(ExifTag.ColorMap)?.Value;
+        public ushort[] ColorMap => this.ExifProfile.GetValue(ExifTag.ColorMap)?.Value;
 
         /// <summary>
         /// Gets the description of extra components.
         /// </summary>
-        public ushort[] ExtraSamples => this.ExifProfile.GetValue<ushort[]>(ExifTag.ExtraSamples)?.Value;
+        public ushort[] ExtraSamples => this.ExifProfile.GetValue(ExifTag.ExtraSamples)?.Value;
 
         /// <summary>
         /// Gets or sets the copyright notice.
@@ -233,13 +243,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets a mathematical operator that is applied to the image data before an encoding scheme is applied.
         /// </summary>
-        public TiffPredictor Predictor => (TiffPredictor?)this.ExifProfile.GetValue<ushort>(ExifTag.Predictor)?.Value ?? DefaultPredictor;
+        public TiffPredictor Predictor => (TiffPredictor?)this.ExifProfile.GetValue(ExifTag.Predictor)?.Value ?? DefaultPredictor;
 
         /// <summary>
         /// Gets the specifies how to interpret each data sample in a pixel.
         /// <see cref="SamplesPerPixel"/>
         /// </summary>
-        public TiffSampleFormat[] SampleFormat => this.ExifProfile.GetValue<ushort[]>(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
+        public TiffSampleFormat[] SampleFormat => this.ExifProfile.GetValue(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
 
         /// <summary>
         /// Clears the metadata.

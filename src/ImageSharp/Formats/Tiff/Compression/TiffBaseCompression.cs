@@ -15,42 +15,32 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
     /// </summary>
     internal abstract class TiffBaseCompression
     {
-        private readonly MemoryAllocator allocator;
-
-        private readonly TiffPhotometricInterpretation photometricInterpretation;
-
-        private readonly int width;
-
-        private readonly int bitsPerPixel;
-
-        private readonly TiffPredictor predictor;
-
-        protected TiffBaseCompression(MemoryAllocator allocator) => this.allocator = allocator;
+        protected TiffBaseCompression(MemoryAllocator allocator) => this.Allocator = allocator;
 
         protected TiffBaseCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
             : this(allocator)
         {
-            this.photometricInterpretation = photometricInterpretation;
-            this.width = width;
+            this.PhotometricInterpretation = photometricInterpretation;
+            this.Width = width;
         }
 
         protected TiffBaseCompression(MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor)
             : this(allocator)
         {
-            this.width = width;
-            this.bitsPerPixel = bitsPerPixel;
-            this.predictor = predictor;
+            this.Width = width;
+            this.BitsPerPixel = bitsPerPixel;
+            this.Predictor = predictor;
         }
 
-        protected MemoryAllocator Allocator => this.allocator;
+        protected MemoryAllocator Allocator { get; }
 
-        protected TiffPhotometricInterpretation PhotometricInterpretation => this.photometricInterpretation;
+        protected TiffPhotometricInterpretation PhotometricInterpretation { get; }
 
-        protected int Width => this.width;
+        protected int Width { get; }
 
-        protected int BitsPerPixel => this.bitsPerPixel;
+        protected int BitsPerPixel { get; }
 
-        protected TiffPredictor Predictor => this.predictor;
+        protected TiffPredictor Predictor { get; }
 
         /// <summary>
         /// Decompresses image data into the supplied buffer.

@@ -14,17 +14,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         BlackIsZero,
 
         /// <summary>
-        /// Grayscale:  0 is imaged as black. The maximum value is imaged as white. Optimised implementation for bilevel images.
+        /// Grayscale:  0 is imaged as black. The maximum value is imaged as white. Optimized implementation for bilevel images.
         /// </summary>
         BlackIsZero1,
 
         /// <summary>
-        /// Grayscale:  0 is imaged as black. The maximum value is imaged as white. Optimised implementation for 4-bit images.
+        /// Grayscale:  0 is imaged as black. The maximum value is imaged as white. Optimized implementation for 4-bit images.
         /// </summary>
         BlackIsZero4,
 
         /// <summary>
-        /// Grayscale:  0 is imaged as black. The maximum value is imaged as white. Optimised implementation for 8-bit images.
+        /// Grayscale:  0 is imaged as black. The maximum value is imaged as white. Optimized implementation for 8-bit images.
         /// </summary>
         BlackIsZero8,
 
@@ -34,17 +34,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         WhiteIsZero,
 
         /// <summary>
-        /// Grayscale:  0 is imaged as white. The maximum value is imaged as black. Optimised implementation for bilevel images.
+        /// Grayscale:  0 is imaged as white. The maximum value is imaged as black. Optimized implementation for bilevel images.
         /// </summary>
         WhiteIsZero1,
 
         /// <summary>
-        /// Grayscale:  0 is imaged as white. The maximum value is imaged as black. Optimised implementation for 4-bit images.
+        /// Grayscale:  0 is imaged as white. The maximum value is imaged as black. Optimized implementation for 4-bit images.
         /// </summary>
         WhiteIsZero4,
 
         /// <summary>
-        /// Grayscale:  0 is imaged as white. The maximum value is imaged as black. Optimised implementation for 8-bit images.
+        /// Grayscale:  0 is imaged as white. The maximum value is imaged as black. Optimized implementation for 8-bit images.
         /// </summary>
         WhiteIsZero8,
 
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         Rgb,
 
         /// <summary>
-        /// RGB Full Color. Optimised implementation for 8-bit images.
+        /// RGB Full Color. Optimized implementation for 8-bit images.
         /// </summary>
         Rgb888,
 

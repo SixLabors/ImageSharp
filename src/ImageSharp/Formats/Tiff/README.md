@@ -25,11 +25,6 @@
 
 ## Implementation Status
 
-### Know issue which need to be fixed
-
-Decoder:
-- Decoding compressed images with HorizontalPrediction: Works for deflate, but not for lzw (maybe an issue with lzw itself?).
-
 ### Deviations from the TIFF spec (to be fixed)
 
 - Decoder

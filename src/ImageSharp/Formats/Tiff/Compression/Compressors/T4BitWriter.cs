@@ -9,7 +9,7 @@ using System.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
 {
     /// <summary>
     /// Bitwriter for writing compressed CCITT T4 1D data.

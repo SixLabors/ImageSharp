@@ -3,8 +3,7 @@
 
 using System.Collections.Generic;
 using System.Threading;
-
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -251,7 +250,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     stripBuffers[stripIndex] = this.memoryAllocator.AllocateManagedByteBuffer(uncompressedStripSize);
                 }
 
-                TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
+                TiffBaseCompression decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
 
                 RgbPlanarTiffColor<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap);
 
@@ -294,7 +293,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
-            TiffBaseCompression decompressor = TiffCompressionFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
+            TiffBaseCompression decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
 
             TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap);
 

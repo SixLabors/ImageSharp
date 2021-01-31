@@ -1,4 +1,4 @@
-﻿# Encoder/Decoder for true vision targa files
+# Encoder/Decoder for true vision targa files
 
 Useful links for reference:
 

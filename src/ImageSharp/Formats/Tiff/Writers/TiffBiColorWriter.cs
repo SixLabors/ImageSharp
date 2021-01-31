@@ -6,7 +6,7 @@ using System.Buffers;
 using System.IO;
 
 using SixLabors.ImageSharp.Compression.Zlib;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;

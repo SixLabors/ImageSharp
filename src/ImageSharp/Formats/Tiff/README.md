@@ -32,7 +32,6 @@
     - NB: Need to handle this for both planar and chunky data
   - If the SampleFormat field is present and not 1 - fail gracefully if you cannot handle this
   - Compression=None should treat 16/32-BitsPerSample for all samples as SHORT/LONG (for byte order and padding rows)
-  - RowsPerStrip should default to 2^32-1 (effectively infinity) to store the image as a single strip
   - Check Planar format data - is this encoded as strips in order RGBRGBRGB or RRRGGGBBB?
   - Make sure we ignore any strips that are not needed for the image (if too many are present)
 

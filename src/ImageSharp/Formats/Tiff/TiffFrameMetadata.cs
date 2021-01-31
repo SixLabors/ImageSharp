@@ -54,12 +54,36 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets the number of columns in the image, i.e., the number of pixels per row.
         /// </summary>
-        public Number Width => this.ExifProfile.GetValue(ExifTag.ImageWidth).Value;
+        public Number Width
+        {
+            get
+            {
+                IExifValue<Number> width = this.ExifProfile.GetValue(ExifTag.ImageWidth);
+                if (width == null)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("The TIFF image is missing the ImageWidth");
+                }
+
+                return width.Value;
+            }
+        }
 
         /// <summary>
         /// Gets the number of rows of pixels in the image.
         /// </summary>
-        public Number Height => this.ExifProfile.GetValue(ExifTag.ImageLength).Value;
+        public Number Height
+        {
+            get
+            {
+                IExifValue<Number> height = this.ExifProfile.GetValue(ExifTag.ImageLength);
+                if (height == null)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("The TIFF image is missing the ImageLength");
+                }
+
+                return height.Value;
+            }
+        }
 
         /// <summary>
         /// Gets the number of bits per component.
@@ -104,12 +128,36 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// Gets the compression scheme used on the image data.
         /// </summary>
         /// <value>The compression scheme used on the image data.</value>
-        public TiffCompression Compression => (TiffCompression)this.ExifProfile.GetValue(ExifTag.Compression).Value;
+        public TiffCompression Compression
+        {
+            get
+            {
+                IExifValue<ushort> compression = this.ExifProfile.GetValue(ExifTag.Compression);
+                if (compression == null)
+                {
+                    return TiffCompression.None;
+                }
+
+                return (TiffCompression)compression.Value;
+            }
+        }
 
         /// <summary>
         /// Gets the color space of the image data.
         /// </summary>
-        public TiffPhotometricInterpretation PhotometricInterpretation => (TiffPhotometricInterpretation)this.ExifProfile.GetValue(ExifTag.PhotometricInterpretation).Value;
+        public TiffPhotometricInterpretation PhotometricInterpretation
+        {
+            get
+            {
+                IExifValue<ushort> photometricInterpretation = this.ExifProfile.GetValue(ExifTag.PhotometricInterpretation);
+                if (photometricInterpretation == null)
+                {
+                    return TiffPhotometricInterpretation.WhiteIsZero;
+                }
+
+                return (TiffPhotometricInterpretation)photometricInterpretation.Value;
+            }
+        }
 
         /// <summary>
         /// Gets the logical order of bits within a byte.
@@ -156,7 +204,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets the number of rows per strip.
         /// </summary>
-        public Number RowsPerStrip => this.ExifProfile.GetValue(ExifTag.RowsPerStrip).Value;
+        public Number RowsPerStrip
+        {
+            get
+            {
+                IExifValue<Number> rowsPerStrip = this.ExifProfile.GetValue(ExifTag.RowsPerStrip);
+                if (rowsPerStrip == null)
+                {
+                    return TiffConstants.RowsPerStripInfinity;
+                }
+
+                return rowsPerStrip.Value;
+            }
+        }
 
         /// <summary>
         /// Gets for each strip, the number of bytes in the strip after compression.

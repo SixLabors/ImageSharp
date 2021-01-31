@@ -36,6 +36,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
         public const ushort HeaderMagicNumber = 42;
 
         /// <summary>
+        /// RowsPerStrip default value, which is effectively infinity.
+        /// </summary>
+        public const int RowsPerStripInfinity = 2147483647;
+
+        /// <summary>
         /// Size (in bytes) of the TIFF file header.
         /// </summary>
         public const int SizeOfTiffHeader = 8;

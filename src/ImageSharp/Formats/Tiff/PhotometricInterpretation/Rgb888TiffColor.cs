@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 {
     /// <summary>
-    /// Implements the 'RGB' photometric interpretation (optimised for 8-bit full color images).
+    /// Implements the 'RGB' photometric interpretation (optimized for 8-bit full color images).
     /// </summary>
     internal class Rgb888TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>

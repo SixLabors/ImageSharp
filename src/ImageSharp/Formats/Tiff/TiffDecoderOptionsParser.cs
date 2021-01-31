@@ -29,14 +29,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is not supported.");
             }
 
-            if (entries.ExifProfile.GetValue<uint[]>(ExifTag.TileOffsets) != null)
+            if (entries.ExifProfile.GetValue(ExifTag.TileOffsets) != null)
             {
-                TiffThrowHelper.ThrowNotSupported("The Tile images is not supported.");
+                TiffThrowHelper.ThrowNotSupported("Tiled images are not supported.");
             }
 
             if (entries.Predictor == TiffPredictor.FloatingPoint)
             {
-                TiffThrowHelper.ThrowNotSupported("ImageSharp does not support FloatingPoint Predictor images.");
+                TiffThrowHelper.ThrowNotSupported("TIFF images with FloatingPoint horizontal predictor are not supported.");
             }
 
             if (entries.SampleFormat != null)

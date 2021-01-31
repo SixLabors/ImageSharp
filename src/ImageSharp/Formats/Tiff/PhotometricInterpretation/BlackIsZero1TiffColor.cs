@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 {
     /// <summary>
-    /// Implements the 'BlackIsZero' photometric interpretation (optimised for bilevel images).
+    /// Implements the 'BlackIsZero' photometric interpretation (optimized for bilevel images).
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     internal class BlackIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>

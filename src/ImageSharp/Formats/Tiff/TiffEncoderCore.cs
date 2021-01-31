@@ -51,11 +51,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         private readonly IQuantizer quantizer;
 
         /// <summary>
-        /// Indicating whether to use horizontal prediction. This can improve the compression ratio with deflate compression.
-        /// </summary>
-        private readonly bool useHorizontalPredictor;
-
-        /// <summary>
         /// Sets the deflate compression level.
         /// </summary>
         private readonly DeflateCompressionLevel compressionLevel;
@@ -71,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             this.CompressionType = options.Compression;
             this.Mode = options.Mode;
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
-            this.useHorizontalPredictor = options.UseHorizontalPredictor;
+            this.UseHorizontalPredictor = options.UseHorizontalPredictor;
             this.compressionLevel = options.CompressionLevel;
         }
 
@@ -90,7 +85,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// </summary>
         internal TiffEncodingMode Mode { get; private set; }
 
-        internal bool UseHorizontalPredictor => this.useHorizontalPredictor;
+        /// <summary>
+        /// Gets a value indicating whether to use horizontal prediction. This can improve the compression ratio with deflate compression.
+        /// </summary>
+        internal bool UseHorizontalPredictor { get; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -166,16 +164,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             switch (this.Mode)
             {
                 case TiffEncodingMode.ColorPalette:
-                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor, entriesCollector);
+                    imageDataBytes = writer.WritePalettedRgb(image, this.quantizer, this.CompressionType, this.compressionLevel, this.UseHorizontalPredictor, entriesCollector);
                     break;
                 case TiffEncodingMode.Gray:
-                    imageDataBytes = writer.WriteGray(image, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor);
+                    imageDataBytes = writer.WriteGray(image, this.CompressionType, this.compressionLevel, this.UseHorizontalPredictor);
                     break;
                 case TiffEncodingMode.BiColor:
                     imageDataBytes = writer.WriteBiColor(image, this.CompressionType, this.compressionLevel);
                     break;
                 default:
-                    imageDataBytes = writer.WriteRgb(image, this.CompressionType, this.compressionLevel, this.useHorizontalPredictor);
+                    imageDataBytes = writer.WriteRgb(image, this.CompressionType, this.compressionLevel, this.UseHorizontalPredictor);
                     break;
             }
 
@@ -209,7 +207,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             writer.Write((ushort)entries.Count);
 
-            foreach (ExifValue entry in entries)
+            foreach (IExifValue entry in entries)
             {
                 writer.Write((ushort)entry.Tag);
                 writer.Write((ushort)entry.DataType);

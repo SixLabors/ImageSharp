@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 {
                     if (tiffMetadata.XmpProfile == null)
                     {
-                        IExifValue<byte[]> val = frame.ExifProfile.GetValue<byte[]>(ExifTag.XMP);
+                        IExifValue<byte[]> val = frame.ExifProfile.GetValue(ExifTag.XMP);
                         if (val != null)
                         {
                             tiffMetadata.XmpProfile = val.Value;
@@ -56,7 +56,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                     if (coreMetadata.IptcProfile == null)
                     {
-                        IExifValue<byte[]> val = frame.ExifProfile.GetValue<byte[]>(ExifTag.IPTC);
+                        IExifValue<byte[]> val = frame.ExifProfile.GetValue(ExifTag.IPTC);
                         if (val != null)
                         {
                             coreMetadata.IptcProfile = new IptcProfile(val.Value);
@@ -65,7 +65,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                     if (coreMetadata.IccProfile == null)
                     {
-                        IExifValue<byte[]> val = frame.ExifProfile.GetValue<byte[]>(ExifTag.IccProfile);
+                        IExifValue<byte[]> val = frame.ExifProfile.GetValue(ExifTag.IccProfile);
                         if (val != null)
                         {
                             coreMetadata.IccProfile = new IccProfile(val.Value);

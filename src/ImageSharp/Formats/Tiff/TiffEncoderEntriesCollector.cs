@@ -114,17 +114,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                 var xResolution = new ExifRational(ExifTagValue.XResolution)
                 {
-                    Value = frameMetadata.ExifProfile.GetValue<Rational>(ExifTag.XResolution).Value
+                    Value = frameMetadata.ExifProfile.GetValue(ExifTag.XResolution).Value
                 };
 
                 var yResolution = new ExifRational(ExifTagValue.YResolution)
                 {
-                    Value = frameMetadata.ExifProfile.GetValue<Rational>(ExifTag.YResolution).Value
+                    Value = frameMetadata.ExifProfile.GetValue(ExifTag.YResolution).Value
                 };
 
                 var resolutionUnit = new ExifShort(ExifTagValue.ResolutionUnit)
                 {
-                    Value = frameMetadata.ExifProfile.GetValue<ushort>(ExifTag.ResolutionUnit).Value
+                    Value = frameMetadata.ExifProfile.GetValue(ExifTag.ResolutionUnit).Value
                 };
 
                 this.collector.AddInternal(xResolution);

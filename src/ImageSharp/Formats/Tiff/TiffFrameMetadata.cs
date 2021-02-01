@@ -194,7 +194,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets for each strip, the byte offset of that strip.
         /// </summary>
-        public Number[] StripOffsets => this.ExifProfile.GetValue(ExifTag.StripOffsets).Value;
+        public Number[] StripOffsets
+        {
+            get
+            {
+                IExifValue<Number[]> stripOffsets = this.ExifProfile.GetValue(ExifTag.StripOffsets);
+                if (stripOffsets == null)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("StripOffsets are missing");
+                }
+
+                return stripOffsets.Value;
+            }
+        }
 
         /// <summary>
         /// Gets the number of components per pixel.
@@ -221,7 +233,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets for each strip, the number of bytes in the strip after compression.
         /// </summary>
-        public Number[] StripByteCounts => this.ExifProfile.GetValue(ExifTag.StripByteCounts).Value;
+        public Number[] StripByteCounts
+        {
+            get
+            {
+                IExifValue<Number[]> stripByteCounts = this.ExifProfile.GetValue(ExifTag.StripByteCounts);
+                if (stripByteCounts == null)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("StripByteCounts are missing");
+                }
+
+                return stripByteCounts.Value;
+            }
+        }
 
         /// <summary>
         /// Gets the resolution of the image in x- direction.

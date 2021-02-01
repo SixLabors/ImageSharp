@@ -4,6 +4,7 @@
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
 
 using Xunit;
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         public void IsLittleEndian_IsTrueOnWindows()
         {
             using var stream = new MemoryStream();
-            using var writer = new TiffWriter(stream, MemoryAllocator, Configuration);
+            using var writer = new TiffStreamWriter(stream);
             Assert.True(writer.IsLittleEndian);
         }
 
@@ -31,7 +32,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         public void Position_EqualsTheStreamPosition(byte[] data, long expectedResult)
         {
             using var stream = new MemoryStream();
-            using var writer = new TiffWriter(stream, MemoryAllocator, Configuration);
+            using var writer = new TiffStreamWriter(stream);
             writer.Write(data);
             Assert.Equal(writer.Position, expectedResult);
         }
@@ -40,7 +41,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         public void Write_WritesByte()
         {
             using var stream = new MemoryStream();
-            using var writer = new TiffWriter(stream, MemoryAllocator, Configuration);
+            using var writer = new TiffStreamWriter(stream);
             writer.Write((byte)42);
 
             Assert.Equal(new byte[] { 42 }, stream.ToArray());
@@ -50,7 +51,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         public void Write_WritesByteArray()
         {
             using var stream = new MemoryStream();
-            using var writer = new TiffWriter(stream, MemoryAllocator, Configuration);
+            using var writer = new TiffStreamWriter(stream);
             writer.Write(new byte[] { 2, 4, 6, 8 });
 
             Assert.Equal(new byte[] { 2, 4, 6, 8 }, stream.ToArray());
@@ -60,7 +61,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         public void Write_WritesUInt16()
         {
             using var stream = new MemoryStream();
-            using var writer = new TiffWriter(stream, MemoryAllocator, Configuration);
+            using var writer = new TiffStreamWriter(stream);
             writer.Write((ushort)1234);
 
             Assert.Equal(new byte[] { 0xD2, 0x04 }, stream.ToArray());
@@ -70,7 +71,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         public void Write_WritesUInt32()
         {
             using var stream = new MemoryStream();
-            using var writer = new TiffWriter(stream, MemoryAllocator, Configuration);
+            using var writer = new TiffStreamWriter(stream);
             writer.Write(12345678U);
 
             Assert.Equal(new byte[] { 0x4E, 0x61, 0xBC, 0x00 }, stream.ToArray());
@@ -86,7 +87,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         public void WritePadded_WritesByteArray(byte[] bytes, byte[] expectedResult)
         {
             using var stream = new MemoryStream();
-            using var writer = new TiffWriter(stream, MemoryAllocator, Configuration);
+            using var writer = new TiffStreamWriter(stream);
             writer.WritePadded(bytes);
 
             Assert.Equal(expectedResult, stream.ToArray());
@@ -97,7 +98,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         {
             using var stream = new MemoryStream();
 
-            using (var writer = new TiffWriter(stream, MemoryAllocator, Configuration))
+            using (var writer = new TiffStreamWriter(stream))
             {
                 writer.Write(0x11111111);
                 long marker = writer.PlaceMarker();

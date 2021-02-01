@@ -79,12 +79,14 @@ jobs:
             - name: Build
               shell: pwsh
               run: ./ci-build.ps1 "${{matrix.options.framework}}"
+              env:
+                SIXLABORS_TESTING: True
 
             - name: Test
               shell: pwsh
               run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
               env:
-                  CI: True
+                  SIXLABORS_TESTING: True
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
             - name: Export Failed Output

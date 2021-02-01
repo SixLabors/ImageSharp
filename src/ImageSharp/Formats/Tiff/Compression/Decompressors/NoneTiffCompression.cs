@@ -6,7 +6,7 @@ using System;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors
 {
     /// <summary>
     /// Class to handle cases where TIFF image data is not compressed.
@@ -23,9 +23,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         }
 
         /// <inheritdoc/>
-        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
-        {
-            _ = stream.Read(buffer, 0, byteCount);
-        }
+        protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer) => _ = stream.Read(buffer, 0, byteCount);
     }
 }

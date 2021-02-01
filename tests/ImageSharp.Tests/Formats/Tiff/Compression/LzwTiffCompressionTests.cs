@@ -3,8 +3,7 @@
 
 using System;
 using System.IO;
-
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.IO;

@@ -4,9 +4,9 @@
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors
 {
-    internal static class TiffCompressionFactory
+    internal static class TiffDecompressorsFactory
     {
         public static TiffBaseCompression Create(
             TiffDecoderCompressionType compressionType,

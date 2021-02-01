@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
         /// <param name="memoryAllocator">The memory allocator.</param>
         /// <param name="configuration">The configuration.</param>
         /// <param name="entriesCollector">The entries collector.</param>
-        public TiffBaseColorWriter(TiffStreamWriter output, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
+        protected TiffBaseColorWriter(TiffStreamWriter output, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
         {
             this.Output = output;
             this.MemoryAllocator = memoryAllocator;

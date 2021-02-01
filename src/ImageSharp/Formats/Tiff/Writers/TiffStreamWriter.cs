@@ -30,11 +30,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
         /// </summary>
         public long Position => this.BaseStream.Position;
 
+        /// <summary>
+        /// Gets the base stream.
+        /// </summary>
         public Stream BaseStream { get; }
-
-        protected MemoryAllocator MemoryAllocator { get; }
-
-        protected Configuration Configuration { get; }
 
         /// <summary>
         /// Writes an empty four bytes to the stream, returning the offset to be written later.
@@ -53,6 +52,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
         /// <param name="value">The bytes to write.</param>
         public void Write(byte[] value) => this.BaseStream.Write(value, 0, value.Length);
 
+        /// <summary>
+        /// Writes the specified value.
+        /// </summary>
+        /// <param name="value">The bytes to write.</param>
         public void Write(ReadOnlySpan<byte> value) => this.BaseStream.Write(value);
 
         /// <summary>

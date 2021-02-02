@@ -15,6 +15,18 @@ jobs:
             matrix:
                 options:
                     - os: ubuntu-latest
+                      framework: net5.0
+                      runtime: -x64
+                      codecov: false
+                    - os: macos-latest
+                      framework: net5.0
+                      runtime: -x64
+                      codecov: false
+                    - os: windows-latest
+                      framework: net5.0
+                      runtime: -x64
+                      codecov: false
+                    - os: ubuntu-latest
                       framework: netcoreapp3.1
                       runtime: -x64
                       codecov: true
@@ -67,12 +79,14 @@ jobs:
             - name: Build
               shell: pwsh
               run: ./ci-build.ps1 "${{matrix.options.framework}}"
+              env:
+                SIXLABORS_TESTING: True
 
             - name: Test
               shell: pwsh
               run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
               env:
-                  CI: True
+                  SIXLABORS_TESTING: True
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
             - name: Export Failed Output

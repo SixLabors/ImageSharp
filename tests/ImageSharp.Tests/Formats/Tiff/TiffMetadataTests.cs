@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -23,6 +24,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     public class TiffMetadataTests
     {
         private readonly Configuration configuration;
+
+        private static TiffDecoder TiffDecoder => new TiffDecoder();
 
         public TiffMetadataTests()
         {
@@ -131,11 +134,24 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [WithFile(InvalidIptcData, PixelTypes.Rgba32)]
+        public void CanDecodeImage_WithIptcDataAsLong<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(TiffDecoder);
+
+            Assert.NotNull(image.Metadata.IptcProfile);
+            IptcValue byline = image.Metadata.IptcProfile.Values.FirstOrDefault(data => data.Tag == IptcTag.Byline);
+            Assert.NotNull(byline);
+            Assert.Equal("Studio Mantyniemi", byline.Value);
+        }
+
+        [Theory]
         [WithFile(SampleMetadata, PixelTypes.Rgba32)]
         public void BaselineTags<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TiffDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
             {
                 TiffMetadata meta = image.Metadata.GetTiffMetadata();
 
@@ -188,7 +204,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void SubfileType<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            using (Image<TPixel> image = provider.GetImage(new TiffDecoder()))
+            using (Image<TPixel> image = provider.GetImage(TiffDecoder))
             {
                 TiffMetadata meta = image.Metadata.GetTiffMetadata();
                 Assert.NotNull(meta);
@@ -311,7 +327,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             coreMeta.HorizontalResolution = 4500;
             coreMeta.VerticalResolution = 5400;
 
-            var datetime = DateTime.Now.ToString();
+            var datetime = DateTime.Now.ToString(CultureInfo.InvariantCulture);
             frameMeta.ImageDescription = "test ImageDescription";
             frameMeta.DateTime = datetime;
 

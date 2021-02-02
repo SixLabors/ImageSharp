@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp
     {
         /// <summary>
         /// <para>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels allowing viewing/manipulation as
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels allowing viewing/manipulation as
         /// an <see cref="Image{TPixel}"/> instance.
         /// </para>
         /// <para>
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(metadata, nameof(metadata));
-            Guard.IsTrue(pixelMemory.Length == width * height, nameof(pixelMemory), "The length of the input memory doesn't match the specified image size");
+            Guard.IsTrue(pixelMemory.Length >= width * height, nameof(pixelMemory), "The length of the input memory is less than the specified image size");
 
             var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemory);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// <para>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels allowing viewing/manipulation as
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels allowing viewing/manipulation as
         /// an <see cref="Image{TPixel}"/> instance.
         /// </para>
         /// <para>
@@ -93,7 +93,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// <para>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels allowing viewing/manipulation as
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels allowing viewing/manipulation as
         /// an <see cref="Image{TPixel}"/> instance.
         /// </para>
         /// <para>
@@ -122,7 +122,7 @@ namespace SixLabors.ImageSharp
             => WrapMemory(Configuration.Default, pixelMemory, width, height);
 
         /// <summary>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels,
         /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// The ownership of the <paramref name="pixelMemoryOwner"/> is being transferred to the new <see cref="Image{TPixel}"/> instance,
         /// meaning that the caller is not allowed to dispose <paramref name="pixelMemoryOwner"/>.
@@ -147,14 +147,14 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(configuration, nameof(configuration));
             Guard.NotNull(metadata, nameof(metadata));
-            Guard.IsTrue(pixelMemoryOwner.Memory.Length == width * height, nameof(pixelMemoryOwner), "The length of the input memory doesn't match the specified image size");
+            Guard.IsTrue(pixelMemoryOwner.Memory.Length >= width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
 
             var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);
         }
 
         /// <summary>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels,
         /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// The ownership of the <paramref name="pixelMemoryOwner"/> is being transferred to the new <see cref="Image{TPixel}"/> instance,
         /// meaning that the caller is not allowed to dispose <paramref name="pixelMemoryOwner"/>.
@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp
             => WrapMemory(configuration, pixelMemoryOwner, width, height, new ImageMetadata());
 
         /// <summary>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels,
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels,
         /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
         /// The ownership of the <paramref name="pixelMemoryOwner"/> is being transferred to the new <see cref="Image{TPixel}"/> instance,
         /// meaning that the caller is not allowed to dispose <paramref name="pixelMemoryOwner"/>.
@@ -196,7 +196,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// <para>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels allowing viewing/manipulation as
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels allowing viewing/manipulation as
         /// an <see cref="Image{TPixel}"/> instance.
         /// </para>
         /// <para>
@@ -234,7 +234,7 @@ namespace SixLabors.ImageSharp
 
             var memoryManager = new ByteMemoryManager<TPixel>(byteMemory);
 
-            Guard.IsTrue(memoryManager.Memory.Length == width * height, nameof(byteMemory), "The length of the input memory doesn't match the specified image size");
+            Guard.IsTrue(memoryManager.Memory.Length >= width * height, nameof(byteMemory), "The length of the input memory is less than the specified image size");
 
             var memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);
@@ -242,7 +242,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// <para>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels allowing viewing/manipulation as
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels allowing viewing/manipulation as
         /// an <see cref="Image{TPixel}"/> instance.
         /// </para>
         /// <para>
@@ -275,7 +275,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// <para>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels allowing viewing/manipulation as
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels allowing viewing/manipulation as
         /// an <see cref="Image{TPixel}"/> instance.
         /// </para>
         /// <para>
@@ -305,7 +305,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// <para>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels allowing viewing/manipulation as
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels allowing viewing/manipulation as
         /// an <see cref="Image{TPixel}"/> instance.
         /// </para>
         /// <para>
@@ -355,7 +355,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// <para>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels allowing viewing/manipulation as
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels allowing viewing/manipulation as
         /// an <see cref="Image{TPixel}"/> instance.
         /// </para>
         /// <para>
@@ -393,7 +393,7 @@ namespace SixLabors.ImageSharp
 
         /// <summary>
         /// <para>
-        /// Wraps an existing contiguous memory area of 'width' x 'height' pixels allowing viewing/manipulation as
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels allowing viewing/manipulation as
         /// an <see cref="Image{TPixel}"/> instance.
         /// </para>
         /// <para>

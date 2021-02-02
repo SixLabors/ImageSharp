@@ -1,8 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
-
+using System.Linq;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -56,10 +59,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                     if (coreMetadata.IptcProfile == null)
                     {
-                        IExifValue<byte[]> val = frame.ExifProfile.GetValue(ExifTag.IPTC);
-                        if (val != null)
+                        if (TryGetIptc(frame.ExifProfile.Values, out var iptcBytes))
                         {
-                            coreMetadata.IptcProfile = new IptcProfile(val.Value);
+                            coreMetadata.IptcProfile = new IptcProfile(iptcBytes);
                         }
                     }
 
@@ -75,6 +77,53 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             }
 
             return coreMetadata;
+        }
+
+        private static bool TryGetIptc(IReadOnlyList<IExifValue> exifValues, out byte[] iptcBytes)
+        {
+            iptcBytes = null;
+            IExifValue iptc = exifValues.FirstOrDefault(f => f.Tag == ExifTag.IPTC);
+
+            if (iptc != null)
+            {
+                if (iptc.DataType == ExifDataType.Byte)
+                {
+                    iptcBytes = (byte[])iptc.GetValue();
+                    return true;
+                }
+                else if (iptc.DataType == ExifDataType.Long)
+                {
+                    var iptcValues = (uint[])iptc.GetValue();
+                    iptcBytes = new byte[iptcValues.Length * 4];
+                    Buffer.BlockCopy(iptcValues, 0, iptcBytes, 0, iptcValues.Length * 4);
+                    if (iptcBytes[0] == 0x1c)
+                    {
+                        return true;
+                    }
+                    else if (iptcBytes[3] != 0x1c)
+                    {
+                        return false;
+                    }
+
+                    // Probably wrong endianess, swap byte order.
+                    Span<byte> iptcBytesSpan = iptcBytes.AsSpan();
+                    Span<byte> buffer = stackalloc byte[4];
+                    for (int i = 0; i < iptcBytes.Length; i += 4)
+                    {
+                        iptcBytesSpan.Slice(i, 4).CopyTo(buffer);
+                        iptcBytes[i] = buffer[3];
+                        iptcBytes[i + 1] = buffer[2];
+                        iptcBytes[i + 2] = buffer[1];
+                        iptcBytes[i + 3] = buffer[0];
+                    }
+
+                    return true;
+                }
+
+                return false;
+            }
+
+            return false;
         }
 
         private static TiffBitsPerPixel GetBitsPerPixel(TiffFrameMetadata firstFrameMetaData)

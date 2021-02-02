@@ -574,6 +574,10 @@ namespace SixLabors.ImageSharp.Tests
 
             public const string SampleMetadata = "Tiff/metadata_sample.tiff";
 
+            // Iptc data as long[] instead of byte[]
+            public const string InvalidIptcData = "Tiff/7324fcaff3aad96f27899da51c1bb5d9.tiff";
+            public const string IptcData = "Tiff/iptc.tiff";
+
             public static readonly string[] Multiframes = { MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
 
             public static readonly string[] Metadata = { SampleMetadata };

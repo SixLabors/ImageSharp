@@ -33,7 +33,6 @@
   - If the SampleFormat field is present and not 1 - fail gracefully if you cannot handle this
   - Compression=None should treat 16/32-BitsPerSample for all samples as SHORT/LONG (for byte order and padding rows)
   - Check Planar format data - is this encoded as strips in order RGBRGBRGB or RRRGGGBBB?
-  - Make sure we ignore any strips that are not needed for the image (if too many are present)
 
 ### Compression Formats
 

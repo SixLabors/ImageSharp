@@ -185,11 +185,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             if (this.PlanarConfiguration == TiffPlanarConfiguration.Planar)
             {
-                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets, stripByteCounts, width);
+                this.DecodeStripsPlanar(frame, rowsPerStrip, stripOffsets, stripByteCounts);
             }
             else
             {
-                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts, width);
+                this.DecodeStripsChunky(frame, rowsPerStrip, stripOffsets, stripByteCounts);
             }
 
             return frame;
@@ -230,8 +230,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <param name="rowsPerStrip">The number of rows per strip of data.</param>
         /// <param name="stripOffsets">An array of byte offsets to each strip in the image.</param>
         /// <param name="stripByteCounts">An array of the size of each strip (in bytes).</param>
-        /// <param name="width">The image width.</param>
-        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts, int width)
+        private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             int stripsPerPixel = this.BitsPerSample.Length;
@@ -250,7 +249,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     stripBuffers[stripIndex] = this.memoryAllocator.AllocateManagedByteBuffer(uncompressedStripSize);
                 }
 
-                TiffBaseCompression decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
+                TiffBaseCompression decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, frame.Width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
 
                 RgbPlanarTiffColor<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap);
 
@@ -277,7 +276,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             }
         }
 
-        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts, int width)
+        private void DecodeStripsChunky<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts)
            where TPixel : unmanaged, IPixel<TPixel>
         {
             // If the rowsPerStrip has the default value, which is effectively infinity. That is, the entire image is one strip.
@@ -293,17 +292,23 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
-            TiffBaseCompression decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
+            TiffBaseCompression decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, frame.Width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
 
             TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap);
 
             for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
             {
                 int stripHeight = stripIndex < stripOffsets.Length - 1 || frame.Height % rowsPerStrip == 0 ? rowsPerStrip : frame.Height % rowsPerStrip;
+                var top = rowsPerStrip * stripIndex;
+                if (top + stripHeight > frame.Height)
+                {
+                    // Make sure we ignore any strips that are not needed for the image (if too many are present)
+                    break;
+                }
 
                 decompressor.Decompress(this.inputStream, (uint)stripOffsets[stripIndex], (uint)stripByteCounts[stripIndex], stripBuffer.GetSpan());
 
-                colorDecoder.Decode(stripBuffer.GetSpan(), pixels, 0, rowsPerStrip * stripIndex, frame.Width, stripHeight);
+                colorDecoder.Decode(stripBuffer.GetSpan(), pixels, 0, top, frame.Width, stripHeight);
             }
         }
     }

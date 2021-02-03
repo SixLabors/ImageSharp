@@ -555,102 +555,59 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         private static void DivideRoundAll(ref Block8x8F a, ref Block8x8F b)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-
-            // Avx version is written inline to avoid JIT bugs on MacOS.
             if (Avx.IsSupported)
             {
-                var vneg = new Vector<float>(-1F);
-                var vadd = new Vector<float>(.5F);
+                var vnegOne = Vector256.Create(-1f);
+                var vadd = Vector256.Create(.5F);
+                var vone = Vector256.Create(1f);
 
                 // V0
-                Vector<float> vs = Unsafe.As<Vector4, Vector<float>>(ref a.V0L);
-                Vector<float> voff
-                    = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One)
-                    * vadd;
-
-                Vector256<float> v = Avx.Divide(
-                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
-                        Unsafe.As<Vector4, Vector256<float>>(ref b.V0L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref a.V0L)
-                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+                Vector256<float> vs0 = Unsafe.As<Vector4, Vector256<float>>(ref a.V0L);
+                Vector256<float> voff0 = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, vs0), vone), vadd);
+                Vector256<float> v0 = Avx.Divide(vs0, Unsafe.As<Vector4, Vector256<float>>(ref b.V0L));
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V0L) = Avx.Add(v0, voff0);
 
                 // V1
-                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V1L);
-                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
-
-                v = Avx.Divide(
-                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
-                        Unsafe.As<Vector4, Vector256<float>>(ref b.V1L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref a.V1L)
-                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+                Vector256<float> vs1 = Unsafe.As<Vector4, Vector256<float>>(ref a.V1L);
+                Vector256<float> voff1 = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, vs1), vone), vadd);
+                Vector256<float> v1 = Avx.Divide(vs1, Unsafe.As<Vector4, Vector256<float>>(ref b.V1L));
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V1L) = Avx.Add(v1, voff1);
 
                 // V2
-                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V2L);
-                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
-
-                v = Avx.Divide(
-                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
-                        Unsafe.As<Vector4, Vector256<float>>(ref b.V2L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref a.V2L)
-                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+                Vector256<float> vs2 = Unsafe.As<Vector4, Vector256<float>>(ref a.V2L);
+                Vector256<float> voff2 = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, vs2), vone), vadd);
+                Vector256<float> v2 = Avx.Divide(vs2, Unsafe.As<Vector4, Vector256<float>>(ref b.V2L));
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V2L) = Avx.Add(v2, voff2);
 
                 // V3
-                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V3L);
-                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
-
-                v = Avx.Divide(
-                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
-                        Unsafe.As<Vector4, Vector256<float>>(ref b.V3L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref a.V3L)
-                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+                Vector256<float> vs3 = Unsafe.As<Vector4, Vector256<float>>(ref a.V3L);
+                Vector256<float> voff3 = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, vs3), vone), vadd);
+                Vector256<float> v3 = Avx.Divide(vs3, Unsafe.As<Vector4, Vector256<float>>(ref b.V3L));
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V3L) = Avx.Add(v3, voff3);
 
                 // V4
-                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V4L);
-                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
-
-                v = Avx.Divide(
-                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
-                        Unsafe.As<Vector4, Vector256<float>>(ref b.V4L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref a.V4L)
-                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+                Vector256<float> vs4 = Unsafe.As<Vector4, Vector256<float>>(ref a.V4L);
+                Vector256<float> voff4 = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, vs4), vone), vadd);
+                Vector256<float> v4 = Avx.Divide(vs4, Unsafe.As<Vector4, Vector256<float>>(ref b.V4L));
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V4L) = Avx.Add(v4, voff4);
 
                 // V5
-                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V5L);
-                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
-
-                v = Avx.Divide(
-                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
-                        Unsafe.As<Vector4, Vector256<float>>(ref b.V5L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref a.V5L)
-                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+                Vector256<float> vs5 = Unsafe.As<Vector4, Vector256<float>>(ref a.V5L);
+                Vector256<float> voff5 = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, vs5), vone), vadd);
+                Vector256<float> v5 = Avx.Divide(vs5, Unsafe.As<Vector4, Vector256<float>>(ref b.V5L));
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V5L) = Avx.Add(v5, voff5);
 
                 // V6
-                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V6L);
-                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
-
-                v = Avx.Divide(
-                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
-                        Unsafe.As<Vector4, Vector256<float>>(ref b.V6L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref a.V6L)
-                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+                Vector256<float> vs6 = Unsafe.As<Vector4, Vector256<float>>(ref a.V6L);
+                Vector256<float> voff6 = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, vs6), vone), vadd);
+                Vector256<float> v6 = Avx.Divide(vs6, Unsafe.As<Vector4, Vector256<float>>(ref b.V6L));
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V6L) = Avx.Add(v6, voff6);
 
                 // V7
-                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V7L);
-                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
-
-                v = Avx.Divide(
-                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
-                        Unsafe.As<Vector4, Vector256<float>>(ref b.V7L));
-
-                Unsafe.As<Vector4, Vector256<float>>(ref a.V7L)
-                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+                Vector256<float> vs7 = Unsafe.As<Vector4, Vector256<float>>(ref a.V7L);
+                Vector256<float> voff7 = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, vs7), vone), vadd);
+                Vector256<float> v7 = Avx.Divide(vs7, Unsafe.As<Vector4, Vector256<float>>(ref b.V7L));
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V7L) = Avx.Add(v7, voff7);
             }
             else
 #endif

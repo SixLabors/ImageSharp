@@ -52,13 +52,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public Vector4 V7R;
 #pragma warning restore SA1600 // ElementsMustBeDocumented
 
-#if SUPPORTS_RUNTIME_INTRINSICS
-        private static readonly Vector<float> NegativeOneAvx = new Vector<float>(-1F);
-        private static readonly Vector<float> OffsetAxv = new Vector<float>(.5F);
-#endif
-        private static readonly Vector4 NegativeOne = new Vector4(-1);
-        private static readonly Vector4 Offset = new Vector4(.5F);
-
         /// <summary>
         /// Get/Set scalar elements at a given index
         /// </summary>
@@ -566,11 +559,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             // Avx version is written inline to avoid JIT bugs on MacOS.
             if (Avx.IsSupported)
             {
+                var vneg = new Vector<float>(-1F);
+                var vadd = new Vector<float>(.5F);
+
                 // V0
                 Vector<float> vs = Unsafe.As<Vector4, Vector<float>>(ref a.V0L);
                 Vector<float> voff
-                    = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One)
-                    * OffsetAxv;
+                    = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One)
+                    * vadd;
 
                 Vector256<float> v = Avx.Divide(
                         Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
@@ -581,7 +577,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 // V1
                 vs = Unsafe.As<Vector4, Vector<float>>(ref a.V1L);
-                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
 
                 v = Avx.Divide(
                         Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
@@ -592,7 +588,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 // V2
                 vs = Unsafe.As<Vector4, Vector<float>>(ref a.V2L);
-                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
 
                 v = Avx.Divide(
                         Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
@@ -603,7 +599,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 // V3
                 vs = Unsafe.As<Vector4, Vector<float>>(ref a.V3L);
-                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
 
                 v = Avx.Divide(
                         Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
@@ -614,7 +610,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 // V4
                 vs = Unsafe.As<Vector4, Vector<float>>(ref a.V4L);
-                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
 
                 v = Avx.Divide(
                         Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
@@ -625,7 +621,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 // V5
                 vs = Unsafe.As<Vector4, Vector<float>>(ref a.V5L);
-                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
 
                 v = Avx.Divide(
                         Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
@@ -636,7 +632,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 // V6
                 vs = Unsafe.As<Vector4, Vector<float>>(ref a.V6L);
-                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
 
                 v = Avx.Divide(
                         Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
@@ -647,7 +643,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 // V7
                 vs = Unsafe.As<Vector4, Vector<float>>(ref a.V7L);
-                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+                voff = Vector.Min(Vector.Max(vneg, vs), Vector<float>.One) * vadd;
 
                 v = Avx.Divide(
                         Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
@@ -678,14 +674,17 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
         {
+            var neg = new Vector4(-1);
+            var add = new Vector4(.5F);
+
             // sign(dividend) = max(min(dividend, 1), -1)
-            Vector4 sign = Numerics.Clamp(dividend, NegativeOne, Vector4.One);
+            Vector4 sign = Numerics.Clamp(dividend, neg, Vector4.One);
 
             // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
-            return (dividend / divisor) + (sign * Offset);
+            return (dividend / divisor) + (sign * add);
         }
 
         public void RoundInto(ref Block8x8 dest)

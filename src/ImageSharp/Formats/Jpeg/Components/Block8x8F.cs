@@ -567,10 +567,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                 while (Unsafe.IsAddressLessThan(ref aBase, ref aEnd))
                 {
-                    Vector256<float> va = Unsafe.Add(ref aBase, 0);
-                    Vector256<float> voff = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, va), vone), vadd);
-                    Vector256<float> vdiv = Avx.Divide(va, Unsafe.Add(ref bBase, 0));
-                    Unsafe.Add(ref aBase, 0) = Avx.Add(Avx.Divide(va, Unsafe.Add(ref bBase, 0)), voff);
+                    Vector256<float> voff = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, aBase), vone), vadd);
+                    Unsafe.Add(ref aBase, 0) = Avx.Add(Avx.Divide(aBase, bBase), voff);
 
                     aBase = ref Unsafe.Add(ref aBase, 1);
                     bBase = ref Unsafe.Add(ref bBase, 1);

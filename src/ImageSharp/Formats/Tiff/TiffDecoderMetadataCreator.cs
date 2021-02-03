@@ -86,12 +86,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             if (iptc != null)
             {
-                if (iptc.DataType == ExifDataType.Byte)
+                if (iptc.DataType == ExifDataType.Byte || iptc.DataType == ExifDataType.Undefined)
                 {
                     iptcBytes = (byte[])iptc.GetValue();
                     return true;
                 }
-                else if (iptc.DataType == ExifDataType.Long)
+
+                // Some Encoders write the data type of IPTC as long.
+                if (iptc.DataType == ExifDataType.Long)
                 {
                     var iptcValues = (uint[])iptc.GetValue();
                     iptcBytes = new byte[iptcValues.Length * 4];

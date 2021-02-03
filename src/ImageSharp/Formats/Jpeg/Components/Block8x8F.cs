@@ -561,31 +561,99 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         private static void DivideRoundAll(ref Block8x8F a, ref Block8x8F b)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
+
+            // Avx version is written inline to avoid JIT bugs on MacOS.
             if (Avx.IsSupported)
             {
+                // V0
+                Vector<float> vs = Unsafe.As<Vector4, Vector<float>>(ref a.V0L);
+                Vector<float> voff
+                    = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One)
+                    * OffsetAxv;
+
+                Vector256<float> v = Avx.Divide(
+                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
+                        Unsafe.As<Vector4, Vector256<float>>(ref b.V0L));
+
                 Unsafe.As<Vector4, Vector256<float>>(ref a.V0L)
-                    = DivideRoundAvx(ref a.V0L, ref b.V0L);
+                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+
+                // V1
+                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V1L);
+                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+
+                v = Avx.Divide(
+                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
+                        Unsafe.As<Vector4, Vector256<float>>(ref b.V1L));
 
                 Unsafe.As<Vector4, Vector256<float>>(ref a.V1L)
-                    = DivideRoundAvx(ref a.V1L, ref b.V1L);
+                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+
+                // V2
+                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V2L);
+                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+
+                v = Avx.Divide(
+                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
+                        Unsafe.As<Vector4, Vector256<float>>(ref b.V2L));
 
                 Unsafe.As<Vector4, Vector256<float>>(ref a.V2L)
-                    = DivideRoundAvx(ref a.V2L, ref b.V2L);
+                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+
+                // V3
+                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V3L);
+                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+
+                v = Avx.Divide(
+                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
+                        Unsafe.As<Vector4, Vector256<float>>(ref b.V3L));
 
                 Unsafe.As<Vector4, Vector256<float>>(ref a.V3L)
-                    = DivideRoundAvx(ref a.V3L, ref b.V3L);
+                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+
+                // V4
+                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V4L);
+                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+
+                v = Avx.Divide(
+                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
+                        Unsafe.As<Vector4, Vector256<float>>(ref b.V4L));
 
                 Unsafe.As<Vector4, Vector256<float>>(ref a.V4L)
-                    = DivideRoundAvx(ref a.V4L, ref b.V4L);
+                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+
+                // V5
+                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V5L);
+                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+
+                v = Avx.Divide(
+                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
+                        Unsafe.As<Vector4, Vector256<float>>(ref b.V5L));
 
                 Unsafe.As<Vector4, Vector256<float>>(ref a.V5L)
-                    = DivideRoundAvx(ref a.V5L, ref b.V5L);
+                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+
+                // V6
+                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V6L);
+                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+
+                v = Avx.Divide(
+                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
+                        Unsafe.As<Vector4, Vector256<float>>(ref b.V6L));
 
                 Unsafe.As<Vector4, Vector256<float>>(ref a.V6L)
-                    = DivideRoundAvx(ref a.V6L, ref b.V6L);
+                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
+
+                // V7
+                vs = Unsafe.As<Vector4, Vector<float>>(ref a.V7L);
+                voff = Vector.Min(Vector.Max(NegativeOneAvx, vs), Vector<float>.One) * OffsetAxv;
+
+                v = Avx.Divide(
+                        Unsafe.As<Vector<float>, Vector256<float>>(ref vs),
+                        Unsafe.As<Vector4, Vector256<float>>(ref b.V7L));
 
                 Unsafe.As<Vector4, Vector256<float>>(ref a.V7L)
-                    = DivideRoundAvx(ref a.V7L, ref b.V7L);
+                    = Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref voff));
             }
             else
 #endif
@@ -608,27 +676,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 a.V7R = DivideRound(a.V7R, b.V7R);
             }
         }
-
-#if SUPPORTS_RUNTIME_INTRINSICS
-        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Vector256<float> DivideRoundAvx(
-            ref Vector4 dividend,
-            ref Vector4 divisor)
-        {
-            Vector<float> vdividend = Unsafe.As<Vector4, Vector<float>>(ref dividend);
-
-            // sign(dividend) = max(min(dividend, 1), -1)
-            Vector<float> offset
-                = Vector.Min(Vector.Max(NegativeOneAvx, vdividend), Vector<float>.One) * OffsetAxv;
-
-            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
-            Vector256<float> v = Avx.Divide(
-                    Unsafe.As<Vector<float>, Vector256<float>>(ref vdividend),
-                    Unsafe.As<Vector4, Vector256<float>>(ref divisor));
-
-            return Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref offset));
-        }
-#endif
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)

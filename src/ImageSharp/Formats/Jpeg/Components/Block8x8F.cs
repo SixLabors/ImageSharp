@@ -18,6 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// <summary>
     /// Represents a Jpeg block with <see cref="float"/> coefficients.
     /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
     internal partial struct Block8x8F : IEquatable<Block8x8F>
     {
         /// <summary>

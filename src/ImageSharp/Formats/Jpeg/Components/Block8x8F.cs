@@ -51,6 +51,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public Vector4 V7R;
 #pragma warning restore SA1600 // ElementsMustBeDocumented
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+        private static readonly Vector<float> NegativeOneAvx = new Vector<float>(-1F);
+        private static readonly Vector<float> OffsetAxv = new Vector<float>(.5F);
+#endif
         private static readonly Vector4 NegativeOne = new Vector4(-1);
         private static readonly Vector4 Offset = new Vector4(.5F);
 
@@ -556,22 +560,84 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void DivideRoundAll(ref Block8x8F a, ref Block8x8F b)
         {
-            a.V0L = DivideRound(a.V0L, b.V0L);
-            a.V0R = DivideRound(a.V0R, b.V0R);
-            a.V1L = DivideRound(a.V1L, b.V1L);
-            a.V1R = DivideRound(a.V1R, b.V1R);
-            a.V2L = DivideRound(a.V2L, b.V2L);
-            a.V2R = DivideRound(a.V2R, b.V2R);
-            a.V3L = DivideRound(a.V3L, b.V3L);
-            a.V3R = DivideRound(a.V3R, b.V3R);
-            a.V4L = DivideRound(a.V4L, b.V4L);
-            a.V4R = DivideRound(a.V4R, b.V4R);
-            a.V5L = DivideRound(a.V5L, b.V5L);
-            a.V5R = DivideRound(a.V5R, b.V5R);
-            a.V6L = DivideRound(a.V6L, b.V6L);
-            a.V6R = DivideRound(a.V6R, b.V6R);
-            a.V7L = DivideRound(a.V7L, b.V7L);
-            a.V7R = DivideRound(a.V7R, b.V7R);
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx.IsSupported)
+            {
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V0L)
+                    = DivideRoundAvx(ref a.V0L, ref b.V0L);
+
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V1L)
+                    = DivideRoundAvx(ref a.V1L, ref b.V1L);
+
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V2L)
+                    = DivideRoundAvx(ref a.V2L, ref b.V2L);
+
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V3L)
+                    = DivideRoundAvx(ref a.V3L, ref b.V2L);
+
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V4L)
+                    = DivideRoundAvx(ref a.V4L, ref b.V4L);
+
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V5L)
+                    = DivideRoundAvx(ref a.V5L, ref b.V5L);
+
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V6L)
+                    = DivideRoundAvx(ref a.V6L, ref b.V6L);
+
+                Unsafe.As<Vector4, Vector256<float>>(ref a.V7L)
+                    = DivideRoundAvx(ref a.V7L, ref b.V7L);
+            }
+            else
+#endif
+            {
+                a.V0L = DivideRound(a.V0L, b.V0L);
+                a.V0R = DivideRound(a.V0R, b.V0R);
+                a.V1L = DivideRound(a.V1L, b.V1L);
+                a.V1R = DivideRound(a.V1R, b.V1R);
+                a.V2L = DivideRound(a.V2L, b.V2L);
+                a.V2R = DivideRound(a.V2R, b.V2R);
+                a.V3L = DivideRound(a.V3L, b.V3L);
+                a.V3R = DivideRound(a.V3R, b.V3R);
+                a.V4L = DivideRound(a.V4L, b.V4L);
+                a.V4R = DivideRound(a.V4R, b.V4R);
+                a.V5L = DivideRound(a.V5L, b.V5L);
+                a.V5R = DivideRound(a.V5R, b.V5R);
+                a.V6L = DivideRound(a.V6L, b.V6L);
+                a.V6R = DivideRound(a.V6R, b.V6R);
+                a.V7L = DivideRound(a.V7L, b.V7L);
+                a.V7R = DivideRound(a.V7R, b.V7R);
+            }
+        }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector256<float> DivideRoundAvx(
+            ref Vector4 dividend,
+            ref Vector4 divisor)
+        {
+            Vector<float> vdividend = Unsafe.As<Vector4, Vector<float>>(ref dividend);
+
+            // sign(dividend) = max(min(dividend, 1), -1)
+            Vector<float> offset
+                = Vector.Min(Vector.Max(NegativeOneAvx, vdividend), Vector<float>.One) * OffsetAxv;
+
+            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
+            Vector256<float> v = Avx.Divide(
+                    Unsafe.As<Vector<float>, Vector256<float>>(ref vdividend),
+                    Unsafe.As<Vector4, Vector256<float>>(ref divisor));
+
+            return Avx.Add(v, Unsafe.As<Vector<float>, Vector256<float>>(ref offset));
+        }
+#endif
+
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
+        {
+            // sign(dividend) = max(min(dividend, 1), -1)
+            Vector4 sign = Numerics.Clamp(dividend, NegativeOne, Vector4.One);
+
+            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
+            return (dividend / divisor) + (sign * Offset);
         }
 
         public void RoundInto(ref Block8x8 dest)
@@ -673,8 +739,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         /// <inheritdoc />
         public bool Equals(Block8x8F other)
-        {
-            return this.V0L == other.V0L
+            => this.V0L == other.V0L
             && this.V0R == other.V0R
             && this.V1L == other.V1L
             && this.V1R == other.V1R
@@ -690,7 +755,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             && this.V6R == other.V6R
             && this.V7L == other.V7L
             && this.V7R == other.V7R;
-        }
 
         /// <inheritdoc />
         public override string ToString()
@@ -716,16 +780,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             row = Vector.Max(row, Vector<float>.Zero);
             row = Vector.Min(row, max);
             return row.FastRound();
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
-        {
-            // sign(dividend) = max(min(dividend, 1), -1)
-            Vector4 sign = Numerics.Clamp(dividend, NegativeOne, Vector4.One);
-
-            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
-            return (dividend / divisor) + (sign * Offset);
         }
 
         [Conditional("DEBUG")]

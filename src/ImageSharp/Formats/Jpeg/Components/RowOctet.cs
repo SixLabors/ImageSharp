@@ -24,21 +24,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         private Span<T> row6;
         private Span<T> row7;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public RowOctet(Buffer2D<T> buffer, int startY)
-        {
-            int y = startY;
-            int height = buffer.Height;
-            this.row0 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row1 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row2 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row3 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row4 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row5 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row6 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row7 = y < height ? buffer.GetRowSpan(y) : default;
-        }
-
         // No unsafe tricks, since Span<T> can't be used as a generic argument
         public Span<T> this[int y]
         {

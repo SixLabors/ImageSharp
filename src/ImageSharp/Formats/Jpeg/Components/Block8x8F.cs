@@ -51,10 +51,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public Vector4 V7R;
 #pragma warning restore SA1600 // ElementsMustBeDocumented
 
-#if SUPPORTS_RUNTIME_INTRINSICS
         private static readonly Vector<float> NegativeOneAvx = new Vector<float>(-1F);
         private static readonly Vector<float> OffsetAxv = new Vector<float>(.5F);
-#endif
         private static readonly Vector4 NegativeOne = new Vector4(-1);
         private static readonly Vector4 Offset = new Vector4(.5F);
 

@@ -573,7 +573,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     = DivideRoundAvx(ref a.V2L, ref b.V2L);
 
                 Unsafe.As<Vector4, Vector256<float>>(ref a.V3L)
-                    = DivideRoundAvx(ref a.V3L, ref b.V2L);
+                    = DivideRoundAvx(ref a.V3L, ref b.V3L);
 
                 Unsafe.As<Vector4, Vector256<float>>(ref a.V4L)
                     = DivideRoundAvx(ref a.V4L, ref b.V4L);

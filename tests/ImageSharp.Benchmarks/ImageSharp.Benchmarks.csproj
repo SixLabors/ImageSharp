@@ -5,7 +5,7 @@
     <AssemblyName>ImageSharp.Benchmarks</AssemblyName>
     <OutputType>Exe</OutputType>
     <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
-    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
+    <TargetFrameworks>net5.0;netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
     <GenerateProgramFile>false</GenerateProgramFile>
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>

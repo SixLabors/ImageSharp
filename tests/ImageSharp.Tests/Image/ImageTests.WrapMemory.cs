@@ -355,8 +355,6 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [InlineData(0, 5, 5)]
             [InlineData(20, 5, 5)]
-            [InlineData(26, 5, 5)]
-            [InlineData(2, 1, 1)]
             [InlineData(1023, 32, 32)]
             public void WrapMemory_MemoryOfT_InvalidSize(int size, int height, int width)
             {
@@ -364,6 +362,20 @@ namespace SixLabors.ImageSharp.Tests
                 var memory = new Memory<Rgba32>(array);
 
                 Assert.Throws<ArgumentException>(() => Image.WrapMemory(memory, height, width));
+            }
+
+            [Theory]
+            [InlineData(25, 5, 5)]
+            [InlineData(26, 5, 5)]
+            [InlineData(2, 1, 1)]
+            [InlineData(1024, 32, 32)]
+            [InlineData(2048, 32, 32)]
+            public void WrapMemory_MemoryOfT_ValidSize(int size, int height, int width)
+            {
+                var array = new Rgba32[size];
+                var memory = new Memory<Rgba32>(array);
+
+               Image.WrapMemory(memory, height, width);
             }
 
             private class TestMemoryOwner<T> : IMemoryOwner<T>
@@ -378,8 +390,6 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [InlineData(0, 5, 5)]
             [InlineData(20, 5, 5)]
-            [InlineData(26, 5, 5)]
-            [InlineData(2, 1, 1)]
             [InlineData(1023, 32, 32)]
             public void WrapMemory_IMemoryOwnerOfT_InvalidSize(int size, int height, int width)
             {
@@ -390,10 +400,22 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Theory]
-            [InlineData(0, 5, 5)]
-            [InlineData(20, 5, 5)]
+            [InlineData(25, 5, 5)]
             [InlineData(26, 5, 5)]
             [InlineData(2, 1, 1)]
+            [InlineData(1024, 32, 32)]
+            [InlineData(2048, 32, 32)]
+            public void WrapMemory_IMemoryOwnerOfT_ValidSize(int size, int height, int width)
+            {
+                var array = new Rgba32[size];
+                var memory = new TestMemoryOwner<Rgba32> { Memory = array };
+
+                Image.WrapMemory(memory, height, width);
+            }
+
+            [Theory]
+            [InlineData(0, 5, 5)]
+            [InlineData(20, 5, 5)]
             [InlineData(1023, 32, 32)]
             public void WrapMemory_MemoryOfByte_InvalidSize(int size, int height, int width)
             {
@@ -401,6 +423,20 @@ namespace SixLabors.ImageSharp.Tests
                 var memory = new Memory<byte>(array);
 
                 Assert.Throws<ArgumentException>(() => Image.WrapMemory<Rgba32>(memory, height, width));
+            }
+
+            [Theory]
+            [InlineData(25, 5, 5)]
+            [InlineData(26, 5, 5)]
+            [InlineData(2, 1, 1)]
+            [InlineData(1024, 32, 32)]
+            [InlineData(2048, 32, 32)]
+            public void WrapMemory_MemoryOfByte_ValidSize(int size, int height, int width)
+            {
+                var array = new byte[size * Unsafe.SizeOf<Rgba32>()];
+                var memory = new Memory<byte>(array);
+
+                Image.WrapMemory<Rgba32>(memory, height, width);
             }
 
             [Theory]

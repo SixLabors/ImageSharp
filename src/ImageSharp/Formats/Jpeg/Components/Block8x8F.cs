@@ -153,10 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Clear()
-        {
-            // The cheapest way to do this in C#:
-            this = default;
-        }
+            => this = default; // The cheapest way to do this in C#:
 
         /// <summary>
         /// Load raw 32bit floating point data from source.
@@ -178,9 +175,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="source">Source</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static unsafe void LoadFrom(Block8x8F* blockPtr, Span<float> source)
-        {
-            blockPtr->LoadFrom(source);
-        }
+            => blockPtr->LoadFrom(source);
 
         /// <summary>
         /// Load raw 32bit floating point data from source
@@ -234,9 +229,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="dest">The destination.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static unsafe void ScaledCopyTo(Block8x8F* blockPtr, Span<float> dest)
-        {
-            blockPtr->ScaledCopyTo(dest);
-        }
+            => blockPtr->ScaledCopyTo(dest);
 
         /// <summary>
         /// Copy raw 32bit floating point data to dest
@@ -437,7 +430,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="blockPtr">The block pointer.</param>
         /// <param name="qtPtr">The qt pointer.</param>
         /// <param name="unzigPtr">Unzig pointer</param>
-        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, byte* unzigPtr)
         {
             float* b = (float*)blockPtr;
@@ -565,7 +557,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 ref Vector256<float> bBase = ref Unsafe.AsRef(Unsafe.As<Vector4, Vector256<float>>(ref b.V0L));
                 ref Vector256<float> aEnd = ref Unsafe.Add(ref aBase, 8);
 
-                while (Unsafe.IsAddressLessThan(ref aBase, ref aEnd))
+                do
                 {
                     Vector256<float> voff = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, aBase), vone), vadd);
                     Unsafe.Add(ref aBase, 0) = Avx.Add(Avx.Divide(aBase, bBase), voff);
@@ -573,6 +565,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     aBase = ref Unsafe.Add(ref aBase, 1);
                     bBase = ref Unsafe.Add(ref bBase, 1);
                 }
+                while (Unsafe.IsAddressLessThan(ref aBase, ref aEnd));
             }
             else
 #endif

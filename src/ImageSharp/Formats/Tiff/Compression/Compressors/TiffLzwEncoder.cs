@@ -260,14 +260,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             this.nextValidCode = EoiCode + 1;
         }
 
-        private static int MaxValue(int codeLen)
-        {
-            return (1 << codeLen) - 1;
-        }
+        private static int MaxValue(int codeLen) => (1 << codeLen) - 1;
 
-        private static int BitmaskFor(int bits)
-        {
-            return MaxValue(bits);
-        }
+        private static int BitmaskFor(int bits) => MaxValue(bits);
     }
 }

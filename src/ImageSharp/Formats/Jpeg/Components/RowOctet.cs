@@ -78,14 +78,15 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(Buffer2D<T> buffer, int startY)
         {
-            int y = startY;
-            int height = buffer.Height;
-
             // We don't actually have to assign values outside of the
             // frame pixel buffer since they are never requested.
-            for (int i = 0; i < 8 && y < height; i++)
+            int y = startY;
+            int yEnd = Math.Min(y + 8, buffer.Height);
+
+            int i = 0;
+            while (y < yEnd)
             {
-                this[i] = buffer.GetRowSpan(y++);
+                this[i++] = buffer.GetRowSpan(y++);
             }
         }
 

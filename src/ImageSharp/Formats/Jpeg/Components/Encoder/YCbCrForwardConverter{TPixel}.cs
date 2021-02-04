@@ -59,9 +59,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         /// <summary>
         /// Converts a 8x8 image area inside 'pixels' at position (x,y) placing the result members of the structure (<see cref="Y"/>, <see cref="Cb"/>, <see cref="Cr"/>)
         /// </summary>
-        public void Convert(ImageFrame<TPixel> frame, int x, int y, in RowOctet<TPixel> currentRows)
+        public void Convert(ImageFrame<TPixel> frame, int x, int y, ref RowOctet<TPixel> currentRows)
         {
-            this.pixelBlock.LoadAndStretchEdges(frame.PixelBuffer, x, y, currentRows);
+            this.pixelBlock.LoadAndStretchEdges(frame.PixelBuffer, x, y, ref currentRows);
 
             Span<Rgb24> rgbSpan = this.rgbBlock.AsSpanUnsafe();
             PixelOperations<TPixel>.Instance.ToRgb24(frame.GetConfiguration(), this.pixelBlock.AsSpanUnsafe(), rgbSpan);
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             }
             else
             {
-                this.colorTables.Convert(rgbSpan,  ref yBlock, ref cbBlock, ref crBlock);
+                this.colorTables.Convert(rgbSpan, ref yBlock, ref cbBlock, ref crBlock);
             }
         }
     }

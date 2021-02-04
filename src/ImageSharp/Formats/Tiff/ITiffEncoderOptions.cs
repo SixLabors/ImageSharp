@@ -24,6 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         /// <summary>
         /// Gets the encoding mode to use. RGB, RGB with color palette or gray.
+        /// If no mode is specified in the options, RGB will be used.
         /// </summary>
         TiffEncodingMode Mode { get; }
 

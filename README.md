@@ -70,7 +70,7 @@ To clone ImageSharp locally, click the "Clone in [YOUR_OS]" button above or run 
 git clone https://github.com/SixLabors/ImageSharp
 ```
 
-If working with Windows please ensure that you have enabled log file paths in git (run as Administrator).
+If working with Windows please ensure that you have enabled long file paths in git (run as Administrator).
 
 ```bash
 git config --system core.longpaths true

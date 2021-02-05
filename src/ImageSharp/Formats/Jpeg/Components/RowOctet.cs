@@ -75,7 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void Update(Buffer2D<T> buffer, int startY)
         {
             // We don't actually have to assign values outside of the

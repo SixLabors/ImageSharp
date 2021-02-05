@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <returns>The float value at the specified index</returns>
         public float this[int idx]
         {
-            [MethodImpl(InliningOptions.ShortMethod)]
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 GuardBlockIndex(idx);
@@ -67,7 +67,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 return Unsafe.Add(ref selfRef, idx);
             }
 
-            [MethodImpl(InliningOptions.ShortMethod)]
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 GuardBlockIndex(idx);

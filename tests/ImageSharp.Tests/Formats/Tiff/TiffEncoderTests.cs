@@ -210,7 +210,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffEncoder_EncodeColorPalette_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw };
+            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw, PixelStorageMethod = TiffEncoderPixelStorageMethod.SingleStrip };
 
             this.TiffEncoderPaletteTest(provider, encoder);
         }
@@ -220,9 +220,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         public void TiffEncoder_EncodeColorPalette_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw, UseHorizontalPredictor = true };
+            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw, UseHorizontalPredictor = true, PixelStorageMethod = TiffEncoderPixelStorageMethod.SingleStrip };
 
             this.TiffEncoderPaletteTest(provider, encoder);
+        }
+
+        [Theory]
+        [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
+        public void TiffEncoder_EncodeColorPalette_WithLzwCompressionAndPredictor_Bug<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw, PixelStorageMethod = TiffEncoderPixelStorageMethod.MultiStrip, UseHorizontalPredictor = true };
+
+            Assert.Throws<ImageDifferenceIsOverThresholdException>(() => this.TiffEncoderPaletteTest(provider, encoder));
         }
 
         [Theory]

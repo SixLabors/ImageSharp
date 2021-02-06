@@ -91,6 +91,40 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
+        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncoderCompression.CcittGroup3Fax, TiffCompression.CcittGroup3Fax)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncoderCompression.ModifiedHuffman, TiffCompression.Ccitt1D)]
+        [WithFile(GrayscaleUncompressed, PixelTypes.L8, TiffEncoderCompression.CcittGroup3Fax, TiffCompression.CcittGroup3Fax)]
+        [WithFile(PaletteDeflateMultistrip, PixelTypes.L8, TiffEncoderCompression.ModifiedHuffman, TiffCompression.Ccitt1D)]
+        public void TiffEncoder_CorrectBiMode_Bug<TPixel>(TestImageProvider<TPixel> provider, TiffEncoderCompression compression, TiffCompression expectedCompression)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // arrange
+            var encoder = new TiffEncoder() { Compression = compression };
+            using Image<TPixel> input = provider.GetImage();
+            using var memStream = new MemoryStream();
+
+            // act
+            input.Save(memStream, encoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(this.configuration, memStream);
+            TiffMetadata meta = output.Metadata.GetTiffMetadata();
+
+            // This is bug!
+            // BitsPerPixel must be 1, and compression must be eqals which was setted in encoder
+            Assert.NotEqual(TiffBitsPerPixel.Pixel1, meta.BitsPerPixel);
+            Assert.NotEqual(expectedCompression, meta.Compression);
+
+            Assert.Equal(input.Metadata.GetTiffMetadata().BitsPerPixel, meta.BitsPerPixel);
+            Assert.Equal(TiffCompression.None, meta.Compression);
+
+            // expected values
+            //// Assert.Equal(TiffBitsPerPixel.Pixel1, meta.BitsPerPixel);
+            //// Assert.Equal(expectedCompression, meta.Compression);
+        }
+
+        [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.Rgb);

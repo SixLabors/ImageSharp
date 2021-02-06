@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 {

@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Benchmarks
             }
 #endif
 
-            this.SummaryStyle = SummaryStyle.Default.WithMaxParameterColumnWidth(40);
+            this.SummaryStyle = SummaryStyle.Default.WithMaxParameterColumnWidth(50);
         }
 
         public class MultiFramework : Config

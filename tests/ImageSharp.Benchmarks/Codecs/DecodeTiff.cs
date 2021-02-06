@@ -53,12 +53,12 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [Params(
             TestImages.Tiff.CcittFax3AllTermCodes,
             TestImages.Tiff.HuffmanRleAllMakeupCodes,
-            TestImages.Tiff.GrayscaleUncompressed,
-            TestImages.Tiff.PaletteUncompressed,
-            TestImages.Tiff.RgbDeflate,
-            TestImages.Tiff.RgbLzwPredictor,
-            TestImages.Tiff.RgbPackbits,
-            TestImages.Tiff.RgbUncompressed)]
+            TestImages.Tiff.Calliphora_GrayscaleUncompressed,
+            TestImages.Tiff.Calliphora_RgbPaletteLzw_Predictor,
+            TestImages.Tiff.Calliphora_RgbDeflate_Predictor,
+            TestImages.Tiff.Calliphora_RgbLzwPredictor,
+            TestImages.Tiff.Calliphora_RgbPackbits,
+            TestImages.Tiff.Calliphora_RgbUncompressed)]
         public string TestImage { get; set; }
 #endif
 

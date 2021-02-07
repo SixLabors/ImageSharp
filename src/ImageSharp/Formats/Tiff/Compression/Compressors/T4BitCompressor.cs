@@ -215,8 +215,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
         /// <param name="height">The strip height.</param>
         public override void CompressStrip(Span<byte> pixelsAsGray, int height)
         {
-            DebugGuard.Equals(pixelsAsGray.Length / height, this.Width);
-            DebugGuard.Equals(pixelsAsGray.Length % height, 0);
+            DebugGuard.IsTrue(pixelsAsGray.Length / height == this.Width, "Values must be equals");
+            DebugGuard.IsTrue(pixelsAsGray.Length % height == 0, "Values must be equals");
 
             this.compressedDataBuffer.Clear();
             Span<byte> compressedData = this.compressedDataBuffer.GetSpan();

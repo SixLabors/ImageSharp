@@ -26,31 +26,31 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             switch (method)
             {
                 case TiffEncoderCompression.None:
-                    DebugGuard.Equals(compressionLevel, default(DeflateCompressionLevel));
-                    DebugGuard.Equals(predictor, TiffPredictor.None);
+                    DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "Values must be equals");
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Values must be equals");
 
                     return new NoCompressor(output);
 
                 case TiffEncoderCompression.PackBits:
-                    DebugGuard.Equals(compressionLevel, default(DeflateCompressionLevel));
-                    DebugGuard.Equals(predictor, TiffPredictor.None);
+                    DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "Values must be equals");
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Values must be equals");
                     return new PackBitsCompressor(output, allocator, width, bitsPerPixel);
 
                 case TiffEncoderCompression.Deflate:
                     return new DeflateCompressor(output, allocator, width, bitsPerPixel, predictor, compressionLevel);
 
                 case TiffEncoderCompression.Lzw:
-                    DebugGuard.Equals(compressionLevel, default(DeflateCompressionLevel));
+                    DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "Values must be equals");
                     return new LzwCompressor(output, allocator, width, bitsPerPixel, predictor);
 
                 case TiffEncoderCompression.CcittGroup3Fax:
-                    DebugGuard.Equals(compressionLevel, default(DeflateCompressionLevel));
-                    DebugGuard.Equals(predictor, TiffPredictor.None);
+                    DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "Values must be equals");
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Values must be equals");
                     return new T4BitCompressor(output, allocator, width, bitsPerPixel, false);
 
                 case TiffEncoderCompression.ModifiedHuffman:
-                    DebugGuard.Equals(compressionLevel, default(DeflateCompressionLevel));
-                    DebugGuard.Equals(predictor, TiffPredictor.None);
+                    DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "Values must be equals");
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Values must be equals");
                     return new T4BitCompressor(output, allocator, width, bitsPerPixel, true);
 
                 default:

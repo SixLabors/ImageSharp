@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 
         public virtual void Write(TiffBaseCompressor compressor, int rowsPerStrip)
         {
-            DebugGuard.Equals(this.BytesPerRow, compressor.BytesPerRow);
+            DebugGuard.IsTrue(this.BytesPerRow == compressor.BytesPerRow || compressor.BytesPerRow == 0, "Values must be equals");
             int stripsCount = (this.Image.Height + rowsPerStrip - 1) / rowsPerStrip;
 
             uint[] stripOffsets = new uint[stripsCount];
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
                 stripIndex++;
             }
 
-            DebugGuard.Equals(stripIndex, stripsCount);
+            DebugGuard.IsTrue(stripIndex == stripsCount, "Values must be equals");
             this.AddStripTags(rowsPerStrip, stripOffsets, stripByteCounts);
         }
 

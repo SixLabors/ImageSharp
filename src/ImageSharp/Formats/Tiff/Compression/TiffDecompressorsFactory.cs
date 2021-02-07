@@ -21,31 +21,29 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             switch (method)
             {
                 case TiffDecoderCompressionType.None:
-                    DebugGuard.Equals(predictor, TiffPredictor.None);
-                    DebugGuard.Equals(faxOptions, FaxCompressionOptions.None);
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Values must be equals");
+                    DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "Values must be equals");
                     return new NoneTiffCompression();
 
                 case TiffDecoderCompressionType.PackBits:
-                    DebugGuard.Equals(predictor, TiffPredictor.None);
-                    DebugGuard.Equals(faxOptions, FaxCompressionOptions.None);
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Values must be equals");
+                    DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "Values must be equals");
                     return new PackBitsTiffCompression(allocator);
 
                 case TiffDecoderCompressionType.Deflate:
-                    DebugGuard.Equals(faxOptions, FaxCompressionOptions.None);
+                    DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "Values must be equals");
                     return new DeflateTiffCompression(allocator, width, bitsPerPixel, predictor);
 
                 case TiffDecoderCompressionType.Lzw:
-                    DebugGuard.Equals(faxOptions, FaxCompressionOptions.None);
+                    DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "Values must be equals");
                     return new LzwTiffCompression(allocator, width, bitsPerPixel, predictor);
 
                 case TiffDecoderCompressionType.T4:
-                    DebugGuard.Equals(predictor, TiffPredictor.None);
-                    DebugGuard.Equals(faxOptions, FaxCompressionOptions.None);
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Values must be equals");
                     return new T4TiffCompression(allocator, faxOptions, photometricInterpretation, width);
 
                 case TiffDecoderCompressionType.HuffmanRle:
-                    DebugGuard.Equals(predictor, TiffPredictor.None);
-                    DebugGuard.Equals(faxOptions, FaxCompressionOptions.None);
+                    DebugGuard.IsTrue(predictor == TiffPredictor.None, "Values must be equals");
                     return new ModifiedHuffmanTiffCompression(allocator, photometricInterpretation, width);
 
                 default:

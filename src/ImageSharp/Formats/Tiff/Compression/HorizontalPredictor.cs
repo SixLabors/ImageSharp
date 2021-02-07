@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void ApplyHorizontalPrediction24Bit(Span<byte> rows, int width)
         {
-            DebugGuard.Equals(rows.Length % width, 0);
+            DebugGuard.IsTrue(rows.Length % width == 0, "Values must be equals");
             int height = rows.Length / width;
             for (int y = 0; y < height; y++)
             {
@@ -81,7 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void ApplyHorizontalPrediction8Bit(Span<byte> rows, int width)
         {
-            DebugGuard.Equals(rows.Length % width, 0);
+            DebugGuard.IsTrue(rows.Length % width == 0, "Values must be equals");
             int height = rows.Length / width;
             for (int y = 0; y < height; y++)
             {

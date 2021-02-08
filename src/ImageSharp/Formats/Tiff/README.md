@@ -79,19 +79,19 @@
 |CellWidth                  |       |       |                          |
 |CellLength                 |       |       |                          |
 |FillOrder                  |       |   -   | Ignore. In practice is very uncommon, and is not recommended. |
-|ImageDescription           |       |   Y   |                          |
-|Make                       |       |   Y   |                          |
-|Model                      |       |   Y   |                          |
+|ImageDescription           |   Y   |   Y   |                          |
+|Make                       |   Y   |   Y   |                          |
+|Model                      |   Y   |   Y   |                          |
 |StripOffsets               |   Y   |   Y   |                          |
 |Orientation                |       |   -   | Ignore. Many readers ignore this tag. |
 |SamplesPerPixel            |   Y   |   -   | Currently ignored, as can be inferred from count of BitsPerSample |
-|RowsPerStrip               |       |   Y   |                          |
+|RowsPerStrip               |   Y   |   Y   |                          |
 |StripByteCounts            |   Y   |   Y   |                          |
 |MinSampleValue             |       |       |                          |
 |MaxSampleValue             |       |       |                          |
 |XResolution                |   Y   |   Y   |                          |
 |YResolution                |   Y   |   Y   |                          |
-|PlanarConfiguration        |       |   Y   |                          |
+|PlanarConfiguration        |       |   Y   | Encoding support only chunky. |
 |FreeOffsets                |       |       |                          |
 |FreeByteCounts             |       |       |                          |
 |GrayResponseUnit           |       |       |                          |
@@ -110,7 +110,7 @@
 |                           |Encoder|Decoder|Comments                  |
 |---------------------------|:-----:|:-----:|--------------------------|
 |NewSubfileType             |       |       |                          |
-|DocumentName               |       |       |                          |
+|DocumentName               |   Y   |   Y   |                          |
 |PageName                   |       |       |                          |
 |XPosition                  |       |       |                          |
 |YPosition                  |       |       |                          |
@@ -166,7 +166,7 @@
 |YCbCrSubSampling           |       |       |                          |
 |YCbCrPositioning           |       |       |                          |
 |ReferenceBlackWhite        |       |       |                          |
-|StripRowCounts             |       |   -   |                          |
+|StripRowCounts             |   -   |   -   | See RFC 2301 (File Format for Internet Fax). |
 |XMP                        |   Y   |   Y   |                          |
 |ImageID                    |       |       |                          |
 |ImageLayer                 |       |       |                          |

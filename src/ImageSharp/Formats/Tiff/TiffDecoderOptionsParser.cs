@@ -50,6 +50,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 }
             }
 
+            if (entries.ExifProfile.GetValue(ExifTag.StripRowCounts) != null)
+            {
+                TiffThrowHelper.ThrowNotSupported("Variable-sized strips are not supported.");
+            }
+
             options.PlanarConfiguration = entries.PlanarConfiguration;
             options.Predictor = entries.Predictor;
             options.PhotometricInterpretation = entries.PhotometricInterpretation;

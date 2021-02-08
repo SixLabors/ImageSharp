@@ -43,11 +43,40 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
-            using (var image = source.Clone())
+            using (Image<TPixel> image = source.Clone())
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
                 image.Mutate(x => x.BinaryThreshold(value, bounds));
+                image.DebugSave(provider, value);
+
+                ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(CommonTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
+        public void ImageShouldApplyBinarySaturationThresholdFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.BinaryThreshold(value, true));
+                image.DebugSave(provider, value);
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(CommonTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
+        public void ImageShouldApplyBinarySaturationThresholdInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> source = provider.GetImage())
+            using (Image<TPixel> image = source.Clone())
+            {
+                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+
+                image.Mutate(x => x.BinaryThreshold(value, bounds, true));
                 image.DebugSave(provider, value);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Binarization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
@@ -61,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.BinaryThreshold(value, true));
+                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdValueType.Saturation));
                 image.DebugSave(provider, value);
             }
         }
@@ -76,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.BinaryThreshold(value, bounds, true));
+                image.Mutate(x => x.BinaryThreshold(value, bounds, BinaryThresholdValueType.Saturation));
                 image.DebugSave(provider, value);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);

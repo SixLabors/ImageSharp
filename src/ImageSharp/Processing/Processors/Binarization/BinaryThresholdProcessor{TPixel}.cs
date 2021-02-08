@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
             bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
-            var operation = new RowOperation(interest, source, upper, lower, threshold, this.definition.UseSaturationNotLuminance, isAlphaOnly);
+            var operation = new RowOperation(interest, source, upper, lower, threshold, this.definition.ValueType, isAlphaOnly);
             ParallelRowIterator.IterateRows(
                 configuration,
                 interest,
@@ -60,7 +60,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             private readonly TPixel upper;
             private readonly TPixel lower;
             private readonly byte threshold;
-            private readonly bool useSaturationNotLuminance;
+            private readonly BinaryThresholdValueType valueType;
             private readonly int minX;
             private readonly int maxX;
             private readonly bool isAlphaOnly;
@@ -73,14 +73,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 TPixel upper,
                 TPixel lower,
                 byte threshold,
-                bool useSaturationNotLuminance,
+                BinaryThresholdValueType valueType,
                 bool isAlphaOnly)
             {
                 this.source = source;
                 this.upper = upper;
                 this.lower = lower;
                 this.threshold = threshold;
-                this.useSaturationNotLuminance = useSaturationNotLuminance;
+                this.valueType = valueType;
                 this.minX = bounds.X;
                 this.maxX = bounds.Right;
                 this.isAlphaOnly = isAlphaOnly;
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 Span<TPixel> row = this.source.GetPixelRowSpan(y);
                 ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
 
-                if (this.useSaturationNotLuminance)
+                if (this.valueType == BinaryThresholdValueType.Saturation)
                 {
                     float fThreshold = this.threshold / 255F;
 

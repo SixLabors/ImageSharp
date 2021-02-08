@@ -17,8 +17,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <param name="useSaturationNotLuminance">
         /// Use saturation value instead of luminance.
         /// </param>
-        public BinaryThresholdProcessor(float threshold,bool useSaturationNotLuminance = false)
-            : this(threshold, Color.White, Color.Black,useSaturationNotLuminance)
+        public BinaryThresholdProcessor(float threshold, bool useSaturationNotLuminance = false)
+            : this(threshold, Color.White, Color.Black, useSaturationNotLuminance)
         {
         }
 
@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <param name="useSaturationNotLuminance">
         /// Use saturation value instead of luminance.
         /// </param>
-        public BinaryThresholdProcessor(float threshold, Color upperColor, Color lowerColor,bool useSaturationNotLuminance = false)
+        public BinaryThresholdProcessor(float threshold, Color upperColor, Color lowerColor, bool useSaturationNotLuminance = false)
         {
             Guard.MustBeBetweenOrEqualTo(threshold, 0, 1, nameof(threshold));
             this.Threshold = threshold;

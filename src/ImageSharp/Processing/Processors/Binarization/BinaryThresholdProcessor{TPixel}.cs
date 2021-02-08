@@ -44,7 +44,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
             bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
-            var operation = new RowOperation(interest, source, upper, lower, threshold, isAlphaOnly);
+            var operation = new RowOperation(interest, source, upper, lower, threshold, this.definition.UseSaturationNotLuminance, isAlphaOnly);
             ParallelRowIterator.IterateRows(
                 configuration,
                 interest,
@@ -60,9 +60,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             private readonly TPixel upper;
             private readonly TPixel lower;
             private readonly byte threshold;
+            private readonly bool useSaturationNotLuminance;
             private readonly int minX;
             private readonly int maxX;
             private readonly bool isAlphaOnly;
+            private readonly ColorSpaces.Conversion.ColorSpaceConverter colorSpaceConverter;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
@@ -71,15 +73,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 TPixel upper,
                 TPixel lower,
                 byte threshold,
+                bool useSaturationNotLuminance,
                 bool isAlphaOnly)
             {
                 this.source = source;
                 this.upper = upper;
                 this.lower = lower;
                 this.threshold = threshold;
+                this.useSaturationNotLuminance = useSaturationNotLuminance;
                 this.minX = bounds.X;
                 this.maxX = bounds.Right;
                 this.isAlphaOnly = isAlphaOnly;
+                this.colorSpaceConverter = new ColorSpaces.Conversion.ColorSpaceConverter();
             }
 
             /// <inheritdoc/>
@@ -90,14 +95,31 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 Span<TPixel> row = this.source.GetPixelRowSpan(y);
                 ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
 
-                for (int x = this.minX; x < this.maxX; x++)
+                if (this.useSaturationNotLuminance)
                 {
-                    ref TPixel color = ref Unsafe.Add(ref rowRef, x);
-                    color.ToRgba32(ref rgba);
+                    float fThreshold = this.threshold / 255F;
 
-                    // Convert to grayscale using ITU-R Recommendation BT.709 if required
-                    byte luminance = this.isAlphaOnly ? rgba.A : ColorNumerics.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
-                    color = luminance >= this.threshold ? this.upper : this.lower;
+                    for (int x = this.minX; x < this.maxX; x++)
+                    {
+                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
+                        color.ToRgba32(ref rgba);
+
+                        // Extract saturation and compare to threshold.
+                        float sat = this.colorSpaceConverter.ToHsl(rgba).S;
+                        color = (sat >= fThreshold) ? this.upper : this.lower;
+                    }
+                }
+                else
+                {
+                    for (int x = this.minX; x < this.maxX; x++)
+                    {
+                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
+                        color.ToRgba32(ref rgba);
+
+                        // Convert to grayscale using ITU-R Recommendation BT.709 if required
+                        byte luminance = this.isAlphaOnly ? rgba.A : ColorNumerics.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                        color = luminance >= this.threshold ? this.upper : this.lower;
+                    }
                 }
             }
         }

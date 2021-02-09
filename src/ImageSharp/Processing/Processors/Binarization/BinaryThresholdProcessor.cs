@@ -31,8 +31,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
         /// <param name="valueType">The color component to be compared to threshold.</param>
-        public BinaryThresholdProcessor(float threshold, BinaryThresholdValueType valueType = BinaryThresholdValueType.Luminance)
+        public BinaryThresholdProcessor(float threshold, BinaryThresholdValueType valueType)
             : this(threshold, Color.White, Color.Black, valueType)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BinaryThresholdProcessor"/> class with
+        /// Luminance as color component to be compared to threshold.
+        /// </summary>
+        /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
+        public BinaryThresholdProcessor(float threshold)
+            : this(threshold, Color.White, Color.Black, BinaryThresholdValueType.Luminance)
         {
         }
 
@@ -43,13 +53,25 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
         /// <param name="lowerColor">The color to use for pixels that are below the threshold.</param>
         /// <param name="valueType">The color component to be compared to threshold.</param>
-        public BinaryThresholdProcessor(float threshold, Color upperColor, Color lowerColor, BinaryThresholdValueType valueType = BinaryThresholdValueType.Luminance)
+        public BinaryThresholdProcessor(float threshold, Color upperColor, Color lowerColor, BinaryThresholdValueType valueType)
         {
             Guard.MustBeBetweenOrEqualTo(threshold, 0, 1, nameof(threshold));
             this.Threshold = threshold;
             this.UpperColor = upperColor;
             this.LowerColor = lowerColor;
             this.ValueType = valueType;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BinaryThresholdProcessor"/> class with
+        /// Luminance as color component to be compared to threshold.
+        /// </summary>
+        /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
+        /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
+        /// <param name="lowerColor">The color to use for pixels that are below the threshold.</param>
+        public BinaryThresholdProcessor(float threshold, Color upperColor, Color lowerColor)
+            : this(threshold, Color.White, Color.Black, BinaryThresholdValueType.Luminance)
+        {
         }
 
         /// <summary>

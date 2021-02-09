@@ -68,7 +68,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void BinarySaturationThreshold_rect_CorrectProcessor()
         {
-            this.operations.BinaryThreshold(.93f, this.rect, BinaryThresholdValueType.Saturation);
+            this.operations.BinaryThreshold(.93f, BinaryThresholdValueType.Saturation, this.rect);
             BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>(this.rect);
             Assert.Equal(.93f, p.Threshold);
             Assert.Equal(BinaryThresholdValueType.Saturation, p.ValueType);
@@ -90,7 +90,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void BinarySaturationThreshold_rect_CorrectProcessorWithUpperLower()
         {
-            this.operations.BinaryThreshold(.93f, Color.HotPink, Color.Yellow, this.rect, BinaryThresholdValueType.Saturation);
+            this.operations.BinaryThreshold(.93f, Color.HotPink, Color.Yellow, BinaryThresholdValueType.Saturation, this.rect);
             BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>(this.rect);
             Assert.Equal(.93f, p.Threshold);
             Assert.Equal(BinaryThresholdValueType.Saturation, p.ValueType);

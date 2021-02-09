@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
-                image.Mutate(x => x.BinaryThreshold(value, bounds, BinaryThresholdValueType.Saturation));
+                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdValueType.Saturation, bounds));
                 image.DebugSave(provider, value);
 
                 ImageComparer.Tolerant().VerifySimilarityIgnoreRegion(source, image, bounds);

@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             this.operations.BinaryThreshold(.23f);
             BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>();
             Assert.Equal(.23f, p.Threshold);
-            Assert.Equal(BinaryThresholdValueType.Luminance, p.ValueType);
+            Assert.Equal(BinaryThresholdColorComponent.Luminance, p.ColorComponent);
             Assert.Equal(Color.White, p.UpperColor);
             Assert.Equal(Color.Black, p.LowerColor);
         }
@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             this.operations.BinaryThreshold(.93f, this.rect);
             BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>(this.rect);
             Assert.Equal(.93f, p.Threshold);
-            Assert.Equal(BinaryThresholdValueType.Luminance, p.ValueType);
+            Assert.Equal(BinaryThresholdColorComponent.Luminance, p.ColorComponent);
             Assert.Equal(Color.White, p.UpperColor);
             Assert.Equal(Color.Black, p.LowerColor);
         }
@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             this.operations.BinaryThreshold(.23f, Color.HotPink, Color.Yellow);
             BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>();
             Assert.Equal(.23f, p.Threshold);
-            Assert.Equal(BinaryThresholdValueType.Luminance, p.ValueType);
+            Assert.Equal(BinaryThresholdColorComponent.Luminance, p.ColorComponent);
             Assert.Equal(Color.HotPink, p.UpperColor);
             Assert.Equal(Color.Yellow, p.LowerColor);
         }
@@ -48,7 +48,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         {
             this.operations.BinaryThreshold(.93f, Color.HotPink, Color.Yellow, this.rect);
             BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>(this.rect);
-            Assert.Equal(BinaryThresholdValueType.Luminance, p.ValueType);
+            Assert.Equal(BinaryThresholdColorComponent.Luminance, p.ColorComponent);
             Assert.Equal(.93f, p.Threshold);
             Assert.Equal(Color.HotPink, p.UpperColor);
             Assert.Equal(Color.Yellow, p.LowerColor);
@@ -57,10 +57,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void BinarySaturationThreshold_CorrectProcessor()
         {
-            this.operations.BinaryThreshold(.23f, BinaryThresholdValueType.Saturation);
+            this.operations.BinaryThreshold(.23f, BinaryThresholdColorComponent.Saturation);
             BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>();
             Assert.Equal(.23f, p.Threshold);
-            Assert.Equal(BinaryThresholdValueType.Saturation, p.ValueType);
+            Assert.Equal(BinaryThresholdColorComponent.Saturation, p.ColorComponent);
             Assert.Equal(Color.White, p.UpperColor);
             Assert.Equal(Color.Black, p.LowerColor);
         }
@@ -68,10 +68,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void BinarySaturationThreshold_rect_CorrectProcessor()
         {
-            this.operations.BinaryThreshold(.93f, BinaryThresholdValueType.Saturation, this.rect);
+            this.operations.BinaryThreshold(.93f, BinaryThresholdColorComponent.Saturation, this.rect);
             BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>(this.rect);
             Assert.Equal(.93f, p.Threshold);
-            Assert.Equal(BinaryThresholdValueType.Saturation, p.ValueType);
+            Assert.Equal(BinaryThresholdColorComponent.Saturation, p.ColorComponent);
             Assert.Equal(Color.White, p.UpperColor);
             Assert.Equal(Color.Black, p.LowerColor);
         }
@@ -79,10 +79,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void BinarySaturationThreshold_CorrectProcessorWithUpperLower()
         {
-            this.operations.BinaryThreshold(.23f, Color.HotPink, Color.Yellow, BinaryThresholdValueType.Saturation);
+            this.operations.BinaryThreshold(.23f, Color.HotPink, Color.Yellow, BinaryThresholdColorComponent.Saturation);
             BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>();
             Assert.Equal(.23f, p.Threshold);
-            Assert.Equal(BinaryThresholdValueType.Saturation, p.ValueType);
+            Assert.Equal(BinaryThresholdColorComponent.Saturation, p.ColorComponent);
             Assert.Equal(Color.HotPink, p.UpperColor);
             Assert.Equal(Color.Yellow, p.LowerColor);
         }
@@ -90,10 +90,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
         [Fact]
         public void BinarySaturationThreshold_rect_CorrectProcessorWithUpperLower()
         {
-            this.operations.BinaryThreshold(.93f, Color.HotPink, Color.Yellow, BinaryThresholdValueType.Saturation, this.rect);
+            this.operations.BinaryThreshold(.93f, Color.HotPink, Color.Yellow, BinaryThresholdColorComponent.Saturation, this.rect);
             BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>(this.rect);
             Assert.Equal(.93f, p.Threshold);
-            Assert.Equal(BinaryThresholdValueType.Saturation, p.ValueType);
+            Assert.Equal(BinaryThresholdColorComponent.Saturation, p.ColorComponent);
             Assert.Equal(Color.HotPink, p.UpperColor);
             Assert.Equal(Color.Yellow, p.LowerColor);
         }

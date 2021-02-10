@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
     /// <summary>
     /// The color component to be compared to threshold.
     /// </summary>
-    public enum BinaryThresholdValueType : int
+    public enum BinaryThresholdColorComponent : int
     {
         /// <summary>
         /// Luminance color component as value to be compared to threshold.
@@ -30,9 +30,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// Initializes a new instance of the <see cref="BinaryThresholdProcessor"/> class.
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
-        /// <param name="valueType">The color component to be compared to threshold.</param>
-        public BinaryThresholdProcessor(float threshold, BinaryThresholdValueType valueType)
-            : this(threshold, Color.White, Color.Black, valueType)
+        /// <param name="colorComponent">The color component to be compared to threshold.</param>
+        public BinaryThresholdProcessor(float threshold, BinaryThresholdColorComponent colorComponent)
+            : this(threshold, Color.White, Color.Black, colorComponent)
         {
         }
 
@@ -42,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// </summary>
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
         public BinaryThresholdProcessor(float threshold)
-            : this(threshold, Color.White, Color.Black, BinaryThresholdValueType.Luminance)
+            : this(threshold, Color.White, Color.Black, BinaryThresholdColorComponent.Luminance)
         {
         }
 
@@ -52,14 +52,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <param name="threshold">The threshold to split the image. Must be between 0 and 1.</param>
         /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
         /// <param name="lowerColor">The color to use for pixels that are below the threshold.</param>
-        /// <param name="valueType">The color component to be compared to threshold.</param>
-        public BinaryThresholdProcessor(float threshold, Color upperColor, Color lowerColor, BinaryThresholdValueType valueType)
+        /// <param name="colorComponent">The color component to be compared to threshold.</param>
+        public BinaryThresholdProcessor(float threshold, Color upperColor, Color lowerColor, BinaryThresholdColorComponent colorComponent)
         {
             Guard.MustBeBetweenOrEqualTo(threshold, 0, 1, nameof(threshold));
             this.Threshold = threshold;
             this.UpperColor = upperColor;
             this.LowerColor = lowerColor;
-            this.ValueType = valueType;
+            this.ColorComponent = colorComponent;
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
         /// <param name="lowerColor">The color to use for pixels that are below the threshold.</param>
         public BinaryThresholdProcessor(float threshold, Color upperColor, Color lowerColor)
-            : this(threshold, Color.White, Color.Black, BinaryThresholdValueType.Luminance)
+            : this(threshold, Color.White, Color.Black, BinaryThresholdColorComponent.Luminance)
         {
         }
 
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
          /// <summary>
         /// Gets a value indicating whether to use saturation value instead of luminance.
         /// </summary>
-        public BinaryThresholdValueType ValueType { get; }
+        public BinaryThresholdColorComponent ColorComponent { get; }
 
        /// <inheritdoc />
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)

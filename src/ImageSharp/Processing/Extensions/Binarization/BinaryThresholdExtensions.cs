@@ -16,10 +16,10 @@ namespace SixLabors.ImageSharp.Processing
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
-        /// <param name="valueType">The color component to be compared to threshold.</param>
+        /// <param name="colorComponent">The color component to be compared to threshold.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
-        public static IImageProcessingContext BinaryThreshold(this IImageProcessingContext source, float threshold, BinaryThresholdValueType valueType) =>
-            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, valueType));
+        public static IImageProcessingContext BinaryThreshold(this IImageProcessingContext source, float threshold, BinaryThresholdColorComponent colorComponent) =>
+            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, colorComponent));
 
         /// <summary>
         /// Applies binarization to the image splitting the pixels at the given threshold with
@@ -29,14 +29,14 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BinaryThreshold(this IImageProcessingContext source, float threshold) =>
-            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, BinaryThresholdValueType.Luminance));
+            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, BinaryThresholdColorComponent.Luminance));
 
         /// <summary>
         /// Applies binarization to the image splitting the pixels at the given threshold.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
-        /// <param name="valueType">The color component to be compared to threshold.</param>
+        /// <param name="colorComponent">The color component to be compared to threshold.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
@@ -44,9 +44,9 @@ namespace SixLabors.ImageSharp.Processing
         public static IImageProcessingContext BinaryThreshold(
             this IImageProcessingContext source,
             float threshold,
-            BinaryThresholdValueType valueType,
+            BinaryThresholdColorComponent colorComponent,
             Rectangle rectangle) =>
-            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, valueType), rectangle);
+            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, colorComponent), rectangle);
 
         /// <summary>
         /// Applies binarization to the image splitting the pixels at the given threshold with
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Processing
             this IImageProcessingContext source,
             float threshold,
             Rectangle rectangle) =>
-            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, BinaryThresholdValueType.Luminance), rectangle);
+            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, BinaryThresholdColorComponent.Luminance), rectangle);
 
         /// <summary>
         /// Applies binarization to the image splitting the pixels at the given threshold.
@@ -71,15 +71,15 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
         /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
         /// <param name="lowerColor">The color to use for pixels that are below the threshold</param>
-        /// <param name="valueType">The color component to be compared to threshold.</param>
+        /// <param name="colorComponent">The color component to be compared to threshold.</param>
         /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
         public static IImageProcessingContext BinaryThreshold(
             this IImageProcessingContext source,
             float threshold,
             Color upperColor,
             Color lowerColor,
-            BinaryThresholdValueType valueType) =>
-            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, upperColor, lowerColor, valueType));
+            BinaryThresholdColorComponent colorComponent) =>
+            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, upperColor, lowerColor, colorComponent));
 
          /// <summary>
         /// Applies binarization to the image splitting the pixels at the given threshold with
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing
             float threshold,
             Color upperColor,
             Color lowerColor) =>
-            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, upperColor, lowerColor, BinaryThresholdValueType.Luminance));
+            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, upperColor, lowerColor, BinaryThresholdColorComponent.Luminance));
 
        /// <summary>
         /// Applies binarization to the image splitting the pixels at the given threshold.
@@ -104,7 +104,7 @@ namespace SixLabors.ImageSharp.Processing
         /// <param name="threshold">The threshold to apply binarization of the image. Must be between 0 and 1.</param>
         /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
         /// <param name="lowerColor">The color to use for pixels that are below the threshold</param>
-        /// <param name="valueType">The color component to be compared to threshold.</param>
+        /// <param name="colorComponent">The color component to be compared to threshold.</param>
         /// <param name="rectangle">
         /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
         /// </param>
@@ -114,9 +114,9 @@ namespace SixLabors.ImageSharp.Processing
             float threshold,
             Color upperColor,
             Color lowerColor,
-            BinaryThresholdValueType valueType,
+            BinaryThresholdColorComponent colorComponent,
             Rectangle rectangle) =>
-            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, upperColor, lowerColor, valueType), rectangle);
+            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, upperColor, lowerColor, colorComponent), rectangle);
 
        /// <summary>
         /// Applies binarization to the image splitting the pixels at the given threshold with
@@ -136,6 +136,6 @@ namespace SixLabors.ImageSharp.Processing
             Color upperColor,
             Color lowerColor,
             Rectangle rectangle) =>
-            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, upperColor, lowerColor, BinaryThresholdValueType.Luminance), rectangle);
+            source.ApplyProcessor(new BinaryThresholdProcessor(threshold, upperColor, lowerColor, BinaryThresholdColorComponent.Luminance), rectangle);
     }
 }

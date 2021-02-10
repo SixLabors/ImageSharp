@@ -19,6 +19,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// Saturation color component as value to be compared to threshold.
         /// </summary>
         Saturation = 1,
+
+        /// <summary>
+        /// Colorfulness (saturated with min luminance 10%) color component as value to be
+        /// compared to threshold.
+        /// </summary>
+        Colorfulness_L10 = 2,
     }
 
     /// <summary>
@@ -70,7 +76,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
         /// <param name="lowerColor">The color to use for pixels that are below the threshold.</param>
         public BinaryThresholdProcessor(float threshold, Color upperColor, Color lowerColor)
-            : this(threshold, Color.White, Color.Black, BinaryThresholdColorComponent.Luminance)
+            : this(threshold, upperColor, lowerColor, BinaryThresholdColorComponent.Luminance)
         {
         }
 

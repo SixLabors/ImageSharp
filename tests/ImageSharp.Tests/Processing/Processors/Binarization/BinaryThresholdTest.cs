@@ -87,5 +87,34 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", System.Globalization.NumberFormatInfo.InvariantInfo));
             }
         }
+
+        [Theory]
+        [WithFileCollection(nameof(SaturationTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
+        public void ImageShouldApplyBinaryColorfulness_L10ThresholdFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.Colorfulness_L10));
+                image.DebugSave(provider, value);
+                image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", System.Globalization.NumberFormatInfo.InvariantInfo));
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(SaturationTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
+        public void ImageShouldApplyBinaryColorfulness_L10ThresholdInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> source = provider.GetImage())
+            using (Image<TPixel> image = source.Clone())
+            {
+                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+
+                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.Colorfulness_L10, bounds));
+                image.DebugSave(provider, value);
+                image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", System.Globalization.NumberFormatInfo.InvariantInfo));
+            }
+        }
     }
 }

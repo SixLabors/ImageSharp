@@ -2,14 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Binarization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 {
-    using SixLabors.ImageSharp.Processing;
-
     public class BinaryThresholdTest
     {
         public static readonly TheoryData<float> BinaryThresholdValues

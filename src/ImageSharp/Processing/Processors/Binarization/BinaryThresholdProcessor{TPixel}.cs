@@ -95,19 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 Span<TPixel> row = this.source.GetPixelRowSpan(y);
                 ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
 
-                if (this.colorComponent == BinaryThresholdColorComponent.Luminance)
-                {
-                    for (int x = this.minX; x < this.maxX; x++)
-                    {
-                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
-                        color.ToRgba32(ref rgba);
-
-                        // Convert to grayscale using ITU-R Recommendation BT.709 if required
-                        byte luminance = this.isAlphaOnly ? rgba.A : ColorNumerics.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
-                        color = luminance >= this.threshold ? this.upper : this.lower;
-                    }
-                }
-                else if (this.colorComponent == BinaryThresholdColorComponent.Saturation)
+                if (this.colorComponent == BinaryThresholdColorComponent.Saturation)
                 {
                     float fThreshold = this.threshold / 255F;
 
@@ -121,34 +109,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                         color = (sat >= fThreshold) ? this.upper : this.lower;
                     }
                 }
-                else if (this.colorComponent == BinaryThresholdColorComponent.Colorfulness_L10)
+                else
                 {
-                    float fThreshold = this.threshold / 255F;
-
                     for (int x = this.minX; x < this.maxX; x++)
                     {
                         ref TPixel color = ref Unsafe.Add(ref rowRef, x);
                         color.ToRgba32(ref rgba);
 
-                        // Calculate HSL value and compare to threshold.
-                        var hsl = this.colorSpaceConverter.ToHsl(rgba);
-                        if (hsl.L < 0.10F)
-                        {
-                            color = this.lower;
-                        }
-                        else if (hsl.S < fThreshold)
-                        {
-                            color = this.lower;
-                        }
-                        else
-                        {
-                            color = this.upper;
-                        }
+                        // Convert to grayscale using ITU-R Recommendation BT.709 if required
+                        byte luminance = this.isAlphaOnly ? rgba.A : ColorNumerics.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                        color = luminance >= this.threshold ? this.upper : this.lower;
                     }
-                }
-                else
-                {
-                    throw new NotImplementedException("Unknown BinaryThresholdColorComponent value " + this.colorComponent);
                 }
             }
         }

@@ -3,12 +3,12 @@
 
 using System;
 using System.Buffers;
+
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Processing.Processors.Dithering;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 {
@@ -27,11 +27,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
             // Convert image to black and white.
             // TODO: Should we allow to skip this by the user, if its known to be black and white already?
             this.imageBlackWhite = new Image<TPixel>(configuration, new ImageMetadata(), new[] { image.Clone() });
-            this.imageBlackWhite.Mutate(img => img.BinaryDither(default(ErrorDither)));
+            this.imageBlackWhite.Mutate(img => img.BinaryDither(KnownDitherings.FloydSteinberg));
         }
 
+        /// <inheritdoc/>
         public override int BitsPerPixel => 1;
 
+        /// <inheritdoc/>
         protected override void EncodeStrip(int y, int height, TiffBaseCompressor compressor)
         {
             if (this.pixelsAsGray == null)
@@ -89,6 +91,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
             }
         }
 
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
             this.imageBlackWhite?.Dispose();

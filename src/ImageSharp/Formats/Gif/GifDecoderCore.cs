@@ -535,7 +535,8 @@ namespace SixLabors.ImageSharp.Formats.Gif
                 return;
             }
 
-            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(this.restoreArea.Value);
+            var interest = Rectangle.Intersect(frame.Bounds(), this.restoreArea.Value);
+            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(interest);
             pixelRegion.Clear();
 
             this.restoreArea = null;

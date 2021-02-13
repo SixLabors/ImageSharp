@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// Load a 8x8 region of an image into the block.
         /// The "outlying" area of the block will be stretched out with pixels on the right and bottom edge of the image.
         /// </summary>
-        public void LoadAndStretchEdges(Buffer2D<T> source, int sourceX, int sourceY, in RowOctet<T> currentRows)
+        public void LoadAndStretchEdges(Buffer2D<T> source, int sourceX, int sourceY, ref RowOctet<T> currentRows)
         {
             int width = Math.Min(8, source.Width - sourceX);
             int height = Math.Min(8, source.Height - sourceY);

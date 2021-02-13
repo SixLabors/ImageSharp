@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public Vector4 ConvolveCore(ref Vector4 rowStartRef)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Fma.IsSupported)
+            if (Avx2.IsSupported && Fma.IsSupported)
             {
                 float* bufferStart = this.bufferPtr;
                 float* bufferEnd = bufferStart + (this.Length & ~3);

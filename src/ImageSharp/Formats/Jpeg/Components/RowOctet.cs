@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -12,39 +12,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// Cache 8 pixel rows on the stack, which may originate from different buffers of a <see cref="MemoryGroup{T}"/>.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly ref struct RowOctet<T>
+    internal ref struct RowOctet<T>
         where T : struct
     {
-        private readonly Span<T> row0;
-        private readonly Span<T> row1;
-        private readonly Span<T> row2;
-        private readonly Span<T> row3;
-        private readonly Span<T> row4;
-        private readonly Span<T> row5;
-        private readonly Span<T> row6;
-        private readonly Span<T> row7;
+        private Span<T> row0;
+        private Span<T> row1;
+        private Span<T> row2;
+        private Span<T> row3;
+        private Span<T> row4;
+        private Span<T> row5;
+        private Span<T> row6;
+        private Span<T> row7;
 
-        public RowOctet(Buffer2D<T> buffer, int startY)
-        {
-            int y = startY;
-            int height = buffer.Height;
-            this.row0 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row1 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row2 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row3 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row4 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row5 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row6 = y < height ? buffer.GetRowSpan(y++) : default;
-            this.row7 = y < height ? buffer.GetRowSpan(y) : default;
-        }
-
+        // No unsafe tricks, since Span<T> can't be used as a generic argument
         public Span<T> this[int y]
         {
-            [MethodImpl(InliningOptions.ShortMethod)]
-            get
-            {
-                // No unsafe tricks, since Span<T> can't be used as a generic argument
-                return y switch
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get =>
+                y switch
                 {
                     0 => this.row0,
                     1 => this.row1,
@@ -56,13 +41,57 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                     7 => this.row7,
                     _ => ThrowIndexOutOfRangeException()
                 };
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private set
+            {
+                switch (y)
+                {
+                    case 0:
+                        this.row0 = value;
+                        break;
+                    case 1:
+                        this.row1 = value;
+                        break;
+                    case 2:
+                        this.row2 = value;
+                        break;
+                    case 3:
+                        this.row3 = value;
+                        break;
+                    case 4:
+                        this.row4 = value;
+                        break;
+                    case 5:
+                        this.row5 = value;
+                        break;
+                    case 6:
+                        this.row6 = value;
+                        break;
+                    default:
+                        this.row7 = value;
+                        break;
+                }
             }
         }
 
-        [MethodImpl(InliningOptions.ColdPath)]
-        private static Span<T> ThrowIndexOutOfRangeException()
+        [MethodImpl(InliningOptions.ShortMethod)]
+        public void Update(Buffer2D<T> buffer, int startY)
         {
-            throw new IndexOutOfRangeException();
+            // We don't actually have to assign values outside of the
+            // frame pixel buffer since they are never requested.
+            int y = startY;
+            int yEnd = Math.Min(y + 8, buffer.Height);
+
+            int i = 0;
+            while (y < yEnd)
+            {
+                this[i++] = buffer.GetRowSpan(y++);
+            }
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Span<T> ThrowIndexOutOfRangeException()
+        => throw new IndexOutOfRangeException();
     }
 }

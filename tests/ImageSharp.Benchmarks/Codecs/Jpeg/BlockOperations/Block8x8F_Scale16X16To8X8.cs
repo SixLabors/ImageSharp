@@ -1,3 +1,6 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -15,7 +18,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Format.Jpeg.Components
         {
             var random = new Random();
 
-            float[] f = new float[8*8];
+            float[] f = new float[8 * 8];
             for (int i = 0; i < f.Length; i++)
             {
                 f[i] = (float)random.NextDouble();

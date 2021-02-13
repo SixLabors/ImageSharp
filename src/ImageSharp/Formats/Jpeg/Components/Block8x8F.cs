@@ -18,6 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
     /// <summary>
     /// Represents a Jpeg block with <see cref="float"/> coefficients.
     /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
     internal partial struct Block8x8F : IEquatable<Block8x8F>
     {
         /// <summary>
@@ -51,9 +52,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         public Vector4 V7R;
 #pragma warning restore SA1600 // ElementsMustBeDocumented
 
-        private static readonly Vector4 NegativeOne = new Vector4(-1);
-        private static readonly Vector4 Offset = new Vector4(.5F);
-
         /// <summary>
         /// Get/Set scalar elements at a given index
         /// </summary>
@@ -61,7 +59,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <returns>The float value at the specified index</returns>
         public float this[int idx]
         {
-            [MethodImpl(InliningOptions.ShortMethod)]
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 GuardBlockIndex(idx);
@@ -69,7 +67,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 return Unsafe.Add(ref selfRef, idx);
             }
 
-            [MethodImpl(InliningOptions.ShortMethod)]
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 GuardBlockIndex(idx);
@@ -155,10 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// </summary>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Clear()
-        {
-            // The cheapest way to do this in C#:
-            this = default;
-        }
+            => this = default; // The cheapest way to do this in C#:
 
         /// <summary>
         /// Load raw 32bit floating point data from source.
@@ -180,9 +175,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="source">Source</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static unsafe void LoadFrom(Block8x8F* blockPtr, Span<float> source)
-        {
-            blockPtr->LoadFrom(source);
-        }
+            => blockPtr->LoadFrom(source);
 
         /// <summary>
         /// Load raw 32bit floating point data from source
@@ -236,9 +229,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="dest">The destination.</param>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static unsafe void ScaledCopyTo(Block8x8F* blockPtr, Span<float> dest)
-        {
-            blockPtr->ScaledCopyTo(dest);
-        }
+            => blockPtr->ScaledCopyTo(dest);
 
         /// <summary>
         /// Copy raw 32bit floating point data to dest
@@ -439,7 +430,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         /// <param name="blockPtr">The block pointer.</param>
         /// <param name="qtPtr">The qt pointer.</param>
         /// <param name="unzigPtr">Unzig pointer</param>
-        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void DequantizeBlock(Block8x8F* blockPtr, Block8x8F* qtPtr, byte* unzigPtr)
         {
             float* b = (float*)blockPtr;
@@ -556,22 +546,60 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void DivideRoundAll(ref Block8x8F a, ref Block8x8F b)
         {
-            a.V0L = DivideRound(a.V0L, b.V0L);
-            a.V0R = DivideRound(a.V0R, b.V0R);
-            a.V1L = DivideRound(a.V1L, b.V1L);
-            a.V1R = DivideRound(a.V1R, b.V1R);
-            a.V2L = DivideRound(a.V2L, b.V2L);
-            a.V2R = DivideRound(a.V2R, b.V2R);
-            a.V3L = DivideRound(a.V3L, b.V3L);
-            a.V3R = DivideRound(a.V3R, b.V3R);
-            a.V4L = DivideRound(a.V4L, b.V4L);
-            a.V4R = DivideRound(a.V4R, b.V4R);
-            a.V5L = DivideRound(a.V5L, b.V5L);
-            a.V5R = DivideRound(a.V5R, b.V5R);
-            a.V6L = DivideRound(a.V6L, b.V6L);
-            a.V6R = DivideRound(a.V6R, b.V6R);
-            a.V7L = DivideRound(a.V7L, b.V7L);
-            a.V7R = DivideRound(a.V7R, b.V7R);
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Avx.IsSupported)
+            {
+                var vnegOne = Vector256.Create(-1f);
+                var vadd = Vector256.Create(.5F);
+                var vone = Vector256.Create(1f);
+
+                ref Vector256<float> aBase = ref Unsafe.AsRef(Unsafe.As<Vector4, Vector256<float>>(ref a.V0L));
+                ref Vector256<float> bBase = ref Unsafe.AsRef(Unsafe.As<Vector4, Vector256<float>>(ref b.V0L));
+                ref Vector256<float> aEnd = ref Unsafe.Add(ref aBase, 8);
+
+                do
+                {
+                    Vector256<float> voff = Avx.Multiply(Avx.Min(Avx.Max(vnegOne, aBase), vone), vadd);
+                    Unsafe.Add(ref aBase, 0) = Avx.Add(Avx.Divide(aBase, bBase), voff);
+
+                    aBase = ref Unsafe.Add(ref aBase, 1);
+                    bBase = ref Unsafe.Add(ref bBase, 1);
+                }
+                while (Unsafe.IsAddressLessThan(ref aBase, ref aEnd));
+            }
+            else
+#endif
+            {
+                a.V0L = DivideRound(a.V0L, b.V0L);
+                a.V0R = DivideRound(a.V0R, b.V0R);
+                a.V1L = DivideRound(a.V1L, b.V1L);
+                a.V1R = DivideRound(a.V1R, b.V1R);
+                a.V2L = DivideRound(a.V2L, b.V2L);
+                a.V2R = DivideRound(a.V2R, b.V2R);
+                a.V3L = DivideRound(a.V3L, b.V3L);
+                a.V3R = DivideRound(a.V3R, b.V3R);
+                a.V4L = DivideRound(a.V4L, b.V4L);
+                a.V4R = DivideRound(a.V4R, b.V4R);
+                a.V5L = DivideRound(a.V5L, b.V5L);
+                a.V5R = DivideRound(a.V5R, b.V5R);
+                a.V6L = DivideRound(a.V6L, b.V6L);
+                a.V6R = DivideRound(a.V6R, b.V6R);
+                a.V7L = DivideRound(a.V7L, b.V7L);
+                a.V7R = DivideRound(a.V7R, b.V7R);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
+        {
+            var neg = new Vector4(-1);
+            var add = new Vector4(.5F);
+
+            // sign(dividend) = max(min(dividend, 1), -1)
+            Vector4 sign = Numerics.Clamp(dividend, neg, Vector4.One);
+
+            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
+            return (dividend / divisor) + (sign * add);
         }
 
         public void RoundInto(ref Block8x8 dest)
@@ -673,8 +701,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
         /// <inheritdoc />
         public bool Equals(Block8x8F other)
-        {
-            return this.V0L == other.V0L
+            => this.V0L == other.V0L
             && this.V0R == other.V0R
             && this.V1L == other.V1L
             && this.V1R == other.V1R
@@ -690,7 +717,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             && this.V6R == other.V6R
             && this.V7L == other.V7L
             && this.V7R == other.V7R;
-        }
 
         /// <inheritdoc />
         public override string ToString()
@@ -716,16 +742,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             row = Vector.Max(row, Vector<float>.Zero);
             row = Vector.Min(row, max);
             return row.FastRound();
-        }
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
-        {
-            // sign(dividend) = max(min(dividend, 1), -1)
-            Vector4 sign = Numerics.Clamp(dividend, NegativeOne, Vector4.One);
-
-            // AlmostRound(dividend/divisor) = dividend/divisor + 0.5*sign(dividend)
-            return (dividend / divisor) + (sign * Offset);
         }
 
         [Conditional("DEBUG")]

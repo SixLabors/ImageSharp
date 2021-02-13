@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms
@@ -85,5 +87,24 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
             Assert.Equal(compand, resizeOptions.Compand);
             Assert.Equal(mode, resizeOptions.Mode);
         }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Fact]
+        public void HwIntrinsics_Resize()
+        {
+            static void RunTest()
+            {
+                using var image = new Image<Rgba32>(50, 50);
+                image.Mutate(img => img.Resize(25, 25));
+
+                Assert.Equal(25, image.Width);
+                Assert.Equal(25, image.Height);
+            }
+
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableFMA);
+        }
+#endif
     }
 }

@@ -38,7 +38,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
             stream.Write(rows);
 
             stream.Flush();
-            //// stream.Dispose(); // todo: dispose write crc
+            stream.Dispose();
 
             int size = (int)this.memoryStream.Position;
 

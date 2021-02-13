@@ -39,11 +39,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         IQuantizer Quantizer { get; }
 
         /// <summary>
-        /// Gets the pixel storage method.
-        /// </summary>
-        TiffEncoderPixelStorageMethod PixelStorageMethod { get; }
-
-        /// <summary>
         /// Gets the maximum size of strip (bytes).
         /// </summary>
         int MaxStripBytes { get; }

@@ -19,14 +19,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         };
 
         public static readonly string[] CommonTestImages =
-            {
-                TestImages.Png.CalliphoraPartial, TestImages.Png.Bike
-            };
-
-        public static readonly string[] SaturationTestImages =
-            {
-                TestImages.Png.Rgb48Bpp
-            };
+        {
+            TestImages.Png.Rgb48Bpp,
+            TestImages.Png.ColorsSaturationLightness,
+        };
 
         public const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24;
 
@@ -50,7 +46,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             using (Image<TPixel> source = provider.GetImage())
             using (Image<TPixel> image = source.Clone())
             {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+                var bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
 
                 image.Mutate(x => x.BinaryThreshold(value, bounds));
                 image.DebugSave(provider, value);
@@ -60,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         }
 
         [Theory]
-        [WithFileCollection(nameof(SaturationTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
         public void ImageShouldApplyBinarySaturationThresholdFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -73,16 +69,45 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         }
 
         [Theory]
-        [WithFileCollection(nameof(SaturationTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
+        [WithFileCollection(nameof(CommonTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
         public void ImageShouldApplyBinarySaturationThresholdInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using (Image<TPixel> source = provider.GetImage())
             using (Image<TPixel> image = source.Clone())
             {
-                var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+                var bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
 
                 image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.Saturation, bounds));
+                image.DebugSave(provider, value);
+                image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", System.Globalization.NumberFormatInfo.InvariantInfo));
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(CommonTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
+        public void ImageShouldApplyBinaryMaxChromaThresholdFilter<TPixel>(TestImageProvider<TPixel> provider, float value)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage())
+            {
+                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.MaxChroma));
+                image.DebugSave(provider, value);
+                image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", System.Globalization.NumberFormatInfo.InvariantInfo));
+            }
+        }
+
+        [Theory]
+        [WithFileCollection(nameof(CommonTestImages), nameof(BinaryThresholdValues), PixelTypes.Rgba32)]
+        public void ImageShouldApplyBinaryMaxChromaThresholdInBox<TPixel>(TestImageProvider<TPixel> provider, float value)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> source = provider.GetImage())
+            using (Image<TPixel> image = source.Clone())
+            {
+                var bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
+
+                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.MaxChroma, bounds));
                 image.DebugSave(provider, value);
                 image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", System.Globalization.NumberFormatInfo.InvariantInfo));
             }

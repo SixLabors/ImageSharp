@@ -97,5 +97,49 @@ namespace SixLabors.ImageSharp.Tests.Processing.Binarization
             Assert.Equal(Color.HotPink, p.UpperColor);
             Assert.Equal(Color.Yellow, p.LowerColor);
         }
+
+        [Fact]
+        public void BinaryMaxChromaThreshold_CorrectProcessor()
+        {
+            this.operations.BinaryThreshold(.23f, BinaryThresholdColorComponent.MaxChroma);
+            BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>();
+            Assert.Equal(.23f, p.Threshold);
+            Assert.Equal(BinaryThresholdColorComponent.MaxChroma, p.ColorComponent);
+            Assert.Equal(Color.White, p.UpperColor);
+            Assert.Equal(Color.Black, p.LowerColor);
+        }
+
+        [Fact]
+        public void BinaryMaxChromaThreshold_rect_CorrectProcessor()
+        {
+            this.operations.BinaryThreshold(.93f, BinaryThresholdColorComponent.MaxChroma, this.rect);
+            BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>(this.rect);
+            Assert.Equal(.93f, p.Threshold);
+            Assert.Equal(BinaryThresholdColorComponent.MaxChroma, p.ColorComponent);
+            Assert.Equal(Color.White, p.UpperColor);
+            Assert.Equal(Color.Black, p.LowerColor);
+        }
+
+        [Fact]
+        public void BinaryMaxChromaThreshold_CorrectProcessorWithUpperLower()
+        {
+            this.operations.BinaryThreshold(.23f, Color.HotPink, Color.Yellow, BinaryThresholdColorComponent.MaxChroma);
+            BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>();
+            Assert.Equal(.23f, p.Threshold);
+            Assert.Equal(BinaryThresholdColorComponent.MaxChroma, p.ColorComponent);
+            Assert.Equal(Color.HotPink, p.UpperColor);
+            Assert.Equal(Color.Yellow, p.LowerColor);
+        }
+
+        [Fact]
+        public void BinaryMaxChromaThreshold_rect_CorrectProcessorWithUpperLower()
+        {
+            this.operations.BinaryThreshold(.93f, Color.HotPink, Color.Yellow, BinaryThresholdColorComponent.MaxChroma, this.rect);
+            BinaryThresholdProcessor p = this.Verify<BinaryThresholdProcessor>(this.rect);
+            Assert.Equal(.93f, p.Threshold);
+            Assert.Equal(BinaryThresholdColorComponent.MaxChroma, p.ColorComponent);
+            Assert.Equal(Color.HotPink, p.UpperColor);
+            Assert.Equal(Color.Yellow, p.LowerColor);
+        }
     }
 }

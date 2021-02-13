@@ -5,6 +5,8 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
@@ -64,7 +66,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             private readonly int minX;
             private readonly int maxX;
             private readonly bool isAlphaOnly;
-            private readonly ColorSpaces.Conversion.ColorSpaceConverter colorSpaceConverter;
+            private readonly ColorSpaceConverter colorSpaceConverter;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
@@ -84,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 this.minX = bounds.X;
                 this.maxX = bounds.Right;
                 this.isAlphaOnly = isAlphaOnly;
-                this.colorSpaceConverter = new ColorSpaces.Conversion.ColorSpaceConverter();
+                this.colorSpaceConverter = new ColorSpaceConverter();
             }
 
             /// <inheritdoc/>
@@ -95,7 +97,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 Span<TPixel> row = this.source.GetPixelRowSpan(y);
                 ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
 
-                if (this.colorComponent == BinaryThresholdColorComponent.Saturation)
+                if (this.colorComponent == BinaryThresholdColorComponent.Luminance)
+                {
+                    for (int x = this.minX; x < this.maxX; x++)
+                    {
+                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
+                        color.ToRgba32(ref rgba);
+
+                        // Convert to grayscale using ITU-R Recommendation BT.709 if required
+                        byte luminance = this.isAlphaOnly ? rgba.A : ColorNumerics.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                        color = luminance >= this.threshold ? this.upper : this.lower;
+                    }
+                }
+                else if (this.colorComponent == BinaryThresholdColorComponent.Saturation)
                 {
                     float fThreshold = this.threshold / 255F;
 
@@ -109,17 +123,29 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                         color = (sat >= fThreshold) ? this.upper : this.lower;
                     }
                 }
-                else
+                else if (this.colorComponent == BinaryThresholdColorComponent.MaxChroma)
                 {
+                    float fThreshold = this.threshold / 2F;
                     for (int x = this.minX; x < this.maxX; x++)
                     {
                         ref TPixel color = ref Unsafe.Add(ref rowRef, x);
                         color.ToRgba32(ref rgba);
 
-                        // Convert to grayscale using ITU-R Recommendation BT.709 if required
-                        byte luminance = this.isAlphaOnly ? rgba.A : ColorNumerics.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
-                        color = luminance >= this.threshold ? this.upper : this.lower;
+                        // Calculate HSL value and compare to threshold.
+                        var yCbCr = this.colorSpaceConverter.ToYCbCr(rgba);
+                        if (MathF.Max(MathF.Abs(yCbCr.Cb - YCbCr.Achromatic.Cb), MathF.Abs(yCbCr.Cr - YCbCr.Achromatic.Cr)) >= fThreshold)
+                        {
+                            color = this.upper;
+                        }
+                        else
+                        {
+                            color = this.lower;
+                        }
                     }
+                }
+                else
+                {
+                    throw new NotImplementedException("Unknown BinaryThresholdColorComponent value " + this.colorComponent);
                 }
             }
         }

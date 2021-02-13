@@ -11,14 +11,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
     public enum BinaryThresholdColorComponent : int
     {
         /// <summary>
-        /// Luminance color component as value to be compared to threshold.
+        /// Luminance color component according to ITU-R Recommendation BT.709.
         /// </summary>
         Luminance = 0,
 
         /// <summary>
-        /// Saturation color component as value to be compared to threshold.
+        /// HSL saturation color component.
         /// </summary>
         Saturation = 1,
+
+        /// <summary>
+        /// Maximum of YCbCr chroma value, i.e. Cb and Cr distance from achromatic value.
+        /// </summary>
+        MaxChroma = 2,
     }
 
     /// <summary>
@@ -70,7 +75,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <param name="upperColor">The color to use for pixels that are above the threshold.</param>
         /// <param name="lowerColor">The color to use for pixels that are below the threshold.</param>
         public BinaryThresholdProcessor(float threshold, Color upperColor, Color lowerColor)
-            : this(threshold, Color.White, Color.Black, BinaryThresholdColorComponent.Luminance)
+            : this(threshold, upperColor, lowerColor, BinaryThresholdColorComponent.Luminance)
         {
         }
 

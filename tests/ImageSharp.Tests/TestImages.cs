@@ -37,6 +37,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string GrayTrns16BitInterlaced = "Png/gray-16-tRNS-interlaced.png";
             public const string Rgb24BppTrans = "Png/rgb-8-tRNS.png";
             public const string Rgb48Bpp = "Png/rgb-48bpp.png";
+            public const string ColorsSaturationLightness = "Png/colors-saturation-lightness.png";
             public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
             public const string Rgb48BppTrans = "Png/rgb-16-tRNS.png";
             public const string Rgba64Bpp = "Png/rgb-16-alpha.png";

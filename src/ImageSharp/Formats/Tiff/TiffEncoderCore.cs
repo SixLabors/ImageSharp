@@ -25,13 +25,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     /// </summary>
     internal sealed class TiffEncoderCore : IImageEncoderInternals
     {
+        public const int DefaultStripSize = 8 * 1024;
+
         public static readonly ByteOrder ByteOrder = BitConverter.IsLittleEndian ? ByteOrder.LittleEndian : ByteOrder.BigEndian;
 
         private static readonly ushort ByteOrderMarker = BitConverter.IsLittleEndian
                 ? TiffConstants.ByteOrderLittleEndianShort
                 : TiffConstants.ByteOrderBigEndianShort;
-
-        private const int DefaultStripSize = 8 * 1024;
 
         /// <summary>
         /// Used for allocating memory during processing operations.
@@ -58,8 +58,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// </summary>
         private readonly DeflateCompressionLevel compressionLevel;
 
-        private readonly TiffEncoderPixelStorageMethod storageMode;
-
         private readonly int maxStripBytes;
 
         /// <summary>
@@ -75,7 +73,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
             this.UseHorizontalPredictor = options.UseHorizontalPredictor;
             this.compressionLevel = options.CompressionLevel;
-            this.storageMode = options.PixelStorageMethod;
             this.maxStripBytes = options.MaxStripBytes;
         }
 
@@ -182,19 +179,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         private int CalcRowsPerStrip(ImageFrame image, int bytesPerRow)
         {
-            switch (this.storageMode)
-            {
-                default:
-                case TiffEncoderPixelStorageMethod.Auto:
-                case TiffEncoderPixelStorageMethod.MultiStrip:
-                    int sz = this.maxStripBytes > 0 ? this.maxStripBytes : DefaultStripSize;
-                    int height = sz / bytesPerRow;
+            int sz = this.maxStripBytes > 0 ? this.maxStripBytes : DefaultStripSize;
+            int height = sz / bytesPerRow;
 
-                    return height > 0 ? (height < image.Height ? height : image.Height) : 1;
-
-                case TiffEncoderPixelStorageMethod.SingleStrip:
-                    return image.Height;
-            }
+            return height > 0 ? (height < image.Height ? height : image.Height) : 1;
         }
 
         /// <summary>
@@ -258,9 +246,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         {
             if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax || this.CompressionType == TiffEncoderCompression.ModifiedHuffman)
             {
-                this.Mode = TiffEncodingMode.BiColor;
-                this.bitsPerPixel = TiffBitsPerPixel.Pixel1;
-                return;
+                if (this.Mode == TiffEncodingMode.Default)
+                {
+                    this.Mode = TiffEncodingMode.BiColor;
+                    this.bitsPerPixel = TiffBitsPerPixel.Pixel1;
+                    return;
+                }
+                else if (this.Mode != TiffEncodingMode.BiColor)
+                {
+                    TiffThrowHelper.ThrowImageFormatException($"The {this.CompressionType} compression and {this.Mode} aren't compatible. Please use {this.CompressionType} only with {TiffEncodingMode.BiColor} or {TiffEncodingMode.Default} mode.");
+                }
             }
 
             if (this.Mode == TiffEncodingMode.Default)

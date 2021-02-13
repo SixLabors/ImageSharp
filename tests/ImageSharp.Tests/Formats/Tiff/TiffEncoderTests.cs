@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 
 using SixLabors.ImageSharp.Formats;
@@ -21,12 +22,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
     {
         private static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder();
 
-        private readonly Configuration configuration;
+        private static readonly Configuration Configuration;
 
-        public TiffEncoderTests()
+        static TiffEncoderTests()
         {
-            this.configuration = new Configuration();
-            this.configuration.AddTiff();
+            Configuration = new Configuration();
+            Configuration.AddTiff();
         }
 
         [Theory]
@@ -62,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(this.configuration, memStream);
+            using var output = Image.Load<Rgba32>(Configuration, memStream);
             TiffMetadata meta = output.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, meta.BitsPerPixel);
             Assert.Equal(expectedCompression, meta.Compression);
@@ -85,7 +86,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(this.configuration, memStream);
+            using var output = Image.Load<Rgba32>(Configuration, memStream);
             TiffMetadata meta = output.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, meta.BitsPerPixel);
         }
@@ -108,11 +109,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(this.configuration, memStream);
+            using var output = Image.Load<Rgba32>(Configuration, memStream);
             TiffMetadata meta = output.Metadata.GetTiffMetadata();
 
             Assert.Equal(TiffBitsPerPixel.Pixel1, meta.BitsPerPixel);
             Assert.Equal(expectedCompression, meta.Compression);
+        }
+
+        [Theory]
+        [InlineData(TiffEncodingMode.ColorPalette, TiffEncoderCompression.CcittGroup3Fax)]
+        [InlineData(TiffEncodingMode.ColorPalette, TiffEncoderCompression.ModifiedHuffman)]
+        [InlineData(TiffEncodingMode.Gray, TiffEncoderCompression.ModifiedHuffman)]
+        [InlineData(TiffEncodingMode.Rgb, TiffEncoderCompression.ModifiedHuffman)]
+        public void TiffEncoder_IncompatibilityOptions<TPixel>(TiffEncodingMode mode, TiffEncoderCompression compression)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // arrange
+            using var input = new Image<TPixel>(10, 10);
+            var encoder = new TiffEncoder() { Mode = mode, Compression = compression };
+            using var memStream = new MemoryStream();
+
+            // act
+            Assert.Throws<ImageFormatException>(() => input.Save(memStream, encoder));
         }
 
         [Theory]
@@ -207,30 +225,20 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
-        public void TiffEncoder_EncodeColorPalette_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+        public void TiffEncoder_EncodeColorPalette_WithLzwCompression_Works_Bug<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw, PixelStorageMethod = TiffEncoderPixelStorageMethod.SingleStrip };
+            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw };
 
             this.TiffEncoderPaletteTest(provider, encoder);
         }
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
-        public void TiffEncoder_EncodeColorPalette_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
+        public void TiffEncoder_EncodeColorPalette_WithLzwCompressionAndPredictor_Works_Bug<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw, UseHorizontalPredictor = true, PixelStorageMethod = TiffEncoderPixelStorageMethod.SingleStrip };
-
-            this.TiffEncoderPaletteTest(provider, encoder);
-        }
-
-        [Theory]
-        [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
-        public void TiffEncoder_EncodeColorPalette_WithLzwCompressionAndPredictor_Bug<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw, PixelStorageMethod = TiffEncoderPixelStorageMethod.MultiStrip, UseHorizontalPredictor = true };
+            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw, UseHorizontalPredictor = true };
 
             Assert.Throws<ImageDifferenceIsOverThresholdException>(() => this.TiffEncoderPaletteTest(provider, encoder));
         }
@@ -257,7 +265,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             image.Save(memStream, encoder);
             memStream.Position = 0;
 
-            using var encodedImage = (Image<TPixel>)Image.Load(this.configuration, memStream);
+            using var encodedImage = (Image<TPixel>)Image.Load(Configuration, memStream);
             var encodedImagePath = provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
             TiffTestUtils.CompareWithReferenceDecoder(encodedImagePath, encodedImage);
         }
@@ -288,22 +296,30 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel1, TiffEncodingMode.BiColor, TiffEncoderCompression.ModifiedHuffman);
 
         [Theory]
-        [WithFile(Calliphora_BiColorUncompressed, PixelTypes.L8, TiffEncodingMode.BiColor, TiffEncoderPixelStorageMethod.SingleStrip)]
-        [WithFile(Calliphora_BiColorUncompressed, PixelTypes.L8, TiffEncodingMode.BiColor, TiffEncoderPixelStorageMethod.MultiStrip, 9 * 1024)]
-        [WithFile(GrayscaleUncompressed, PixelTypes.L8, TiffEncodingMode.Gray, TiffEncoderPixelStorageMethod.SingleStrip)]
-        [WithFile(GrayscaleUncompressed, PixelTypes.L8, TiffEncodingMode.Gray, TiffEncoderPixelStorageMethod.MultiStrip, 16 * 1024)]
-        [WithFile(PaletteDeflateMultistrip, PixelTypes.L8, TiffEncodingMode.ColorPalette, TiffEncoderPixelStorageMethod.SingleStrip)]
-        [WithFile(PaletteDeflateMultistrip, PixelTypes.L8, TiffEncodingMode.ColorPalette, TiffEncoderPixelStorageMethod.MultiStrip, 32 * 1024)]
-        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncodingMode.Rgb, TiffEncoderPixelStorageMethod.SingleStrip)]
-        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncodingMode.Rgb, TiffEncoderPixelStorageMethod.MultiStrip, 64 * 1024)]
-        public void TiffEncoder_StorageMethods<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffEncoderPixelStorageMethod storageMethod, int maxSize = 0)
+        [WithFile(GrayscaleUncompressed, PixelTypes.L8, TiffEncodingMode.Gray, TiffEncoderCompression.PackBits, 16 * 1024)]
+        [WithFile(PaletteDeflateMultistrip, PixelTypes.L8, TiffEncodingMode.ColorPalette, TiffEncoderCompression.Lzw, 32 * 1024)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncodingMode.Rgb, TiffEncoderCompression.Deflate, 64 * 1024)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgb24, TiffEncodingMode.Rgb, TiffEncoderCompression.None, 10 * 1024)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncodingMode.Rgb, TiffEncoderCompression.None, 30 * 1024)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgb48, TiffEncodingMode.Rgb, TiffEncoderCompression.None, 70 * 1024)]
+        public void TiffEncoder_StripLength<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffEncoderCompression compression, int maxSize)
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            TestStripLength(provider, mode, compression, maxSize);
+
+        [Theory]
+        [WithFile(Calliphora_BiColorUncompressed, PixelTypes.L8, TiffEncodingMode.BiColor, TiffEncoderCompression.CcittGroup3Fax, 9 * 1024)]
+        public void TiffEncoder_StripLength_OutOfBounds<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffEncoderCompression compression, int maxSize)
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            //// CcittGroup3Fax compressed data length can be larger than the original length
+            Assert.Throws<Xunit.Sdk.TrueException>(() => TestStripLength(provider, mode, compression, maxSize));
+
+        private static void TestStripLength<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffEncoderCompression compression, int maxSize)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // arrange
-            var tiffEncoder = new TiffEncoder() { PixelStorageMethod = storageMethod, MaxStripBytes = maxSize };
-            using Image<TPixel> input = provider.GetImage();
+            var tiffEncoder = new TiffEncoder() { Mode = mode, Compression = compression, MaxStripBytes = maxSize };
+            Image<TPixel> input = provider.GetImage();
             using var memStream = new MemoryStream();
-
             TiffFrameMetadata inputMeta = input.Frames.RootFrame.Metadata.GetTiffMetadata();
 
             // act
@@ -311,24 +327,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            using var output = Image.Load<Rgba32>(this.configuration, memStream);
+            var output = Image.Load<Rgba32>(Configuration, memStream);
             TiffFrameMetadata meta = output.Frames.RootFrame.Metadata.GetTiffMetadata();
 
-            if (storageMethod == TiffEncoderPixelStorageMethod.SingleStrip)
-            {
-                Assert.Equal(output.Height, (int)meta.RowsPerStrip);
-                Assert.Equal(1, meta.StripOffsets.Length);
-                Assert.Equal(1, meta.StripByteCounts.Length);
-            }
-            else
-            {
-                Assert.True(output.Height > (int)meta.RowsPerStrip);
-                Assert.True(meta.StripOffsets.Length > 1);
-                Assert.True(meta.StripByteCounts.Length > 1);
+            Assert.True(output.Height > (int)meta.RowsPerStrip);
+            Assert.True(meta.StripOffsets.Length > 1);
+            Assert.True(meta.StripByteCounts.Length > 1);
 
-                foreach (Number sz in meta.StripByteCounts)
+            foreach (Number sz in meta.StripByteCounts)
+            {
+                Assert.True((uint)sz <= maxSize);
+            }
+
+            // for uncompressed more accurate test
+            if (compression == TiffEncoderCompression.None)
+            {
+                for (int i = 0; i < meta.StripByteCounts.Length - 1; i++)
                 {
-                    Assert.True((int)sz <= maxSize);
+                    // the difference must be less than one row
+                    int stripBytes = (int)meta.StripByteCounts[i];
+                    var widthBytes = (meta.BitsPerPixel + 7) / 8 * (int)meta.Width;
+
+                    Assert.True((maxSize - stripBytes) < widthBytes);
                 }
             }
 
@@ -338,9 +358,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 (TiffBitsPerPixel)inputMeta.BitsPerPixel,
                 mode,
                 Convert(inputMeta.Compression),
-                maxStripSize: maxSize,
-                storageMethod: storageMethod
-                );
+                maxStripSize: maxSize);
         }
 
         private static void TestTiffEncoderCore<TPixel>(
@@ -351,7 +369,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             bool usePredictor = false,
             bool useExactComparer = true,
             int maxStripSize = 0,
-            TiffEncoderPixelStorageMethod? storageMethod = null,
             float compareTolerance = 0.01f)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -361,7 +378,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Mode = mode,
                 Compression = compression,
                 UseHorizontalPredictor = usePredictor,
-                PixelStorageMethod = storageMethod ?? TiffEncoderPixelStorageMethod.Auto,
                 MaxStripBytes = maxStripSize
             };
 
@@ -382,10 +398,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                     return TiffEncoderCompression.Lzw;
                 case TiffCompression.PackBits:
                     return TiffEncoderCompression.PackBits;
+                case TiffCompression.Ccitt1D:
+                    return TiffEncoderCompression.ModifiedHuffman;
                 case TiffCompression.CcittGroup3Fax:
                     return TiffEncoderCompression.CcittGroup3Fax;
-                case TiffCompression.CcittGroup4Fax:
-                    return TiffEncoderCompression.ModifiedHuffman;
             }
         }
     }

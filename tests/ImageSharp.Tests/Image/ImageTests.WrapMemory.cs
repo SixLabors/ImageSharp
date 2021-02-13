@@ -375,7 +375,7 @@ namespace SixLabors.ImageSharp.Tests
                 var array = new Rgba32[size];
                 var memory = new Memory<Rgba32>(array);
 
-               Image.WrapMemory(memory, height, width);
+                Image.WrapMemory(memory, height, width);
             }
 
             private class TestMemoryOwner<T> : IMemoryOwner<T>

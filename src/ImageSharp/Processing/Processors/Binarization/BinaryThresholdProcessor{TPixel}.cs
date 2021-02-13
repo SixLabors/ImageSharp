@@ -131,7 +131,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                         ref TPixel color = ref Unsafe.Add(ref rowRef, x);
                         color.ToRgba32(ref rgba);
 
-                        // Calculate HSL value and compare to threshold.
+                        // Calculate YCbCr value and compare to threshold.
                         var yCbCr = this.colorSpaceConverter.ToYCbCr(rgba);
                         if (MathF.Max(MathF.Abs(yCbCr.Cb - YCbCr.Achromatic.Cb), MathF.Abs(yCbCr.Cr - YCbCr.Achromatic.Cr)) >= fThreshold)
                         {

@@ -254,7 +254,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         {
             this.children.GetSpan().Fill(0);
             this.siblings.GetSpan().Fill(0);
-
             this.bitsPerCode = MinBits;
             this.maxCode = MaxValue(this.bitsPerCode);
             this.nextValidCode = EoiCode + 1;

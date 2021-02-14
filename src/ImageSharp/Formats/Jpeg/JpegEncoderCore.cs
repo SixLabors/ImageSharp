@@ -315,7 +315,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="bits">The packed bits.</param>
         /// <param name="count">The number of bits</param>
         /// <param name="emitBufferBase">The reference to the emitBuffer.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void Emit(uint bits, uint count, ref byte emitBufferBase)
         {
             count += this.bitCount;
@@ -356,7 +356,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="index">The index of the Huffman encoder</param>
         /// <param name="value">The value to encode.</param>
         /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void EmitHuff(HuffIndex index, int value, ref byte emitBufferBase)
         {
             uint x = HuffmanLut.TheHuffmanLut[(int)index].Values[value];
@@ -370,7 +370,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="runLength">The number of copies to encode.</param>
         /// <param name="value">The value to encode.</param>
         /// <param name="emitBufferBase">The reference to the emit buffer.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private void EmitHuffRLE(HuffIndex index, int runLength, int value, ref byte emitBufferBase)
         {
             int a = value;

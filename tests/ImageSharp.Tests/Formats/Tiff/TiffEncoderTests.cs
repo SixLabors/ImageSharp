@@ -121,11 +121,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [InlineData(TiffEncodingMode.ColorPalette, TiffEncoderCompression.ModifiedHuffman)]
         [InlineData(TiffEncodingMode.Gray, TiffEncoderCompression.ModifiedHuffman)]
         [InlineData(TiffEncodingMode.Rgb, TiffEncoderCompression.ModifiedHuffman)]
-        public void TiffEncoder_IncompatibilityOptions<TPixel>(TiffEncodingMode mode, TiffEncoderCompression compression)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public void TiffEncoder_IncompatibilityOptions(TiffEncodingMode mode, TiffEncoderCompression compression)
         {
             // arrange
-            using var input = new Image<TPixel>(10, 10);
+            using var input = new Image<Rgb24>(10, 10);
             var encoder = new TiffEncoder() { Mode = mode, Compression = compression };
             using var memStream = new MemoryStream();
 

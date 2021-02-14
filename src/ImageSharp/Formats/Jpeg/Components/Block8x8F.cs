@@ -494,32 +494,35 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
             var f2 = Vector256.Create(2f);
             var f025 = Vector256.Create(0.25f);
             Vector256<int> switchInnerDoubleWords = Unsafe.As<byte, Vector256<int>>(ref MemoryMarshal.GetReference(SimdUtils.HwIntrinsics.PermuteMaskSwitchInnerDWords8x32));
-
-            ref Vector256<float> in1 = ref Unsafe.As<Block8x8F, Vector256<float>>(ref MemoryMarshal.GetReference(source));
-            ref Vector256<float> in2 = ref Unsafe.As<Block8x8F, Vector256<float>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(source), 1));
             ref Vector256<float> destRef = ref Unsafe.As<Block8x8F, Vector256<float>>(ref destination);
 
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 2; i++)
             {
-                Vector256<float> a = in1;
-                Vector256<float> b = Unsafe.Add(ref in1, 1);
-                Vector256<float> c = in2;
-                Vector256<float> d = Unsafe.Add(ref in2, 1);
+                ref Vector256<float> in1 = ref Unsafe.As<Block8x8F, Vector256<float>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(source), 2 * i));
+                ref Vector256<float> in2 = ref Unsafe.As<Block8x8F, Vector256<float>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(source), (2 * i) + 1));
 
-                Vector256<float> calc1 = Avx.Shuffle(a, c, 0b10_00_10_00);
-                Vector256<float> calc2 = Avx.Shuffle(a, c, 0b11_01_11_01);
-                Vector256<float> calc3 = Avx.Shuffle(b, d, 0b10_00_10_00);
-                Vector256<float> calc4 = Avx.Shuffle(b, d, 0b11_01_11_01);
+                for (int j = 0; j < 4; j++)
+                {
+                    Vector256<float> a = in1;
+                    Vector256<float> b = Unsafe.Add(ref in1, 1);
+                    Vector256<float> c = in2;
+                    Vector256<float> d = Unsafe.Add(ref in2, 1);
 
-                Vector256<float> sum = Avx.Add(Avx.Add(calc1, calc2), Avx.Add(calc3, calc4));
-                Vector256<float> add = Avx.Add(sum, f2);
-                Vector256<float> res = Avx.Multiply(add, f025);
+                    Vector256<float> calc1 = Avx.Shuffle(a, c, 0b10_00_10_00);
+                    Vector256<float> calc2 = Avx.Shuffle(a, c, 0b11_01_11_01);
+                    Vector256<float> calc3 = Avx.Shuffle(b, d, 0b10_00_10_00);
+                    Vector256<float> calc4 = Avx.Shuffle(b, d, 0b11_01_11_01);
 
-                destRef = Avx2.PermuteVar8x32(res, switchInnerDoubleWords);
-                destRef = ref Unsafe.Add(ref destRef, 1);
+                    Vector256<float> sum = Avx.Add(Avx.Add(calc1, calc2), Avx.Add(calc3, calc4));
+                    Vector256<float> add = Avx.Add(sum, f2);
+                    Vector256<float> res = Avx.Multiply(add, f025);
 
-                in1 = ref Unsafe.Add(ref in1, 2);
-                in2 = ref Unsafe.Add(ref in2, 2);
+                    destRef = Avx2.PermuteVar8x32(res, switchInnerDoubleWords);
+                    destRef = ref Unsafe.Add(ref destRef, 1);
+
+                    in1 = ref Unsafe.Add(ref in1, 2);
+                    in2 = ref Unsafe.Add(ref in2, 2);
+                }
             }
 #endif
         }

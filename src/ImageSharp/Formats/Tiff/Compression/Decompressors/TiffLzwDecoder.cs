@@ -2,193 +2,254 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Gif;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors
 {
+    /*
+       This implementation is based on a port of a java tiff decoder by Harald Kuhr: https://github.com/haraldk/TwelveMonkeys
+
+       Original licence:
+
+       BSD 3-Clause License
+
+       * Copyright (c) 2015, Harald Kuhr
+       * All rights reserved.
+       *
+       * Redistribution and use in source and binary forms, with or without
+       * modification, are permitted provided that the following conditions are met:
+       *
+       * * Redistributions of source code must retain the above copyright notice, this
+       * list of conditions and the following disclaimer.
+       *
+       * * Redistributions in binary form must reproduce the above copyright notice,
+       *   this list of conditions and the following disclaimer in the documentation
+       *   and/or other materials provided with the distribution.
+       *
+       ** Neither the name of the copyright holder nor the names of its
+       * contributors may be used to endorse or promote products derived from
+       *   this software without specific prior written permission.
+       *
+       * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+       * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+       * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+       * DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+       * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+       * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+       * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+       * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+       * OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+       * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   */
+
     /// <summary>
-    /// Decompresses and decodes data using the dynamic LZW algorithms.
+    /// Decompresses and decodes data using the dynamic LZW algorithms, see TIFF spec Section 13.
     /// </summary>
-    /// <remarks>
-    /// This code is based on the <see cref="LzwDecoder"/> used for GIF decoding. There is potential
-    /// for a shared implementation. Differences between the GIF and TIFF implementations of the LZW
-    /// encoding are: (i) The GIF implementation includes an initial 'data size' byte, whilst this is
-    /// always 8 for TIFF. (ii) The GIF implementation writes a number of sub-blocks with an initial
-    /// byte indicating the length of the sub-block. In TIFF the data is written as a single block
-    /// with no length indicator (this can be determined from the 'StripByteCounts' entry).
-    /// </remarks>
     internal sealed class TiffLzwDecoder
     {
-        /// <summary>
-        /// The max decoder pixel stack size.
-        /// </summary>
-        private const int MaxStackSize = 4096;
-
-        /// <summary>
-        /// The null code.
-        /// </summary>
-        private const int NullCode = -1;
-
         /// <summary>
         /// The stream to decode.
         /// </summary>
         private readonly Stream stream;
 
         /// <summary>
-        /// The memory allocator.
+        /// As soon as we use entry 4094 of the table (maxTableSize - 2), the lzw compressor write out a (12-bit) ClearCode.
+        /// At this point, the compressor reinitializes the string table and then writes out 9-bit codes again.
         /// </summary>
-        private readonly MemoryAllocator allocator;
+        private const int ClearCode = 256;
+
+        /// <summary>
+        /// End of Information.
+        /// </summary>
+        private const int EoiCode = 257;
+
+        /// <summary>
+        /// Minimum code length of 9 bits.
+        /// </summary>
+        private const int MinBits = 9;
+
+        /// <summary>
+        /// Maximum code length of 12 bits.
+        /// </summary>
+        private const int MaxBits = 12;
+
+        /// <summary>
+        /// Maximum table size of 4096.
+        /// </summary>
+        private const int TableSize = 1 << MaxBits;
+
+        private readonly LzwString[] table;
+
+        private int tableLength;
+        private int bitsPerCode;
+        private int oldCode = ClearCode;
+        private int maxCode;
+        private int bitMask;
+        private int maxString;
+        private bool eofReached;
+        private int nextData;
+        private int nextBits;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffLzwDecoder" /> class
         /// and sets the stream, where the compressed data should be read from.
         /// </summary>
         /// <param name="stream">The stream to read from.</param>
-        /// <param name="allocator">The memory allocator.</param>
         /// <exception cref="System.ArgumentNullException"><paramref name="stream" /> is null.</exception>
-        public TiffLzwDecoder(Stream stream, MemoryAllocator allocator)
+        public TiffLzwDecoder(Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
 
             this.stream = stream;
-            this.allocator = allocator;
+            this.table = new LzwString[TableSize];
+            for (int i = 0; i < 256; i++)
+            {
+                this.table[i] = new LzwString((byte)i);
+            }
+
+            this.Init();
+        }
+
+        private void Init()
+        {
+            // Table length is 256 + 2, because of special clear code and end of information code.
+            this.tableLength = 258;
+            this.bitsPerCode = MinBits;
+            this.bitMask = BitmaskFor(this.bitsPerCode);
+            this.maxCode = this.MaxCode();
+            this.maxString = 1;
         }
 
         /// <summary>
         /// Decodes and decompresses all pixel indices from the stream.
         /// </summary>
-        /// <param name="length">The length of the compressed data.</param>
-        /// <param name="dataSize">Size of the data.</param>
         /// <param name="pixels">The pixel array to decode to.</param>
-        public void DecodePixels(int length, int dataSize, Span<byte> pixels)
+        public void DecodePixels(Span<byte> pixels)
         {
-            Guard.MustBeLessThan(dataSize, int.MaxValue, nameof(dataSize));
-
-            // Initialize buffers
-            using IMemoryOwner<int> prefixMemory = this.allocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
-            using IMemoryOwner<int> suffixMemory = this.allocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
-            using IMemoryOwner<int> pixelStackMemory = this.allocator.Allocate<int>(MaxStackSize + 1, AllocationOptions.Clean);
-
-            Span<int> prefix = prefixMemory.GetSpan();
-            Span<int> suffix = suffixMemory.GetSpan();
-            Span<int> pixelStack = pixelStackMemory.GetSpan();
-
-            // Calculate the clear code. The value of the clear code is 2 ^ dataSize
-            int clearCode = 1 << dataSize;
-
-            int codeSize = dataSize + 1;
-
-            // Calculate the end code
-            int endCode = clearCode + 1;
-
-            // Calculate the available code.
-            int availableCode = clearCode + 2;
-
-            // Jillzhangs Code see: http://giflib.codeplex.com/
-            // Adapted from John Cristy's ImageMagick.
+            // Adapted from the pseudo-code example found in the TIFF 6.0 Specification, 1992.
+            // See Section 13: "LZW Compression"/"LZW Decoding", page 61+
             int code;
-            int oldCode = NullCode;
-            int codeMask = (1 << codeSize) - 1;
+            int offset = 0;
 
-            int inputByte = 0;
-            int bits = 0;
-
-            int top = 0;
-            int xyz = 0;
-
-            int first = 0;
-
-            for (code = 0; code < clearCode; code++)
+            while ((code = this.GetNextCode()) != EoiCode)
             {
-                prefix[code] = 0;
-                suffix[code] = (byte)code;
-            }
-
-            // Decoding process
-            while (xyz < length)
-            {
-                if (top == 0)
+                if (code == ClearCode)
                 {
-                    // Get the next code
-                    int data = inputByte & ((1 << bits) - 1);
+                    this.Init();
+                    code = this.GetNextCode();
 
-                    while (bits < codeSize)
-                    {
-                        inputByte = this.stream.ReadByte();
-                        data = (data << 8) | inputByte;
-                        bits += 8;
-                    }
-
-                    data >>= bits - codeSize;
-                    bits -= codeSize;
-                    code = data & codeMask;
-
-                    // Interpret the code
-                    if (code > availableCode || code == endCode)
+                    if (code == EoiCode)
                     {
                         break;
                     }
 
-                    if (code == clearCode)
+                    if (this.table[code] == null)
                     {
-                        // Reset the decoder
-                        codeSize = dataSize + 1;
-                        codeMask = (1 << codeSize) - 1;
-                        availableCode = clearCode + 2;
-                        oldCode = NullCode;
-                        continue;
+                        TiffThrowHelper.ThrowImageFormatException($"Corrupted TIFF LZW: code {code} (table size: {this.tableLength})");
                     }
 
-                    if (oldCode == NullCode)
+                    offset += this.table[code].WriteTo(pixels, offset);
+                }
+                else
+                {
+                    if (this.table[this.oldCode] == null)
                     {
-                        pixelStack[top++] = suffix[code];
-                        oldCode = code;
-                        first = code;
-                        continue;
+                        TiffThrowHelper.ThrowImageFormatException($"Corrupted TIFF LZW: code {this.oldCode} (table size: {this.tableLength})");
                     }
 
-                    int inCode = code;
-                    if (code == availableCode)
+                    if (this.IsInTable(code))
                     {
-                        pixelStack[top++] = (byte)first;
+                        offset += this.table[code].WriteTo(pixels, offset);
 
-                        code = oldCode;
+                        this.AddStringToTable(this.table[this.oldCode].Concatenate(this.table[code].FirstChar));
                     }
-
-                    while (code > clearCode)
+                    else
                     {
-                        pixelStack[top++] = suffix[code];
-                        code = prefix[code];
+                        LzwString outString = this.table[this.oldCode].Concatenate(this.table[this.oldCode].FirstChar);
+
+                        offset += outString.WriteTo(pixels, offset);
+                        this.AddStringToTable(outString);
                     }
-
-                    first = suffix[code];
-
-                    pixelStack[top++] = suffix[code];
-
-                    if (availableCode < MaxStackSize)
-                    {
-                        prefix[availableCode] = oldCode;
-                        suffix[availableCode] = first;
-                        availableCode++;
-                        if (availableCode > codeMask - 1 && availableCode < MaxStackSize)
-                        {
-                            codeSize++;
-                            codeMask = (1 << codeSize) - 1;
-                        }
-                    }
-
-                    oldCode = inCode;
                 }
 
-                // Pop a pixel off the pixel stack.
-                top--;
+                this.oldCode = code;
 
-                // Clear missing pixels
-                pixels[xyz++] = (byte)pixelStack[top];
+                if (offset >= pixels.Length)
+                {
+                    break;
+                }
             }
         }
+
+        private void AddStringToTable(LzwString lzwString)
+        {
+            if (this.tableLength > this.table.Length)
+            {
+                TiffThrowHelper.ThrowImageFormatException($"TIFF LZW with more than {MaxBits} bits per code encountered (table overflow)");
+            }
+
+            this.table[this.tableLength++] = lzwString;
+
+            if (this.tableLength > this.maxCode)
+            {
+                this.bitsPerCode++;
+
+                if (this.bitsPerCode > MaxBits)
+                {
+                    // Continue reading MaxBits (12 bit) length codes.
+                    this.bitsPerCode = MaxBits;
+                }
+
+                this.bitMask = BitmaskFor(this.bitsPerCode);
+                this.maxCode = this.MaxCode();
+            }
+
+            if (lzwString.Length > this.maxString)
+            {
+                this.maxString = lzwString.Length;
+            }
+        }
+
+        private int GetNextCode()
+        {
+            if (this.eofReached)
+            {
+                return EoiCode;
+            }
+
+            int read = this.stream.ReadByte();
+            if (read < 0)
+            {
+                this.eofReached = true;
+                return EoiCode;
+            }
+
+            this.nextData = (this.nextData << 8) | read;
+            this.nextBits += 8;
+
+            if (this.nextBits < this.bitsPerCode)
+            {
+                read = this.stream.ReadByte();
+                if (read < 0)
+                {
+                    this.eofReached = true;
+                    return EoiCode;
+                }
+
+                this.nextData = (this.nextData << 8) | read;
+                this.nextBits += 8;
+            }
+
+            var code = (this.nextData >> (this.nextBits - this.bitsPerCode)) & this.bitMask;
+            this.nextBits -= this.bitsPerCode;
+
+            return code;
+        }
+
+        private bool IsInTable(int code) => code < this.tableLength;
+
+        private int MaxCode() => this.bitMask - 1;
+
+        private static int BitmaskFor(int bits) => (1 << bits) - 1;
     }
 }

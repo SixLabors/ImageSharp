@@ -196,79 +196,38 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.None };
-
-            this.TiffEncoderPaletteTest(provider, encoder);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Deflate };
-
-            this.TiffEncoderPaletteTest(provider, encoder);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, TiffEncoderCompression.Deflate, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Deflate, UseHorizontalPredictor = true };
-
-            this.TiffEncoderPaletteTest(provider, encoder);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, TiffEncoderCompression.Deflate, usePredictor: true, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithLzwCompression_Works_Bug<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw };
-
-            this.TiffEncoderPaletteTest(provider, encoder);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, TiffEncoderCompression.Lzw, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithLzwCompressionAndPredictor_Works_Bug<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.Lzw, UseHorizontalPredictor = true };
-
-            Assert.Throws<ImageDifferenceIsOverThresholdException>(() => this.TiffEncoderPaletteTest(provider, encoder));
-        }
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, TiffEncoderCompression.Lzw, usePredictor: true, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithPackBitsCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var encoder = new TiffEncoder { Mode = TiffEncodingMode.ColorPalette, Compression = TiffEncoderCompression.PackBits };
-
-            this.TiffEncoderPaletteTest(provider, encoder);
-        }
-
-        private void TiffEncoderPaletteTest<TPixel>(TestImageProvider<TPixel> provider, TiffEncoder encoder)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            // Because a quantizer is used to create the palette (and therefore changes to the original are expected),
-            // we do not compare the encoded image against the original:
-            // Instead we load the encoded image with a reference decoder and compare against that image.
-            using Image<TPixel> image = provider.GetImage();
-            using var memStream = new MemoryStream();
-
-            image.Save(memStream, encoder);
-            memStream.Position = 0;
-
-            using var encodedImage = (Image<TPixel>)Image.Load(Configuration, memStream);
-            var encodedImagePath = provider.Utility.SaveTestOutputFile(encodedImage, "tiff", encoder);
-            TiffTestUtils.CompareWithReferenceDecoder(encodedImagePath, encodedImage);
-        }
+            where TPixel : unmanaged, IPixel<TPixel> =>
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, TiffEncoderCompression.PackBits, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]

@@ -213,13 +213,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
-        public void TiffEncoder_EncodeColorPalette_WithLzwCompression_Works_Bug<TPixel>(TestImageProvider<TPixel> provider)
+        public void TiffEncoder_EncodeColorPalette_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
             TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, TiffEncoderCompression.Lzw, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
-        public void TiffEncoder_EncodeColorPalette_WithLzwCompressionAndPredictor_Works_Bug<TPixel>(TestImageProvider<TPixel> provider)
+        public void TiffEncoder_EncodeColorPalette_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
             TestTiffEncoderCore(provider, TiffBitsPerPixel.Pixel24, TiffEncodingMode.ColorPalette, TiffEncoderCompression.Lzw, usePredictor: true, useExactComparer: false, compareTolerance: 0.001f);
 

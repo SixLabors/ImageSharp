@@ -29,8 +29,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
         {
-            var decoder = new TiffLzwDecoder(stream, this.Allocator);
-            decoder.DecodePixels(buffer.Length, 8, buffer);
+            var decoder = new TiffLzwDecoder(stream);
+            decoder.DecodePixels(buffer);
 
             if (this.Predictor == TiffPredictor.Horizontal)
             {

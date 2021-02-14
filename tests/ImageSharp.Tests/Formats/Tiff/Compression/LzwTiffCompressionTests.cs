@@ -28,6 +28,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
         [Theory]
         [InlineData(new byte[] { })]
         [InlineData(new byte[] { 42 })] // One byte
+        [InlineData(new byte[] { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 })]
         [InlineData(new byte[] { 42, 16, 128, 53, 96, 218, 7, 64, 3, 4, 97 })] // Random bytes
         [InlineData(new byte[] { 1, 2, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 3, 4 })] // Repeated bytes
         [InlineData(new byte[] { 1, 2, 42, 53, 42, 53, 42, 53, 42, 53, 42, 53, 3, 4 })] // Repeated sequence

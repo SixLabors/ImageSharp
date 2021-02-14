@@ -501,12 +501,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
                 ref Vector256<float> in1 = ref Unsafe.As<Block8x8F, Vector256<float>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(source), 2 * i));
                 ref Vector256<float> in2 = ref Unsafe.As<Block8x8F, Vector256<float>>(ref Unsafe.Add(ref MemoryMarshal.GetReference(source), (2 * i) + 1));
 
-                for (int j = 0; j < 4; j++)
+                for (int j = 0; j < 8; j += 2)
                 {
-                    Vector256<float> a = in1;
-                    Vector256<float> b = Unsafe.Add(ref in1, 1);
-                    Vector256<float> c = in2;
-                    Vector256<float> d = Unsafe.Add(ref in2, 1);
+                    Vector256<float> a = Unsafe.Add(ref in1, j);
+                    Vector256<float> b = Unsafe.Add(ref in1, j + 1);
+                    Vector256<float> c = Unsafe.Add(ref in2, j);
+                    Vector256<float> d = Unsafe.Add(ref in2, j + 1);
 
                     Vector256<float> calc1 = Avx.Shuffle(a, c, 0b10_00_10_00);
                     Vector256<float> calc2 = Avx.Shuffle(a, c, 0b11_01_11_01);
@@ -519,9 +519,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components
 
                     destRef = Avx2.PermuteVar8x32(res, switchInnerDoubleWords);
                     destRef = ref Unsafe.Add(ref destRef, 1);
-
-                    in1 = ref Unsafe.Add(ref in1, 2);
-                    in2 = ref Unsafe.Add(ref in2, 2);
                 }
             }
 #endif

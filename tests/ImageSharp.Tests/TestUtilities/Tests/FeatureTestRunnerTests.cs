@@ -25,9 +25,9 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
 
         [Theory]
         [MemberData(nameof(Intrinsics))]
-        public void ToFeatureCollectionReturnsExpectedResult(HwIntrinsics expectedItrinsics, string[] expectedValues)
+        public void ToFeatureCollectionReturnsExpectedResult(HwIntrinsics expectedIntrinsics, string[] expectedValues)
         {
-            Dictionary<HwIntrinsics, string> features = expectedItrinsics.ToFeatureKeyValueCollection();
+            Dictionary<HwIntrinsics, string> features = expectedIntrinsics.ToFeatureKeyValueCollection();
             HwIntrinsics[] keys = features.Keys.ToArray();
 
             HwIntrinsics actualIntrinsics = keys[0];
@@ -36,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests
                 actualIntrinsics |= keys[i];
             }
 
-            Assert.Equal(expectedItrinsics, actualIntrinsics);
+            Assert.Equal(expectedIntrinsics, actualIntrinsics);
 
             IEnumerable<string> actualValues = features.Select(x => x.Value);
             Assert.Equal(expectedValues, actualValues);

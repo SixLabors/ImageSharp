@@ -41,8 +41,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
                 this.pixelsAsGray = this.MemoryAllocator.Allocate<byte>(height * this.Image.Width);
             }
 
-            this.pixelsAsGray.Clear();
-
             Span<byte> pixelAsGraySpan = this.pixelsAsGray.Slice(0, height * this.Image.Width);
 
             Span<TPixel> pixels = GetStripPixels(this.imageBlackWhite.GetRootFramePixelBuffer(), y, height);

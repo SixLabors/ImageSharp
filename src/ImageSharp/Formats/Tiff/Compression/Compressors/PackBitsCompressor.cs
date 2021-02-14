@@ -29,7 +29,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
             DebugGuard.IsTrue(rows.Length % height == 0, "Invalid height");
             DebugGuard.IsTrue(this.BytesPerRow == rows.Length / height, "The widths must match");
 
-            this.pixelData.Clear();
             Span<byte> span = this.pixelData.GetSpan();
             for (int i = 0; i < height; i++)
             {

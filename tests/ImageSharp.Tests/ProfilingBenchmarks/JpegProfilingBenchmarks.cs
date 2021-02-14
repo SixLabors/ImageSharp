@@ -75,6 +75,21 @@ namespace SixLabors.ImageSharp.Tests.ProfilingBenchmarks
 #pragma warning restore SA1515 // Single-line comment should be preceded by blank line
         }
 
+        [Fact(Skip = ProfilingSetup.SkipProfilingTests)]
+        public void EncodeJpeg_SingleMidSize()
+        {
+            string path = TestFile.GetInputFileFullPath(TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr);
+            using var image = Image.Load(path);
+            image.Metadata.ExifProfile = null;
+
+            using var ms = new MemoryStream();
+            for (int i = 0; i < 30; i++)
+            {
+                image.SaveAsJpeg(ms);
+                ms.Seek(0, SeekOrigin.Begin);
+            }
+        }
+
         // Benchmark, enable manually!
         [Theory(Skip = ProfilingSetup.SkipProfilingTests)]
         [InlineData(1, 75, JpegSubsample.Ratio420)]

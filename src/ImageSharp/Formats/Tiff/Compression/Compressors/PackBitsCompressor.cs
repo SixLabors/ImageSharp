@@ -3,8 +3,6 @@
 
 using System;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
@@ -22,16 +20,23 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
 
         public override void Initialize(int rowsPerStrip)
         {
-            int additionalBytes = (this.BytesPerRow / 127) + 1;
-            this.pixelData = this.Allocator.AllocateManagedByteBuffer((this.BytesPerRow + additionalBytes) * rowsPerStrip);
+            int additionalBytes = ((this.BytesPerRow + 126) / 127) + 1;
+            this.pixelData = this.Allocator.AllocateManagedByteBuffer(this.BytesPerRow + additionalBytes);
         }
 
         public override void CompressStrip(Span<byte> rows, int height)
         {
+            DebugGuard.IsTrue(rows.Length % height == 0, "Invalid height");
+            DebugGuard.IsTrue(this.BytesPerRow == rows.Length / height, "The widths must match");
+
             this.pixelData.Clear();
             Span<byte> span = this.pixelData.GetSpan();
-            int size = PackBitsWriter.PackBits(rows, span);
-            this.Output.Write(span.Slice(0, size));
+            for (int i = 0; i < height; i++)
+            {
+                Span<byte> row = rows.Slice(i * this.BytesPerRow, this.BytesPerRow);
+                int size = PackBitsWriter.PackBits(row, span);
+                this.Output.Write(span.Slice(0, size));
+            }
         }
 
         protected override void Dispose(bool disposing) => this.pixelData?.Dispose();

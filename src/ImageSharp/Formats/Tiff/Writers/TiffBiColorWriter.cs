@@ -51,18 +51,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 
             if (compressor.Method == TiffEncoderCompression.CcittGroup3Fax || compressor.Method == TiffEncoderCompression.ModifiedHuffman)
             {
+                // special case for T4BitCompressor
                 compressor.CompressStrip(pixelAsGraySpan, height);
             }
             else
             {
+                int bytesPerStrip = this.BytesPerRow * height;
                 if (this.bitStrip == null)
                 {
-                    int bytesPerRow = this.BytesPerRow * height;
-                    this.bitStrip = this.MemoryAllocator.AllocateManagedByteBuffer(bytesPerRow);
+                    this.bitStrip = this.MemoryAllocator.AllocateManagedByteBuffer(bytesPerStrip);
                 }
 
-                this.bitStrip.Clear();
-                Span<byte> rows = this.bitStrip.GetSpan();
+                Span<byte> rows = this.bitStrip.Slice(0, bytesPerStrip);
+                rows.Clear();
 
                 int xx = 0;
                 for (int s = 0; s < height; s++)

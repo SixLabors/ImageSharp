@@ -2,10 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
+
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -43,6 +42,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             tiffMetadata.ByteOrder = byteOrder;
             tiffMetadata.BitsPerPixel = GetBitsPerPixel(rootFrameMetadata);
             tiffMetadata.Compression = rootFrameMetadata.Compression;
+            tiffMetadata.PhotometricInterpretation = rootFrameMetadata.PhotometricInterpretation;
 
             if (!ignoreMetadata)
             {

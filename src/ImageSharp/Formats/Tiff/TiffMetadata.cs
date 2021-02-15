@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
@@ -24,9 +25,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         private TiffMetadata(TiffMetadata other)
         {
             this.ByteOrder = other.ByteOrder;
-            this.XmpProfile = other.XmpProfile;
             this.BitsPerPixel = other.BitsPerPixel;
             this.Compression = other.Compression;
+            this.PhotometricInterpretation = other.PhotometricInterpretation;
+            this.XmpProfile = other.XmpProfile != null ? new byte[other.XmpProfile.Length] : null;
+            other.XmpProfile?.AsSpan().CopyTo(this.XmpProfile.AsSpan());
         }
 
         /// <summary>
@@ -43,6 +46,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// Gets the compression used to create the TIFF file.
         /// </summary>
         public TiffCompression Compression { get; internal set; } = TiffCompression.None;
+
+        /// <summary>
+        /// Gets the photometric interpretation which indicates how the pixels are to be interpreted, e.g. if the image is bicolor, RGB, color paletted etc.
+        /// </summary>
+        public TiffPhotometricInterpretation PhotometricInterpretation { get; internal set; }
 
         /// <summary>
         /// Gets or sets the XMP profile.

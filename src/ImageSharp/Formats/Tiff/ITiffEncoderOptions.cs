@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         DeflateCompressionLevel CompressionLevel { get; }
 
         /// <summary>
-        /// Gets the encoding mode to use. RGB, RGB with color palette or gray.
+        /// Gets the encoding mode to use. Possible options are RGB, RGB with a color palette, gray or BiColor.
         /// If no mode is specified in the options, RGB will be used.
         /// </summary>
         TiffEncodingMode Mode { get; }

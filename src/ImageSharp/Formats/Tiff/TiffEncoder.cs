@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public TiffEncoderCompression Compression { get; set; } = TiffEncoderCompression.None;
 
         /// <inheritdoc/>
-        public DeflateCompressionLevel CompressionLevel { get; } = DeflateCompressionLevel.DefaultCompression;
+        public DeflateCompressionLevel CompressionLevel { get; set; } = DeflateCompressionLevel.DefaultCompression;
 
         /// <inheritdoc/>
         public TiffEncodingMode Mode { get; set; }

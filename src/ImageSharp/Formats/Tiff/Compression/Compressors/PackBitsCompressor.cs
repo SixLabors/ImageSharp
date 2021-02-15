@@ -16,14 +16,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
         {
         }
 
+        /// <inheritdoc/>
         public override TiffEncoderCompression Method => TiffEncoderCompression.PackBits;
 
+        /// <inheritdoc/>
         public override void Initialize(int rowsPerStrip)
         {
             int additionalBytes = ((this.BytesPerRow + 126) / 127) + 1;
             this.pixelData = this.Allocator.AllocateManagedByteBuffer(this.BytesPerRow + additionalBytes);
         }
 
+        /// <inheritdoc/>
         public override void CompressStrip(Span<byte> rows, int height)
         {
             DebugGuard.IsTrue(rows.Length % height == 0, "Invalid height");
@@ -38,6 +41,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
             }
         }
 
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing) => this.pixelData?.Dispose();
     }
 }

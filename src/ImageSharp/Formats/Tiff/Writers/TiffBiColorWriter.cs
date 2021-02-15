@@ -49,7 +49,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 
             if (compressor.Method == TiffEncoderCompression.CcittGroup3Fax || compressor.Method == TiffEncoderCompression.ModifiedHuffman)
             {
-                // special case for T4BitCompressor
+                // Special case for T4BitCompressor.
                 compressor.CompressStrip(pixelAsGraySpan, height);
             }
             else
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
                 Span<byte> rows = this.bitStrip.Slice(0, bytesPerStrip);
                 rows.Clear();
 
-                int xx = 0;
+                int grayPixelIndex = 0;
                 for (int s = 0; s < height; s++)
                 {
                     int bitIndex = 0;
@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
                     for (int x = 0; x < this.Image.Width; x++)
                     {
                         int shift = 7 - bitIndex;
-                        if (pixelAsGraySpan[xx++] == 255)
+                        if (pixelAsGraySpan[grayPixelIndex++] == 255)
                         {
                             outputRow[byteIndex] |= (byte)(1 << shift);
                         }

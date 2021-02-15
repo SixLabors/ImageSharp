@@ -13,14 +13,18 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
         {
         }
 
+        /// <inheritdoc/>
         public override TiffEncoderCompression Method => TiffEncoderCompression.None;
 
+        /// <inheritdoc/>
         public override void Initialize(int rowsPerStrip)
         {
         }
 
+        /// <inheritdoc/>
         public override void CompressStrip(Span<byte> rows, int height) => this.Output.Write(rows);
 
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
         }

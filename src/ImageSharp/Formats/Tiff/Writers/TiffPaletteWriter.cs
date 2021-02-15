@@ -31,14 +31,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
             this.AddTag(this.quantized);
         }
 
+        /// <inheritdoc />
         public override int BitsPerPixel => 8;
 
+        /// <inheritdoc />
         protected override void EncodeStrip(int y, int height, TiffBaseCompressor compressor)
         {
             Span<byte> pixels = GetStripPixels(((IPixelSource)this.quantized).PixelBuffer, y, height);
             compressor.CompressStrip(pixels, height);
         }
 
+        /// <inheritdoc />
         protected override void Dispose(bool disposing) => this.quantized?.Dispose();
 
         private void AddTag(IndexedImageFrame<TPixel> quantized)

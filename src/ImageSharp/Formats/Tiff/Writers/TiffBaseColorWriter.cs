@@ -63,6 +63,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
             this.AddStripTags(rowsPerStrip, stripOffsets, stripByteCounts);
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             if (this.isDisposed)

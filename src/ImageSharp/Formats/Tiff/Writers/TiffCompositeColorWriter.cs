@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
     {
         private IManagedByteBuffer rowBuffer;
 
-        public TiffCompositeColorWriter(ImageFrame<TPixel> image, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
+        protected TiffCompositeColorWriter(ImageFrame<TPixel> image, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
             : base(image, memoryAllocator, configuration, entriesCollector)
         {
         }
@@ -40,6 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 
         protected abstract void EncodePixels(Span<TPixel> pixels, Span<byte> buffer);
 
+        /// <inheritdoc />
         protected override void Dispose(bool disposing) => this.rowBuffer?.Dispose();
     }
 }

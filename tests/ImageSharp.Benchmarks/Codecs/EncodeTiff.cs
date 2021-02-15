@@ -24,14 +24,14 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
 
         private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
-        [Params(TestImages.Tiff.RgbUncompressed)]
+        [Params(TestImages.Tiff.Calliphora_RgbUncompressed)]
         public string TestImage { get; set; }
 
         [Params(
             TiffEncoderCompression.None,
-            ////TiffEncoderCompression.Deflate,
+            TiffEncoderCompression.Deflate,
             TiffEncoderCompression.Lzw,
-            ////TiffEncoderCompression.PackBits,
+            TiffEncoderCompression.PackBits,
             TiffEncoderCompression.CcittGroup3Fax,
             TiffEncoderCompression.ModifiedHuffman)]
         public TiffEncoderCompression Compression { get; set; }
@@ -70,7 +70,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [Benchmark(Description = "ImageSharp Tiff")]
         public void TiffCore()
         {
-            var encoder = new TiffEncoder() { Compression = this.Compression };
+            TiffEncodingMode mode = TiffEncodingMode.Default;
+
+            // workaround for 1-bit bug
+            if (this.Compression == TiffEncoderCompression.CcittGroup3Fax || this.Compression == TiffEncoderCompression.ModifiedHuffman)
+            {
+                mode = TiffEncodingMode.BiColor;
+            }
+
+            var encoder = new TiffEncoder() { Compression = this.Compression, Mode = mode };
             using var memoryStream = new MemoryStream();
             this.core.SaveAsTiff(memoryStream, encoder);
         }
@@ -107,7 +115,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
                     return EncoderValue.CompressionLZW;
 
                 default:
-                    throw new System.ArgumentOutOfRangeException(nameof(compression));
+                    throw new System.NotSupportedException(compression.ToString());
             }
         }
     }

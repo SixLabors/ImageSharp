@@ -4,7 +4,6 @@
 using System;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -13,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using LZW compression.
     /// </summary>
-    internal class LzwTiffCompression : TiffBaseCompression
+    internal class LzwTiffCompression : TiffBaseDecompresor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="LzwTiffCompression" /> class.
@@ -37,6 +36,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
             {
                 HorizontalPredictor.Undo(buffer, this.Width, this.BitsPerPixel);
             }
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
         }
     }
 }

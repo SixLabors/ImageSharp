@@ -1,13 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.IO;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
@@ -40,7 +38,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
             using BufferedReadStream stream = CreateCompressedStream(data);
             var buffer = new byte[data.Length];
 
-            new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None).Decompress(stream, 0, (uint)stream.Length, buffer);
+            using var decompressor = new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffPredictor.None);
+            decompressor.Decompress(stream, 0, (uint)stream.Length, buffer);
 
             Assert.Equal(data, buffer);
         }
@@ -48,12 +47,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Compression
         private static BufferedReadStream CreateCompressedStream(byte[] inputData)
         {
             Stream compressedStream = new MemoryStream();
-            using System.Buffers.IMemoryOwner<byte> data = Configuration.Default.MemoryAllocator.Allocate<byte>(inputData.Length);
-            inputData.AsSpan().CopyTo(data.GetSpan());
 
-            using (var encoder = new TiffLzwEncoder(Configuration.Default.MemoryAllocator, data))
+            using (var encoder = new TiffLzwEncoder(Configuration.Default.MemoryAllocator))
             {
-                encoder.Encode(compressedStream);
+                encoder.Encode(inputData, compressedStream);
             }
 
             compressedStream.Seek(0, SeekOrigin.Begin);

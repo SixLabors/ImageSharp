@@ -14,34 +14,38 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
             int startIdx = bufferPos + bitPos;
             int endIdx = (int)(startIdx + count);
 
-            for (int i = startIdx; i < endIdx; i++)
+            if (value == 1)
             {
-                if (value == 1)
+                for (int i = startIdx; i < endIdx; i++)
                 {
                     WriteBit(buffer, bufferPos, bitPos);
+
+                    bitPos++;
+                    if (bitPos >= 8)
+                    {
+                        bitPos = 0;
+                        bufferPos++;
+                    }
                 }
-                else
+            }
+            else
+            {
+                for (int i = startIdx; i < endIdx; i++)
                 {
                     WriteZeroBit(buffer, bufferPos, bitPos);
-                }
 
-                bitPos++;
-                if (bitPos >= 8)
-                {
-                    bitPos = 0;
-                    bufferPos++;
+                    bitPos++;
+                    if (bitPos >= 8)
+                    {
+                        bitPos = 0;
+                        bufferPos++;
+                    }
                 }
             }
         }
 
-        public static void WriteBit(Span<byte> buffer, int bufferPos, int bitPos)
-        {
-            buffer[bufferPos] |= (byte)(1 << (7 - bitPos));
-        }
+        public static void WriteBit(Span<byte> buffer, int bufferPos, int bitPos) => buffer[bufferPos] |= (byte)(1 << (7 - bitPos));
 
-        public static void WriteZeroBit(Span<byte> buffer, int bufferPos, int bitPos)
-        {
-            buffer[bufferPos] = (byte)(buffer[bufferPos] & ~(1 << (7 - bitPos)));
-        }
+        public static void WriteZeroBit(Span<byte> buffer, int bufferPos, int bitPos) => buffer[bufferPos] = (byte)(buffer[bufferPos] & ~(1 << (7 - bitPos)));
     }
 }

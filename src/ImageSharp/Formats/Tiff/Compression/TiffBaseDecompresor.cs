@@ -8,39 +8,17 @@ using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 {
     /// <summary>
-    /// Base tiff decompressor class.
+    /// The base tiff decompressor class.
     /// </summary>
-    internal abstract class TiffBaseCompression
+    internal abstract class TiffBaseDecompresor : TiffBaseCompression
     {
-        protected TiffBaseCompression(MemoryAllocator allocator) => this.Allocator = allocator;
-
-        protected TiffBaseCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
-            : this(allocator)
+        protected TiffBaseDecompresor(MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
+         : base(allocator, width, bitsPerPixel, predictor)
         {
-            this.PhotometricInterpretation = photometricInterpretation;
-            this.Width = width;
         }
-
-        protected TiffBaseCompression(MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor)
-            : this(allocator)
-        {
-            this.Width = width;
-            this.BitsPerPixel = bitsPerPixel;
-            this.Predictor = predictor;
-        }
-
-        protected MemoryAllocator Allocator { get; }
-
-        protected TiffPhotometricInterpretation PhotometricInterpretation { get; }
-
-        protected int Width { get; }
-
-        protected int BitsPerPixel { get; }
-
-        protected TiffPredictor Predictor { get; }
 
         /// <summary>
         /// Decompresses image data into the supplied buffer.

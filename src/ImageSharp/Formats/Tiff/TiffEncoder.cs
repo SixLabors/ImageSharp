@@ -33,6 +33,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public IQuantizer Quantizer { get; set; }
 
         /// <inheritdoc/>
+        public int MaxStripBytes { get; set; } = TiffEncoderCore.DefaultStripSize;
+
+        /// <inheritdoc/>
         public void Encode<TPixel>(Image<TPixel> image, Stream stream)
             where TPixel : unmanaged, IPixel<TPixel>
         {

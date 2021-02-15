@@ -1,0 +1,40 @@
+// Copyright (c) Six Labors.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.IO;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Memory;
+
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
+{
+    internal class LzwCompressor : TiffBaseCompressor
+    {
+        private TiffLzwEncoder lzwEncoder;
+
+        public LzwCompressor(Stream output, MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor)
+            : base(output, allocator, width, bitsPerPixel, predictor)
+        {
+        }
+
+        /// <inheritdoc/>
+        public override TiffEncoderCompression Method => TiffEncoderCompression.Lzw;
+
+        /// <inheritdoc/>
+        public override void Initialize(int rowsPerStrip) => this.lzwEncoder = new TiffLzwEncoder(this.Allocator);
+
+        /// <inheritdoc/>
+        public override void CompressStrip(Span<byte> rows, int height)
+        {
+            if (this.Predictor == TiffPredictor.Horizontal)
+            {
+                HorizontalPredictor.ApplyHorizontalPrediction(rows, this.BytesPerRow, this.BitsPerPixel);
+            }
+
+            this.lzwEncoder.Encode(rows, this.Output);
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing) => this.lzwEncoder?.Dispose();
+    }
+}

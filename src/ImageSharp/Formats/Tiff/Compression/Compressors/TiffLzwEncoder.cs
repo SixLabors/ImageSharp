@@ -7,7 +7,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
 {
     /*
         This implementation is a port of a java tiff encoder by Harald Kuhr: https://github.com/haraldk/TwelveMonkeys
@@ -71,8 +71,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
 
         private static readonly int TableSize = 1 << MaxBits;
 
-        private readonly IMemoryOwner<byte> data;
-
         // A child is made up of a parent (or prefix) code plus a suffix byte
         // and siblings are strings with a common parent(or prefix) and different suffix bytes.
         private readonly IMemoryOwner<int> children;
@@ -95,31 +93,27 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffLzwEncoder"/> class.
         /// </summary>
-        /// <param name="data">The data to compress.</param>
         /// <param name="memoryAllocator">The memory allocator.</param>
-        public TiffLzwEncoder(MemoryAllocator memoryAllocator, IMemoryOwner<byte> data)
+        public TiffLzwEncoder(MemoryAllocator memoryAllocator)
         {
-            this.data = data;
-            this.children = memoryAllocator.Allocate<int>(TableSize, AllocationOptions.Clean);
-            this.siblings = memoryAllocator.Allocate<int>(TableSize, AllocationOptions.Clean);
-            this.suffixes = memoryAllocator.Allocate<int>(TableSize, AllocationOptions.Clean);
-
-            this.parent = -1;
-            this.bitsPerCode = MinBits;
-            this.nextValidCode = EoiCode + 1;
-            this.maxCode = (1 << this.bitsPerCode) - 1;
+            this.children = memoryAllocator.Allocate<int>(TableSize);
+            this.siblings = memoryAllocator.Allocate<int>(TableSize);
+            this.suffixes = memoryAllocator.Allocate<int>(TableSize);
         }
 
         /// <summary>
         /// Encodes and compresses the indexed pixels to the stream.
         /// </summary>
+        /// <param name="data">The data to compress.</param>
         /// <param name="stream">The stream to write to.</param>
-        public void Encode(Stream stream)
+        public void Encode(Span<byte> data, Stream stream)
         {
+            this.Reset();
+
             Span<int> childrenSpan = this.children.GetSpan();
             Span<int> suffixesSpan = this.suffixes.GetSpan();
             Span<int> siblingsSpan = this.siblings.GetSpan();
-            int length = this.data.Length();
+            int length = data.Length;
 
             if (length == 0)
             {
@@ -130,12 +124,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             {
                 // Init stream.
                 this.WriteCode(stream, ClearCode);
-                this.parent = this.ReadNextByte() & 0xff;
+                this.parent = this.ReadNextByte(data);
             }
 
-            while (this.bufferPosition < this.data.Length())
+            while (this.bufferPosition < data.Length)
             {
-                int value = this.ReadNextByte() & 0xff;
+                int value = this.ReadNextByte(data);
                 int child = childrenSpan[this.parent];
 
                 if (child > 0)
@@ -206,13 +200,23 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
             this.suffixes.Dispose();
         }
 
-        private byte ReadNextByte()
+        private void Reset()
         {
-            Span<byte> dataSpan = this.data.GetSpan();
-            var nextByte = dataSpan[this.bufferPosition];
-            this.bufferPosition++;
-            return nextByte;
+            this.children.Clear();
+            this.siblings.Clear();
+            this.suffixes.Clear();
+
+            this.parent = -1;
+            this.bitsPerCode = MinBits;
+            this.nextValidCode = EoiCode + 1;
+            this.maxCode = (1 << this.bitsPerCode) - 1;
+
+            this.bits = 0;
+            this.bitPos = 0;
+            this.bufferPosition = 0;
         }
+
+        private byte ReadNextByte(Span<byte> data) => data[this.bufferPosition++];
 
         private void IncreaseCodeSizeOrResetIfNeeded(Stream stream)
         {

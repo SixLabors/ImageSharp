@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors
+namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 {
     /// <summary>
     /// Provides enumeration of the various TIFF compression types the decoder can handle.

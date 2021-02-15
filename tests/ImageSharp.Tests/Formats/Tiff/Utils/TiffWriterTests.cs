@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
-
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
 

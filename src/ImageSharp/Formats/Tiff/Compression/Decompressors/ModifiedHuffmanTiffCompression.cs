@@ -14,6 +14,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
     /// </summary>
     internal class ModifiedHuffmanTiffCompression : T4TiffCompression
     {
+        private readonly byte whiteValue;
+
+        private readonly byte blackValue;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ModifiedHuffmanTiffCompression" /> class.
         /// </summary>
@@ -23,15 +27,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
         public ModifiedHuffmanTiffCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
             : base(allocator, FaxCompressionOptions.None, photometricInterpretation, width)
         {
+            bool isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
+            this.whiteValue = (byte)(isWhiteZero ? 0 : 1);
+            this.blackValue = (byte)(isWhiteZero ? 1 : 0);
         }
 
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
         {
-            bool isWhiteZero = this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
-            byte whiteValue = (byte)(isWhiteZero ? 0 : 1);
-            byte blackValue = (byte)(isWhiteZero ? 1 : 0);
-
             using var bitReader = new T4BitReader(stream, byteCount, this.Allocator, eolPadding: false, isModifiedHuffman: true);
 
             buffer.Clear();
@@ -45,13 +48,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
                 {
                     if (bitReader.IsWhiteRun)
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, whiteValue);
+                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.whiteValue);
                         bitsWritten += bitReader.RunLength;
                         pixelsWritten += bitReader.RunLength;
                     }
                     else
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, blackValue);
+                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.blackValue);
                         bitsWritten += bitReader.RunLength;
                         pixelsWritten += bitReader.RunLength;
                     }

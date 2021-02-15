@@ -6,7 +6,6 @@ using System.IO.Compression;
 
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -18,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
     /// <remarks>
     /// Note that the 'OldDeflate' compression type is identical to the 'Deflate' compression type.
     /// </remarks>
-    internal class DeflateTiffCompression : TiffBaseCompression
+    internal class DeflateTiffCompression : TiffBaseDecompresor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DeflateTiffCompression" /> class.
@@ -53,6 +52,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
             {
                 HorizontalPredictor.Undo(buffer, this.Width, this.BitsPerPixel);
             }
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
         }
     }
 }

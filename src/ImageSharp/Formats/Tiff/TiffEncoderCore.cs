@@ -8,10 +8,10 @@ using System.Threading;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Compression.Zlib;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -24,6 +24,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     /// </summary>
     internal sealed class TiffEncoderCore : IImageEncoderInternals
     {
+        public const int DefaultStripSize = 8 * 1024;
+
         public static readonly ByteOrder ByteOrder = BitConverter.IsLittleEndian ? ByteOrder.LittleEndian : ByteOrder.BigEndian;
 
         private static readonly ushort ByteOrderMarker = BitConverter.IsLittleEndian
@@ -43,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// The color depth, in number of bits per pixel.
         /// </summary>
-        private TiffBitsPerPixel? bitsPerPixel;
+        private TiffBitsPerPixel bitsPerPixel;
 
         /// <summary>
         /// The quantizer for creating color palette image.
@@ -54,6 +56,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// Sets the deflate compression level.
         /// </summary>
         private readonly DeflateCompressionLevel compressionLevel;
+
+        /// <summary>
+        /// The maximum number of bytes for a strip.
+        /// </summary>
+        private readonly int maxStripBytes;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
@@ -68,6 +75,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
             this.UseHorizontalPredictor = options.UseHorizontalPredictor;
             this.compressionLevel = options.CompressionLevel;
+            this.maxStripBytes = options.MaxStripBytes;
         }
 
         /// <summary>
@@ -105,26 +113,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             Guard.NotNull(stream, nameof(stream));
 
             this.configuration = image.GetConfiguration();
-            ImageMetadata metadata = image.Metadata;
-            TiffMetadata tiffMetadata = metadata.GetTiffMetadata();
-            this.bitsPerPixel ??= tiffMetadata.BitsPerPixel;
-            if (this.Mode == TiffEncodingMode.Default)
-            {
-                // Preserve input bits per pixel, if no mode was specified.
-                if (this.bitsPerPixel == TiffBitsPerPixel.Pixel8)
-                {
-                    this.Mode = TiffEncodingMode.Gray;
-                }
-                else if (this.bitsPerPixel == TiffBitsPerPixel.Pixel1)
-                {
-                    this.Mode = TiffEncodingMode.BiColor;
-                }
-                else
-                {
-                    this.Mode = TiffEncodingMode.Rgb;
-                }
-            }
 
+            this.SetMode(image);
             this.SetPhotometricInterpretation();
 
             using (var writer = new TiffStreamWriter(stream))
@@ -132,7 +122,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 long firstIfdMarker = this.WriteHeader(writer);
 
                 // TODO: multiframing is not support
-                long nextIfdMarker = this.WriteImage(writer, image, firstIfdMarker);
+                this.WriteImage(writer, image, firstIfdMarker);
             }
         }
 
@@ -159,8 +149,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
         /// <param name="image">The <see cref="Image{TPixel}"/> to encode from.</param>
         /// <param name="ifdOffset">The marker to write this IFD offset.</param>
-        /// <returns>The marker to write the next IFD offset (if present).</returns>
-        public long WriteImage<TPixel>(TiffStreamWriter writer, Image<TPixel> image, long ifdOffset)
+        private void WriteImage<TPixel>(TiffStreamWriter writer, Image<TPixel> image, long ifdOffset)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var entriesCollector = new TiffEncoderEntriesCollector();
@@ -168,18 +157,34 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             // Write the image bytes to the steam.
             var imageDataStart = (uint)writer.Position;
 
-            TiffBaseColorWriter colorWriter = TiffColorWriterFactory.Create(this.Mode, writer, this.memoryAllocator, this.configuration, entriesCollector);
+            using TiffBaseCompressor compressor = TiffCompressorFactory.Create(
+                     this.CompressionType,
+                     writer.BaseStream,
+                     this.memoryAllocator,
+                     image.Width,
+                     (int)this.bitsPerPixel,
+                     this.compressionLevel,
+                     this.UseHorizontalPredictor ? TiffPredictor.Horizontal : TiffPredictor.None);
 
-            int imageDataBytes = colorWriter.Write(image, this.quantizer, this.CompressionType, this.compressionLevel, this.UseHorizontalPredictor);
+            using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(this.Mode, image.Frames.RootFrame, this.quantizer, this.memoryAllocator, this.configuration, entriesCollector);
 
-            this.AddStripTags(image, entriesCollector, imageDataStart, imageDataBytes);
+            int rowsPerStrip = this.CalcRowsPerStrip(image.Frames.RootFrame, colorWriter.BytesPerRow);
+
+            colorWriter.Write(compressor, rowsPerStrip);
+
             entriesCollector.ProcessImageFormat(this);
             entriesCollector.ProcessGeneral(image);
 
             writer.WriteMarker(ifdOffset, (uint)writer.Position);
             long nextIfdMarker = this.WriteIfd(writer, entriesCollector.Entries);
+        }
 
-            return nextIfdMarker + imageDataBytes;
+        private int CalcRowsPerStrip(ImageFrame image, int bytesPerRow)
+        {
+            int sz = this.maxStripBytes > 0 ? this.maxStripBytes : DefaultStripSize;
+            int height = sz / bytesPerRow;
+
+            return height > 0 ? (height < image.Height ? height : image.Height) : 1;
         }
 
         /// <summary>
@@ -188,7 +193,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <param name="writer">The <see cref="BinaryWriter"/> to write data to.</param>
         /// <param name="entries">The IFD entries to write to the file.</param>
         /// <returns>The marker to write the next IFD offset (if present).</returns>
-        public long WriteIfd(TiffStreamWriter writer, List<IExifValue> entries)
+        private long WriteIfd(TiffStreamWriter writer, List<IExifValue> entries)
         {
             if (entries.Count == 0)
             {
@@ -239,37 +244,59 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             return nextIfdMarker;
         }
 
-        /// <summary>
-        /// Adds image format information to the specified IFD.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="Image{TPixel}" /> to encode from.</param>
-        /// <param name="entriesCollector">The entries collector.</param>
-        /// <param name="imageDataStartOffset">The start of the image data in the stream.</param>
-        /// <param name="imageDataBytes">The image data in bytes to write.</param>
-        public void AddStripTags<TPixel>(Image<TPixel> image, TiffEncoderEntriesCollector entriesCollector, uint imageDataStartOffset, int imageDataBytes)
-            where TPixel : unmanaged, IPixel<TPixel>
+        private void SetMode(Image image)
         {
-            var stripOffsets = new ExifLongArray(ExifTagValue.StripOffsets)
+            if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax || this.CompressionType == TiffEncoderCompression.ModifiedHuffman)
             {
-                // TODO: we only write one image strip for the start.
-                Value = new[] { imageDataStartOffset }
-            };
+                if (this.Mode == TiffEncodingMode.Default)
+                {
+                    this.Mode = TiffEncodingMode.BiColor;
+                    this.bitsPerPixel = TiffBitsPerPixel.Pixel1;
+                    return;
+                }
 
-            var rowsPerStrip = new ExifLong(ExifTagValue.RowsPerStrip)
+                if (this.Mode != TiffEncodingMode.BiColor)
+                {
+                    TiffThrowHelper.ThrowImageFormatException($"The {this.CompressionType} compression and {this.Mode} aren't compatible. Please use {this.CompressionType} only with {TiffEncodingMode.BiColor} or {TiffEncodingMode.Default} mode.");
+                }
+            }
+
+            if (this.Mode == TiffEncodingMode.Default)
             {
-                // All rows in one strip.
-                Value = (uint)image.Height
-            };
+                // Preserve input bits per pixel, if no mode was specified.
+                TiffMetadata tiffMetadata = image.Metadata.GetTiffMetadata();
+                switch (tiffMetadata.BitsPerPixel)
+                {
+                    case TiffBitsPerPixel.Pixel1:
+                        this.Mode = TiffEncodingMode.BiColor;
+                        break;
+                    case TiffBitsPerPixel.Pixel8:
+                        // todo: can gray or palette
+                        this.Mode = TiffEncodingMode.Gray;
+                        break;
+                    default:
+                        this.Mode = TiffEncodingMode.Rgb;
+                        break;
+                }
+            }
 
-            var stripByteCounts = new ExifLongArray(ExifTagValue.StripByteCounts)
+            switch (this.Mode)
             {
-                Value = new[] { (uint)imageDataBytes }
-            };
-
-            entriesCollector.Add(stripOffsets);
-            entriesCollector.Add(rowsPerStrip);
-            entriesCollector.Add(stripByteCounts);
+                case TiffEncodingMode.BiColor:
+                    this.bitsPerPixel = TiffBitsPerPixel.Pixel1;
+                    break;
+                case TiffEncodingMode.ColorPalette:
+                case TiffEncodingMode.Gray:
+                    this.bitsPerPixel = TiffBitsPerPixel.Pixel8;
+                    break;
+                case TiffEncodingMode.Rgb:
+                    this.bitsPerPixel = TiffBitsPerPixel.Pixel24;
+                    break;
+                default:
+                    this.Mode = TiffEncodingMode.Rgb;
+                    this.bitsPerPixel = TiffBitsPerPixel.Pixel24;
+                    break;
+            }
         }
 
         private void SetPhotometricInterpretation()

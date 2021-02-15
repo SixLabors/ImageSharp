@@ -12,23 +12,33 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using PackBits compression.
     /// </summary>
-    internal class PackBitsTiffCompression : TiffBaseCompression
+    internal class PackBitsTiffCompression : TiffBaseDecompresor
     {
+        private IMemoryOwner<byte> compressedDataMemory;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="PackBitsTiffCompression" /> class.
         /// </summary>
         /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
         public PackBitsTiffCompression(MemoryAllocator memoryAllocator)
-            : base(memoryAllocator)
+                : base(memoryAllocator, default, default)
         {
         }
 
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
         {
-            using IMemoryOwner<byte> compressedDataMemory = this.Allocator.Allocate<byte>(byteCount);
+            if (this.compressedDataMemory == null)
+            {
+                this.compressedDataMemory = this.Allocator.Allocate<byte>(byteCount);
+            }
+            else if (this.compressedDataMemory.Length() < byteCount)
+            {
+                this.compressedDataMemory.Dispose();
+                this.compressedDataMemory = this.Allocator.Allocate<byte>(byteCount);
+            }
 
-            Span<byte> compressedData = compressedDataMemory.GetSpan();
+            Span<byte> compressedData = this.compressedDataMemory.GetSpan();
 
             stream.Read(compressedData, 0, byteCount);
             int compressedOffset = 0;
@@ -77,5 +87,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
                 destinationArray[i + destinationIndex] = value;
             }
         }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing) => this.compressedDataMemory?.Dispose();
     }
 }

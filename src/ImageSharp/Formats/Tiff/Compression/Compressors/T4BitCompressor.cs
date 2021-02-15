@@ -5,16 +5,14 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
-
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
 {
     /// <summary>
     /// Bitwriter for writing compressed CCITT T4 1D data.
     /// </summary>
-    internal class T4BitWriter
+    internal class T4BitCompressor : TiffBaseCompressor
     {
         private const uint WhiteZeroRunTermCode = 0x35;
 
@@ -176,49 +174,52 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
             { 1408, 0x54 }, { 1472, 0x55 }, { 1536, 0x5A }, { 1600, 0x5B }, { 1664, 0x64 }, { 1728, 0x65 }
         };
 
-        private readonly MemoryAllocator memoryAllocator;
+        /// <summary>
+        /// The modified huffman is basically the same as CCITT T4, but without EOL markers and padding at the end of the rows.
+        /// </summary>
+        private readonly bool useModifiedHuffman;
 
-        private readonly Configuration configuration;
+        private IMemoryOwner<byte> compressedDataBuffer;
 
         private int bytePosition;
 
         private byte bitPosition;
 
         /// <summary>
-        /// The modified huffman is basically the same as CCITT T4, but without EOL markers and padding at the end of the rows.
+        /// Initializes a new instance of the <see cref="T4BitCompressor" /> class.
         /// </summary>
-        private readonly bool useModifiedHuffman;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="T4BitWriter" /> class.
-        /// </summary>
-        /// <param name="memoryAllocator">The memory allocator.</param>
-        /// <param name="configuration">The configuration.</param>
+        /// <param name="output">The output.</param>
+        /// <param name="allocator">The allocator.</param>
+        /// <param name="width">The width.</param>
+        /// <param name="bitsPerPixel">The bits per pixel.</param>
         /// <param name="useModifiedHuffman">Indicates if the modified huffman RLE should be used.</param>
-        public T4BitWriter(MemoryAllocator memoryAllocator, Configuration configuration, bool useModifiedHuffman = false)
+        public T4BitCompressor(Stream output, MemoryAllocator allocator, int width, int bitsPerPixel, bool useModifiedHuffman = false)
+            : base(output, allocator, width, bitsPerPixel)
         {
-            this.memoryAllocator = memoryAllocator;
-            this.configuration = configuration;
             this.bytePosition = 0;
             this.bitPosition = 0;
             this.useModifiedHuffman = useModifiedHuffman;
         }
 
-        /// <summary>
-        /// Writes a image compressed with CCITT T4 to the stream.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel data.</typeparam>
-        /// <param name="image">The image to write to the stream. This has to be a bi-color image.</param>
-        /// <param name="pixelRowAsGray">A span for converting a pixel row to gray.</param>
-        /// <param name="stream">The stream to write to.</param>
-        /// <returns>The number of bytes written to the stream.</returns>
-        public int CompressImage<TPixel>(Image<TPixel> image, Span<L8> pixelRowAsGray, Stream stream)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public override TiffEncoderCompression Method => this.useModifiedHuffman ? TiffEncoderCompression.ModifiedHuffman : TiffEncoderCompression.CcittGroup3Fax;
+
+        public override void Initialize(int rowsPerStrip)
         {
             // This is too much memory allocated, but just 1 bit per pixel will not do, if the compression rate is not good.
-            int maxNeededBytes = image.Width * image.Height;
-            IMemoryOwner<byte> compressedDataBuffer = this.memoryAllocator.Allocate<byte>(maxNeededBytes, AllocationOptions.Clean);
-            Span<byte> compressedData = compressedDataBuffer.GetSpan();
+            int maxNeededBytes = this.Width * rowsPerStrip;
+            this.compressedDataBuffer = this.Allocator.Allocate<byte>(maxNeededBytes);
+        }
+
+        /// <summary>Writes a image compressed with CCITT T4 to the stream.</summary>
+        /// <param name="pixelsAsGray">The pixels as 8-bit gray array.</param>
+        /// <param name="height">The strip height.</param>
+        public override void CompressStrip(Span<byte> pixelsAsGray, int height)
+        {
+            DebugGuard.IsTrue(pixelsAsGray.Length / height == this.Width, "Values must be equals");
+            DebugGuard.IsTrue(pixelsAsGray.Length % height == 0, "Values must be equals");
+
+            this.compressedDataBuffer.Clear();
+            Span<byte> compressedData = this.compressedDataBuffer.GetSpan();
 
             this.bytePosition = 0;
             this.bitPosition = 0;
@@ -229,36 +230,35 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
                 this.WriteCode(12, 1, compressedData);
             }
 
-            uint pixelsWritten = 0;
-            for (int y = 0; y < image.Height; y++)
+            for (int y = 0; y < height; y++)
             {
                 bool isWhiteRun = true;
                 bool isStartOrRow = true;
-                Span<TPixel> pixelRow = image.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToL8(this.configuration, pixelRow, pixelRowAsGray);
                 int x = 0;
-                while (x < image.Width)
+
+                Span<byte> row = pixelsAsGray.Slice(y * this.Width, this.Width);
+                while (x < this.Width)
                 {
                     uint runLength = 0;
-                    for (int i = x; i < image.Width; i++)
+                    for (int i = x; i < this.Width; i++)
                     {
-                        if (isWhiteRun && pixelRowAsGray[i].PackedValue != 255)
+                        if (isWhiteRun && row[i] != 255)
                         {
                             break;
                         }
 
-                        if (isWhiteRun && pixelRowAsGray[i].PackedValue == 255)
+                        if (isWhiteRun && row[i] == 255)
                         {
                             runLength++;
                             continue;
                         }
 
-                        if (!isWhiteRun && pixelRowAsGray[i].PackedValue != 0)
+                        if (!isWhiteRun && row[i] != 0)
                         {
                             break;
                         }
 
-                        if (!isWhiteRun && pixelRowAsGray[i].PackedValue == 0)
+                        if (!isWhiteRun && row[i] == 0)
                         {
                             runLength++;
                         }
@@ -280,7 +280,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
                         code = this.GetTermCode(runLength, out codeLength, isWhiteRun);
                         this.WriteCode(codeLength, code, compressedData);
                         x += (int)runLength;
-                        pixelsWritten += runLength;
                     }
                     else
                     {
@@ -288,10 +287,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
                         code = this.GetMakeupCode(runLength, out codeLength, isWhiteRun);
                         this.WriteCode(codeLength, code, compressedData);
                         x += (int)runLength;
-                        pixelsWritten += runLength;
 
                         // If we are at the end of the line with a makeup code, we need to write a final term code with a length of zero.
-                        if (x == image.Width)
+                        if (x == this.Width)
                         {
                             if (isWhiteRun)
                             {
@@ -315,10 +313,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
 
             // Write the compressed data to the stream.
             int bytesToWrite = this.bitPosition != 0 ? this.bytePosition + 1 : this.bytePosition;
-            stream.Write(compressedData.Slice(0, bytesToWrite));
-
-            return bytesToWrite;
+            this.Output.Write(compressedData.Slice(0, bytesToWrite));
         }
+
+        protected override void Dispose(bool disposing) => this.compressedDataBuffer?.Dispose();
 
         private void WriteEndOfLine(Span<byte> compressedData)
         {

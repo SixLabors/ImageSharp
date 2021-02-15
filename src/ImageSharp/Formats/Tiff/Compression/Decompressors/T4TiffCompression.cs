@@ -12,9 +12,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using CCITT T4 compression.
     /// </summary>
-    internal class T4TiffCompression : TiffBaseCompression
+    internal class T4TiffCompression : TiffBaseDecompresor
     {
         private readonly FaxCompressionOptions faxCompressionOptions;
+
+        private readonly byte whiteValue;
+
+        private readonly byte blackValue;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T4TiffCompression" /> class.
@@ -24,7 +28,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
         /// <param name="photometricInterpretation">The photometric interpretation.</param>
         /// <param name="width">The image width.</param>
         public T4TiffCompression(MemoryAllocator allocator, FaxCompressionOptions faxOptions, TiffPhotometricInterpretation photometricInterpretation, int width)
-            : base(allocator, photometricInterpretation, width) => this.faxCompressionOptions = faxOptions;
+            : base(allocator, width, default)
+        {
+            this.faxCompressionOptions = faxOptions;
+
+            bool isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
+            this.whiteValue = (byte)(isWhiteZero ? 0 : 1);
+            this.blackValue = (byte)(isWhiteZero ? 1 : 0);
+        }
 
         /// <inheritdoc/>
         protected override void Decompress(BufferedReadStream stream, int byteCount, Span<byte> buffer)
@@ -33,10 +44,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
             {
                 TiffThrowHelper.ThrowNotSupported("TIFF CCITT 2D compression is not yet supported");
             }
-
-            bool isWhiteZero = this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
-            byte whiteValue = (byte)(isWhiteZero ? 0 : 1);
-            byte blackValue = (byte)(isWhiteZero ? 1 : 0);
 
             var eolPadding = this.faxCompressionOptions.HasFlag(FaxCompressionOptions.EolPadding);
             using var bitReader = new T4BitReader(stream, byteCount, this.Allocator, eolPadding);
@@ -51,12 +58,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
                 {
                     if (bitReader.IsWhiteRun)
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, whiteValue);
+                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.whiteValue);
                         bitsWritten += bitReader.RunLength;
                     }
                     else
                     {
-                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, blackValue);
+                        BitWriterUtils.WriteBits(buffer, (int)bitsWritten, bitReader.RunLength, this.blackValue);
                         bitsWritten += bitReader.RunLength;
                     }
                 }
@@ -72,6 +79,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
                     }
                 }
             }
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
         }
     }
 }

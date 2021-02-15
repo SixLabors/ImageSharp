@@ -19,7 +19,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public static void ThrowImageFormatException(string errorMessage) => throw new ImageFormatException(errorMessage);
 
         [MethodImpl(InliningOptions.ColdPath)]
-        public static Exception NotSupportedCompression(string compressionType) => throw new NotSupportedException($"Not supported compression: {compressionType}");
+        public static Exception NotSupportedDecompressor(string compressionType) => throw new NotSupportedException($"Not supported decoder compression method: {compressionType}");
+
+        [MethodImpl(InliningOptions.ColdPath)]
+        public static Exception NotSupportedCompressor(string compressionType) => throw new NotSupportedException($"Not supported encoder compression method: {compressionType}");
 
         [MethodImpl(InliningOptions.ColdPath)]
         public static Exception InvalidColorType(string colorType) => throw new NotSupportedException($"Invalid color type: {colorType}");

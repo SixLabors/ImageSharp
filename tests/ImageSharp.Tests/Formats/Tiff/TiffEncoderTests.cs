@@ -73,6 +73,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32, TiffBitsPerPixel.Pixel1)]
         [WithFile(GrayscaleUncompressed, PixelTypes.Rgba32, TiffBitsPerPixel.Pixel8)]
         [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffBitsPerPixel.Pixel24)]
+        [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32, TiffBitsPerPixel.Pixel24)]
         public void TiffEncoder_PreserveBitsPerPixel<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel expectedBitsPerPixel)
             where TPixel : unmanaged, IPixel<TPixel>
         {

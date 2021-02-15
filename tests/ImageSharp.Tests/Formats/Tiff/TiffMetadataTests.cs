@@ -36,12 +36,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Fact]
         public void CloneIsDeep()
         {
+            byte[] xmpData = { 1, 1, 1 };
             var meta = new TiffMetadata
             {
                 Compression = TiffCompression.Deflate,
                 BitsPerPixel = TiffBitsPerPixel.Pixel8,
                 ByteOrder = ByteOrder.BigEndian,
-                XmpProfile = new byte[3]
+                XmpProfile = xmpData,
+                PhotometricInterpretation = TiffPhotometricInterpretation.Rgb
             };
 
             var clone = (TiffMetadata)meta.DeepClone();
@@ -49,12 +51,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             clone.Compression = TiffCompression.None;
             clone.BitsPerPixel = TiffBitsPerPixel.Pixel24;
             clone.ByteOrder = ByteOrder.LittleEndian;
-            clone.XmpProfile = new byte[1];
+            clone.PhotometricInterpretation = TiffPhotometricInterpretation.YCbCr;
 
             Assert.False(meta.Compression == clone.Compression);
             Assert.False(meta.BitsPerPixel == clone.BitsPerPixel);
             Assert.False(meta.ByteOrder == clone.ByteOrder);
-            Assert.False(meta.XmpProfile.SequenceEqual(clone.XmpProfile));
+            Assert.False(meta.PhotometricInterpretation == clone.PhotometricInterpretation);
+            Assert.False(meta.XmpProfile.Equals(clone.XmpProfile));
+            Assert.True(meta.XmpProfile.SequenceEqual(clone.XmpProfile));
         }
 
         [Theory]
@@ -93,6 +97,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
             Assert.NotNull(tiffMetadata);
             Assert.Equal(expectedCompression, tiffMetadata.Compression);
+        }
+
+        [Theory]
+        [InlineData(Calliphora_RgbUncompressed, TiffPhotometricInterpretation.Rgb)]
+        [InlineData(Calliphora_BiColorUncompressed, TiffPhotometricInterpretation.BlackIsZero)]
+        [InlineData(Calliphora_PaletteUncompressed, TiffPhotometricInterpretation.PaletteColor)]
+        public void Identify_DetectsCorrectPhotometricInterpretation(string imagePath, TiffPhotometricInterpretation expectedPhotometricInterpretation)
+        {
+            var testFile = TestFile.Create(imagePath);
+            using var stream = new MemoryStream(testFile.Bytes, false);
+
+            IImageInfo imageInfo = Image.Identify(this.configuration, stream);
+
+            Assert.NotNull(imageInfo);
+            TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
+            Assert.NotNull(tiffMetadata);
+            Assert.Equal(expectedPhotometricInterpretation, tiffMetadata.PhotometricInterpretation);
         }
 
         [Theory]

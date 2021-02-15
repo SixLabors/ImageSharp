@@ -70,10 +70,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public TiffEncoderCore(ITiffEncoderOptions options, MemoryAllocator memoryAllocator)
         {
             this.memoryAllocator = memoryAllocator;
-            this.CompressionType = options.Compression;
             this.Mode = options.Mode;
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
             this.UseHorizontalPredictor = options.UseHorizontalPredictor;
+            this.CompressionType = options.Compression;
             this.compressionLevel = options.CompressionLevel;
             this.maxStripBytes = options.MaxStripBytes;
         }
@@ -271,8 +271,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                         this.Mode = TiffEncodingMode.BiColor;
                         break;
                     case TiffBitsPerPixel.Pixel8:
-                        // todo: can gray or palette
-                        this.Mode = TiffEncodingMode.Gray;
+                        this.Mode = tiffMetadata.PhotometricInterpretation != TiffPhotometricInterpretation.PaletteColor ? TiffEncodingMode.Gray : TiffEncodingMode.Rgb;
                         break;
                     default:
                         this.Mode = TiffEncodingMode.Rgb;

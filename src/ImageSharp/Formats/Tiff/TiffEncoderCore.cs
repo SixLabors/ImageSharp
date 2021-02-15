@@ -12,7 +12,6 @@ using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -58,6 +57,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// </summary>
         private readonly DeflateCompressionLevel compressionLevel;
 
+        /// <summary>
+        /// The maximum number of bytes for a strip.
+        /// </summary>
         private readonly int maxStripBytes;
 
         /// <summary>
@@ -252,7 +254,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     this.bitsPerPixel = TiffBitsPerPixel.Pixel1;
                     return;
                 }
-                else if (this.Mode != TiffEncodingMode.BiColor)
+
+                if (this.Mode != TiffEncodingMode.BiColor)
                 {
                     TiffThrowHelper.ThrowImageFormatException($"The {this.CompressionType} compression and {this.Mode} aren't compatible. Please use {this.CompressionType} only with {TiffEncodingMode.BiColor} or {TiffEncodingMode.Default} mode.");
                 }

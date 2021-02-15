@@ -81,6 +81,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
             }
         }
 
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
         }

@@ -17,10 +17,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
         {
         }
 
+        /// <inheritdoc/>
         public override TiffEncoderCompression Method => TiffEncoderCompression.Lzw;
 
+        /// <inheritdoc/>
         public override void Initialize(int rowsPerStrip) => this.lzwEncoder = new TiffLzwEncoder(this.Allocator);
 
+        /// <inheritdoc/>
         public override void CompressStrip(Span<byte> rows, int height)
         {
             if (this.Predictor == TiffPredictor.Horizontal)
@@ -31,6 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
             this.lzwEncoder.Encode(rows, this.Output);
         }
 
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing) => this.lzwEncoder?.Dispose();
     }
 }

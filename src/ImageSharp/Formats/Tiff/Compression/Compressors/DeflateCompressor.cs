@@ -19,12 +19,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
             : base(output, allocator, width, bitsPerPixel, predictor)
             => this.compressionLevel = compressionLevel;
 
+        /// <inheritdoc/>
         public override TiffEncoderCompression Method => TiffEncoderCompression.Deflate;
 
+        /// <inheritdoc/>
         public override void Initialize(int rowsPerStrip)
         {
         }
 
+        /// <inheritdoc/>
         public override void CompressStrip(Span<byte> rows, int height)
         {
             this.memoryStream.Seek(0, SeekOrigin.Begin);
@@ -52,6 +55,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
 #endif
         }
 
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
         }

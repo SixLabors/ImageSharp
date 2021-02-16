@@ -76,7 +76,9 @@ If working with Windows please ensure that you have enabled long file paths in g
 git config --system core.longpaths true
 ```
 
-This repository contains [git submodules](https://blog.github.com/2016-02-01-working-with-submodules/). To add the submodules to the project, navigate to the repository root and type:
+This repository uses [Git Large File Storage](https://docs.github.com/en/github/managing-large-files/installing-git-large-file-storage). Please follow the linked instructions to ensure you have it set up in your environment.
+
+This repository contains [Git Submodules](https://blog.github.com/2016-02-01-working-with-submodules/). To add the submodules to the project, navigate to the repository root and type:
 
 ``` bash
 git submodule update --init --recursive

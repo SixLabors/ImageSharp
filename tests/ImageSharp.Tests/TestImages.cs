@@ -40,6 +40,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
             public const string Rgb48BppTrans = "Png/rgb-16-tRNS.png";
             public const string Rgba64Bpp = "Png/rgb-16-alpha.png";
+            public const string ColorsSaturationLightness = "Png/colors-saturation-lightness.png";
             public const string CalliphoraPartial = "Png/CalliphoraPartial.png";
             public const string CalliphoraPartialGrayscale = "Png/CalliphoraPartialGrayscale.png";
             public const string Bike = "Png/Bike.png";

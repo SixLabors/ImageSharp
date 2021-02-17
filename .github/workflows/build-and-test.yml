@@ -56,6 +56,20 @@ jobs:
 
         steps:
             - uses: actions/checkout@v2
+            
+            # See https://github.com/actions/checkout/issues/165#issuecomment-657673315
+            - name: Create LFS file list
+              run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+
+            - name: Restore LFS cache
+              uses: actions/cache@v2
+              id: lfs-cache
+              with:
+                path: .git/lfs
+                key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+
+            - name: Git LFS Pull
+              run: git lfs pull
 
             - name: Install NuGet
               uses: NuGet/setup-nuget@v1

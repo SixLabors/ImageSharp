@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 upper,
                 lower,
                 threshold,
-                this.definition.ColorComponent,
+                this.definition.Mode,
                 configuration);
 
             ParallelRowIterator.IterateRows<RowOperation, Rgb24>(
@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             private readonly TPixel upper;
             private readonly TPixel lower;
             private readonly byte threshold;
-            private readonly BinaryThresholdColorComponent colorComponent;
+            private readonly BinaryThresholdMode mode;
             private readonly int startX;
             private readonly Configuration configuration;
 
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 TPixel upper,
                 TPixel lower,
                 byte threshold,
-                BinaryThresholdColorComponent colorComponent,
+                BinaryThresholdMode mode,
                 Configuration configuration)
             {
                 this.startX = startX;
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 this.upper = upper;
                 this.lower = lower;
                 this.threshold = threshold;
-                this.colorComponent = colorComponent;
+                this.mode = mode;
                 this.configuration = configuration;
             }
 
@@ -96,9 +96,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
                 PixelOperations<TPixel>.Instance.ToRgb24(this.configuration, rowSpan, span);
 
-                switch (this.colorComponent)
+                switch (this.mode)
                 {
-                    case BinaryThresholdColorComponent.Luminance:
+                    case BinaryThresholdMode.Luminance:
                     {
                         byte threshold = this.threshold;
                         for (int x = 0; x < rowSpan.Length; x++)
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                         break;
                     }
 
-                    case BinaryThresholdColorComponent.Saturation:
+                    case BinaryThresholdMode.Saturation:
                     {
                         float threshold = this.threshold / 255F;
                         for (int x = 0; x < rowSpan.Length; x++)
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                         break;
                     }
 
-                    case BinaryThresholdColorComponent.MaxChroma:
+                    case BinaryThresholdMode.MaxChroma:
                     {
                         float threshold = this.threshold / 2F;
                         for (int x = 0; x < rowSpan.Length; x++)

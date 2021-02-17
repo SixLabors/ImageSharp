@@ -1,0 +1,1 @@
+optipng.exe -o 7 ../ReferenceOutput/**/*.png

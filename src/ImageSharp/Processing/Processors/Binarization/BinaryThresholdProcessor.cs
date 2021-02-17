@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         public Color LowerColor { get; }
 
         /// <summary>
-        /// Gets a value indicating the value to be compared to threshold.
+        /// Gets the <see cref="BinaryThresholdMode"/> defining the value to be compared to threshold.
         /// </summary>
         public BinaryThresholdMode Mode { get; }
 

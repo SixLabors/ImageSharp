@@ -6,27 +6,6 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
 {
     /// <summary>
-    /// The color component to be compared to threshold.
-    /// </summary>
-    public enum BinaryThresholdColorComponent : int
-    {
-        /// <summary>
-        /// Luminance color component according to ITU-R Recommendation BT.709.
-        /// </summary>
-        Luminance = 0,
-
-        /// <summary>
-        /// HSL saturation color component.
-        /// </summary>
-        Saturation = 1,
-
-        /// <summary>
-        /// Maximum of YCbCr chroma value, i.e. Cb and Cr distance from achromatic value.
-        /// </summary>
-        MaxChroma = 2,
-    }
-
-    /// <summary>
     /// Performs simple binary threshold filtering against an image.
     /// </summary>
     public class BinaryThresholdProcessor : IImageProcessor

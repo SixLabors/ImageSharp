@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -16,6 +16,11 @@ namespace SixLabors.ImageSharp.ColorSpaces
     {
         private static readonly Vector3 Min = Vector3.Zero;
         private static readonly Vector3 Max = new Vector3(255);
+
+        /// <summary>
+        /// The medium luminance achromatic color.
+        /// </summary>
+        public static readonly YCbCr Achromatic = new YCbCr(127.5F, 127.5F, 127.5F);
 
         /// <summary>
         /// Gets the Y luminance component.

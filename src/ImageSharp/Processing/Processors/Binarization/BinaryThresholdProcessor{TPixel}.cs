@@ -5,6 +5,8 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.ColorSpaces;
+using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
@@ -44,7 +46,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
             bool isAlphaOnly = typeof(TPixel) == typeof(A8);
 
-            var operation = new RowOperation(interest, source, upper, lower, threshold, isAlphaOnly);
+            var operation = new RowOperation(interest, source, upper, lower, threshold, this.definition.ColorComponent, isAlphaOnly);
             ParallelRowIterator.IterateRows(
                 configuration,
                 interest,
@@ -60,9 +62,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             private readonly TPixel upper;
             private readonly TPixel lower;
             private readonly byte threshold;
+            private readonly BinaryThresholdColorComponent colorComponent;
             private readonly int minX;
             private readonly int maxX;
             private readonly bool isAlphaOnly;
+            private readonly ColorSpaceConverter colorSpaceConverter;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
@@ -71,15 +75,18 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 TPixel upper,
                 TPixel lower,
                 byte threshold,
+                BinaryThresholdColorComponent colorComponent,
                 bool isAlphaOnly)
             {
                 this.source = source;
                 this.upper = upper;
                 this.lower = lower;
                 this.threshold = threshold;
+                this.colorComponent = colorComponent;
                 this.minX = bounds.X;
                 this.maxX = bounds.Right;
                 this.isAlphaOnly = isAlphaOnly;
+                this.colorSpaceConverter = new ColorSpaceConverter();
             }
 
             /// <inheritdoc/>
@@ -90,14 +97,55 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
                 Span<TPixel> row = this.source.GetPixelRowSpan(y);
                 ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
 
-                for (int x = this.minX; x < this.maxX; x++)
+                if (this.colorComponent == BinaryThresholdColorComponent.Luminance)
                 {
-                    ref TPixel color = ref Unsafe.Add(ref rowRef, x);
-                    color.ToRgba32(ref rgba);
+                    for (int x = this.minX; x < this.maxX; x++)
+                    {
+                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
+                        color.ToRgba32(ref rgba);
 
-                    // Convert to grayscale using ITU-R Recommendation BT.709 if required
-                    byte luminance = this.isAlphaOnly ? rgba.A : ColorNumerics.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
-                    color = luminance >= this.threshold ? this.upper : this.lower;
+                        // Convert to grayscale using ITU-R Recommendation BT.709 if required
+                        byte luminance = this.isAlphaOnly ? rgba.A : ColorNumerics.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
+                        color = luminance >= this.threshold ? this.upper : this.lower;
+                    }
+                }
+                else if (this.colorComponent == BinaryThresholdColorComponent.Saturation)
+                {
+                    float fThreshold = this.threshold / 255F;
+
+                    for (int x = this.minX; x < this.maxX; x++)
+                    {
+                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
+                        color.ToRgba32(ref rgba);
+
+                        // Extract saturation and compare to threshold.
+                        float sat = this.colorSpaceConverter.ToHsl(rgba).S;
+                        color = (sat >= fThreshold) ? this.upper : this.lower;
+                    }
+                }
+                else if (this.colorComponent == BinaryThresholdColorComponent.MaxChroma)
+                {
+                    float fThreshold = this.threshold / 2F;
+                    for (int x = this.minX; x < this.maxX; x++)
+                    {
+                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
+                        color.ToRgba32(ref rgba);
+
+                        // Calculate YCbCr value and compare to threshold.
+                        var yCbCr = this.colorSpaceConverter.ToYCbCr(rgba);
+                        if (MathF.Max(MathF.Abs(yCbCr.Cb - YCbCr.Achromatic.Cb), MathF.Abs(yCbCr.Cr - YCbCr.Achromatic.Cr)) >= fThreshold)
+                        {
+                            color = this.upper;
+                        }
+                        else
+                        {
+                            color = this.lower;
+                        }
+                    }
+                }
+                else
+                {
+                    throw new NotImplementedException("Unknown BinaryThresholdColorComponent value " + this.colorComponent);
                 }
             }
         }

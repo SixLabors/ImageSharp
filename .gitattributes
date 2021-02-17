@@ -83,29 +83,20 @@
 #   treat as binary
 ###############################################################################
 *.basis             binary
-*.bmp               binary
-*.dds               binary
 *.dll               binary
 *.eot               binary
 *.exe               binary
-*.gif               binary
-*.jpg               binary
 *.ktx               binary
 *.otf               binary
 *.pbm               binary
 *.pdf               binary
-*.png               binary
 *.ppt               binary
 *.pptx              binary
 *.pvr               binary
 *.snk               binary
-*.tga               binary
-*.tif               binary
-*.tiff              binary
 *.ttc               binary
 *.ttf               binary
 *.wbmp              binary
-*.webp              binary
 *.woff              binary
 *.woff2             binary
 *.xls               binary
@@ -121,4 +112,16 @@
 *.pptx              diff=astextplain
 *.rtf               diff=astextplain
 *.svg               diff=astextplain
-*.jpg,*.jpeg,*.bmp,*.gif,*.png,*.tif,*.tiff,*.tga,*.webp filter=lfs diff=lfs merge=lfs -text
+###############################################################################
+# Handle image files by git lfs
+###############################################################################
+*.jpg               filter=lfs diff=lfs merge=lfs -text
+*.jpeg              filter=lfs diff=lfs merge=lfs -text
+*.bmp               filter=lfs diff=lfs merge=lfs -text
+*.gif               filter=lfs diff=lfs merge=lfs -text
+*.png               filter=lfs diff=lfs merge=lfs -text
+*.tif               filter=lfs diff=lfs merge=lfs -text
+*.tiff              filter=lfs diff=lfs merge=lfs -text
+*.tga               filter=lfs diff=lfs merge=lfs -text
+*.webp              filter=lfs diff=lfs merge=lfs -text
+*.dds               filter=lfs diff=lfs merge=lfs -text

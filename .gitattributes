@@ -2,14 +2,8 @@
 # Set default behavior to:
 #   treat as text and
 #   normalize to Unix-style line endings
-###############################################################################
 *           text        eol=lf
-
-###############################################################################
 # Set explicit file behavior to:
-#   treat as text and
-#   normalize to Unix-style line endings
-###############################################################################
 *.asm               text        eol=lf
 *.c                 text        eol=lf
 *.clj               text        eol=lf
@@ -54,39 +48,19 @@
 *.txt               text        eol=lf
 *.vb                text        eol=lf
 *.yml               text        eol=lf
-
-###############################################################################
-# Set explicit file behavior to:
 #   treat as text
 #   normalize to Unix-style line endings and
 #   diff as csharp
-###############################################################################
 *.cs                text        eol=lf          diff=csharp
-
-###############################################################################
-# Set explicit file behavior to:
-#   treat as text
-#   normalize to Unix-style line endings and
 #   use a union merge when resoling conflicts
-###############################################################################
 *.csproj            text        eol=lf          merge=union
 *.dbproj            text        eol=lf          merge=union
 *.fsproj            text        eol=lf          merge=union
 *.ncrunchproject    text        eol=lf          merge=union
 *.vbproj            text        eol=lf          merge=union
-
-###############################################################################
-# Set explicit file behavior to:
-#   treat as text
 #   normalize to Windows-style line endings and
-#   use a union merge when resoling conflicts
-###############################################################################
 *.sln               text        eol=crlf        merge=union
-
-###############################################################################
-# Set explicit file behavior to:
 #   treat as binary
-###############################################################################
 *.basis             binary
 *.bmp               binary
 *.dds               binary
@@ -115,11 +89,7 @@
 *.woff2             binary
 *.xls               binary
 *.xlsx              binary
-
-###############################################################################
-# Set explicit file behavior to:
 #   diff as plain text
-###############################################################################
 *.doc               diff=astextplain
 *.docx              diff=astextplain
 *.dot               diff=astextplain
@@ -127,3 +97,13 @@
 *.pptx              diff=astextplain
 *.rtf               diff=astextplain
 *.svg               diff=astextplain
+*.jpg,*.jpeg,*.bmp,*.gif,*.png,*.tif,*.tiff,*.tga,*.webp filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.bmp filter=lfs diff=lfs merge=lfs -text
+*.gif filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.tif filter=lfs diff=lfs merge=lfs -text
+*.tiff filter=lfs diff=lfs merge=lfs -text
+*.tga filter=lfs diff=lfs merge=lfs -text
+*.webp filter=lfs diff=lfs merge=lfs -text

@@ -3,10 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Binarization
@@ -29,9 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
         public BinaryThresholdProcessor(Configuration configuration, BinaryThresholdProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
             : base(configuration, source, sourceRectangle)
-        {
-            this.definition = definition;
-        }
+            => this.definition = definition;
 
         /// <inheritdoc/>
         protected override void OnFrameApply(ImageFrame<TPixel> source)
@@ -44,10 +39,16 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
             Configuration configuration = this.Configuration;
 
             var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-            bool isAlphaOnly = typeof(TPixel) == typeof(A8);
+            var operation = new RowOperation(
+                interest.X,
+                source,
+                upper,
+                lower,
+                threshold,
+                this.definition.ColorComponent,
+                configuration);
 
-            var operation = new RowOperation(interest, source, upper, lower, threshold, this.definition.ColorComponent, isAlphaOnly);
-            ParallelRowIterator.IterateRows(
+            ParallelRowIterator.IterateRows<RowOperation, Rgb24>(
                 configuration,
                 interest,
                 in operation);
@@ -56,97 +57,131 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization
         /// <summary>
         /// A <see langword="struct"/> implementing the clone logic for <see cref="BinaryThresholdProcessor{TPixel}"/>.
         /// </summary>
-        private readonly struct RowOperation : IRowOperation
+        private readonly struct RowOperation : IRowOperation<Rgb24>
         {
             private readonly ImageFrame<TPixel> source;
             private readonly TPixel upper;
             private readonly TPixel lower;
             private readonly byte threshold;
             private readonly BinaryThresholdColorComponent colorComponent;
-            private readonly int minX;
-            private readonly int maxX;
-            private readonly bool isAlphaOnly;
-            private readonly ColorSpaceConverter colorSpaceConverter;
+            private readonly int startX;
+            private readonly Configuration configuration;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public RowOperation(
-                Rectangle bounds,
+                int startX,
                 ImageFrame<TPixel> source,
                 TPixel upper,
                 TPixel lower,
                 byte threshold,
                 BinaryThresholdColorComponent colorComponent,
-                bool isAlphaOnly)
+                Configuration configuration)
             {
+                this.startX = startX;
                 this.source = source;
                 this.upper = upper;
                 this.lower = lower;
                 this.threshold = threshold;
                 this.colorComponent = colorComponent;
-                this.minX = bounds.X;
-                this.maxX = bounds.Right;
-                this.isAlphaOnly = isAlphaOnly;
-                this.colorSpaceConverter = new ColorSpaceConverter();
+                this.configuration = configuration;
             }
 
             /// <inheritdoc/>
-            [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Invoke(int y, Span<Rgb24> span)
             {
-                Rgba32 rgba = default;
-                Span<TPixel> row = this.source.GetPixelRowSpan(y);
-                ref TPixel rowRef = ref MemoryMarshal.GetReference(row);
+                TPixel upper = this.upper;
+                TPixel lower = this.lower;
 
-                if (this.colorComponent == BinaryThresholdColorComponent.Luminance)
+                Span<TPixel> rowSpan = this.source.GetPixelRowSpan(y).Slice(this.startX, span.Length);
+                PixelOperations<TPixel>.Instance.ToRgb24(this.configuration, rowSpan, span);
+
+                switch (this.colorComponent)
                 {
-                    for (int x = this.minX; x < this.maxX; x++)
+                    case BinaryThresholdColorComponent.Luminance:
                     {
-                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
-                        color.ToRgba32(ref rgba);
+                        byte threshold = this.threshold;
+                        for (int x = 0; x < rowSpan.Length; x++)
+                        {
+                            Rgb24 rgb = span[x];
+                            byte luminance = ColorNumerics.Get8BitBT709Luminance(rgb.R, rgb.G, rgb.B);
+                            ref TPixel color = ref rowSpan[x];
+                            color = luminance >= threshold ? upper : lower;
+                        }
 
-                        // Convert to grayscale using ITU-R Recommendation BT.709 if required
-                        byte luminance = this.isAlphaOnly ? rgba.A : ColorNumerics.Get8BitBT709Luminance(rgba.R, rgba.G, rgba.B);
-                        color = luminance >= this.threshold ? this.upper : this.lower;
+                        break;
+                    }
+
+                    case BinaryThresholdColorComponent.Saturation:
+                    {
+                        float threshold = this.threshold / 255F;
+                        for (int x = 0; x < rowSpan.Length; x++)
+                        {
+                            float saturation = GetSaturation(span[x]);
+                            ref TPixel color = ref rowSpan[x];
+                            color = saturation >= threshold ? upper : lower;
+                        }
+
+                        break;
+                    }
+
+                    case BinaryThresholdColorComponent.MaxChroma:
+                    {
+                        float threshold = this.threshold / 2F;
+                        for (int x = 0; x < rowSpan.Length; x++)
+                        {
+                            float chroma = GetMaxChroma(span[x]);
+                            ref TPixel color = ref rowSpan[x];
+                            color = chroma >= threshold ? upper : lower;
+                        }
+
+                        break;
                     }
                 }
-                else if (this.colorComponent == BinaryThresholdColorComponent.Saturation)
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static float GetSaturation(Rgb24 rgb)
+            {
+                // Slimmed down RGB => HSL formula. See HslAndRgbConverter.
+                float r = rgb.R / 255F;
+                float g = rgb.G / 255F;
+                float b = rgb.B / 255F;
+
+                float max = MathF.Max(r, MathF.Max(g, b));
+                float min = MathF.Min(r, MathF.Min(g, b));
+                float chroma = max - min;
+
+                if (MathF.Abs(chroma) < Constants.Epsilon)
                 {
-                    float fThreshold = this.threshold / 255F;
-
-                    for (int x = this.minX; x < this.maxX; x++)
-                    {
-                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
-                        color.ToRgba32(ref rgba);
-
-                        // Extract saturation and compare to threshold.
-                        float sat = this.colorSpaceConverter.ToHsl(rgba).S;
-                        color = (sat >= fThreshold) ? this.upper : this.lower;
-                    }
+                    return 0F;
                 }
-                else if (this.colorComponent == BinaryThresholdColorComponent.MaxChroma)
-                {
-                    float fThreshold = this.threshold / 2F;
-                    for (int x = this.minX; x < this.maxX; x++)
-                    {
-                        ref TPixel color = ref Unsafe.Add(ref rowRef, x);
-                        color.ToRgba32(ref rgba);
 
-                        // Calculate YCbCr value and compare to threshold.
-                        var yCbCr = this.colorSpaceConverter.ToYCbCr(rgba);
-                        if (MathF.Max(MathF.Abs(yCbCr.Cb - YCbCr.Achromatic.Cb), MathF.Abs(yCbCr.Cr - YCbCr.Achromatic.Cr)) >= fThreshold)
-                        {
-                            color = this.upper;
-                        }
-                        else
-                        {
-                            color = this.lower;
-                        }
-                    }
+                float l = (max + min) / 2F;
+
+                if (l <= .5F)
+                {
+                    return chroma / (max + min);
                 }
                 else
                 {
-                    throw new NotImplementedException("Unknown BinaryThresholdColorComponent value " + this.colorComponent);
+                    return chroma / (2F - max - min);
                 }
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static float GetMaxChroma(Rgb24 rgb)
+            {
+                // Slimmed down RGB => YCbCr formula. See YCbCrAndRgbConverter.
+                float r = rgb.R;
+                float g = rgb.G;
+                float b = rgb.B;
+                const float achromatic = 127.5F;
+
+                float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
+                float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b));
+
+                return MathF.Max(MathF.Abs(cb - achromatic), MathF.Abs(cr - achromatic));
             }
         }
     }

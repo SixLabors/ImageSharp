@@ -18,11 +18,6 @@ namespace SixLabors.ImageSharp.ColorSpaces
         private static readonly Vector3 Max = new Vector3(255);
 
         /// <summary>
-        /// The medium luminance achromatic color.
-        /// </summary>
-        public static readonly YCbCr Achromatic = new YCbCr(127.5F, 127.5F, 127.5F);
-
-        /// <summary>
         /// Gets the Y luminance component.
         /// <remarks>A value ranging between 0 and 255.</remarks>
         /// </summary>

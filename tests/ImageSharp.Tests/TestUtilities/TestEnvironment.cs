@@ -7,7 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -25,19 +24,11 @@ namespace SixLabors.ImageSharp.Tests
 
         private static readonly Lazy<string> SolutionDirectoryFullPathLazy = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
 
-        private static readonly Lazy<bool> RunsOnCiLazy = new Lazy<bool>(
-            () =>
-                {
-                    bool isCi;
-                    return bool.TryParse(Environment.GetEnvironmentVariable("CI"), out isCi) && isCi;
-                });
+        private static readonly Lazy<bool> RunsOnCiLazy = new Lazy<bool>(() => bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) && isCi);
 
         private static readonly Lazy<string> NetCoreVersionLazy = new Lazy<string>(GetNetCoreVersion);
 
-        static TestEnvironment()
-        {
-            PrepareRemoteExecutor();
-        }
+        static TestEnvironment() => PrepareRemoteExecutor();
 
         /// <summary>
         /// Gets the .NET Core version, if running on .NET Core, otherwise returns an empty string.

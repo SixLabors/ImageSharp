@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Globalization;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Binarization;
@@ -64,7 +65,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.Saturation));
                 image.DebugSave(provider, value);
-                image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", System.Globalization.NumberFormatInfo.InvariantInfo));
+                image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", NumberFormatInfo.InvariantInfo));
             }
         }
 
@@ -80,7 +81,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
                 image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.Saturation, bounds));
                 image.DebugSave(provider, value);
-                image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", System.Globalization.NumberFormatInfo.InvariantInfo));
+                image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", NumberFormatInfo.InvariantInfo));
             }
         }
 
@@ -93,7 +94,16 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.MaxChroma));
                 image.DebugSave(provider, value);
-                image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", System.Globalization.NumberFormatInfo.InvariantInfo));
+
+                if (!TestEnvironment.Is64BitProcess && TestEnvironment.IsFramework)
+                {
+                    var comparer = ImageComparer.TolerantPercentage(0.0004F);
+                    image.CompareToReferenceOutput(comparer, provider, value.ToString("0.00", NumberFormatInfo.InvariantInfo));
+                }
+                else
+                {
+                    image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", NumberFormatInfo.InvariantInfo));
+                }
             }
         }
 
@@ -109,7 +119,16 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
 
                 image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.MaxChroma, bounds));
                 image.DebugSave(provider, value);
-                image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", System.Globalization.NumberFormatInfo.InvariantInfo));
+
+                if (!TestEnvironment.Is64BitProcess && TestEnvironment.IsFramework)
+                {
+                    var comparer = ImageComparer.TolerantPercentage(0.0004F);
+                    image.CompareToReferenceOutput(comparer, provider, value.ToString("0.00", NumberFormatInfo.InvariantInfo));
+                }
+                else
+                {
+                    image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", NumberFormatInfo.InvariantInfo));
+                }
             }
         }
     }

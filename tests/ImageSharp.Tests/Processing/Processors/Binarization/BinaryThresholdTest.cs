@@ -63,7 +63,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.Saturation));
+                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdMode.Saturation));
                 image.DebugSave(provider, value);
                 image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", NumberFormatInfo.InvariantInfo));
             }
@@ -79,7 +79,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 var bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
 
-                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.Saturation, bounds));
+                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdMode.Saturation, bounds));
                 image.DebugSave(provider, value);
                 image.CompareToReferenceOutput(ImageComparer.Exact, provider, value.ToString("0.00", NumberFormatInfo.InvariantInfo));
             }
@@ -92,7 +92,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
         {
             using (Image<TPixel> image = provider.GetImage())
             {
-                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.MaxChroma));
+                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdMode.MaxChroma));
                 image.DebugSave(provider, value);
 
                 if (!TestEnvironment.Is64BitProcess && TestEnvironment.IsFramework)
@@ -117,7 +117,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
             {
                 var bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
 
-                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdColorComponent.MaxChroma, bounds));
+                image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdMode.MaxChroma, bounds));
                 image.DebugSave(provider, value);
 
                 if (!TestEnvironment.Is64BitProcess && TestEnvironment.IsFramework)

@@ -4,22 +4,22 @@
 namespace SixLabors.ImageSharp.Processing
 {
     /// <summary>
-    /// The color component to be compared to threshold.
+    /// Selects the value to be compared to threshold.
     /// </summary>
-    public enum BinaryThresholdColorComponent : int
+    public enum BinaryThresholdMode
     {
         /// <summary>
-        /// Luminance color component according to ITU-R Recommendation BT.709.
+        /// Compare the color luminance (according to ITU-R Recommendation BT.709).
         /// </summary>
         Luminance = 0,
 
         /// <summary>
-        /// HSL saturation color component.
+        /// Compare the HSL saturation of the color.
         /// </summary>
         Saturation = 1,
 
         /// <summary>
-        /// Maximum of YCbCr chroma value, i.e. Cb and Cr distance from achromatic value.
+        /// Compare the maximum of YCbCr chroma value, i.e. Cb and Cr distance from achromatic value.
         /// </summary>
         MaxChroma = 2,
     }

@@ -26,8 +26,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     {
         public const int DefaultStripSize = 8 * 1024;
 
-        public static readonly ByteOrder ByteOrder = BitConverter.IsLittleEndian ? ByteOrder.LittleEndian : ByteOrder.BigEndian;
-
         private static readonly ushort ByteOrderMarker = BitConverter.IsLittleEndian
                 ? TiffConstants.ByteOrderLittleEndianShort
                 : TiffConstants.ByteOrderBigEndianShort;

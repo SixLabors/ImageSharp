@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp
 {
     /// <summary>
-    /// The tiff data stream byte order enum.
+    /// The byte order of the data stream.
     /// </summary>
     public enum ByteOrder
     {

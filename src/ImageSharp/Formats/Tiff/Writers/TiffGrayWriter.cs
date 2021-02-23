@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 {
-    internal class TiffGrayWriter<TPixel> : TiffCompositeColorWriter<TPixel>
+    internal sealed class TiffGrayWriter<TPixel> : TiffCompositeColorWriter<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         public TiffGrayWriter(ImageFrame<TPixel> image, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)

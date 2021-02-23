@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
         /// Writes a byte to the current stream.
         /// </summary>
         /// <param name="value">The byte to write.</param>
-        public void Write(byte value) => this.BaseStream.Write(new byte[] { value }, 0, 1);
+        public void Write(byte value) => this.BaseStream.WriteByte(value);
 
         /// <summary>
         /// Writes a two-byte unsigned integer to the current stream.

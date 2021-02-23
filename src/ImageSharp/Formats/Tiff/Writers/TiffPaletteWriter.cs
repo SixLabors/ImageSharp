@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 {
-    internal class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
+    internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private const int ColorsPerChannel = 256;

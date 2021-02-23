@@ -12,7 +12,7 @@ using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 {
-    internal class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
+    internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly Image<TPixel> imageBlackWhite;
@@ -25,7 +25,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
             : base(image, memoryAllocator, configuration, entriesCollector)
         {
             // Convert image to black and white.
-            // TODO: Should we allow to skip this by the user, if its known to be black and white already?
             this.imageBlackWhite = new Image<TPixel>(configuration, new ImageMetadata(), new[] { image.Clone() });
             this.imageBlackWhite.Mutate(img => img.BinaryDither(KnownDitherings.FloydSteinberg));
         }

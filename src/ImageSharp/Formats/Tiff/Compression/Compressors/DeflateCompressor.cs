@@ -31,17 +31,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
         public override void CompressStrip(Span<byte> rows, int height)
         {
             this.memoryStream.Seek(0, SeekOrigin.Begin);
-            using var stream = new ZlibDeflateStream(this.Allocator, this.memoryStream, this.compressionLevel);
-
-            if (this.Predictor == TiffPredictor.Horizontal)
+            using (var stream = new ZlibDeflateStream(this.Allocator, this.memoryStream, this.compressionLevel))
             {
-                HorizontalPredictor.ApplyHorizontalPrediction(rows, this.BytesPerRow, this.BitsPerPixel);
+                if (this.Predictor == TiffPredictor.Horizontal)
+                {
+                    HorizontalPredictor.ApplyHorizontalPrediction(rows, this.BytesPerRow, this.BitsPerPixel);
+                }
+
+                stream.Write(rows);
+                stream.Flush();
             }
-
-            stream.Write(rows);
-
-            stream.Flush();
-            stream.Dispose();
 
             int size = (int)this.memoryStream.Position;
 

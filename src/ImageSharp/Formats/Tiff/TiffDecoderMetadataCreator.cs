@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -129,6 +129,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         }
 
         private static TiffBitsPerPixel GetBitsPerPixel(TiffFrameMetadata firstFrameMetaData)
-            => (TiffBitsPerPixel)firstFrameMetaData.BitsPerPixel;
+            => (TiffBitsPerPixel)firstFrameMetaData.BitsPerSample.BitsPerPixel();
     }
 }

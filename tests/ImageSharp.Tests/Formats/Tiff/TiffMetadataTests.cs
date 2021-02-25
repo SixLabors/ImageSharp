@@ -8,6 +8,7 @@ using System.Linq;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -187,7 +188,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
                 Assert.Equal(32u, frame.Width);
                 Assert.Equal(32u, frame.Height);
-                Assert.Equal(new ushort[] { 4 }, frame.BitsPerSample);
+                Assert.Equal(TiffBitsPerSample.Four, frame.BitsPerSample);
                 Assert.Equal(TiffCompression.Lzw, frame.Compression);
                 Assert.Equal(TiffPhotometricInterpretation.PaletteColor, frame.PhotometricInterpretation);
                 Assert.Equal("This is Название", frame.ImageDescription);

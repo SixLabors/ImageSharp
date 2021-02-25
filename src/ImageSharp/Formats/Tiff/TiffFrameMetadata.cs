@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
@@ -88,7 +89,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets the number of bits per component.
         /// </summary>
-        public ushort[] BitsPerSample
+        public TiffBitsPerSample BitsPerSample
         {
             get
             {
@@ -98,31 +99,20 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     if (this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero
                         || this.PhotometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
                     {
-                        bits = new[] { (ushort)1 };
+                        return TiffBitsPerSample.One;
                     }
-                    else
-                    {
-                        TiffThrowHelper.ThrowNotSupported("The TIFF BitsPerSample entry is missing.");
-                    }
+
+                    TiffThrowHelper.ThrowNotSupported("The TIFF BitsPerSample entry is missing which is required to decode the image.");
                 }
 
-                return bits;
+                return bits.GetBitsPerSample();
             }
         }
 
-        internal int BitsPerPixel
-        {
-            get
-            {
-                int bitsPerPixel = 0;
-                foreach (var bits in this.BitsPerSample)
-                {
-                    bitsPerPixel += bits;
-                }
-
-                return bitsPerPixel;
-            }
-        }
+        /// <summary>
+        /// Gets the bits per pixel.
+        /// </summary>
+        public int BitsPerPixel => this.BitsPerSample.BitsPerPixel();
 
         /// <summary>
         /// Gets the compression scheme used on the image data.

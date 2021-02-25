@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -48,9 +49,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         }
 
         /// <summary>
-        /// Gets or sets the number of bits for each sample of the pixel format used to encode the image.
+        /// Gets or sets the number of bits per component of the pixel format used to decode the image.
         /// </summary>
-        public ushort[] BitsPerSample { get; set; }
+        public TiffBitsPerSample BitsPerSample { get; set; }
 
         /// <summary>
         /// Gets or sets the bits per pixel.
@@ -154,7 +155,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.ignoreMetadata, reader.ByteOrder);
 
             TiffFrameMetadata root = framesMetadata[0];
-            return new ImageInfo(new PixelTypeInfo(root.BitsPerPixel), (int)root.Width, (int)root.Height, metadata);
+            return new ImageInfo(new PixelTypeInfo(root.BitsPerSample.BitsPerPixel()), (int)root.Width, (int)root.Height, metadata);
         }
 
         /// <summary>
@@ -213,7 +214,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             }
             else
             {
-                bitsPerPixel = this.BitsPerSample[plane];
+                bitsPerPixel = this.BitsPerSample.Bits()[plane];
             }
 
             int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
@@ -233,7 +234,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         private void DecodeStripsPlanar<TPixel>(ImageFrame<TPixel> frame, int rowsPerStrip, Number[] stripOffsets, Number[] stripByteCounts)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            int stripsPerPixel = this.BitsPerSample.Length;
+            int stripsPerPixel = this.BitsPerSample.Bits().Length;
             int stripsPerPlane = stripOffsets.Length / stripsPerPixel;
             int bitsPerPixel = this.BitsPerPixel;
 
@@ -251,7 +252,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                 using TiffBaseDecompresor decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, frame.Width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
 
-                RgbPlanarTiffColor<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample, this.ColorMap);
+                RgbPlanarTiffColor<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.CreatePlanar(this.ColorType, this.BitsPerSample.Bits(), this.ColorMap);
 
                 for (int i = 0; i < stripsPerPlane; i++)
                 {
@@ -294,7 +295,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             using TiffBaseDecompresor decompressor = TiffDecompressorsFactory.Create(this.CompressionType, this.memoryAllocator, this.PhotometricInterpretation, frame.Width, bitsPerPixel, this.Predictor, this.FaxCompressionOptions);
 
-            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample, this.ColorMap);
+            TiffBaseColorDecoder<TPixel> colorDecoder = TiffColorDecoderFactory<TPixel>.Create(this.ColorType, this.BitsPerSample.Bits(), this.ColorMap);
 
             for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
             {

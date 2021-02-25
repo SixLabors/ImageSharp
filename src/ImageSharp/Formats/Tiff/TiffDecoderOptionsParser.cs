@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
@@ -59,7 +60,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             options.Predictor = entries.Predictor;
             options.PhotometricInterpretation = entries.PhotometricInterpretation;
             options.BitsPerSample = entries.BitsPerSample;
-            options.BitsPerPixel = entries.BitsPerPixel;
+            options.BitsPerPixel = entries.BitsPerSample.BitsPerPixel();
 
             ParseColorType(options, entries);
             ParseCompression(options, entries);
@@ -71,38 +72,36 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             {
                 case TiffPhotometricInterpretation.WhiteIsZero:
                 {
-                    if (options.BitsPerSample.Length == 1)
-                    {
-                        switch (options.BitsPerSample[0])
-                        {
-                            case 8:
-                            {
-                                options.ColorType = TiffColorType.WhiteIsZero8;
-                                break;
-                            }
-
-                            case 4:
-                            {
-                                options.ColorType = TiffColorType.WhiteIsZero4;
-                                break;
-                            }
-
-                            case 1:
-                            {
-                                options.ColorType = TiffColorType.WhiteIsZero1;
-                                break;
-                            }
-
-                            default:
-                            {
-                                options.ColorType = TiffColorType.WhiteIsZero;
-                                break;
-                            }
-                        }
-                    }
-                    else
+                    if (options.BitsPerSample.Bits().Length != 1)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    switch (options.BitsPerSample)
+                    {
+                        case TiffBitsPerSample.Eight:
+                        {
+                            options.ColorType = TiffColorType.WhiteIsZero8;
+                            break;
+                        }
+
+                        case TiffBitsPerSample.Four:
+                        {
+                            options.ColorType = TiffColorType.WhiteIsZero4;
+                            break;
+                        }
+
+                        case TiffBitsPerSample.One:
+                        {
+                            options.ColorType = TiffColorType.WhiteIsZero1;
+                            break;
+                        }
+
+                        default:
+                        {
+                            options.ColorType = TiffColorType.WhiteIsZero;
+                            break;
+                        }
                     }
 
                     break;
@@ -110,38 +109,36 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                 case TiffPhotometricInterpretation.BlackIsZero:
                 {
-                    if (options.BitsPerSample.Length == 1)
-                    {
-                        switch (options.BitsPerSample[0])
-                        {
-                            case 8:
-                            {
-                                options.ColorType = TiffColorType.BlackIsZero8;
-                                break;
-                            }
-
-                            case 4:
-                            {
-                                options.ColorType = TiffColorType.BlackIsZero4;
-                                break;
-                            }
-
-                            case 1:
-                            {
-                                options.ColorType = TiffColorType.BlackIsZero1;
-                                break;
-                            }
-
-                            default:
-                            {
-                                options.ColorType = TiffColorType.BlackIsZero;
-                                break;
-                            }
-                        }
-                    }
-                    else
+                    if (options.BitsPerSample.Bits().Length != 1)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    switch (options.BitsPerSample)
+                    {
+                        case TiffBitsPerSample.Eight:
+                        {
+                            options.ColorType = TiffColorType.BlackIsZero8;
+                            break;
+                        }
+
+                        case TiffBitsPerSample.Four:
+                        {
+                            options.ColorType = TiffColorType.BlackIsZero4;
+                            break;
+                        }
+
+                        case TiffBitsPerSample.One:
+                        {
+                            options.ColorType = TiffColorType.BlackIsZero1;
+                            break;
+                        }
+
+                        default:
+                        {
+                            options.ColorType = TiffColorType.BlackIsZero;
+                            break;
+                        }
                     }
 
                     break;
@@ -149,27 +146,18 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                 case TiffPhotometricInterpretation.Rgb:
                 {
-                    if (options.BitsPerSample.Length == 3)
+                    if (options.BitsPerSample.Bits().Length != 3)
                     {
-                        if (options.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
-                        {
-                            if (options.BitsPerSample[0] == 8 && options.BitsPerSample[1] == 8 && options.BitsPerSample[2] == 8)
-                            {
-                                options.ColorType = TiffColorType.Rgb888;
-                            }
-                            else
-                            {
-                                options.ColorType = TiffColorType.Rgb;
-                            }
-                        }
-                        else
-                        {
-                            options.ColorType = TiffColorType.RgbPlanar;
-                        }
+                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                    }
+
+                    if (options.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
+                    {
+                        options.ColorType = options.BitsPerSample == TiffBitsPerSample.Rgb888 ? TiffColorType.Rgb888 : TiffColorType.Rgb;
                     }
                     else
                     {
-                        TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
+                        options.ColorType = TiffColorType.RgbPlanar;
                     }
 
                     break;
@@ -180,21 +168,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     options.ColorMap = entries.ColorMap;
                     if (options.ColorMap != null)
                     {
-                        if (options.BitsPerSample.Length == 1)
-                        {
-                            switch (options.BitsPerSample[0])
-                            {
-                                default:
-                                {
-                                    options.ColorType = TiffColorType.PaletteColor;
-                                    break;
-                                }
-                            }
-                        }
-                        else
+                        if (options.BitsPerSample.Bits().Length != 1)
                         {
                             TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                         }
+
+                        options.ColorType = TiffColorType.PaletteColor;
                     }
                     else
                     {
@@ -206,7 +185,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                 default:
                 {
-                    TiffThrowHelper.ThrowNotSupported("The specified TIFF photometric interpretation is not supported: " + options.PhotometricInterpretation);
+                    TiffThrowHelper.ThrowNotSupported($"The specified TIFF photometric interpretation is not supported: {options.PhotometricInterpretation}");
                 }
 
                 break;

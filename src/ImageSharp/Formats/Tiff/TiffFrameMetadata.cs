@@ -43,13 +43,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets a general indication of the kind of data contained in this subfile.
         /// </summary>
-        /// <value>A general indication of the kind of data contained in this subfile.</value>
         public TiffNewSubfileType SubfileType => (TiffNewSubfileType?)this.ExifProfile.GetValue(ExifTag.SubfileType)?.Value ?? TiffNewSubfileType.FullImage;
 
         /// <summary>
         /// Gets a general indication of the kind of data contained in this subfile.
         /// </summary>
-        /// <value>A general indication of the kind of data contained in this subfile.</value>
         public TiffSubfileType? OldSubfileType => (TiffSubfileType?)this.ExifProfile.GetValue(ExifTag.OldSubfileType)?.Value;
 
         /// <summary>
@@ -155,33 +153,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         internal TiffFillOrder FillOrder => (TiffFillOrder?)this.ExifProfile.GetValue(ExifTag.FillOrder)?.Value ?? TiffFillOrder.MostSignificantBitFirst;
 
         /// <summary>
-        /// Gets or sets the a string that describes the subject of the image.
-        /// </summary>
-        public string ImageDescription
-        {
-            get => this.ExifProfile.GetValue(ExifTag.ImageDescription)?.Value;
-            set => this.ExifProfile.SetValue(ExifTag.ImageDescription, value);
-        }
-
-        /// <summary>
-        /// Gets or sets the scanner manufacturer.
-        /// </summary>
-        public string Make
-        {
-            get => this.ExifProfile.GetValue(ExifTag.Make)?.Value;
-            set => this.ExifProfile.SetValue(ExifTag.Make, value);
-        }
-
-        /// <summary>
-        /// Gets or sets the scanner model name or number.
-        /// </summary>
-        public string Model
-        {
-            get => this.ExifProfile.GetValue(ExifTag.Model)?.Value;
-            set => this.ExifProfile.SetValue(ExifTag.Model, value);
-        }
-
-        /// <summary>
         /// Gets for each strip, the byte offset of that strip.
         /// </summary>
         public Number[] StripOffsets
@@ -260,42 +231,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public PixelResolutionUnit ResolutionUnit => this.GetResolutionUnit();
 
         /// <summary>
-        /// Gets or sets the name and version number of the software package(s) used to create the image.
-        /// </summary>
-        public string Software
-        {
-            get => this.ExifProfile.GetValue(ExifTag.Software)?.Value;
-            set => this.ExifProfile.SetValue(ExifTag.Software, value);
-        }
-
-        /// <summary>
-        /// Gets or sets the date and time of image creation.
-        /// </summary>
-        public string DateTime
-        {
-            get => this.ExifProfile.GetValue(ExifTag.DateTime)?.Value;
-            set => this.ExifProfile.SetValue(ExifTag.DateTime, value);
-        }
-
-        /// <summary>
-        /// Gets or sets the person who created the image.
-        /// </summary>
-        public string Artist
-        {
-            get => this.ExifProfile.GetValue(ExifTag.Artist)?.Value;
-            set => this.ExifProfile.SetValue(ExifTag.Artist, value);
-        }
-
-        /// <summary>
-        /// Gets or sets the computer and/or operating system in use at the time of image creation.
-        /// </summary>
-        public string HostComputer
-        {
-            get => this.ExifProfile.GetValue(ExifTag.HostComputer)?.Value;
-            set => this.ExifProfile.SetValue(ExifTag.HostComputer, value);
-        }
-
-        /// <summary>
         /// Gets a color map for palette color images.
         /// </summary>
         public ushort[] ColorMap => this.ExifProfile.GetValue(ExifTag.ColorMap)?.Value;
@@ -304,15 +239,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// Gets the description of extra components.
         /// </summary>
         public ushort[] ExtraSamples => this.ExifProfile.GetValue(ExifTag.ExtraSamples)?.Value;
-
-        /// <summary>
-        /// Gets or sets the copyright notice.
-        /// </summary>
-        public string Copyright
-        {
-            get => this.ExifProfile.GetValue(ExifTag.Copyright)?.Value;
-            set => this.ExifProfile.SetValue(ExifTag.Copyright, value);
-        }
 
         /// <summary>
         /// Gets a mathematical operator that is applied to the image data before an encoding scheme is applied.

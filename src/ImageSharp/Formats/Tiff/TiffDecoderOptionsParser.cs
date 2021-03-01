@@ -79,19 +79,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                     switch (options.BitsPerSample)
                     {
-                        case TiffBitsPerSample.Eight:
+                        case TiffBitsPerSample.Bit8:
                         {
                             options.ColorType = TiffColorType.WhiteIsZero8;
                             break;
                         }
 
-                        case TiffBitsPerSample.Four:
+                        case TiffBitsPerSample.Bit4:
                         {
                             options.ColorType = TiffColorType.WhiteIsZero4;
                             break;
                         }
 
-                        case TiffBitsPerSample.One:
+                        case TiffBitsPerSample.Bit1:
                         {
                             options.ColorType = TiffColorType.WhiteIsZero1;
                             break;
@@ -116,19 +116,19 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                     switch (options.BitsPerSample)
                     {
-                        case TiffBitsPerSample.Eight:
+                        case TiffBitsPerSample.Bit8:
                         {
                             options.ColorType = TiffColorType.BlackIsZero8;
                             break;
                         }
 
-                        case TiffBitsPerSample.Four:
+                        case TiffBitsPerSample.Bit4:
                         {
                             options.ColorType = TiffColorType.BlackIsZero4;
                             break;
                         }
 
-                        case TiffBitsPerSample.One:
+                        case TiffBitsPerSample.Bit1:
                         {
                             options.ColorType = TiffColorType.BlackIsZero1;
                             break;
@@ -153,7 +153,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                     if (options.PlanarConfiguration == TiffPlanarConfiguration.Chunky)
                     {
-                        options.ColorType = options.BitsPerSample == TiffBitsPerSample.Rgb888 ? TiffColorType.Rgb888 : TiffColorType.Rgb;
+                        options.ColorType = options.BitsPerSample == TiffBitsPerSample.Bit24 ? TiffColorType.Rgb888 : TiffColorType.Rgb;
                     }
                     else
                     {

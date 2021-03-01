@@ -18,13 +18,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             switch (tiffBitsPerSample)
             {
-                case TiffBitsPerSample.One:
+                case TiffBitsPerSample.Bit1:
                     return TiffConstants.BitsPerSample1Bit;
-                case TiffBitsPerSample.Four:
+                case TiffBitsPerSample.Bit4:
                     return TiffConstants.BitsPerSample4Bit;
-                case TiffBitsPerSample.Eight:
+                case TiffBitsPerSample.Bit8:
                     return TiffConstants.BitsPerSample8Bit;
-                case TiffBitsPerSample.Rgb888:
+                case TiffBitsPerSample.Bit24:
                     return TiffConstants.BitsPerSampleRgb8Bit;
 
                 default:
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         bitsPerSample[1] == TiffConstants.BitsPerSampleRgb8Bit[1] &&
                         bitsPerSample[2] == TiffConstants.BitsPerSampleRgb8Bit[2])
                     {
-                        return TiffBitsPerSample.Rgb888;
+                        return TiffBitsPerSample.Bit24;
                     }
 
                     break;
@@ -55,17 +55,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 case 1:
                     if (bitsPerSample[0] == TiffConstants.BitsPerSample1Bit[0])
                     {
-                        return TiffBitsPerSample.One;
+                        return TiffBitsPerSample.Bit1;
                     }
 
                     if (bitsPerSample[0] == TiffConstants.BitsPerSample4Bit[0])
                     {
-                        return TiffBitsPerSample.Four;
+                        return TiffBitsPerSample.Bit4;
                     }
 
                     if (bitsPerSample[0] == TiffConstants.BitsPerSample8Bit[0])
                     {
-                        return TiffBitsPerSample.Eight;
+                        return TiffBitsPerSample.Bit8;
                     }
 
                     break;

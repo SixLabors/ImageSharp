@@ -97,7 +97,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     if (this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero
                         || this.PhotometricInterpretation == TiffPhotometricInterpretation.BlackIsZero)
                     {
-                        return TiffBitsPerSample.One;
+                        return TiffBitsPerSample.Bit1;
                     }
 
                     TiffThrowHelper.ThrowNotSupported("The TIFF BitsPerSample entry is missing which is required to decode the image.");

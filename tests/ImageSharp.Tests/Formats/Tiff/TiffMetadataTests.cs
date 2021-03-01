@@ -188,7 +188,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
                 Assert.Equal(32u, frame.Width);
                 Assert.Equal(32u, frame.Height);
-                Assert.Equal(TiffBitsPerSample.Four, frame.BitsPerSample);
+                Assert.Equal(TiffBitsPerSample.Bit4, frame.BitsPerSample);
                 Assert.Equal(TiffCompression.Lzw, frame.Compression);
                 Assert.Equal(TiffPhotometricInterpretation.PaletteColor, frame.PhotometricInterpretation);
                 Assert.Equal("This is Название", frame.ExifProfile.GetValue(ExifTag.ImageDescription).Value);

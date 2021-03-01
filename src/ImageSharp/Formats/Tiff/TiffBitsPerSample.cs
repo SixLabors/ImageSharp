@@ -16,21 +16,21 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <summary>
         /// One bit per sample for bicolor images.
         /// </summary>
-        One,
+        Bit1,
 
         /// <summary>
         /// Four bits per sample for grayscale images with 16 different levels of gray or paletted images with a palette of 16 colors.
         /// </summary>
-        Four,
+        Bit4,
 
         /// <summary>
         /// Eight bits per sample for grayscale images with 256 different levels of gray or paletted images with a palette of 256 colors.
         /// </summary>
-        Eight,
+        Bit8,
 
         /// <summary>
-        /// Each channel has 8 Bits.
+        /// 24 bits per sample, each color channel has 8 Bits.
         /// </summary>
-        Rgb888,
+        Bit24,
     }
 }

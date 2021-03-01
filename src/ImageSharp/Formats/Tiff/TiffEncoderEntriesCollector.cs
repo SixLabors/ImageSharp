@@ -298,7 +298,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 switch (encoder.PhotometricInterpretation)
                 {
                     case TiffPhotometricInterpretation.PaletteColor:
-                        if (encoder.BitsPerPixel == TiffBitsPerPixel.Pixel4)
+                        if (encoder.BitsPerPixel == TiffBitsPerPixel.Bit4)
                         {
                             return TiffConstants.BitsPerSample4Bit;
                         }

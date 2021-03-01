@@ -291,13 +291,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 // Preserve input bits per pixel, if no mode was specified.
                 switch (tiffMetadata.BitsPerPixel)
                 {
-                    case TiffBitsPerPixel.Pixel1:
+                    case TiffBitsPerPixel.Bit1:
                         this.Mode = TiffEncodingMode.BiColor;
                         break;
-                    case TiffBitsPerPixel.Pixel4:
+                    case TiffBitsPerPixel.Bit4:
                         this.Mode = TiffEncodingMode.ColorPalette;
                         break;
-                    case TiffBitsPerPixel.Pixel8:
+                    case TiffBitsPerPixel.Bit8:
                         this.Mode = tiffMetadata.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor ? TiffEncodingMode.ColorPalette : TiffEncodingMode.Gray;
 
                         break;
@@ -313,24 +313,24 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             switch (this.Mode)
             {
                 case TiffEncodingMode.BiColor:
-                    this.BitsPerPixel = TiffBitsPerPixel.Pixel1;
+                    this.BitsPerPixel = TiffBitsPerPixel.Bit1;
                     break;
                 case TiffEncodingMode.ColorPalette:
-                    if (this.BitsPerPixel != TiffBitsPerPixel.Pixel8 && this.BitsPerPixel != TiffBitsPerPixel.Pixel4)
+                    if (this.BitsPerPixel != TiffBitsPerPixel.Bit8 && this.BitsPerPixel != TiffBitsPerPixel.Bit4)
                     {
-                        this.BitsPerPixel = TiffBitsPerPixel.Pixel8;
+                        this.BitsPerPixel = TiffBitsPerPixel.Bit8;
                     }
 
                     break;
                 case TiffEncodingMode.Gray:
-                    this.BitsPerPixel = TiffBitsPerPixel.Pixel8;
+                    this.BitsPerPixel = TiffBitsPerPixel.Bit8;
                     break;
                 case TiffEncodingMode.Rgb:
-                    this.BitsPerPixel = TiffBitsPerPixel.Pixel24;
+                    this.BitsPerPixel = TiffBitsPerPixel.Bit24;
                     break;
                 default:
                     this.Mode = TiffEncodingMode.Rgb;
-                    this.BitsPerPixel = TiffBitsPerPixel.Pixel24;
+                    this.BitsPerPixel = TiffBitsPerPixel.Bit24;
                     break;
             }
         }

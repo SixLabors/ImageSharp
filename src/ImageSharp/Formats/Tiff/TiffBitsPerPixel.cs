@@ -9,23 +9,23 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     public enum TiffBitsPerPixel
     {
         /// <summary>
-        /// 1 bits per pixel, bi-color image. Each pixel consists of 1 bit.
+        /// 1 bit per pixel, for bi-color image.
         /// </summary>
-        Pixel1 = 1,
+        Bit1 = 1,
 
         /// <summary>
-        /// 4 bits per pixel, grayscale or indexed image. Each pixel consists of 4 bit.
+        /// 4 bits per pixel, for images with a color palette.
         /// </summary>
-        Pixel4 = 4,
+        Bit4 = 4,
 
         /// <summary>
-        /// 8 bits per pixel, grayscale or indexed image. Each pixel consists of 1 byte.
+        /// 8 bits per pixel, grayscale or color palette images.
         /// </summary>
-        Pixel8 = 8,
+        Bit8 = 8,
 
         /// <summary>
-        /// 24 bits per pixel. Each pixel consists of 3 bytes.
+        /// 24 bits per pixel. One byte for each color channel.
         /// </summary>
-        Pixel24 = 24,
+        Bit24 = 24,
     }
 }

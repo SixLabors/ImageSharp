@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets the number of bits per pixel.
         /// </summary>
-        public TiffBitsPerPixel BitsPerPixel { get; internal set; } = TiffBitsPerPixel.Pixel24;
+        public TiffBitsPerPixel BitsPerPixel { get; internal set; } = TiffBitsPerPixel.Bit24;
 
         /// <summary>
         /// Gets the compression used to create the TIFF file.

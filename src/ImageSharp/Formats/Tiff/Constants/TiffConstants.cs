@@ -76,6 +76,26 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
         public const int SizeOfDouble = 8;
 
         /// <summary>
+        /// The bits per sample for 1 bit bicolor images.
+        /// </summary>
+        public static readonly ushort[] BitsPerSample1Bit = { 1 };
+
+        /// <summary>
+        /// The bits per sample for images with a 4 color palette.
+        /// </summary>
+        public static readonly ushort[] BitsPerSample4Bit = { 4 };
+
+        /// <summary>
+        /// The bits per sample for 8 bit images.
+        /// </summary>
+        public static readonly ushort[] BitsPerSample8Bit = { 8 };
+
+        /// <summary>
+        /// The bits per sample for images with 8 bits for each color channel.
+        /// </summary>
+        public static readonly ushort[] BitsPerSampleRgb8Bit = { 8, 8, 8 };
+
+        /// <summary>
         /// The list of mimetypes that equate to a tiff.
         /// </summary>
         public static readonly IEnumerable<string> MimeTypes = new[] { "image/tiff", "image/tiff-fx" };

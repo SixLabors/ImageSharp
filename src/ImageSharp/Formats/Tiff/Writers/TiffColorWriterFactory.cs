@@ -15,13 +15,14 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
             IQuantizer quantizer,
             MemoryAllocator memoryAllocator,
             Configuration configuration,
-            TiffEncoderEntriesCollector entriesCollector)
+            TiffEncoderEntriesCollector entriesCollector,
+            int bitsPerPixel)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             switch (mode)
             {
                 case TiffEncodingMode.ColorPalette:
-                    return new TiffPaletteWriter<TPixel>(image, quantizer, memoryAllocator, configuration, entriesCollector);
+                    return new TiffPaletteWriter<TPixel>(image, quantizer, memoryAllocator, configuration, entriesCollector, bitsPerPixel);
                 case TiffEncodingMode.Gray:
                     return new TiffGrayWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector);
                 case TiffEncodingMode.BiColor:

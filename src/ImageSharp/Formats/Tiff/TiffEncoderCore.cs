@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -41,11 +42,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         private Configuration configuration;
 
         /// <summary>
-        /// The color depth, in number of bits per pixel.
-        /// </summary>
-        private TiffBitsPerPixel bitsPerPixel;
-
-        /// <summary>
         /// The quantizer for creating color palette image.
         /// </summary>
         private readonly IQuantizer quantizer;
@@ -70,6 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             this.memoryAllocator = memoryAllocator;
             this.Mode = options.Mode;
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
+            this.BitsPerPixel = options.BitsPerPixel;
             this.UseHorizontalPredictor = options.UseHorizontalPredictor;
             this.CompressionType = options.Compression;
             this.compressionLevel = options.CompressionLevel;
@@ -82,9 +79,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         internal TiffPhotometricInterpretation PhotometricInterpretation { get; private set; }
 
         /// <summary>
-        /// Gets the compression implementation to use when encoding the image.
+        /// Gets or sets the compression implementation to use when encoding the image.
         /// </summary>
-        internal TiffEncoderCompression CompressionType { get; }
+        internal TiffEncoderCompression CompressionType { get; set; }
 
         /// <summary>
         /// Gets the encoding mode to use. RGB, RGB with color palette or gray.
@@ -96,6 +93,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// Gets a value indicating whether to use horizontal prediction. This can improve the compression ratio with deflate compression.
         /// </summary>
         internal bool UseHorizontalPredictor { get; }
+
+        /// <summary>
+        /// Gets the bits per pixel.
+        /// </summary>
+        internal TiffBitsPerPixel? BitsPerPixel { get; private set; }
 
         /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
@@ -111,8 +113,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             Guard.NotNull(stream, nameof(stream));
 
             this.configuration = image.GetConfiguration();
+            ImageMetadata metadata = image.Metadata;
+            TiffMetadata tiffMetadata = metadata.GetTiffMetadata();
+            this.BitsPerPixel ??= tiffMetadata.BitsPerPixel;
 
-            this.SetMode(image);
+            this.SetMode(tiffMetadata);
+            this.SetBitsPerPixel();
             this.SetPhotometricInterpretation();
 
             using (var writer = new TiffStreamWriter(stream))
@@ -155,20 +161,31 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             // Write the image bytes to the steam.
             var imageDataStart = (uint)writer.Position;
 
-            using TiffBaseCompressor compressor = TiffCompressorFactory.Create(
-                     this.CompressionType,
-                     writer.BaseStream,
-                     this.memoryAllocator,
-                     image.Width,
-                     (int)this.bitsPerPixel,
-                     this.compressionLevel,
-                     this.UseHorizontalPredictor ? TiffPredictor.Horizontal : TiffPredictor.None);
+            TiffBitsPerPixel? tiffBitsPerPixel = this.BitsPerPixel;
+            if (tiffBitsPerPixel != null)
+            {
+                using TiffBaseCompressor compressor = TiffCompressorFactory.Create(
+                    this.CompressionType,
+                    writer.BaseStream,
+                    this.memoryAllocator,
+                    image.Width,
+                    (int)tiffBitsPerPixel,
+                    this.compressionLevel,
+                    this.UseHorizontalPredictor ? TiffPredictor.Horizontal : TiffPredictor.None);
 
-            using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(this.Mode, image.Frames.RootFrame, this.quantizer, this.memoryAllocator, this.configuration, entriesCollector);
+                using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(
+                    this.Mode,
+                    image.Frames.RootFrame,
+                    this.quantizer,
+                    this.memoryAllocator,
+                    this.configuration,
+                    entriesCollector,
+                    (int)tiffBitsPerPixel);
 
-            int rowsPerStrip = this.CalcRowsPerStrip(image.Frames.RootFrame, colorWriter.BytesPerRow);
+                int rowsPerStrip = this.CalcRowsPerStrip(image.Frames.RootFrame.Height, colorWriter.BytesPerRow);
 
-            colorWriter.Write(compressor, rowsPerStrip);
+                colorWriter.Write(compressor, rowsPerStrip);
+            }
 
             entriesCollector.ProcessImageFormat(this);
             entriesCollector.ProcessGeneral(image);
@@ -177,12 +194,21 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             long nextIfdMarker = this.WriteIfd(writer, entriesCollector.Entries);
         }
 
-        private int CalcRowsPerStrip(ImageFrame image, int bytesPerRow)
+        /// <summary>
+        /// Calculates the number of rows written per strip.
+        /// </summary>
+        /// <param name="height">The height of the image.</param>
+        /// <param name="bytesPerRow">The number of bytes per row.</param>
+        /// <returns>Number of rows per strip.</returns>
+        private int CalcRowsPerStrip(int height, int bytesPerRow)
         {
-            int sz = this.maxStripBytes > 0 ? this.maxStripBytes : DefaultStripSize;
-            int height = sz / bytesPerRow;
+            DebugGuard.MustBeGreaterThan(height, 0, nameof(height));
+            DebugGuard.MustBeGreaterThan(bytesPerRow, 0, nameof(bytesPerRow));
 
-            return height > 0 ? (height < image.Height ? height : image.Height) : 1;
+            int stripBytes = this.maxStripBytes > 0 ? this.maxStripBytes : DefaultStripSize;
+            int rowsPerStrip = stripBytes / bytesPerRow;
+
+            return rowsPerStrip > 0 ? (rowsPerStrip < height ? rowsPerStrip : height) : 1;
         }
 
         /// <summary>
@@ -242,14 +268,15 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             return nextIfdMarker;
         }
 
-        private void SetMode(Image image)
+        private void SetMode(TiffMetadata tiffMetadata)
         {
+            // Make sure, that the fax compressions are only used together with the BiColor mode.
             if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax || this.CompressionType == TiffEncoderCompression.ModifiedHuffman)
             {
+                // Default means the user has not specified a preferred encoding mode.
                 if (this.Mode == TiffEncodingMode.Default)
                 {
                     this.Mode = TiffEncodingMode.BiColor;
-                    this.bitsPerPixel = TiffBitsPerPixel.Pixel1;
                     return;
                 }
 
@@ -262,36 +289,48 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             if (this.Mode == TiffEncodingMode.Default)
             {
                 // Preserve input bits per pixel, if no mode was specified.
-                TiffMetadata tiffMetadata = image.Metadata.GetTiffMetadata();
                 switch (tiffMetadata.BitsPerPixel)
                 {
                     case TiffBitsPerPixel.Pixel1:
                         this.Mode = TiffEncodingMode.BiColor;
                         break;
+                    case TiffBitsPerPixel.Pixel4:
+                        this.Mode = TiffEncodingMode.ColorPalette;
+                        break;
                     case TiffBitsPerPixel.Pixel8:
-                        this.Mode = tiffMetadata.PhotometricInterpretation != TiffPhotometricInterpretation.PaletteColor ? TiffEncodingMode.Gray : TiffEncodingMode.Rgb;
+                        this.Mode = tiffMetadata.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor ? TiffEncodingMode.ColorPalette : TiffEncodingMode.Gray;
+
                         break;
                     default:
                         this.Mode = TiffEncodingMode.Rgb;
                         break;
                 }
             }
+        }
 
+        private void SetBitsPerPixel()
+        {
             switch (this.Mode)
             {
                 case TiffEncodingMode.BiColor:
-                    this.bitsPerPixel = TiffBitsPerPixel.Pixel1;
+                    this.BitsPerPixel = TiffBitsPerPixel.Pixel1;
                     break;
                 case TiffEncodingMode.ColorPalette:
+                    if (this.BitsPerPixel != TiffBitsPerPixel.Pixel8 && this.BitsPerPixel != TiffBitsPerPixel.Pixel4)
+                    {
+                        this.BitsPerPixel = TiffBitsPerPixel.Pixel8;
+                    }
+
+                    break;
                 case TiffEncodingMode.Gray:
-                    this.bitsPerPixel = TiffBitsPerPixel.Pixel8;
+                    this.BitsPerPixel = TiffBitsPerPixel.Pixel8;
                     break;
                 case TiffEncodingMode.Rgb:
-                    this.bitsPerPixel = TiffBitsPerPixel.Pixel24;
+                    this.BitsPerPixel = TiffBitsPerPixel.Pixel24;
                     break;
                 default:
                     this.Mode = TiffEncodingMode.Rgb;
-                    this.bitsPerPixel = TiffBitsPerPixel.Pixel24;
+                    this.BitsPerPixel = TiffBitsPerPixel.Pixel24;
                     break;
             }
         }

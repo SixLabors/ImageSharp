@@ -13,9 +13,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
     /// <summary>
     /// The base tiff decompressor class.
     /// </summary>
-    internal abstract class TiffBaseDecompresor : TiffBaseCompression
+    internal abstract class TiffBaseDecompressor : TiffBaseCompression
     {
-        protected TiffBaseDecompresor(MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
+        protected TiffBaseDecompressor(MemoryAllocator allocator, int width, int bitsPerPixel, TiffPredictor predictor = TiffPredictor.None)
          : base(allocator, width, bitsPerPixel, predictor)
         {
         }

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
     /// <remarks>
     /// Note that the 'OldDeflate' compression type is identical to the 'Deflate' compression type.
     /// </remarks>
-    internal class DeflateTiffCompression : TiffBaseDecompresor
+    internal class DeflateTiffCompression : TiffBaseDecompressor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DeflateTiffCompression" /> class.

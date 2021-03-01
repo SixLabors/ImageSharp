@@ -201,8 +201,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
             this.useModifiedHuffman = useModifiedHuffman;
         }
 
+        /// <inheritdoc/>
         public override TiffEncoderCompression Method => this.useModifiedHuffman ? TiffEncoderCompression.ModifiedHuffman : TiffEncoderCompression.CcittGroup3Fax;
 
+        /// <inheritdoc/>
         public override void Initialize(int rowsPerStrip)
         {
             // This is too much memory allocated, but just 1 bit per pixel will not do, if the compression rate is not good.

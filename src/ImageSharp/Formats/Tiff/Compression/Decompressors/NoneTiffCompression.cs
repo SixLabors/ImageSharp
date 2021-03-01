@@ -4,19 +4,23 @@
 using System;
 
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors
 {
     /// <summary>
     /// Class to handle cases where TIFF image data is not compressed.
     /// </summary>
-    internal class NoneTiffCompression : TiffBaseDecompresor
+    internal class NoneTiffCompression : TiffBaseDecompressor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="NoneTiffCompression" /> class.
         /// </summary>
-        public NoneTiffCompression()
-            : base(default, default, default)
+        /// <param name="memoryAllocator">The memory allocator.</param>
+        /// <param name="width">The width of the image.</param>
+        /// <param name="bitsPerPixel">The bits per pixel.</param>
+        public NoneTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel)
+            : base(memoryAllocator, width, bitsPerPixel)
         {
         }
 

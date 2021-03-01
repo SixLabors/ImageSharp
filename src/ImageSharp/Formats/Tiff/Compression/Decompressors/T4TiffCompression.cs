@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using CCITT T4 compression.
     /// </summary>
-    internal class T4TiffCompression : TiffBaseDecompresor
+    internal class T4TiffCompression : TiffBaseDecompressor
     {
         private readonly FaxCompressionOptions faxCompressionOptions;
 
@@ -24,11 +24,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
         /// Initializes a new instance of the <see cref="T4TiffCompression" /> class.
         /// </summary>
         /// <param name="allocator">The memory allocator.</param>
+        /// <param name="width">The image width.</param>
+        /// <param name="bitsPerPixel">The number of bits per pixel.</param>
         /// <param name="faxOptions">Fax compression options.</param>
         /// <param name="photometricInterpretation">The photometric interpretation.</param>
-        /// <param name="width">The image width.</param>
-        public T4TiffCompression(MemoryAllocator allocator, FaxCompressionOptions faxOptions, TiffPhotometricInterpretation photometricInterpretation, int width)
-            : base(allocator, width, default)
+        public T4TiffCompression(MemoryAllocator allocator, int width, int bitsPerPixel, FaxCompressionOptions faxOptions, TiffPhotometricInterpretation photometricInterpretation)
+            : base(allocator, width, bitsPerPixel)
         {
             this.faxCompressionOptions = faxOptions;
 

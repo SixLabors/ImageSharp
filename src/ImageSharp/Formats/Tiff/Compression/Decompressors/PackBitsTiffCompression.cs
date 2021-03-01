@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using PackBits compression.
     /// </summary>
-    internal class PackBitsTiffCompression : TiffBaseDecompresor
+    internal class PackBitsTiffCompression : TiffBaseDecompressor
     {
         private IMemoryOwner<byte> compressedDataMemory;
 
@@ -20,8 +20,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
         /// Initializes a new instance of the <see cref="PackBitsTiffCompression" /> class.
         /// </summary>
         /// <param name="memoryAllocator">The memoryAllocator to use for buffer allocations.</param>
-        public PackBitsTiffCompression(MemoryAllocator memoryAllocator)
-                : base(memoryAllocator, default, default)
+        /// <param name="width">The width of the image.</param>
+        /// <param name="bitsPerPixel">The number of bits per pixel.</param>
+        public PackBitsTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel)
+                : base(memoryAllocator, width, bitsPerPixel)
         {
         }
 

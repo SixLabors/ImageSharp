@@ -298,25 +298,33 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 switch (encoder.PhotometricInterpretation)
                 {
                     case TiffPhotometricInterpretation.PaletteColor:
-                        return new ushort[] { 8 };
+                        if (encoder.BitsPerPixel == TiffBitsPerPixel.Pixel4)
+                        {
+                            return TiffConstants.BitsPerSample4Bit;
+                        }
+                        else
+                        {
+                            return TiffConstants.BitsPerSample8Bit;
+                        }
+
                     case TiffPhotometricInterpretation.Rgb:
-                        return new ushort[] { 8, 8, 8 };
+                        return TiffConstants.BitsPerSampleRgb8Bit;
                     case TiffPhotometricInterpretation.WhiteIsZero:
                         if (encoder.Mode == TiffEncodingMode.BiColor)
                         {
-                            return new ushort[] { 1 };
+                            return TiffConstants.BitsPerSample1Bit;
                         }
 
-                        return new ushort[] { 8 };
+                        return TiffConstants.BitsPerSample8Bit;
                     case TiffPhotometricInterpretation.BlackIsZero:
                         if (encoder.Mode == TiffEncodingMode.BiColor)
                         {
-                            return new ushort[] { 1 };
+                            return TiffConstants.BitsPerSample1Bit;
                         }
 
-                        return new ushort[] { 8 };
+                        return TiffConstants.BitsPerSample8Bit;
                     default:
-                        return new ushort[] { 8, 8, 8 };
+                        return TiffConstants.BitsPerSampleRgb8Bit;
                 }
             }
 

@@ -26,7 +26,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
                     DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
 
-                    return new NoCompressor(output);
+                    return new NoCompressor(output, allocator, width, bitsPerPixel);
 
                 case TiffEncoderCompression.PackBits:
                     DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");

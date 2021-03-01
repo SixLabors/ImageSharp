@@ -12,6 +12,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     internal interface ITiffEncoderOptions
     {
         /// <summary>
+        /// Gets or sets the number of bits per pixel.
+        /// </summary>
+        TiffBitsPerPixel? BitsPerPixel { get; set; }
+
+        /// <summary>
         /// Gets the compression type to use.
         /// </summary>
         TiffEncoderCompression Compression { get; }

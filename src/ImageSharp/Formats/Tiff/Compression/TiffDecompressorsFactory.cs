@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 {
     internal static class TiffDecompressorsFactory
     {
-        public static TiffBaseDecompresor Create(
+        public static TiffBaseDecompressor Create(
             TiffDecoderCompressionType method,
             MemoryAllocator allocator,
             TiffPhotometricInterpretation photometricInterpretation,
@@ -23,12 +23,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
                 case TiffDecoderCompressionType.None:
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                     DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
-                    return new NoneTiffCompression();
+                    return new NoneTiffCompression(allocator, width, bitsPerPixel);
 
                 case TiffDecoderCompressionType.PackBits:
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                     DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
-                    return new PackBitsTiffCompression(allocator);
+                    return new PackBitsTiffCompression(allocator, width, bitsPerPixel);
 
                 case TiffDecoderCompressionType.Deflate:
                     DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
@@ -40,11 +40,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
 
                 case TiffDecoderCompressionType.T4:
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                    return new T4TiffCompression(allocator, faxOptions, photometricInterpretation, width);
+                    return new T4TiffCompression(allocator, width, bitsPerPixel, faxOptions, photometricInterpretation);
 
                 case TiffDecoderCompressionType.HuffmanRle:
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                    return new ModifiedHuffmanTiffCompression(allocator, photometricInterpretation, width);
+                    return new ModifiedHuffmanTiffCompression(allocator, width, bitsPerPixel, photometricInterpretation);
 
                 default:
                     throw TiffThrowHelper.NotSupportedDecompressor(nameof(method));

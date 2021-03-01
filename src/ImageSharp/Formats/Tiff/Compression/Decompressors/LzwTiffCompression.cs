@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using LZW compression.
     /// </summary>
-    internal class LzwTiffCompression : TiffBaseDecompresor
+    internal class LzwTiffCompression : TiffBaseDecompressor
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="LzwTiffCompression" /> class.

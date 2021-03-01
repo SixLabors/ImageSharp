@@ -556,6 +556,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string RgbPackbitsMultistrip = "Tiff/rgb_packbits_multistrip.tiff";
             public const string RgbUncompressed = "Tiff/rgb_uncompressed.tiff";
             public const string RgbPalette = "Tiff/rgb_palette.tiff";
+            public const string Rgb4BitPalette = "Tiff/bike_colorpalette_4bit.tiff";
             public const string RgbPaletteDeflate = "Tiff/rgb_palette_deflate.tiff";
 
             public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";

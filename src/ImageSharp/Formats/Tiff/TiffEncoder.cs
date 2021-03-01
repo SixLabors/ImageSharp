@@ -18,6 +18,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     public class TiffEncoder : IImageEncoder, ITiffEncoderOptions
     {
         /// <inheritdoc/>
+        public TiffBitsPerPixel? BitsPerPixel { get; set; }
+
+        /// <inheritdoc/>
         public TiffEncoderCompression Compression { get; set; } = TiffEncoderCompression.None;
 
         /// <inheritdoc/>

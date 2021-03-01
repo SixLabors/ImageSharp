@@ -22,10 +22,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
         /// Initializes a new instance of the <see cref="ModifiedHuffmanTiffCompression" /> class.
         /// </summary>
         /// <param name="allocator">The memory allocator.</param>
-        /// <param name="photometricInterpretation">The photometric interpretation.</param>
         /// <param name="width">The image width.</param>
-        public ModifiedHuffmanTiffCompression(MemoryAllocator allocator, TiffPhotometricInterpretation photometricInterpretation, int width)
-            : base(allocator, FaxCompressionOptions.None, photometricInterpretation, width)
+        /// <param name="bitsPerPixel">The number of bits per pixel.</param>
+        /// <param name="photometricInterpretation">The photometric interpretation.</param>
+        public ModifiedHuffmanTiffCompression(MemoryAllocator allocator, int width, int bitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
+            : base(allocator, width, bitsPerPixel, FaxCompressionOptions.None, photometricInterpretation)
         {
             bool isWhiteZero = photometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero;
             this.whiteValue = (byte)(isWhiteZero ? 0 : 1);

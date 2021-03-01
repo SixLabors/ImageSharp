@@ -3,19 +3,12 @@
 
 using System;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {
     internal static class TiffBitsPerSampleExtensions
     {
-        private static readonly ushort[] One = { 1 };
-
-        private static readonly ushort[] Four = { 4 };
-
-        private static readonly ushort[] Eight = { 8 };
-
-        private static readonly ushort[] Rgb888 = { 8, 8, 8 };
-
         /// <summary>
         /// Gets the bits per channel array for a given BitsPerSample value, e,g, for RGB888: [8, 8, 8]
         /// </summary>
@@ -26,13 +19,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (tiffBitsPerSample)
             {
                 case TiffBitsPerSample.One:
-                    return One;
+                    return TiffConstants.BitsPerSample1Bit;
                 case TiffBitsPerSample.Four:
-                    return Four;
+                    return TiffConstants.BitsPerSample4Bit;
                 case TiffBitsPerSample.Eight:
-                    return Eight;
+                    return TiffConstants.BitsPerSample8Bit;
                 case TiffBitsPerSample.Rgb888:
-                    return Rgb888;
+                    return TiffConstants.BitsPerSampleRgb8Bit;
 
                 default:
                     TiffThrowHelper.ThrowNotSupported("The bits per pixels are not supported");
@@ -50,7 +43,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             switch (bitsPerSample.Length)
             {
                 case 3:
-                    if (bitsPerSample[0] == Rgb888[0] && bitsPerSample[1] == Rgb888[1] && bitsPerSample[2] == Rgb888[2])
+                    if (bitsPerSample[0] == TiffConstants.BitsPerSampleRgb8Bit[0] &&
+                        bitsPerSample[1] == TiffConstants.BitsPerSampleRgb8Bit[1] &&
+                        bitsPerSample[2] == TiffConstants.BitsPerSampleRgb8Bit[2])
                     {
                         return TiffBitsPerSample.Rgb888;
                     }
@@ -58,17 +53,17 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     break;
 
                 case 1:
-                    if (bitsPerSample[0] == One[0])
+                    if (bitsPerSample[0] == TiffConstants.BitsPerSample1Bit[0])
                     {
                         return TiffBitsPerSample.One;
                     }
 
-                    if (bitsPerSample[0] == Four[0])
+                    if (bitsPerSample[0] == TiffConstants.BitsPerSample4Bit[0])
                     {
                         return TiffBitsPerSample.Four;
                     }
 
-                    if (bitsPerSample[0] == Eight[0])
+                    if (bitsPerSample[0] == TiffConstants.BitsPerSample8Bit[0])
                     {
                         return TiffBitsPerSample.Eight;
                     }

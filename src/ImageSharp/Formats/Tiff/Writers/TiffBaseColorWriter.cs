@@ -20,13 +20,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
             this.MemoryAllocator = memoryAllocator;
             this.Configuration = configuration;
             this.EntriesCollector = entriesCollector;
-
-            this.BytesPerRow = ((image.Width * this.BitsPerPixel) + 7) / 8;
         }
 
         public abstract int BitsPerPixel { get; }
 
-        public int BytesPerRow { get; }
+        public int BytesPerRow => ((this.Image.Width * this.BitsPerPixel) + 7) / 8;
 
         protected ImageFrame<TPixel> Image { get; }
 
@@ -38,7 +36,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 
         public virtual void Write(TiffBaseCompressor compressor, int rowsPerStrip)
         {
-            DebugGuard.IsTrue(this.BytesPerRow == compressor.BytesPerRow || compressor.BytesPerRow == 0, "Values must be equals");
+            DebugGuard.IsTrue(this.BytesPerRow == compressor.BytesPerRow, "bytes per row of the compressor does not match tiff color writer");
             int stripsCount = (this.Image.Height + rowsPerStrip - 1) / rowsPerStrip;
 
             uint[] stripOffsets = new uint[stripsCount];
@@ -59,7 +57,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
                 stripIndex++;
             }
 
-            DebugGuard.IsTrue(stripIndex == stripsCount, "Values must be equals");
+            DebugGuard.IsTrue(stripIndex == stripsCount, "stripIndex and stripsCount should match");
             this.AddStripTags(rowsPerStrip, stripOffsets, stripByteCounts);
         }
 

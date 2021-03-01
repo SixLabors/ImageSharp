@@ -5,7 +5,6 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// </summary>
         /// <param name="matrix">The diffusion matrix.</param>
         /// <param name="offset">The starting offset within the matrix.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public ErrorDither(in DenseMatrix<float> matrix, int offset)
         {
             this.matrix = matrix;
@@ -87,7 +86,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             => !(left == right);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
             ref TFrameQuantizer quantizer,
             ImageFrame<TPixel> source,
@@ -96,25 +95,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TFrameQuantizer : struct, IQuantizer<TPixel>
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            int offsetY = bounds.Top;
+            int offsetX = bounds.Left;
             float scale = quantizer.Options.DitherScale;
 
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                ReadOnlySpan<TPixel> sourceRow = source.GetPixelRowSpan(y).Slice(bounds.X, bounds.Width);
-                Span<byte> destRow =
-                    destination.GetWritablePixelRowSpanUnsafe(y - bounds.Y).Slice(0, sourceRow.Length);
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
+                ref byte destinationRowRef = ref MemoryMarshal.GetReference(destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
 
-                for (int x = 0; x < sourceRow.Length; x++)
+                for (int x = bounds.Left; x < bounds.Right; x++)
                 {
-                    TPixel sourcePixel = sourceRow[x];
-                    destRow[x] = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
+                    TPixel sourcePixel = Unsafe.Add(ref sourceRowRef, x);
+                    Unsafe.Add(ref destinationRowRef, x - offsetX) = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
                     this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
                 }
             }
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
             in TPaletteDitherImageProcessor processor,
             ImageFrame<TPixel> source,
@@ -123,15 +123,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             where TPixel : unmanaged, IPixel<TPixel>
         {
             float scale = processor.DitherScale;
-
             for (int y = bounds.Top; y < bounds.Bottom; y++)
             {
-                Span<TPixel> row = source.GetPixelRowSpan(y).Slice(bounds.X, bounds.Width);
-
-                for (int x = 0; x < row.Length; x++)
+                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(source.GetPixelRowSpan(y));
+                for (int x = bounds.Left; x < bounds.Right; x++)
                 {
-                    ref TPixel sourcePixel = ref row[x];
-                    TPixel transformed = processor.GetPaletteColor(sourcePixel);
+                    ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, x);
+                    TPixel transformed = Unsafe.AsRef(processor).GetPaletteColor(sourcePixel);
                     this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
                     sourcePixel = transformed;
                 }
@@ -139,7 +137,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         }
 
         // Internal for AOT
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         internal TPixel Dither<TPixel>(
             ImageFrame<TPixel> image,
             Rectangle bounds,

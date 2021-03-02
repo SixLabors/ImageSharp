@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// Initializes a new instance of the <see cref="OrderedDither"/> struct.
         /// </summary>
         /// <param name="length">The length of the matrix sides</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public OrderedDither(uint length)
         {
             DenseMatrix<uint> ditherMatrix = OrderedDitherFactory.CreateDitherMatrix(length);
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             => !(left == right);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
             ref TFrameQuantizer quantizer,
             ImageFrame<TPixel> source,
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         }
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
             in TPaletteDitherImageProcessor processor,
             ImageFrame<TPixel> source,
@@ -145,12 +145,14 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         }
 
         // Spread assumes an even colorspace distribution and precision.
-        // Cubed root used because we always compare to Rgb.
+        // TODO: Cubed root is currently used to represent 3 color channels
+        // but we should introduce something to PixelTypeInfo.
         // https://bisqwit.iki.fi/story/howto/dither/jy/
         // https://en.wikipedia.org/wiki/Ordered_dithering#Algorithm
-        internal static int CalculatePaletteSpread(int colors) => (int)(255 / (Math.Pow(colors, 1.0 / 3) - 1));
+        internal static int CalculatePaletteSpread(int colors)
+            => (int)(255 / Math.Max(1, Math.Pow(colors, 1.0 / 3) - 1));
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         internal TPixel Dither<TPixel>(
             TPixel source,
             int x,
@@ -181,7 +183,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             => obj is OrderedDither dither && this.Equals(dither);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public bool Equals(OrderedDither other)
             => this.thresholdMatrix.Equals(other.thresholdMatrix) && this.modulusX == other.modulusX && this.modulusY == other.modulusY;
 
@@ -190,7 +192,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             => this.Equals((object)other);
 
         /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public override int GetHashCode()
             => HashCode.Combine(this.thresholdMatrix, this.modulusX, this.modulusY);
 
@@ -205,7 +207,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             private readonly Rectangle bounds;
             private readonly int spread;
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(InliningOptions.ShortMethod)]
             public QuantizeDitherRowOperation(
                 ref TFrameQuantizer quantizer,
                 in OrderedDither dither,
@@ -221,7 +223,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 this.spread = CalculatePaletteSpread(destination.Palette.Length);
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
                 ref TFrameQuantizer quantizer = ref Unsafe.AsRef(this.quantizer);
@@ -251,7 +253,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             private readonly float scale;
             private readonly int spread;
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(InliningOptions.ShortMethod)]
             public PaletteDitherRowOperation(
                 in TPaletteDitherImageProcessor processor,
                 in OrderedDither dither,
@@ -266,7 +268,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 this.spread = CalculatePaletteSpread(processor.Palette.Length);
             }
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
                 ref TPaletteDitherImageProcessor processor = ref Unsafe.AsRef(this.processor);

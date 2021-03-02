@@ -31,6 +31,11 @@ namespace SixLabors.ImageSharp.Processing
         public static IDither Bayer8x8 { get; } = OrderedDither.Bayer8x8;
 
         /// <summary>
+        /// Gets the order ditherer using the 16x16 Bayer dithering matrix
+        /// </summary>
+        public static IDither Bayer16x16 { get; } = OrderedDither.Bayer16x16;
+
+        /// <summary>
         /// Gets the error Dither that implements the Atkinson algorithm.
         /// </summary>
         public static IDither Atkinson { get; } = ErrorDither.Atkinson;

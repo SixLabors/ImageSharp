@@ -37,6 +37,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization
                 { KnownDitherings.Bayer2x2, nameof(KnownDitherings.Bayer2x2) },
                 { KnownDitherings.Bayer4x4, nameof(KnownDitherings.Bayer4x4) },
                 { KnownDitherings.Bayer8x8, nameof(KnownDitherings.Bayer8x8) },
+                { KnownDitherings.Bayer16x16, nameof(KnownDitherings.Bayer16x16) },
                 { KnownDitherings.Ordered3x3, nameof(KnownDitherings.Ordered3x3) }
             };
 

@@ -24,6 +24,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         public static OrderedDither Bayer8x8 = new OrderedDither(8);
 
         /// <summary>
+        /// Applies order dithering using the 16x16 Bayer dithering matrix.
+        /// </summary>
+        public static OrderedDither Bayer16x16 = new OrderedDither(16);
+
+        /// <summary>
         /// Applies order dithering using the 3x3 ordered dithering matrix.
         /// </summary>
         public static OrderedDither Ordered3x3 = new OrderedDither(3);

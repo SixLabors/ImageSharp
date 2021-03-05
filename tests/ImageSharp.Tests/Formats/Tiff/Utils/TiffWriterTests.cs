@@ -76,12 +76,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         }
 
         [Theory]
-        [InlineData(new byte[] { }, new byte[] { 0, 0, 0, 0 })]
+        [InlineData(new byte[] { }, new byte[] { })]
         [InlineData(new byte[] { 2 }, new byte[] { 2, 0, 0, 0 })]
         [InlineData(new byte[] { 2, 4 }, new byte[] { 2, 4, 0, 0 })]
         [InlineData(new byte[] { 2, 4, 6 }, new byte[] { 2, 4, 6, 0 })]
         [InlineData(new byte[] { 2, 4, 6, 8 }, new byte[] { 2, 4, 6, 8 })]
-        [InlineData(new byte[] { 2, 4, 6, 8, 10, 12 }, new byte[] { 2, 4, 6, 8, 10, 12 })]
+        [InlineData(new byte[] { 2, 4, 6, 8, 10, 12 }, new byte[] { 2, 4, 6, 8, 10, 12, 0, 0 })]
+
         public void WritePadded_WritesByteArray(byte[] bytes, byte[] expectedResult)
         {
             using var stream = new MemoryStream();

@@ -37,6 +37,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         private readonly MemoryAllocator memoryAllocator;
 
         /// <summary>
+        /// A scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly byte[] buffer = new byte[4];
+
+        /// <summary>
         /// The global configuration.
         /// </summary>
         private Configuration configuration;
@@ -238,15 +243,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 writer.Write(ExifWriter.GetNumberOfComponents(entry));
 
                 uint length = ExifWriter.GetLength(entry);
-                var raw = new byte[length];
-                int sz = ExifWriter.WriteValue(entry, raw, 0);
-                DebugGuard.IsTrue(sz == raw.Length, "Incorrect number of bytes written");
-                if (raw.Length <= 4)
+                if (length <= 4)
                 {
-                    writer.WritePadded(raw);
+                    int sz = ExifWriter.WriteValue(entry, this.buffer, 0);
+                    DebugGuard.IsTrue(sz == length, "Incorrect number of bytes written");
+                    writer.WritePadded(this.buffer.AsSpan(0, sz));
                 }
                 else
                 {
+                    var raw = new byte[length];
+                    int sz = ExifWriter.WriteValue(entry, raw, 0);
+                    DebugGuard.IsTrue(sz == raw.Length, "Incorrect number of bytes written");
                     largeDataBlocks.Add(raw);
                     writer.Write(dataOffset);
                     dataOffset += (uint)(raw.Length + (raw.Length % 2));

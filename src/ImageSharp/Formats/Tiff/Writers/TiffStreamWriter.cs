@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.IO;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
@@ -12,6 +13,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
     internal class TiffStreamWriter : IDisposable
     {
         private static readonly byte[] PaddingBytes = new byte[4];
+
+        /// <summary>
+        /// A scratch buffer to reduce allocations.
+        /// </summary>
+        private readonly byte[] buffer = new byte[4];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TiffStreamWriter"/> class.
@@ -37,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
         /// <summary>
         /// Writes an empty four bytes to the stream, returning the offset to be written later.
         /// </summary>
-        /// <returns>The offset to be written later</returns>
+        /// <returns>The offset to be written later.</returns>
         public long PlaceMarker()
         {
             long offset = this.BaseStream.Position;
@@ -69,8 +75,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
         /// <param name="value">The two-byte unsigned integer to write.</param>
         public void Write(ushort value)
         {
-            byte[] bytes = BitConverter.GetBytes(value);
-            this.BaseStream.Write(bytes, 0, 2);
+            if (this.IsLittleEndian)
+            {
+                BinaryPrimitives.WriteUInt16LittleEndian(this.buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt16BigEndian(this.buffer, value);
+            }
+
+            this.BaseStream.Write(this.buffer.AsSpan(0, 2));
         }
 
         /// <summary>
@@ -79,21 +93,29 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
         /// <param name="value">The four-byte unsigned integer to write.</param>
         public void Write(uint value)
         {
-            byte[] bytes = BitConverter.GetBytes(value);
-            this.BaseStream.Write(bytes, 0, 4);
+            if (this.IsLittleEndian)
+            {
+                BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt32BigEndian(this.buffer, value);
+            }
+
+            this.BaseStream.Write(this.buffer.AsSpan(0, 4));
         }
 
         /// <summary>
         /// Writes an array of bytes to the current stream, padded to four-bytes.
         /// </summary>
         /// <param name="value">The bytes to write.</param>
-        public void WritePadded(byte[] value)
+        public void WritePadded(Span<byte> value)
         {
-            this.BaseStream.Write(value, 0, value.Length);
+            this.BaseStream.Write(value);
 
-            if (value.Length < 4)
+            if (value.Length % 4 != 0)
             {
-                this.BaseStream.Write(PaddingBytes, 0, 4 - value.Length);
+                this.BaseStream.Write(PaddingBytes, 0, 4 - (value.Length % 4));
             }
         }
 

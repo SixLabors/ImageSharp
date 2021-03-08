@@ -121,7 +121,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
                 Value = palette
             };
 
-            this.EntriesCollector.Add(colorMap);
+            this.EntriesCollector.AddOrReplace(colorMap);
         }
     }
 }

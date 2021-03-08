@@ -87,17 +87,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
         /// <param name="stripByteCounts">The strip byte counts.</param>
         private void AddStripTags(int rowsPerStrip, uint[] stripOffsets, uint[] stripByteCounts)
         {
-            this.EntriesCollector.Add(new ExifLong(ExifTagValue.RowsPerStrip)
+            this.EntriesCollector.AddOrReplace(new ExifLong(ExifTagValue.RowsPerStrip)
             {
                 Value = (uint)rowsPerStrip
             });
 
-            this.EntriesCollector.Add(new ExifLongArray(ExifTagValue.StripOffsets)
+            this.EntriesCollector.AddOrReplace(new ExifLongArray(ExifTagValue.StripOffsets)
             {
                 Value = stripOffsets
             });
 
-            this.EntriesCollector.Add(new ExifLongArray(ExifTagValue.StripByteCounts)
+            this.EntriesCollector.AddOrReplace(new ExifLongArray(ExifTagValue.StripByteCounts)
             {
                 Value = stripByteCounts
             });

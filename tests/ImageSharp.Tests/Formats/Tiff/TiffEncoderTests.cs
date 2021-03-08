@@ -93,7 +93,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.Equal(expectedBitsPerPixel, meta.BitsPerPixel);
         }
 
-
         [Theory]
         [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncoderCompression.CcittGroup3Fax, TiffCompression.CcittGroup3Fax)]
         [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncoderCompression.ModifiedHuffman, TiffCompression.Ccitt1D)]

@@ -198,10 +198,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(1, frame.SamplesPerPixel);
                 Assert.Equal(32u, frame.RowsPerStrip);
                 Assert.Equal(new Number[] { 297u }, frame.StripByteCounts, new NumberComparer());
+                Assert.Equal(PixelResolutionUnit.PixelsPerInch, frame.ResolutionUnit);
                 Assert.Equal(10, frame.HorizontalResolution);
                 Assert.Equal(10, frame.VerticalResolution);
                 Assert.Equal(TiffPlanarConfiguration.Chunky, frame.PlanarConfiguration);
-                Assert.Equal(PixelResolutionUnit.PixelsPerInch, frame.ResolutionUnit);
                 Assert.Equal("IrfanView", frame.ExifProfile.GetValue(ExifTag.Software).Value);
                 Assert.Null(frame.ExifProfile.GetValue(ExifTag.DateTime)?.Value);
                 Assert.Equal("This is author1;Author2", frame.ExifProfile.GetValue(ExifTag.Artist).Value);

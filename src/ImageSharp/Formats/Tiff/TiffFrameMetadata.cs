@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
@@ -15,9 +16,6 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
     /// </summary>
     public class TiffFrameMetadata : IDeepCloneable
     {
-        // 2 (Inch)
-        internal const ushort DefaultResolutionUnit = 2;
-
         private const TiffPlanarConfiguration DefaultPlanarConfiguration = TiffPlanarConfiguration.Chunky;
 
         private const TiffPredictor DefaultPredictor = TiffPredictor.None;
@@ -212,13 +210,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// Gets the resolution of the image in x- direction.
         /// </summary>
         /// <value>The density of the image in x- direction.</value>
-        public double? HorizontalResolution => this.GetResolution(ExifTag.XResolution);
+        public double? HorizontalResolution => this.ExifProfile.GetValue(ExifTag.XResolution)?.Value.ToDouble();
 
         /// <summary>
         /// Gets the resolution of the image in y- direction.
         /// </summary>
         /// <value>The density of the image in y- direction.</value>
-        public double? VerticalResolution => this.GetResolution(ExifTag.YResolution);
+        public double? VerticalResolution => this.ExifProfile.GetValue(ExifTag.YResolution)?.Value.ToDouble();
 
         /// <summary>
         /// Gets how the components of each pixel are stored.
@@ -228,7 +226,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets the unit of measurement for XResolution and YResolution.
         /// </summary>
-        public PixelResolutionUnit ResolutionUnit => this.GetResolutionUnit();
+        public PixelResolutionUnit ResolutionUnit => UnitConverter.ExifProfileToResolutionUnit(this.ExifProfile);
 
         /// <summary>
         /// Gets a color map for palette color images.
@@ -252,28 +250,16 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public TiffSampleFormat[] SampleFormat => this.ExifProfile.GetValue(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
 
         /// <summary>
-        /// Clears the metadata.
+        /// Clears the pure metadata.
         /// </summary>
         public void ClearMetadata()
         {
             var tags = new List<IExifValue>();
             foreach (IExifValue entry in this.ExifProfile.Values)
             {
-                switch ((ExifTagValue)(ushort)entry.Tag)
+                if (IsFormatTag((ExifTagValue)(ushort)entry.Tag))
                 {
-                    case ExifTagValue.ImageWidth:
-                    case ExifTagValue.ImageLength:
-                    case ExifTagValue.ResolutionUnit:
-                    case ExifTagValue.XResolution:
-                    case ExifTagValue.YResolution:
-                    //// image format tags
-                    case ExifTagValue.Predictor:
-                    case ExifTagValue.PlanarConfiguration:
-                    case ExifTagValue.PhotometricInterpretation:
-                    case ExifTagValue.BitsPerSample:
-                    case ExifTagValue.ColorMap:
-                        tags.Add(entry);
-                        break;
+                    tags.Add(entry);
                 }
             }
 
@@ -282,5 +268,25 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new TiffFrameMetadata() { ExifProfile = this.ExifProfile.DeepClone() };
+
+        private static bool IsFormatTag(ExifTagValue tag)
+        {
+            switch (tag)
+            {
+                case ExifTagValue.ImageWidth:
+                case ExifTagValue.ImageLength:
+                case ExifTagValue.ResolutionUnit:
+                case ExifTagValue.XResolution:
+                case ExifTagValue.YResolution:
+                case ExifTagValue.Predictor:
+                case ExifTagValue.PlanarConfiguration:
+                case ExifTagValue.PhotometricInterpretation:
+                case ExifTagValue.BitsPerSample:
+                case ExifTagValue.ColorMap:
+                    return true;
+            }
+
+            return false;
+        }
     }
 }

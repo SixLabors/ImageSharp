@@ -91,7 +91,7 @@ namespace SixLabors.ImageSharp
         /// <param name="data">The byte array containing image data.</param>
         /// <exception cref="ArgumentNullException">The configuration is null.</exception>
         /// <exception cref="ArgumentNullException">The data is null.</exception>
-        /// <returns>A new <see cref="Image{Rgba32}"/>.</returns>
+        /// <returns>A new <see cref="Image"/>.</returns>
         public static Image Load(byte[] data)
             => Load(Configuration.Default, data);
 

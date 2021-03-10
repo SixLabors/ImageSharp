@@ -7,10 +7,25 @@ using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors;
+using SixLabors.ImageSharp.Processing.Processors.Binarization;
+using SixLabors.ImageSharp.Processing.Processors.Convolution;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
+using SixLabors.ImageSharp.Processing.Processors.Drawing;
+using SixLabors.ImageSharp.Processing.Processors.Effects;
+using SixLabors.ImageSharp.Processing.Processors.Filters;
+using SixLabors.ImageSharp.Processing.Processors.Normalization;
+using SixLabors.ImageSharp.Processing.Processors.Overlays;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Advanced
 {
@@ -88,6 +103,18 @@ namespace SixLabors.ImageSharp.Advanced
             AotCompilePaletteQuantizer<TPixel>();
             AotCompileDithering<TPixel>();
             AotCompilePixelOperations<TPixel>();
+
+            AotCompileImage<TPixel>();
+            AotCompileImageProcessingContextFactory<TPixel>();
+            AotCompileImageEncoderInternals<TPixel>();
+            AotCompileImageDecoderInternals<TPixel>();
+            AotCompileImageEncoders<TPixel>();
+            AotCompileImageDecoders<TPixel>();
+            AotCompileImageProcessors<TPixel>();
+            AotCompileGenericImageProcessors<TPixel>();
+            AotCompileResamplers<TPixel>();
+            AotCompileQuantizers<TPixel>();
+            AotCompilePixelSamplingStrategys<TPixel>();
 
             Unsafe.SizeOf<TPixel>();
 
@@ -212,6 +239,327 @@ namespace SixLabors.ImageSharp.Advanced
         {
             var pixelOp = new PixelOperations<TPixel>();
             pixelOp.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Clear);
+        }
+
+        /// <summary>
+        /// This method pre-seeds the <see cref="Image{TPixel}"/> for a given pixel format in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static unsafe void AotCompileImage<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Image<TPixel> img = default;
+            img.CloneAs<A8>(default);
+            img.CloneAs<Argb32>(default);
+            img.CloneAs<Bgr24>(default);
+            img.CloneAs<Bgr565>(default);
+            img.CloneAs<Bgra32>(default);
+            img.CloneAs<Bgra4444>(default);
+            img.CloneAs<Bgra5551>(default);
+            img.CloneAs<Byte4>(default);
+            img.CloneAs<L16>(default);
+            img.CloneAs<L8>(default);
+            img.CloneAs<La16>(default);
+            img.CloneAs<La32>(default);
+            img.CloneAs<HalfSingle>(default);
+            img.CloneAs<HalfVector2>(default);
+            img.CloneAs<HalfVector4>(default);
+            img.CloneAs<NormalizedByte2>(default);
+            img.CloneAs<NormalizedByte4>(default);
+            img.CloneAs<NormalizedShort2>(default);
+            img.CloneAs<NormalizedShort4>(default);
+            img.CloneAs<Rg32>(default);
+            img.CloneAs<Rgb24>(default);
+            img.CloneAs<Rgb48>(default);
+            img.CloneAs<Rgba1010102>(default);
+            img.CloneAs<Rgba32>(default);
+            img.CloneAs<Rgba64>(default);
+            img.CloneAs<RgbaVector>(default);
+            img.CloneAs<Short2>(default);
+            img.CloneAs<Short4>(default);
+
+            ImageFrame.LoadPixelData<TPixel>(default, default(ReadOnlySpan<TPixel>), default, default);
+            ImageFrame.LoadPixelData<TPixel>(default, default(ReadOnlySpan<byte>), default, default);
+        }
+
+        private static void AotCompileImageProcessingContextFactory<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+                => default(DefaultImageOperationsProviderFactory).CreateImageProcessingContext<TPixel>(default, default, default);
+
+        /// <summary>
+        /// This method pre-seeds the all <see cref="IImageEncoderInternals"/> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompileImageEncoderInternals<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            default(BmpEncoderCore).Encode<TPixel>(default, default, default);
+            default(GifEncoderCore).Encode<TPixel>(default, default, default);
+            default(JpegEncoderCore).Encode<TPixel>(default, default, default);
+            default(PngEncoderCore).Encode<TPixel>(default, default, default);
+            default(TgaEncoderCore).Encode<TPixel>(default, default, default);
+        }
+
+        /// <summary>
+        /// This method pre-seeds the all <see cref="IImageDecoderInternals"/> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompileImageDecoderInternals<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            default(BmpDecoderCore).Decode<TPixel>(default, default, default);
+            default(GifDecoderCore).Decode<TPixel>(default, default, default);
+            default(JpegDecoderCore).Decode<TPixel>(default, default, default);
+            default(PngDecoderCore).Decode<TPixel>(default, default, default);
+            default(TgaDecoderCore).Decode<TPixel>(default, default, default);
+        }
+
+        /// <summary>
+        /// This method pre-seeds the all <see cref="IImageEncoder"/> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompileImageEncoders<TPixel>()
+           where TPixel : unmanaged, IPixel<TPixel>
+        {
+            AotCompileImageEncoder<TPixel, BmpEncoder>();
+            AotCompileImageEncoder<TPixel, GifEncoder>();
+            AotCompileImageEncoder<TPixel, JpegEncoder>();
+            AotCompileImageEncoder<TPixel, PngEncoder>();
+            AotCompileImageEncoder<TPixel, TgaEncoder>();
+        }
+
+        /// <summary>
+        /// This method pre-seeds the all <see cref="IImageDecoder"/> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompileImageDecoders<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            AotCompileImageDecoder<TPixel, BmpDecoder>();
+            AotCompileImageDecoder<TPixel, GifDecoder>();
+            AotCompileImageDecoder<TPixel, JpegDecoder>();
+            AotCompileImageDecoder<TPixel, PngDecoder>();
+            AotCompileImageDecoder<TPixel, TgaDecoder>();
+        }
+
+        /// <summary>
+        /// This method pre-seeds the <see cref="IImageEncoder"/> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <typeparam name="TEncoder">The encoder.</typeparam>
+        private static void AotCompileImageEncoder<TPixel, TEncoder>()
+            where TPixel : unmanaged, IPixel<TPixel>
+            where TEncoder : class, IImageEncoder
+        {
+            default(TEncoder).Encode<TPixel>(default, default);
+            default(TEncoder).EncodeAsync<TPixel>(default, default, default);
+        }
+
+        /// <summary>
+        /// This method pre-seeds the <see cref="IImageDecoder"/> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <typeparam name="TDecoder">The decoder.</typeparam>
+        private static void AotCompileImageDecoder<TPixel, TDecoder>()
+           where TPixel : unmanaged, IPixel<TPixel>
+           where TDecoder : class, IImageDecoder
+        {
+            default(TDecoder).Decode<TPixel>(default, default);
+            default(TDecoder).DecodeAsync<TPixel>(default, default, default);
+        }
+
+        /// <summary>
+        /// This method pre-seeds the all <see cref="IImageProcessor" /> in the AoT compiler.
+        /// </summary>
+        /// <remarks>
+        /// There is no structure that implements ISwizzler.
+        /// </remarks>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompileImageProcessors<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            AotCompileImageProcessor<TPixel, CloningImageProcessor>();
+            AotCompileImageProcessor<TPixel, CropProcessor>();
+            AotCompileImageProcessor<TPixel, AffineTransformProcessor>();
+            AotCompileImageProcessor<TPixel, ProjectiveTransformProcessor>();
+            AotCompileImageProcessor<TPixel, RotateProcessor>();
+            AotCompileImageProcessor<TPixel, SkewProcessor>();
+            AotCompileImageProcessor<TPixel, ResizeProcessor>();
+            AotCompileImageProcessor<TPixel, EntropyCropProcessor>();
+            AotCompileImageProcessor<TPixel, AutoOrientProcessor>();
+            AotCompileImageProcessor<TPixel, FlipProcessor>();
+            AotCompileImageProcessor<TPixel, QuantizeProcessor>();
+            AotCompileImageProcessor<TPixel, BackgroundColorProcessor>();
+            AotCompileImageProcessor<TPixel, GlowProcessor>();
+            AotCompileImageProcessor<TPixel, VignetteProcessor>();
+            AotCompileImageProcessor<TPixel, AdaptiveHistogramEqualizationProcessor>();
+            AotCompileImageProcessor<TPixel, AdaptiveHistogramEqualizationSlidingWindowProcessor>();
+            AotCompileImageProcessor<TPixel, GlobalHistogramEqualizationProcessor>();
+            AotCompileImageProcessor<TPixel, AchromatomalyProcessor>();
+            AotCompileImageProcessor<TPixel, AchromatopsiaProcessor>();
+            AotCompileImageProcessor<TPixel, BlackWhiteProcessor>();
+            AotCompileImageProcessor<TPixel, BrightnessProcessor>();
+            AotCompileImageProcessor<TPixel, ContrastProcessor>();
+            AotCompileImageProcessor<TPixel, DeuteranomalyProcessor>();
+            AotCompileImageProcessor<TPixel, DeuteranopiaProcessor>();
+            AotCompileImageProcessor<TPixel, FilterProcessor>();
+            AotCompileImageProcessor<TPixel, GrayscaleBt601Processor>();
+            AotCompileImageProcessor<TPixel, GrayscaleBt709Processor>();
+            AotCompileImageProcessor<TPixel, HueProcessor>();
+            AotCompileImageProcessor<TPixel, InvertProcessor>();
+            AotCompileImageProcessor<TPixel, KodachromeProcessor>();
+            AotCompileImageProcessor<TPixel, LightnessProcessor>();
+            AotCompileImageProcessor<TPixel, LomographProcessor>();
+            AotCompileImageProcessor<TPixel, OpacityProcessor>();
+            AotCompileImageProcessor<TPixel, PolaroidProcessor>();
+            AotCompileImageProcessor<TPixel, ProtanomalyProcessor>();
+            AotCompileImageProcessor<TPixel, ProtanopiaProcessor>();
+            AotCompileImageProcessor<TPixel, SaturateProcessor>();
+            AotCompileImageProcessor<TPixel, SepiaProcessor>();
+            AotCompileImageProcessor<TPixel, TritanomalyProcessor>();
+            AotCompileImageProcessor<TPixel, TritanopiaProcessor>();
+            AotCompileImageProcessor<TPixel, OilPaintingProcessor>();
+            AotCompileImageProcessor<TPixel, PixelateProcessor>();
+            AotCompileImageProcessor<TPixel, PixelRowDelegateProcessor>();
+            AotCompileImageProcessor<TPixel, PositionAwarePixelRowDelegateProcessor>();
+            AotCompileImageProcessor<TPixel, DrawImageProcessor>();
+            AotCompileImageProcessor<TPixel, PaletteDitherProcessor>();
+            AotCompileImageProcessor<TPixel, BokehBlurProcessor>();
+            AotCompileImageProcessor<TPixel, BoxBlurProcessor>();
+            AotCompileImageProcessor<TPixel, EdgeDetector2DProcessor>();
+            AotCompileImageProcessor<TPixel, EdgeDetectorCompassProcessor>();
+            AotCompileImageProcessor<TPixel, EdgeDetectorProcessor>();
+            AotCompileImageProcessor<TPixel, GaussianBlurProcessor>();
+            AotCompileImageProcessor<TPixel, GaussianSharpenProcessor>();
+            AotCompileImageProcessor<TPixel, AdaptiveThresholdProcessor>();
+            AotCompileImageProcessor<TPixel, BinaryThresholdProcessor>();
+
+            AotCompilerCloningImageProcessor<TPixel, CloningImageProcessor>();
+            AotCompilerCloningImageProcessor<TPixel, CropProcessor>();
+            AotCompilerCloningImageProcessor<TPixel, AffineTransformProcessor>();
+            AotCompilerCloningImageProcessor<TPixel, ProjectiveTransformProcessor>();
+            AotCompilerCloningImageProcessor<TPixel, RotateProcessor>();
+            AotCompilerCloningImageProcessor<TPixel, SkewProcessor>();
+            AotCompilerCloningImageProcessor<TPixel, ResizeProcessor>();
+        }
+
+        /// <summary>
+        /// This method pre-seeds the <see cref="IImageProcessor" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <typeparam name="TProc">The processor type</typeparam>
+        private static void AotCompileImageProcessor<TPixel, TProc>()
+            where TPixel : unmanaged, IPixel<TPixel>
+            where TProc : class, IImageProcessor
+                => default(TProc).CreatePixelSpecificProcessor<TPixel>(default, default, default);
+
+        /// <summary>
+        /// This method pre-seeds the <see cref="ICloningImageProcessor" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <typeparam name="TProc">The processor type</typeparam>
+        private static void AotCompilerCloningImageProcessor<TPixel, TProc>()
+            where TPixel : unmanaged, IPixel<TPixel>
+            where TProc : class, ICloningImageProcessor
+                => default(TProc).CreatePixelSpecificCloningProcessor<TPixel>(default, default, default);
+
+        /// <summary>
+        /// This method pre-seeds the all <see cref="IImageProcessor"/> in the AoT compiler.
+        /// </summary>
+        /// <remarks>
+        /// There is no structure that implements ISwizzler.
+        /// </remarks>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompileGenericImageProcessors<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            AotCompileGenericCloningImageProcessor<TPixel, CropProcessor<TPixel>>();
+            AotCompileGenericCloningImageProcessor<TPixel, AffineTransformProcessor<TPixel>>();
+            AotCompileGenericCloningImageProcessor<TPixel, ProjectiveTransformProcessor<TPixel>>();
+            AotCompileGenericCloningImageProcessor<TPixel, ResizeProcessor<TPixel>>();
+            AotCompileGenericCloningImageProcessor<TPixel, RotateProcessor<TPixel>>();
+        }
+
+        /// <summary>
+        /// This method pre-seeds the <see cref="ICloningImageProcessor{TPixel}" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <typeparam name="TProc">The processor type</typeparam>
+        private static void AotCompileGenericCloningImageProcessor<TPixel, TProc>()
+            where TPixel : unmanaged, IPixel<TPixel>
+            where TProc : class, ICloningImageProcessor<TPixel>
+                => default(TProc).CloneAndExecute();
+
+        /// <summary>
+        /// This method pre-seeds the all<see cref="IResampler" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompileResamplers<TPixel>()
+                  where TPixel : unmanaged, IPixel<TPixel>
+        {
+            AotCompileResampler<TPixel, BicubicResampler>();
+            AotCompileResampler<TPixel, BoxResampler>();
+            AotCompileResampler<TPixel, CubicResampler>();
+            AotCompileResampler<TPixel, LanczosResampler>();
+            AotCompileResampler<TPixel, NearestNeighborResampler>();
+            AotCompileResampler<TPixel, TriangleResampler>();
+            AotCompileResampler<TPixel, WelchResampler>();
+        }
+
+        /// <summary>
+        /// This method pre-seeds the <see cref="IResampler" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <typeparam name="TResampler">The processor type</typeparam>
+        private static void AotCompileResampler<TPixel, TResampler>()
+                where TPixel : unmanaged, IPixel<TPixel>
+                where TResampler : struct, IResampler
+        {
+            default(TResampler).ApplyTransform<TPixel>(default);
+
+            default(AffineTransformProcessor<TPixel>).ApplyTransform<TResampler>(default);
+            default(ProjectiveTransformProcessor<TPixel>).ApplyTransform<TResampler>(default);
+            default(ResizeProcessor<TPixel>).ApplyTransform<TResampler>(default);
+            default(RotateProcessor<TPixel>).ApplyTransform<TResampler>(default);
+        }
+
+        /// <summary>
+        /// This method pre-seeds the all <see cref="IQuantizer" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompileQuantizers<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            AotCompileQuantizer<TPixel, OctreeQuantizer>();
+            AotCompileQuantizer<TPixel, PaletteQuantizer>();
+            AotCompileQuantizer<TPixel, WebSafePaletteQuantizer>();
+            AotCompileQuantizer<TPixel, WernerPaletteQuantizer>();
+            AotCompileQuantizer<TPixel, WuQuantizer>();
+        }
+
+        /// <summary>
+        /// This method pre-seeds the <see cref="IQuantizer" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <typeparam name="TQuantizer">The quantizer type</typeparam>
+        private static void AotCompileQuantizer<TPixel, TQuantizer>()
+            where TPixel : unmanaged, IPixel<TPixel>
+
+            where TQuantizer : class, IQuantizer
+        {
+            default(TQuantizer).CreatePixelSpecificQuantizer<TPixel>(default);
+            default(TQuantizer).CreatePixelSpecificQuantizer<TPixel>(default, default);
+        }
+
+        /// <summary>
+        /// This method pre-seeds the <see cref="IPixelSamplingStrategy" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        private static void AotCompilePixelSamplingStrategys<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            default(DefaultPixelSamplingStrategy).EnumeratePixelRegions<TPixel>(default);
+            default(ExtensivePixelSamplingStrategy).EnumeratePixelRegions<TPixel>(default);
         }
     }
 }

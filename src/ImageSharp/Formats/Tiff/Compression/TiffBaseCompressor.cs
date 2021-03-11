@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         /// <summary>
         /// Gets the compression method to use.
         /// </summary>
-        public abstract TiffEncoderCompression Method { get; }
+        public abstract TiffCompression Method { get; }
 
         /// <summary>
         /// Gets the output stream to write the compressed image to.

@@ -332,13 +332,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             {
                 switch (encoder.CompressionType)
                 {
-                    case TiffEncoderCompression.Deflate:
+                    case TiffCompression.Deflate:
                         // Deflate is allowed for all modes.
                         return (ushort)TiffCompression.Deflate;
-                    case TiffEncoderCompression.PackBits:
+                    case TiffCompression.PackBits:
                         // PackBits is allowed for all modes.
                         return (ushort)TiffCompression.PackBits;
-                    case TiffEncoderCompression.Lzw:
+                    case TiffCompression.Lzw:
                         if (encoder.Mode == TiffEncodingMode.Rgb || encoder.Mode == TiffEncodingMode.Gray || encoder.Mode == TiffEncodingMode.ColorPalette)
                         {
                             return (ushort)TiffCompression.Lzw;
@@ -346,7 +346,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                         break;
 
-                    case TiffEncoderCompression.CcittGroup3Fax:
+                    case TiffCompression.CcittGroup3Fax:
                         if (encoder.Mode == TiffEncodingMode.BiColor)
                         {
                             return (ushort)TiffCompression.CcittGroup3Fax;
@@ -354,7 +354,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                         break;
 
-                    case TiffEncoderCompression.ModifiedHuffman:
+                    case TiffCompression.Ccitt1D:
                         if (encoder.Mode == TiffEncodingMode.BiColor)
                         {
                             return (ushort)TiffCompression.Ccitt1D;

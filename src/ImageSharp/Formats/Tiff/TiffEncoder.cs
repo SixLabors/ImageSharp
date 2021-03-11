@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Compression.Zlib;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -21,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public TiffBitsPerPixel? BitsPerPixel { get; set; }
 
         /// <inheritdoc/>
-        public TiffEncoderCompression Compression { get; set; } = TiffEncoderCompression.None;
+        public TiffCompression Compression { get; set; } = TiffCompression.None;
 
         /// <inheritdoc/>
         public DeflateCompressionLevel CompressionLevel { get; set; } = DeflateCompressionLevel.DefaultCompression;

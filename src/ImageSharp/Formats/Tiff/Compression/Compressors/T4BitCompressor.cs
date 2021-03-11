@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
@@ -202,7 +203,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
         }
 
         /// <inheritdoc/>
-        public override TiffEncoderCompression Method => this.useModifiedHuffman ? TiffEncoderCompression.ModifiedHuffman : TiffEncoderCompression.CcittGroup3Fax;
+        public override TiffCompression Method => this.useModifiedHuffman ? TiffCompression.Ccitt1D : TiffCompression.CcittGroup3Fax;
 
         /// <inheritdoc/>
         public override void Initialize(int rowsPerStrip)

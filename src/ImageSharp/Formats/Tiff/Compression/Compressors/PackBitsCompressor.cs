@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
@@ -17,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
         }
 
         /// <inheritdoc/>
-        public override TiffEncoderCompression Method => TiffEncoderCompression.PackBits;
+        public override TiffCompression Method => TiffCompression.PackBits;
 
         /// <inheritdoc/>
         public override void Initialize(int rowsPerStrip)

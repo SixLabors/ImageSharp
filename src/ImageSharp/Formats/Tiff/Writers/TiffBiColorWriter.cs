@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -46,7 +47,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
 
             PixelOperations<TPixel>.Instance.ToL8Bytes(this.Configuration, pixels, pixelAsGraySpan, pixels.Length);
 
-            if (compressor.Method == TiffEncoderCompression.CcittGroup3Fax || compressor.Method == TiffEncoderCompression.ModifiedHuffman)
+            if (compressor.Method == TiffCompression.CcittGroup3Fax || compressor.Method == TiffCompression.Ccitt1D)
             {
                 // Special case for T4BitCompressor.
                 compressor.CompressStrip(pixelAsGraySpan, height);

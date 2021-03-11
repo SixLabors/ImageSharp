@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
         }
 
         /// <inheritdoc/>
-        public override TiffEncoderCompression Method => TiffEncoderCompression.Lzw;
+        public override TiffCompression Method => TiffCompression.Lzw;
 
         /// <inheritdoc/>
         public override void Initialize(int rowsPerStrip) => this.lzwEncoder = new TiffLzwEncoder(this.Allocator);

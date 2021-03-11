@@ -354,7 +354,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             frameMeta.ExifProfile.SetValue(ExifTag.DateTime, datetime);
 
             // Save to Tiff
-            var tiffEncoder = new TiffEncoder { Mode = TiffEncodingMode.Default, Compression = TiffEncoderCompression.Deflate };
+            var tiffEncoder = new TiffEncoder { Mode = TiffEncodingMode.Default, Compression = TiffCompression.Deflate };
             if (!preserveMetadata)
             {
                 ClearMeta(image);

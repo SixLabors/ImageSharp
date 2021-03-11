@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Compression.Zlib;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
@@ -19,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets the compression type to use.
         /// </summary>
-        TiffEncoderCompression Compression { get; }
+        TiffCompression Compression { get; }
 
         /// <summary>
         /// Gets the compression level 1-9 for the deflate compression mode.

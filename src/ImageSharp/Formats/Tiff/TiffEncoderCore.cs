@@ -86,7 +86,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         /// <summary>
         /// Gets or sets the compression implementation to use when encoding the image.
         /// </summary>
-        internal TiffEncoderCompression CompressionType { get; set; }
+        internal TiffCompression CompressionType { get; set; }
 
         /// <summary>
         /// Gets the encoding mode to use. RGB, RGB with color palette or gray.
@@ -278,7 +278,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         private void SetMode(TiffMetadata tiffMetadata)
         {
             // Make sure, that the fax compressions are only used together with the BiColor mode.
-            if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax || this.CompressionType == TiffEncoderCompression.ModifiedHuffman)
+            if (this.CompressionType == TiffCompression.CcittGroup3Fax || this.CompressionType == TiffCompression.Ccitt1D)
             {
                 // Default means the user has not specified a preferred encoding mode.
                 if (this.Mode == TiffEncodingMode.Default)
@@ -350,7 +350,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     this.PhotometricInterpretation = TiffPhotometricInterpretation.PaletteColor;
                     break;
                 case TiffEncodingMode.BiColor:
-                    if (this.CompressionType == TiffEncoderCompression.CcittGroup3Fax || this.CompressionType == TiffEncoderCompression.ModifiedHuffman)
+                    if (this.CompressionType == TiffCompression.CcittGroup3Fax || this.CompressionType == TiffCompression.Ccitt1D)
                     {
                         // The “normal” PhotometricInterpretation for bilevel CCITT compressed data is WhiteIsZero.
                         this.PhotometricInterpretation = TiffPhotometricInterpretation.WhiteIsZero;

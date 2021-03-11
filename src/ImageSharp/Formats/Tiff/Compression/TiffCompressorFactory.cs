@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
     internal static class TiffCompressorFactory
     {
         public static TiffBaseCompressor Create(
-            TiffEncoderCompression method,
+            TiffCompression method,
             Stream output,
             MemoryAllocator allocator,
             int width,
@@ -22,36 +22,42 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
         {
             switch (method)
             {
-                case TiffEncoderCompression.None:
+                // The following compression types are not implemented in the encoder and will default to no compression instead.
+                case TiffCompression.ItuTRecT43:
+                case TiffCompression.ItuTRecT82:
+                case TiffCompression.Jpeg:
+                case TiffCompression.OldJpeg:
+                case TiffCompression.OldDeflate:
+                case TiffCompression.None:
                     DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
 
                     return new NoCompressor(output, allocator, width, bitsPerPixel);
 
-                case TiffEncoderCompression.PackBits:
+                case TiffCompression.PackBits:
                     DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                     return new PackBitsCompressor(output, allocator, width, bitsPerPixel);
 
-                case TiffEncoderCompression.Deflate:
+                case TiffCompression.Deflate:
                     return new DeflateCompressor(output, allocator, width, bitsPerPixel, predictor, compressionLevel);
 
-                case TiffEncoderCompression.Lzw:
+                case TiffCompression.Lzw:
                     DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");
                     return new LzwCompressor(output, allocator, width, bitsPerPixel, predictor);
 
-                case TiffEncoderCompression.CcittGroup3Fax:
+                case TiffCompression.CcittGroup3Fax:
                     DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                     return new T4BitCompressor(output, allocator, width, bitsPerPixel, false);
 
-                case TiffEncoderCompression.ModifiedHuffman:
+                case TiffCompression.Ccitt1D:
                     DebugGuard.IsTrue(compressionLevel == DeflateCompressionLevel.DefaultCompression, "No deflate compression level is expected to be set");
                     DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
                     return new T4BitCompressor(output, allocator, width, bitsPerPixel, true);
 
                 default:
-                    throw TiffThrowHelper.NotSupportedCompressor(nameof(method));
+                    throw TiffThrowHelper.NotSupportedCompressor(method.ToString());
             }
         }
     }

@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
             => this.compressionLevel = compressionLevel;
 
         /// <inheritdoc/>
-        public override TiffEncoderCompression Method => TiffEncoderCompression.Deflate;
+        public override TiffCompression Method => TiffCompression.Deflate;
 
         /// <inheritdoc/>
         public override void Initialize(int rowsPerStrip)

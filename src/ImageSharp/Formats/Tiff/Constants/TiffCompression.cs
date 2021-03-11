@@ -30,6 +30,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
 
         /// <summary>
         /// T6-encoding: CCITT T.6 bi-level encoding (see Section 11 of the TIFF 6.0 specification).
+        ///
+        /// Note: The TIFF encoder does not yet support this compression and will default to use no compression instead,
+        /// if this is choosen.
         /// </summary>
         CcittGroup4Fax = 4,
 
@@ -40,11 +43,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
 
         /// <summary>
         /// JPEG compression - obsolete (see Section 22 of the TIFF 6.0 specification).
+        ///
+        /// Note: The TIFF encoder does not support this compression and will default to use no compression instead,
+        /// if this is choosen.
         /// </summary>
         OldJpeg = 6,
 
         /// <summary>
         /// JPEG compression (see TIFF Specification, supplement 2).
+        ///
+        /// Note: The TIFF encoder does not yet support this compression and will default to use no compression instead,
+        /// if this is choosen.
         /// </summary>
         Jpeg = 7,
 
@@ -55,16 +64,25 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
 
         /// <summary>
         /// Deflate compression - old.
+        ///
+        /// Note: The TIFF encoder does not support this compression and will default to use no compression instead,
+        /// if this is choosen.
         /// </summary>
         OldDeflate = 32946,
 
         /// <summary>
         /// ITU-T Rec. T.82 coding, applying ITU-T Rec. T.85 (JBIG) (see RFC2301).
+        ///
+        /// Note: The TIFF encoder does not yet support this compression and will default to use no compression instead,
+        /// if this is choosen.
         /// </summary>
         ItuTRecT82 = 9,
 
         /// <summary>
         /// ITU-T Rec. T.43 representation, using ITU-T Rec. T.82 (JBIG) (see RFC2301).
+        ///
+        /// Note: The TIFF encoder does not yet support this compression and will default to use no compression instead,
+        /// if this is choosen.
         /// </summary>
         ItuTRecT43 = 10
     }

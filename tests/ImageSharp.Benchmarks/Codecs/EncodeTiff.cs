@@ -7,6 +7,7 @@ using System.IO;
 using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.Formats.Experimental.Tiff;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 
@@ -28,13 +29,13 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public string TestImage { get; set; }
 
         [Params(
-            TiffEncoderCompression.None,
-            TiffEncoderCompression.Deflate,
-            TiffEncoderCompression.Lzw,
-            TiffEncoderCompression.PackBits,
-            TiffEncoderCompression.CcittGroup3Fax,
-            TiffEncoderCompression.ModifiedHuffman)]
-        public TiffEncoderCompression Compression { get; set; }
+            TiffCompression.None,
+            TiffCompression.Deflate,
+            TiffCompression.Lzw,
+            TiffCompression.PackBits,
+            TiffCompression.CcittGroup3Fax,
+            TiffCompression.Ccitt1D)]
+        public TiffCompression Compression { get; set; }
 
         [GlobalSetup]
         public void ReadImages()
@@ -73,7 +74,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             TiffEncodingMode mode = TiffEncodingMode.Default;
 
             // workaround for 1-bit bug
-            if (this.Compression == TiffEncoderCompression.CcittGroup3Fax || this.Compression == TiffEncoderCompression.ModifiedHuffman)
+            if (this.Compression == TiffCompression.CcittGroup3Fax || this.Compression == TiffCompression.Ccitt1D)
             {
                 mode = TiffEncodingMode.BiColor;
             }
@@ -98,20 +99,20 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
             return null;
         }
 
-        private static EncoderValue Cast(TiffEncoderCompression compression)
+        private static EncoderValue Cast(TiffCompression compression)
         {
             switch (compression)
             {
-                case TiffEncoderCompression.None:
+                case TiffCompression.None:
                     return EncoderValue.CompressionNone;
 
-                case TiffEncoderCompression.CcittGroup3Fax:
+                case TiffCompression.CcittGroup3Fax:
                     return EncoderValue.CompressionCCITT3;
 
-                case TiffEncoderCompression.ModifiedHuffman:
+                case TiffCompression.Ccitt1D:
                     return EncoderValue.CompressionRle;
 
-                case TiffEncoderCompression.Lzw:
+                case TiffCompression.Lzw:
                     return EncoderValue.CompressionLZW;
 
                 default:

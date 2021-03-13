@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats;
@@ -13,6 +12,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tga;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors;
@@ -40,70 +40,82 @@ namespace SixLabors.ImageSharp.Advanced
     [ExcludeFromCodeCoverage]
     internal static class AotCompilerTools
     {
-        static AotCompilerTools()
-        {
-            Unsafe.SizeOf<long>();
-            Unsafe.SizeOf<short>();
-            Unsafe.SizeOf<float>();
-            Unsafe.SizeOf<double>();
-            Unsafe.SizeOf<byte>();
-            Unsafe.SizeOf<int>();
-            Unsafe.SizeOf<Block8x8>();
-            Unsafe.SizeOf<Vector4>();
-        }
-
         /// <summary>
         /// This is the method that seeds the AoT compiler.
         /// None of these seed methods needs to actually be called to seed the compiler.
         /// The calls just need to be present when the code is compiled, and each implementation will be built.
         /// </summary>
+        /// <remarks>
+        /// This method doesn't actually do anything but serves an important purpose...
+        /// If you are running ImageSharp on iOS and try to call SaveAsGif, it will throw an exception:
+        /// "Attempting to JIT compile method... OctreeFrameQuantizer.ConstructPalette... while running in aot-only mode."
+        /// The reason this happens is the SaveAsGif method makes heavy use of generics, which are too confusing for the AoT
+        /// compiler used on Xamarin.iOS. It spins up the JIT compiler to try and figure it out, but that is an illegal op on
+        /// iOS so it bombs out.
+        /// If you are getting the above error, you need to call this method, which will pre-seed the AoT compiler with the
+        /// necessary methods to complete the SaveAsGif call. That's it, otherwise you should NEVER need this method!!!
+        /// </remarks>
+        [Preserve]
         private static void SeedEverything()
         {
-            Seed<A8>();
-            Seed<Argb32>();
-            Seed<Bgr24>();
-            Seed<Bgr565>();
-            Seed<Bgra32>();
-            Seed<Bgra4444>();
-            Seed<Bgra5551>();
-            Seed<Byte4>();
-            Seed<L16>();
-            Seed<L8>();
-            Seed<La16>();
-            Seed<La32>();
-            Seed<HalfSingle>();
-            Seed<HalfVector2>();
-            Seed<HalfVector4>();
-            Seed<NormalizedByte2>();
-            Seed<NormalizedByte4>();
-            Seed<NormalizedShort2>();
-            Seed<NormalizedShort4>();
-            Seed<Rg32>();
-            Seed<Rgb24>();
-            Seed<Rgb48>();
-            Seed<Rgba1010102>();
-            Seed<Rgba32>();
-            Seed<Rgba64>();
-            Seed<RgbaVector>();
-            Seed<Short2>();
-            Seed<Short4>();
+            try
+            {
+                Unsafe.SizeOf<long>();
+                Unsafe.SizeOf<short>();
+                Unsafe.SizeOf<float>();
+                Unsafe.SizeOf<double>();
+                Unsafe.SizeOf<byte>();
+                Unsafe.SizeOf<int>();
+                Unsafe.SizeOf<bool>();
+                Unsafe.SizeOf<Block8x8>();
+                Unsafe.SizeOf<Vector4>();
+
+                Seed<A8>();
+                Seed<Argb32>();
+                Seed<Bgr24>();
+                Seed<Bgr565>();
+                Seed<Bgra32>();
+                Seed<Bgra4444>();
+                Seed<Bgra5551>();
+                Seed<Byte4>();
+                Seed<L16>();
+                Seed<L8>();
+                Seed<La16>();
+                Seed<La32>();
+                Seed<HalfSingle>();
+                Seed<HalfVector2>();
+                Seed<HalfVector4>();
+                Seed<NormalizedByte2>();
+                Seed<NormalizedByte4>();
+                Seed<NormalizedShort2>();
+                Seed<NormalizedShort4>();
+                Seed<Rg32>();
+                Seed<Rgb24>();
+                Seed<Rgb48>();
+                Seed<Rgba1010102>();
+                Seed<Rgba32>();
+                Seed<Rgba64>();
+                Seed<RgbaVector>();
+                Seed<Short2>();
+                Seed<Short4>();
+            }
+            catch
+            {
+                // nop
+            }
+
+            throw new InvalidOperationException("This method is used for AOT code generation only. Do not call it at runtime.");
         }
 
         /// <summary>
         /// Seeds the compiler using the given pixel format.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static void Seed<TPixel>()
              where TPixel : unmanaged, IPixel<TPixel>
         {
             // This is we actually call all the individual methods you need to seed.
-            AotPixelInterface<TPixel>();
-            AotCompileOctreeQuantizer<TPixel>();
-            AotCompileWuQuantizer<TPixel>();
-            AotCompilePaletteQuantizer<TPixel>();
-            AotCompileDithering<TPixel>();
-            AotCompilePixelOperations<TPixel>();
-
             AotCompileImage<TPixel>();
             AotCompileImageProcessingContextFactory<TPixel>();
             AotCompileImageEncoderInternals<TPixel>();
@@ -115,136 +127,19 @@ namespace SixLabors.ImageSharp.Advanced
             AotCompileResamplers<TPixel>();
             AotCompileQuantizers<TPixel>();
             AotCompilePixelSamplingStrategys<TPixel>();
+            AotCompileDithers<TPixel>();
+            AotCompileMemoryManagers<TPixel>();
 
             Unsafe.SizeOf<TPixel>();
 
-            AotCodecs<TPixel>();
-
             // TODO: Do the discovery work to figure out what works and what doesn't.
-        }
-
-        private static void AotPixelInterface<TPixel>()
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            TPixel pixel = default;
-            Rgba32 rgba32 = default;
-            pixel.ToRgba32(ref rgba32);
-            pixel.FromRgba32(rgba32);
-            pixel.FromScaledVector4(pixel.ToScaledVector4());
-            pixel.FromVector4(pixel.ToVector4());
-
-            pixel.FromArgb32(default);
-            pixel.FromBgr24(default);
-            pixel.FromBgra32(default);
-            pixel.FromBgra5551(default);
-            pixel.FromL16(default);
-            pixel.FromL8(default);
-            pixel.FromLa16(default);
-            pixel.FromLa32(default);
-            pixel.FromRgb24(default);
-            pixel.FromRgb48(default);
-            pixel.FromRgba64(default);
-            pixel.FromRgb24(default);
-        }
-
-        /// <summary>
-        /// This method doesn't actually do anything but serves an important purpose...
-        /// If you are running ImageSharp on iOS and try to call SaveAsGif, it will throw an exception:
-        /// "Attempting to JIT compile method... OctreeFrameQuantizer.ConstructPalette... while running in aot-only mode."
-        /// The reason this happens is the SaveAsGif method makes heavy use of generics, which are too confusing for the AoT
-        /// compiler used on Xamarin.iOS. It spins up the JIT compiler to try and figure it out, but that is an illegal op on
-        /// iOS so it bombs out.
-        /// If you are getting the above error, you need to call this method, which will pre-seed the AoT compiler with the
-        /// necessary methods to complete the SaveAsGif call. That's it, otherwise you should NEVER need this method!!!
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        private static void AotCompileOctreeQuantizer<TPixel>()
-        where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using var test = new OctreeQuantizer<TPixel>(Configuration.Default, new OctreeQuantizer().Options);
-            var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
-            test.QuantizeFrame(frame, frame.Bounds());
-        }
-
-        /// <summary>
-        /// This method pre-seeds the WuQuantizer in the AoT compiler for iOS.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        private static void AotCompileWuQuantizer<TPixel>()
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using var test = new WuQuantizer<TPixel>(Configuration.Default, new WuQuantizer().Options);
-            var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
-            test.QuantizeFrame(frame, frame.Bounds());
-        }
-
-        /// <summary>
-        /// This method pre-seeds the PaletteQuantizer in the AoT compiler for iOS.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        private static void AotCompilePaletteQuantizer<TPixel>()
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            using var test = (PaletteQuantizer<TPixel>)new PaletteQuantizer(Array.Empty<Color>()).CreatePixelSpecificQuantizer<TPixel>(Configuration.Default);
-            var frame = new ImageFrame<TPixel>(Configuration.Default, 1, 1);
-            test.QuantizeFrame(frame, frame.Bounds());
-        }
-
-        /// <summary>
-        /// This method pre-seeds the default dithering engine (FloydSteinbergDiffuser) in the AoT compiler for iOS.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        private static void AotCompileDithering<TPixel>()
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            ErrorDither errorDither = ErrorDither.FloydSteinberg;
-            OrderedDither orderedDither = OrderedDither.Bayer2x2;
-            TPixel pixel = default;
-            using (var image = new ImageFrame<TPixel>(Configuration.Default, 1, 1))
-            {
-                errorDither.Dither(image, image.Bounds(), pixel, pixel, 0, 0, 0);
-                orderedDither.Dither(pixel, 0, 0, 0, 0);
-            }
-        }
-
-        /// <summary>
-        /// This method pre-seeds the decoder and encoder for a given pixel format in the AoT compiler for iOS.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        private static void AotCodecs<TPixel>()
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            Configuration configuration = Configuration.Default;
-            ImageFormatManager formatsManager = configuration.ImageFormatsManager;
-            foreach (IImageFormat imageFormat in configuration.ImageFormats)
-            {
-                using var ms = new MemoryStream();
-                using (var encoded = new Image<TPixel>(1, 1))
-                {
-                    encoded.Save(ms, formatsManager.FindEncoder(imageFormat));
-                    ms.Position = 0;
-                }
-
-                using var decoded = Image.Load<TPixel>(ms);
-                Span<TPixel> span = decoded.GetPixelRowSpan(0);
-            }
-        }
-
-        /// <summary>
-        /// This method pre-seeds the PixelOperations engine for the AoT compiler on iOS.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        private static void AotCompilePixelOperations<TPixel>()
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            var pixelOp = new PixelOperations<TPixel>();
-            pixelOp.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.Clear);
         }
 
         /// <summary>
         /// This method pre-seeds the <see cref="Image{TPixel}"/> for a given pixel format in the AoT compiler.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static unsafe void AotCompileImage<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -282,6 +177,11 @@ namespace SixLabors.ImageSharp.Advanced
             ImageFrame.LoadPixelData<TPixel>(default, default(ReadOnlySpan<byte>), default, default);
         }
 
+        /// <summary>
+        /// This method pre-seeds the all <see cref="IImageProcessingContextFactory"/> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static void AotCompileImageProcessingContextFactory<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
                 => default(DefaultImageOperationsProviderFactory).CreateImageProcessingContext<TPixel>(default, default, default);
@@ -290,6 +190,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// This method pre-seeds the all <see cref="IImageEncoderInternals"/> in the AoT compiler.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static void AotCompileImageEncoderInternals<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -304,6 +205,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// This method pre-seeds the all <see cref="IImageDecoderInternals"/> in the AoT compiler.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static void AotCompileImageDecoderInternals<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -318,6 +220,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// This method pre-seeds the all <see cref="IImageEncoder"/> in the AoT compiler.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static void AotCompileImageEncoders<TPixel>()
            where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -332,6 +235,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// This method pre-seeds the all <see cref="IImageDecoder"/> in the AoT compiler.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static void AotCompileImageDecoders<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -347,6 +251,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <typeparam name="TEncoder">The encoder.</typeparam>
+        [Preserve]
         private static void AotCompileImageEncoder<TPixel, TEncoder>()
             where TPixel : unmanaged, IPixel<TPixel>
             where TEncoder : class, IImageEncoder
@@ -360,6 +265,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <typeparam name="TDecoder">The decoder.</typeparam>
+        [Preserve]
         private static void AotCompileImageDecoder<TPixel, TDecoder>()
            where TPixel : unmanaged, IPixel<TPixel>
            where TDecoder : class, IImageDecoder
@@ -375,6 +281,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// There is no structure that implements ISwizzler.
         /// </remarks>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static void AotCompileImageProcessors<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -448,6 +355,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <typeparam name="TProc">The processor type</typeparam>
+        [Preserve]
         private static void AotCompileImageProcessor<TPixel, TProc>()
             where TPixel : unmanaged, IPixel<TPixel>
             where TProc : class, IImageProcessor
@@ -458,6 +366,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <typeparam name="TProc">The processor type</typeparam>
+        [Preserve]
         private static void AotCompilerCloningImageProcessor<TPixel, TProc>()
             where TPixel : unmanaged, IPixel<TPixel>
             where TProc : class, ICloningImageProcessor
@@ -470,6 +379,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// There is no structure that implements ISwizzler.
         /// </remarks>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static void AotCompileGenericImageProcessors<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -485,6 +395,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <typeparam name="TProc">The processor type</typeparam>
+        [Preserve]
         private static void AotCompileGenericCloningImageProcessor<TPixel, TProc>()
             where TPixel : unmanaged, IPixel<TPixel>
             where TProc : class, ICloningImageProcessor<TPixel>
@@ -494,6 +405,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// This method pre-seeds the all<see cref="IResampler" /> in the AoT compiler.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static void AotCompileResamplers<TPixel>()
                   where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -511,6 +423,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <typeparam name="TResampler">The processor type</typeparam>
+        [Preserve]
         private static void AotCompileResampler<TPixel, TResampler>()
                 where TPixel : unmanaged, IPixel<TPixel>
                 where TResampler : struct, IResampler
@@ -527,6 +440,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// This method pre-seeds the all <see cref="IQuantizer" /> in the AoT compiler.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static void AotCompileQuantizers<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -542,6 +456,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <typeparam name="TQuantizer">The quantizer type</typeparam>
+        [Preserve]
         private static void AotCompileQuantizer<TPixel, TQuantizer>()
             where TPixel : unmanaged, IPixel<TPixel>
 
@@ -555,11 +470,80 @@ namespace SixLabors.ImageSharp.Advanced
         /// This method pre-seeds the <see cref="IPixelSamplingStrategy" /> in the AoT compiler.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
         private static void AotCompilePixelSamplingStrategys<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
             default(DefaultPixelSamplingStrategy).EnumeratePixelRegions<TPixel>(default);
             default(ExtensivePixelSamplingStrategy).EnumeratePixelRegions<TPixel>(default);
+        }
+
+        /// <summary>
+        /// This method pre-seeds the all <see cref="IDither" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
+        private static void AotCompileDithers<TPixel>()
+           where TPixel : unmanaged, IPixel<TPixel>
+        {
+            AotCompileDither<TPixel, ErrorDither>();
+            AotCompileDither<TPixel, OrderedDither>();
+        }
+
+        /// <summary>
+        /// This method pre-seeds the <see cref="IDither" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <typeparam name="TDither">The dither.</typeparam>
+        [Preserve]
+        private static void AotCompileDither<TPixel, TDither>()
+            where TPixel : unmanaged, IPixel<TPixel>
+            where TDither : struct, IDither
+        {
+            var octree = default(OctreeQuantizer<TPixel>);
+            default(TDither).ApplyQuantizationDither<OctreeQuantizer<TPixel>, TPixel>(ref octree, default, default, default);
+
+            var palette = default(PaletteQuantizer<TPixel>);
+            default(TDither).ApplyQuantizationDither<PaletteQuantizer<TPixel>, TPixel>(ref palette, default, default, default);
+
+            var wu = default(WuQuantizer<TPixel>);
+            default(TDither).ApplyQuantizationDither<WuQuantizer<TPixel>, TPixel>(ref wu, default, default, default);
+            default(TDither).ApplyPaletteDither<PaletteDitherProcessor<TPixel>.DitherProcessor, TPixel>(default, default, default);
+        }
+
+        /// <summary>
+        /// This method pre-seeds the all <see cref="MemoryAllocator" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        [Preserve]
+        private static void AotCompileMemoryManagers<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            AotCompileMemoryManager<TPixel, ArrayPoolMemoryAllocator>();
+            AotCompileMemoryManager<TPixel, SimpleGcMemoryAllocator>();
+        }
+
+        /// <summary>
+        /// This method pre-seeds the <see cref="MemoryAllocator" /> in the AoT compiler.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel format.</typeparam>
+        /// <typeparam name="TBuffer">The buffer.</typeparam>
+        [Preserve]
+        private static void AotCompileMemoryManager<TPixel, TBuffer>()
+            where TPixel : unmanaged, IPixel<TPixel>
+            where TBuffer : MemoryAllocator
+        {
+            default(TBuffer).Allocate<long>(default, default);
+            default(TBuffer).Allocate<short>(default, default);
+            default(TBuffer).Allocate<float>(default, default);
+            default(TBuffer).Allocate<double>(default, default);
+            default(TBuffer).Allocate<byte>(default, default);
+            default(TBuffer).Allocate<int>(default, default);
+            default(TBuffer).Allocate<bool>(default, default);
+            default(TBuffer).Allocate<decimal>(default, default);
+            default(TBuffer).Allocate<Block8x8>(default, default);
+            default(TBuffer).Allocate<Vector4>(default, default);
+            default(TBuffer).Allocate<TPixel>(default, default);
         }
     }
 }

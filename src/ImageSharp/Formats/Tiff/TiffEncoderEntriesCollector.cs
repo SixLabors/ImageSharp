@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
-
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -12,6 +12,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 {
     internal class TiffEncoderEntriesCollector
     {
+        private const string SoftwareValue = "ImageSharp";
+
         public List<IExifValue> Entries { get; } = new List<IExifValue>();
 
         public void ProcessGeneral<TPixel>(Image<TPixel> image)
@@ -21,18 +23,20 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         public void ProcessImageFormat(TiffEncoderCore encoder)
             => new ImageFormatProcessor(this).Process(encoder);
 
-        public void Add(IExifValue entry)
+        public void AddOrReplace(IExifValue entry)
         {
-            IExifValue exist = this.Entries.Find(t => t.Tag == entry.Tag);
-            if (exist != null)
+            int index = this.Entries.FindIndex(t => t.Tag == entry.Tag);
+            if (index >= 0)
             {
-                this.Entries.Remove(exist);
+                this.Entries[index] = entry;
             }
-
-            this.Entries.Add(entry);
+            else
+            {
+                this.Entries.Add(entry);
+            }
         }
 
-        private void AddInternal(IExifValue entry) => this.Entries.Add(entry);
+        private void Add(IExifValue entry) => this.Entries.Add(entry);
 
         private class GeneralProcessor
         {
@@ -57,12 +61,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                 var software = new ExifString(ExifTagValue.Software)
                 {
-                    Value = "ImageSharp"
+                    Value = SoftwareValue
                 };
 
-                this.collector.AddInternal(width);
-                this.collector.AddInternal(height);
-                this.collector.AddInternal(software);
+                this.collector.Add(width);
+                this.collector.Add(height);
+                this.collector.Add(software);
 
                 this.ProcessResolution(image.Metadata, frameMetadata);
 
@@ -70,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 this.ProcessMetadata(frameMetadata);
             }
 
-            private static bool IsMetadata(ExifTag tag)
+            private static bool IsPureMetadata(ExifTag tag)
             {
                 switch ((ExifTagValue)(ushort)tag)
                 {
@@ -107,29 +111,22 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
             private void ProcessResolution(ImageMetadata imageMetadata, TiffFrameMetadata frameMetadata)
             {
-                frameMetadata.SetResolutions(
+                UnitConverter.SetResolutionValues(
+                    frameMetadata.ExifProfile,
                     imageMetadata.ResolutionUnits,
                     imageMetadata.HorizontalResolution,
                     imageMetadata.VerticalResolution);
 
-                var xResolution = new ExifRational(ExifTagValue.XResolution)
-                {
-                    Value = frameMetadata.ExifProfile.GetValue(ExifTag.XResolution).Value
-                };
+                this.collector.Add(frameMetadata.ExifProfile.GetValue(ExifTag.ResolutionUnit).DeepClone());
 
-                var yResolution = new ExifRational(ExifTagValue.YResolution)
-                {
-                    Value = frameMetadata.ExifProfile.GetValue(ExifTag.YResolution).Value
-                };
+                IExifValue xResolution = frameMetadata.ExifProfile.GetValue(ExifTag.XResolution)?.DeepClone();
+                IExifValue yResolution = frameMetadata.ExifProfile.GetValue(ExifTag.YResolution)?.DeepClone();
 
-                var resolutionUnit = new ExifShort(ExifTagValue.ResolutionUnit)
+                if (xResolution != null && yResolution != null)
                 {
-                    Value = frameMetadata.ExifProfile.GetValue(ExifTag.ResolutionUnit).Value
-                };
-
-                this.collector.AddInternal(xResolution);
-                this.collector.AddInternal(yResolution);
-                this.collector.AddInternal(resolutionUnit);
+                    this.collector.Add(xResolution);
+                    this.collector.Add(yResolution);
+                }
             }
 
             private void ProcessMetadata(TiffFrameMetadata frameMetadata)
@@ -160,7 +157,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                             break;
 
                         case ExifParts.IfdTags:
-                            if (!IsMetadata(entry.Tag))
+                            if (!IsPureMetadata(entry.Tag))
                             {
                                 continue;
                             }
@@ -170,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
 
                     if (!this.collector.Entries.Exists(t => t.Tag == entry.Tag))
                     {
-                        this.collector.AddInternal(entry.DeepClone());
+                        this.collector.AddOrReplace(entry.DeepClone());
                     }
                 }
             }
@@ -194,7 +191,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                         Value = imageMetadata.IptcProfile.Data
                     };
 
-                    this.collector.AddInternal(iptc);
+                    this.collector.Add(iptc);
                 }
                 else
                 {
@@ -208,7 +205,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                         Value = imageMetadata.IccProfile.ToByteArray()
                     };
 
-                    this.collector.AddInternal(icc);
+                    this.collector.Add(icc);
                 }
                 else
                 {
@@ -223,7 +220,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                         Value = tiffMetadata.XmpProfile
                     };
 
-                    this.collector.AddInternal(xmp);
+                    this.collector.Add(xmp);
                 }
                 else
                 {
@@ -262,10 +259,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     Value = (ushort)encoder.PhotometricInterpretation
                 };
 
-                this.collector.Add(samplesPerPixel);
-                this.collector.Add(bitPerSample);
-                this.collector.Add(compression);
-                this.collector.Add(photometricInterpretation);
+                this.collector.AddOrReplace(samplesPerPixel);
+                this.collector.AddOrReplace(bitPerSample);
+                this.collector.AddOrReplace(compression);
+                this.collector.AddOrReplace(photometricInterpretation);
 
                 if (encoder.UseHorizontalPredictor)
                 {
@@ -273,7 +270,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                     {
                         var predictor = new ExifShort(ExifTagValue.Predictor) { Value = (ushort)TiffPredictor.Horizontal };
 
-                        this.collector.Add(predictor);
+                        this.collector.AddOrReplace(predictor);
                     }
                 }
             }
@@ -282,12 +279,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             {
                 switch (encoder.PhotometricInterpretation)
                 {
-                    case TiffPhotometricInterpretation.Rgb:
-                        return 3;
                     case TiffPhotometricInterpretation.PaletteColor:
                     case TiffPhotometricInterpretation.BlackIsZero:
                     case TiffPhotometricInterpretation.WhiteIsZero:
                         return 1;
+                    case TiffPhotometricInterpretation.Rgb:
                     default:
                         return 3;
                 }

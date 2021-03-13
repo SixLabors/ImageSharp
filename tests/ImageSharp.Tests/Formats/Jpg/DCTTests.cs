@@ -12,6 +12,7 @@ using Xunit.Abstractions;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public static class DCTTests
     {
         public class FastFloatingPoint : JpegFixture

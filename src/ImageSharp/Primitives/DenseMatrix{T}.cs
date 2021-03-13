@@ -109,7 +109,7 @@ namespace SixLabors.ImageSharp
         /// <returns>The <see typeparam="T"/> at the specified position.</returns>
         public ref T this[int row, int column]
         {
-            [MethodImpl(InliningOptions.ShortMethod)]
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 this.CheckCoordinates(row, column);
@@ -124,7 +124,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="DenseMatrix{T}"/> representation on the source data.
         /// </returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator DenseMatrix<T>(T[,] data) => new DenseMatrix<T>(data);
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace SixLabors.ImageSharp
         /// <returns>
         /// The <see cref="T:T[,]"/> representation on the source data.
         /// </returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #pragma warning disable SA1008 // Opening parenthesis should be spaced correctly
         public static implicit operator T[,](in DenseMatrix<T> data)
 #pragma warning restore SA1008 // Opening parenthesis should be spaced correctly
@@ -175,7 +175,7 @@ namespace SixLabors.ImageSharp
         /// Transposes the rows and columns of the dense matrix.
         /// </summary>
         /// <returns>The <see cref="DenseMatrix{T}"/>.</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public DenseMatrix<T> Transpose()
         {
             var result = new DenseMatrix<T>(this.Rows, this.Columns);
@@ -196,13 +196,13 @@ namespace SixLabors.ImageSharp
         /// Fills the matrix with the given value
         /// </summary>
         /// <param name="value">The value to fill each item with</param>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Fill(T value) => this.Span.Fill(value);
 
         /// <summary>
         /// Clears the matrix setting each value to the default value for the element type
         /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear() => this.Span.Clear();
 
         /// <summary>
@@ -232,14 +232,14 @@ namespace SixLabors.ImageSharp
             => obj is DenseMatrix<T> other && this.Equals(other);
 
         /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(DenseMatrix<T> other) =>
             this.Columns == other.Columns
             && this.Rows == other.Rows
             && this.Span.SequenceEqual(other.Span);
 
         /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             HashCode code = default;

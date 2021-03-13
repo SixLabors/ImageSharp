@@ -17,6 +17,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
+    [Trait("Format", "Gif")]
     public class GifDecoderTests
     {
         private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
@@ -154,9 +155,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Fact]
         public void CanDecodeIntermingledImages()
         {
-            using (var kumin1 = Image.Load(TestFile.Create(TestImages.Gif.Kumin).Bytes))
+            using (var kumin1 = Image.Load<Rgba32>(TestFile.Create(TestImages.Gif.Kumin).Bytes))
             using (Image.Load(TestFile.Create(TestImages.Png.Icon).Bytes))
-            using (var kumin2 = Image.Load(TestFile.Create(TestImages.Gif.Kumin).Bytes))
+            using (var kumin2 = Image.Load<Rgba32>(TestFile.Create(TestImages.Gif.Kumin).Bytes))
             {
                 for (int i = 0; i < kumin1.Frames.Count; i++)
                 {
@@ -170,6 +171,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             }
         }
 
+        // https://github.com/SixLabors/ImageSharp/issues/1503
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.Issue1530, PixelTypes.Rgba32)]
+        public void Issue1530_BadDescriptorDimensions<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSaveMultiFrame(provider);
+            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        }
+
         // https://github.com/SixLabors/ImageSharp/issues/405
         [Theory]
         [WithFile(TestImages.Gif.Issues.BadAppExtLength, PixelTypes.Rgba32)]
@@ -180,6 +192,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             using (Image<TPixel> image = provider.GetImage())
             {
                 image.DebugSave(provider);
+
                 image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
             }
         }
@@ -198,17 +211,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Theory]
         [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
         [WithFile(TestImages.Gif.Kumin, PixelTypes.Rgba32)]
-        public void GifDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public void GifDecoder_CanDecode_WithLimitedAllocatorBufferCapacity(
+            TestImageProvider<Rgba32> provider)
         {
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
-                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+                TestImageProvider<Rgba32> provider
+                    = BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
 
                 provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-                using Image<TPixel> image = provider.GetImage(GifDecoder);
-                image.DebugSave(provider);
+                using Image<Rgba32> image = provider.GetImage(GifDecoder);
+                image.DebugSave(provider, nonContiguousBuffersStr);
                 image.CompareToOriginal(provider);
             }
 

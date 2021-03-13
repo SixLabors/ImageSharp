@@ -1,29 +1,19 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Buffers;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-
 using Xunit;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 {
+    [Trait("Category", "PixelFormats")]
     public partial class PixelOperationsTests
     {
-        public class Rgba32OperationsTests : PixelOperationsTests<Rgba32>
+        public partial class Rgba32_OperationsTests : PixelOperationsTests<Rgba32>
         {
-            public Rgba32OperationsTests(ITestOutputHelper output)
-                : base(output)
-            {
-            }
-
-            [Fact]
-            public void IsSpecialImplementation() => Assert.IsType<Rgba32.PixelOperations>(PixelOperations<Rgba32>.Instance);
-
             [Fact(Skip = SkipProfilingBenchmarks)]
             public void Benchmark_ToVector4()
             {

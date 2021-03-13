@@ -2,30 +2,39 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <TargetFrameworks>net5.0;netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
     <DebugSymbols>True</DebugSymbols>
     <AssemblyName>SixLabors.ImageSharp.Tests</AssemblyName>
     <Platforms>AnyCPU;x64;x86</Platforms>
     <RootNamespace>SixLabors.ImageSharp.Tests</RootNamespace>
-    <!--Used to show test project to dotnet test-->
-    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
-    <DotNetCliToolReference Include="dotnet-xunit" />
     <InternalsVisibleTo Include="ImageSharp.Tests.ProfilingSandbox" Key="$(SixLaborsPublicKey)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="PixelFormats\PixelOperations\Generated\PixelOperationsTests.Specialized.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PixelOperationsTests.Specialized.Generated.tt</DependentUpon>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
+    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Moq" />
     <PackageReference Include="SharpZipLib" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="PixelFormats\PixelOperations\Generated\PixelOperationsTests.Specialized.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PixelOperationsTests.Specialized.Generated.cs</LastGenOutput>
+    </None>
     <None Update="TestFonts\OpenSans-Regular.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -35,6 +44,18 @@
     <None Update="xunit.runner.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="PixelFormats\PixelOperations\Generated\PixelOperationsTests.Specialized.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PixelOperationsTests.Specialized.Generated.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
 
 </Project>

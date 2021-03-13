@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Tests
             using (Image<TPixel> image = provider.GetImage())
             {
                 FormattableString testOutputDetails = $"";
-                image.Mutate(ctx => { testOutputDetails = processAndGetTestOutputDetails(ctx); });
+                image.Mutate(ctx => testOutputDetails = processAndGetTestOutputDetails(ctx));
 
                 image.DebugSave(
                     provider,

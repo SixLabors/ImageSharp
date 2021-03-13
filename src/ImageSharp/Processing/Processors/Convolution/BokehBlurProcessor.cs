@@ -1,6 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution
@@ -77,5 +83,82 @@ namespace SixLabors.ImageSharp.Processing.Processors.Convolution
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
             where TPixel : unmanaged, IPixel<TPixel>
             => new BokehBlurProcessor<TPixel>(configuration, this, source, sourceRectangle);
+
+        /// <summary>
+        /// A <see langword="struct"/> implementing the horizontal convolution logic for <see cref="BokehBlurProcessor{T}"/>.
+        /// </summary>
+        /// <remarks>
+        /// This type is located in the non-generic <see cref="BokehBlurProcessor"/> class and not in <see cref="BokehBlurProcessor{TPixel}"/>, where
+        /// it is actually used, because it does not use any generic parameters internally. Defining in a non-generic class means that there will only
+        /// ever be a single instantiation of this type for the JIT/AOT compilers to process, instead of having duplicate versions for each pixel type.
+        /// </remarks>
+        internal readonly struct SecondPassConvolutionRowOperation : IRowOperation
+        {
+            private readonly Rectangle bounds;
+            private readonly Buffer2D<Vector4> targetValues;
+            private readonly Buffer2D<ComplexVector4> sourceValues;
+            private readonly KernelSamplingMap map;
+            private readonly Complex64[] kernel;
+            private readonly float z;
+            private readonly float w;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public SecondPassConvolutionRowOperation(
+                Rectangle bounds,
+                Buffer2D<Vector4> targetValues,
+                Buffer2D<ComplexVector4> sourceValues,
+                KernelSamplingMap map,
+                Complex64[] kernel,
+                float z,
+                float w)
+            {
+                this.bounds = bounds;
+                this.targetValues = targetValues;
+                this.sourceValues = sourceValues;
+                this.map = map;
+                this.kernel = kernel;
+                this.z = z;
+                this.w = w;
+            }
+
+            /// <inheritdoc/>
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public void Invoke(int y)
+            {
+                int boundsX = this.bounds.X;
+                int boundsWidth = this.bounds.Width;
+                int kernelSize = this.kernel.Length;
+
+                ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (y - this.bounds.Y) * kernelSize);
+
+                // The target buffer is zeroed initially and then it accumulates the results
+                // of each partial convolution, so we don't have to clear it here as well
+                ref Vector4 targetBase = ref this.targetValues.GetElementUnsafe(boundsX, y);
+                ref Complex64 kernelStart = ref this.kernel[0];
+                ref Complex64 kernelEnd = ref Unsafe.Add(ref kernelStart, kernelSize);
+
+                while (Unsafe.IsAddressLessThan(ref kernelStart, ref kernelEnd))
+                {
+                    // Get the precalculated source sample row for this kernel row and copy to our buffer
+                    ref ComplexVector4 sourceBase = ref this.sourceValues.GetElementUnsafe(0, sampleRowBase);
+                    ref ComplexVector4 sourceEnd = ref Unsafe.Add(ref sourceBase, boundsWidth);
+                    ref Vector4 targetStart = ref targetBase;
+                    Complex64 factor = kernelStart;
+
+                    while (Unsafe.IsAddressLessThan(ref sourceBase, ref sourceEnd))
+                    {
+                        ComplexVector4 partial = factor * sourceBase;
+
+                        targetStart += partial.WeightedSum(this.z, this.w);
+
+                        sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                        targetStart = ref Unsafe.Add(ref targetStart, 1);
+                    }
+
+                    kernelStart = ref Unsafe.Add(ref kernelStart, 1);
+                    sampleRowBase = ref Unsafe.Add(ref sampleRowBase, 1);
+                }
+            }
+        }
     }
 }

@@ -5,34 +5,20 @@
     Directory.Build.props is automatically picked up and imported by
     Microsoft.Common.props. This file needs to exist, even if empty so that
     files in the parent directory tree, with the same name, are not imported
-    instead. The import fairly early and only Sdk.props will have been
+    instead. They import fairly early and only Sdk.props will have been
     imported beforehand. We also don't need to add ourselves to
     MSBuildAllProjects, as that is done by the file that imports us.
   -->
 
-  <PropertyGroup>
-    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileDirectory)..\Directory.Build.props</MSBuildAllProjects>
-    <SixLaborsProjectCategory>tests</SixLaborsProjectCategory>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
+  <!-- Import the shared tests .props file -->
+  <Import Project="$(MSBuildThisFileDirectory)..\shared-infrastructure\msbuild\props\SixLabors.Tests.props" />
 
-  <PropertyGroup>
-    <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)..\shared-infrastructure\SixLabors.Tests.ruleset</CodeAnalysisRuleSet>
-    <!--TODO: We should remove all obsolete code from the solution-->
-    <NoWarn>$(NoWarn);CS0618</NoWarn>
-  </PropertyGroup>
-
+  <!-- Import the solution .props file. -->
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
 
-  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
-    <PackageReference Include="Microsoft.NET.Test.Sdk" IsImplicitlyDefined="true" />
-    <PackageReference Include="xunit" IsImplicitlyDefined="true" />
-    <PackageReference Include="xunit.runner.visualstudio" IsImplicitlyDefined="true" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(codecov)' == 'true' AND '$(IsTestProject)' == 'true'">
-    <PackageReference Include="coverlet.collector" IsImplicitlyDefined="true" />
-  </ItemGroup>
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\ImageSharp.Tests.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\ImageSharp\ImageSharp.csproj" />

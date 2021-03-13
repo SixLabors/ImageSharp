@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -76,7 +76,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 ++x;
                 ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
                 res = (byte)(scan - (above >> 1));
-                sum += ImageMaths.FastAbs(unchecked((sbyte)res));
+                sum += Numerics.Abs(unchecked((sbyte)res));
             }
 
             for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 ++x;
                 ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
                 res = (byte)(scan - Average(left, above));
-                sum += ImageMaths.FastAbs(unchecked((sbyte)res));
+                sum += Numerics.Abs(unchecked((sbyte)res));
             }
 
             sum -= 3;

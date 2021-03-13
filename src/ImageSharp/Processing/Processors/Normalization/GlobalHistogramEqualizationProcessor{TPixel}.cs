@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -51,7 +52,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
 
             using IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
 
-            // Build the histogram of the grayscale levels
+            // Build the histogram of the grayscale levels.
             var grayscaleOperation = new GrayscaleLevelsRowOperation(interest, histogramBuffer, source, this.LuminanceLevels);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
@@ -106,16 +107,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
 
             /// <inheritdoc/>
+#if NETSTANDARD2_0
+            // https://github.com/SixLabors/ImageSharp/issues/1204
+            [MethodImpl(MethodImplOptions.NoOptimization)]
+#else
             [MethodImpl(InliningOptions.ShortMethod)]
+#endif
             public void Invoke(int y)
             {
                 ref int histogramBase = ref MemoryMarshal.GetReference(this.histogramBuffer.GetSpan());
-                ref TPixel pixelBase = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
+                Span<TPixel> pixelRow = this.source.GetPixelRowSpan(y);
+                int levels = this.luminanceLevels;
 
                 for (int x = 0; x < this.bounds.Width; x++)
                 {
-                    int luminance = GetLuminance(Unsafe.Add(ref pixelBase, x), this.luminanceLevels);
-                    Unsafe.Add(ref histogramBase, luminance)++;
+                    // TODO: We should bulk convert here.
+                    var vector = pixelRow[x].ToVector4();
+                    int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
+                    Interlocked.Increment(ref Unsafe.Add(ref histogramBase, luminance));
                 }
             }
         }
@@ -147,18 +156,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Normalization
             }
 
             /// <inheritdoc/>
+#if NETSTANDARD2_0
+            // https://github.com/SixLabors/ImageSharp/issues/1204
+            [MethodImpl(MethodImplOptions.NoOptimization)]
+#else
             [MethodImpl(InliningOptions.ShortMethod)]
+#endif
             public void Invoke(int y)
             {
                 ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
-                ref TPixel pixelBase = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
+                Span<TPixel> pixelRow = this.source.GetPixelRowSpan(y);
+                int levels = this.luminanceLevels;
+                float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
 
                 for (int x = 0; x < this.bounds.Width; x++)
                 {
-                    ref TPixel pixel = ref Unsafe.Add(ref pixelBase, x);
-                    int luminance = GetLuminance(pixel, this.luminanceLevels);
-                    float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / this.numberOfPixelsMinusCdfMin;
-                    pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                    // TODO: We should bulk convert here.
+                    ref TPixel pixel = ref pixelRow[x];
+                    var vector = pixel.ToVector4();
+                    int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
+                    float luminanceEqualized = Unsafe.Add(ref cdfBase, luminance) / noOfPixelsMinusCdfMin;
+                    pixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W));
                 }
             }
         }

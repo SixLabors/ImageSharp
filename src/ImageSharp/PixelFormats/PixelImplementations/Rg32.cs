@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 1] to [1, 1, 0, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
+    public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
     {
         private static readonly Vector2 Max = new Vector2(ushort.MaxValue);
 
@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Rg32 left, Rg32 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<Rg32> CreatePixelOperations() => new PixelOperations<Rg32>();
+        public readonly PixelOperations<Rg32> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

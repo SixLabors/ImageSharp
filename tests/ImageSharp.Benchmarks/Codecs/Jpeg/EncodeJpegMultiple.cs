@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
-    [Config(typeof(Config.ShortClr))] // It's long enough to iterate through multiple files
+    [Config(typeof(Config.ShortMultiFramework))]
     public class EncodeJpegMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
     {
         protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[] { "Bmp/", "Jpg/baseline" };
@@ -17,22 +17,18 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 
         [Benchmark(Description = "EncodeJpegMultiple - ImageSharp")]
         public void EncodeJpegImageSharp()
-        {
-            this.ForEachImageSharpImage((img, ms) =>
+            => this.ForEachImageSharpImage((img, ms) =>
             {
                 img.Save(ms, new JpegEncoder());
                 return null;
             });
-        }
 
         [Benchmark(Baseline = true, Description = "EncodeJpegMultiple - System.Drawing")]
         public void EncodeJpegSystemDrawing()
-        {
-            this.ForEachSystemDrawingImage((img, ms) =>
+            => this.ForEachSystemDrawingImage((img, ms) =>
             {
                 img.Save(ms, ImageFormat.Jpeg);
                 return null;
             });
-        }
     }
 }

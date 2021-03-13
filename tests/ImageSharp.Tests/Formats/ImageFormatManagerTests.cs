@@ -46,45 +46,22 @@ namespace SixLabors.ImageSharp.Tests.Formats
 
         [Fact]
         public void AddImageFormatDetectorNullThrows()
-        {
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                this.DefaultFormatsManager.AddImageFormatDetector(null);
-            });
-        }
+            => Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.AddImageFormatDetector(null));
 
         [Fact]
         public void RegisterNullMimeTypeEncoder()
         {
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                this.DefaultFormatsManager.SetEncoder(null, new Mock<IImageEncoder>().Object);
-            });
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                this.DefaultFormatsManager.SetEncoder(BmpFormat.Instance, null);
-            });
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                this.DefaultFormatsManager.SetEncoder(null, null);
-            });
+            Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetEncoder(null, new Mock<IImageEncoder>().Object));
+            Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetEncoder(BmpFormat.Instance, null));
+            Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetEncoder(null, null));
         }
 
         [Fact]
         public void RegisterNullSetDecoder()
         {
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                this.DefaultFormatsManager.SetDecoder(null, new Mock<IImageDecoder>().Object);
-            });
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                this.DefaultFormatsManager.SetDecoder(BmpFormat.Instance, null);
-            });
-            Assert.Throws<ArgumentNullException>(() =>
-            {
-                this.DefaultFormatsManager.SetDecoder(null, null);
-            });
+            Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetDecoder(null, new Mock<IImageDecoder>().Object));
+            Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetDecoder(BmpFormat.Instance, null));
+            Assert.Throws<ArgumentNullException>(() => this.DefaultFormatsManager.SetDecoder(null, null));
         }
 
         [Fact]
@@ -133,11 +110,9 @@ namespace SixLabors.ImageSharp.Tests.Formats
             byte[] jpegImage;
             using (var buffer = new MemoryStream())
             {
-                using (var image = new Image<Rgba32>(100, 100))
-                {
-                    image.SaveAsJpeg(buffer);
-                    jpegImage = buffer.ToArray();
-                }
+                using var image = new Image<Rgba32>(100, 100);
+                image.SaveAsJpeg(buffer);
+                jpegImage = buffer.ToArray();
             }
 
             byte[] invalidImage = { 1, 2, 3 };

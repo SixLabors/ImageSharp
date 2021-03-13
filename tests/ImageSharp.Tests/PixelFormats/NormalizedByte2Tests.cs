@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -7,6 +7,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
+    [Trait("Category", "PixelFormats")]
     public class NormalizedByte2Tests
     {
         [Fact]

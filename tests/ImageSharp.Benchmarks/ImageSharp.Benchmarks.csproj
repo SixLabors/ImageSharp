@@ -5,7 +5,7 @@
     <AssemblyName>ImageSharp.Benchmarks</AssemblyName>
     <OutputType>Exe</OutputType>
     <RootNamespace>SixLabors.ImageSharp.Benchmarks</RootNamespace>
-    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
+    <TargetFrameworks>net5.0;netcoreapp3.1;netcoreapp2.1;net472</TargetFrameworks>
     <GenerateProgramFile>false</GenerateProgramFile>
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
@@ -17,6 +17,7 @@
   <ItemGroup>
     <Compile Include="..\ImageSharp.Tests\TestImages.cs" Link="Tests\TestImages.cs" />
     <Compile Include="..\ImageSharp.Tests\TestUtilities\TestEnvironment.cs" Link="Tests\TestEnvironment.cs" />
+    <Compile Include="..\ImageSharp.Tests\TestUtilities\TestDataGenerator.cs" Link="Tests\TestDataGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,7 +26,7 @@
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Condition="'$(OS)' == 'Windows_NT'" />
     <PackageReference Include="Colourful" />
     <PackageReference Include="Pfim" />
-    <PackageReference Include="SharpZipLib"  />
+    <PackageReference Include="SharpZipLib" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 
@@ -42,7 +43,7 @@
     <Compile Remove="General\BasicMath\ModuloPowerOfTwoConstant.cs" />
     <Compile Remove="General\BasicMath\ModuloPowerOfTwoVariable.cs" />
     <Compile Remove="PixelBlenders\**" />
-    <Compile Remove="Samplers\Resize.cs" />
+    <Compile Remove="Processing\Resize.cs" />
   </ItemGroup>
 
 </Project>

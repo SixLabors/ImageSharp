@@ -282,11 +282,79 @@ namespace SixLabors.ImageSharp.Tests
                 }
             }
 
+            [Fact]
+            public unsafe void WrapMemory_FromPointer_CreatedImageIsCorrect()
+            {
+                var cfg = Configuration.CreateDefaultInstance();
+                var metaData = new ImageMetadata();
+
+                var array = new Rgba32[25];
+
+                fixed (void* ptr = array)
+                {
+                    using (var image = Image.WrapMemory<Rgba32>(cfg, ptr, 5, 5, metaData))
+                    {
+                        Assert.True(image.TryGetSinglePixelSpan(out Span<Rgba32> imageSpan));
+                        ref Rgba32 pixel0 = ref imageSpan[0];
+                        Assert.True(Unsafe.AreSame(ref array[0], ref pixel0));
+                        ref Rgba32 pixel_1 = ref imageSpan[imageSpan.Length - 1];
+                        Assert.True(Unsafe.AreSame(ref array[array.Length - 1], ref pixel_1));
+
+                        Assert.Equal(cfg, image.GetConfiguration());
+                        Assert.Equal(metaData, image.Metadata);
+                    }
+                }
+            }
+
+            [Fact]
+            public unsafe void WrapSystemDrawingBitmap_FromPointer()
+            {
+                if (ShouldSkipBitmapTest)
+                {
+                    return;
+                }
+
+                using (var bmp = new Bitmap(51, 23))
+                {
+                    using (var memoryManager = new BitmapMemoryManager(bmp))
+                    {
+                        Memory<Bgra32> pixelMemory = memoryManager.Memory;
+                        Bgra32 bg = Color.Red;
+                        Bgra32 fg = Color.Green;
+
+                        fixed (void* p = pixelMemory.Span)
+                        {
+                            using (var image = Image.WrapMemory<Bgra32>(p, bmp.Width, bmp.Height))
+                            {
+                                Span<Bgra32> pixelSpan = pixelMemory.Span;
+                                Span<Bgra32> imageSpan = image.GetRootFramePixelBuffer().GetSingleMemory().Span;
+
+                                Assert.Equal(pixelSpan.Length, imageSpan.Length);
+                                Assert.True(Unsafe.AreSame(ref pixelSpan.GetPinnableReference(), ref imageSpan.GetPinnableReference()));
+
+                                Assert.True(image.TryGetSinglePixelSpan(out imageSpan));
+                                imageSpan.Fill(bg);
+                                for (var i = 10; i < 20; i++)
+                                {
+                                    image.GetPixelRowSpan(i).Slice(10, 10).Fill(fg);
+                                }
+                            }
+
+                            Assert.False(memoryManager.IsDisposed);
+                        }
+                    }
+
+                    string fn = System.IO.Path.Combine(
+                        TestEnvironment.ActualOutputDirectoryFullPath,
+                        $"{nameof(this.WrapSystemDrawingBitmap_WhenObserved)}.bmp");
+
+                    bmp.Save(fn, ImageFormat.Bmp);
+                }
+            }
+
             [Theory]
             [InlineData(0, 5, 5)]
             [InlineData(20, 5, 5)]
-            [InlineData(26, 5, 5)]
-            [InlineData(2, 1, 1)]
             [InlineData(1023, 32, 32)]
             public void WrapMemory_MemoryOfT_InvalidSize(int size, int height, int width)
             {
@@ -294,6 +362,20 @@ namespace SixLabors.ImageSharp.Tests
                 var memory = new Memory<Rgba32>(array);
 
                 Assert.Throws<ArgumentException>(() => Image.WrapMemory(memory, height, width));
+            }
+
+            [Theory]
+            [InlineData(25, 5, 5)]
+            [InlineData(26, 5, 5)]
+            [InlineData(2, 1, 1)]
+            [InlineData(1024, 32, 32)]
+            [InlineData(2048, 32, 32)]
+            public void WrapMemory_MemoryOfT_ValidSize(int size, int height, int width)
+            {
+                var array = new Rgba32[size];
+                var memory = new Memory<Rgba32>(array);
+
+                Image.WrapMemory(memory, height, width);
             }
 
             private class TestMemoryOwner<T> : IMemoryOwner<T>
@@ -308,8 +390,6 @@ namespace SixLabors.ImageSharp.Tests
             [Theory]
             [InlineData(0, 5, 5)]
             [InlineData(20, 5, 5)]
-            [InlineData(26, 5, 5)]
-            [InlineData(2, 1, 1)]
             [InlineData(1023, 32, 32)]
             public void WrapMemory_IMemoryOwnerOfT_InvalidSize(int size, int height, int width)
             {
@@ -320,10 +400,22 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             [Theory]
-            [InlineData(0, 5, 5)]
-            [InlineData(20, 5, 5)]
+            [InlineData(25, 5, 5)]
             [InlineData(26, 5, 5)]
             [InlineData(2, 1, 1)]
+            [InlineData(1024, 32, 32)]
+            [InlineData(2048, 32, 32)]
+            public void WrapMemory_IMemoryOwnerOfT_ValidSize(int size, int height, int width)
+            {
+                var array = new Rgba32[size];
+                var memory = new TestMemoryOwner<Rgba32> { Memory = array };
+
+                Image.WrapMemory(memory, height, width);
+            }
+
+            [Theory]
+            [InlineData(0, 5, 5)]
+            [InlineData(20, 5, 5)]
             [InlineData(1023, 32, 32)]
             public void WrapMemory_MemoryOfByte_InvalidSize(int size, int height, int width)
             {
@@ -331,6 +423,31 @@ namespace SixLabors.ImageSharp.Tests
                 var memory = new Memory<byte>(array);
 
                 Assert.Throws<ArgumentException>(() => Image.WrapMemory<Rgba32>(memory, height, width));
+            }
+
+            [Theory]
+            [InlineData(25, 5, 5)]
+            [InlineData(26, 5, 5)]
+            [InlineData(2, 1, 1)]
+            [InlineData(1024, 32, 32)]
+            [InlineData(2048, 32, 32)]
+            public void WrapMemory_MemoryOfByte_ValidSize(int size, int height, int width)
+            {
+                var array = new byte[size * Unsafe.SizeOf<Rgba32>()];
+                var memory = new Memory<byte>(array);
+
+                Image.WrapMemory<Rgba32>(memory, height, width);
+            }
+
+            [Theory]
+            [InlineData(0, 5, 5)]
+            [InlineData(20, 5, 5)]
+            [InlineData(26, 5, 5)]
+            [InlineData(2, 1, 1)]
+            [InlineData(1023, 32, 32)]
+            public unsafe void WrapMemory_Pointer_Null(int size, int height, int width)
+            {
+                Assert.Throws<ArgumentException>(() => Image.WrapMemory<Rgba32>((void*)null, height, width));
             }
 
             private static bool ShouldSkipBitmapTest =>

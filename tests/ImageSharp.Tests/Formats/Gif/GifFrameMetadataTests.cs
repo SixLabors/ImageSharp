@@ -6,6 +6,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Gif
 {
+    [Trait("Format", "Gif")]
     public class GifFrameMetadataTests
     {
         [Fact]

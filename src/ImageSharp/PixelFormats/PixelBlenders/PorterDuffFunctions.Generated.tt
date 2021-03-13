@@ -219,7 +219,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel <#=blender#><#=composer#><TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(<#=blender#><#=composer#>(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;

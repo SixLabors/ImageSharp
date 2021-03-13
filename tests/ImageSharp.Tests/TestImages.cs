@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests
 {
     /// <summary>
     /// Class that contains all the relative test image paths in the TestImages/Formats directory.
-    /// Use with <see cref="WithFileAttribute"/>, <see cref="WithFileCollectionAttribute"/> or <see cref="FileTestBase"/>.
+    /// Use with <see cref="WithFileAttribute"/>, <see cref="WithFileCollectionAttribute"/>.
     /// </summary>
     public static class TestImages
     {
@@ -40,6 +40,7 @@ namespace SixLabors.ImageSharp.Tests
             public const string Rgb48BppInterlaced = "Png/rgb-48bpp-interlaced.png";
             public const string Rgb48BppTrans = "Png/rgb-16-tRNS.png";
             public const string Rgba64Bpp = "Png/rgb-16-alpha.png";
+            public const string ColorsSaturationLightness = "Png/colors-saturation-lightness.png";
             public const string CalliphoraPartial = "Png/CalliphoraPartial.png";
             public const string CalliphoraPartialGrayscale = "Png/CalliphoraPartialGrayscale.png";
             public const string Bike = "Png/Bike.png";
@@ -106,6 +107,9 @@ namespace SixLabors.ImageSharp.Tests
             // Issue 1177: https://github.com/SixLabors/ImageSharp/issues/1177
             public const string Issue1177_1 = "Png/issues/Issue_1177_1.png";
             public const string Issue1177_2 = "Png/issues/Issue_1177_2.png";
+
+            // Issue 935: https://github.com/SixLabors/ImageSharp/issues/935
+            public const string Issue935 = "Png/issues/Issue_935.png";
 
             public static class Bad
             {
@@ -193,6 +197,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string YcckSubsample1222 = "Jpg/baseline/ycck-subsample-1222.jpg";
                 public const string Iptc = "Jpg/baseline/iptc.jpg";
                 public const string App13WithEmptyIptc = "Jpg/baseline/iptc-psAPP13-wIPTCempty.jpg";
+                public const string HistogramEqImage = "Jpg/baseline/640px-Unequalized_Hawkes_Bay_NZ.jpg";
 
                 public static readonly string[] All =
                 {
@@ -411,6 +416,8 @@ namespace SixLabors.ImageSharp.Tests
                 public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
                 public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
                 public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
+                public const string Issue1505 = "Gif/issues/issue1505_argumentoutofrange.png";
+                public const string Issue1530 = "Gif/issues/issue1530.gif";
             }
 
             public static readonly string[] All = { Rings, Giphy, Cheers, Trans, Kumin, Leo, Ratio4x1, Ratio1x4 };

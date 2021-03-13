@@ -110,7 +110,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Overlays
                 for (int i = 0; i < this.bounds.Width; i++)
                 {
                     float distance = Vector2.Distance(this.center, new Vector2(i + this.bounds.X, y));
-                    span[i] = (this.blendPercent * (.9F * (distance / this.maxDistance))).Clamp(0, 1);
+                    span[i] = Numerics.Clamp(this.blendPercent * (.9F * (distance / this.maxDistance)), 0, 1F);
                 }
 
                 Span<TPixel> destination = this.source.GetPixelRowSpan(y).Slice(this.bounds.X, this.bounds.Width);

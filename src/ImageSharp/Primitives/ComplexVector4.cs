@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp
         /// </summary>
         /// <param name="value">The input <see cref="ComplexVector4"/> to sum</param>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void Sum(in ComplexVector4 value)
+        public void Sum(ComplexVector4 value)
         {
             this.Real += value.Real;
             this.Imaginary += value.Imaginary;

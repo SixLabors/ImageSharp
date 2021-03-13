@@ -8,7 +8,7 @@ using SharpCrc32 = ICSharpCode.SharpZipLib.Checksum.Crc32;
 
 namespace SixLabors.ImageSharp.Benchmarks.General
 {
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.ShortMultiFramework))]
     public class Crc32Benchmark
     {
         private byte[] data;

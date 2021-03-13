@@ -1,13 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -20,6 +19,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public class JpegEncoderTests
     {
         public static readonly TheoryData<string, int> QualityFiles =

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<RunSettings>
+    <RunConfiguration>
+        <!--Used in conjunction with ActiveIssueAttribute to skip tests with known issues-->
+        <TestCaseFilter>category!=failing</TestCaseFilter>
+    </RunConfiguration>
+</RunSettings>

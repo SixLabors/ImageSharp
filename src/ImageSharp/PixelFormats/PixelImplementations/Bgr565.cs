@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct Bgr565 : IPixel<Bgr565>, IPackedVector<ushort>
+    public partial struct Bgr565 : IPixel<Bgr565>, IPackedVector<ushort>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Bgr565"/> struct.
@@ -61,7 +61,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(Bgr565 left, Bgr565 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<Bgr565> CreatePixelOperations() => new PixelOperations<Bgr565>();
+        public readonly PixelOperations<Bgr565> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

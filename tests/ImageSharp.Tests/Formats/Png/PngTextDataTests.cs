@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
     /// <summary>
     /// Tests the <see cref="PngTextData"/> class.
     /// </summary>
+    [Trait("Format", "Png")]
     public class PngTextDataTests
     {
         /// <summary>

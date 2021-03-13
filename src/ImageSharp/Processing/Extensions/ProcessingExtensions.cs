@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Processing
     /// <summary>
     /// Adds extensions that allow the processing of images to the <see cref="Image{TPixel}"/> type.
     /// </summary>
-    public static class ProcessingExtensions
+    public static partial class ProcessingExtensions
     {
         /// <summary>
         /// Mutates the source image by applying the image operation to it.

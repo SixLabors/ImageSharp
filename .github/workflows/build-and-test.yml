@@ -15,13 +15,29 @@ jobs:
             matrix:
                 options:
                     - os: ubuntu-latest
+                      framework: net5.0
+                      runtime: -x64
+                      codecov: false
+                    - os: macos-latest
+                      framework: net5.0
+                      runtime: -x64
+                      codecov: false
+                    - os: windows-latest
+                      framework: net5.0
+                      runtime: -x64
+                      codecov: false
+                    - os: ubuntu-latest
+                      framework: netcoreapp3.1
+                      runtime: -x64
+                      codecov: true
+                    - os: macos-latest
                       framework: netcoreapp3.1
                       runtime: -x64
                       codecov: false
                     - os: windows-latest
                       framework: netcoreapp3.1
                       runtime: -x64
-                      codecov: true
+                      codecov: false
                     - os: windows-latest
                       framework: netcoreapp2.1
                       runtime: -x64
@@ -40,6 +56,20 @@ jobs:
 
         steps:
             - uses: actions/checkout@v2
+            
+            # See https://github.com/actions/checkout/issues/165#issuecomment-657673315
+            - name: Create LFS file list
+              run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+
+            - name: Restore LFS cache
+              uses: actions/cache@v2
+              id: lfs-cache
+              with:
+                path: .git/lfs
+                key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+
+            - name: Git LFS Pull
+              run: git lfs pull
 
             - name: Install NuGet
               uses: NuGet/setup-nuget@v1
@@ -52,16 +82,33 @@ jobs:
                   git fetch --prune --unshallow
                   git submodule -q update --init --recursive
 
+            - name: Setup NuGet Cache
+              uses: actions/cache@v2
+              id: nuget-cache
+              with:
+                  path: ~/.nuget
+                  key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets') }}
+                  restore-keys: ${{ runner.os }}-nuget-
+
             - name: Build
               shell: pwsh
               run: ./ci-build.ps1 "${{matrix.options.framework}}"
+              env:
+                SIXLABORS_TESTING: True
 
             - name: Test
               shell: pwsh
               run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
               env:
-                  CI: True
+                  SIXLABORS_TESTING: True
                   XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
+
+            - name: Export Failed Output
+              uses: actions/upload-artifact@v2
+              if: failure()
+              with:
+                  name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip
+                  path: tests/Images/ActualOutput/
 
             - name: Update Codecov
               uses: codecov/codecov-action@v1

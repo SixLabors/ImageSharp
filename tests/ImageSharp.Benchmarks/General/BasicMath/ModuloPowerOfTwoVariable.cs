@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General.BasicMath
         [Benchmark]
         public int Bitwise()
         {
-            return ImageMaths.ModuloP2(this.value, this.m);
+            return Numerics.ModuloP2(this.value, this.m);
         }
 
         // RESULTS:

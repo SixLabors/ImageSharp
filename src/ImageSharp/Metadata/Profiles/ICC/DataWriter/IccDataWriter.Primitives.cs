@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             const double Max = short.MaxValue + (65535d / 65536d);
             const double Min = short.MinValue;
 
-            value = value.Clamp(Min, Max);
+            value = Numerics.Clamp(value, Min, Max);
             value *= 65536d;
 
             return this.WriteInt32((int)Math.Round(value, MidpointRounding.AwayFromZero));
@@ -128,7 +128,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             const double Max = ushort.MaxValue + (65535d / 65536d);
             const double Min = ushort.MinValue;
 
-            value = value.Clamp(Min, Max);
+            value = Numerics.Clamp(value, Min, Max);
             value *= 65536d;
 
             return this.WriteUInt32((uint)Math.Round(value, MidpointRounding.AwayFromZero));
@@ -144,7 +144,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             const double Max = 1 + (32767d / 32768d);
             const double Min = 0;
 
-            value = value.Clamp(Min, Max);
+            value = Numerics.Clamp(value, Min, Max);
             value *= 32768d;
 
             return this.WriteUInt16((ushort)Math.Round(value, MidpointRounding.AwayFromZero));
@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc
             const double Max = byte.MaxValue + (255d / 256d);
             const double Min = byte.MinValue;
 
-            value = value.Clamp(Min, Max);
+            value = Numerics.Clamp(value, Min, Max);
             value *= 256d;
 
             return this.WriteUInt16((ushort)Math.Round(value, MidpointRounding.AwayFromZero));

@@ -7,6 +7,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations
 {
+    [Trait("Category", "PixelFormats")]
     public class PixelConversionModifiersExtensionsTests
     {
         [Theory]

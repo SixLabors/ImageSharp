@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [-1, -1, 0, 1] to [1, 1, 0, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
+    public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="HalfVector2"/> struct.
@@ -54,13 +54,13 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(HalfVector2 left, HalfVector2 right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public readonly PixelOperations<HalfVector2> CreatePixelOperations() => new PixelOperations<HalfVector2>();
+        public readonly PixelOperations<HalfVector2> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromScaledVector4(Vector4 vector)
         {
-            var scaled = new Vector2(vector.X, vector.Y) * 2F;
+            Vector2 scaled = new Vector2(vector.X, vector.Y) * 2F;
             scaled -= Vector2.One;
             this.PackedValue = Pack(scaled.X, scaled.Y);
         }

@@ -57,7 +57,7 @@ namespace SixLabors.ImageSharp
                     return;
                 }
 
-                int remainder = ImageMaths.ModuloP2(source.Length, Vector<byte>.Count);
+                int remainder = Numerics.ModuloP2(source.Length, Vector<byte>.Count);
                 int adjustedCount = source.Length - remainder;
 
                 if (adjustedCount > 0)
@@ -84,7 +84,7 @@ namespace SixLabors.ImageSharp
                     return;
                 }
 
-                int remainder = ImageMaths.ModuloP2(source.Length, Vector<byte>.Count);
+                int remainder = Numerics.ModuloP2(source.Length, Vector<byte>.Count);
                 int adjustedCount = source.Length - remainder;
 
                 if (adjustedCount > 0)

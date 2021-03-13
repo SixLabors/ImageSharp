@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General
     /// - Span.CopyTo() has terrible performance on classic .NET Framework
     /// - Buffer.MemoryCopy() performance is good enough for all sizes (but needs pinning)
     /// </summary>
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.ShortMultiFramework))]
     public class CopyBuffers
     {
         private byte[] destArray;

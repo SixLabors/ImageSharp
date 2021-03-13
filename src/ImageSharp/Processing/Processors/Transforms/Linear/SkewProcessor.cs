@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sourceSize">The source image size</param>
         public SkewProcessor(float degreesX, float degreesY, IResampler sampler, Size sourceSize)
             : this(
-                 TransformUtilities.CreateSkewMatrixDegrees(degreesX, degreesY, sourceSize),
+                 TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, sourceSize),
                  sampler,
                  sourceSize)
         {
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         // Helper constructor:
         private SkewProcessor(Matrix3x2 skewMatrix, IResampler sampler, Size sourceSize)
-            : base(skewMatrix, sampler, TransformUtilities.GetTransformedSize(sourceSize, skewMatrix))
+            : base(skewMatrix, sampler, TransformUtils.GetTransformedSize(sourceSize, skewMatrix))
         {
         }
 

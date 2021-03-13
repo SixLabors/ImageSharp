@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-#if Windows_NT
+#if OS_WINDOWS
 using System.Security.Principal;
 using BenchmarkDotNet.Diagnostics.Windows;
 #endif
@@ -12,48 +12,45 @@ using BenchmarkDotNet.Jobs;
 
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    public class Config : ManualConfig
+    public partial class Config : ManualConfig
     {
         public Config()
         {
-            this.Add(MemoryDiagnoser.Default);
+            this.AddDiagnoser(MemoryDiagnoser.Default);
 
-#if Windows_NT
+#if OS_WINDOWS
             if (this.IsElevated)
             {
-                this.Add(new NativeMemoryProfiler());
+                this.AddDiagnoser(new NativeMemoryProfiler());
             }
 #endif
 
         }
 
-        public class ShortClr : Config
+        public class MultiFramework : Config
         {
-            public ShortClr()
-            {
-                this.Add(
-                    Job.Default.With(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3),
-                    Job.Default.With(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3),
-                    Job.Default.With(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3));
-            }
+            public MultiFramework() => this.AddJob(
+                    Job.Default.WithRuntime(ClrRuntime.Net472),
+                    Job.Default.WithRuntime(CoreRuntime.Core21),
+                    Job.Default.WithRuntime(CoreRuntime.Core31));
+        }
+
+        public class ShortMultiFramework : Config
+        {
+            public ShortMultiFramework() => this.AddJob(
+                    Job.Default.WithRuntime(ClrRuntime.Net472).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3),
+                    Job.Default.WithRuntime(CoreRuntime.Core21).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3),
+                    Job.Default.WithRuntime(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3));
         }
 
         public class ShortCore31 : Config
         {
             public ShortCore31()
-            {
-                this.Add(Job.Default.With(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3));
-            }
+                => this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3));
         }
 
-#if Windows_NT
-        private bool IsElevated
-        {
-            get
-            {
-                return new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
-            }
-        }
+#if OS_WINDOWS
+        private bool IsElevated => new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 #endif
     }
 }

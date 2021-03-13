@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -43,7 +42,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.Options = options;
 
             this.maxColors = this.Options.MaxColors;
-            this.octree = new Octree(ImageMaths.GetBitsNeededForColorDepth(this.maxColors).Clamp(1, 8));
+            this.octree = new Octree(Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.maxColors), 1, 8));
             this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
             this.palette = default;
             this.pixelMap = default;
@@ -96,7 +95,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization
             this.octree.Palletize(paletteSpan, this.maxColors, ref paletteIndex);
 
             // Length of reduced palette + transparency.
-            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, Math.Min(paletteIndex + 2, QuantizerConstants.MaxColors));
+            ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory.Slice(0, Math.Min(paletteIndex + 2, this.maxColors));
             this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
 
             this.palette = result;

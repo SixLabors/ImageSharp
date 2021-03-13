@@ -1,15 +1,14 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
 using BenchmarkDotNet.Attributes;
-
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.ShortMultiFramework))]
     public class IdentifyJpeg
     {
         private byte[] jpegBytes;
@@ -31,11 +30,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark]
         public IImageInfo Identify()
         {
-            using (var memoryStream = new MemoryStream(this.jpegBytes))
-            {
-                var decoder = new JpegDecoder();
-                return decoder.Identify(Configuration.Default, memoryStream);
-            }
+            using var memoryStream = new MemoryStream(this.jpegBytes);
+            var decoder = new JpegDecoder();
+            return decoder.Identify(Configuration.Default, memoryStream);
         }
     }
 }

@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
     /// <summary>
     /// Tests the <see cref="Rgba32"/> struct.
     /// </summary>
+    [Trait("Category", "PixelFormats")]
     public class Rgba32Tests
     {
         /// <summary>

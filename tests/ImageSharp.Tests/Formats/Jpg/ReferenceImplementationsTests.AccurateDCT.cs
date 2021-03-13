@@ -9,6 +9,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public partial class ReferenceImplementationsTests
     {
         public class AccurateDCT : JpegFixture

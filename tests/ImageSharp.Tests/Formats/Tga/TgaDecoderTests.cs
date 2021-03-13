@@ -6,16 +6,17 @@ using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+
 using Xunit;
+
+using static SixLabors.ImageSharp.Tests.TestImages.Tga;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
-    using static TestImages.Tga;
-
+    [Trait("Format", "Tga")]
     public class TgaDecoderTests
     {
         private static TgaDecoder TgaDecoder => new TgaDecoder();
@@ -747,16 +748,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tga
         [Theory]
         [WithFile(Bit24BottomLeft, PixelTypes.Rgba32)]
         [WithFile(Bit32BottomLeft, PixelTypes.Rgba32)]
-        public void TgaDecoder_CanDecode_WithLimitedAllocatorBufferCapacity<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public void TgaDecoder_CanDecode_WithLimitedAllocatorBufferCapacity(TestImageProvider<Rgba32> provider)
         {
             static void RunTest(string providerDump, string nonContiguousBuffersStr)
             {
-                TestImageProvider<TPixel> provider = BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
+                TestImageProvider<Rgba32> provider = BasicSerializer.Deserialize<TestImageProvider<Rgba32>>(providerDump);
 
                 provider.LimitAllocatorBufferCapacity().InPixelsSqrt(100);
 
-                using Image<TPixel> image = provider.GetImage(TgaDecoder);
+                using Image<Rgba32> image = provider.GetImage(TgaDecoder);
                 image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
 
                 if (TestEnvironment.IsWindows)

@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -212,8 +213,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             ImageMetadata metadata = image.Metadata;
 
             // System.Drawing produces identical output for jpegs with a quality parameter of 0 and 1.
-            int qlty = (this.quality ?? metadata.GetJpegMetadata().Quality).Clamp(1, 100);
-            this.subsample = this.subsample ?? (qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420);
+            int qlty = Numerics.Clamp(this.quality ?? metadata.GetJpegMetadata().Quality, 1, 100);
+            this.subsample ??= qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
 
             // Convert from a quality rating to a scaling factor.
             int scale;
@@ -313,7 +314,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="bits">The packed bits.</param>
         /// <param name="count">The number of bits</param>
-        private void Emit(uint bits, uint count)
+        /// <param name="emitBufferBase">The reference to the emitBuffer.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void Emit(uint bits, uint count, ref byte emitBufferBase)
         {
             count += this.bitCount;
             bits <<= (int)(32 - count);
@@ -327,10 +330,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 while (count >= 8)
                 {
                     byte b = (byte)(bits >> 24);
-                    this.emitBuffer[len++] = b;
-                    if (b == 0xff)
+                    Unsafe.Add(ref emitBufferBase, len++) = b;
+                    if (b == byte.MaxValue)
                     {
-                        this.emitBuffer[len++] = 0x00;
+                        Unsafe.Add(ref emitBufferBase, len++) = byte.MinValue;
                     }
 
                     bits <<= 8;
@@ -352,11 +355,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="index">The index of the Huffman encoder</param>
         /// <param name="value">The value to encode.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EmitHuff(HuffIndex index, int value)
+        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void EmitHuff(HuffIndex index, int value, ref byte emitBufferBase)
         {
             uint x = HuffmanLut.TheHuffmanLut[(int)index].Values[value];
-            this.Emit(x & ((1 << 24) - 1), x >> 24);
+            this.Emit(x & ((1 << 24) - 1), x >> 24, ref emitBufferBase);
         }
 
         /// <summary>
@@ -365,8 +369,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="index">The index of the Huffman encoder</param>
         /// <param name="runLength">The number of copies to encode.</param>
         /// <param name="value">The value to encode.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void EmitHuffRLE(HuffIndex index, int runLength, int value)
+        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
+        [MethodImpl(InliningOptions.ShortMethod)]
+        private void EmitHuffRLE(HuffIndex index, int runLength, int value, ref byte emitBufferBase)
         {
             int a = value;
             int b = value;
@@ -386,10 +391,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 bt = 8 + (uint)BitCountLut[a >> 8];
             }
 
-            this.EmitHuff(index, (int)((uint)(runLength << 4) | bt));
+            this.EmitHuff(index, (int)((uint)(runLength << 4) | bt), ref emitBufferBase);
             if (bt > 0)
             {
-                this.Emit((uint)b & (uint)((1 << ((int)bt)) - 1), bt);
+                this.Emit((uint)b & (uint)((1 << ((int)bt)) - 1), bt, ref emitBufferBase);
             }
         }
 
@@ -399,7 +404,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        private void Encode444<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
+        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
+        private void Encode444<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken, ref byte emitBufferBase)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -418,15 +424,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             var pixelConverter = YCbCrForwardConverter<TPixel>.Create();
             ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
             Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
+            RowOctet<TPixel> currentRows = default;
 
             for (int y = 0; y < pixels.Height; y += 8)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var currentRows = new RowOctet<TPixel>(pixelBuffer, y);
+                currentRows.Update(pixelBuffer, y);
 
                 for (int x = 0; x < pixels.Width; x += 8)
                 {
-                    pixelConverter.Convert(frame, x, y, currentRows);
+                    pixelConverter.Convert(frame, x, y, ref currentRows);
 
                     prevDCY = this.WriteBlock(
                         QuantIndex.Luminance,
@@ -435,7 +442,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         ref temp1,
                         ref temp2,
                         ref onStackLuminanceQuantTable,
-                        ref unzig);
+                        ref unzig,
+                        ref emitBufferBase);
+
                     prevDCCb = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCb,
@@ -443,7 +452,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         ref temp1,
                         ref temp2,
                         ref onStackChrominanceQuantTable,
-                        ref unzig);
+                        ref unzig,
+                        ref emitBufferBase);
+
                     prevDCCr = this.WriteBlock(
                         QuantIndex.Chrominance,
                         prevDCCr,
@@ -451,7 +462,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         ref temp1,
                         ref temp2,
                         ref onStackChrominanceQuantTable,
-                        ref unzig);
+                        ref unzig,
+                        ref emitBufferBase);
                 }
             }
         }
@@ -517,9 +529,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <param name="tempDest2">Temporal block 2</param>
         /// <param name="quant">Quantization table</param>
         /// <param name="unZig">The 8x8 Unzig block.</param>
-        /// <returns>
-        /// The <see cref="int"/>
-        /// </returns>
+        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
+        /// <returns>The <see cref="int"/>.</returns>
         private int WriteBlock(
             QuantIndex index,
             int prevDC,
@@ -527,7 +538,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             ref Block8x8F tempDest1,
             ref Block8x8F tempDest2,
             ref Block8x8F quant,
-            ref ZigZag unZig)
+            ref ZigZag unZig,
+            ref byte emitBufferBase)
         {
             FastFloatingPointDCT.TransformFDCT(ref src, ref tempDest1, ref tempDest2);
 
@@ -536,7 +548,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int dc = (int)tempDest2[0];
 
             // Emit the DC delta.
-            this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC);
+            this.EmitHuffRLE((HuffIndex)((2 * (int)index) + 0), 0, dc - prevDC, ref emitBufferBase);
 
             // Emit the AC components.
             var h = (HuffIndex)((2 * (int)index) + 1);
@@ -554,18 +566,18 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 {
                     while (runLength > 15)
                     {
-                        this.EmitHuff(h, 0xf0);
+                        this.EmitHuff(h, 0xf0, ref emitBufferBase);
                         runLength -= 16;
                     }
 
-                    this.EmitHuffRLE(h, runLength, ac);
+                    this.EmitHuffRLE(h, runLength, ac, ref emitBufferBase);
                     runLength = 0;
                 }
             }
 
             if (runLength > 0)
             {
-                this.EmitHuff(h, 0x00);
+                this.EmitHuff(h, 0x00, ref emitBufferBase);
             }
 
             return dc;
@@ -747,9 +759,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <param name="app1Length">The length of the data the app1 marker contains.</param>
         private void WriteApp1Header(int app1Length)
-        {
-            this.WriteAppHeader(app1Length, JpegConstants.Markers.APP1);
-        }
+            => this.WriteAppHeader(app1Length, JpegConstants.Markers.APP1);
 
         /// <summary>
         /// Writes a AppX header.
@@ -953,19 +963,19 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
             // TODO: We should allow grayscale writing.
             this.outputStream.Write(SosHeaderYCbCr);
-
+            ref byte emitBufferBase = ref MemoryMarshal.GetReference<byte>(this.emitBuffer);
             switch (this.subsample)
             {
                 case JpegSubsample.Ratio444:
-                    this.Encode444(image, cancellationToken);
+                    this.Encode444(image, cancellationToken, ref emitBufferBase);
                     break;
                 case JpegSubsample.Ratio420:
-                    this.Encode420(image, cancellationToken);
+                    this.Encode420(image, cancellationToken, ref emitBufferBase);
                     break;
             }
 
             // Pad the last byte with 1's.
-            this.Emit(0x7f, 7);
+            this.Emit(0x7f, 7, ref emitBufferBase);
         }
 
         /// <summary>
@@ -975,7 +985,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="pixels">The pixel accessor providing access to the image pixels.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
-        private void Encode420<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken)
+        /// <param name="emitBufferBase">The reference to the emit buffer.</param>
+        private void Encode420<TPixel>(Image<TPixel> pixels, CancellationToken cancellationToken, ref byte emitBufferBase)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // TODO: Need a JpegScanEncoder<TPixel> class or struct that encapsulates the scan-encoding implementation. (Similar to JpegScanDecoder.)
@@ -997,6 +1008,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
             ImageFrame<TPixel> frame = pixels.Frames.RootFrame;
             Buffer2D<TPixel> pixelBuffer = frame.PixelBuffer;
+            RowOctet<TPixel> currentRows = default;
 
             for (int y = 0; y < pixels.Height; y += 16)
             {
@@ -1008,10 +1020,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         int xOff = (i & 1) * 8;
                         int yOff = (i & 2) * 4;
 
-                        // TODO: Try pushing this to the outer loop!
-                        var currentRows = new RowOctet<TPixel>(pixelBuffer, y + yOff);
-
-                        pixelConverter.Convert(frame, x + xOff, y + yOff, currentRows);
+                        currentRows.Update(pixelBuffer, y + yOff);
+                        pixelConverter.Convert(frame, x + xOff, y + yOff, ref currentRows);
 
                         cb[i] = pixelConverter.Cb;
                         cr[i] = pixelConverter.Cr;
@@ -1023,7 +1033,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                             ref temp1,
                             ref temp2,
                             ref onStackLuminanceQuantTable,
-                            ref unzig);
+                            ref unzig,
+                            ref emitBufferBase);
                     }
 
                     Block8x8F.Scale16X16To8X8(ref b, cb);
@@ -1034,7 +1045,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         ref temp1,
                         ref temp2,
                         ref onStackChrominanceQuantTable,
-                        ref unzig);
+                        ref unzig,
+                        ref emitBufferBase);
 
                     Block8x8F.Scale16X16To8X8(ref b, cr);
                     prevDCCr = this.WriteBlock(
@@ -1044,7 +1056,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                         ref temp1,
                         ref temp2,
                         ref onStackChrominanceQuantTable,
-                        ref unzig);
+                        ref unzig,
+                        ref emitBufferBase);
                 }
             }
         }

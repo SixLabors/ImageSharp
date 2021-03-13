@@ -111,7 +111,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         [MethodImpl(InliningOptions.ShortMethod)]
         public void FromVector4(Vector4 vector)
         {
-            vector = Vector4Utilities.FastClamp(vector, Vector4.Zero, Vector4.One);
+            vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One);
             this.R = vector.X;
             this.G = vector.Y;
             this.B = vector.Z;

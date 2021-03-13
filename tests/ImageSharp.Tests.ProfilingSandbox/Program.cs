@@ -31,12 +31,19 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
         /// </param>
         public static void Main(string[] args)
         {
+            RunJpegEncoderProfilingTests();
             // RunJpegColorProfilingTests();
-            RunDecodeJpegProfilingTests();
+            // RunDecodeJpegProfilingTests();
             // RunToVector4ProfilingTest();
             // RunResizeProfilingTest();
 
             Console.ReadLine();
+        }
+
+        private static void RunJpegEncoderProfilingTests()
+        {
+            var benchmarks = new JpegProfilingBenchmarks(new ConsoleOutput());
+            benchmarks.EncodeJpeg_SingleMidSize();
         }
 
         private static void RunJpegColorProfilingTests()
@@ -53,7 +60,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox
 
         private static void RunToVector4ProfilingTest()
         {
-            var tests = new PixelOperationsTests.Rgba32OperationsTests(new ConsoleOutput());
+            var tests = new PixelOperationsTests.Rgba32_OperationsTests(new ConsoleOutput());
             tests.Benchmark_ToVector4();
         }
 

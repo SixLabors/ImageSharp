@@ -35,6 +35,15 @@ namespace SixLabors.ImageSharp.Formats.Png
             options.ColorType ??= pngMetadata.ColorType ?? SuggestColorType<TPixel>();
             options.BitDepth ??= pngMetadata.BitDepth ?? SuggestBitDepth<TPixel>();
 
+            // Ensure bit depth and color type are a supported combination.
+            // Bit8 is the only bit depth supported by all color types.
+            byte bits = (byte)options.BitDepth;
+            byte[] validBitDepths = PngConstants.ColorTypes[options.ColorType.Value];
+            if (Array.IndexOf(validBitDepths, bits) == -1)
+            {
+                options.BitDepth = PngBitDepth.Bit8;
+            }
+
             options.InterlaceMethod ??= pngMetadata.InterlaceMethod;
 
             use16Bit = options.BitDepth == PngBitDepth.Bit16;
@@ -43,12 +52,6 @@ namespace SixLabors.ImageSharp.Formats.Png
             if (options.IgnoreMetadata)
             {
                 options.ChunkFilter = PngChunkFilter.ExcludeAll;
-            }
-
-            // Ensure we are not allowing impossible combinations.
-            if (!PngConstants.ColorTypes.ContainsKey(options.ColorType.Value))
-            {
-                throw new NotSupportedException("Color type is not supported or not valid.");
             }
         }
 
@@ -68,16 +71,11 @@ namespace SixLabors.ImageSharp.Formats.Png
                 return null;
             }
 
-            byte bits = (byte)options.BitDepth;
-            if (Array.IndexOf(PngConstants.ColorTypes[options.ColorType.Value], bits) == -1)
-            {
-                throw new NotSupportedException("Bit depth is not supported or not valid.");
-            }
-
             // Use the metadata to determine what quantization depth to use if no quantizer has been set.
             if (options.Quantizer is null)
             {
-                var maxColors = ImageMaths.GetColorCountForBitDepth(bits);
+                byte bits = (byte)options.BitDepth;
+                var maxColors = ColorNumerics.GetColorCountForBitDepth(bits);
                 options.Quantizer = new WuQuantizer(new QuantizerOptions { MaxColors = maxColors });
             }
 
@@ -103,7 +101,7 @@ namespace SixLabors.ImageSharp.Formats.Png
             byte bitDepth;
             if (options.ColorType == PngColorType.Palette)
             {
-                byte quantizedBits = (byte)ImageMaths.GetBitsNeededForColorDepth(quantizedFrame.Palette.Length).Clamp(1, 8);
+                byte quantizedBits = (byte)Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(quantizedFrame.Palette.Length), 1, 8);
                 byte bits = Math.Max((byte)options.BitDepth, quantizedBits);
 
                 // Png only supports in four pixel depths: 1, 2, 4, and 8 bits when using the PLTE chunk

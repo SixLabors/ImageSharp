@@ -10,6 +10,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
+    [Trait("Category", "PixelFormats")]
     public class PixelBlenderTests
     {
         public static TheoryData<object, Type, PixelColorBlendingMode> BlenderMappings = new TheoryData<object, Type, PixelColorBlendingMode>

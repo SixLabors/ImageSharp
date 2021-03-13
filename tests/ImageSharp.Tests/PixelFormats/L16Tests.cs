@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Numerics;
@@ -7,6 +7,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
+    [Trait("Category", "PixelFormats")]
     public class L16Tests
     {
         [Fact]
@@ -113,8 +114,8 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
             // Arrange
             L16 gray = default;
             const byte rgb = 128;
-            ushort scaledRgb = ImageMaths.UpscaleFrom8BitTo16Bit(rgb);
-            ushort expected = ImageMaths.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
+            ushort scaledRgb = ColorNumerics.UpscaleFrom8BitTo16Bit(rgb);
+            ushort expected = ColorNumerics.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
 
             // Act
             gray.FromRgba32(new Rgba32(rgb, rgb, rgb));
@@ -131,7 +132,7 @@ namespace SixLabors.ImageSharp.Tests.PixelFormats
         public void L16_ToRgba32(ushort input)
         {
             // Arrange
-            ushort expected = ImageMaths.DownScaleFrom16BitTo8Bit(input);
+            ushort expected = ColorNumerics.DownScaleFrom16BitTo8Bit(input);
             var gray = new L16(input);
 
             // Act

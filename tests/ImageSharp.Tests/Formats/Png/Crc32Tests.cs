@@ -8,6 +8,7 @@ using SharpCrc32 = ICSharpCode.SharpZipLib.Checksum.Crc32;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
+    [Trait("Format", "Png")]
     public class Crc32Tests
     {
         [Theory]

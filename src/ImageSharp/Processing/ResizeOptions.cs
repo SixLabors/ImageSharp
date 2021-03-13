@@ -45,5 +45,11 @@ namespace SixLabors.ImageSharp.Processing
         /// Gets or sets the target rectangle to resize into.
         /// </summary>
         public Rectangle? TargetRectangle { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to premultiply
+        /// the alpha (if it exists) during the resize operation.
+        /// </summary>
+        public bool PremultiplyAlpha { get; set; } = true;
     }
 }

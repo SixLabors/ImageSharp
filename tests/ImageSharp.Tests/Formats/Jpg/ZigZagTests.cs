@@ -6,6 +6,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public class ZigZagTests
     {
         [Fact]

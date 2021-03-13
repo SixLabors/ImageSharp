@@ -7,17 +7,15 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using BenchmarkDotNet.Attributes;
-
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests;
-
 using SDImage = System.Drawing.Image;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
 {
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.ShortMultiFramework))]
     public class LoadResizeSave_ImageSpecific
     {
         private readonly Configuration configuration = new Configuration(new JpegConfigurationModule());
@@ -32,6 +30,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
             TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
             TestImages.Jpeg.BenchmarkSuite.BadRstProgressive518_Large444YCbCr,
             TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr)]
+
         public string TestImage { get; set; }
 
         [Params(false, true)]
@@ -51,28 +50,25 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg
         [Benchmark(Baseline = true)]
         public void SystemDrawing()
         {
-            using (var sourceStream = new MemoryStream(this.sourceBytes))
-            using (var destStream = new MemoryStream(this.destBytes))
-            using (var source = SDImage.FromStream(sourceStream))
-            using (var destination = new Bitmap(source.Width / 4, source.Height / 4))
+            using var sourceStream = new MemoryStream(this.sourceBytes);
+            using var destStream = new MemoryStream(this.destBytes);
+            using var source = SDImage.FromStream(sourceStream);
+            using var destination = new Bitmap(source.Width / 4, source.Height / 4);
+            using (var g = Graphics.FromImage(destination))
             {
-                using (var g = Graphics.FromImage(destination))
-                {
-                    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                    g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                    g.CompositingQuality = CompositingQuality.HighQuality;
-                    g.DrawImage(source, 0, 0, 400, 400);
-                }
-
-                destination.Save(destStream, ImageFormat.Jpeg);
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.CompositingQuality = CompositingQuality.HighQuality;
+                g.DrawImage(source, 0, 0, 400, 400);
             }
+
+            destination.Save(destStream, ImageFormat.Jpeg);
         }
 
         [Benchmark]
         public void ImageSharp()
         {
-            var source = Image.Load(this.configuration, this.sourceBytes, new JpegDecoder { IgnoreMetadata = true });
-            using (source)
+            using (var source = Image.Load(this.configuration, this.sourceBytes, new JpegDecoder { IgnoreMetadata = true }))
             using (var destStream = new MemoryStream(this.destBytes))
             {
                 source.Mutate(c => c.Resize(source.Width / 4, source.Height / 4));

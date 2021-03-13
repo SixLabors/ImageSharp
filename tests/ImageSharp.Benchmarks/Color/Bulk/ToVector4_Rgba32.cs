@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 {
-    [Config(typeof(Config.ShortClr))]
+    [Config(typeof(Config.ShortCore31))]
     public class ToVector4_Rgba32 : ToVector4<Rgba32>
     {
         [Benchmark]
@@ -51,6 +51,17 @@ namespace SixLabors.ImageSharp.Benchmarks.ColorSpaces.Bulk
 
             SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(sBytes, dFloats);
         }
+
+#if SUPPORTS_RUNTIME_INTRINSICS
+        [Benchmark]
+        public void HwIntrinsics()
+        {
+            Span<byte> sBytes = MemoryMarshal.Cast<Rgba32, byte>(this.source.GetSpan());
+            Span<float> dFloats = MemoryMarshal.Cast<Vector4, float>(this.destination.GetSpan());
+
+            SimdUtils.HwIntrinsics.ByteToNormalizedFloat(sBytes, dFloats);
+        }
+#endif
 
         // [Benchmark]
         public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat_2Loops()

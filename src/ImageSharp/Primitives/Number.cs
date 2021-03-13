@@ -70,7 +70,7 @@ namespace SixLabors.ImageSharp
         {
             return number.isSigned
                 ? number.signedValue
-                : (int)number.unsignedValue.Clamp(0, int.MaxValue);
+                : (int)Numerics.Clamp(number.unsignedValue, 0, int.MaxValue);
         }
 
         /// <summary>
@@ -80,7 +80,7 @@ namespace SixLabors.ImageSharp
         public static explicit operator uint(Number number)
         {
             return number.isSigned
-                ? (uint)number.signedValue.Clamp(0, int.MaxValue)
+                ? (uint)Numerics.Clamp(number.signedValue, 0, int.MaxValue)
                 : number.unsignedValue;
         }
 
@@ -91,8 +91,8 @@ namespace SixLabors.ImageSharp
         public static explicit operator ushort(Number number)
         {
             return number.isSigned
-           ? (ushort)number.signedValue.Clamp(ushort.MinValue, ushort.MaxValue)
-           : (ushort)number.unsignedValue.Clamp(ushort.MinValue, ushort.MaxValue);
+                ? (ushort)Numerics.Clamp(number.signedValue, ushort.MinValue, ushort.MaxValue)
+                : (ushort)Numerics.Clamp(number.unsignedValue, ushort.MinValue, ushort.MaxValue);
         }
 
         /// <summary>

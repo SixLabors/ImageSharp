@@ -3,7 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -145,30 +144,33 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 in ditherOperation);
         }
 
+        // Spread assumes an even colorspace distribution and precision.
+        // TODO: Cubed root is currently used to represent 3 color channels
+        // but we should introduce something to PixelTypeInfo.
+        // https://bisqwit.iki.fi/story/howto/dither/jy/
+        // https://en.wikipedia.org/wiki/Ordered_dithering#Algorithm
+        internal static int CalculatePaletteSpread(int colors)
+            => (int)(255 / Math.Max(1, Math.Pow(colors, 1.0 / 3) - 1));
+
         [MethodImpl(InliningOptions.ShortMethod)]
         internal TPixel Dither<TPixel>(
             TPixel source,
             int x,
             int y,
-            int bitDepth,
+            int spread,
             float scale)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Rgba32 rgba = default;
+            Unsafe.SkipInit(out Rgba32 rgba);
             source.ToRgba32(ref rgba);
-            Rgba32 attempt;
+            Unsafe.SkipInit(out Rgba32 attempt);
 
-            // Spread assumes an even colorspace distribution and precision.
-            // Calculated as 0-255/component count. 256 / bitDepth
-            // https://bisqwit.iki.fi/story/howto/dither/jy/
-            // https://en.wikipedia.org/wiki/Ordered_dithering#Algorithm
-            int spread = 256 / bitDepth;
             float factor = spread * this.thresholdMatrix[y % this.modulusY, x % this.modulusX] * scale;
 
-            attempt.R = (byte)(rgba.R + factor).Clamp(byte.MinValue, byte.MaxValue);
-            attempt.G = (byte)(rgba.G + factor).Clamp(byte.MinValue, byte.MaxValue);
-            attempt.B = (byte)(rgba.B + factor).Clamp(byte.MinValue, byte.MaxValue);
-            attempt.A = (byte)(rgba.A + factor).Clamp(byte.MinValue, byte.MaxValue);
+            attempt.R = (byte)Numerics.Clamp(rgba.R + factor, byte.MinValue, byte.MaxValue);
+            attempt.G = (byte)Numerics.Clamp(rgba.G + factor, byte.MinValue, byte.MaxValue);
+            attempt.B = (byte)Numerics.Clamp(rgba.B + factor, byte.MinValue, byte.MaxValue);
+            attempt.A = (byte)Numerics.Clamp(rgba.A + factor, byte.MinValue, byte.MaxValue);
 
             TPixel result = default;
             result.FromRgba32(attempt);
@@ -203,7 +205,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             private readonly ImageFrame<TPixel> source;
             private readonly IndexedImageFrame<TPixel> destination;
             private readonly Rectangle bounds;
-            private readonly int bitDepth;
+            private readonly int spread;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public QuantizeDitherRowOperation(
@@ -218,23 +220,24 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 this.source = source;
                 this.destination = destination;
                 this.bounds = bounds;
-                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(destination.Palette.Length);
+                this.spread = CalculatePaletteSpread(destination.Palette.Length);
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                int offsetY = this.bounds.Top;
-                int offsetX = this.bounds.Left;
+                ref TFrameQuantizer quantizer = ref Unsafe.AsRef(this.quantizer);
+                int spread = this.spread;
                 float scale = this.quantizer.Options.DitherScale;
 
-                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
-                ref byte destinationRowRef = ref MemoryMarshal.GetReference(this.destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
+                ReadOnlySpan<TPixel> sourceRow = this.source.GetPixelRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+                Span<byte> destRow =
+                    this.destination.GetWritablePixelRowSpanUnsafe(y - this.bounds.Y).Slice(0, sourceRow.Length);
 
-                for (int x = this.bounds.Left; x < this.bounds.Right; x++)
+                for (int x = 0; x < sourceRow.Length; x++)
                 {
-                    TPixel dithered = this.dither.Dither(Unsafe.Add(ref sourceRowRef, x), x, y, this.bitDepth, scale);
-                    Unsafe.Add(ref destinationRowRef, x - offsetX) = Unsafe.AsRef(this.quantizer).GetQuantizedColor(dithered, out TPixel _);
+                    TPixel dithered = this.dither.Dither(sourceRow[x], x, y, spread, scale);
+                    destRow[x] = quantizer.GetQuantizedColor(dithered, out TPixel _);
                 }
             }
         }
@@ -248,7 +251,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
             private readonly ImageFrame<TPixel> source;
             private readonly Rectangle bounds;
             private readonly float scale;
-            private readonly int bitDepth;
+            private readonly int spread;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public PaletteDitherRowOperation(
@@ -262,19 +265,23 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
                 this.source = source;
                 this.bounds = bounds;
                 this.scale = processor.DitherScale;
-                this.bitDepth = ImageMaths.GetBitsNeededForColorDepth(processor.Palette.Length);
+                this.spread = CalculatePaletteSpread(processor.Palette.Length);
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
-                ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(this.source.GetPixelRowSpan(y));
+                ref TPaletteDitherImageProcessor processor = ref Unsafe.AsRef(this.processor);
+                int spread = this.spread;
+                float scale = this.scale;
 
-                for (int x = this.bounds.Left; x < this.bounds.Right; x++)
+                Span<TPixel> row = this.source.GetPixelRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+
+                for (int x = 0; x < row.Length; x++)
                 {
-                    ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, x);
-                    TPixel dithered = this.dither.Dither(sourcePixel, x, y, this.bitDepth, this.scale);
-                    sourcePixel = Unsafe.AsRef(this.processor).GetPaletteColor(dithered);
+                    ref TPixel sourcePixel = ref row[x];
+                    TPixel dithered = this.dither.Dither(sourcePixel, x, y, spread, scale);
+                    sourcePixel = processor.GetPaletteColor(dithered);
                 }
             }
         }

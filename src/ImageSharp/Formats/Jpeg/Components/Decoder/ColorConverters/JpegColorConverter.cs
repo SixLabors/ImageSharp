@@ -3,8 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
-
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tuples;
 
@@ -18,22 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// <summary>
         /// The available converters
         /// </summary>
-        private static readonly JpegColorConverter[] Converters =
-            {
-                // 8-bit converters
-                GetYCbCrConverter(8),
-                new FromYccK(8),
-                new FromCmyk(8),
-                new FromGrayscale(8),
-                new FromRgb(8),
-
-                // 12-bit converters
-                GetYCbCrConverter(12),
-                new FromYccK(12),
-                new FromCmyk(12),
-                new FromGrayscale(12),
-                new FromRgb(12),
-            };
+        private static readonly JpegColorConverter[] Converters = CreateConverters();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JpegColorConverter"/> class.
@@ -45,6 +30,12 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
             this.MaximumValue = MathF.Pow(2, precision) - 1;
             this.HalfValue = MathF.Ceiling(this.MaximumValue / 2);
         }
+
+        /// <summary>
+        /// Gets a value indicating whether this <see cref="JpegColorConverter"/> is available
+        /// on the current runtime and CPU architecture.
+        /// </summary>
+        protected abstract bool IsAvailable { get; }
 
         /// <summary>
         /// Gets the <see cref="JpegColorSpace"/> of this converter.
@@ -71,8 +62,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         /// </summary>
         public static JpegColorConverter GetConverter(JpegColorSpace colorSpace, int precision)
         {
-            JpegColorConverter converter = Array.Find(Converters, c => c.ColorSpace == colorSpace
-                                                                    && c.Precision == precision);
+            JpegColorConverter converter = Array.Find(
+                Converters,
+                c => c.ColorSpace == colorSpace
+                && c.Precision == precision);
 
             if (converter is null)
             {
@@ -90,10 +83,88 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
         public abstract void ConvertToRgba(in ComponentValues values, Span<Vector4> result);
 
         /// <summary>
-        /// Returns the <see cref="JpegColorConverter"/> for the YCbCr colorspace that matches the current CPU architecture.
+        /// Returns the <see cref="JpegColorConverter"/>s for all supported colorspaces and precisions.
         /// </summary>
-        private static JpegColorConverter GetYCbCrConverter(int precision) =>
-            FromYCbCrSimdVector8.IsAvailable ? (JpegColorConverter)new FromYCbCrSimdVector8(precision) : new FromYCbCrSimd(precision);
+        private static JpegColorConverter[] CreateConverters()
+        {
+            var converters = new List<JpegColorConverter>();
+
+            // 8-bit converters
+            converters.AddRange(GetYCbCrConverters(8));
+            converters.AddRange(GetYccKConverters(8));
+            converters.AddRange(GetCmykConverters(8));
+            converters.AddRange(GetGrayScaleConverters(8));
+            converters.AddRange(GetRgbConverters(8));
+
+            // 12-bit converters
+            converters.AddRange(GetYCbCrConverters(12));
+            converters.AddRange(GetYccKConverters(12));
+            converters.AddRange(GetCmykConverters(12));
+            converters.AddRange(GetGrayScaleConverters(12));
+            converters.AddRange(GetRgbConverters(12));
+
+            return converters.Where(x => x.IsAvailable).ToArray();
+        }
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/>s for the YCbCr colorspace.
+        /// </summary>
+        private static IEnumerable<JpegColorConverter> GetYCbCrConverters(int precision)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            yield return new FromYCbCrAvx2(precision);
+#endif
+            yield return new FromYCbCrVector8(precision);
+            yield return new FromYCbCrVector4(precision);
+            yield return new FromYCbCrBasic(precision);
+        }
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/>s for the YccK colorspace.
+        /// </summary>
+        private static IEnumerable<JpegColorConverter> GetYccKConverters(int precision)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            yield return new FromYccKAvx2(precision);
+#endif
+            yield return new FromYccKVector8(precision);
+            yield return new FromYccKBasic(precision);
+        }
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/>s for the CMYK colorspace.
+        /// </summary>
+        private static IEnumerable<JpegColorConverter> GetCmykConverters(int precision)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            yield return new FromCmykAvx2(precision);
+#endif
+            yield return new FromCmykVector8(precision);
+            yield return new FromCmykBasic(precision);
+        }
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/>s for the gray scale colorspace.
+        /// </summary>
+        private static IEnumerable<JpegColorConverter> GetGrayScaleConverters(int precision)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            yield return new FromGrayscaleAvx2(precision);
+#endif
+            yield return new FromGrayscaleBasic(precision);
+        }
+
+        /// <summary>
+        /// Returns the <see cref="JpegColorConverter"/>s for the RGB colorspace.
+        /// </summary>
+        private static IEnumerable<JpegColorConverter> GetRgbConverters(int precision)
+        {
+#if SUPPORTS_RUNTIME_INTRINSICS
+            yield return new FromRgbAvx2(precision);
+#endif
+            yield return new FromRgbVector8(precision);
+            yield return new FromRgbBasic(precision);
+        }
 
         /// <summary>
         /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.
@@ -228,6 +299,52 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder.ColorConverters
                 this.V7.X = r.B.W;
                 this.V7.Y = g.B.W;
                 this.V7.Z = b.B.W;
+                this.V7.W = 1f;
+            }
+
+            /// <summary>
+            /// Pack (g0,g1...g7) vector values as (g0,g0,g0,1), (g1,g1,g1,1) ...
+            /// </summary>
+            public void Pack(ref Vector4Pair g)
+            {
+                this.V0.X = g.A.X;
+                this.V0.Y = g.A.X;
+                this.V0.Z = g.A.X;
+                this.V0.W = 1f;
+
+                this.V1.X = g.A.Y;
+                this.V1.Y = g.A.Y;
+                this.V1.Z = g.A.Y;
+                this.V1.W = 1f;
+
+                this.V2.X = g.A.Z;
+                this.V2.Y = g.A.Z;
+                this.V2.Z = g.A.Z;
+                this.V2.W = 1f;
+
+                this.V3.X = g.A.W;
+                this.V3.Y = g.A.W;
+                this.V3.Z = g.A.W;
+                this.V3.W = 1f;
+
+                this.V4.X = g.B.X;
+                this.V4.Y = g.B.X;
+                this.V4.Z = g.B.X;
+                this.V4.W = 1f;
+
+                this.V5.X = g.B.Y;
+                this.V5.Y = g.B.Y;
+                this.V5.Z = g.B.Y;
+                this.V5.W = 1f;
+
+                this.V6.X = g.B.Z;
+                this.V6.Y = g.B.Z;
+                this.V6.Z = g.B.Z;
+                this.V6.W = 1f;
+
+                this.V7.X = g.B.W;
+                this.V7.Y = g.B.W;
+                this.V7.Z = g.B.W;
                 this.V7.W = 1f;
             }
         }

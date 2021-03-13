@@ -81,14 +81,14 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             b.LoadFrom(ref sourceBlock);
 
             // Dequantize:
-            b.MultiplyInplace(ref this.DequantiazationTable);
+            b.MultiplyInPlace(ref this.DequantiazationTable);
 
             FastFloatingPointDCT.TransformIDCT(ref b, ref this.WorkspaceBlock1, ref this.WorkspaceBlock2);
 
             // To conform better to libjpeg we actually NEED TO loose precision here.
             // This is because they store blocks as Int16 between all the operations.
             // To be "more accurate", we need to emulate this by rounding!
-            this.WorkspaceBlock1.NormalizeColorsAndRoundInplace(maximumValue);
+            this.WorkspaceBlock1.NormalizeColorsAndRoundInPlace(maximumValue);
 
             this.WorkspaceBlock1.ScaledCopyTo(
                 ref destAreaOrigin,

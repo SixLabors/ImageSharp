@@ -12,6 +12,7 @@ using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
+    [Trait("Format", "Jpg")]
     public class JpegImagePostProcessorTests
     {
         public static string[] BaselineTestJpegs =

@@ -26,6 +26,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             this.DestinationHeight = size.Height;
             this.DestinationRectangle = rectangle;
             this.Compand = options.Compand;
+            this.PremultiplyAlpha = options.PremultiplyAlpha;
         }
 
         /// <summary>
@@ -52,6 +53,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// Gets a value indicating whether to compress or expand individual pixel color values on processing.
         /// </summary>
         public bool Compand { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether to premultiply the alpha (if it exists) during the resize operation.
+        /// </summary>
+        public bool PremultiplyAlpha { get; }
 
         /// <inheritdoc />
         public override ICloningImageProcessor<TPixel> CreatePixelSpecificCloningProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)

@@ -7,6 +7,7 @@ using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats
 {
+    [Trait("Category", "PixelFormats")]
     public class Rgb48Tests
     {
         [Fact]

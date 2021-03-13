@@ -203,7 +203,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -222,7 +222,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -241,7 +241,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -260,7 +260,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -279,7 +279,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -298,7 +298,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -317,7 +317,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -336,7 +336,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -355,7 +355,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -374,7 +374,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -393,7 +393,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -412,7 +412,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel NormalXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(NormalXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -608,7 +608,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplySrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplySrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -627,7 +627,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplySrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplySrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -646,7 +646,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplySrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplySrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -665,7 +665,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplySrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplySrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -684,7 +684,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplySrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplySrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -703,7 +703,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplyDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -722,7 +722,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplyDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -741,7 +741,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplyDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -760,7 +760,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplyDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -779,7 +779,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplyDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -798,7 +798,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplyClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -817,7 +817,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel MultiplyXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(MultiplyXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1013,7 +1013,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1032,7 +1032,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1051,7 +1051,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1070,7 +1070,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1089,7 +1089,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1108,7 +1108,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1127,7 +1127,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1146,7 +1146,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1165,7 +1165,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1184,7 +1184,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1203,7 +1203,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1222,7 +1222,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel AddXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(AddXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1418,7 +1418,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1437,7 +1437,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1456,7 +1456,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1475,7 +1475,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1494,7 +1494,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1513,7 +1513,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1532,7 +1532,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1551,7 +1551,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1570,7 +1570,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1589,7 +1589,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1608,7 +1608,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1627,7 +1627,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel SubtractXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(SubtractXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1823,7 +1823,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1842,7 +1842,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1861,7 +1861,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1880,7 +1880,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1899,7 +1899,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1918,7 +1918,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1937,7 +1937,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1956,7 +1956,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1975,7 +1975,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -1994,7 +1994,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2013,7 +2013,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2032,7 +2032,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel ScreenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(ScreenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2228,7 +2228,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2247,7 +2247,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2266,7 +2266,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2285,7 +2285,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2304,7 +2304,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2323,7 +2323,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2342,7 +2342,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2361,7 +2361,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2380,7 +2380,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2399,7 +2399,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2418,7 +2418,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2437,7 +2437,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel DarkenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(DarkenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2633,7 +2633,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2652,7 +2652,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2671,7 +2671,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2690,7 +2690,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2709,7 +2709,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2728,7 +2728,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2747,7 +2747,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2766,7 +2766,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2785,7 +2785,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2804,7 +2804,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2823,7 +2823,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -2842,7 +2842,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel LightenXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(LightenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3038,7 +3038,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlaySrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlaySrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3057,7 +3057,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlaySrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlaySrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3076,7 +3076,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlaySrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlaySrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3095,7 +3095,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlaySrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlaySrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3114,7 +3114,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlaySrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlaySrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3133,7 +3133,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlayDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3152,7 +3152,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlayDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3171,7 +3171,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlayDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3190,7 +3190,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlayDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3209,7 +3209,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlayDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3228,7 +3228,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlayClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3247,7 +3247,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel OverlayXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(OverlayXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3443,7 +3443,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightSrc<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3462,7 +3462,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightSrcAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3481,7 +3481,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightSrcOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3500,7 +3500,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightSrcIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3519,7 +3519,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightSrcOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3538,7 +3538,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightDest<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3557,7 +3557,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightDestAtop<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3576,7 +3576,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightDestOver<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3595,7 +3595,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightDestIn<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3614,7 +3614,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightDestOut<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3633,7 +3633,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightClear<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;
@@ -3652,7 +3652,7 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders
         public static TPixel HardLightXor<TPixel>(TPixel backdrop, TPixel source, float opacity)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            opacity = opacity.Clamp(0, 1);
+            opacity = Numerics.Clamp(opacity, 0, 1);
             TPixel dest = default;
             dest.FromScaledVector4(HardLightXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
             return dest;

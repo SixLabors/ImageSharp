@@ -1,13 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Text;
 
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Formats.Png.Zlib;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
@@ -15,6 +13,7 @@ using Xunit;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
+    [Trait("Format", "Png")]
     public partial class PngDecoderTests
     {
         // Represents ASCII string of "123456789"

@@ -28,7 +28,7 @@ namespace SixLabors.ImageSharp
             {
                 DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
-                int remainder = ImageMaths.Modulo4(source.Length);
+                int remainder = Numerics.Modulo4(source.Length);
                 int adjustedCount = source.Length - remainder;
 
                 if (adjustedCount > 0)
@@ -52,7 +52,7 @@ namespace SixLabors.ImageSharp
             {
                 DebugGuard.IsTrue(source.Length == dest.Length, nameof(source), "Input spans must be of same length!");
 
-                int remainder = ImageMaths.Modulo4(source.Length);
+                int remainder = Numerics.Modulo4(source.Length);
                 int adjustedCount = source.Length - remainder;
 
                 if (adjustedCount > 0)
@@ -125,7 +125,7 @@ namespace SixLabors.ImageSharp
                     Vector4 s = Unsafe.Add(ref sBase, i);
                     s *= maxBytes;
                     s += half;
-                    s = Vector4Utilities.FastClamp(s, Vector4.Zero, maxBytes);
+                    s = Numerics.Clamp(s, Vector4.Zero, maxBytes);
 
                     ref ByteVector4 d = ref Unsafe.Add(ref dBase, i);
                     d.X = (byte)s.X;

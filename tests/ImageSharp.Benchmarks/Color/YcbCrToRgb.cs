@@ -1,12 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Numerics;
+using BenchmarkDotNet.Attributes;
+
 namespace SixLabors.ImageSharp.Benchmarks
 {
-    using System.Numerics;
-
-    using BenchmarkDotNet.Attributes;
-
     public class YcbCrToRgb
     {
         [Benchmark(Baseline = true, Description = "Floating Point Conversion")]
@@ -19,9 +18,9 @@ namespace SixLabors.ImageSharp.Benchmarks
             int ccb = cb - 128;
             int ccr = cr - 128;
 
-            byte r = (byte)(y + (1.402F * ccr)).Clamp(0, 255);
-            byte g = (byte)(y - (0.34414F * ccb) - (0.71414F * ccr)).Clamp(0, 255);
-            byte b = (byte)(y + (1.772F * ccb)).Clamp(0, 255);
+            byte r = (byte)Numerics.Clamp(y + (1.402F * ccr), 0, 255);
+            byte g = (byte)Numerics.Clamp(y - (0.34414F * ccb) - (0.71414F * ccr), 0, 255);
+            byte b = (byte)Numerics.Clamp(y + (1.772F * ccb), 0, 255);
 
             return new Vector3(r, g, b);
         }
@@ -42,9 +41,9 @@ namespace SixLabors.ImageSharp.Benchmarks
             int g1 = 731 * ccr; // (0.71414F  * 1024) + .5F
             int b0 = 1815 * ccb; // (1.772F * 1024) + .5F
 
-            byte r = (byte)(y + (r0 >> 10)).Clamp(0, 255);
-            byte g = (byte)(y - (g0 >> 10) - (g1 >> 10)).Clamp(0, 255);
-            byte b = (byte)(y + (b0 >> 10)).Clamp(0, 255);
+            byte r = (byte)Numerics.Clamp(y + (r0 >> 10), 0, 255);
+            byte g = (byte)Numerics.Clamp(y - (g0 >> 10) - (g1 >> 10), 0, 255);
+            byte b = (byte)Numerics.Clamp(y + (b0 >> 10), 0, 255);
 
             return new Vector3(r, g, b);
         }

@@ -8,6 +8,7 @@ using SharpAdler32 = ICSharpCode.SharpZipLib.Checksum.Adler32;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
+    [Trait("Format", "Png")]
     public class Adler32Tests
     {
         [Theory]

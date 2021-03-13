@@ -8,11 +8,12 @@ using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
 
+using static SixLabors.ImageSharp.Tests.TestImages.Tga;
+
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Tga
 {
-    using static TestImages.Tga;
-
+    [Trait("Format", "Tga")]
     public class TgaEncoderTests
     {
         public static readonly TheoryData<TgaBitsPerPixel> BitsPerPixel =

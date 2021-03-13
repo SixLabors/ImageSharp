@@ -1,22 +1,23 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
+using System.Runtime.CompilerServices;
+
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+
 using Xunit;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
-    using System;
-    using System.Runtime.CompilerServices;
-
-    using SixLabors.ImageSharp.Formats.Jpeg;
-    using SixLabors.ImageSharp.Metadata;
-
+    [Trait("Format", "Jpg")]
     public partial class JpegDecoderTests
     {
         // TODO: A JPEGsnoop & metadata expert should review if the Exif/Icc expectations are correct.

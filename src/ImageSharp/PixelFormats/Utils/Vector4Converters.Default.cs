@@ -88,14 +88,16 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 Span<TPixel> destPixels)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
-                ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
+                ref Vector4 sourceStart = ref MemoryMarshal.GetReference(sourceVectors);
+                ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, sourceVectors.Length);
                 ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
 
-                for (int i = 0; i < sourceVectors.Length; i++)
+                while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
                 {
-                    ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                    dp.FromVector4(sp);
+                    destRef.FromVector4(sourceStart);
+
+                    sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+                    destRef = ref Unsafe.Add(ref destRef, 1);
                 }
             }
 
@@ -105,14 +107,16 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 Span<Vector4> destVectors)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
-                ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourcePixels);
+                ref TPixel sourceStart = ref MemoryMarshal.GetReference(sourcePixels);
+                ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, sourcePixels.Length);
                 ref Vector4 destRef = ref MemoryMarshal.GetReference(destVectors);
 
-                for (int i = 0; i < sourcePixels.Length; i++)
+                while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
                 {
-                    ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
-                    dp = sp.ToVector4();
+                    destRef = sourceStart.ToVector4();
+
+                    sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+                    destRef = ref Unsafe.Add(ref destRef, 1);
                 }
             }
 
@@ -122,14 +126,16 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 Span<TPixel> destinationColors)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
-                ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceVectors);
+                ref Vector4 sourceStart = ref MemoryMarshal.GetReference(sourceVectors);
+                ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, sourceVectors.Length);
                 ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
 
-                for (int i = 0; i < sourceVectors.Length; i++)
+                while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
                 {
-                    ref Vector4 sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref TPixel dp = ref Unsafe.Add(ref destRef, i);
-                    dp.FromScaledVector4(sp);
+                    destRef.FromScaledVector4(sourceStart);
+
+                    sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+                    destRef = ref Unsafe.Add(ref destRef, 1);
                 }
             }
 
@@ -139,14 +145,16 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils
                 Span<Vector4> destinationVectors)
                 where TPixel : unmanaged, IPixel<TPixel>
             {
-                ref TPixel sourceRef = ref MemoryMarshal.GetReference(sourceColors);
+                ref TPixel sourceStart = ref MemoryMarshal.GetReference(sourceColors);
+                ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, sourceColors.Length);
                 ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);
 
-                for (int i = 0; i < sourceColors.Length; i++)
+                while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
                 {
-                    ref TPixel sp = ref Unsafe.Add(ref sourceRef, i);
-                    ref Vector4 dp = ref Unsafe.Add(ref destRef, i);
-                    dp = sp.ToScaledVector4();
+                    destRef = sourceStart.ToScaledVector4();
+
+                    sourceStart = ref Unsafe.Add(ref sourceStart, 1);
+                    destRef = ref Unsafe.Add(ref destRef, 1);
                 }
             }
         }

@@ -365,7 +365,7 @@ namespace SixLabors.ImageSharp.Formats.Tga
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var vector = sourcePixel.ToVector4();
-            return ImageMaths.GetBT709Luminance(ref vector, 256);
+            return ColorNumerics.GetBT709Luminance(ref vector, 256);
         }
     }
 }

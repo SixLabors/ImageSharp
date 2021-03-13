@@ -7,7 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests
 {
@@ -25,19 +24,11 @@ namespace SixLabors.ImageSharp.Tests
 
         private static readonly Lazy<string> SolutionDirectoryFullPathLazy = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
 
-        private static readonly Lazy<bool> RunsOnCiLazy = new Lazy<bool>(
-            () =>
-                {
-                    bool isCi;
-                    return bool.TryParse(Environment.GetEnvironmentVariable("CI"), out isCi) && isCi;
-                });
+        private static readonly Lazy<bool> RunsOnCiLazy = new Lazy<bool>(() => bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) && isCi);
 
         private static readonly Lazy<string> NetCoreVersionLazy = new Lazy<string>(GetNetCoreVersion);
 
-        static TestEnvironment()
-        {
-            PrepareRemoteExecutor();
-        }
+        static TestEnvironment() => PrepareRemoteExecutor();
 
         /// <summary>
         /// Gets the .NET Core version, if running on .NET Core, otherwise returns an empty string.
@@ -108,6 +99,8 @@ namespace SixLabors.ImageSharp.Tests
 
         internal static bool IsLinux => RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 
+        internal static bool IsOSX => RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+
         internal static bool IsMono => Type.GetType("Mono.Runtime") != null; // https://stackoverflow.com/a/721194
 
         internal static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
@@ -170,7 +163,10 @@ namespace SixLabors.ImageSharp.Tests
             }
 
             string testProjectConfigPath = TestAssemblyFile.FullName + ".config";
-            File.Copy(testProjectConfigPath, remoteExecutorConfigPath);
+            if (File.Exists(testProjectConfigPath))
+            {
+                File.Copy(testProjectConfigPath, remoteExecutorConfigPath);
+            }
 
             if (Is64BitProcess)
             {
@@ -258,7 +254,7 @@ namespace SixLabors.ImageSharp.Tests
         private static string GetNetCoreVersion()
         {
             Assembly assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
-            string[] assemblyPath = assembly.CodeBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] assemblyPath = assembly.Location.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
             int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
             if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
             {

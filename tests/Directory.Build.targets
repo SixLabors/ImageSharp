@@ -5,39 +5,30 @@
     Directory.Build.targets is automatically picked up and imported by
     Microsoft.Common.targets. This file needs to exist, even if empty so that
     files in the parent directory tree, with the same name, are not imported
-    instead. The import fairly late and most other props/targets will have
+    instead. They import fairly late and most other props/targets will have
     been imported beforehand. We also don't need to add ourselves to
     MSBuildAllProjects, as that is done by the file that imports us.
   -->
 
-  <PropertyGroup>
-    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileDirectory)..\Directory.Build.targets</MSBuildAllProjects>
-  </PropertyGroup>
+  <!-- Import the shared tests .targets file -->
+  <Import Project="$(MSBuildThisFileDirectory)..\shared-infrastructure\msbuild\targets\SixLabors.Tests.targets" />
 
+  <!-- Import the solution .targets file. -->
   <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.targets" />
 
-  <!-- Tool versions for tool references across all projects -->
-  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
-    <!--dotnet tools does not have an x86 runner. You have to use separate SDKs-->
-    <!--https://github.com/actions/setup-dotnet/issues/72-->
-    <DotNetCliToolReference Update="dotnet-xunit" Version="2.3.1" />
-  </ItemGroup>
-
   <ItemGroup>
-    <!--Test Dependencies-->
+    <!-- Test Dependencies -->
     <PackageReference Update="BenchmarkDotNet" Version="0.12.1" />
-    <PackageReference Update="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.1" Condition="'$(OS)' == 'Windows_NT'" />    
+    <PackageReference Update="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.1" Condition="'$(IsWindows)'=='true'" />
     <PackageReference Update="Colourful" Version="2.0.5" />
-    <PackageReference Update="coverlet.collector" Version="1.3.0" PrivateAssets="All"/>
-    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.15.5" />
-    <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="5.0.0-beta.20069.1" />
-    <PackageReference Update="Microsoft.NET.Test.Sdk" Version="16.5.0-preview-20200116-01" />
-    <PackageReference Update="Moq" Version="4.14.5" />
+    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.23.2.1" />
+    <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="6.0.0-beta.20513.1" />
+    <PackageReference Update="Microsoft.DotNet.XUnitExtensions" Version="6.0.0-beta.20513.1" />
+    <PackageReference Update="Moq" Version="4.14.6" />
     <PackageReference Update="Pfim" Version="0.9.1" />
-    <PackageReference Update="SharpZipLib" Version="1.2.0" />
+    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Version="5.8.64" Condition="'$(IsOSX)'=='true'" />
+    <PackageReference Update="SharpZipLib" Version="1.3.0" />
     <PackageReference Update="System.Drawing.Common" Version="4.7.0" />
-    <PackageReference Update="xunit" Version="2.4.1" />
-    <PackageReference Update="xunit.runner.visualstudio" Version="2.4.1" />
   </ItemGroup>
 
 </Project>

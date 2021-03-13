@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Drawing.Imaging;
@@ -10,8 +10,8 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs
 {
-    [Config(typeof(Config.ShortClr))]
-    public class EncodeBmp : BenchmarkBase
+    [Config(typeof(Config.ShortMultiFramework))]
+    public class EncodeBmp
     {
         private Stream bmpStream;
         private SDImage bmpDrawing;
@@ -33,6 +33,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         public void Cleanup()
         {
             this.bmpStream.Dispose();
+            this.bmpStream = null;
             this.bmpCore.Dispose();
             this.bmpDrawing.Dispose();
         }
@@ -40,19 +41,15 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs
         [Benchmark(Baseline = true, Description = "System.Drawing Bmp")]
         public void BmpSystemDrawing()
         {
-            using (var memoryStream = new MemoryStream())
-            {
-                this.bmpDrawing.Save(memoryStream, ImageFormat.Bmp);
-            }
+            using var memoryStream = new MemoryStream();
+            this.bmpDrawing.Save(memoryStream, ImageFormat.Bmp);
         }
 
         [Benchmark(Description = "ImageSharp Bmp")]
-        public void BmpCore()
+        public void BmpImageSharp()
         {
-            using (var memoryStream = new MemoryStream())
-            {
-                this.bmpCore.SaveAsBmp(memoryStream);
-            }
+            using var memoryStream = new MemoryStream();
+            this.bmpCore.SaveAsBmp(memoryStream);
         }
     }
 }

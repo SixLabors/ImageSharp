@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.PixelFormats
     /// Ranges from [-1, 0, 0, 1] to [1, 0, 0, 1] in vector form.
     /// </para>
     /// </summary>
-    public struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
+    public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="HalfSingle"/> struct.
@@ -47,7 +47,7 @@ namespace SixLabors.ImageSharp.PixelFormats
         public static bool operator !=(HalfSingle left, HalfSingle right) => !left.Equals(right);
 
         /// <inheritdoc />
-        public PixelOperations<HalfSingle> CreatePixelOperations() => new PixelOperations<HalfSingle>();
+        public PixelOperations<HalfSingle> CreatePixelOperations() => new PixelOperations();
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

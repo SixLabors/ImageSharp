@@ -169,8 +169,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization
 
             provider.RunRectangleConstrainedValidatingProcessorTest(
                 (x, rect) => x.Quantize(quantizer, rect),
-                comparer: ValidatorComparer,
                 testOutputDetails: testOutputDetails,
+                comparer: ValidatorComparer,
                 appendPixelTypeToFileName: false);
         }
 

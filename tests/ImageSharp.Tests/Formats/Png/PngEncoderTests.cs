@@ -2,13 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 // ReSharper disable InconsistentNaming
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-#if SUPPORTS_RUNTIME_INTRINSICS
-using System.Runtime.Intrinsics.X86;
-#endif
-using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
@@ -16,11 +11,11 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
 using Xunit;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png
 {
+    [Trait("Format", "Png")]
     public partial class PngEncoderTests
     {
         private static PngEncoder PngEncoder => new PngEncoder();
@@ -441,7 +436,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             Rgba32 expectedColor = Color.Blue;
             if (colorType == PngColorType.Grayscale || colorType == PngColorType.GrayscaleWithAlpha)
             {
-                var luminance = ImageMaths.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
+                var luminance = ColorNumerics.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
                 expectedColor = new Rgba32(luminance, luminance, luminance);
             }
 
@@ -536,16 +531,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
 
         [Theory]
         [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
-        public void EncodeWorksWithoutSsse3Intrinsics<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public void EncodeWorksWithoutSsse3Intrinsics(TestImageProvider<Rgba32> provider)
         {
-            static void RunTest(string providerDump)
+            static void RunTest(string serialized)
             {
-                TestImageProvider<TPixel> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
-#if SUPPORTS_RUNTIME_INTRINSICS
-                Assert.False(Ssse3.IsSupported);
-#endif
+                TestImageProvider<Rgba32> provider =
+                    FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(serialized);
 
                 foreach (PngInterlaceMode interlaceMode in InterlaceMode)
                 {
@@ -560,19 +551,21 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
                 }
             }
 
-            string providerDump = BasicSerializer.Serialize(provider);
-
-            var processStartInfo = new ProcessStartInfo();
-            processStartInfo.Environment[TestEnvironment.Features.EnableSSE3] = TestEnvironment.Features.Off;
-
-            RemoteExecutor.Invoke(
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
-                providerDump,
-                new RemoteInvokeOptions
-                {
-                    StartInfo = processStartInfo
-                })
-                .Dispose();
+                HwIntrinsics.DisableSSSE3,
+                provider);
+        }
+
+        [Fact]
+        public void EncodeFixesInvalidOptions()
+        {
+            // https://github.com/SixLabors/ImageSharp/issues/935
+            using var ms = new MemoryStream();
+            var testFile = TestFile.Create(TestImages.Png.Issue935);
+            using Image<Rgba32> image = testFile.CreateRgba32Image(new PngDecoder());
+
+            image.Save(ms, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
         }
 
         private static void TestPngEncoderCore<TPixel>(

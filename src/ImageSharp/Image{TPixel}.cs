@@ -201,14 +201,14 @@ namespace SixLabors.ImageSharp
         public bool TryGetSinglePixelSpan(out Span<TPixel> span)
         {
             IMemoryGroup<TPixel> mg = this.GetPixelMemoryGroup();
-            if (mg.Count > 1)
+            if (mg.Count == 1)
             {
-                span = default;
-                return false;
+                span = mg[0].Span;
+                return true;
             }
 
-            span = mg.Single().Span;
-            return true;
+            span = default;
+            return false;
         }
 
         /// <summary>

@@ -6,13 +6,12 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.DotNet.RemoteExecutor;
+
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 using Xunit;
@@ -22,6 +21,7 @@ using Xunit.Abstractions;
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 {
     // TODO: Scatter test cases into multiple test classes
+    [Trait("Format", "Jpg")]
     public partial class JpegDecoderTests
     {
         public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.RgbaVector;
@@ -129,10 +129,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Theory]
         [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, 0)]
         [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 1)]
-        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 10)]
+        [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 15)]
         [InlineData(TestImages.Jpeg.Issues.ExifGetString750Transform, 30)]
         [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 1)]
-        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 10)]
+        [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 15)]
         [InlineData(TestImages.Jpeg.Issues.BadRstProgressive518, 30)]
         public async Task Decode_IsCancellable(string fileName, int cancellationDelayMs)
         {
@@ -141,17 +141,32 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 TestEnvironment.InputImagesDirectoryFullPath,
                 fileName);
 
-            var cts = new CancellationTokenSource();
-            if (cancellationDelayMs == 0)
+            const int NumberOfRuns = 5;
+
+            for (int i = 0; i < NumberOfRuns; i++)
             {
-                cts.Cancel();
-            }
-            else
-            {
-                cts.CancelAfter(cancellationDelayMs);
+                var cts = new CancellationTokenSource();
+                if (cancellationDelayMs == 0)
+                {
+                    cts.Cancel();
+                }
+                else
+                {
+                    cts.CancelAfter(cancellationDelayMs);
+                }
+
+                try
+                {
+                    using var image = await Image.LoadAsync(hugeFile, cts.Token);
+                }
+                catch (TaskCanceledException)
+                {
+                    // Succesfully observed a cancellation
+                    return;
+                }
             }
 
-            await Assert.ThrowsAsync<TaskCanceledException>(() => Image.LoadAsync(hugeFile, cts.Token));
+            throw new Exception($"No cancellation happened out of {NumberOfRuns} runs!");
         }
 
         [Theory(Skip = "Identify is too fast, doesn't work reliably.")]

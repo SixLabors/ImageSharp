@@ -59,7 +59,7 @@ namespace SixLabors.ImageSharp.ColorSpaces
         [MethodImpl(InliningOptions.ShortMethod)]
         public Cmyk(Vector4 vector)
         {
-            vector = Vector4Utilities.FastClamp(vector, Min, Max);
+            vector = Numerics.Clamp(vector, Min, Max);
             this.C = vector.X;
             this.M = vector.Y;
             this.Y = vector.Z;

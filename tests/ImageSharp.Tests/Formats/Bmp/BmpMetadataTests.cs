@@ -4,13 +4,15 @@
 using System.IO;
 
 using SixLabors.ImageSharp.Formats.Bmp;
+
 using Xunit;
+
+using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 {
-    using static TestImages.Bmp;
-
+    [Trait("Format", "Bmp")]
     public class BmpMetadataTests
     {
         [Fact]

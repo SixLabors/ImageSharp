@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -44,9 +43,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [InlineData(20, 4, -10f)]
         [InlineData(20, 4, 0f)]
         public void VerifyBokehBlurProcessorArguments_Fail(int radius, int components, float gamma)
-        {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new BokehBlurProcessor(radius, components, gamma));
-        }
+            => Assert.Throws<ArgumentOutOfRangeException>(
+                () => new BokehBlurProcessor(radius, components, gamma));
 
         [Fact]
         public void VerifyComplexComponents()
@@ -137,23 +135,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [WithTestPatternImages(nameof(BokehBlurValues), 30, 20, PixelTypes.Rgba32)]
         public void BokehBlurFilterProcessor<TPixel>(TestImageProvider<TPixel> provider, BokehBlurInfo value)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            static void RunTest(string providerDump, string infoDump)
-            {
-                TestImageProvider<TPixel> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
-                BokehBlurInfo value = BasicSerializer.Deserialize<BokehBlurInfo>(infoDump);
-
-                provider.RunValidatingProcessorTest(
-                    x => x.BokehBlur(value.Radius, value.Components, value.Gamma),
-                    testOutputDetails: value.ToString(),
-                    appendPixelTypeToFileName: false);
-            }
-
-            RemoteExecutor
-                .Invoke(RunTest, BasicSerializer.Serialize(provider), BasicSerializer.Serialize(value))
-                .Dispose();
-        }
+            => provider.RunValidatingProcessorTest(
+                x => x.BokehBlur(value.Radius, value.Components, value.Gamma),
+                testOutputDetails: value.ToString(),
+                appendPixelTypeToFileName: false);
 
         [Theory]
         /*
@@ -163,54 +148,44 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution
         [WithTestPatternImages(200, 200, PixelTypes.Bgr24 | PixelTypes.Bgra32)]
         public void BokehBlurFilterProcessor_WorksWithAllPixelTypes<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            static void RunTest(string providerDump)
-            {
-                TestImageProvider<TPixel> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
-                provider.RunValidatingProcessorTest(
-                    x => x.BokehBlur(8, 2, 3),
-                    appendSourceFileOrDescription: false);
-            }
-
-            RemoteExecutor
-                .Invoke(RunTest, BasicSerializer.Serialize(provider))
-                .Dispose();
-        }
+            => provider.RunValidatingProcessorTest(
+                x => x.BokehBlur(8, 2, 3),
+                appendSourceFileOrDescription: false);
 
         [Theory]
         [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32)]
-        public void BokehBlurFilterProcessor_Bounded<TPixel>(TestImageProvider<TPixel> provider, BokehBlurInfo value)
-            where TPixel : unmanaged, IPixel<TPixel>
+        public void BokehBlurFilterProcessor_Bounded(TestImageProvider<Rgba32> provider, BokehBlurInfo value)
         {
-            static void RunTest(string providerDump, string infoDump)
+            static void RunTest(string arg1, string arg2)
             {
-                TestImageProvider<TPixel> provider =
-                    BasicSerializer.Deserialize<TestImageProvider<TPixel>>(providerDump);
-                BokehBlurInfo value = BasicSerializer.Deserialize<BokehBlurInfo>(infoDump);
+                TestImageProvider<Rgba32> provider =
+                    FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(arg1);
+
+                BokehBlurInfo value =
+                    FeatureTestRunner.DeserializeForXunit<BokehBlurInfo>(arg2);
 
                 provider.RunValidatingProcessorTest(
-                    x =>
-                    {
-                        Size size = x.GetCurrentSize();
-                        var bounds = new Rectangle(10, 10, size.Width / 2, size.Height / 2);
-                        x.BokehBlur(value.Radius, value.Components, value.Gamma, bounds);
-                    },
-                    testOutputDetails: value.ToString(),
-                    appendPixelTypeToFileName: false);
+                x =>
+                {
+                    Size size = x.GetCurrentSize();
+                    var bounds = new Rectangle(10, 10, size.Width / 2, size.Height / 2);
+                    x.BokehBlur(value.Radius, value.Components, value.Gamma, bounds);
+                },
+                testOutputDetails: value.ToString(),
+                appendPixelTypeToFileName: false);
             }
 
-            RemoteExecutor
-                .Invoke(RunTest, BasicSerializer.Serialize(provider), BasicSerializer.Serialize(value))
-                .Dispose();
+            FeatureTestRunner.RunWithHwIntrinsicsFeature(
+                RunTest,
+                HwIntrinsics.DisableSSE41,
+                provider,
+                value);
         }
 
         [Theory]
         [WithTestPatternImages(100, 300, PixelTypes.Bgr24)]
         public void WorksWithDiscoBuffers<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            provider.RunBufferCapacityLimitProcessorTest(41, c => c.BokehBlur());
-        }
+            => provider.RunBufferCapacityLimitProcessorTest(260, c => c.BokehBlur());
     }
 }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
@@ -14,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
     /// <summary>
     /// Image encoder for writing an image to a stream in the WebP format.
     /// </summary>
-    internal sealed class WebpEncoderCore
+    internal sealed class WebpEncoderCore : IImageEncoderInternals
     {
         /// <summary>
         /// Used for allocating memory during processing operations.
@@ -68,7 +69,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public void Encode<TPixel>(Image<TPixel> image, Stream stream)
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        public void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Guard.NotNull(image, nameof(image));
@@ -92,12 +94,13 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         /// <typeparam name="TPixel">The pixel format.</typeparam>
         /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
         /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream)
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (stream.CanSeek)
             {
-                this.Encode(image, stream);
+                this.Encode(image, stream, cancellationToken);
             }
             else
             {
@@ -105,7 +108,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
                 {
                     this.Encode(image, ms);
                     ms.Position = 0;
-                    await ms.CopyToAsync(stream).ConfigureAwait(false);
+                    await ms.CopyToAsync(stream, cancellationToken).ConfigureAwait(false);
                 }
             }
         }

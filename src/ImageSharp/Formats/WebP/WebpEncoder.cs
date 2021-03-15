@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new WebpEncoderCore(this, image.GetMemoryAllocator());
-            return encoder.EncodeAsync(image, stream);
+            return encoder.EncodeAsync(image, stream, cancellationToken);
         }
     }
 }

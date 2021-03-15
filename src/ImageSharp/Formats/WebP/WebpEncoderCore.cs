@@ -94,32 +94,5 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
                 enc.Encode(image, stream);
             }
         }
-
-        /// <summary>
-        /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
-        /// </summary>
-        /// <typeparam name="TPixel">The pixel format.</typeparam>
-        /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
-        /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
-        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-        public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-            where TPixel : unmanaged, IPixel<TPixel>
-        {
-            this.configuration = image.GetConfiguration();
-
-            if (stream.CanSeek)
-            {
-                this.Encode(image, stream, cancellationToken);
-            }
-            else
-            {
-                using (var ms = new MemoryStream())
-                {
-                    this.Encode(image, ms, cancellationToken);
-                    ms.Position = 0;
-                    await ms.CopyToAsync(stream, this.configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
-                }
-            }
-        }
     }
 }

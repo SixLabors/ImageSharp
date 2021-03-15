@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Experimental.Tiff;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -56,7 +57,7 @@ namespace SixLabors.ImageSharp.Advanced
         /// necessary methods to complete the SaveAsGif call. That's it, otherwise you should NEVER need this method!!!
         /// </remarks>
         [Preserve]
-        private static void SeedEverything()
+        private static void SeedPixelFormats()
         {
             try
             {
@@ -199,6 +200,7 @@ namespace SixLabors.ImageSharp.Advanced
             default(JpegEncoderCore).Encode<TPixel>(default, default, default);
             default(PngEncoderCore).Encode<TPixel>(default, default, default);
             default(TgaEncoderCore).Encode<TPixel>(default, default, default);
+            default(TiffEncoderCore).Encode<TPixel>(default, default, default);
         }
 
         /// <summary>
@@ -214,6 +216,7 @@ namespace SixLabors.ImageSharp.Advanced
             default(JpegDecoderCore).Decode<TPixel>(default, default, default);
             default(PngDecoderCore).Decode<TPixel>(default, default, default);
             default(TgaDecoderCore).Decode<TPixel>(default, default, default);
+            default(TiffDecoderCore).Decode<TPixel>(default, default, default);
         }
 
         /// <summary>
@@ -229,6 +232,7 @@ namespace SixLabors.ImageSharp.Advanced
             AotCompileImageEncoder<TPixel, JpegEncoder>();
             AotCompileImageEncoder<TPixel, PngEncoder>();
             AotCompileImageEncoder<TPixel, TgaEncoder>();
+            AotCompileImageEncoder<TPixel, TiffEncoder>();
         }
 
         /// <summary>
@@ -244,6 +248,7 @@ namespace SixLabors.ImageSharp.Advanced
             AotCompileImageDecoder<TPixel, JpegDecoder>();
             AotCompileImageDecoder<TPixel, PngDecoder>();
             AotCompileImageDecoder<TPixel, TgaDecoder>();
+            AotCompileImageDecoder<TPixel, TiffDecoder>();
         }
 
         /// <summary>

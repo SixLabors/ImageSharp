@@ -21,7 +21,7 @@
     <PackageReference Update="BenchmarkDotNet" Version="0.12.1" />
     <PackageReference Update="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.1" Condition="'$(IsWindows)'=='true'" />
     <PackageReference Update="Colourful" Version="2.0.5" />
-    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.22.0" />
+    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="7.23.2.1" />
     <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="6.0.0-beta.20513.1" />
     <PackageReference Update="Microsoft.DotNet.XUnitExtensions" Version="6.0.0-beta.20513.1" />
     <PackageReference Update="Moq" Version="4.14.6" />

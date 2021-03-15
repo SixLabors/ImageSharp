@@ -155,9 +155,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
         [Fact]
         public void CanDecodeIntermingledImages()
         {
-            using (var kumin1 = Image.Load(TestFile.Create(TestImages.Gif.Kumin).Bytes))
+            using (var kumin1 = Image.Load<Rgba32>(TestFile.Create(TestImages.Gif.Kumin).Bytes))
             using (Image.Load(TestFile.Create(TestImages.Png.Icon).Bytes))
-            using (var kumin2 = Image.Load(TestFile.Create(TestImages.Gif.Kumin).Bytes))
+            using (var kumin2 = Image.Load<Rgba32>(TestFile.Create(TestImages.Gif.Kumin).Bytes))
             {
                 for (int i = 0; i < kumin1.Frames.Count; i++)
                 {

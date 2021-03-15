@@ -72,7 +72,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Dithering
         /// Used to allow inlining of calls to
         /// <see cref="IPaletteDitherImageProcessor{TPixel}.GetPaletteColor(TPixel)"/>.
         /// </summary>
-        private readonly struct DitherProcessor : IPaletteDitherImageProcessor<TPixel>
+        /// <remarks>Internal for AOT</remarks>
+        internal readonly struct DitherProcessor : IPaletteDitherImageProcessor<TPixel>
         {
             private readonly EuclideanPixelMap<TPixel> pixelMap;
 

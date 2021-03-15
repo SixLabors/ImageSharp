@@ -27,27 +27,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
 #if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
         public void ColorSpaceTransform_WithPeakImage_WithHardwareIntrinsics_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithPeakImage_ProducesExpectedData, HwIntrinsics.AllowAll);
-        }
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithPeakImage_ProducesExpectedData, HwIntrinsics.AllowAll);
 
         [Fact]
         public void ColorSpaceTransform_WithPeakImage_WithoutSSE41_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithPeakImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
-        }
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithPeakImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
 
         [Fact]
         public void ColorSpaceTransform_WithBikeImage_WithHardwareIntrinsics_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.AllowAll);
-        }
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.AllowAll);
 
         [Fact]
         public void ColorSpaceTransform_WithBikeImage_WithoutSSE41_Works()
-        {
-            FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
-        }
+            => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
 #endif
 
         private static void RunColorSpaceTransformTestWithPeakImage()
@@ -91,7 +83,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
 
             // Convert image pixels to bgra array.
             var imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.WebP.Peak));
-            using var image = Image.Load(imgBytes);
+            using var image = Image.Load<Rgba32>(imgBytes);
             uint[] bgra = ToBgra(image);
 
             int colorTransformBits = 3;

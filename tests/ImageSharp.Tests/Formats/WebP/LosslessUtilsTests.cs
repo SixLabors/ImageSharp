@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
     [Trait("Format", "Webp")]
     public class LosslessUtilsTests
     {
-        private static void RunSubstractGreenTest()
+        private static void RunSubtractGreenTest()
         {
             uint[] pixelData =
             {
@@ -133,7 +133,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
         }
 
         [Fact]
-        public void SubtractGreen_Works() => RunSubstractGreenTest();
+        public void SubtractGreen_Works() => RunSubtractGreenTest();
 
         [Fact]
         public void AddGreenToBlueAndRed_Works() => RunAddGreenToBlueAndRedTest();
@@ -146,13 +146,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.WebP
 
 #if SUPPORTS_RUNTIME_INTRINSICS
         [Fact]
-        public void SubtractGreen_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubstractGreenTest, HwIntrinsics.AllowAll);
+        public void SubtractGreen_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.AllowAll);
 
         [Fact]
-        public void SubtractGreen_WithoutAvx_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubstractGreenTest, HwIntrinsics.DisableAVX);
+        public void SubtractGreen_WithoutAvx_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.DisableAVX);
 
         [Fact]
-        public void SubtractGreen_WithoutAvxOrSSSE3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubstractGreenTest, HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSSE3);
+        public void SubtractGreen_WithoutAvxOrSSSE3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSubtractGreenTest, HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSSE3);
 
         [Fact]
         public void AddGreenToBlueAndRed_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunAddGreenToBlueAndRedTest, HwIntrinsics.AllowAll);

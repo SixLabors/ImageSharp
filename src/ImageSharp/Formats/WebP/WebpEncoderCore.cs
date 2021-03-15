@@ -4,7 +4,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Experimental.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
@@ -49,6 +49,11 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         private readonly int entropyPasses;
 
         /// <summary>
+        /// The global configuration.
+        /// </summary>
+        private Configuration configuration;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="WebpEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The encoder options.</param>
@@ -76,6 +81,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
             Guard.NotNull(image, nameof(image));
             Guard.NotNull(stream, nameof(stream));
 
+            this.configuration = image.GetConfiguration();
+
             if (this.lossy)
             {
                 var enc = new Vp8Encoder(this.memoryAllocator, image.Width, image.Height, this.quality, this.method, this.entropyPasses);
@@ -98,6 +105,8 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
         public async Task EncodeAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            this.configuration = image.GetConfiguration();
+
             if (stream.CanSeek)
             {
                 this.Encode(image, stream, cancellationToken);
@@ -106,9 +115,9 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp
             {
                 using (var ms = new MemoryStream())
                 {
-                    this.Encode(image, ms);
+                    this.Encode(image, ms, cancellationToken);
                     ms.Position = 0;
-                    await ms.CopyToAsync(stream, cancellationToken).ConfigureAwait(false);
+                    await ms.CopyToAsync(stream, this.configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
                 }
             }
         }

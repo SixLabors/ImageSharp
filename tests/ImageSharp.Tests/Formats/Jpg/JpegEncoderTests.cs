@@ -84,6 +84,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 
         [Theory]
+        [WithFile(TestImages.Png.BikeGrayscale, nameof(BitsPerPixel_Quality), PixelTypes.L8)]
+        [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 100, 100, 100, 255, PixelTypes.L8)]
+        public void EncodeBaseline_GrayscaleWorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
+            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality, JpegColorType.Luminance);
+
+        [Theory]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
         public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
             where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
@@ -101,7 +107,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 : ImageComparer.TolerantPercentage(5f);
 
             provider.LimitAllocatorBufferCapacity().InBytesSqrt(200);
-            TestJpegEncoderCore(provider, subsample, 100, comparer);
+            TestJpegEncoderCore(provider, subsample, 100, JpegColorType.YCbCr, comparer);
         }
 
         /// <summary>
@@ -131,6 +137,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             TestImageProvider<TPixel> provider,
             JpegSubsample subsample,
             int quality = 100,
+            JpegColorType colorType = JpegColorType.YCbCr,
             ImageComparer comparer = null)
             where TPixel : unmanaged, IPixel<TPixel>
         {
@@ -142,7 +149,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             var encoder = new JpegEncoder
             {
                 Subsample = subsample,
-                Quality = quality
+                Quality = quality,
+                ColorType = colorType
             };
             string info = $"{subsample}-Q{quality}";
 

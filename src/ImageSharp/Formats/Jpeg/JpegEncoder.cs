@@ -26,6 +26,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         public JpegSubsample? Subsample { get; set; }
 
         /// <summary>
+        /// Gets or sets the color type, that will be used to encode the image.
+        /// </summary>
+        public JpegColorType? ColorType { get; set; }
+
+        /// <summary>
         /// Encodes the image to the specified stream from the <see cref="Image{TPixel}"/>.
         /// </summary>
         /// <typeparam name="TPixel">The pixel format.</typeparam>
@@ -35,6 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new JpegEncoderCore(this);
+            this.EnrichColorType<TPixel>();
             encoder.Encode(image, stream);
         }
 
@@ -50,7 +56,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new JpegEncoderCore(this);
+            this.EnrichColorType<TPixel>();
             return encoder.EncodeAsync(image, stream, cancellationToken);
+        }
+
+        /// <summary>
+        /// If ColorType was not set, set it based on the given <typeparamref name="TPixel"/>.
+        /// </summary>
+        private void EnrichColorType<TPixel>()
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            if (this.ColorType == null)
+            {
+                bool isGrayscale = typeof(TPixel) == typeof(L8) || typeof(TPixel) == typeof(L16);
+                this.ColorType = isGrayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
+            }
         }
     }
 }

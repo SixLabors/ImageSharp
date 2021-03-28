@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -8,6 +8,11 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     /// </summary>
     public enum JpegSubsample
     {
+        /// <summary>
+        /// Only luminance - No chrome channels.
+        /// </summary>
+        Grayscale,
+
         /// <summary>
         /// High Quality - Each of the three Y'CbCr components have the same sample rate,
         /// thus there is no chroma subsampling.

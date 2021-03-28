@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -20,5 +20,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// </summary>
         /// <value>The subsample ratio of the jpg image.</value>
         JpegSubsample? Subsample { get; }
+
+        /// <summary>
+        /// Gets the color type.
+        /// </summary>
+        JpegColorType? ColorType { get; }
     }
 }

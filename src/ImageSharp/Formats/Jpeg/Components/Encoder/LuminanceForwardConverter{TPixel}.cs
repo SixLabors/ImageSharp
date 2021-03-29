@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -20,11 +21,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public Block8x8F Y;
 
         /// <summary>
-        /// The converter
-        /// </summary>
-        private L8ToYConverter converter;
-
-        /// <summary>
         /// Temporal 8x8 block to hold TPixel data
         /// </summary>
         private GenericBlock8x8<TPixel> pixelBlock;
@@ -37,7 +33,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
         public static LuminanceForwardConverter<TPixel> Create()
         {
             var result = default(LuminanceForwardConverter<TPixel>);
-            result.converter = L8ToYConverter.Create();
             return result;
         }
 
@@ -52,8 +47,13 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder
             PixelOperations<TPixel>.Instance.ToL8(frame.GetConfiguration(), this.pixelBlock.AsSpanUnsafe(), l8Span);
 
             ref Block8x8F yBlock = ref this.Y;
+            ref L8 l8Start = ref l8Span[0];
 
-            this.converter.Convert(l8Span, ref yBlock);
+            for (int i = 0; i < 64; i++)
+            {
+                ref L8 c = ref Unsafe.Add(ref l8Start, i);
+                yBlock[i] = c.PackedValue;
+            }
         }
     }
 }

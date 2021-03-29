@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new JpegEncoderCore(this);
-            this.EnrichColorType<TPixel>();
+            this.InitializeColorType<TPixel>();
             encoder.Encode(image, stream);
         }
 
@@ -56,19 +56,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new JpegEncoderCore(this);
-            this.EnrichColorType<TPixel>();
+            this.InitializeColorType<TPixel>();
             return encoder.EncodeAsync(image, stream, cancellationToken);
         }
 
         /// <summary>
         /// If ColorType was not set, set it based on the given <typeparamref name="TPixel"/>.
         /// </summary>
-        private void EnrichColorType<TPixel>()
+        private void InitializeColorType<TPixel>()
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (this.ColorType == null)
             {
-                bool isGrayscale = typeof(TPixel) == typeof(L8) || typeof(TPixel) == typeof(L16);
+                bool isGrayscale =
+                    typeof(TPixel) == typeof(L8) || typeof(TPixel) == typeof(L16) ||
+                    typeof(TPixel) == typeof(La16) || typeof(TPixel) == typeof(La32);
                 this.ColorType = isGrayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
             }
         }

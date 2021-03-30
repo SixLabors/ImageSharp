@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new JpegEncoderCore(this);
-            this.InitializeColorType<TPixel>();
+            this.InitializeColorType<TPixel>(image);
             encoder.Encode(image, stream);
         }
 
@@ -56,16 +56,24 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             where TPixel : unmanaged, IPixel<TPixel>
         {
             var encoder = new JpegEncoderCore(this);
-            this.InitializeColorType<TPixel>();
+            this.InitializeColorType<TPixel>(image);
             return encoder.EncodeAsync(image, stream, cancellationToken);
         }
 
         /// <summary>
-        /// If ColorType was not set, set it based on the given <typeparamref name="TPixel"/>.
+        /// If ColorType was not set, set it based on the given image.
         /// </summary>
-        private void InitializeColorType<TPixel>()
+        private void InitializeColorType<TPixel>(Image<TPixel> image)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            // First inspect the image metadata.
+            if (this.ColorType == null)
+            {
+                JpegMetadata metadata = image.Metadata.GetJpegMetadata();
+                this.ColorType = metadata.ColorType;
+            }
+
+            // Secondly, inspect the pixel type.
             if (this.ColorType == null)
             {
                 bool isGrayscale =

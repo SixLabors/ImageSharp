@@ -1038,6 +1038,8 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Frame.ComponentOrder[i] = (byte)componentIndex;
             }
 
+            this.Metadata.GetJpegMetadata().ColorType = (selectorsCount == 1) ? JpegColorType.Luminance : JpegColorType.YCbCr;
+
             stream.Read(this.temp, 0, 3);
 
             int spectralStart = this.temp[0];

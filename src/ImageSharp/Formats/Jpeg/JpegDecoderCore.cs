@@ -912,6 +912,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 this.Frame.MaxHorizontalFactor = maxH;
                 this.Frame.MaxVerticalFactor = maxV;
                 this.ColorSpace = this.DeduceJpegColorSpace();
+                this.Metadata.GetJpegMetadata().ColorType = this.ColorSpace == JpegColorSpace.Grayscale ? JpegColorType.Luminance : JpegColorType.YCbCr;
                 this.Frame.InitComponents();
                 this.ImageSizeInMCU = new Size(this.Frame.McusPerLine, this.Frame.McusPerColumn);
             }
@@ -1037,8 +1038,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 component.ACHuffmanTableId = tableSpec & 15;
                 this.Frame.ComponentOrder[i] = (byte)componentIndex;
             }
-
-            this.Metadata.GetJpegMetadata().ColorType = (selectorsCount == 1) ? JpegColorType.Luminance : JpegColorType.YCbCr;
 
             stream.Read(this.temp, 0, 3);
 

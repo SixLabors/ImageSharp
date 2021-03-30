@@ -40,6 +40,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
                 { JpegSubsample.Ratio444, 100 },
             };
 
+        public static readonly TheoryData<int> Grayscale_Quality =
+            new TheoryData<int>
+            {
+                { 40 },
+                { 60 },
+                { 100 }
+            };
+
         public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
             new TheoryData<string, int, int, PixelResolutionUnit>
             {
@@ -85,14 +93,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality);
 
         [Theory]
-        [WithFile(TestImages.Png.BikeGrayscale, nameof(BitsPerPixel_Quality), PixelTypes.L8)]
-        [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 100, 100, 100, 255, PixelTypes.Rgba32)]
-        [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 100, 100, 100, 255, PixelTypes.L8)]
-        [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 100, 100, 100, 255, PixelTypes.L16)]
-        [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 100, 100, 100, 255, PixelTypes.La16)]
-        [WithSolidFilledImages(nameof(BitsPerPixel_Quality), 1, 1, 100, 100, 100, 255, PixelTypes.La32)]
-        public void EncodeBaseline_Grayscale<TPixel>(TestImageProvider<TPixel> provider, JpegSubsample subsample, int quality)
-            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, subsample, quality, JpegColorType.Luminance);
+        [WithFile(TestImages.Png.BikeGrayscale, nameof(Grayscale_Quality), PixelTypes.L8)]
+        [WithSolidFilledImages(1, 1, 100, 100, 100, 255, PixelTypes.Rgba32, 100)]
+        [WithSolidFilledImages(1, 1, 100, 100, 100, 255, PixelTypes.L8, 100)]
+        [WithSolidFilledImages(1, 1, 100, 100, 100, 255, PixelTypes.L16, 100)]
+        [WithSolidFilledImages(1, 1, 100, 100, 100, 255, PixelTypes.La16, 100)]
+        [WithSolidFilledImages(1, 1, 100, 100, 100, 255, PixelTypes.La32, 100)]
+        public void EncodeBaseline_Grayscale<TPixel>(TestImageProvider<TPixel> provider, int quality)
+            where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, null, quality, JpegColorType.Luminance);
 
         [Theory]
         [WithTestPatternImages(nameof(BitsPerPixel_Quality), 48, 48, PixelTypes.Rgba32 | PixelTypes.Bgra32)]
@@ -118,7 +126,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         /// <summary>
         /// Anton's SUPER-SCIENTIFIC tolerance threshold calculation
         /// </summary>
-        private static ImageComparer GetComparer(int quality, JpegSubsample subsample)
+        private static ImageComparer GetComparer(int quality, JpegSubsample? subsample)
         {
             float tolerance = 0.015f; // ~1.5%
 
@@ -140,7 +148,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
 
         private static void TestJpegEncoderCore<TPixel>(
             TestImageProvider<TPixel> provider,
-            JpegSubsample subsample,
+            JpegSubsample? subsample,
             int quality = 100,
             JpegColorType colorType = JpegColorType.YCbCr,
             ImageComparer comparer = null)
@@ -311,7 +319,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         public async Task Encode_IsCancellable(JpegSubsample subsample, int cancellationDelayMs)
         {
             using var image = new Image<Rgba32>(5000, 5000);
-            using MemoryStream stream = new MemoryStream();
+            using var stream = new MemoryStream();
             var cts = new CancellationTokenSource();
             if (cancellationDelayMs == 0)
             {

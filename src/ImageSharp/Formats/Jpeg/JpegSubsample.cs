@@ -9,11 +9,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
     public enum JpegSubsample
     {
         /// <summary>
-        /// Only luminance - No chrome channels.
-        /// </summary>
-        Grayscale,
-
-        /// <summary>
         /// High Quality - Each of the three Y'CbCr components have the same sample rate,
         /// thus there is no chroma subsampling.
         /// </summary>

@@ -189,9 +189,6 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             int qlty = Numerics.Clamp(this.quality ?? metadata.GetJpegMetadata().Quality, 1, 100);
             this.subsample ??= qlty >= 91 ? JpegSubsample.Ratio444 : JpegSubsample.Ratio420;
 
-            // Force SubSample into Grayscale for single component ColorType.
-            this.subsample = (componentCount == 1) ? JpegSubsample.Grayscale : this.subsample;
-
             // Convert from a quality rating to a scaling factor.
             int scale;
             if (qlty < 50)
@@ -921,32 +918,36 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
                 0x01
             };
 
-            switch (this.subsample)
+            if (this.colorType == JpegColorType.Luminance)
             {
-                case JpegSubsample.Grayscale:
-                    subsamples = stackalloc byte[]
-                    {
-                        0x11,
-                        0x00,
-                        0x00
-                    };
-                    break;
-                case JpegSubsample.Ratio444:
-                    subsamples = stackalloc byte[]
-                    {
-                        0x11,
-                        0x11,
-                        0x11
-                    };
-                    break;
-                case JpegSubsample.Ratio420:
-                    subsamples = stackalloc byte[]
-                    {
-                        0x22,
-                        0x11,
-                        0x11
-                    };
-                    break;
+                subsamples = stackalloc byte[]
+                {
+                    0x11,
+                    0x00,
+                    0x00
+                };
+            }
+            else
+            {
+                switch (this.subsample)
+                {
+                    case JpegSubsample.Ratio444:
+                        subsamples = stackalloc byte[]
+                        {
+                            0x11,
+                            0x11,
+                            0x11
+                        };
+                        break;
+                    case JpegSubsample.Ratio420:
+                        subsamples = stackalloc byte[]
+                        {
+                            0x22,
+                            0x11,
+                            0x11
+                        };
+                        break;
+                }
             }
 
             // Length (high byte, low byte), 8 + components * 3.
@@ -1025,17 +1026,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
             this.outputStream.Write(this.buffer, 0, sosSize + 2);
 
             ref byte emitBufferBase = ref MemoryMarshal.GetReference<byte>(this.emitBuffer);
-            switch (this.subsample)
+            if (this.colorType == JpegColorType.Luminance)
             {
-                case JpegSubsample.Grayscale:
-                    this.EncodeGrayscale(image, cancellationToken, ref emitBufferBase);
-                    break;
-                case JpegSubsample.Ratio444:
-                    this.Encode444(image, cancellationToken, ref emitBufferBase);
-                    break;
-                case JpegSubsample.Ratio420:
-                    this.Encode420(image, cancellationToken, ref emitBufferBase);
-                    break;
+                this.EncodeGrayscale(image, cancellationToken, ref emitBufferBase);
+            }
+            else
+            {
+                switch (this.subsample)
+                {
+                    case JpegSubsample.Ratio444:
+                        this.Encode444(image, cancellationToken, ref emitBufferBase);
+                        break;
+                    case JpegSubsample.Ratio420:
+                        this.Encode420(image, cancellationToken, ref emitBufferBase);
+                        break;
+                }
             }
 
             // Pad the last byte with 1's.

@@ -13,7 +13,7 @@ using System.Runtime.Intrinsics.X86;
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
     /// <summary>
-    /// Points to a collection of of weights allocated in <see cref="ResizeKernelMap"/>.
+    /// Points to a collection of weights allocated in <see cref="ResizeKernelMap"/>.
     /// </summary>
     internal readonly unsafe struct ResizeKernel
     {
@@ -40,7 +40,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         /// <summary>
-        /// Gets the the length of the kernel.
+        /// Gets the length of the kernel.
         /// </summary>
         public int Length
         {
@@ -161,6 +161,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             }
         }
 
+        public Enumerator GetEnumerator() => new Enumerator(this);
+
         /// <summary>
         /// Copy the contents of <see cref="ResizeKernel"/> altering <see cref="StartIndex"/>
         /// to the value <paramref name="left"/>.
@@ -176,6 +178,39 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             for (int i = 0; i < this.Length; i++)
             {
                 this.Values[i] = (float)values[i];
+            }
+        }
+
+        public struct Enumerator
+        {
+            private float* bufferStart;
+            private readonly float* bufferEnd;
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public Enumerator(ResizeKernel kernel)
+            {
+                this.Current = 0F;
+                this.bufferStart = kernel.bufferPtr;
+                this.bufferEnd = kernel.bufferPtr + kernel.Length;
+            }
+
+            public float Current
+            {
+                [MethodImpl(InliningOptions.ShortMethod)]
+                get; private set;
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            public bool MoveNext()
+            {
+                if (this.bufferStart >= this.bufferEnd)
+                {
+                    return false;
+                }
+
+                this.Current = *this.bufferStart;
+                this.bufferStart++;
+                return true;
             }
         }
     }

@@ -55,7 +55,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 for (int i = startOfFirstRepeatedMosaic; i < bottomStartDest; i++)
                 {
                     double center = ((i + .5) * this.ratio) - .5;
-                    int left = (int)TolerantMath.Ceiling(center - this.radius);
+                    int left = (int)TolerantMath.Ceiling(center - this.MaxRadius);
                     ResizeKernel kernel = this.kernels[i - this.period];
                     this.kernels[i] = kernel.AlterLeftValue(left);
                 }

@@ -89,7 +89,12 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
-        private static void CalculateWeights<TResampler>(in TResampler sampler, int min, int max, float point, ref float weightsRef)
+        private static void CalculateWeights<TResampler>(
+            in TResampler sampler,
+            int min,
+            int max,
+            float point,
+            ref float weightsRef)
             where TResampler : struct, IResampler
         {
             float sum = 0;

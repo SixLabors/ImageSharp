@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -80,35 +81,177 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            int yRadius = LinearTransformUtils.GetSamplingRadius(in sampler, source.Height, destination.Height);
-            int xRadius = LinearTransformUtils.GetSamplingRadius(in sampler, source.Width, destination.Width);
-            var radialExtents = new Vector2(xRadius, yRadius);
-            int yLength = (yRadius * 2) + 1;
-            int xLength = (xRadius * 2) + 1;
+            // Since all image frame dimensions have to be the same we can calculate
+            // the kernel maps and reuse for all frames.
+            MemoryAllocator allocator = configuration.MemoryAllocator;
+            //using var horizontalKernelMap = ResizeKernelMap.Calculate(
+            //    in sampler,
+            //    destination.Width,
+            //    source.Width,
+            //    allocator);
+            using var horizontalKernelMap = new LinearTransformKernelFactory<TResampler>(
+                allocator,
+                sampler,
+                source.Width,
+                destination.Width);
 
-            // We use 2D buffers so that we can access the weight spans per row in parallel.
-            using Buffer2D<float> yKernelBuffer = configuration.MemoryAllocator.Allocate2D<float>(yLength, destination.Height);
-            using Buffer2D<float> xKernelBuffer = configuration.MemoryAllocator.Allocate2D<float>(xLength, destination.Height);
+            //using var verticalKernelMap = ResizeKernelMap.Calculate(
+            //    in sampler,
+            //    destination.Height,
+            //    source.Height,
+            //    allocator);
+            using var verticalKernelMap = new LinearTransformKernelFactory<TResampler>(
+                allocator,
+                sampler,
+                source.Height,
+                destination.Height);
 
-            int maxX = source.Width - 1;
-            int maxY = source.Height - 1;
-            var maxSourceExtents = new Vector4(maxX, maxY, maxX, maxY);
+            using IMemoryOwner<Vector4> destVectors = configuration.MemoryAllocator.Allocate<Vector4>(destination.Width);
+            Span<Vector4> span = destVectors.GetSpan();
 
-            var operation = new AffineOperation<TResampler>(
-                configuration,
-                source,
-                destination,
-                yKernelBuffer,
-                xKernelBuffer,
-                in sampler,
-                matrix,
-                radialExtents,
-                maxSourceExtents);
+            int sourceHeight = source.Height - 1;
+            int sourceWidth = source.Width - 1;
+            Rectangle bounds = source.Bounds();
+            for (int y = 0; y < destination.Height; y++)
+            {
+                Span<TPixel> rowSpan = destination.GetPixelRowSpan(y);
+                PixelOperations<TPixel>.Instance.ToVector4(
+                    configuration,
+                    rowSpan,
+                    span);
 
-            ParallelRowIterator.IterateRows<AffineOperation<TResampler>, Vector4>(
-                configuration,
-                destination.Bounds(),
-                in operation);
+                for (int x = 0; x < destination.Width; x++)
+                {
+                    var point = Vector2.Transform(new Vector2(x, y), matrix);
+                    int pY = (int)point.Y;
+                    int pX = (int)point.X;
+
+                    if (bounds.Contains(pX, pY))
+                    {
+                        Vector4 sum = Vector4.Zero;
+                        var yKernel = verticalKernelMap.GetKernel(y, point.Y);
+                        var xKernel = horizontalKernelMap.GetKernel(x, point.X);
+                        int yRadius = yKernel.Length / 2;
+                        int xRadius = xKernel.Length / 2;
+                        Span<float> yWeights = yKernel.Values;
+                        Span<float> xWeights = xKernel.Values;
+
+                        int top = Math.Max(pY - yRadius, 0);
+                        int bottom = Math.Min(pY + yRadius, sourceHeight);
+                        int right = Math.Min(pX + xRadius, sourceWidth);
+
+                        for (int yy = 0; yy < yWeights.Length; yy++)
+                        {
+                            top = Math.Min(top, bottom);
+                            int left = Math.Max(pX - xRadius, 0);
+                            float yW = yWeights[yy];
+
+                            for (int xx = 0; xx < xWeights.Length; xx++)
+                            {
+                                float xW = xWeights[xx];
+
+                                left = Math.Min(left, right);
+                                var current = source[left, top].ToVector4();
+                                Numerics.Premultiply(ref current);
+
+                                sum += current * yW * yW;
+                                left++;
+                            }
+
+                            top++;
+                        }
+
+                        //for (int yy = top, kY = 0; yy <= bottom; yy++, kY++)
+                        //{
+                        //    var yW = yKernel.Values[kY];
+                        //    for (int xx = left, kX = 0; xx <= right; xx++, kX++)
+                        //    {
+                        //        try
+                        //        {
+                        //            float xW = xKernel.Values[kX];
+                        //            var current = source[xx, yy].ToVector4();
+                        //            Numerics.Premultiply(ref current);
+                        //            sum += current * yW * yW;
+                        //        }
+                        //        catch
+                        //        {
+                        //            throw;
+                        //        }
+                        //    }
+                        //}
+
+                        Numerics.UnPremultiply(ref sum);
+                        // sum.W = 1; // Super hack so I can see the output.
+                        span[x] = sum;
+
+                        //ResizeKernel.Enumerator yE = yKernel.GetEnumerator();
+                        //ResizeKernel.Enumerator xE = xKernel.GetEnumerator();
+
+                        //// Theoretically we want to sample in both directions for the full kernel.
+                        //// The below enumerators are attempting to do this but it doesn't work.
+                        //while (yE.MoveNext())
+                        //{
+                        //    if (sourceY > maxY)
+                        //    {
+                        //        continue;
+                        //    }
+
+                        //    while (xE.MoveNext())
+                        //    {
+                        //        if (sourceX > maxX)
+                        //        {
+                        //            continue;
+                        //        }
+
+                        //        var current = source[sourceX, sourceY].ToVector4();
+                        //        Numerics.Premultiply(ref current);
+                        //        sum += current * xE.Current * yE.Current;
+                        //        sourceX++;
+                        //    }
+
+                        //    sourceY++;
+                        //}
+
+                        //Numerics.UnPremultiply(ref sum);
+                        //sum.W = 1; // Super hack so I can see the output.
+                        //span[x] = sum;
+                    }
+                }
+
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, span, rowSpan);
+            }
+
+            return;
+
+            //int yRadius = LinearTransformUtils.GetSamplingRadius(in sampler, source.Height, destination.Height);
+            //int xRadius = LinearTransformUtils.GetSamplingRadius(in sampler, source.Width, destination.Width);
+            //var radialExtents = new Vector2(xRadius, yRadius);
+            //int yLength = (yRadius * 2) + 1;
+            //int xLength = (xRadius * 2) + 1;
+
+            //// We use 2D buffers so that we can access the weight spans per row in parallel.
+            //using Buffer2D<float> yKernelBuffer = configuration.MemoryAllocator.Allocate2D<float>(yLength, destination.Height);
+            //using Buffer2D<float> xKernelBuffer = configuration.MemoryAllocator.Allocate2D<float>(xLength, destination.Height);
+
+            //// int maxX = source.Width - 1;
+            //// int maxY = source.Height - 1;
+            //var maxSourceExtents = new Vector4(maxX, maxY, maxX, maxY);
+
+            //var operation = new AffineOperation<TResampler>(
+            //    configuration,
+            //    source,
+            //    destination,
+            //    yKernelBuffer,
+            //    xKernelBuffer,
+            //    in sampler,
+            //    matrix,
+            //    radialExtents,
+            //    maxSourceExtents);
+
+            //ParallelRowIterator.IterateRows<AffineOperation<TResampler>, Vector4>(
+            //    configuration,
+            //    destination.Bounds(),
+            //    in operation);
         }
 
         private readonly struct NNAffineOperation : IRowOperation

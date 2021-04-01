@@ -19,6 +19,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IResamplingTransformImageProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        private static readonly TolerantMath TolerantMath = TolerantMath.Default;
         private readonly Size destinationSize;
         private readonly Matrix3x2 transformMatrix;
         private readonly IResampler resampler;
@@ -92,8 +93,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             using var horizontalKernelMap = new LinearTransformKernelFactory<TResampler>(
                 allocator,
                 sampler,
-                source.Width,
-                destination.Width);
+                destination.Width,
+                source.Width);
 
             //using var verticalKernelMap = ResizeKernelMap.Calculate(
             //    in sampler,
@@ -103,8 +104,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             using var verticalKernelMap = new LinearTransformKernelFactory<TResampler>(
                 allocator,
                 sampler,
-                source.Height,
-                destination.Height);
+                destination.Height,
+                source.Height);
 
             using IMemoryOwner<Vector4> destVectors = configuration.MemoryAllocator.Allocate<Vector4>(destination.Width);
             Span<Vector4> span = destVectors.GetSpan();
@@ -129,92 +130,53 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     if (bounds.Contains(pX, pY))
                     {
                         Vector4 sum = Vector4.Zero;
-                        var yKernel = verticalKernelMap.GetKernel(y, point.Y);
-                        var xKernel = horizontalKernelMap.GetKernel(x, point.X);
-                        int yRadius = yKernel.Length / 2;
-                        int xRadius = xKernel.Length / 2;
+                        LinearTransformKernel yKernel = verticalKernelMap.GetKernel(pY, point.Y);
+                        LinearTransformKernel xKernel = horizontalKernelMap.GetKernel(pX, point.X);
+                        int yRadius = verticalKernelMap.MaxRadius;
+                        int xRadius = horizontalKernelMap.MaxRadius;
                         Span<float> yWeights = yKernel.Values;
                         Span<float> xWeights = xKernel.Values;
 
-                        int top = Math.Max(pY - yRadius, 0);
-                        int bottom = Math.Min(pY + yRadius, sourceHeight);
-                        int right = Math.Min(pX + xRadius, sourceWidth);
-
-                        for (int yy = 0; yy < yWeights.Length; yy++)
+                        int top = (int)(point.Y - yRadius);
+                        if (top < 0)
                         {
-                            top = Math.Min(top, bottom);
-                            int left = Math.Max(pX - xRadius, 0);
-                            float yW = yWeights[yy];
-
-                            for (int xx = 0; xx < xWeights.Length; xx++)
-                            {
-                                float xW = xWeights[xx];
-
-                                left = Math.Min(left, right);
-                                var current = source[left, top].ToVector4();
-                                Numerics.Premultiply(ref current);
-
-                                sum += current * yW * yW;
-                                left++;
-                            }
-
-                            top++;
+                            top = 0;
                         }
 
-                        //for (int yy = top, kY = 0; yy <= bottom; yy++, kY++)
-                        //{
-                        //    var yW = yKernel.Values[kY];
-                        //    for (int xx = left, kX = 0; xx <= right; xx++, kX++)
-                        //    {
-                        //        try
-                        //        {
-                        //            float xW = xKernel.Values[kX];
-                        //            var current = source[xx, yy].ToVector4();
-                        //            Numerics.Premultiply(ref current);
-                        //            sum += current * yW * yW;
-                        //        }
-                        //        catch
-                        //        {
-                        //            throw;
-                        //        }
-                        //    }
-                        //}
+                        int bottom = (int)(point.Y + yRadius);
+                        if (bottom > sourceHeight)
+                        {
+                            bottom = sourceHeight;
+                        }
+
+                        int left = (int)(point.X - xRadius);
+                        if (left < 0)
+                        {
+                            left = 0;
+                        }
+
+                        int right = (int)(point.X + xRadius);
+                        if (right > sourceWidth)
+                        {
+                            right = sourceWidth;
+                        }
+
+                        for (int yK = top; yK <= bottom; yK++)
+                        {
+                            float yWeight = yWeights[yK - top];
+
+                            for (int xK = left; xK <= right; xK++)
+                            {
+                                float xWeight = xWeights[xK - left];
+
+                                var current = source[xK, yK].ToVector4();
+                                Numerics.Premultiply(ref current);
+                                sum += current * xWeight * yWeight;
+                            }
+                        }
 
                         Numerics.UnPremultiply(ref sum);
-                        // sum.W = 1; // Super hack so I can see the output.
                         span[x] = sum;
-
-                        //ResizeKernel.Enumerator yE = yKernel.GetEnumerator();
-                        //ResizeKernel.Enumerator xE = xKernel.GetEnumerator();
-
-                        //// Theoretically we want to sample in both directions for the full kernel.
-                        //// The below enumerators are attempting to do this but it doesn't work.
-                        //while (yE.MoveNext())
-                        //{
-                        //    if (sourceY > maxY)
-                        //    {
-                        //        continue;
-                        //    }
-
-                        //    while (xE.MoveNext())
-                        //    {
-                        //        if (sourceX > maxX)
-                        //        {
-                        //            continue;
-                        //        }
-
-                        //        var current = source[sourceX, sourceY].ToVector4();
-                        //        Numerics.Premultiply(ref current);
-                        //        sum += current * xE.Current * yE.Current;
-                        //        sourceX++;
-                        //    }
-
-                        //    sourceY++;
-                        //}
-
-                        //Numerics.UnPremultiply(ref sum);
-                        //sum.W = 1; // Super hack so I can see the output.
-                        //span[x] = sum;
                     }
                 }
 

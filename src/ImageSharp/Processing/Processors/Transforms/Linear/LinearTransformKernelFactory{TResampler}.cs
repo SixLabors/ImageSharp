@@ -64,16 +64,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         public LinearTransformKernel GetKernel(int dataRowIndex, float xy)
         {
-            double center = xy * this.ratio; // ((xy + .5) * this.ratio) - .5;
+            double center = xy;// ((xy + .5) * this.ratio) - .5;
 
             // Keep inside bounds.
-            int left = (int)TolerantMath.Ceiling(center - this.MaxRadius);
+            int left = (int)(center - this.MaxRadius);
+
             if (left < 0)
             {
                 left = 0;
             }
 
-            int right = (int)TolerantMath.Floor(center + this.MaxRadius);
+            int right = (int)(center + this.MaxRadius);
             if (right > this.sourceLength - 1)
             {
                 right = this.sourceLength - 1;
@@ -86,21 +87,21 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             for (int j = left; j <= right; j++)
             {
-                double value = this.sampler.GetValue((float)((j - center) / this.scale));
+                double value = this.sampler.GetValue((float)((j - center))); //this.sampler.GetValue((float)((j - center) / this.scale));
                 sum += value;
 
                 kernelValues[j - left] = value;
             }
 
             // Normalize.
-            if (sum > 0)
-            {
-                for (int j = 0; j < kernel.Length; j++)
-                {
-                    ref double kRef = ref kernelValues[j];
-                    kRef /= sum;
-                }
-            }
+            //if (sum > 0)
+            //{
+            //    for (int j = 0; j < kernel.Length; j++)
+            //    {
+            //        ref double kRef = ref kernelValues[j];
+            //        kRef /= sum;
+            //    }
+            //}
 
             kernel.Fill(kernelValues);
 

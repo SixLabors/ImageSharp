@@ -93,8 +93,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             using var horizontalKernelMap = new LinearTransformKernelFactory<TResampler>(
                 allocator,
                 sampler,
-                destination.Width,
-                source.Width);
+                source.Width,
+                destination.Width);
 
             //using var verticalKernelMap = ResizeKernelMap.Calculate(
             //    in sampler,
@@ -104,8 +104,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             using var verticalKernelMap = new LinearTransformKernelFactory<TResampler>(
                 allocator,
                 sampler,
-                destination.Height,
-                source.Height);
+                source.Height,
+                destination.Height);
 
             using IMemoryOwner<Vector4> destVectors = configuration.MemoryAllocator.Allocate<Vector4>(destination.Width);
             Span<Vector4> span = destVectors.GetSpan();
@@ -130,8 +130,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     if (bounds.Contains(pX, pY))
                     {
                         Vector4 sum = Vector4.Zero;
-                        LinearTransformKernel yKernel = verticalKernelMap.GetKernel(pY, point.Y);
-                        LinearTransformKernel xKernel = horizontalKernelMap.GetKernel(pX, point.X);
+                        LinearTransformKernel yKernel = verticalKernelMap.GetKernel(y, point.Y);
+                        LinearTransformKernel xKernel = horizontalKernelMap.GetKernel(x, point.X);
                         int yRadius = verticalKernelMap.MaxRadius;
                         int xRadius = horizontalKernelMap.MaxRadius;
                         Span<float> yWeights = yKernel.Values;

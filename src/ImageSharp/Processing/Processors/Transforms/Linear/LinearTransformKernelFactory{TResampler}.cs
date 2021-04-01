@@ -62,10 +62,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// </summary>
         public int MaxRadius { get; private set; }
 
-        public LinearTransformKernel GetKernel(int dataRowIndex, float xy)
+        public LinearTransformKernel GetKernel(int dataRowIndex, float center)
         {
-            double center = xy;// ((xy + .5) * this.ratio) - .5;
-
             // Keep inside bounds.
             int left = (int)(center - this.MaxRadius);
 
@@ -87,21 +85,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             for (int j = left; j <= right; j++)
             {
-                double value = this.sampler.GetValue((float)((j - center))); //this.sampler.GetValue((float)((j - center) / this.scale));
+                double value = this.sampler.GetValue((float)(j - center));
                 sum += value;
 
                 kernelValues[j - left] = value;
             }
-
-            // Normalize.
-            //if (sum > 0)
-            //{
-            //    for (int j = 0; j < kernel.Length; j++)
-            //    {
-            //        ref double kRef = ref kernelValues[j];
-            //        kRef /= sum;
-            //    }
-            //}
 
             kernel.Fill(kernelValues);
 

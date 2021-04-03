@@ -82,138 +82,17 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 return;
             }
 
-            // Since all image frame dimensions have to be the same we can calculate
-            // the kernel maps and reuse for all frames.
-            MemoryAllocator allocator = configuration.MemoryAllocator;
-            //using var horizontalKernelMap = ResizeKernelMap.Calculate(
-            //    in sampler,
-            //    destination.Width,
-            //    source.Width,
-            //    allocator);
-            using var horizontalKernelMap = new LinearTransformKernelFactory<TResampler>(
-                allocator,
-                sampler,
-                source.Width,
-                destination.Width);
+            var operation = new AffineOperation<TResampler>(
+                configuration,
+                source,
+                destination,
+                in sampler,
+                matrix);
 
-            //using var verticalKernelMap = ResizeKernelMap.Calculate(
-            //    in sampler,
-            //    destination.Height,
-            //    source.Height,
-            //    allocator);
-            using var verticalKernelMap = new LinearTransformKernelFactory<TResampler>(
-                allocator,
-                sampler,
-                source.Height,
-                destination.Height);
-
-            using IMemoryOwner<Vector4> destVectors = configuration.MemoryAllocator.Allocate<Vector4>(destination.Width);
-            Span<Vector4> span = destVectors.GetSpan();
-
-            int sourceHeight = source.Height - 1;
-            int sourceWidth = source.Width - 1;
-            Rectangle bounds = source.Bounds();
-            for (int y = 0; y < destination.Height; y++)
-            {
-                Span<TPixel> rowSpan = destination.GetPixelRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToVector4(
-                    configuration,
-                    rowSpan,
-                    span);
-
-                for (int x = 0; x < destination.Width; x++)
-                {
-                    var point = Vector2.Transform(new Vector2(x, y), matrix);
-                    int pY = (int)point.Y;
-                    int pX = (int)point.X;
-
-                    if (bounds.Contains(pX, pY))
-                    {
-                        Vector4 sum = Vector4.Zero;
-                        LinearTransformKernel yKernel = verticalKernelMap.GetKernel(y, point.Y);
-                        LinearTransformKernel xKernel = horizontalKernelMap.GetKernel(x, point.X);
-                        int yRadius = verticalKernelMap.MaxRadius;
-                        int xRadius = horizontalKernelMap.MaxRadius;
-                        Span<float> yWeights = yKernel.Values;
-                        Span<float> xWeights = xKernel.Values;
-
-                        int top = (int)(point.Y - yRadius);
-                        if (top < 0)
-                        {
-                            top = 0;
-                        }
-
-                        int bottom = (int)(point.Y + yRadius);
-                        if (bottom > sourceHeight)
-                        {
-                            bottom = sourceHeight;
-                        }
-
-                        int left = (int)(point.X - xRadius);
-                        if (left < 0)
-                        {
-                            left = 0;
-                        }
-
-                        int right = (int)(point.X + xRadius);
-                        if (right > sourceWidth)
-                        {
-                            right = sourceWidth;
-                        }
-
-                        for (int yK = top; yK <= bottom; yK++)
-                        {
-                            float yWeight = yWeights[yK - top];
-
-                            for (int xK = left; xK <= right; xK++)
-                            {
-                                float xWeight = xWeights[xK - left];
-
-                                var current = source[xK, yK].ToVector4();
-                                Numerics.Premultiply(ref current);
-                                sum += current * xWeight * yWeight;
-                            }
-                        }
-
-                        Numerics.UnPremultiply(ref sum);
-                        span[x] = sum;
-                    }
-                }
-
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, span, rowSpan);
-            }
-
-            return;
-
-            //int yRadius = LinearTransformUtils.GetSamplingRadius(in sampler, source.Height, destination.Height);
-            //int xRadius = LinearTransformUtils.GetSamplingRadius(in sampler, source.Width, destination.Width);
-            //var radialExtents = new Vector2(xRadius, yRadius);
-            //int yLength = (yRadius * 2) + 1;
-            //int xLength = (xRadius * 2) + 1;
-
-            //// We use 2D buffers so that we can access the weight spans per row in parallel.
-            //using Buffer2D<float> yKernelBuffer = configuration.MemoryAllocator.Allocate2D<float>(yLength, destination.Height);
-            //using Buffer2D<float> xKernelBuffer = configuration.MemoryAllocator.Allocate2D<float>(xLength, destination.Height);
-
-            //// int maxX = source.Width - 1;
-            //// int maxY = source.Height - 1;
-            //var maxSourceExtents = new Vector4(maxX, maxY, maxX, maxY);
-
-            //var operation = new AffineOperation<TResampler>(
-            //    configuration,
-            //    source,
-            //    destination,
-            //    yKernelBuffer,
-            //    xKernelBuffer,
-            //    in sampler,
-            //    matrix,
-            //    radialExtents,
-            //    maxSourceExtents);
-
-            //ParallelRowIterator.IterateRows<AffineOperation<TResampler>, Vector4>(
-            //    configuration,
-            //    destination.Bounds(),
-            //    in operation);
+            ParallelRowIterator.IterateRowIntervals<AffineOperation<TResampler>, Vector4>(
+                configuration,
+                destination.Bounds(),
+                in operation);
         }
 
         private readonly struct NNAffineOperation : IRowOperation
@@ -222,7 +101,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
             private readonly Rectangle bounds;
             private readonly Matrix3x2 matrix;
-            private readonly int maxX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public NNAffineOperation(
@@ -234,15 +112,15 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 this.destination = destination;
                 this.bounds = source.Bounds();
                 this.matrix = matrix;
-                this.maxX = destination.Width;
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(int y)
             {
+                Buffer2D<TPixel> sourceBuffer = this.source.PixelBuffer;
                 Span<TPixel> destRow = this.destination.GetPixelRowSpan(y);
 
-                for (int x = 0; x < this.maxX; x++)
+                for (int x = 0; x < destRow.Length; x++)
                 {
                     var point = Vector2.Transform(new Vector2(x, y), this.matrix);
                     int px = (int)MathF.Round(point.X);
@@ -250,84 +128,98 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
                     if (this.bounds.Contains(px, py))
                     {
-                        destRow[x] = this.source[px, py];
+                        destRow[x] = sourceBuffer.GetElementUnsafe(px, py);
                     }
                 }
             }
         }
 
-        private readonly struct AffineOperation<TResampler> : IRowOperation<Vector4>
+        private readonly struct AffineOperation<TResampler> : IRowIntervalOperation<Vector4>
             where TResampler : struct, IResampler
         {
             private readonly Configuration configuration;
             private readonly ImageFrame<TPixel> source;
             private readonly ImageFrame<TPixel> destination;
-            private readonly Buffer2D<float> yKernelBuffer;
-            private readonly Buffer2D<float> xKernelBuffer;
             private readonly TResampler sampler;
             private readonly Matrix3x2 matrix;
-            private readonly Vector2 radialExtents;
-            private readonly Vector4 maxSourceExtents;
-            private readonly int maxX;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public AffineOperation(
                 Configuration configuration,
                 ImageFrame<TPixel> source,
                 ImageFrame<TPixel> destination,
-                Buffer2D<float> yKernelBuffer,
-                Buffer2D<float> xKernelBuffer,
                 in TResampler sampler,
-                Matrix3x2 matrix,
-                Vector2 radialExtents,
-                Vector4 maxSourceExtents)
+                Matrix3x2 matrix)
             {
                 this.configuration = configuration;
                 this.source = source;
                 this.destination = destination;
-                this.yKernelBuffer = yKernelBuffer;
-                this.xKernelBuffer = xKernelBuffer;
                 this.sampler = sampler;
                 this.matrix = matrix;
-                this.radialExtents = radialExtents;
-                this.maxSourceExtents = maxSourceExtents;
-                this.maxX = destination.Width;
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void Invoke(int y, Span<Vector4> span)
+            public void Invoke(in RowInterval rows, Span<Vector4> span)
             {
+                MemoryAllocator allocator = this.configuration.MemoryAllocator;
+                Matrix3x2 matrix = this.matrix;
+
+                using var horizontalKernelMap = new LinearTransformKernelFactory<TResampler>(
+                        this.sampler,
+                        this.source.Width,
+                        this.destination.Width,
+                        allocator);
+
+                using var verticalKernelMap = new LinearTransformKernelFactory<TResampler>(
+                      this.sampler,
+                      this.source.Height,
+                      this.destination.Height,
+                      allocator);
+
                 Buffer2D<TPixel> sourceBuffer = this.source.PixelBuffer;
 
-                PixelOperations<TPixel>.Instance.ToVector4(
-                    this.configuration,
-                    this.destination.GetPixelRowSpan(y),
-                    span);
-
-                ref float yKernelSpanRef = ref MemoryMarshal.GetReference(this.yKernelBuffer.GetRowSpan(y));
-                ref float xKernelSpanRef = ref MemoryMarshal.GetReference(this.xKernelBuffer.GetRowSpan(y));
-
-                for (int x = 0; x < this.maxX; x++)
+                for (int y = rows.Min; y < rows.Max; y++)
                 {
-                    // Use the single precision position to calculate correct bounding pixels
-                    // otherwise we get rogue pixels outside of the bounds.
-                    var point = Vector2.Transform(new Vector2(x, y), this.matrix);
-                    LinearTransformUtils.Convolve(
-                        in this.sampler,
-                        point,
-                        sourceBuffer,
-                        span,
-                        x,
-                        ref yKernelSpanRef,
-                        ref xKernelSpanRef,
-                        this.radialExtents,
-                        this.maxSourceExtents);
-                }
+                    Span<TPixel> rowSpan = this.destination.GetPixelRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToVector4(
+                        this.configuration,
+                        rowSpan,
+                        span);
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(
-                    this.configuration,
-                    span,
-                    this.destination.GetPixelRowSpan(y));
+                    for (int x = 0; x < span.Length; x++)
+                    {
+                        var point = Vector2.Transform(new Vector2(x, y), matrix);
+                        LinearTransformKernel yKernel = verticalKernelMap.BuildKernel(point.Y);
+                        LinearTransformKernel xKernel = horizontalKernelMap.BuildKernel(point.X);
+                        ref float yWeightsRef = ref MemoryMarshal.GetReference(yKernel.Values);
+                        ref float xWeightsRef = ref MemoryMarshal.GetReference(xKernel.Values);
+
+                        int top = yKernel.Start;
+                        int bottom = yKernel.End;
+                        int left = xKernel.Start;
+                        int right = xKernel.End;
+
+                        Vector4 sum = Vector4.Zero;
+                        for (int yK = top; yK <= bottom; yK++)
+                        {
+                            float yWeight = Unsafe.Add(ref yWeightsRef, yK - top);
+
+                            for (int xK = left; xK <= right; xK++)
+                            {
+                                float xWeight = Unsafe.Add(ref xWeightsRef, xK - left);
+
+                                var current = sourceBuffer.GetElementUnsafe(xK, yK).ToVector4();
+                                Numerics.Premultiply(ref current);
+                                sum += current * xWeight * yWeight;
+                            }
+                        }
+
+                        Numerics.UnPremultiply(ref sum);
+                        span[x] = sum;
+                    }
+
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan);
+                }
             }
         }
     }

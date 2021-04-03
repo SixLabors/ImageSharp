@@ -9,47 +9,47 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 {
+    /// <summary>
+    /// A factory class for the generation of kernel buffers for linear transforms.
+    /// Unlike simple resizing resampling operations the generated kernels are unique, based upon the
+    /// location of individual transformed points and cannot be stored and indexed.
+    /// </summary>
+    /// <remarks>
+    /// This class allocates a single buffer to reuse across multiple operations and
+    /// by design is not thread safe.
+    /// </remarks>
+    /// <typeparam name="TResampler">The type of sampler.</typeparam>
     internal sealed class LinearTransformKernelFactory<TResampler> : IDisposable
         where TResampler : struct, IResampler
     {
-        private static readonly TolerantMath TolerantMath = TolerantMath.Default;
         private readonly TResampler sampler;
-        private readonly double[] tempValues;
         private readonly int sourceLength;
-        private readonly int destinationLength;
-        private readonly double ratio;
-        private readonly double scale;
-        private readonly MemoryHandle pinHandle;
-
-        private readonly Buffer2D<float> data;
+        private readonly IMemoryOwner<float> data;
         private bool isDisposed;
 
         public LinearTransformKernelFactory(
-            MemoryAllocator memoryAllocator,
             TResampler sampler,
             int sourceSize,
-            int destinationSize)
+            int destinationSize,
+            MemoryAllocator allocator)
         {
-            double ratio = (double)sourceSize / destinationSize;
-            double scale = ratio;
+            double scale = (double)((double)sourceSize / destinationSize);
 
             if (scale < 1)
             {
                 scale = 1;
             }
 
-            int radius = (int)TolerantMath.Ceiling(scale * sampler.Radius);
+            int radius = (int)Math.Ceiling(scale * sampler.Radius);
 
             this.sampler = sampler;
-            this.ratio = ratio;
-            this.scale = scale;
             this.MaxRadius = radius;
             this.sourceLength = sourceSize;
-            this.destinationLength = destinationSize;
             this.MaxDiameter = (radius * 2) + 1;
-            this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, destinationSize, AllocationOptions.Clean);
-            this.pinHandle = this.data.GetSingleMemory().Pin();
-            this.tempValues = new double[this.MaxDiameter];
+
+            // Since we always overwrite the buffer there is no value to
+            // cleaning it.
+            this.data = allocator.Allocate<float>(this.MaxDiameter);
         }
 
         /// <summary>
@@ -60,97 +60,40 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <summary>
         /// Gets the maximum radius of the kernels.
         /// </summary>
-        public int MaxRadius { get; private set; }
+        public int MaxRadius { get; }
 
-        public LinearTransformKernel GetKernel(int dataRowIndex, float center)
+        public LinearTransformKernel BuildKernel(float center)
         {
             // Keep inside bounds.
-            int left = (int)(center - this.MaxRadius);
-
+            int left = (int)Math.Ceiling(center - this.MaxRadius);
             if (left < 0)
             {
                 left = 0;
             }
 
-            int right = (int)(center + this.MaxRadius);
+            int right = (int)Math.Floor(center + this.MaxRadius);
             if (right > this.sourceLength - 1)
             {
                 right = this.sourceLength - 1;
             }
 
-            LinearTransformKernel kernel = this.CreateKernel(dataRowIndex, left, right);
+            var kernel = new LinearTransformKernel(this.data.GetSpan(), left, right);
+            ref var valuesRef = ref MemoryMarshal.GetReference(kernel.Values);
 
-            Span<double> kernelValues = this.tempValues.AsSpan().Slice(0, kernel.Length);
-            double sum = 0;
-
-            for (int j = left; j <= right; j++)
+            for (int i = kernel.Start; i <= kernel.End; i++)
             {
-                double value = this.sampler.GetValue((float)(j - center));
-                sum += value;
-
-                kernelValues[j - left] = value;
+                Unsafe.Add(ref valuesRef, i - left) = this.sampler.GetValue(i - center);
             }
-
-            kernel.Fill(kernelValues);
 
             return kernel;
         }
 
-        private unsafe LinearTransformKernel CreateKernel(int dataRowIndex, int left, int right)
-        {
-            int length = right - left + 1;
-            Span<float> rowSpan = this.data.GetRowSpan(dataRowIndex);
-
-            ref float rowReference = ref MemoryMarshal.GetReference(rowSpan);
-            float* rowPtr = (float*)Unsafe.AsPointer(ref rowReference);
-            return new LinearTransformKernel(rowPtr, length);
-        }
-
-        public void Dispose() => this.Dispose(true);
-
-        private void Dispose(bool disposing)
+        public void Dispose()
         {
             if (!this.isDisposed)
             {
                 this.isDisposed = true;
-
-                if (disposing)
-                {
-                    this.pinHandle.Dispose();
-                    this.data.Dispose();
-                }
-            }
-        }
-    }
-
-    internal readonly unsafe struct LinearTransformKernel
-    {
-        private readonly float* bufferPtr;
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public LinearTransformKernel(float* bufferPtr, int length)
-        {
-            this.bufferPtr = bufferPtr;
-            this.Length = length;
-        }
-
-        public int Length
-        {
-            [MethodImpl(InliningOptions.ShortMethod)]
-            get;
-        }
-
-        public Span<float> Values
-        {
-            [MethodImpl(InliningOptions.ShortMethod)]
-            get => new Span<float>(this.bufferPtr, this.Length);
-        }
-
-        internal void Fill(Span<double> values)
-        {
-            for (int i = 0; i < this.Length; i++)
-            {
-                this.Values[i] = (float)values[i];
+                this.data.Dispose();
             }
         }
     }

@@ -57,13 +57,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             // Keep inside bounds.
             int radius = this.radius;
-            int left = (int)Math.Ceiling(center - radius);
+            int left = (int)MathF.Ceiling(center - radius);
             if (left < 0)
             {
                 left = 0;
             }
 
-            int right = (int)Math.Floor(center + radius);
+            int right = (int)MathF.Floor(center + radius);
             if (right > this.sourceLength - 1)
             {
                 right = this.sourceLength - 1;

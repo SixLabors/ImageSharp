@@ -24,11 +24,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
             this.Start = start;
             this.End = end;
-            this.Length = end - start + 1;
-            this.Values = values.Slice(0, this.Length);
+            this.Values = values.Slice(0, end - start + 1);
         }
-
-        public static LinearTransformKernel Empty => default;
 
         public int Start
         {
@@ -37,12 +34,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         }
 
         public int End
-        {
-            [MethodImpl(InliningOptions.ShortMethod)]
-            get;
-        }
-
-        public int Length
         {
             [MethodImpl(InliningOptions.ShortMethod)]
             get;

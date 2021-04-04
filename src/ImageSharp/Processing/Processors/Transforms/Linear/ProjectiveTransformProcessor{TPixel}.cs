@@ -213,10 +213,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             }
                         }
 
-                        Numerics.UnPremultiply(ref sum);
                         span[x] = sum;
                     }
 
+                    Numerics.UnPremultiply(span);
                     PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan);
                 }
             }

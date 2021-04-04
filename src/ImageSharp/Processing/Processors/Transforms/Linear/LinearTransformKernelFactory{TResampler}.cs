@@ -25,6 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private readonly TResampler sampler;
         private readonly int sourceLength;
         private readonly IMemoryOwner<float> data;
+        private readonly int radius;
         private bool isDisposed;
 
         public LinearTransformKernelFactory(
@@ -43,35 +44,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int radius = (int)Math.Ceiling(scale * sampler.Radius);
 
             this.sampler = sampler;
-            this.MaxRadius = radius;
+            this.radius = radius;
             this.sourceLength = sourceSize;
-            this.MaxDiameter = (radius * 2) + 1;
 
             // Since we always overwrite the buffer there is no value to
             // cleaning it.
-            this.data = allocator.Allocate<float>(this.MaxDiameter);
+            this.data = allocator.Allocate<float>((radius * 2) + 1);
         }
 
-        /// <summary>
-        /// Gets the maximum diameter of the kernels.
-        /// </summary>
-        public int MaxDiameter { get; }
-
-        /// <summary>
-        /// Gets the maximum radius of the kernels.
-        /// </summary>
-        public int MaxRadius { get; }
-
+        [MethodImpl(InliningOptions.ShortMethod)]
         public LinearTransformKernel BuildKernel(float center)
         {
             // Keep inside bounds.
-            int left = (int)Math.Ceiling(center - this.MaxRadius);
+            int radius = this.radius;
+            int left = (int)Math.Ceiling(center - radius);
             if (left < 0)
             {
                 left = 0;
             }
 
-            int right = (int)Math.Floor(center + this.MaxRadius);
+            int right = (int)Math.Floor(center + radius);
             if (right > this.sourceLength - 1)
             {
                 right = this.sourceLength - 1;

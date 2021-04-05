@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         private readonly TResampler sampler;
         private readonly int sourceLength;
         private readonly IMemoryOwner<float> data;
-        private readonly int radius;
+        private readonly float radius;
         private bool isDisposed;
 
         public LinearTransformKernelFactory(
@@ -34,29 +34,26 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             int destinationSize,
             MemoryAllocator allocator)
         {
-            double scale = (double)((double)sourceSize / destinationSize);
+            float scale = (float)sourceSize / destinationSize;
 
-            if (scale < 1)
+            if (scale < 1F)
             {
-                scale = 1;
+                scale = 1F;
             }
 
-            int radius = (int)Math.Ceiling(scale * sampler.Radius);
-
             this.sampler = sampler;
-            this.radius = radius;
+            this.radius = MathF.Ceiling(sampler.Radius / scale);
             this.sourceLength = sourceSize;
 
-            // Since we always overwrite the buffer there is no value to
-            // cleaning it.
-            this.data = allocator.Allocate<float>((radius * 2) + 1);
+            // Since we always overwrite the buffer there is no value to cleaning it.
+            this.data = allocator.Allocate<float>(((int)this.radius * 2) + 1);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public LinearTransformKernel BuildKernel(float center)
         {
             // Keep inside bounds.
-            int radius = this.radius;
+            float radius = this.radius;
             int left = (int)MathF.Ceiling(center - radius);
             if (left < 0)
             {

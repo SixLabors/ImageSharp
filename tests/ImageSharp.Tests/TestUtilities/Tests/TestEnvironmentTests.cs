@@ -85,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData("lol/foo.png", typeof(PngEncoder))]
+        [InlineData("lol/foo.png", typeof(ImageSharpPngEncoderWithDefaultConfiguration))]
         [InlineData("lol/Rofl.bmp", typeof(BmpEncoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]

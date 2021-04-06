@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -142,6 +141,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
             private readonly TResampler sampler;
             private readonly Matrix3x2 matrix;
+            private readonly float yRadius;
+            private readonly float xRadius;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public AffineOperation(
@@ -156,25 +157,20 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 this.destination = destination;
                 this.sampler = sampler;
                 this.matrix = matrix;
+
+                this.yRadius = LinearTransformUtility.GetSamplingRadius(in sampler, source.Height, destination.Height);
+                this.xRadius = LinearTransformUtility.GetSamplingRadius(in sampler, source.Width, destination.Width);
             }
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows, Span<Vector4> span)
             {
-                MemoryAllocator allocator = this.configuration.MemoryAllocator;
                 Matrix3x2 matrix = this.matrix;
-
-                using var horizontalKernelMap = new LinearTransformKernelFactory<TResampler>(
-                        this.sampler,
-                        this.source.Width,
-                        this.destination.Width,
-                        allocator);
-
-                using var verticalKernelMap = new LinearTransformKernelFactory<TResampler>(
-                      this.sampler,
-                      this.source.Height,
-                      this.destination.Height,
-                      allocator);
+                TResampler sampler = this.sampler;
+                float yRadius = this.yRadius;
+                float xRadius = this.xRadius;
+                int maxY = this.source.Height - 1;
+                int maxX = this.source.Width - 1;
 
                 Buffer2D<TPixel> sourceBuffer = this.source.PixelBuffer;
 
@@ -189,24 +185,27 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     for (int x = 0; x < span.Length; x++)
                     {
                         var point = Vector2.Transform(new Vector2(x, y), matrix);
-                        LinearTransformKernel yKernel = verticalKernelMap.BuildKernel(point.Y);
-                        LinearTransformKernel xKernel = horizontalKernelMap.BuildKernel(point.X);
-                        ref float yWeightsRef = ref MemoryMarshal.GetReference(yKernel.Values);
-                        ref float xWeightsRef = ref MemoryMarshal.GetReference(xKernel.Values);
+                        float pY = point.Y;
+                        float pX = point.X;
 
-                        int top = yKernel.Start;
-                        int bottom = yKernel.End;
-                        int left = xKernel.Start;
-                        int right = xKernel.End;
+                        int top = LinearTransformUtility.GetRangeStart(yRadius, pY, maxY);
+                        int bottom = LinearTransformUtility.GetRangeEnd(yRadius, pY, maxY);
+                        int left = LinearTransformUtility.GetRangeStart(xRadius, pX, maxX);
+                        int right = LinearTransformUtility.GetRangeEnd(xRadius, pX, maxX);
+
+                        if (bottom <= top || right <= left)
+                        {
+                            continue;
+                        }
 
                         Vector4 sum = Vector4.Zero;
                         for (int yK = top; yK <= bottom; yK++)
                         {
-                            float yWeight = Unsafe.Add(ref yWeightsRef, yK - top);
+                            float yWeight = sampler.GetValue(yK - pY);
 
                             for (int xK = left; xK <= right; xK++)
                             {
-                                float xWeight = Unsafe.Add(ref xWeightsRef, xK - left);
+                                float xWeight = sampler.GetValue(xK - pX);
 
                                 var current = sourceBuffer.GetElementUnsafe(xK, yK).ToVector4();
                                 Numerics.Premultiply(ref current);

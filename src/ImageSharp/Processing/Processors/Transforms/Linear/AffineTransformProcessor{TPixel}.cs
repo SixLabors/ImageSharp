@@ -179,7 +179,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     PixelOperations<TPixel>.Instance.ToVector4(
                         this.configuration,
                         rowSpan,
-                        span);
+                        span,
+                        PixelConversionModifiers.Scale);
 
                     for (int x = 0; x < span.Length; x++)
                     {
@@ -206,7 +207,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                             {
                                 float xWeight = sampler.GetValue(xK - pX);
 
-                                var current = sourceBuffer.GetElementUnsafe(xK, yK).ToVector4();
+                                Vector4 current = sourceBuffer.GetElementUnsafe(xK, yK).ToScaledVector4();
                                 Numerics.Premultiply(ref current);
                                 sum += current * xWeight * yWeight;
                             }
@@ -216,7 +217,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     }
 
                     Numerics.UnPremultiply(span);
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(
+                        this.configuration,
+                        span,
+                        rowSpan,
+                        PixelConversionModifiers.Scale);
                 }
             }
         }

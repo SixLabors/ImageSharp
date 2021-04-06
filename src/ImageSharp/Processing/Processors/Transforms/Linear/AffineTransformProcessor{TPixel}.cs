@@ -140,8 +140,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
             private readonly TResampler sampler;
             private readonly Matrix3x2 matrix;
-            private readonly float yRadius;
-            private readonly float xRadius;
+            private readonly double yRadius;
+            private readonly double xRadius;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public AffineOperation(
@@ -166,8 +166,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 Matrix3x2 matrix = this.matrix;
                 TResampler sampler = this.sampler;
-                float yRadius = this.yRadius;
-                float xRadius = this.xRadius;
+                double yRadius = this.yRadius;
+                double xRadius = this.xRadius;
                 int maxY = this.source.Height - 1;
                 int maxX = this.source.Width - 1;
 

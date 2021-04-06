@@ -18,19 +18,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sampler">The resampler sampler.</param>
         /// <param name="sourceSize">The source size.</param>
         /// <param name="destinationSize">The destination size.</param>
-        /// <returns>The <see cref="float"/>.</returns>
+        /// <returns>The <see cref="double"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static float GetSamplingRadius<TResampler>(in TResampler sampler, int sourceSize, int destinationSize)
+        public static double GetSamplingRadius<TResampler>(in TResampler sampler, int sourceSize, int destinationSize)
              where TResampler : struct, IResampler
         {
-            float scale = (float)sourceSize / destinationSize;
+            double scale = (double)sourceSize / destinationSize;
 
-            if (scale < 1F)
+            if (scale < 1)
             {
-                scale = 1F;
+                scale = 1;
             }
 
-            return (float)Math.Ceiling(sampler.Radius / scale);
+            return Math.Ceiling(sampler.Radius / scale);
         }
 
         /// <summary>
@@ -40,9 +40,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="radius">The radius.</param>
         /// <param name="center">The center position.</param>
         /// <param name="max">The max allowed amouunt.</param>
-        /// <returns>The <see cref="float"/>.</returns>
+        /// <returns>The <see cref="int"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int GetRangeStart(float radius, float center, int max)
+        public static int GetRangeStart(double radius, double center, int max)
             => Numerics.Clamp((int)Math.Ceiling(center - radius), 0, max);
 
         /// <summary>
@@ -52,9 +52,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="radius">The radius.</param>
         /// <param name="center">The center position.</param>
         /// <param name="max">The max allowed amouunt.</param>
-        /// <returns>The <see cref="float"/>.</returns>
+        /// <returns>The <see cref="int"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int GetRangeEnd(float radius, float center, int max)
+        public static int GetRangeEnd(double radius, double center, int max)
             => Numerics.Clamp((int)Math.Floor(center + radius), 0, max);
     }
 }

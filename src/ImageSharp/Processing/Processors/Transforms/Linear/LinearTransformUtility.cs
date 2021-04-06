@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 scale = 1F;
             }
 
-            return MathF.Ceiling(sampler.Radius / scale);
+            return (float)Math.Ceiling(sampler.Radius / scale);
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>The <see cref="float"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetRangeStart(float radius, float center, int max)
-            => Numerics.Clamp((int)MathF.Ceiling(center - radius), 0, max);
+            => Numerics.Clamp((int)Math.Ceiling(center - radius), 0, max);
 
         /// <summary>
         /// Gets the end position (inclusive) for a sampling range given
@@ -55,6 +55,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <returns>The <see cref="float"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static int GetRangeEnd(float radius, float center, int max)
-            => Numerics.Clamp((int)MathF.Floor(center + radius), 0, max);
+            => Numerics.Clamp((int)Math.Floor(center + radius), 0, max);
     }
 }

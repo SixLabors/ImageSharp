@@ -34,18 +34,16 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true,
             IImageEncoder encoder = null)
-        {
-            image.DebugSave(
+            => image.DebugSave(
                 provider,
                 (object)testOutputDetails,
                 extension,
                 appendPixelTypeToFileName,
                 appendSourceFileOrDescription,
                 encoder);
-        }
 
         /// <summary>
-        /// Saves the image only when not running in the CI server.
+        /// Saves the image for debugging purpose.
         /// </summary>
         /// <param name="image">The image.</param>
         /// <param name="provider">The image provider.</param>
@@ -64,12 +62,6 @@ namespace SixLabors.ImageSharp.Tests
             bool appendSourceFileOrDescription = true,
             IImageEncoder encoder = null)
         {
-            if (TestEnvironment.RunsOnCI)
-            {
-                return image;
-            }
-
-            // We are running locally then we want to save it out
             provider.Utility.SaveTestOutputFile(
                 image,
                 extension,
@@ -86,12 +78,10 @@ namespace SixLabors.ImageSharp.Tests
             IImageEncoder encoder,
             FormattableString testOutputDetails,
             bool appendPixelTypeToFileName = true)
-        {
-            image.DebugSave(provider, encoder, (object)testOutputDetails, appendPixelTypeToFileName);
-        }
+            => image.DebugSave(provider, encoder, (object)testOutputDetails, appendPixelTypeToFileName);
 
         /// <summary>
-        /// Saves the image only when not running in the CI server.
+        /// Saves the image for debugging purpose.
         /// </summary>
         /// <param name="image">The image</param>
         /// <param name="provider">The image provider</param>
@@ -104,19 +94,11 @@ namespace SixLabors.ImageSharp.Tests
             IImageEncoder encoder,
             object testOutputDetails = null,
             bool appendPixelTypeToFileName = true)
-        {
-            if (TestEnvironment.RunsOnCI)
-            {
-                return;
-            }
-
-            // We are running locally then we want to save it out
-            provider.Utility.SaveTestOutputFile(
+            => provider.Utility.SaveTestOutputFile(
                 image,
                 encoder: encoder,
                 testOutputDetails: testOutputDetails,
                 appendPixelTypeToFileName: appendPixelTypeToFileName);
-        }
 
         public static Image<TPixel> DebugSaveMultiFrame<TPixel>(
             this Image<TPixel> image,
@@ -126,12 +108,6 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (TestEnvironment.RunsOnCI)
-            {
-                return image;
-            }
-
-            // We are running locally then we want to save it out
             provider.Utility.SaveTestOutputFileMultiFrame(
                 image,
                 extension,
@@ -149,15 +125,13 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            return image.CompareToReferenceOutput(
+            => image.CompareToReferenceOutput(
                 provider,
                 (object)testOutputDetails,
                 extension,
                 grayscale,
                 appendPixelTypeToFileName,
                 appendSourceFileOrDescription);
-        }
 
         /// <summary>
         /// Compares the image against the expected Reference output, throws an exception if the images are not similar enough.
@@ -181,8 +155,7 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            return CompareToReferenceOutput(
+            => CompareToReferenceOutput(
                 image,
                 ImageComparer.Tolerant(),
                 provider,
@@ -191,7 +164,6 @@ namespace SixLabors.ImageSharp.Tests
                 grayscale,
                 appendPixelTypeToFileName,
                 appendSourceFileOrDescription);
-        }
 
         public static Image<TPixel> CompareToReferenceOutput<TPixel>(
             this Image<TPixel> image,
@@ -202,15 +174,13 @@ namespace SixLabors.ImageSharp.Tests
             bool grayscale = false,
             bool appendPixelTypeToFileName = true)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            return image.CompareToReferenceOutput(
+            => image.CompareToReferenceOutput(
                 comparer,
                 provider,
                 (object)testOutputDetails,
                 extension,
                 grayscale,
                 appendPixelTypeToFileName);
-        }
 
         /// <summary>
         /// Compares the image against the expected Reference output, throws an exception if the images are not similar enough.
@@ -263,8 +233,7 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            return image.CompareFirstFrameToReferenceOutput(
+            => image.CompareFirstFrameToReferenceOutput(
                 comparer,
                 provider,
                 (object)testOutputDetails,
@@ -272,7 +241,6 @@ namespace SixLabors.ImageSharp.Tests
                 grayscale,
                 appendPixelTypeToFileName,
                 appendSourceFileOrDescription);
-        }
 
         public static Image<TPixel> CompareFirstFrameToReferenceOutput<TPixel>(
             this Image<TPixel> image,
@@ -508,9 +476,7 @@ namespace SixLabors.ImageSharp.Tests
             ITestImageProvider provider,
             IImageDecoder referenceDecoder = null)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            return CompareToOriginal(image, provider, ImageComparer.Tolerant(), referenceDecoder);
-        }
+            => CompareToOriginal(image, provider, ImageComparer.Tolerant(), referenceDecoder);
 
         public static Image<TPixel> CompareToOriginal<TPixel>(
             this Image<TPixel> image,
@@ -584,14 +550,12 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            provider.VerifyOperation(
+            => provider.VerifyOperation(
                 ImageComparer.Tolerant(),
                 operation,
                 testOutputDetails,
                 appendPixelTypeToFileName,
                 appendSourceFileOrDescription);
-        }
 
         /// <summary>
         /// Utility method for doing the following in one step:
@@ -606,14 +570,12 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            provider.VerifyOperation(
+            => provider.VerifyOperation(
                 comparer,
                 operation,
                 $"",
                 appendPixelTypeToFileName,
                 appendSourceFileOrDescription);
-        }
 
         /// <summary>
         /// Utility method for doing the following in one step:
@@ -627,9 +589,7 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true,
             bool appendSourceFileOrDescription = true)
             where TPixel : unmanaged, IPixel<TPixel>
-        {
-            provider.VerifyOperation(operation, $"", appendPixelTypeToFileName, appendSourceFileOrDescription);
-        }
+            => provider.VerifyOperation(operation, $"", appendPixelTypeToFileName, appendSourceFileOrDescription);
 
         /// <summary>
         /// Loads the expected image with a reference decoder + compares it to <paramref name="image"/>.

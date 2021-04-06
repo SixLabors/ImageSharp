@@ -139,8 +139,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             private readonly ImageFrame<TPixel> destination;
             private readonly TResampler sampler;
             private readonly Matrix4x4 matrix;
-            private readonly double yRadius;
-            private readonly double xRadius;
+            private readonly float yRadius;
+            private readonly float xRadius;
 
             [MethodImpl(InliningOptions.ShortMethod)]
             public ProjectiveOperation(
@@ -165,8 +165,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             {
                 Matrix4x4 matrix = this.matrix;
                 TResampler sampler = this.sampler;
-                double yRadius = this.yRadius;
-                double xRadius = this.xRadius;
+                float yRadius = this.yRadius;
+                float xRadius = this.xRadius;
                 int maxY = this.source.Height - 1;
                 int maxX = this.source.Width - 1;
 
@@ -184,8 +184,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     for (int x = 0; x < span.Length; x++)
                     {
                         Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, matrix);
-                        double pY = point.Y;
-                        double pX = point.X;
+                        float pY = point.Y;
+                        float pX = point.X;
 
                         int top = LinearTransformUtility.GetRangeStart(yRadius, pY, maxY);
                         int bottom = LinearTransformUtility.GetRangeEnd(yRadius, pY, maxY);
@@ -200,11 +200,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                         Vector4 sum = Vector4.Zero;
                         for (int yK = top; yK <= bottom; yK++)
                         {
-                            float yWeight = sampler.GetValue((float)(yK - pY));
+                            float yWeight = sampler.GetValue(yK - pY);
 
                             for (int xK = left; xK <= right; xK++)
                             {
-                                float xWeight = sampler.GetValue((float)(xK - pX));
+                                float xWeight = sampler.GetValue(xK - pX);
 
                                 Vector4 current = sourceBuffer.GetElementUnsafe(xK, yK).ToScaledVector4();
                                 Numerics.Premultiply(ref current);

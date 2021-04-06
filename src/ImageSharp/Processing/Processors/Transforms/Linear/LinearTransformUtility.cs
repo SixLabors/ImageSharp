@@ -18,19 +18,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="sampler">The resampler sampler.</param>
         /// <param name="sourceSize">The source size.</param>
         /// <param name="destinationSize">The destination size.</param>
-        /// <returns>The <see cref="double"/>.</returns>
+        /// <returns>The <see cref="float"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static double GetSamplingRadius<TResampler>(in TResampler sampler, int sourceSize, int destinationSize)
+        public static float GetSamplingRadius<TResampler>(in TResampler sampler, int sourceSize, int destinationSize)
              where TResampler : struct, IResampler
         {
-            double scale = (double)sourceSize / destinationSize;
+            float scale = (float)sourceSize / destinationSize;
 
-            if (scale < 1)
+            if (scale < 1F)
             {
-                scale = 1;
+                scale = 1F;
             }
 
-            return Math.Ceiling(sampler.Radius / scale);
+            return MathF.Ceiling(sampler.Radius * scale);
         }
 
         /// <summary>
@@ -42,8 +42,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="max">The max allowed amouunt.</param>
         /// <returns>The <see cref="int"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int GetRangeStart(double radius, double center, int max)
-            => Numerics.Clamp((int)Math.Ceiling(center - radius), 0, max);
+        public static int GetRangeStart(float radius, float center, int max)
+            => Numerics.Clamp((int)MathF.Ceiling(center - radius), 0, max);
 
         /// <summary>
         /// Gets the end position (inclusive) for a sampling range given
@@ -54,7 +54,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         /// <param name="max">The max allowed amouunt.</param>
         /// <returns>The <see cref="int"/>.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public static int GetRangeEnd(double radius, double center, int max)
-            => Numerics.Clamp((int)Math.Floor(center + radius), 0, max);
+        public static int GetRangeEnd(float radius, float center, int max)
+            => Numerics.Clamp((int)MathF.Floor(center + radius), 0, max);
     }
 }

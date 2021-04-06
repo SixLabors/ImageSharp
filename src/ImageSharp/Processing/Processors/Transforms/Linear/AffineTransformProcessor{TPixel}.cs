@@ -18,7 +18,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
     internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IResamplingTransformImageProcessor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private static readonly TolerantMath TolerantMath = TolerantMath.Default;
         private readonly Size destinationSize;
         private readonly Matrix3x2 transformMatrix;
         private readonly IResampler resampler;

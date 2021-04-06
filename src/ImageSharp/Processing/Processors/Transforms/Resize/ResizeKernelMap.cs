@@ -23,6 +23,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
 
         private readonly double scale;
 
+        private readonly int radius;
+
         private readonly MemoryHandle pinHandle;
 
         private readonly Buffer2D<float> data;
@@ -45,7 +47,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         {
             this.ratio = ratio;
             this.scale = scale;
-            this.MaxRadius = radius;
+            this.radius = radius;
             this.sourceLength = sourceLength;
             this.DestinationLength = destinationLength;
             this.MaxDiameter = (radius * 2) + 1;
@@ -66,15 +68,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
         public int MaxDiameter { get; }
 
         /// <summary>
-        /// Gets the maximum radius of the kernels.
-        /// </summary>
-        public int MaxRadius { get; private set; }
-
-        /// <summary>
         /// Gets a string of information to help debugging
         /// </summary>
         internal virtual string Info =>
-            $"radius:{this.MaxRadius}|sourceSize:{this.sourceLength}|destinationSize:{this.DestinationLength}|ratio:{this.ratio}|scale:{this.scale}";
+            $"radius:{this.radius}|sourceSize:{this.sourceLength}|destinationSize:{this.DestinationLength}|ratio:{this.ratio}|scale:{this.scale}";
 
         /// <summary>
         /// Disposes <see cref="ResizeKernelMap"/> instance releasing it's backing buffer.
@@ -205,13 +202,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             double center = ((destRowIndex + .5) * this.ratio) - .5;
 
             // Keep inside bounds.
-            int left = (int)TolerantMath.Ceiling(center - this.MaxRadius);
+            int left = (int)TolerantMath.Ceiling(center - this.radius);
             if (left < 0)
             {
                 left = 0;
             }
 
-            int right = (int)TolerantMath.Floor(center + this.MaxRadius);
+            int right = (int)TolerantMath.Floor(center + this.radius);
             if (right > this.sourceLength - 1)
             {
                 right = this.sourceLength - 1;

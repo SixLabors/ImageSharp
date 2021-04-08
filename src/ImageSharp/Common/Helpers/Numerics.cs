@@ -497,7 +497,13 @@ namespace SixLabors.ImageSharp
         public static void Premultiply(Span<Vector4> vectors)
         {
 #if SUPPORTS_RUNTIME_INTRINSICS
-            if (Avx2.IsSupported && vectors.Length >= 2)
+
+            // There's an issue with .NET Core 3.1 when calling this method on MacOS
+            // https://github.com/SixLabors/ImageSharp/pull/1591#discussion_r609118003
+            if (Avx2.IsSupported
+                && vectors.Length >= 2
+                && !RuntimeEnvironment.IsOSPlatform(OSPlatform.OSX)
+                && RuntimeEnvironment.IsNetCore)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> vectorsBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(vectors));

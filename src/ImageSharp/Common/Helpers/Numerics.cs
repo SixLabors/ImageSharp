@@ -525,14 +525,10 @@ namespace SixLabors.ImageSharp
             else
 #endif
             {
-                ref Vector4 vectorsStart = ref MemoryMarshal.GetReference(vectors);
-                ref Vector4 vectorsEnd = ref Unsafe.Add(ref vectorsStart, vectors.Length);
-
-                while (Unsafe.IsAddressLessThan(ref vectorsStart, ref vectorsEnd))
+                for (int i = 0; i < vectors.Length; i++)
                 {
-                    Premultiply(ref vectorsStart);
-
-                    vectorsStart = ref Unsafe.Add(ref vectorsStart, 1);
+                    ref Vector4 vector = ref vectors[i];
+                    Premultiply(ref vector);
                 }
             }
         }

@@ -27,7 +27,7 @@ namespace SixLabors.ImageSharp
             {
                 if (isNetCoreChecked)
                 {
-                    return IsNetCore;
+                    return isNetCore;
                 }
 
                 isNetCore = FrameworkDescription.StartsWith(".NET Core", StringComparison.OrdinalIgnoreCase);

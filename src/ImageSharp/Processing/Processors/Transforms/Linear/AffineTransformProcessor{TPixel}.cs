@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -164,6 +165,19 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
             [MethodImpl(InliningOptions.ShortMethod)]
             public void Invoke(in RowInterval rows, Span<Vector4> span)
             {
+                if (RuntimeEnvironment.IsOSPlatform(OSPlatform.OSX)
+                    && RuntimeEnvironment.IsNetCore)
+                {
+                    // There's something wrong with the JIT in .NET Core 3.1 on certain
+                    // MacOSX machines so we have to use different pipelines.
+                    // It's:
+                    // - Not reproducable locally
+                    // - Doesn't seem to be triggered by the bulk Numerics.UnPremultiply method but by caller.
+                    // https://github.com/SixLabors/ImageSharp/pull/1591
+                    this.InvokeForDummies(in rows, span);
+                    return;
+                }
+
                 Matrix3x2 matrix = this.matrix;
                 TResampler sampler = this.sampler;
                 float yRadius = this.yRadius;
@@ -217,6 +231,70 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     }
 
                     Numerics.UnPremultiply(span);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(
+                        this.configuration,
+                        span,
+                        rowSpan,
+                        PixelConversionModifiers.Scale);
+                }
+            }
+
+            [MethodImpl(InliningOptions.ShortMethod)]
+            private void InvokeForDummies(in RowInterval rows, Span<Vector4> span)
+            {
+                Matrix3x2 matrix = this.matrix;
+                TResampler sampler = this.sampler;
+                float yRadius = this.yRadius;
+                float xRadius = this.xRadius;
+                int maxY = this.source.Height - 1;
+                int maxX = this.source.Width - 1;
+
+                Buffer2D<TPixel> sourceBuffer = this.source.PixelBuffer;
+
+                for (int y = rows.Min; y < rows.Max; y++)
+                {
+                    Span<TPixel> rowSpan = this.destination.GetPixelRowSpan(y);
+                    PixelOperations<TPixel>.Instance.ToVector4(
+                        this.configuration,
+                        rowSpan,
+                        span,
+                        PixelConversionModifiers.Scale);
+
+                    for (int x = 0; x < span.Length; x++)
+                    {
+                        var point = Vector2.Transform(new Vector2(x, y), matrix);
+                        float pY = point.Y;
+                        float pX = point.X;
+
+                        int top = LinearTransformUtility.GetRangeStart(yRadius, pY, maxY);
+                        int bottom = LinearTransformUtility.GetRangeEnd(yRadius, pY, maxY);
+                        int left = LinearTransformUtility.GetRangeStart(xRadius, pX, maxX);
+                        int right = LinearTransformUtility.GetRangeEnd(xRadius, pX, maxX);
+
+                        if (bottom == top || right == left)
+                        {
+                            continue;
+                        }
+
+                        Vector4 sum = Vector4.Zero;
+                        for (int yK = top; yK <= bottom; yK++)
+                        {
+                            float yWeight = sampler.GetValue(yK - pY);
+
+                            for (int xK = left; xK <= right; xK++)
+                            {
+                                float xWeight = sampler.GetValue(xK - pX);
+
+                                Vector4 current = sourceBuffer.GetElementUnsafe(xK, yK).ToScaledVector4();
+                                Numerics.Premultiply(ref current);
+                                sum += current * xWeight * yWeight;
+                            }
+                        }
+
+                        Numerics.UnPremultiply(ref sum);
+                        span[x] = sum;
+                    }
+
                     PixelOperations<TPixel>.Instance.FromVector4Destructive(
                         this.configuration,
                         span,

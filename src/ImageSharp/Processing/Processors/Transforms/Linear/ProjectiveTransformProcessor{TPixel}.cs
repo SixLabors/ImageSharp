@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -173,7 +174,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                     // - Not reproducable locally
                     // - Doesn't seem to be triggered by the bulk Numerics.UnPremultiply method but by caller.
                     // https://github.com/SixLabors/ImageSharp/pull/1591
-                    this.InvokeForDummies(in rows, span);
+                    this.InvokeMacOSX(in rows, span);
                     return;
                 }
 
@@ -238,8 +239,9 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms
                 }
             }
 
+            [ExcludeFromCodeCoverage]
             [MethodImpl(InliningOptions.ShortMethod)]
-            public void InvokeForDummies(in RowInterval rows, Span<Vector4> span)
+            public void InvokeMacOSX(in RowInterval rows, Span<Vector4> span)
             {
                 Matrix4x4 matrix = this.matrix;
                 TResampler sampler = this.sampler;

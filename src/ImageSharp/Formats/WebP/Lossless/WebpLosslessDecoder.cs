@@ -102,7 +102,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             {
                 this.DecodeImageStream(decoder, width, height, true);
                 this.DecodeImageData(decoder, decoder.Pixels.Memory.Span);
-                this.DecodePixelValues(decoder, pixels);
+                this.DecodePixelValues(decoder, pixels, width, height);
             }
         }
 
@@ -185,18 +185,17 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
             return pixelData;
         }
 
-        private void DecodePixelValues<TPixel>(Vp8LDecoder decoder, Buffer2D<TPixel> pixels)
+        private void DecodePixelValues<TPixel>(Vp8LDecoder decoder, Buffer2D<TPixel> pixels, int width, int height)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             Span<uint> pixelData = decoder.Pixels.GetSpan();
-            int width = decoder.Width;
 
             // Apply reverse transformations, if any are present.
             ApplyInverseTransforms(decoder, pixelData, this.memoryAllocator);
 
             Span<byte> pixelDataAsBytes = MemoryMarshal.Cast<uint, byte>(pixelData);
             int bytesPerRow = width * 4;
-            for (int y = 0; y < decoder.Height; y++)
+            for (int y = 0; y < height; y++)
             {
                 Span<byte> rowAsBytes = pixelDataAsBytes.Slice(y * bytesPerRow, bytesPerRow);
                 Span<TPixel> pixelRow = pixels.GetRowSpan(y);
@@ -859,7 +858,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Webp.Lossless
 
         /// <summary>
         /// Decodes the next Huffman code from the bit-stream.
-        /// FillBitWindow(br) needs to be called at minimum every second call to ReadSymbol, in order to pre-fetch enough bits.
+        /// FillBitWindow() needs to be called at minimum every second call to ReadSymbol, in order to pre-fetch enough bits.
         /// </summary>
         private uint ReadSymbol(Span<HuffmanCode> table)
         {

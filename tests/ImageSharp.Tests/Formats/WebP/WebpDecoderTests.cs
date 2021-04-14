@@ -323,13 +323,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp
         [WithFile(Lossless.LossLessCorruptImage1, PixelTypes.Rgba32)]
         [WithFile(Lossless.LossLessCorruptImage2, PixelTypes.Rgba32)]
         [WithFile(Lossless.LossLessCorruptImage4, PixelTypes.Rgba32)]
-        public void WebpDecoder_CanDecodeLosslessWithIssues<TPixel>(TestImageProvider<TPixel> provider)
+        public void WebpDecoder_CanDecode_Lossless_WithIssues<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Just make sure no exception is thrown. The reference decoder fails to load the image.
             using (Image<TPixel> image = provider.GetImage(WebpDecoder))
             {
                 image.DebugSave(provider);
+            }
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/1594
+        [Theory]
+        [WithFile(Lossy.Issue1594, PixelTypes.Rgba32)]
+        public void WebpDecoder_CanDecode_Issue1594<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(WebpDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider, ReferenceDecoder);
             }
         }
 

@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp
         private static readonly Lazy<bool> IsNetCoreLazy = new Lazy<bool>(() => FrameworkDescription.StartsWith(".NET Core", StringComparison.OrdinalIgnoreCase));
 
         /// <summary>
-        /// Gets a value indicating whether the .NET installation is .NET Core
+        /// Gets a value indicating whether the .NET installation is .NET Core 3.1 or lower.
         /// </summary>
         public static bool IsNetCore => IsNetCoreLazy.Value;
 

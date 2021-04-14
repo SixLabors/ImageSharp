@@ -649,7 +649,7 @@ namespace SixLabors.ImageSharp.Tests
                 public const string AlphaSticker = "WebP/sticker.webp";
 
                 // Issues
-                public const string Issue1594 = "Webp/issues/Issue1594.webp";
+                public const string Issue1594 = "WebP/issues/Issue1594.webp";
             }
         }
     }

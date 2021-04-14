@@ -62,6 +62,11 @@ namespace SixLabors.ImageSharp.Tests
             bool appendSourceFileOrDescription = true,
             IImageEncoder encoder = null)
         {
+            if (TestEnvironment.RunsWithCodeCoverage)
+            {
+                return image;
+            }
+
             provider.Utility.SaveTestOutputFile(
                 image,
                 extension,
@@ -108,11 +113,17 @@ namespace SixLabors.ImageSharp.Tests
             bool appendPixelTypeToFileName = true)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            if (TestEnvironment.RunsWithCodeCoverage)
+            {
+                return image;
+            }
+
             provider.Utility.SaveTestOutputFileMultiFrame(
                 image,
                 extension,
                 testOutputDetails: testOutputDetails,
                 appendPixelTypeToFileName: appendPixelTypeToFileName);
+
             return image;
         }
 

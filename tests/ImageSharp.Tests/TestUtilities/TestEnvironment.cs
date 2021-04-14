@@ -26,6 +26,8 @@ namespace SixLabors.ImageSharp.Tests
 
         private static readonly Lazy<bool> RunsOnCiLazy = new Lazy<bool>(() => bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) && isCi);
 
+        private static readonly Lazy<bool> RunsWithCodeCoverageLazy = new Lazy<bool>(() => bool.TryParse(Environment.GetEnvironmentVariable("codecov"), out bool isCodeCov) && isCodeCov);
+
         private static readonly Lazy<string> NetCoreVersionLazy = new Lazy<string>(GetNetCoreVersion);
 
         static TestEnvironment() => PrepareRemoteExecutor();
@@ -41,6 +43,11 @@ namespace SixLabors.ImageSharp.Tests
         /// Gets a value indicating whether test execution runs on CI.
         /// </summary>
         internal static bool RunsOnCI => RunsOnCiLazy.Value;
+
+        /// <summary>
+        /// Gets a value indicating whether test execution is running with code coverage testing enabled.
+        /// </summary>
+        internal static bool RunsWithCodeCoverage => RunsWithCodeCoverageLazy.Value;
 
         internal static string SolutionDirectoryFullPath => SolutionDirectoryFullPathLazy.Value;
 

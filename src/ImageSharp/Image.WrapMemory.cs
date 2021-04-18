@@ -304,6 +304,82 @@ namespace SixLabors.ImageSharp
             => WrapMemory<TPixel>(Configuration.Default, byteMemory, width, height);
 
         /// <summary>
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels,
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
+        /// The ownership of the <paramref name="byteMemoryOwner"/> is being transferred to the new <see cref="Image{TPixel}"/> instance,
+        /// meaning that the caller is not allowed to dispose <paramref name="byteMemoryOwner"/>.
+        /// It will be disposed together with the result image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type</typeparam>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
+        /// <param name="byteMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image</param>
+        /// <param name="width">The width of the memory image.</param>
+        /// <param name="height">The height of the memory image.</param>
+        /// <param name="metadata">The <see cref="ImageMetadata"/></param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <exception cref="ArgumentNullException">The metadata is null.</exception>
+        /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
+        public static Image<TPixel> WrapMemory<TPixel>(
+            Configuration configuration,
+            IMemoryOwner<byte> byteMemoryOwner,
+            int width,
+            int height,
+            ImageMetadata metadata)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            Guard.NotNull(configuration, nameof(configuration));
+            Guard.NotNull(metadata, nameof(metadata));
+
+            var pixelMemoryOwner = new ByteMemoryOwner<TPixel>(byteMemoryOwner);
+
+            Guard.IsTrue(pixelMemoryOwner.Memory.Length >= width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
+
+            var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
+            return new Image<TPixel>(configuration, memorySource, width, height, metadata);
+        }
+
+        /// <summary>
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels,
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
+        /// The ownership of the <paramref name="byteMemoryOwner"/> is being transferred to the new <see cref="Image{TPixel}"/> instance,
+        /// meaning that the caller is not allowed to dispose <paramref name="byteMemoryOwner"/>.
+        /// It will be disposed together with the result image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type.</typeparam>
+        /// <param name="configuration">The <see cref="Configuration"/></param>
+        /// <param name="byteMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image.</param>
+        /// <param name="width">The width of the memory image.</param>
+        /// <param name="height">The height of the memory image.</param>
+        /// <exception cref="ArgumentNullException">The configuration is null.</exception>
+        /// <returns>An <see cref="Image{TPixel}"/> instance</returns>
+        public static Image<TPixel> WrapMemory<TPixel>(
+            Configuration configuration,
+            IMemoryOwner<byte> byteMemoryOwner,
+            int width,
+            int height)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => WrapMemory<TPixel>(configuration, byteMemoryOwner, width, height, new ImageMetadata());
+
+        /// <summary>
+        /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels,
+        /// allowing to view/manipulate it as an <see cref="Image{TPixel}"/> instance.
+        /// The ownership of the <paramref name="byteMemoryOwner"/> is being transferred to the new <see cref="Image{TPixel}"/> instance,
+        /// meaning that the caller is not allowed to dispose <paramref name="byteMemoryOwner"/>.
+        /// It will be disposed together with the result image.
+        /// </summary>
+        /// <typeparam name="TPixel">The pixel type</typeparam>
+        /// <param name="byteMemoryOwner">The <see cref="IMemoryOwner{T}"/> that is being transferred to the image.</param>
+        /// <param name="width">The width of the memory image.</param>
+        /// <param name="height">The height of the memory image.</param>
+        /// <returns>An <see cref="Image{TPixel}"/> instance.</returns>
+        public static Image<TPixel> WrapMemory<TPixel>(
+            IMemoryOwner<byte> byteMemoryOwner,
+            int width,
+            int height)
+            where TPixel : unmanaged, IPixel<TPixel>
+            => WrapMemory<TPixel>(Configuration.Default, byteMemoryOwner, width, height);
+
+        /// <summary>
         /// <para>
         /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels allowing viewing/manipulation as
         /// an <see cref="Image{TPixel}"/> instance.

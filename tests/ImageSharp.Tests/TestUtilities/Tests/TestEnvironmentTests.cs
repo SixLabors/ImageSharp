@@ -8,7 +8,6 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Experimental.Webp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit;
 using Xunit.Abstractions;
@@ -86,7 +85,7 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData("lol/foo.png", typeof(PngEncoder))]
+        [InlineData("lol/foo.png", typeof(ImageSharpPngEncoderWithDefaultConfiguration))]
         [InlineData("lol/Rofl.bmp", typeof(BmpEncoder))]
         [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
         [InlineData("lol/Baz.gif", typeof(GifEncoder))]

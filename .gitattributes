@@ -86,7 +86,6 @@
 *.dll               binary
 *.eot               binary
 *.exe               binary
-*.ktx               binary
 *.otf               binary
 *.pbm               binary
 *.pdf               binary
@@ -125,3 +124,5 @@
 *.tga               filter=lfs diff=lfs merge=lfs -text
 *.webp              filter=lfs diff=lfs merge=lfs -text
 *.dds               filter=lfs diff=lfs merge=lfs -text
+*.ktx               filter=lfs diff=lfs merge=lfs -text
+*.ktx2              filter=lfs diff=lfs merge=lfs -text

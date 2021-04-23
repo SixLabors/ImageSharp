@@ -24,8 +24,6 @@ namespace SixLabors.ImageSharp.Tests
 
         private static readonly Lazy<string> SolutionDirectoryFullPathLazy = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
 
-        private static readonly Lazy<bool> RunsOnCiLazy = new Lazy<bool>(() => bool.TryParse(Environment.GetEnvironmentVariable("CI"), out bool isCi) && isCi);
-
         private static readonly Lazy<string> NetCoreVersionLazy = new Lazy<string>(GetNetCoreVersion);
 
         static TestEnvironment() => PrepareRemoteExecutor();
@@ -40,7 +38,20 @@ namespace SixLabors.ImageSharp.Tests
         /// <summary>
         /// Gets a value indicating whether test execution runs on CI.
         /// </summary>
-        internal static bool RunsOnCI => RunsOnCiLazy.Value;
+#if ENV_CI
+        internal static bool RunsOnCI => true;
+#else
+        internal static bool RunsOnCI => false;
+#endif
+
+        /// <summary>
+        /// Gets a value indicating whether test execution is running with code coverage testing enabled.
+        /// </summary>
+#if ENV_CODECOV
+        internal static bool RunsWithCodeCoverage => true;
+#else
+        internal static bool RunsWithCodeCoverage => false;
+#endif
 
         internal static string SolutionDirectoryFullPath => SolutionDirectoryFullPathLazy.Value;
 
@@ -59,14 +70,14 @@ namespace SixLabors.ImageSharp.Tests
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception(
+                    throw new DirectoryNotFoundException(
                         $"Unable to find ImageSharp solution directory from {TestAssemblyFile} because of {ex.GetType().Name}!",
                         ex);
                 }
 
                 if (directory == null)
                 {
-                    throw new Exception($"Unable to find ImageSharp solution directory from {TestAssemblyFile}!");
+                    throw new DirectoryNotFoundException($"Unable to find ImageSharp solution directory from {TestAssemblyFile}!");
                 }
             }
 

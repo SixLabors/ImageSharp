@@ -18,4 +18,13 @@
   <!-- Import the shared global .props file -->
   <Import Project="$(MSBuildThisFileDirectory)shared-infrastructure\msbuild\props\SixLabors.Global.props" />
 
+  <!-- Custom Project Configuration doesn't seem to copy this setting properly. -->
+  <PropertyGroup Condition="$(Configuration.StartsWith('Debug')) == true">
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$(Configuration.StartsWith('Release')) == true">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  
 </Project>

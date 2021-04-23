@@ -332,7 +332,7 @@ namespace SixLabors.ImageSharp
 
             var pixelMemoryOwner = new ByteMemoryOwner<TPixel>(byteMemoryOwner);
 
-            Guard.IsTrue(pixelMemoryOwner.Memory.Length >= width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
+            Guard.IsTrue(pixelMemoryOwner.Memory.Length >= (long)width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
 
             var memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
             return new Image<TPixel>(configuration, memorySource, width, height, metadata);

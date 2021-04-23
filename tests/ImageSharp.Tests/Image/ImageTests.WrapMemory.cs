@@ -380,11 +380,11 @@ namespace SixLabors.ImageSharp.Tests
 
             private class TestMemoryOwner<T> : IMemoryOwner<T>
             {
+                public bool Disposed { get; private set; }
+
                 public Memory<T> Memory { get; set; }
 
-                public void Dispose()
-                {
-                }
+                public void Dispose() => this.Disposed = true;
             }
 
             [Theory]
@@ -433,10 +433,29 @@ namespace SixLabors.ImageSharp.Tests
             [InlineData(2048, 32, 32)]
             public void WrapMemory_IMemoryOwnerOfByte_ValidSize(int size, int height, int width)
             {
-                var array = new byte[size * Unsafe.SizeOf<Rgba32>()];
+                var random = new Random();
+                var pixelSize = Unsafe.SizeOf<Rgba32>();
+                var array = new byte[size * pixelSize];
                 var memory = new TestMemoryOwner<byte> { Memory = array };
 
-                Image.WrapMemory<Rgba32>(memory, height, width);
+                using (var img = Image.WrapMemory<Rgba32>(memory, width, height))
+                {
+                    Assert.Equal(width, img.Width);
+                    Assert.Equal(height, img.Height);
+
+                    for (int i = 0; i < height; ++i)
+                    {
+                        var arrayIndex = pixelSize * width * i;
+                        var expected = (byte)random.Next(0, 256);
+
+                        Span<Rgba32> rowSpan = img.GetPixelRowSpan(i);
+                        array[arrayIndex] = expected;
+
+                        Assert.Equal(expected, rowSpan[0].R);
+                    }
+                }
+
+                Assert.True(memory.Disposed);
             }
 
             [Theory]

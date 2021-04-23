@@ -410,7 +410,24 @@ namespace SixLabors.ImageSharp.Tests
                 var array = new Rgba32[size];
                 var memory = new TestMemoryOwner<Rgba32> { Memory = array };
 
-                Image.WrapMemory(memory, height, width);
+                using (var img = Image.WrapMemory<Rgba32>(memory, width, height))
+                {
+                    Assert.Equal(width, img.Width);
+                    Assert.Equal(height, img.Height);
+
+                    for (int i = 0; i < height; ++i)
+                    {
+                        var arrayIndex = width * i;
+
+                        Span<Rgba32> rowSpan = img.GetPixelRowSpan(i);
+                        ref Rgba32 r0 = ref rowSpan[0];
+                        ref Rgba32 r1 = ref array[arrayIndex];
+
+                        Assert.True(Unsafe.AreSame(ref r0, ref r1));
+                    }
+                }
+
+                Assert.True(memory.Disposed);
             }
 
             [Theory]
@@ -433,7 +450,6 @@ namespace SixLabors.ImageSharp.Tests
             [InlineData(2048, 32, 32)]
             public void WrapMemory_IMemoryOwnerOfByte_ValidSize(int size, int height, int width)
             {
-                var random = new Random();
                 var pixelSize = Unsafe.SizeOf<Rgba32>();
                 var array = new byte[size * pixelSize];
                 var memory = new TestMemoryOwner<byte> { Memory = array };
@@ -446,12 +462,12 @@ namespace SixLabors.ImageSharp.Tests
                     for (int i = 0; i < height; ++i)
                     {
                         var arrayIndex = pixelSize * width * i;
-                        var expected = (byte)random.Next(0, 256);
 
                         Span<Rgba32> rowSpan = img.GetPixelRowSpan(i);
-                        array[arrayIndex] = expected;
+                        ref Rgba32 r0 = ref rowSpan[0];
+                        ref Rgba32 r1 = ref Unsafe.As<byte, Rgba32>(ref array[arrayIndex]);
 
-                        Assert.Equal(expected, rowSpan[0].R);
+                        Assert.True(Unsafe.AreSame(ref r0, ref r1));
                     }
                 }
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Jpeg
@@ -19,12 +19,21 @@ namespace SixLabors.ImageSharp.Formats.Jpeg
         /// Initializes a new instance of the <see cref="JpegMetadata"/> class.
         /// </summary>
         /// <param name="other">The metadata to create an instance from.</param>
-        private JpegMetadata(JpegMetadata other) => this.Quality = other.Quality;
+        private JpegMetadata(JpegMetadata other)
+        {
+            this.Quality = other.Quality;
+            this.ColorType = other.ColorType;
+        }
 
         /// <summary>
         /// Gets or sets the encoded quality.
         /// </summary>
         public int Quality { get; set; } = 75;
+
+        /// <summary>
+        /// Gets or sets the encoded quality.
+        /// </summary>
+        public JpegColorType? ColorType { get; set; }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new JpegMetadata(this);

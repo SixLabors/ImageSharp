@@ -174,7 +174,7 @@ namespace SixLabors.ImageSharp.Tests
                 appendPixelTypeToFileName,
                 appendSourceFileOrDescription);
 
-            encoder = encoder ?? TestEnvironment.GetReferenceEncoder(path);
+            encoder ??= TestEnvironment.GetReferenceEncoder(path);
 
             using (FileStream stream = File.OpenWrite(path))
             {

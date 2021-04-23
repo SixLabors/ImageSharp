@@ -12,12 +12,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
         [Fact]
         public void CloneIsDeep()
         {
-            var meta = new JpegMetadata { Quality = 50 };
+            var meta = new JpegMetadata { Quality = 50, ColorType = JpegColorType.Luminance };
             var clone = (JpegMetadata)meta.DeepClone();
 
             clone.Quality = 99;
+            clone.ColorType = JpegColorType.YCbCr;
 
             Assert.False(meta.Quality.Equals(clone.Quality));
+            Assert.False(meta.ColorType.Equals(clone.ColorType));
         }
     }
 }

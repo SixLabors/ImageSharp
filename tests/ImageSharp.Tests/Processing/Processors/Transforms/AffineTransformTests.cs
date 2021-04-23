@@ -4,7 +4,6 @@
 using System;
 using System.Numerics;
 using System.Reflection;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -18,9 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms
     public class AffineTransformTests
     {
         private readonly ITestOutputHelper output;
-
-        // 1 byte difference on one color component.
-        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0134F, 3);
+        private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.033F, 3);
 
         /// <summary>
         /// angleDeg, sx, sy, tx, ty

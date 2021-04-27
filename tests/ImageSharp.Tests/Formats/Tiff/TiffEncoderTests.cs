@@ -30,11 +30,53 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         }
 
         [Theory]
-        [InlineData(TiffEncodingMode.Default, TiffCompression.None, TiffBitsPerPixel.Bit24, TiffCompression.None)]
-        [InlineData(TiffEncodingMode.Rgb, TiffCompression.None, TiffBitsPerPixel.Bit24, TiffCompression.None)]
-        [InlineData(TiffEncodingMode.ColorPalette, TiffCompression.None, TiffBitsPerPixel.Bit8, TiffCompression.None)]
-        [InlineData(TiffEncodingMode.Gray, TiffCompression.None, TiffBitsPerPixel.Bit8, TiffCompression.None)]
-        [InlineData(TiffEncodingMode.BiColor, TiffCompression.None, TiffBitsPerPixel.Bit1, TiffCompression.None)]
+        [InlineData(TiffEncodingMode.Default, TiffBitsPerPixel.Bit24)]
+        [InlineData(TiffEncodingMode.Rgb, TiffBitsPerPixel.Bit24)]
+        [InlineData(TiffEncodingMode.ColorPalette, TiffBitsPerPixel.Bit8)]
+        [InlineData(TiffEncodingMode.Gray, TiffBitsPerPixel.Bit8)]
+        [InlineData(TiffEncodingMode.BiColor, TiffBitsPerPixel.Bit1)]
+        public void EncoderOptions_SetEncodingMode_Works(TiffEncodingMode mode, TiffBitsPerPixel expectedBitsPerPixel)
+        {
+            // arrange
+            var tiffEncoder = new TiffEncoder { Mode = mode };
+            Image input = new Image<Rgb24>(10, 10);
+            using var memStream = new MemoryStream();
+
+            // act
+            input.Save(memStream, tiffEncoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            TiffMetadata meta = output.Metadata.GetTiffMetadata();
+            Assert.Equal(expectedBitsPerPixel, meta.BitsPerPixel);
+            Assert.Equal(TiffCompression.None, meta.Compression);
+        }
+
+        [Theory]
+        [InlineData(TiffBitsPerPixel.Bit24)]
+        [InlineData(TiffBitsPerPixel.Bit8)]
+        [InlineData(TiffBitsPerPixel.Bit4)]
+        [InlineData(TiffBitsPerPixel.Bit1)]
+        public void EncoderOptions_SetBitPerPixel_Works(TiffBitsPerPixel bitsPerPixel)
+        {
+            // arrange
+            var tiffEncoder = new TiffEncoder { BitsPerPixel = bitsPerPixel };
+            Image input = new Image<Rgb24>(10, 10);
+            using var memStream = new MemoryStream();
+
+            // act
+            input.Save(memStream, tiffEncoder);
+
+            // assert
+            memStream.Position = 0;
+            using var output = Image.Load<Rgba32>(Configuration, memStream);
+            TiffMetadata meta = output.Metadata.GetTiffMetadata();
+            Assert.Equal(bitsPerPixel, meta.BitsPerPixel);
+            Assert.Equal(TiffCompression.None, meta.Compression);
+        }
+
+        [Theory]
         [InlineData(TiffEncodingMode.Default, TiffCompression.Deflate, TiffBitsPerPixel.Bit24, TiffCompression.Deflate)]
         [InlineData(TiffEncodingMode.Rgb, TiffCompression.Deflate, TiffBitsPerPixel.Bit24, TiffCompression.Deflate)]
         [InlineData(TiffEncodingMode.Gray, TiffCompression.Deflate, TiffBitsPerPixel.Bit8, TiffCompression.Deflate)]
@@ -55,7 +97,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [InlineData(TiffEncodingMode.Rgb, TiffCompression.Jpeg, TiffBitsPerPixel.Bit24, TiffCompression.None)]
         [InlineData(TiffEncodingMode.Rgb, TiffCompression.OldDeflate, TiffBitsPerPixel.Bit24, TiffCompression.None)]
         [InlineData(TiffEncodingMode.Rgb, TiffCompression.OldJpeg, TiffBitsPerPixel.Bit24, TiffCompression.None)]
-        public void EncoderOptions_Work(TiffEncodingMode mode, TiffCompression compression, TiffBitsPerPixel expectedBitsPerPixel, TiffCompression expectedCompression)
+        public void EncoderOptions_SetEncodingModeAndCompression_Works(TiffEncodingMode mode, TiffCompression compression, TiffBitsPerPixel expectedBitsPerPixel, TiffCompression expectedCompression)
         {
             // arrange
             var tiffEncoder = new TiffEncoder { Mode = mode, Compression = compression };
@@ -80,7 +122,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Rgb4BitPalette, PixelTypes.Rgba32, TiffBitsPerPixel.Bit4)]
         [WithFile(RgbPalette, PixelTypes.Rgba32, TiffBitsPerPixel.Bit8)]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32, TiffBitsPerPixel.Bit8)]
-        public void TiffEncoder_PreserveBitsPerPixel<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel expectedBitsPerPixel)
+        public void TiffEncoder_PreservesBitsPerPixel<TPixel>(TestImageProvider<TPixel> provider, TiffBitsPerPixel expectedBitsPerPixel)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // arrange

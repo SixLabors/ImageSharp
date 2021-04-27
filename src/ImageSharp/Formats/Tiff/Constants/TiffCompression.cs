@@ -45,7 +45,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
         /// JPEG compression - obsolete (see Section 22 of the TIFF 6.0 specification).
         ///
         /// Note: The TIFF encoder does not support this compression and will default to use no compression instead,
-        /// if this is choosen.
+        /// if this is chosen.
         /// </summary>
         OldJpeg = 6,
 
@@ -53,7 +53,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
         /// JPEG compression (see TIFF Specification, supplement 2).
         ///
         /// Note: The TIFF encoder does not yet support this compression and will default to use no compression instead,
-        /// if this is choosen.
+        /// if this is chosen.
         /// </summary>
         Jpeg = 7,
 
@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
         /// Deflate compression - old.
         ///
         /// Note: The TIFF encoder does not support this compression and will default to use no compression instead,
-        /// if this is choosen.
+        /// if this is chosen.
         /// </summary>
         OldDeflate = 32946,
 
@@ -74,7 +74,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
         /// ITU-T Rec. T.82 coding, applying ITU-T Rec. T.85 (JBIG) (see RFC2301).
         ///
         /// Note: The TIFF encoder does not yet support this compression and will default to use no compression instead,
-        /// if this is choosen.
+        /// if this is chosen.
         /// </summary>
         ItuTRecT82 = 9,
 
@@ -82,7 +82,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
         /// ITU-T Rec. T.43 representation, using ITU-T Rec. T.82 (JBIG) (see RFC2301).
         ///
         /// Note: The TIFF encoder does not yet support this compression and will default to use no compression instead,
-        /// if this is choosen.
+        /// if this is chosen.
         /// </summary>
         ItuTRecT43 = 10
     }

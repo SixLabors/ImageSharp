@@ -293,10 +293,10 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
                 }
             }
 
-            if (this.Mode == TiffEncodingMode.Default)
+            if (this.Mode == TiffEncodingMode.Default && this.BitsPerPixel != null)
             {
-                // Preserve input bits per pixel, if no mode was specified.
-                switch (tiffMetadata.BitsPerPixel)
+                // Preserve input bits per pixel, if no encoding mode was specified.
+                switch (this.BitsPerPixel)
                 {
                     case TiffBitsPerPixel.Bit1:
                         this.Mode = TiffEncodingMode.BiColor;

@@ -19,12 +19,12 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
         BlackIsZero = 1,
 
         /// <summary>
-        /// RGB
+        /// RGB image.
         /// </summary>
         Rgb = 2,
 
         /// <summary>
-        /// Palette Color
+        /// Palette Color.
         /// </summary>
         PaletteColor = 3,
 

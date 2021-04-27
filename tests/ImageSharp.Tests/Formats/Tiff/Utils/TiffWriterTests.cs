@@ -3,7 +3,6 @@
 
 using System.IO;
 using SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers;
-using SixLabors.ImageSharp.Memory;
 
 using Xunit;
 
@@ -12,9 +11,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
     [Trait("Format", "Tiff")]
     public class TiffWriterTests
     {
-        private static readonly MemoryAllocator MemoryAllocator = new ArrayPoolMemoryAllocator();
-        private static readonly Configuration Configuration = Configuration.Default;
-
         [Fact]
         public void IsLittleEndian_IsTrueOnWindows()
         {
@@ -40,7 +36,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         {
             using var stream = new MemoryStream();
             using var writer = new TiffStreamWriter(stream);
-            writer.Write((byte)42);
+            writer.Write(42);
 
             Assert.Equal(new byte[] { 42 }, stream.ToArray());
         }
@@ -60,7 +56,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.Utils
         {
             using var stream = new MemoryStream();
             using var writer = new TiffStreamWriter(stream);
-            writer.Write((ushort)1234);
+            writer.Write(1234);
 
             Assert.Equal(new byte[] { 0xD2, 0x04 }, stream.ToArray());
         }

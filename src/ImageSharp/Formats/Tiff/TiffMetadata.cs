@@ -33,24 +33,25 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
         }
 
         /// <summary>
-        /// Gets the byte order.
+        /// Gets or sets the byte order.
         /// </summary>
-        public ByteOrder ByteOrder { get; internal set; }
+        public ByteOrder ByteOrder { get; set; }
 
         /// <summary>
-        /// Gets the number of bits per pixel.
+        /// Gets or sets the number of bits per pixel.
         /// </summary>
-        public TiffBitsPerPixel BitsPerPixel { get; internal set; } = TiffBitsPerPixel.Bit24;
+        public TiffBitsPerPixel? BitsPerPixel { get; set; }
 
         /// <summary>
-        /// Gets the compression used to create the TIFF file.
+        /// Gets or sets the compression used to create the TIFF file.
+        /// Defaults to None.
         /// </summary>
-        public TiffCompression Compression { get; internal set; } = TiffCompression.None;
+        public TiffCompression Compression { get; set; } = TiffCompression.None;
 
         /// <summary>
-        /// Gets the photometric interpretation which indicates how the pixels are to be interpreted, e.g. if the image is bicolor, RGB, color paletted etc.
+        /// Gets or sets the photometric interpretation which indicates how the pixels are to be interpreted, e.g. if the image is bicolor, RGB, color paletted etc.
         /// </summary>
-        public TiffPhotometricInterpretation PhotometricInterpretation { get; internal set; }
+        public TiffPhotometricInterpretation PhotometricInterpretation { get; set; }
 
         /// <summary>
         /// Gets or sets the XMP profile.

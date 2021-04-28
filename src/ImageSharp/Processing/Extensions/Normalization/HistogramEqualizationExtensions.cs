@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing.Processors.Normalization;
@@ -28,5 +28,14 @@ namespace SixLabors.ImageSharp.Processing
             this IImageProcessingContext source,
             HistogramEqualizationOptions options) =>
             source.ApplyProcessor(HistogramEqualizationProcessor.FromOptions(options));
+
+        /// <summary>
+        /// Normalize an image by stretching the dynamic range to full contrast
+        /// </summary>
+        /// <param name="source">The image this method extends.</param>
+        /// <returns>The <see cref="IImageProcessingContext"/> to allow chaining of operations.</returns>
+        public static IImageProcessingContext AutoLevel(
+            this IImageProcessingContext source) =>
+            source.ApplyProcessor(new AutoLevelProcessor());
     }
 }

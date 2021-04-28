@@ -302,6 +302,7 @@ namespace SixLabors.ImageSharp.Advanced
             AotCompileImageProcessor<TPixel, AdaptiveHistogramEqualizationProcessor>();
             AotCompileImageProcessor<TPixel, AdaptiveHistogramEqualizationSlidingWindowProcessor>();
             AotCompileImageProcessor<TPixel, GlobalHistogramEqualizationProcessor>();
+            AotCompileImageProcessor<TPixel, AutoLevelProcessor>();
             AotCompileImageProcessor<TPixel, AchromatomalyProcessor>();
             AotCompileImageProcessor<TPixel, AchromatopsiaProcessor>();
             AotCompileImageProcessor<TPixel, BlackWhiteProcessor>();

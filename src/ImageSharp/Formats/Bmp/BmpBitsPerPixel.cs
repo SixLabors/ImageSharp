@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 namespace SixLabors.ImageSharp.Formats.Bmp
@@ -8,6 +8,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     /// </summary>
     public enum BmpBitsPerPixel : short
     {
+        /// <summary>
+        /// 4 bits per pixel.
+        /// </summary>
+        Pixel4 = 4,
+
         /// <summary>
         /// 8 bits per pixel. Each pixel consists of 1 byte.
         /// </summary>

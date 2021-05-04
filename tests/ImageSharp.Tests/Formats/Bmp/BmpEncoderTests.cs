@@ -13,7 +13,6 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 using Xunit;
-using Xunit.Abstractions;
 
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
@@ -41,13 +40,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public static readonly TheoryData<string, BmpBitsPerPixel> BmpBitsPerPixelFiles =
         new TheoryData<string, BmpBitsPerPixel>
         {
+            { Rgb16, BmpBitsPerPixel.Pixel16 },
             { Car, BmpBitsPerPixel.Pixel24 },
             { Bit32Rgb, BmpBitsPerPixel.Pixel32 }
         };
-
-        public BmpEncoderTests(ITestOutputHelper output) => this.Output = output;
-
-        private ITestOutputHelper Output { get; }
 
         [Theory]
         [MemberData(nameof(RatioFiles))]
@@ -174,6 +170,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 provider,
                 bitsPerPixel,
                 supportTransparency: false);
+
+        [Theory]
+        [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel4)]
+        public void Encode_4Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+            where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
+
+        [Theory]
+        [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel4)]
+        public void Encode_4Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+            where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
         [Theory]
         [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Pixel8)]

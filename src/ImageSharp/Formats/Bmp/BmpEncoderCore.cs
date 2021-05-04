@@ -52,6 +52,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private const int ColorPaletteSize8Bit = 1024;
 
         /// <summary>
+        /// The color palette for an 4 bit image will have 16 entry's with 4 bytes for each entry.
+        /// </summary>
+        private const int ColorPaletteSize4Bit = 64;
+
+        /// <summary>
         /// Used for allocating memory during processing operations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;
@@ -107,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
             BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
-            this.bitsPerPixel = this.bitsPerPixel ?? bmpMetadata.BitsPerPixel;
+            this.bitsPerPixel ??= bmpMetadata.BitsPerPixel;
 
             short bpp = (short)this.bitsPerPixel;
             int bytesPerLine = 4 * (((image.Width * bpp) + 31) / 32);
@@ -166,7 +171,15 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                 infoHeader.Compression = BmpCompression.BitFields;
             }
 
-            int colorPaletteSize = this.bitsPerPixel == BmpBitsPerPixel.Pixel8 ? ColorPaletteSize8Bit : 0;
+            int colorPaletteSize = 0;
+            if (this.bitsPerPixel == BmpBitsPerPixel.Pixel8)
+            {
+                colorPaletteSize = ColorPaletteSize8Bit;
+            }
+            else if (this.bitsPerPixel == BmpBitsPerPixel.Pixel4)
+            {
+                colorPaletteSize = ColorPaletteSize4Bit;
+            }
 
             var fileHeader = new BmpFileHeader(
                 type: BmpConstants.TypeMarkers.Bitmap,
@@ -223,6 +236,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 case BmpBitsPerPixel.Pixel8:
                     this.Write8Bit(stream, image);
+                    break;
+
+                case BmpBitsPerPixel.Pixel4:
+                    this.Write4BitColor(stream, image);
                     break;
             }
         }
@@ -344,16 +361,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration);
             using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
 
-            ReadOnlySpan<TPixel> quantizedColors = quantized.Palette.Span;
-            var quantizedColorBytes = quantizedColors.Length * 4;
-            PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, quantizedColors, MemoryMarshal.Cast<byte, Bgra32>(colorPalette.Slice(0, quantizedColorBytes)));
-            Span<uint> colorPaletteAsUInt = MemoryMarshal.Cast<byte, uint>(colorPalette);
-            for (int i = 0; i < colorPaletteAsUInt.Length; i++)
-            {
-                colorPaletteAsUInt[i] = colorPaletteAsUInt[i] & 0x00FFFFFF; // Padding byte, always 0.
-            }
-
-            stream.Write(colorPalette);
+            ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
+            this.WriteColorPalette(stream, quantizedColorPalette, colorPalette);
 
             for (int y = image.Height - 1; y >= 0; y--)
             {
@@ -403,6 +412,71 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     stream.WriteByte(0);
                 }
             }
+        }
+
+        /// <summary>
+        /// Writes an 4 Bit color image with a color palette. The color palette has 16 entry's with 4 bytes for each entry.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+        private void Write4BitColor<TPixel>(Stream stream, ImageFrame<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, new QuantizerOptions()
+            {
+                MaxColors = 16
+            });
+            using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
+            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(ColorPaletteSize4Bit, AllocationOptions.Clean);
+
+            Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
+            ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
+            this.WriteColorPalette(stream, quantizedColorPalette, colorPalette);
+
+            ReadOnlySpan<byte> pixelRowSpan = quantized.GetPixelRowSpan(0);
+            int rowPadding = pixelRowSpan.Length % 2 != 0 ? this.padding - 1 : this.padding;
+            for (int y = image.Height - 1; y >= 0; y--)
+            {
+                pixelRowSpan = quantized.GetPixelRowSpan(y);
+
+                int endIdx = pixelRowSpan.Length % 2 == 0 ? pixelRowSpan.Length : pixelRowSpan.Length - 1;
+                for (int i = 0; i < endIdx; i += 2)
+                {
+                    stream.WriteByte((byte)((pixelRowSpan[i] << 4) | pixelRowSpan[i + 1]));
+                }
+
+                if (pixelRowSpan.Length % 2 != 0)
+                {
+                    stream.WriteByte((byte)((pixelRowSpan[pixelRowSpan.Length - 1] << 4) | 0));
+                }
+
+                for (int i = 0; i < rowPadding; i++)
+                {
+                    stream.WriteByte(0);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes the color palette to the stream. The color palette has 4 bytes for each entry.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="quantizedColorPalette">The color palette from the quantized image.</param>
+        /// <param name="colorPalette">A temporary byte span to write the color palette to.</param>
+        private void WriteColorPalette<TPixel>(Stream stream, ReadOnlySpan<TPixel> quantizedColorPalette, Span<byte> colorPalette)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            int quantizedColorBytes = quantizedColorPalette.Length * 4;
+            PixelOperations<TPixel>.Instance.ToBgra32(this.configuration, quantizedColorPalette, MemoryMarshal.Cast<byte, Bgra32>(colorPalette.Slice(0, quantizedColorBytes)));
+            Span<uint> colorPaletteAsUInt = MemoryMarshal.Cast<byte, uint>(colorPalette);
+            for (int i = 0; i < colorPaletteAsUInt.Length; i++)
+            {
+                colorPaletteAsUInt[i] = colorPaletteAsUInt[i] & 0x00FFFFFF; // Padding byte, always 0.
+            }
+
+            stream.Write(colorPalette);
         }
     }
 }

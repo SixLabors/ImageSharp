@@ -175,13 +175,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
 
         [Theory]
         [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel4)]
-        public void Encode_4Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
-            where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
+        public void Encode_4Bit_WithV3Header_Works<TPixel>(
+            TestImageProvider<TPixel> provider,
+            BmpBitsPerPixel bitsPerPixel)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // The Magick Reference Decoder can not decode 4-Bit bitmaps, so only execute this on windows.
+            if (TestEnvironment.IsWindows)
+            {
+                TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
+            }
+        }
 
         [Theory]
         [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel4)]
-        public void Encode_4Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
-            where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
+        public void Encode_4Bit_WithV4Header_Works<TPixel>(
+            TestImageProvider<TPixel> provider,
+            BmpBitsPerPixel bitsPerPixel)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // The Magick Reference Decoder can not decode 4-Bit bitmaps, so only execute this on windows.
+            if (TestEnvironment.IsWindows)
+            {
+                TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
+            }
+        }
 
         [Theory]
         [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Pixel8)]

@@ -40,6 +40,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public static readonly TheoryData<string, BmpBitsPerPixel> BmpBitsPerPixelFiles =
         new TheoryData<string, BmpBitsPerPixel>
         {
+            { Bit4, BmpBitsPerPixel.Pixel4 },
+            { Bit8, BmpBitsPerPixel.Pixel8 },
             { Rgb16, BmpBitsPerPixel.Pixel16 },
             { Car, BmpBitsPerPixel.Pixel24 },
             { Bit32Rgb, BmpBitsPerPixel.Pixel32 }

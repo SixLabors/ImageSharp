@@ -57,6 +57,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private const int ColorPaletteSize4Bit = 64;
 
         /// <summary>
+        /// The color palette for an 1 bit image will have 2 entry's with 4 bytes for each entry.
+        /// </summary>
+        private const int ColorPaletteSize1Bit = 8;
+
+        /// <summary>
         /// Used for allocating memory during processing operations.
         /// </summary>
         private readonly MemoryAllocator memoryAllocator;
@@ -79,7 +84,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         private readonly bool writeV4Header;
 
         /// <summary>
-        /// The quantizer for reducing the color count for 8-Bit images.
+        /// The quantizer for reducing the color count for 8-Bit, 4-Bit and 1-Bit images.
         /// </summary>
         private readonly IQuantizer quantizer;
 
@@ -180,6 +185,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             {
                 colorPaletteSize = ColorPaletteSize4Bit;
             }
+            else if (this.bitsPerPixel == BmpBitsPerPixel.Pixel1)
+            {
+                colorPaletteSize = ColorPaletteSize1Bit;
+            }
 
             var fileHeader = new BmpFileHeader(
                 type: BmpConstants.TypeMarkers.Bitmap,
@@ -240,6 +249,10 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
                 case BmpBitsPerPixel.Pixel4:
                     this.Write4BitColor(stream, image);
+                    break;
+
+                case BmpBitsPerPixel.Pixel1:
+                    this.Write1BitColor(stream, image);
                     break;
             }
         }
@@ -325,7 +338,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Writes an 8 Bit image with a color palette. The color palette has 256 entry's with 4 bytes for each entry.
+        /// Writes an 8 bit image with a color palette. The color palette has 256 entry's with 4 bytes for each entry.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
@@ -349,7 +362,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Writes an 8 Bit color image with a color palette. The color palette has 256 entry's with 4 bytes for each entry.
+        /// Writes an 8 bit color image with a color palette. The color palette has 256 entry's with 4 bytes for each entry.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
@@ -377,7 +390,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Writes an 8 Bit gray image with a color palette. The color palette has 256 entry's with 4 bytes for each entry.
+        /// Writes an 8 bit gray image with a color palette. The color palette has 256 entry's with 4 bytes for each entry.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
@@ -415,7 +428,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
-        /// Writes an 4 Bit color image with a color palette. The color palette has 16 entry's with 4 bytes for each entry.
+        /// Writes an 4 bit color image with a color palette. The color palette has 16 entry's with 4 bytes for each entry.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
@@ -459,6 +472,52 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         }
 
         /// <summary>
+        /// Writes a 1 bit image with a color palette. The color palette has 2 entry's with 4 bytes for each entry.
+        /// </summary>
+        /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+        private void Write1BitColor<TPixel>(Stream stream, ImageFrame<TPixel> image)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, new QuantizerOptions()
+            {
+                MaxColors = 2
+            });
+            using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(image, image.Bounds());
+            using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.AllocateManagedByteBuffer(ColorPaletteSize1Bit, AllocationOptions.Clean);
+
+            Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
+            ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
+            this.WriteColorPalette(stream, quantizedColorPalette, colorPalette);
+
+            ReadOnlySpan<byte> quantizedPixelRow = quantized.GetPixelRowSpan(0);
+            int rowPadding = quantizedPixelRow.Length % 8 != 0 ? this.padding - 1 : this.padding;
+            for (int y = image.Height - 1; y >= 0; y--)
+            {
+                quantizedPixelRow = quantized.GetPixelRowSpan(y);
+
+                int endIdx = quantizedPixelRow.Length % 8 == 0 ? quantizedPixelRow.Length : quantizedPixelRow.Length - 8;
+                for (int i = 0; i < endIdx; i += 8)
+                {
+                    Write1BitPalette(stream, i, i + 8, quantizedPixelRow);
+                }
+
+                if (quantizedPixelRow.Length % 8 != 0)
+                {
+                    int startIdx = quantizedPixelRow.Length - 7;
+                    endIdx = quantizedPixelRow.Length;
+                    Write1BitPalette(stream, startIdx, endIdx, quantizedPixelRow);
+                }
+
+                for (int i = 0; i < rowPadding; i++)
+                {
+                    stream.WriteByte(0);
+                }
+            }
+        }
+
+        /// <summary>
         /// Writes the color palette to the stream. The color palette has 4 bytes for each entry.
         /// </summary>
         /// <typeparam name="TPixel">The type of the pixel.</typeparam>
@@ -477,6 +536,26 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             }
 
             stream.Write(colorPalette);
+        }
+
+        /// <summary>
+        /// Writes a 1-bit palette.
+        /// </summary>
+        /// <param name="stream">The stream to write the palette to.</param>
+        /// <param name="startIdx">The start index.</param>
+        /// <param name="endIdx">The end index.</param>
+        /// <param name="quantizedPixelRow">A quantized pixel row.</param>
+        private static void Write1BitPalette(Stream stream, int startIdx, int endIdx, ReadOnlySpan<byte> quantizedPixelRow)
+        {
+            int shift = 7;
+            byte indices = 0;
+            for (int j = startIdx; j < endIdx; j++)
+            {
+                indices = (byte)(indices | ((byte)(quantizedPixelRow[j] & 1) << shift));
+                shift--;
+            }
+
+            stream.WriteByte(indices);
         }
     }
 }

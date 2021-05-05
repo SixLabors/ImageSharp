@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -24,7 +24,8 @@ namespace SixLabors.ImageSharp.Formats.Bmp
         bool SupportTransparency { get; }
 
         /// <summary>
-        /// Gets the quantizer for reducing the color count for 8-Bit images.
+        /// Gets the quantizer for reducing the color count for 8-Bit, 4-Bit, and 1-Bit images.
+        /// Defaults to the Octree Quantizer.
         /// </summary>
         IQuantizer Quantizer { get; }
     }

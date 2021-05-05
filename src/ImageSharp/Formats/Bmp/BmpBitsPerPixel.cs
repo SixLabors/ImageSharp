@@ -9,6 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Bmp
     public enum BmpBitsPerPixel : short
     {
         /// <summary>
+        /// 1 bit per pixel.
+        /// </summary>
+        Pixel1 = 1,
+
+        /// <summary>
         /// 4 bits per pixel.
         /// </summary>
         Pixel4 = 4,

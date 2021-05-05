@@ -212,11 +212,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             // The Magick Reference Decoder can not decode 1-Bit bitmaps, so only execute this on windows.
             if (TestEnvironment.IsWindows)
             {
-                TestBmpEncoderCore(
-                    provider,
-                    bitsPerPixel,
-                    supportTransparency: false,
-                    quantizer: KnownQuantizers.Wu);  // using the wu quantizer, because the octree seems to have problems with just two colors.
+                TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
             }
         }
 
@@ -230,11 +226,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             // The Magick Reference Decoder can not decode 1-Bit bitmaps, so only execute this on windows.
             if (TestEnvironment.IsWindows)
             {
-                TestBmpEncoderCore(
-                    provider,
-                    bitsPerPixel,
-                    supportTransparency: true,
-                    quantizer: KnownQuantizers.Wu); // using the wu quantizer, because the octree seems to have problems with just two colors.
+                TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
             }
         }
 
@@ -351,7 +343,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
                 {
                     BitsPerPixel = bitsPerPixel,
                     SupportTransparency = supportTransparency,
-                    Quantizer = quantizer ?? KnownQuantizers.Octree
+                    Quantizer = quantizer ?? KnownQuantizers.Wu
                 };
 
                 // Does DebugSave & load reference CompareToReferenceInput():

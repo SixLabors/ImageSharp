@@ -98,7 +98,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
             this.memoryAllocator = memoryAllocator;
             this.bitsPerPixel = options.BitsPerPixel;
             this.writeV4Header = options.SupportTransparency;
-            this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
+            this.quantizer = options.Quantizer ?? KnownQuantizers.Wu;
         }
 
         /// <summary>

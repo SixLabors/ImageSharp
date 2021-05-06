@@ -30,7 +30,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp
 
         /// <summary>
         /// Gets or sets the quantizer for reducing the color count for 8-Bit images.
-        /// Defaults to OctreeQuantizer.
+        /// Defaults to Wu Quantizer.
         /// </summary>
         public IQuantizer Quantizer { get; set; }
 

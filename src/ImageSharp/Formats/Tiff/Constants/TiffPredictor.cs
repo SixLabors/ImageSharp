@@ -20,6 +20,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
 
         /// <summary>
         /// Floating point horizontal differencing.
+        ///
+        /// Note: The Tiff Encoder does not yet support this. If this is chosen, the encoder will fallback to none.
         /// </summary>
         FloatingPoint = 3
     }

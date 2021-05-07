@@ -264,7 +264,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 this.collector.AddOrReplace(compression);
                 this.collector.AddOrReplace(photometricInterpretation);
 
-                if (encoder.UseHorizontalPredictor)
+                if (encoder.HorizontalPredictor == TiffPredictor.Horizontal)
                 {
                     if (encoder.Mode == TiffEncodingMode.Rgb || encoder.Mode == TiffEncodingMode.Gray || encoder.Mode == TiffEncodingMode.ColorPalette)
                     {

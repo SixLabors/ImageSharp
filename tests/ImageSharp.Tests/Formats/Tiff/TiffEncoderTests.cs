@@ -194,7 +194,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffEncodingMode.Rgb, TiffCompression.Deflate, usePredictor: true);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffEncodingMode.Rgb, TiffCompression.Deflate, TiffPredictor.Horizontal);
 
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
@@ -204,7 +204,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeRgb_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffEncodingMode.Rgb, TiffCompression.Lzw, usePredictor: true);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, TiffEncodingMode.Rgb, TiffCompression.Lzw, TiffPredictor.Horizontal);
 
         [Theory]
         [WithFile(Calliphora_RgbUncompressed, PixelTypes.Rgba32)]
@@ -224,7 +224,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.Gray, TiffCompression.Deflate, usePredictor: true);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.Gray, TiffCompression.Deflate, TiffPredictor.Horizontal);
 
         [Theory]
         [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
@@ -234,7 +234,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [Theory]
         [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeGray_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
-            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.Gray, TiffCompression.Lzw, usePredictor: true);
+            where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.Gray, TiffCompression.Lzw, TiffPredictor.Horizontal);
 
         [Theory]
         [WithFile(Calliphora_GrayscaleUncompressed, PixelTypes.Rgba32)]
@@ -269,7 +269,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithDeflateCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.ColorPalette, TiffCompression.Deflate, usePredictor: true, useExactComparer: false, compareTolerance: 0.001f);
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.ColorPalette, TiffCompression.Deflate, TiffPredictor.Horizontal, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
@@ -281,7 +281,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         [WithFile(Calliphora_PaletteUncompressed, PixelTypes.Rgba32)]
         public void TiffEncoder_EncodeColorPalette_WithLzwCompressionAndPredictor_Works<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.ColorPalette, TiffCompression.Lzw, usePredictor: true, useExactComparer: false, compareTolerance: 0.001f);
+            TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit8, TiffEncodingMode.ColorPalette, TiffCompression.Lzw, TiffPredictor.Horizontal, useExactComparer: false, compareTolerance: 0.001f);
 
         [Theory]
         [WithFile(Calliphora_BiColorUncompressed, PixelTypes.Rgba32)]
@@ -379,7 +379,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             TiffBitsPerPixel bitsPerPixel,
             TiffEncodingMode mode,
             TiffCompression compression = TiffCompression.None,
-            bool usePredictor = false,
+            TiffPredictor predictor = TiffPredictor.None,
             bool useExactComparer = true,
             int maxStripSize = 0,
             float compareTolerance = 0.01f)
@@ -391,7 +391,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Mode = mode,
                 BitsPerPixel = bitsPerPixel,
                 Compression = compression,
-                UseHorizontalPredictor = usePredictor,
+                HorizontalPredictor = predictor,
                 MaxStripBytes = maxStripSize
             };
 

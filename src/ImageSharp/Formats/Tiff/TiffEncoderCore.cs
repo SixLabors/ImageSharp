@@ -72,7 +72,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             this.Mode = options.Mode;
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
             this.BitsPerPixel = options.BitsPerPixel;
-            this.UseHorizontalPredictor = options.UseHorizontalPredictor;
+            this.HorizontalPredictor = options.HorizontalPredictor;
             this.CompressionType = options.Compression;
             this.compressionLevel = options.CompressionLevel;
             this.maxStripBytes = options.MaxStripBytes;
@@ -95,9 +95,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         internal TiffEncodingMode Mode { get; private set; }
 
         /// <summary>
-        /// Gets a value indicating whether to use horizontal prediction. This can improve the compression ratio with deflate compression.
+        /// Gets a value indicating which horizontal predictor to use. This can improve the compression ratio with deflate compression.
         /// </summary>
-        internal bool UseHorizontalPredictor { get; }
+        internal TiffPredictor HorizontalPredictor { get; }
 
         /// <summary>
         /// Gets the bits per pixel.
@@ -164,7 +164,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var entriesCollector = new TiffEncoderEntriesCollector();
 
             // Write the image bytes to the steam.
-            var imageDataStart = (uint)writer.Position;
+            uint imageDataStart = (uint)writer.Position;
 
             TiffBitsPerPixel? tiffBitsPerPixel = this.BitsPerPixel;
             if (tiffBitsPerPixel != null)
@@ -176,7 +176,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     image.Width,
                     (int)tiffBitsPerPixel,
                     this.compressionLevel,
-                    this.UseHorizontalPredictor ? TiffPredictor.Horizontal : TiffPredictor.None);
+                    this.HorizontalPredictor != TiffPredictor.FloatingPoint ? this.HorizontalPredictor : TiffPredictor.None);
 
                 using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(
                     this.Mode,

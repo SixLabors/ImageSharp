@@ -31,7 +31,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffEncodingMode Mode { get; set; }
 
         /// <inheritdoc/>
-        public bool UseHorizontalPredictor { get; set; }
+        public TiffPredictor HorizontalPredictor { get; set; }
 
         /// <inheritdoc/>
         public IQuantizer Quantizer { get; set; }

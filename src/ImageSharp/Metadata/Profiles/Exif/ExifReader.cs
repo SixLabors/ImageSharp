@@ -91,9 +91,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         private readonly byte[] buf2 = new byte[2];
 
         private readonly Stream data;
-
-        private bool isBigEndian;
-
         private List<ExifTag> invalidTags;
 
         private uint exifOffset;
@@ -120,11 +117,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// </summary>
         public uint ThumbnailOffset { get; protected set; }
 
-        public bool IsBigEndian
-        {
-            get => this.isBigEndian;
-            protected set => this.isBigEndian = value;
-        }
+        public bool IsBigEndian { get; protected set; }
 
         protected abstract void RegisterExtLoader(uint offset, Action loader);
 
@@ -330,7 +323,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             {
                 uint newOffset = this.ConvertToUInt32(this.offsetBuffer);
 
-                // Ensure that the new index does not overrun the data
+                // Ensure that the new index does not overrun the data.
                 if (newOffset > int.MaxValue || (newOffset + size) > this.data.Length)
                 {
                     this.AddInvalidTag(new UnkownExifTag(tag));
@@ -339,7 +332,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
                 this.RegisterExtLoader(newOffset, () =>
                 {
-                    var dataBuffer = new byte[size];
+                    byte[] dataBuffer = new byte[size];
                     this.Seek(newOffset);
                     if (this.TryReadSpan(dataBuffer))
                     {
@@ -365,8 +358,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
             foreach (IExifValue val in values)
             {
-                // sometimes duplicates appear,
-                // can compare val.Tag == exif.Tag
+                // Sometimes duplicates appear, can compare val.Tag == exif.Tag
                 if (val == exif)
                 {
                     Debug.WriteLine($"Duplicate Exif tag: tag={exif.Tag}, dataType={exif.DataType}");
@@ -403,11 +395,11 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return false;
             }
 
-            int readed = this.data.Read(span);
-            return readed == length;
+            int read = this.data.Read(span);
+            return read == length;
         }
 
-        // Known as Long in Exif Specification
+        // Known as Long in Exif Specification.
         protected uint ReadUInt32() =>
             this.TryReadSpan(this.buf4)
                 ? this.ConvertToUInt32(this.buf4)
@@ -424,7 +416,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return default;
             }
 
-            long intValue = this.isBigEndian
+            long intValue = this.IsBigEndian
                 ? BinaryPrimitives.ReadInt64BigEndian(buffer)
                 : BinaryPrimitives.ReadInt64LittleEndian(buffer);
 
@@ -433,13 +425,13 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         private uint ConvertToUInt32(ReadOnlySpan<byte> buffer)
         {
-            // Known as Long in Exif Specification
+            // Known as Long in Exif Specification.
             if (buffer.Length < 4)
             {
                 return default;
             }
 
-            return this.isBigEndian
+            return this.IsBigEndian
                 ? BinaryPrimitives.ReadUInt32BigEndian(buffer)
                 : BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         }
@@ -451,7 +443,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return default;
             }
 
-            return this.isBigEndian
+            return this.IsBigEndian
                 ? BinaryPrimitives.ReadUInt16BigEndian(buffer)
                 : BinaryPrimitives.ReadUInt16LittleEndian(buffer);
         }
@@ -463,7 +455,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return default;
             }
 
-            int intValue = this.isBigEndian
+            int intValue = this.IsBigEndian
                 ? BinaryPrimitives.ReadInt32BigEndian(buffer)
                 : BinaryPrimitives.ReadInt32LittleEndian(buffer);
 
@@ -492,7 +484,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return default;
             }
 
-            return this.isBigEndian
+            return this.IsBigEndian
                 ? BinaryPrimitives.ReadInt32BigEndian(buffer)
                 : BinaryPrimitives.ReadInt32LittleEndian(buffer);
         }
@@ -517,7 +509,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
                 return default;
             }
 
-            return this.isBigEndian
+            return this.IsBigEndian
                 ? BinaryPrimitives.ReadInt16BigEndian(buffer)
                 : BinaryPrimitives.ReadInt16LittleEndian(buffer);
         }

@@ -43,10 +43,5 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// Gets the quantizer for creating a color palette image.
         /// </summary>
         IQuantizer Quantizer { get; }
-
-        /// <summary>
-        /// Gets the maximum size of strip (bytes).
-        /// </summary>
-        int MaxStripBytes { get; }
     }
 }

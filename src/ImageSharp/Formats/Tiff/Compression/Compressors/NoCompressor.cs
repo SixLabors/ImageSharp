@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 {
-    internal class NoCompressor : TiffBaseCompressor
+    internal sealed class NoCompressor : TiffBaseCompressor
     {
         public NoCompressor(Stream output, MemoryAllocator memoryAllocator, int width, int bitsPerPixel)
             : base(output, memoryAllocator, width, bitsPerPixel)

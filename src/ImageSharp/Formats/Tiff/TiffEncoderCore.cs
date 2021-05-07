@@ -25,8 +25,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     /// </summary>
     internal sealed class TiffEncoderCore : IImageEncoderInternals
     {
-        public const int DefaultStripSize = 8 * 1024;
-
         private static readonly ushort ByteOrderMarker = BitConverter.IsLittleEndian
                 ? TiffConstants.ByteOrderLittleEndianShort
                 : TiffConstants.ByteOrderBigEndianShort;
@@ -57,11 +55,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private readonly DeflateCompressionLevel compressionLevel;
 
         /// <summary>
-        /// The maximum number of bytes for a strip.
-        /// </summary>
-        private readonly int maxStripBytes;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
         /// </summary>
         /// <param name="options">The options for the encoder.</param>
@@ -75,7 +68,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             this.HorizontalPredictor = options.HorizontalPredictor;
             this.CompressionType = options.Compression;
             this.compressionLevel = options.CompressionLevel;
-            this.maxStripBytes = options.MaxStripBytes;
         }
 
         /// <summary>
@@ -120,10 +112,9 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
             TiffMetadata tiffMetadata = metadata.GetTiffMetadata();
-            this.BitsPerPixel ??= tiffMetadata.BitsPerPixel;
 
             this.SetMode(tiffMetadata);
-            this.SetBitsPerPixel();
+            this.SetBitsPerPixel(tiffMetadata);
             this.SetPhotometricInterpretation();
 
             using (var writer = new TiffStreamWriter(stream))
@@ -176,7 +167,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     image.Width,
                     (int)tiffBitsPerPixel,
                     this.compressionLevel,
-                    this.HorizontalPredictor != TiffPredictor.FloatingPoint ? this.HorizontalPredictor : TiffPredictor.None);
+                    this.HorizontalPredictor == TiffPredictor.Horizontal ? this.HorizontalPredictor : TiffPredictor.None);
 
                 using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(
                     this.Mode,
@@ -210,8 +201,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             DebugGuard.MustBeGreaterThan(height, 0, nameof(height));
             DebugGuard.MustBeGreaterThan(bytesPerRow, 0, nameof(bytesPerRow));
 
-            int stripBytes = this.maxStripBytes > 0 ? this.maxStripBytes : DefaultStripSize;
-            int rowsPerStrip = stripBytes / bytesPerRow;
+            int rowsPerStrip = TiffConstants.DefaultStripSize / bytesPerRow;
 
             return rowsPerStrip > 0 ? (rowsPerStrip < height ? rowsPerStrip : height) : 1;
         }
@@ -293,30 +283,46 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            if (this.Mode == TiffEncodingMode.Default && this.BitsPerPixel != null)
+            if (this.Mode == TiffEncodingMode.Default && tiffMetadata.BitsPerPixel != null)
             {
                 // Preserve input bits per pixel, if no encoding mode was specified.
-                switch (this.BitsPerPixel)
-                {
-                    case TiffBitsPerPixel.Bit1:
-                        this.Mode = TiffEncodingMode.BiColor;
-                        break;
-                    case TiffBitsPerPixel.Bit4:
-                        this.Mode = TiffEncodingMode.ColorPalette;
-                        break;
-                    case TiffBitsPerPixel.Bit8:
-                        this.Mode = tiffMetadata.PhotometricInterpretation == TiffPhotometricInterpretation.PaletteColor ? TiffEncodingMode.ColorPalette : TiffEncodingMode.Gray;
+                this.SetModeWithBitsPerPixel(tiffMetadata.BitsPerPixel, tiffMetadata.PhotometricInterpretation);
 
-                        break;
-                    default:
-                        this.Mode = TiffEncodingMode.Rgb;
-                        break;
-                }
+                return;
+            }
+
+            if (this.BitsPerPixel != null)
+            {
+                // The user has specified a bits per pixel, so use that to determine the encoding mode.
+                this.SetModeWithBitsPerPixel(this.BitsPerPixel, tiffMetadata.PhotometricInterpretation);
             }
         }
 
-        private void SetBitsPerPixel()
+        private void SetModeWithBitsPerPixel(TiffBitsPerPixel? bitsPerPixel, TiffPhotometricInterpretation photometricInterpretation)
         {
+            switch (bitsPerPixel)
+            {
+                case TiffBitsPerPixel.Bit1:
+                    this.Mode = TiffEncodingMode.BiColor;
+                    break;
+                case TiffBitsPerPixel.Bit4:
+                    this.Mode = TiffEncodingMode.ColorPalette;
+                    break;
+                case TiffBitsPerPixel.Bit8:
+                    this.Mode = photometricInterpretation == TiffPhotometricInterpretation.PaletteColor
+                        ? TiffEncodingMode.ColorPalette
+                        : TiffEncodingMode.Gray;
+
+                    break;
+                default:
+                    this.Mode = TiffEncodingMode.Rgb;
+                    break;
+            }
+        }
+
+        private void SetBitsPerPixel(TiffMetadata tiffMetadata)
+        {
+            this.BitsPerPixel ??= tiffMetadata.BitsPerPixel;
             switch (this.Mode)
             {
                 case TiffEncodingMode.BiColor:

@@ -5,7 +5,7 @@ using System;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 {
     /// <summary>
     /// The base class for photometric interpretation decoders.
@@ -14,20 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     internal abstract class TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        protected TiffBaseColorDecoder()
-        {
-        }
-
-        /*
-        /// <summary>
-        /// Gets the photometric interpretation value.
-        /// </summary>
-        /// <value>
-        /// The photometric interpretation value.
-        /// </value>
-        public TiffColorType ColorType { get; }
-        */
-
         /// <summary>
         /// Decodes source raw pixel data using the current photometric interpretation.
         /// </summary>

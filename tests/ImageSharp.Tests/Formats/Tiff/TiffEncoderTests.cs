@@ -309,28 +309,28 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffEncodingMode.BiColor, TiffCompression.Ccitt1D);
 
         [Theory]
-        [WithFile(GrayscaleUncompressed, PixelTypes.L8, TiffEncodingMode.Gray, TiffCompression.PackBits, 16 * 1024)]
-        [WithFile(PaletteDeflateMultistrip, PixelTypes.L8, TiffEncodingMode.ColorPalette, TiffCompression.Lzw, 32 * 1024)]
-        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncodingMode.Rgb, TiffCompression.Deflate, 64 * 1024)]
-        [WithFile(RgbUncompressed, PixelTypes.Rgb24, TiffEncodingMode.Rgb, TiffCompression.None, 10 * 1024)]
-        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncodingMode.Rgb, TiffCompression.None, 30 * 1024)]
-        [WithFile(RgbUncompressed, PixelTypes.Rgb48, TiffEncodingMode.Rgb, TiffCompression.None, 70 * 1024)]
-        public void TiffEncoder_StripLength<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffCompression compression, int maxSize)
+        [WithFile(GrayscaleUncompressed, PixelTypes.L8, TiffEncodingMode.Gray, TiffCompression.PackBits)]
+        [WithFile(PaletteDeflateMultistrip, PixelTypes.L8, TiffEncodingMode.ColorPalette, TiffCompression.Lzw)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncodingMode.Rgb, TiffCompression.Deflate)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgb24, TiffEncodingMode.Rgb, TiffCompression.None)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffEncodingMode.Rgb, TiffCompression.None)]
+        [WithFile(RgbUncompressed, PixelTypes.Rgb48, TiffEncodingMode.Rgb, TiffCompression.None)]
+        public void TiffEncoder_StripLength<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffCompression compression)
             where TPixel : unmanaged, IPixel<TPixel> =>
-            TestStripLength(provider, mode, compression, maxSize);
+            TestStripLength(provider, mode, compression);
 
         [Theory]
-        [WithFile(Calliphora_BiColorUncompressed, PixelTypes.L8, TiffEncodingMode.BiColor, TiffCompression.CcittGroup3Fax, 9 * 1024)]
-        public void TiffEncoder_StripLength_OutOfBounds<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffCompression compression, int maxSize)
+        [WithFile(Calliphora_BiColorUncompressed, PixelTypes.L8, TiffEncodingMode.BiColor, TiffCompression.CcittGroup3Fax)]
+        public void TiffEncoder_StripLength_OutOfBounds<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffCompression compression)
             where TPixel : unmanaged, IPixel<TPixel> =>
             //// CcittGroup3Fax compressed data length can be larger than the original length
-            Assert.Throws<Xunit.Sdk.TrueException>(() => TestStripLength(provider, mode, compression, maxSize));
+            Assert.Throws<Xunit.Sdk.TrueException>(() => TestStripLength(provider, mode, compression));
 
-        private static void TestStripLength<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffCompression compression, int maxSize)
+        private static void TestStripLength<TPixel>(TestImageProvider<TPixel> provider, TiffEncodingMode mode, TiffCompression compression)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // arrange
-            var tiffEncoder = new TiffEncoder() { Mode = mode, Compression = compression, MaxStripBytes = maxSize };
+            var tiffEncoder = new TiffEncoder() { Mode = mode, Compression = compression };
             Image<TPixel> input = provider.GetImage();
             using var memStream = new MemoryStream();
             TiffFrameMetadata inputMeta = input.Frames.RootFrame.Metadata.GetTiffMetadata();
@@ -349,7 +349,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             foreach (Number sz in meta.StripByteCounts)
             {
-                Assert.True((uint)sz <= maxSize);
+                Assert.True((uint)sz <= TiffConstants.DefaultStripSize);
             }
 
             // For uncompressed more accurate test.
@@ -359,9 +359,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 {
                     // The difference must be less than one row.
                     int stripBytes = (int)meta.StripByteCounts[i];
-                    var widthBytes = (meta.BitsPerPixel + 7) / 8 * (int)meta.Width;
+                    int widthBytes = (meta.BitsPerPixel + 7) / 8 * (int)meta.Width;
 
-                    Assert.True((maxSize - stripBytes) < widthBytes);
+                    Assert.True((TiffConstants.DefaultStripSize - stripBytes) < widthBytes);
                 }
             }
 
@@ -370,8 +370,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 provider,
                 (TiffBitsPerPixel)inputMeta.BitsPerPixel,
                 mode,
-                inputMeta.Compression,
-                maxStripSize: maxSize);
+                inputMeta.Compression);
         }
 
         private static void TestTiffEncoderCore<TPixel>(
@@ -391,8 +390,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Mode = mode,
                 BitsPerPixel = bitsPerPixel,
                 Compression = compression,
-                HorizontalPredictor = predictor,
-                MaxStripBytes = maxStripSize
+                HorizontalPredictor = predictor
             };
 
             // Does DebugSave & load reference CompareToReferenceInput():

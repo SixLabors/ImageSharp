@@ -76,6 +76,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
         public const int SizeOfDouble = 8;
 
         /// <summary>
+        /// The default strip size is 8k.
+        /// </summary>
+        public const int DefaultStripSize = 8 * 1024;
+
+        /// <summary>
         /// The bits per sample for 1 bit bicolor images.
         /// </summary>
         public static readonly ushort[] BitsPerSample1Bit = { 1 };

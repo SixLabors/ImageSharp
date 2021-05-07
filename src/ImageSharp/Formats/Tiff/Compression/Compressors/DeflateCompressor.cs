@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 {
-    internal class DeflateCompressor : TiffBaseCompressor
+    internal sealed class DeflateCompressor : TiffBaseCompressor
     {
         private readonly DeflateCompressionLevel compressionLevel;
 

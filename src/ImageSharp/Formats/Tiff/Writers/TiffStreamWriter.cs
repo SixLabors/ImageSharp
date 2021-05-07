@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
     /// <summary>
     /// Utility class for writing TIFF data to a <see cref="Stream"/>.
     /// </summary>
-    internal class TiffStreamWriter : IDisposable
+    internal sealed class TiffStreamWriter : IDisposable
     {
         private static readonly byte[] PaddingBytes = new byte[4];
 

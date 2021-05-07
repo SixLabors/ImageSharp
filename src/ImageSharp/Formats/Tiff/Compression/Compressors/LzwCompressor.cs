@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 {
-    internal class LzwCompressor : TiffBaseCompressor
+    internal sealed class LzwCompressor : TiffBaseCompressor
     {
         private TiffLzwEncoder lzwEncoder;
 

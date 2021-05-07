@@ -25,6 +25,9 @@
 
 ## Implementation Status
 
+- The Decoder and Encoder currently only supports a single frame per image.
+- Some compression formats are not yet supported. See the list below.
+
 ### Deviations from the TIFF spec (to be fixed)
 
 - Decoder
@@ -46,7 +49,7 @@
 |Lzw                        |   Y   |   Y   | Based on ImageSharp GIF LZW implementation - this code could be modified to be (i) shared, or (ii) optimised for each case |
 |Old Jpeg                   |       |       | We should not even try to support this |
 |Jpeg (Technote 2)          |       |       |                          |
-|Deflate (Technote 2)       |   Y   |   Y   | Based on PNG Deflate. |
+|Deflate (Technote 2)       |   Y   |   Y   | Based on PNG Deflate.    |
 |Old Deflate (Technote 2)   |       |   Y   |                          |
 
 ### Photometric Interpretation Formats

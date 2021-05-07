@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
     public enum TiffPredictor : ushort
     {
         /// <summary>
-        /// No prediction scheme used before coding
+        /// No prediction.
         /// </summary>
         None = 1,
 

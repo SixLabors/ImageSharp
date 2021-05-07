@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 {
-    internal class PackBitsCompressor : TiffBaseCompressor
+    internal sealed class PackBitsCompressor : TiffBaseCompressor
     {
         private IManagedByteBuffer pixelData;
 

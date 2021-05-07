@@ -23,7 +23,6 @@
   </Choose>
   
   <ItemGroup>
-    <DotNetCliToolReference Include="dotnet-xunit" />
     <InternalsVisibleTo Include="ImageSharp.Tests.ProfilingSandbox" Key="$(SixLaborsPublicKey)" />
   </ItemGroup>
 

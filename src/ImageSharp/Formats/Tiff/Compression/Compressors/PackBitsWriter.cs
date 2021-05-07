@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 
             while (posInRowSpan < rowSpan.Length)
             {
-                var useReplicateRun = IsReplicateRun(rowSpan, posInRowSpan);
+                bool useReplicateRun = IsReplicateRun(rowSpan, posInRowSpan);
                 if (useReplicateRun)
                 {
                     if (literalRunLength > 0)
@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
                     }
 
                     // Write a run with the same bytes.
-                    var runLength = FindRunLength(rowSpan, posInRowSpan, maxRunLength);
+                    int runLength = FindRunLength(rowSpan, posInRowSpan, maxRunLength);
                     WriteRun(rowSpan, posInRowSpan, runLength, compressedRowSpan, bytesWritten);
 
                     bytesWritten += 2;

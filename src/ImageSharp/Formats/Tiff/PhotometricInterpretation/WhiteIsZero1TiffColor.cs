@@ -6,7 +6,7 @@ using System;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
 {
     /// <summary>
     /// Implements the 'WhiteIsZero' photometric interpretation (optimized for bilevel images).
@@ -14,10 +14,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
     internal class WhiteIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        public WhiteIsZero1TiffColor()
-        {
-        }
-
         /// <inheritdoc/>
         public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
         {

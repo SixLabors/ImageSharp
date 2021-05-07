@@ -22,8 +22,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers
             this.EntriesCollector = entriesCollector;
         }
 
+        /// <summary>
+        /// Gets the bits per pixel.
+        /// </summary>
         public abstract int BitsPerPixel { get; }
 
+        /// <summary>
+        /// Gets the bytes per row.
+        /// </summary>
         public int BytesPerRow => ((this.Image.Width * this.BitsPerPixel) + 7) / 8;
 
         protected ImageFrame<TPixel> Image { get; }

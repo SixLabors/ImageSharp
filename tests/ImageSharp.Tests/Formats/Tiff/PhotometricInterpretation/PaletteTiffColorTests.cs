@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.PixelFormats;
 
 using Xunit;
@@ -13,9 +13,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
     [Trait("Format", "Tiff")]
     public class PaletteTiffColorTests : PhotometricInterpretationTestBase
     {
-        public static uint[][] Palette4ColorPalette { get => GeneratePalette(16); }
+        public static uint[][] Palette4ColorPalette => GeneratePalette(16);
 
-        public static ushort[] Palette4ColorMap { get => GenerateColorMap(Palette4ColorPalette); }
+        public static ushort[] Palette4ColorMap => GenerateColorMap(Palette4ColorPalette);
 
         private static readonly byte[] Palette4Bytes4X4 =
         {
@@ -54,9 +54,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
             }
         }
 
-        public static uint[][] Palette8ColorPalette { get => GeneratePalette(256); }
+        public static uint[][] Palette8ColorPalette => GeneratePalette(256);
 
-        public static ushort[] Palette8ColorMap { get => GenerateColorMap(Palette8ColorPalette); }
+        public static ushort[] Palette8ColorMap => GenerateColorMap(Palette8ColorPalette);
 
         private static readonly byte[] Palette8Bytes4X4 =
         {
@@ -83,13 +83,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation
         [Theory]
         [MemberData(nameof(Palette4Data))]
         [MemberData(nameof(Palette8Data))]
-        public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, ushort[] colorMap, int left, int top, int width, int height, Rgba32[][] expectedResult)
-        {
-            AssertDecode(expectedResult, pixels =>
-                {
-                    new PaletteTiffColor<Rgba32>(new[] { bitsPerSample }, colorMap).Decode(inputData, pixels, left, top, width, height);
-                });
-        }
+        public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, ushort[] colorMap, int left, int top, int width, int height, Rgba32[][] expectedResult) => AssertDecode(expectedResult, pixels =>
+                                                                                                                                                                                {
+                                                                                                                                                                                    new PaletteTiffColor<Rgba32>(new[] { bitsPerSample }, colorMap).Decode(inputData, pixels, left, top, width, height);
+                                                                                                                                                                                });
 
         private static uint[][] GeneratePalette(int count)
         {

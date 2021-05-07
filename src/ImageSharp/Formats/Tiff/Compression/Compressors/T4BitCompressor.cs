@@ -13,13 +13,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
     /// <summary>
     /// Bitwriter for writing compressed CCITT T4 1D data.
     /// </summary>
-    internal class T4BitCompressor : TiffBaseCompressor
+    internal sealed class T4BitCompressor : TiffBaseCompressor
     {
         private const uint WhiteZeroRunTermCode = 0x35;
 
         private const uint BlackZeroRunTermCode = 0x37;
 
-        private static readonly List<uint> MakeupRunLength = new List<uint>()
+        private static readonly uint[] MakeupRunLength =
         {
             64, 128, 192, 256, 320, 384, 448, 512, 576, 640, 704, 768, 832, 896, 960, 1024, 1088, 1152, 1216, 1280, 1344, 1408, 1472, 1536, 1600, 1664, 1728, 1792, 1856, 1920, 1984, 2048, 2112, 2176, 2240, 2304, 2368, 2432, 2496, 2560
         };
@@ -368,7 +368,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 
         private uint GetBestFittingMakeupRunLength(uint runLength)
         {
-            for (int i = 0; i < MakeupRunLength.Count - 1; i++)
+            for (int i = 0; i < MakeupRunLength.Length - 1; i++)
             {
                 if (MakeupRunLength[i] <= runLength && MakeupRunLength[i + 1] > runLength)
                 {
@@ -376,7 +376,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
                 }
             }
 
-            return MakeupRunLength[MakeupRunLength.Count - 1];
+            return MakeupRunLength[MakeupRunLength.Length - 1];
         }
 
         private uint GetTermCode(uint runLength, out uint codeLength, bool isWhiteRun)

@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
         private static void Undo8Bit(Span<byte> pixelBytes, int width)
         {
-            var rowBytesCount = width;
+            int rowBytesCount = width;
             int height = pixelBytes.Length / rowBytesCount;
             for (int y = 0; y < height; y++)
             {
@@ -112,7 +112,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 
         private static void Undo24Bit(Span<byte> pixelBytes, int width)
         {
-            var rowBytesCount = width * 3;
+            int rowBytesCount = width * 3;
             int height = pixelBytes.Length / rowBytesCount;
             for (int y = 0; y < height; y++)
             {

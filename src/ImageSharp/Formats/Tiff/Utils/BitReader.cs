@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils
+namespace SixLabors.ImageSharp.Formats.Tiff.Utils
 {
     /// <summary>
     /// Utility class to read a sequence of bits from an array

@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 {
     /// <summary>
     /// Represents a lzw string with a code word and a code length.
@@ -77,7 +77,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
             }
 
             LzwString e = this;
-            var endIdx = this.Length - 1;
+            int endIdx = this.Length - 1;
             if (endIdx >= buffer.Length)
             {
                 TiffThrowHelper.ThrowImageFormatException("Error reading lzw compressed stream. Either pixel buffer to write to is to small or code length is invalid!");

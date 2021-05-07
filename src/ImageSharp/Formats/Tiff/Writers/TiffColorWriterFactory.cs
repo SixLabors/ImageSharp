@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
+namespace SixLabors.ImageSharp.Formats.Tiff.Writers
 {
     internal static class TiffColorWriterFactory
     {

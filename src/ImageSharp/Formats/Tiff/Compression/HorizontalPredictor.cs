@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 {
     /// <summary>
     /// Methods for undoing the horizontal prediction used in combination with deflate and LZW compressed TIFF images.

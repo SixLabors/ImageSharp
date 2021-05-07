@@ -3,11 +3,11 @@
 
 using System;
 using System.Numerics;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Utils;
+using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Implements the 'RGB' photometric interpretation (for all bit depths).

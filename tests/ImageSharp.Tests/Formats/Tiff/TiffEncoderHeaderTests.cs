@@ -3,8 +3,8 @@
 
 using System.IO;
 
-using SixLabors.ImageSharp.Formats.Experimental.Tiff;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers;
+using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
 
 using Xunit;

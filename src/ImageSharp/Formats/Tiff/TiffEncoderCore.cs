@@ -8,9 +8,9 @@ using System.Threading;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Compression.Zlib;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.Writers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -18,7 +18,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Performs the TIFF encoding operation.

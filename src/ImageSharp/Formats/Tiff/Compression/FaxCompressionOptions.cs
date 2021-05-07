@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 {
     /// <summary>
     /// Fax compression options, see TIFF spec page 51f (T4Options).

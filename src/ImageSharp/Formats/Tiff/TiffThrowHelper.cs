@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Cold path optimizations for throwing tiff format based exceptions.

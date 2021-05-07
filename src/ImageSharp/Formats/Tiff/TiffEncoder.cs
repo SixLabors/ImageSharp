@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Compression.Zlib;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
-    /// EXPERIMENTAL! Encoder for writing the data image to a stream in TIFF format.
+    /// Encoder for writing the data image to a stream in TIFF format.
     /// </summary>
     public class TiffEncoder : IImageEncoder, ITiffEncoderOptions
     {

@@ -4,12 +4,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Provides Tiff specific metadata information for the frame.

@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
+namespace SixLabors.ImageSharp.Formats.Tiff.Constants
 {
     /// <summary>
     /// A mathematical operator that is applied to the image data before an encoding scheme is applied.

@@ -5,11 +5,12 @@ using System;
 using System.IO.Compression;
 
 using SixLabors.ImageSharp.Compression.Zlib;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 {
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using Deflate compression.

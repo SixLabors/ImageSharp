@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
 {

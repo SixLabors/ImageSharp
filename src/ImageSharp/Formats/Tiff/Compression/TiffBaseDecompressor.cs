@@ -4,11 +4,11 @@
 using System;
 using System.IO;
 
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression
 {
     /// <summary>
     /// The base tiff decompressor class.

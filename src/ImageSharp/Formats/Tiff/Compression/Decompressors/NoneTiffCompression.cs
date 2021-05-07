@@ -6,7 +6,7 @@ using System;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 {
     /// <summary>
     /// Class to handle cases where TIFF image data is not compressed.

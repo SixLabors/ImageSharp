@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
+namespace SixLabors.ImageSharp.Formats.Tiff.Constants
 {
     /// <summary>
     /// Enumeration representing the sub-file types defined by the Tiff file-format.

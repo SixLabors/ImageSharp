@@ -5,10 +5,10 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 {
     /// <summary>
     /// Bitwriter for writing compressed CCITT T4 1D data.

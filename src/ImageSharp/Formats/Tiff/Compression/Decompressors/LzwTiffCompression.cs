@@ -2,12 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 {
     /// <summary>
     /// Class to handle cases where TIFF image data is compressed using LZW compression.

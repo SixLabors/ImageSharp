@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 {
     /// <summary>
     /// Pack Bits compression for tiff images. See Tiff Spec v6, section 9.

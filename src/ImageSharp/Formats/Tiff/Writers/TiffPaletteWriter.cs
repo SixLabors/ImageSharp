@@ -6,13 +6,13 @@ using System.Buffers;
 using System.Runtime.InteropServices;
 
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
+namespace SixLabors.ImageSharp.Formats.Tiff.Writers
 {
     internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>

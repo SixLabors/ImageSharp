@@ -6,9 +6,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 
-using SixLabors.ImageSharp.Formats.Experimental.Tiff;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;

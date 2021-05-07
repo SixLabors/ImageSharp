@@ -6,10 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
-    /// EXPERIMENTAL! Image decoder for generating an image out of a TIFF stream.
+    /// Image decoder for generating an image out of a TIFF stream.
     /// </summary>
     public class TiffDecoder : IImageDecoder, ITiffDecoderOptions, IImageInfoDetector
     {

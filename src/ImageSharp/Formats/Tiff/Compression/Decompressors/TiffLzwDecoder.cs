@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompressors
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
 {
     /*
        This implementation is based on a port of a java tiff decoder by Harald Kuhr: https://github.com/haraldk/TwelveMonkeys
@@ -95,7 +95,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
         /// and sets the stream, where the compressed data should be read from.
         /// </summary>
         /// <param name="stream">The stream to read from.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="stream" /> is null.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="stream" /> is null.</exception>
         public TiffLzwDecoder(Stream stream)
         {
             Guard.NotNull(stream, nameof(stream));
@@ -240,7 +240,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Decompresso
                 this.nextBits += 8;
             }
 
-            var code = (this.nextData >> (this.nextBits - this.bitsPerCode)) & this.bitMask;
+            int code = (this.nextData >> (this.nextBits - this.bitsPerCode)) & this.bitMask;
             this.nextBits -= this.bitsPerCode;
 
             return code;

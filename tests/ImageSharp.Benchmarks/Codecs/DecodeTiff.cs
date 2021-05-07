@@ -9,7 +9,7 @@ using System.IO;
 
 using BenchmarkDotNet.Attributes;
 
-using SixLabors.ImageSharp.Formats.Experimental.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
 

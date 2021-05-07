@@ -2,12 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
+namespace SixLabors.ImageSharp.Formats.Tiff.Writers
 {
     internal abstract class TiffBaseColorWriter<TPixel> : IDisposable
         where TPixel : unmanaged, IPixel<TPixel>

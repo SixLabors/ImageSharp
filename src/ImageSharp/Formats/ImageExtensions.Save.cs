@@ -6,13 +6,13 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff;
 
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tga;
+using SixLabors.ImageSharp.Formats.Tiff;
 
 namespace SixLabors.ImageSharp
 {
@@ -537,7 +537,7 @@ namespace SixLabors.ImageSharp
                 cancellationToken);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the Tiff format.
+        /// Saves the image to the given stream with the Tiff format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
@@ -545,7 +545,7 @@ namespace SixLabors.ImageSharp
         public static void SaveAsTiff(this Image source, string path) => SaveAsTiff(source, path, null);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the Tiff format.
+        /// Saves the image to the given stream with the Tiff format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
@@ -554,7 +554,7 @@ namespace SixLabors.ImageSharp
         public static Task SaveAsTiffAsync(this Image source, string path) => SaveAsTiffAsync(source, path, null);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the Tiff format.
+        /// Saves the image to the given stream with the Tiff format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
@@ -565,7 +565,7 @@ namespace SixLabors.ImageSharp
             => SaveAsTiffAsync(source, path, null, cancellationToken);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the Tiff format.
+        /// Saves the image to the given stream with the Tiff format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
@@ -577,7 +577,7 @@ namespace SixLabors.ImageSharp
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance));
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the Tiff format.
+        /// Saves the image to the given stream with the Tiff format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="path">The file path to save the image to.</param>
@@ -592,7 +592,7 @@ namespace SixLabors.ImageSharp
                 cancellationToken);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the Tiff format.
+        /// Saves the image to the given stream with the Tiff format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
@@ -601,7 +601,7 @@ namespace SixLabors.ImageSharp
             => SaveAsTiff(source, stream, null);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the Tiff format.
+        /// Saves the image to the given stream with the Tiff format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
@@ -612,7 +612,7 @@ namespace SixLabors.ImageSharp
             => SaveAsTiffAsync(source, stream, null, cancellationToken);
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the Tiff format.
+        /// Saves the image to the given stream with the Tiff format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>
@@ -625,7 +625,7 @@ namespace SixLabors.ImageSharp
                 encoder ?? source.GetConfiguration().ImageFormatsManager.FindEncoder(TiffFormat.Instance));
 
         /// <summary>
-        /// EXPERIMENTAL! Saves the image to the given stream with the Tiff format.
+        /// Saves the image to the given stream with the Tiff format.
         /// </summary>
         /// <param name="source">The image this method extends.</param>
         /// <param name="stream">The stream to save the image to.</param>

@@ -4,7 +4,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 

@@ -3,16 +3,15 @@
 
 using System.Collections.Generic;
 using System.Threading;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
-using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Performs the tiff decoding operation.
@@ -300,7 +299,7 @@ namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
             for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
             {
                 int stripHeight = stripIndex < stripOffsets.Length - 1 || frame.Height % rowsPerStrip == 0 ? rowsPerStrip : frame.Height % rowsPerStrip;
-                var top = rowsPerStrip * stripIndex;
+                int top = rowsPerStrip * stripIndex;
                 if (top + stripHeight > frame.Height)
                 {
                     // Make sure we ignore any strips that are not needed for the image (if too many are present)

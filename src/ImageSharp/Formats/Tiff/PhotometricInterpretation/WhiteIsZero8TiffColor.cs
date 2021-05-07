@@ -6,7 +6,7 @@ using System;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     /// <summary>
     /// Implements the 'WhiteIsZero' photometric interpretation (optimized for 8-bit grayscale images).

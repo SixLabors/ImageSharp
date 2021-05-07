@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants
+namespace SixLabors.ImageSharp.Formats.Tiff.Constants
 {
     /// <summary>
     /// Defines constants defined in the TIFF specification.

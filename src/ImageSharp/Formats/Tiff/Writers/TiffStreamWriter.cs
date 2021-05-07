@@ -5,7 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
+namespace SixLabors.ImageSharp.Formats.Tiff.Writers
 {
     /// <summary>
     /// Utility class for writing TIFF data to a <see cref="Stream"/>.

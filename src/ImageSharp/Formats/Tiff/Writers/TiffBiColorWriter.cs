@@ -4,14 +4,14 @@
 using System;
 using System.Buffers;
 
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression;
-using SixLabors.ImageSharp.Formats.Experimental.Tiff.Constants;
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Writers
+namespace SixLabors.ImageSharp.Formats.Tiff.Writers
 {
     internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>

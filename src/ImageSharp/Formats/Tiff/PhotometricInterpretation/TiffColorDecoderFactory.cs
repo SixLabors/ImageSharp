@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff
+namespace SixLabors.ImageSharp.Formats.Tiff
 {
     internal static class TiffColorDecoderFactory<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>

@@ -7,7 +7,7 @@ using System.IO;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Experimental.Tiff.Compression.Compressors
+namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Compressors
 {
     /*
         This implementation is a port of a java tiff encoder by Harald Kuhr: https://github.com/haraldk/TwelveMonkeys

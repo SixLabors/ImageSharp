@@ -117,17 +117,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression
             for (int y = 0; y < height; y++)
             {
                 Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
-                Span<Rgb24> rowRgb = MemoryMarshal.Cast<byte, Rgb24>(rowBytes);
+                Span<Rgb24> rowRgb = MemoryMarshal.Cast<byte, Rgb24>(rowBytes).Slice(0, width);
+                ref Rgb24 rowRgbBase = ref MemoryMarshal.GetReference(rowRgb);
+                byte r = rowRgbBase.R;
+                byte g = rowRgbBase.G;
+                byte b = rowRgbBase.B;
 
-                byte r = rowRgb[0].R;
-                byte g = rowRgb[0].G;
-                byte b = rowRgb[0].B;
-                for (int x = 1; x < width; x++)
+                for (int x = 1; x < rowRgb.Length; x++)
                 {
                     ref Rgb24 pixel = ref rowRgb[x];
-                    r += rowRgb[x].R;
-                    g += rowRgb[x].G;
-                    b += rowRgb[x].B;
+                    r += pixel.R;
+                    g += pixel.G;
+                    b += pixel.B;
                     var rgb = new Rgb24(r, g, b);
                     pixel.FromRgb24(rgb);
                 }

@@ -101,6 +101,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors
             Guard.NotNull(stream, nameof(stream));
 
             this.stream = stream;
+
+            // TODO: Investigate a manner by which we can avoid this allocation.
             this.table = new LzwString[TableSize];
             for (int i = 0; i < 256; i++)
             {

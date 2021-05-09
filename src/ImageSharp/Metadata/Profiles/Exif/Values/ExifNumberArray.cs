@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 {
     internal sealed class ExifNumberArray : ExifArrayValue<Number>
@@ -48,21 +46,21 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             switch (value)
             {
                 case int val:
-                    return this.SetSingle(val, v => (Number)v);
+                    return this.SetSingle(val);
                 case uint val:
-                    return this.SetSingle(val, v => (Number)v);
+                    return this.SetSingle(val);
                 case short val:
-                    return this.SetSingle(val, v => (Number)v);
+                    return this.SetSingle(val);
                 case ushort val:
-                    return this.SetSingle(val, v => (Number)v);
+                    return this.SetSingle(val);
                 case int[] array:
-                    return this.SetArray(array, v => (Number)v);
+                    return this.SetArray(array);
                 case uint[] array:
-                    return this.SetArray(array, v => (Number)v);
+                    return this.SetArray(array);
                 case short[] array:
-                    return this.SetArray(array, v => (Number)v);
+                    return this.SetArray(array);
                 case ushort[] array:
-                    return this.SetArray(array, v => (Number)v);
+                    return this.SetArray(array);
             }
 
             return false;
@@ -70,18 +68,54 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
 
         public override IExifValue DeepClone() => new ExifNumberArray(this);
 
-        private bool SetSingle<T>(T value, Func<T, Number> converter)
+        private bool SetSingle(Number value)
         {
-            this.Value = new Number[] { converter(value) };
+            this.Value = new[] { value };
             return true;
         }
 
-        private bool SetArray<T>(T[] values, Func<T, Number> converter)
+        private bool SetArray(int[] values)
         {
             var numbers = new Number[values.Length];
             for (int i = 0; i < values.Length; i++)
             {
-                numbers[i] = converter(values[i]);
+                numbers[i] = values[i];
+            }
+
+            this.Value = numbers;
+            return true;
+        }
+
+        private bool SetArray(uint[] values)
+        {
+            var numbers = new Number[values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                numbers[i] = values[i];
+            }
+
+            this.Value = numbers;
+            return true;
+        }
+
+        private bool SetArray(short[] values)
+        {
+            var numbers = new Number[values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                numbers[i] = values[i];
+            }
+
+            this.Value = numbers;
+            return true;
+        }
+
+        private bool SetArray(ushort[] values)
+        {
+            var numbers = new Number[values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                numbers[i] = values[i];
             }
 
             this.Value = numbers;

@@ -391,7 +391,6 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
             int length = span.Length;
             if ((this.data.Length - this.data.Position) < length)
             {
-                span = default;
                 return false;
             }
 

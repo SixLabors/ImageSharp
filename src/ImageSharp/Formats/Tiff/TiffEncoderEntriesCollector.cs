@@ -66,12 +66,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 this.collector.Add(width);
                 this.collector.Add(height);
-                this.collector.Add(software);
 
                 this.ProcessResolution(image.Metadata, frameMetadata);
-
                 this.ProcessProfiles(image.Metadata, frameMetadata);
                 this.ProcessMetadata(frameMetadata);
+
+                if (!this.collector.Entries.Exists(t => t.Tag == ExifTag.Software))
+                {
+                    this.collector.Add(software);
+                }
             }
 
             private static bool IsPureMetadata(ExifTag tag)
@@ -174,9 +177,20 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             private void ProcessProfiles(ImageMetadata imageMetadata, TiffFrameMetadata tiffFrameMetadata)
             {
-                if (imageMetadata.ExifProfile != null)
+                if (imageMetadata.ExifProfile != null && imageMetadata.ExifProfile.Parts != ExifParts.None)
                 {
-                    // todo: implement processing exif profile
+                    imageMetadata.SyncProfiles();
+                    foreach (IExifValue entry in imageMetadata.ExifProfile.Values)
+                    {
+                        if (!this.collector.Entries.Exists(t => t.Tag == entry.Tag) && entry.GetValue() != null)
+                        {
+                            ExifParts entryPart = ExifTags.GetPart(entry.Tag);
+                            if (entryPart != ExifParts.None && imageMetadata.ExifProfile.Parts.HasFlag(entryPart))
+                            {
+                                this.collector.AddOrReplace(entry.DeepClone());
+                            }
+                        }
+                    }
                 }
                 else
                 {

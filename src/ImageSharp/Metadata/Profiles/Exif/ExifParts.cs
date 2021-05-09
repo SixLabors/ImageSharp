@@ -24,12 +24,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Exif
         /// <summary>
         /// ExifTags
         /// </summary>
-        ExifTags = 4,
+        ExifTags = 2,
 
         /// <summary>
         /// GPSTags
         /// </summary>
-        GpsTags = 8,
+        GpsTags = 4,
 
         /// <summary>
         /// All

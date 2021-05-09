@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -57,9 +56,14 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         }
                     }
 
+                    if (coreMetadata.ExifProfile == null)
+                    {
+                        coreMetadata.ExifProfile = frame?.ExifProfile.DeepClone();
+                    }
+
                     if (coreMetadata.IptcProfile == null)
                     {
-                        if (TryGetIptc(frame.ExifProfile.Values, out var iptcBytes))
+                        if (TryGetIptc(frame.ExifProfile.Values, out byte[] iptcBytes))
                         {
                             coreMetadata.IptcProfile = new IptcProfile(iptcBytes);
                         }
@@ -95,7 +99,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 // Some Encoders write the data type of IPTC as long.
                 if (iptc.DataType == ExifDataType.Long)
                 {
-                    var iptcValues = (uint[])iptc.GetValue();
+                    uint[] iptcValues = (uint[])iptc.GetValue();
                     iptcBytes = new byte[iptcValues.Length * 4];
                     Buffer.BlockCopy(iptcValues, 0, iptcBytes, 0, iptcValues.Length * 4);
                     if (iptcBytes[0] == 0x1c)

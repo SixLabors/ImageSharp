@@ -292,8 +292,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.Equal(frameMeta.HorizontalResolution, frameMetaOut.HorizontalResolution);
             Assert.Equal(frameMeta.VerticalResolution, frameMetaOut.VerticalResolution);
 
-            Assert.Equal("ImageSharp", frameMetaOut.ExifProfile.GetValue(ExifTag.Software).Value);
-
             if (preserveMetadata)
             {
                 Assert.Equal(tiffMeta.XmpProfile, tiffMetaOut.XmpProfile);
@@ -311,6 +309,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             {
                 Assert.Null(tiffMetaOut.XmpProfile);
 
+                Assert.Equal("ImageSharp", frameMetaOut.ExifProfile.GetValue(ExifTag.Software).Value);
                 Assert.Null(frameMeta.ExifProfile.GetValue(ExifTag.Software)?.Value);
                 Assert.Null(frameMeta.ExifProfile.GetValue(ExifTag.ImageDescription)?.Value);
                 Assert.Null(frameMeta.ExifProfile.GetValue(ExifTag.Make)?.Value);

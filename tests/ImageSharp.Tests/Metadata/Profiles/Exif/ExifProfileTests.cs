@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-
+using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -28,7 +28,12 @@ namespace SixLabors.ImageSharp.Tests
             /// <summary>
             /// Writes a png file.
             /// </summary>
-            Png
+            Png,
+
+            /// <summary>
+            /// Writes a tiff file.
+            /// </summary>
+            Tiff,
         }
 
         private static readonly Dictionary<ExifTag, object> TestProfileValues = new Dictionary<ExifTag, object>
@@ -69,7 +74,7 @@ namespace SixLabors.ImageSharp.Tests
         [Fact]
         public void ConstructorEmpty()
         {
-            new ExifProfile((byte[])null);
+            new ExifProfile(null);
             new ExifProfile(new byte[] { });
         }
 
@@ -92,6 +97,7 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
+        [InlineData(TestImageWriteFormat.Tiff)]
         public void WriteFraction(TestImageWriteFormat imageFormat)
         {
             using (var memStream = new MemoryStream())
@@ -135,6 +141,7 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
+        [InlineData(TestImageWriteFormat.Tiff)]
         public void ReadWriteInfinity(TestImageWriteFormat imageFormat)
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
@@ -161,9 +168,17 @@ namespace SixLabors.ImageSharp.Tests
         }
 
         [Theory]
-        [InlineData(TestImageWriteFormat.Jpeg)]
-        [InlineData(TestImageWriteFormat.Png)]
-        public void SetValue(TestImageWriteFormat imageFormat)
+        /* The original exif profile has 19 values, the written profile should be 3 less.
+         1 x due to setting of null "ReferenceBlackWhite" value.
+         2 x due to use of non-standard padding tag 0xEA1C listed in EXIF Tool. We can read those values but adhere
+         strictly to the 2.3.1 specification when writing. (TODO: Support 2.3.2)
+         https://exiftool.org/TagNames/EXIF.html */
+        [InlineData(TestImageWriteFormat.Jpeg, 16)]
+        [InlineData(TestImageWriteFormat.Png, 16)]
+        /* Note: The tiff format has 24 expected profile values, because some tiff specific exif
+         values will be written in addition to the original profile. */
+        [InlineData(TestImageWriteFormat.Tiff, 24)]
+        public void SetValue(TestImageWriteFormat imageFormat, int expectedProfileValueCount)
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
             image.Metadata.ExifProfile.SetValue(ExifTag.Software, "ImageSharp");
@@ -206,18 +221,12 @@ namespace SixLabors.ImageSharp.Tests
             // todo: duplicate tags
             Assert.Equal(2, image.Metadata.ExifProfile.Values.Count(v => (ushort)v.Tag == 59932));
 
-            int profileCount = image.Metadata.ExifProfile.Values.Count;
             image = WriteAndRead(image, imageFormat);
 
             Assert.NotNull(image.Metadata.ExifProfile);
             Assert.Equal(0, image.Metadata.ExifProfile.Values.Count(v => (ushort)v.Tag == 59932));
 
-            // Should be 3 less.
-            // 1 x due to setting of null "ReferenceBlackWhite" value.
-            // 2 x due to use of non-standard padding tag 0xEA1C listed in EXIF Tool. We can read those values but adhere
-            // strictly to the 2.3.1 specification when writing. (TODO: Support 2.3.2)
-            // https://exiftool.org/TagNames/EXIF.html
-            Assert.Equal(profileCount - 3, image.Metadata.ExifProfile.Values.Count);
+            Assert.Equal(expectedProfileValueCount, image.Metadata.ExifProfile.Values.Count);
 
             software = image.Metadata.ExifProfile.GetValue(ExifTag.Software);
             Assert.Equal("15", software.Value);
@@ -233,20 +242,42 @@ namespace SixLabors.ImageSharp.Tests
 
             latitude = image.Metadata.ExifProfile.GetValue(ExifTag.GPSLatitude);
             Assert.Equal(expectedLatitude, latitude.Value);
+        }
 
+        [Theory]
+        [InlineData(TestImageWriteFormat.Jpeg)]
+        [InlineData(TestImageWriteFormat.Png)]
+        public void WriteOnlyExifTags_Works(TestImageWriteFormat imageFormat)
+        {
+            // Arrange
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
             image.Metadata.ExifProfile.Parts = ExifParts.ExifTags;
 
+            // Act
             image = WriteAndRead(image, imageFormat);
 
+            // Assert
             Assert.NotNull(image.Metadata.ExifProfile);
-            Assert.Equal(8, image.Metadata.ExifProfile.Values.Count);
+            Assert.Equal(7, image.Metadata.ExifProfile.Values.Count);
+            foreach (IExifValue exifProfileValue in image.Metadata.ExifProfile.Values)
+            {
+                Assert.True(ExifTags.GetPart(exifProfileValue.Tag) == ExifParts.ExifTags);
+            }
+        }
 
+        [Fact]
+        public void RemoveEntry_Works()
+        {
+            // Arrange
+            Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
+            int profileCount = image.Metadata.ExifProfile.Values.Count;
+
+            // Assert
             Assert.NotNull(image.Metadata.ExifProfile.GetValue(ExifTag.ColorSpace));
             Assert.True(image.Metadata.ExifProfile.RemoveValue(ExifTag.ColorSpace));
             Assert.False(image.Metadata.ExifProfile.RemoveValue(ExifTag.ColorSpace));
             Assert.Null(image.Metadata.ExifProfile.GetValue(ExifTag.ColorSpace));
-
-            Assert.Equal(7, image.Metadata.ExifProfile.Values.Count);
+            Assert.Equal(profileCount - 1, image.Metadata.ExifProfile.Values.Count);
         }
 
         [Fact]
@@ -382,6 +413,7 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
+        [InlineData(TestImageWriteFormat.Tiff)]
         public void WritingImagePreservesExifProfile(TestImageWriteFormat imageFormat)
         {
             // Arrange
@@ -456,8 +488,10 @@ namespace SixLabors.ImageSharp.Tests
                     return WriteAndReadJpeg(image);
                 case TestImageWriteFormat.Png:
                     return WriteAndReadPng(image);
+                case TestImageWriteFormat.Tiff:
+                    return WriteAndReadTiff(image);
                 default:
-                    throw new ArgumentException("Unexpected test image format, only Jpeg and Png are allowed");
+                    throw new ArgumentException("Unexpected test image format, only Jpeg, Png and Tiff are allowed");
             }
         }
 
@@ -482,6 +516,18 @@ namespace SixLabors.ImageSharp.Tests
 
                 memStream.Position = 0;
                 return Image.Load<Rgba32>(memStream);
+            }
+        }
+
+        private static Image<Rgba32> WriteAndReadTiff(Image<Rgba32> image)
+        {
+            using (var memStream = new MemoryStream())
+            {
+                image.SaveAsTiff(memStream, new TiffEncoder());
+                image.Dispose();
+
+                memStream.Position = 0;
+                return Image.Load<Rgba32>(memStream, new TiffDecoder());
             }
         }
 

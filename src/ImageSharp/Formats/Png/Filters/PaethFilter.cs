@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -82,6 +83,43 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
                 sum += Numerics.Abs(unchecked((sbyte)res));
             }
 
+#if SUPPORTS_RUNTIME_INTRINSICS
+            if (Vector.IsHardwareAccelerated)
+            {
+                Vector<int> sumAccumulator = Vector<int>.Zero;
+
+                for (int xLeft = x - bytesPerPixel; x + Vector<byte>.Count <= scanline.Length; xLeft += Vector<byte>.Count)
+                {
+                    var scan = new Vector<byte>(scanline.Slice(x));
+                    var left = new Vector<byte>(scanline.Slice(xLeft));
+                    var above = new Vector<byte>(previousScanline.Slice(x));
+                    var upperLeft = new Vector<byte>(previousScanline.Slice(xLeft));
+
+                    Vector<byte> res = scan - PaethPredictor(left, above, upperLeft);
+                    res.CopyTo(result.Slice(x + 1)); // + 1 to skip filter type
+                    x += Vector<byte>.Count;
+
+                    Vector.Widen(
+                        Vector.Abs(Vector.AsVectorSByte(res)),
+                        out Vector<short> shortLow,
+                        out Vector<short> shortHigh);
+
+                    Vector.Widen(shortLow, out Vector<int> intLow, out Vector<int> intHigh);
+                    sumAccumulator += intLow;
+                    sumAccumulator += intHigh;
+
+                    Vector.Widen(shortHigh, out intLow, out intHigh);
+                    sumAccumulator += intLow;
+                    sumAccumulator += intHigh;
+                }
+
+                for (int i = 0; i < Vector<int>.Count; i++)
+                {
+                    sum += sumAccumulator[i];
+                }
+            }
+#endif
+
             for (int xLeft = x - bytesPerPixel; x < scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
             {
                 byte scan = Unsafe.Add(ref scanBaseRef, x);
@@ -126,6 +164,37 @@ namespace SixLabors.ImageSharp.Formats.Png.Filters
             }
 
             return upperLeft;
+        }
+
+        private static Vector<byte> PaethPredictor(Vector<byte> left, Vector<byte> above, Vector<byte> upperLeft)
+        {
+            Vector.Widen(left, out Vector<ushort> a1, out Vector<ushort> a2);
+            Vector.Widen(above, out Vector<ushort> b1, out Vector<ushort> b2);
+            Vector.Widen(upperLeft, out Vector<ushort> c1, out Vector<ushort> c2);
+
+            Vector<short> p1 = PaethPredictor(Vector.AsVectorInt16(a1), Vector.AsVectorInt16(b1), Vector.AsVectorInt16(c1));
+            Vector<short> p2 = PaethPredictor(Vector.AsVectorInt16(a2), Vector.AsVectorInt16(b2), Vector.AsVectorInt16(c2));
+            return Vector.AsVectorByte(Vector.Narrow(p1, p2));
+        }
+
+        private static Vector<short> PaethPredictor(Vector<short> left, Vector<short> above, Vector<short> upperLeft)
+        {
+            Vector<short> p = left + above - upperLeft;
+            var pa = Vector.Abs(p - left);
+            var pb = Vector.Abs(p - above);
+            var pc = Vector.Abs(p - upperLeft);
+
+            var pa_pb = Vector.LessThanOrEqual(pa, pb);
+            var pa_pc = Vector.LessThanOrEqual(pa, pc);
+            var pb_pc = Vector.LessThanOrEqual(pb, pc);
+
+            return Vector.ConditionalSelect(
+                condition: Vector.BitwiseAnd(pa_pb, pa_pc),
+                left: left,
+                right: Vector.ConditionalSelect(
+                    condition: pb_pc,
+                    left: above,
+                    right: upperLeft));
         }
     }
 }

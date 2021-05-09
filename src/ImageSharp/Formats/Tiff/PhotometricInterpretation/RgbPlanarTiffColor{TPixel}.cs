@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation
     /// <summary>
     /// Implements the 'RGB' photometric interpretation with 'Planar' layout (for all bit depths).
     /// </summary>
-    internal class RgbPlanarTiffColor<TPixel> /* : TiffColorDecoder<TPixel> */
+    internal class RgbPlanarTiffColor<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         private readonly float rFactor;

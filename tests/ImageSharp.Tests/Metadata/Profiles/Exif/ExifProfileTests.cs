@@ -175,9 +175,7 @@ namespace SixLabors.ImageSharp.Tests
          https://exiftool.org/TagNames/EXIF.html */
         [InlineData(TestImageWriteFormat.Jpeg, 16)]
         [InlineData(TestImageWriteFormat.Png, 16)]
-        /* Note: The tiff format has 24 expected profile values, because some tiff specific exif
-         values will be written in addition to the original profile. */
-        [InlineData(TestImageWriteFormat.Tiff, 24)]
+        [InlineData(TestImageWriteFormat.Tiff, 16)]
         public void SetValue(TestImageWriteFormat imageFormat, int expectedProfileValueCount)
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();

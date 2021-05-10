@@ -208,25 +208,5 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new TiffFrameMetadata() { ExifProfile = this.ExifProfile.DeepClone() };
-
-        private static bool IsFormatTag(ExifTagValue tag)
-        {
-            switch (tag)
-            {
-                case ExifTagValue.ImageWidth:
-                case ExifTagValue.ImageLength:
-                case ExifTagValue.ResolutionUnit:
-                case ExifTagValue.XResolution:
-                case ExifTagValue.YResolution:
-                case ExifTagValue.Predictor:
-                case ExifTagValue.PlanarConfiguration:
-                case ExifTagValue.PhotometricInterpretation:
-                case ExifTagValue.BitsPerSample:
-                case ExifTagValue.ColorMap:
-                    return true;
-            }
-
-            return false;
-        }
     }
 }

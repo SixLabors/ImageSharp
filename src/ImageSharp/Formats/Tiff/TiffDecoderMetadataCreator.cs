@@ -56,9 +56,22 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                         }
                     }
 
-                    if (coreMetadata.ExifProfile == null)
+                    if (coreMetadata.ExifProfile == null && frame.ExifProfile != null)
                     {
-                        coreMetadata.ExifProfile = frame?.ExifProfile.DeepClone();
+                        coreMetadata.ExifProfile = frame.ExifProfile.DeepClone();
+
+                        // Remove Tiff specific tags from the profile.
+                        coreMetadata.ExifProfile.RemoveValue(ExifTag.ImageWidth);
+                        coreMetadata.ExifProfile.RemoveValue(ExifTag.ImageLength);
+                        coreMetadata.ExifProfile.RemoveValue(ExifTag.ResolutionUnit);
+                        coreMetadata.ExifProfile.RemoveValue(ExifTag.Predictor);
+                        coreMetadata.ExifProfile.RemoveValue(ExifTag.PlanarConfiguration);
+                        coreMetadata.ExifProfile.RemoveValue(ExifTag.PhotometricInterpretation);
+                        coreMetadata.ExifProfile.RemoveValue(ExifTag.BitsPerSample);
+                        coreMetadata.ExifProfile.RemoveValue(ExifTag.ColorMap);
+                        coreMetadata.ExifProfile.RemoveValue(ExifTag.Compression);
+                        coreMetadata.ExifProfile.RemoveValue(ExifTag.StripOffsets);
+                        coreMetadata.ExifProfile.RemoveValue(ExifTag.StripByteCounts);
                     }
 
                     if (coreMetadata.IptcProfile == null)

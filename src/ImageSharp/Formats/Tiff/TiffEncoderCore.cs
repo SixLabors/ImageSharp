@@ -112,8 +112,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             this.configuration = image.GetConfiguration();
             ImageMetadata metadata = image.Metadata;
             TiffMetadata tiffMetadata = metadata.GetTiffMetadata();
+            TiffFrameMetadata rootFrameMetaData = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+            TiffPhotometricInterpretation photometricInterpretation = rootFrameMetaData.PhotometricInterpretation;
 
-            this.SetMode(tiffMetadata);
+            this.SetMode(tiffMetadata, photometricInterpretation);
             this.SetBitsPerPixel(tiffMetadata);
             this.SetPhotometricInterpretation();
 
@@ -265,7 +267,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             return nextIfdMarker;
         }
 
-        private void SetMode(TiffMetadata tiffMetadata)
+        private void SetMode(TiffMetadata tiffMetadata, TiffPhotometricInterpretation photometricInterpretation)
         {
             // Make sure, that the fax compressions are only used together with the BiColor mode.
             if (this.CompressionType == TiffCompression.CcittGroup3Fax || this.CompressionType == TiffCompression.Ccitt1D)
@@ -286,7 +288,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             if (this.Mode == TiffEncodingMode.Default && tiffMetadata.BitsPerPixel != null)
             {
                 // Preserve input bits per pixel, if no encoding mode was specified.
-                this.SetModeWithBitsPerPixel(tiffMetadata.BitsPerPixel, tiffMetadata.PhotometricInterpretation);
+                this.SetModeWithBitsPerPixel(tiffMetadata.BitsPerPixel, photometricInterpretation);
 
                 return;
             }
@@ -294,7 +296,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             if (this.BitsPerPixel != null)
             {
                 // The user has specified a bits per pixel, so use that to determine the encoding mode.
-                this.SetModeWithBitsPerPixel(this.BitsPerPixel, tiffMetadata.PhotometricInterpretation);
+                this.SetModeWithBitsPerPixel(this.BitsPerPixel, photometricInterpretation);
             }
         }
 

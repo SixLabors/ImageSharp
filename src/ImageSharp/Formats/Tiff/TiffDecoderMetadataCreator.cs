@@ -40,8 +40,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             TiffMetadata tiffMetadata = coreMetadata.GetTiffMetadata();
             tiffMetadata.ByteOrder = byteOrder;
             tiffMetadata.BitsPerPixel = GetBitsPerPixel(rootFrameMetadata);
-            tiffMetadata.Compression = rootFrameMetadata.Compression;
-            tiffMetadata.PhotometricInterpretation = rootFrameMetadata.PhotometricInterpretation;
 
             if (!ignoreMetadata)
             {

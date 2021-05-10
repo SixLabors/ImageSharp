@@ -39,24 +39,18 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             byte[] xmpData = { 1, 1, 1 };
             var meta = new TiffMetadata
             {
-                Compression = TiffCompression.Deflate,
                 BitsPerPixel = TiffBitsPerPixel.Bit8,
                 ByteOrder = ByteOrder.BigEndian,
-                XmpProfile = xmpData,
-                PhotometricInterpretation = TiffPhotometricInterpretation.Rgb
+                XmpProfile = xmpData
             };
 
             var clone = (TiffMetadata)meta.DeepClone();
 
-            clone.Compression = TiffCompression.None;
             clone.BitsPerPixel = TiffBitsPerPixel.Bit24;
             clone.ByteOrder = ByteOrder.LittleEndian;
-            clone.PhotometricInterpretation = TiffPhotometricInterpretation.YCbCr;
 
-            Assert.False(meta.Compression == clone.Compression);
             Assert.False(meta.BitsPerPixel == clone.BitsPerPixel);
             Assert.False(meta.ByteOrder == clone.ByteOrder);
-            Assert.False(meta.PhotometricInterpretation == clone.PhotometricInterpretation);
             Assert.False(meta.XmpProfile.Equals(clone.XmpProfile));
             Assert.True(meta.XmpProfile.SequenceEqual(clone.XmpProfile));
         }
@@ -76,44 +70,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
             Assert.NotNull(tiffMetadata);
             Assert.Equal(expectedBitsPerPixel, tiffMetadata.BitsPerPixel);
-        }
-
-        [Theory]
-        [InlineData(GrayscaleUncompressed, TiffCompression.None)]
-        [InlineData(RgbDeflate, TiffCompression.Deflate)]
-        [InlineData(SmallRgbLzw, TiffCompression.Lzw)]
-        [InlineData(Calliphora_Fax3Compressed, TiffCompression.CcittGroup3Fax)]
-        [InlineData(Calliphora_Fax4Compressed, TiffCompression.CcittGroup4Fax)]
-        [InlineData(Calliphora_HuffmanCompressed, TiffCompression.Ccitt1D)]
-        [InlineData(Calliphora_RgbPackbits, TiffCompression.PackBits)]
-        public void Identify_DetectsCorrectCompression(string imagePath, TiffCompression expectedCompression)
-        {
-            var testFile = TestFile.Create(imagePath);
-            using var stream = new MemoryStream(testFile.Bytes, false);
-
-            IImageInfo imageInfo = Image.Identify(this.configuration, stream);
-
-            Assert.NotNull(imageInfo);
-            TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
-            Assert.NotNull(tiffMetadata);
-            Assert.Equal(expectedCompression, tiffMetadata.Compression);
-        }
-
-        [Theory]
-        [InlineData(Calliphora_RgbUncompressed, TiffPhotometricInterpretation.Rgb)]
-        [InlineData(Calliphora_BiColorUncompressed, TiffPhotometricInterpretation.BlackIsZero)]
-        [InlineData(Calliphora_PaletteUncompressed, TiffPhotometricInterpretation.PaletteColor)]
-        public void Identify_DetectsCorrectPhotometricInterpretation(string imagePath, TiffPhotometricInterpretation expectedPhotometricInterpretation)
-        {
-            var testFile = TestFile.Create(imagePath);
-            using var stream = new MemoryStream(testFile.Bytes, false);
-
-            IImageInfo imageInfo = Image.Identify(this.configuration, stream);
-
-            Assert.NotNull(imageInfo);
-            TiffMetadata tiffMetadata = imageInfo.Metadata.GetTiffMetadata();
-            Assert.NotNull(tiffMetadata);
-            Assert.Equal(expectedPhotometricInterpretation, tiffMetadata.PhotometricInterpretation);
         }
 
         [Theory]
@@ -256,10 +212,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // Load Tiff image
             using Image<TPixel> image = provider.GetImage(new TiffDecoder() { IgnoreMetadata = false });
 
-            ImageMetadata coreMeta = image.Metadata;
-            TiffMetadata tiffMeta = image.Metadata.GetTiffMetadata();
-            TiffFrameMetadata frameMeta = image.Frames.RootFrame.Metadata.GetTiffMetadata();
-            ImageFrame<TPixel> frameRoot = image.Frames.RootFrame;
+            ImageMetadata inputMetaData = image.Metadata;
+            TiffMetadata tiffMetaInput = image.Metadata.GetTiffMetadata();
+            TiffFrameMetadata frameMetaInput = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+            ImageFrame<TPixel> frameRootInput = image.Frames.RootFrame;
+
+            Assert.Equal(TiffCompression.Lzw, frameMetaInput.Compression);
+            Assert.Equal(TiffBitsPerPixel.Bit4, tiffMetaInput.BitsPerPixel);
 
             // Save to Tiff
             var tiffEncoder = new TiffEncoder() { Mode = TiffEncodingMode.Rgb };
@@ -273,54 +232,52 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // Assert
             ms.Position = 0;
-            using var output = Image.Load<Rgba32>(this.configuration, ms);
+            using var encodedImage = Image.Load<Rgba32>(this.configuration, ms);
 
-            ImageMetadata coreMetaOut = output.Metadata;
-            TiffMetadata tiffMetaOut = output.Metadata.GetTiffMetadata();
-            TiffFrameMetadata frameMetaOut = output.Frames.RootFrame.Metadata.GetTiffMetadata();
-            ImageFrame<Rgba32> rootFrameOut = output.Frames.RootFrame;
+            ImageMetadata encodedImageMetaData = encodedImage.Metadata;
+            TiffMetadata tiffMetaDataEncodedImage = encodedImage.Metadata.GetTiffMetadata();
+            TiffFrameMetadata tiffMetaDataEncodedRootFrame = encodedImage.Frames.RootFrame.Metadata.GetTiffMetadata();
+            ImageFrame<Rgba32> rootFrameEncodedImage = encodedImage.Frames.RootFrame;
 
-            Assert.Equal(TiffBitsPerPixel.Bit4, tiffMeta.BitsPerPixel);
-            Assert.Equal(TiffBitsPerPixel.Bit24, tiffMetaOut.BitsPerPixel);
-            Assert.Equal(TiffCompression.Lzw, tiffMeta.Compression);
-            Assert.Equal(TiffCompression.None, tiffMetaOut.Compression);
+            Assert.Equal(TiffBitsPerPixel.Bit24, tiffMetaDataEncodedImage.BitsPerPixel);
+            Assert.Equal(TiffCompression.None, tiffMetaDataEncodedRootFrame.Compression);
 
-            Assert.Equal(coreMeta.HorizontalResolution, coreMetaOut.HorizontalResolution);
-            Assert.Equal(coreMeta.VerticalResolution, coreMetaOut.VerticalResolution);
-            Assert.Equal(coreMeta.ResolutionUnits, coreMetaOut.ResolutionUnits);
+            Assert.Equal(inputMetaData.HorizontalResolution, encodedImageMetaData.HorizontalResolution);
+            Assert.Equal(inputMetaData.VerticalResolution, encodedImageMetaData.VerticalResolution);
+            Assert.Equal(inputMetaData.ResolutionUnits, encodedImageMetaData.ResolutionUnits);
 
-            Assert.Equal(frameRoot.Width, rootFrameOut.Width);
-            Assert.Equal(frameRoot.Height, rootFrameOut.Height);
-            Assert.Equal(frameMeta.ResolutionUnit, frameMetaOut.ResolutionUnit);
-            Assert.Equal(frameMeta.HorizontalResolution, frameMetaOut.HorizontalResolution);
-            Assert.Equal(frameMeta.VerticalResolution, frameMetaOut.VerticalResolution);
+            Assert.Equal(frameRootInput.Width, rootFrameEncodedImage.Width);
+            Assert.Equal(frameRootInput.Height, rootFrameEncodedImage.Height);
+            Assert.Equal(frameMetaInput.ResolutionUnit, tiffMetaDataEncodedRootFrame.ResolutionUnit);
+            Assert.Equal(frameMetaInput.HorizontalResolution, tiffMetaDataEncodedRootFrame.HorizontalResolution);
+            Assert.Equal(frameMetaInput.VerticalResolution, tiffMetaDataEncodedRootFrame.VerticalResolution);
 
             if (preserveMetadata)
             {
-                Assert.Equal(tiffMeta.XmpProfile, tiffMetaOut.XmpProfile);
+                Assert.Equal(tiffMetaInput.XmpProfile, tiffMetaDataEncodedImage.XmpProfile);
 
-                Assert.Equal("IrfanView", frameMeta.ExifProfile.GetValue(ExifTag.Software).Value);
-                Assert.Equal("This is Название", frameMeta.ExifProfile.GetValue(ExifTag.ImageDescription).Value);
-                Assert.Equal("This is Изготовитель камеры", frameMeta.ExifProfile.GetValue(ExifTag.Make).Value);
-                Assert.Equal("This is Авторские права", frameMeta.ExifProfile.GetValue(ExifTag.Copyright).Value);
+                Assert.Equal("IrfanView", frameMetaInput.ExifProfile.GetValue(ExifTag.Software).Value);
+                Assert.Equal("This is Название", frameMetaInput.ExifProfile.GetValue(ExifTag.ImageDescription).Value);
+                Assert.Equal("This is Изготовитель камеры", frameMetaInput.ExifProfile.GetValue(ExifTag.Make).Value);
+                Assert.Equal("This is Авторские права", frameMetaInput.ExifProfile.GetValue(ExifTag.Copyright).Value);
 
-                Assert.Equal(frameMeta.ExifProfile.GetValue(ExifTag.ImageDescription).Value, frameMetaOut.ExifProfile.GetValue(ExifTag.ImageDescription).Value);
-                Assert.Equal(frameMeta.ExifProfile.GetValue(ExifTag.Make).Value, frameMetaOut.ExifProfile.GetValue(ExifTag.Make).Value);
-                Assert.Equal(frameMeta.ExifProfile.GetValue(ExifTag.Copyright).Value, frameMetaOut.ExifProfile.GetValue(ExifTag.Copyright).Value);
+                Assert.Equal(frameMetaInput.ExifProfile.GetValue(ExifTag.ImageDescription).Value, tiffMetaDataEncodedRootFrame.ExifProfile.GetValue(ExifTag.ImageDescription).Value);
+                Assert.Equal(frameMetaInput.ExifProfile.GetValue(ExifTag.Make).Value, tiffMetaDataEncodedRootFrame.ExifProfile.GetValue(ExifTag.Make).Value);
+                Assert.Equal(frameMetaInput.ExifProfile.GetValue(ExifTag.Copyright).Value, tiffMetaDataEncodedRootFrame.ExifProfile.GetValue(ExifTag.Copyright).Value);
             }
             else
             {
-                Assert.Null(tiffMetaOut.XmpProfile);
+                Assert.Null(tiffMetaDataEncodedImage.XmpProfile);
 
-                Assert.Equal("ImageSharp", frameMetaOut.ExifProfile.GetValue(ExifTag.Software).Value);
-                Assert.Null(frameMeta.ExifProfile.GetValue(ExifTag.Software)?.Value);
-                Assert.Null(frameMeta.ExifProfile.GetValue(ExifTag.ImageDescription)?.Value);
-                Assert.Null(frameMeta.ExifProfile.GetValue(ExifTag.Make)?.Value);
-                Assert.Null(frameMeta.ExifProfile.GetValue(ExifTag.Copyright)?.Value);
+                Assert.Equal("ImageSharp", tiffMetaDataEncodedRootFrame.ExifProfile.GetValue(ExifTag.Software).Value);
+                Assert.Null(frameMetaInput.ExifProfile.GetValue(ExifTag.Software)?.Value);
+                Assert.Null(frameMetaInput.ExifProfile.GetValue(ExifTag.ImageDescription)?.Value);
+                Assert.Null(frameMetaInput.ExifProfile.GetValue(ExifTag.Make)?.Value);
+                Assert.Null(frameMetaInput.ExifProfile.GetValue(ExifTag.Copyright)?.Value);
 
-                Assert.Null(frameMetaOut.ExifProfile.GetValue(ExifTag.ImageDescription)?.Value);
-                Assert.Null(frameMetaOut.ExifProfile.GetValue(ExifTag.Make)?.Value);
-                Assert.Null(frameMetaOut.ExifProfile.GetValue(ExifTag.Copyright)?.Value);
+                Assert.Null(tiffMetaDataEncodedRootFrame.ExifProfile.GetValue(ExifTag.ImageDescription)?.Value);
+                Assert.Null(tiffMetaDataEncodedRootFrame.ExifProfile.GetValue(ExifTag.Make)?.Value);
+                Assert.Null(tiffMetaDataEncodedRootFrame.ExifProfile.GetValue(ExifTag.Copyright)?.Value);
             }
         }
 

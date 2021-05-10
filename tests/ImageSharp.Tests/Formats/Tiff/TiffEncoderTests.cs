@@ -49,8 +49,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
             TiffMetadata meta = output.Metadata.GetTiffMetadata();
+            TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, meta.BitsPerPixel);
-            Assert.Equal(TiffCompression.None, meta.Compression);
+            Assert.Equal(TiffCompression.None, frameMetaData.Compression);
         }
 
         [Theory]
@@ -72,8 +73,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
             TiffMetadata meta = output.Metadata.GetTiffMetadata();
+            TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(bitsPerPixel, meta.BitsPerPixel);
-            Assert.Equal(TiffCompression.None, meta.Compression);
+            Assert.Equal(TiffCompression.None, frameMetaData.Compression);
         }
 
         [Theory]
@@ -111,8 +113,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
             TiffMetadata meta = output.Metadata.GetTiffMetadata();
+            TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(expectedBitsPerPixel, meta.BitsPerPixel);
-            Assert.Equal(expectedCompression, meta.Compression);
+            Assert.Equal(expectedCompression, frameMetaData.Compression);
         }
 
         [Theory]
@@ -160,9 +163,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             memStream.Position = 0;
             using var output = Image.Load<Rgba32>(Configuration, memStream);
             TiffMetadata meta = output.Metadata.GetTiffMetadata();
-
+            TiffFrameMetadata frameMetaData = output.Frames.RootFrame.Metadata.GetTiffMetadata();
             Assert.Equal(TiffBitsPerPixel.Bit1, meta.BitsPerPixel);
-            Assert.Equal(expectedCompression, meta.Compression);
+            Assert.Equal(expectedCompression, frameMetaData.Compression);
         }
 
         [Theory]

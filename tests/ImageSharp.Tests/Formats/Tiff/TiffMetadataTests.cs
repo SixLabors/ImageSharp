@@ -182,41 +182,42 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 Assert.Equal(10, image.Metadata.HorizontalResolution);
                 Assert.Equal(10, image.Metadata.VerticalResolution);
 
-                TiffFrameMetadata frame = image.Frames.RootFrame.Metadata.GetTiffMetadata();
-                Assert.Equal(30, frame.ExifProfile.Values.Count);
+                TiffFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+                ImageFrame<TPixel> rootFrame = image.Frames.RootFrame;
+                Assert.Equal(30, frameMetadata.ExifProfile.Values.Count);
 
-                Assert.Equal(32u, frame.Width);
-                Assert.Equal(32u, frame.Height);
-                Assert.Equal(TiffBitsPerSample.Bit4, frame.BitsPerSample);
-                Assert.Equal(TiffCompression.Lzw, frame.Compression);
-                Assert.Equal(TiffPhotometricInterpretation.PaletteColor, frame.PhotometricInterpretation);
-                Assert.Equal("This is Название", frame.ExifProfile.GetValue(ExifTag.ImageDescription).Value);
-                Assert.Equal("This is Изготовитель камеры", frame.ExifProfile.GetValue(ExifTag.Make).Value);
-                Assert.Equal("This is Модель камеры", frame.ExifProfile.GetValue(ExifTag.Model).Value);
-                Assert.Equal(new Number[] { 8u }, frame.StripOffsets, new NumberComparer());
-                Assert.Equal(1, frame.SamplesPerPixel);
-                Assert.Equal(32u, frame.RowsPerStrip);
-                Assert.Equal(new Number[] { 297u }, frame.StripByteCounts, new NumberComparer());
-                Assert.Equal(PixelResolutionUnit.PixelsPerInch, frame.ResolutionUnit);
-                Assert.Equal(10, frame.HorizontalResolution);
-                Assert.Equal(10, frame.VerticalResolution);
-                Assert.Equal(TiffPlanarConfiguration.Chunky, frame.PlanarConfiguration);
-                Assert.Equal("IrfanView", frame.ExifProfile.GetValue(ExifTag.Software).Value);
-                Assert.Null(frame.ExifProfile.GetValue(ExifTag.DateTime)?.Value);
-                Assert.Equal("This is author1;Author2", frame.ExifProfile.GetValue(ExifTag.Artist).Value);
-                Assert.Null(frame.ExifProfile.GetValue(ExifTag.HostComputer)?.Value);
-                Assert.Equal(48, frame.ColorMap.Length);
-                Assert.Equal(10537, frame.ColorMap[0]);
-                Assert.Equal(14392, frame.ColorMap[1]);
-                Assert.Equal(58596, frame.ColorMap[46]);
-                Assert.Equal(3855, frame.ColorMap[47]);
+                Assert.Equal(32, rootFrame.Width);
+                Assert.Equal(32, rootFrame.Height);
+                Assert.Equal(TiffBitsPerSample.Bit4, frameMetadata.BitsPerSample);
+                Assert.Equal(TiffCompression.Lzw, frameMetadata.Compression);
+                Assert.Equal(TiffPhotometricInterpretation.PaletteColor, frameMetadata.PhotometricInterpretation);
+                Assert.Equal("This is Название", frameMetadata.ExifProfile.GetValue(ExifTag.ImageDescription).Value);
+                Assert.Equal("This is Изготовитель камеры", frameMetadata.ExifProfile.GetValue(ExifTag.Make).Value);
+                Assert.Equal("This is Модель камеры", frameMetadata.ExifProfile.GetValue(ExifTag.Model).Value);
+                Assert.Equal(new Number[] { 8u }, frameMetadata.StripOffsets, new NumberComparer());
+                Assert.Equal(1, frameMetadata.SamplesPerPixel);
+                Assert.Equal(32u, frameMetadata.RowsPerStrip);
+                Assert.Equal(new Number[] { 297u }, frameMetadata.StripByteCounts, new NumberComparer());
+                Assert.Equal(PixelResolutionUnit.PixelsPerInch, frameMetadata.ResolutionUnit);
+                Assert.Equal(10, frameMetadata.HorizontalResolution);
+                Assert.Equal(10, frameMetadata.VerticalResolution);
+                Assert.Equal(TiffPlanarConfiguration.Chunky, frameMetadata.PlanarConfiguration);
+                Assert.Equal("IrfanView", frameMetadata.ExifProfile.GetValue(ExifTag.Software).Value);
+                Assert.Null(frameMetadata.ExifProfile.GetValue(ExifTag.DateTime)?.Value);
+                Assert.Equal("This is author1;Author2", frameMetadata.ExifProfile.GetValue(ExifTag.Artist).Value);
+                Assert.Null(frameMetadata.ExifProfile.GetValue(ExifTag.HostComputer)?.Value);
+                Assert.Equal(48, frameMetadata.ColorMap.Length);
+                Assert.Equal(10537, frameMetadata.ColorMap[0]);
+                Assert.Equal(14392, frameMetadata.ColorMap[1]);
+                Assert.Equal(58596, frameMetadata.ColorMap[46]);
+                Assert.Equal(3855, frameMetadata.ColorMap[47]);
 
-                Assert.Null(frame.ExtraSamples);
-                Assert.Equal(TiffPredictor.None, frame.Predictor);
-                Assert.Null(frame.SampleFormat);
-                Assert.Equal("This is Авторские права", frame.ExifProfile.GetValue(ExifTag.Copyright).Value);
-                Assert.Equal(4, frame.ExifProfile.GetValue<ushort>(ExifTag.Rating).Value);
-                Assert.Equal(75, frame.ExifProfile.GetValue<ushort>(ExifTag.RatingPercent).Value);
+                Assert.Null(frameMetadata.ExtraSamples);
+                Assert.Equal(TiffPredictor.None, frameMetadata.Predictor);
+                Assert.Null(frameMetadata.SampleFormat);
+                Assert.Equal("This is Авторские права", frameMetadata.ExifProfile.GetValue(ExifTag.Copyright).Value);
+                Assert.Equal(4, frameMetadata.ExifProfile.GetValue<ushort>(ExifTag.Rating).Value);
+                Assert.Equal(75, frameMetadata.ExifProfile.GetValue<ushort>(ExifTag.RatingPercent).Value);
             }
         }
 
@@ -232,17 +233,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
                 Assert.Equal(2, image.Frames.Count);
 
-                TiffFrameMetadata frame0 = image.Frames[0].Metadata.GetTiffMetadata();
-                Assert.Equal(TiffNewSubfileType.FullImage, frame0.SubfileType);
-                Assert.Null(frame0.OldSubfileType);
-                Assert.Equal(255u, frame0.Width);
-                Assert.Equal(255u, frame0.Height);
+                TiffFrameMetadata frame0MetaData = image.Frames[0].Metadata.GetTiffMetadata();
+                Assert.Equal(TiffNewSubfileType.FullImage, frame0MetaData.SubfileType);
+                Assert.Null(frame0MetaData.OldSubfileType);
+                Assert.Equal(255, image.Frames[0].Width);
+                Assert.Equal(255, image.Frames[0].Height);
 
-                TiffFrameMetadata frame1 = image.Frames[1].Metadata.GetTiffMetadata();
-                Assert.Equal(TiffNewSubfileType.Preview, frame1.SubfileType);
-                Assert.Null(frame1.OldSubfileType);
-                Assert.Equal(255u, frame1.Width);
-                Assert.Equal(255u, frame1.Height);
+                TiffFrameMetadata frame1MetaData = image.Frames[1].Metadata.GetTiffMetadata();
+                Assert.Equal(TiffNewSubfileType.Preview, frame1MetaData.SubfileType);
+                Assert.Null(frame1MetaData.OldSubfileType);
+                Assert.Equal(255, image.Frames[1].Width);
+                Assert.Equal(255, image.Frames[1].Height);
             }
         }
 
@@ -258,6 +259,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             ImageMetadata coreMeta = image.Metadata;
             TiffMetadata tiffMeta = image.Metadata.GetTiffMetadata();
             TiffFrameMetadata frameMeta = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+            ImageFrame<TPixel> frameRoot = image.Frames.RootFrame;
 
             // Save to Tiff
             var tiffEncoder = new TiffEncoder() { Mode = TiffEncodingMode.Rgb };
@@ -276,6 +278,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             ImageMetadata coreMetaOut = output.Metadata;
             TiffMetadata tiffMetaOut = output.Metadata.GetTiffMetadata();
             TiffFrameMetadata frameMetaOut = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+            ImageFrame<Rgba32> rootFrameOut = output.Frames.RootFrame;
 
             Assert.Equal(TiffBitsPerPixel.Bit4, tiffMeta.BitsPerPixel);
             Assert.Equal(TiffBitsPerPixel.Bit24, tiffMetaOut.BitsPerPixel);
@@ -286,8 +289,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             Assert.Equal(coreMeta.VerticalResolution, coreMetaOut.VerticalResolution);
             Assert.Equal(coreMeta.ResolutionUnits, coreMetaOut.ResolutionUnits);
 
-            Assert.Equal(frameMeta.Width, frameMetaOut.Width);
-            Assert.Equal(frameMeta.Height, frameMetaOut.Height);
+            Assert.Equal(frameRoot.Width, rootFrameOut.Width);
+            Assert.Equal(frameRoot.Height, rootFrameOut.Height);
             Assert.Equal(frameMeta.ResolutionUnit, frameMetaOut.ResolutionUnit);
             Assert.Equal(frameMeta.HorizontalResolution, frameMetaOut.HorizontalResolution);
             Assert.Equal(frameMeta.VerticalResolution, frameMetaOut.VerticalResolution);
@@ -364,7 +367,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             // Assert
             ms.Position = 0;
             using var output = Image.Load<Rgba32>(this.configuration, ms);
-            TiffMetadata meta = output.Metadata.GetTiffMetadata();
+            ImageFrame<Rgba32> rootFrameOut = output.Frames.RootFrame;
 
             ImageMetadata coreMetaOut = output.Metadata;
             TiffMetadata tiffMetaOut = output.Metadata.GetTiffMetadata();
@@ -377,8 +380,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
             //// Assert.Equal(tiffEncoder.Compression, tiffMetaOut.Compression);
             Assert.Equal(TiffBitsPerPixel.Bit24, tiffMetaOut.BitsPerPixel);
 
-            Assert.Equal((uint)w, frameMetaOut.Width);
-            Assert.Equal((uint)h, frameMetaOut.Height);
+            Assert.Equal(w, rootFrameOut.Width);
+            Assert.Equal(h, rootFrameOut.Height);
             Assert.Equal(frameMeta.ResolutionUnit, frameMetaOut.ResolutionUnit);
             Assert.Equal(frameMeta.HorizontalResolution, frameMetaOut.HorizontalResolution);
             Assert.Equal(frameMeta.VerticalResolution, frameMetaOut.VerticalResolution);
@@ -427,7 +430,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             tiffMeta.XmpProfile = null;
 
-            frameMeta.ClearMetadata();
+            frameMeta.ExifProfile = null;
         }
     }
 }

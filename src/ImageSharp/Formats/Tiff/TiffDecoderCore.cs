@@ -155,7 +155,10 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.ignoreMetadata, reader.ByteOrder);
 
             TiffFrameMetadata root = framesMetadata[0];
-            return new ImageInfo(new PixelTypeInfo(root.BitsPerSample.BitsPerPixel()), (int)root.Width, (int)root.Height, metadata);
+            int width = GetImageWidth(root);
+            int height = GetImageHeight(root);
+
+            return new ImageInfo(new PixelTypeInfo(root.BitsPerSample.BitsPerPixel()), width, height, metadata);
         }
 
         /// <summary>
@@ -176,8 +179,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             this.VerifyAndParse(frameMetaData);
 
-            int width = (int)frameMetaData.Width;
-            int height = (int)frameMetaData.Height;
+            int width = GetImageWidth(frameMetaData);
+            int height = GetImageHeight(frameMetaData);
             var frame = new ImageFrame<TPixel>(this.Configuration, width, height, coreMetadata);
 
             int rowsPerStrip = (int)frameMetaData.RowsPerStrip;
@@ -311,6 +314,38 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
                 colorDecoder.Decode(stripBuffer.GetSpan(), pixels, 0, top, frame.Width, stripHeight);
             }
+        }
+
+        /// <summary>
+        /// Gets the width of the image frame.
+        /// </summary>
+        /// <param name="frame">The image frame.</param>
+        /// <returns>The image width.</returns>
+        private static int GetImageWidth(TiffFrameMetadata frame)
+        {
+            IExifValue<Number> width = frame.ExifProfile.GetValue(ExifTag.ImageWidth);
+            if (width == null)
+            {
+                TiffThrowHelper.ThrowImageFormatException("The TIFF image frame is missing the ImageWidth");
+            }
+
+            return (int)width.Value;
+        }
+
+        /// <summary>
+        /// Gets the height of the image frame.
+        /// </summary>
+        /// <param name="frame">The image frame.</param>
+        /// <returns>The image height.</returns>
+        private static int GetImageHeight(TiffFrameMetadata frame)
+        {
+            IExifValue<Number> height = frame.ExifProfile.GetValue(ExifTag.ImageLength);
+            if (height == null)
+            {
+                TiffThrowHelper.ThrowImageFormatException("The TIFF image frame is missing the ImageLength");
+            }
+
+            return (int)height.Value;
         }
     }
 }

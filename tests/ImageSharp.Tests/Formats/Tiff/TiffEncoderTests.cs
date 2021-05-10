@@ -39,7 +39,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             // arrange
             var tiffEncoder = new TiffEncoder { Mode = mode };
-            Image input = new Image<Rgb24>(10, 10);
+            using Image input = new Image<Rgb24>(10, 10);
             using var memStream = new MemoryStream();
 
             // act
@@ -62,7 +62,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             // arrange
             var tiffEncoder = new TiffEncoder { BitsPerPixel = bitsPerPixel };
-            Image input = new Image<Rgb24>(10, 10);
+            using Image input = new Image<Rgb24>(10, 10);
             using var memStream = new MemoryStream();
 
             // act
@@ -101,7 +101,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             // arrange
             var tiffEncoder = new TiffEncoder { Mode = mode, Compression = compression };
-            Image input = new Image<Rgb24>(10, 10);
+            using Image input = new Image<Rgb24>(10, 10);
             using var memStream = new MemoryStream();
 
             // act
@@ -331,7 +331,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
         {
             // arrange
             var tiffEncoder = new TiffEncoder() { Mode = mode, Compression = compression };
-            Image<TPixel> input = provider.GetImage();
+            using Image<TPixel> input = provider.GetImage();
             using var memStream = new MemoryStream();
             TiffFrameMetadata inputMeta = input.Frames.RootFrame.Metadata.GetTiffMetadata();
 
@@ -340,8 +340,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
 
             // assert
             memStream.Position = 0;
-            var output = Image.Load<Rgba32>(Configuration, memStream);
+            using var output = Image.Load<Rgba32>(Configuration, memStream);
             TiffFrameMetadata meta = output.Frames.RootFrame.Metadata.GetTiffMetadata();
+            ImageFrame<Rgba32> rootFrame = output.Frames.RootFrame;
 
             Assert.True(output.Height > (int)meta.RowsPerStrip);
             Assert.True(meta.StripOffsets.Length > 1);
@@ -359,7 +360,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff
                 {
                     // The difference must be less than one row.
                     int stripBytes = (int)meta.StripByteCounts[i];
-                    int widthBytes = (meta.BitsPerPixel + 7) / 8 * (int)meta.Width;
+                    int widthBytes = (meta.BitsPerPixel + 7) / 8 * rootFrame.Width;
 
                     Assert.True((TiffConstants.DefaultStripSize - stripBytes) < widthBytes);
                 }

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Collections.Generic;
 using System.Linq;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -20,13 +19,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         private const TiffPredictor DefaultPredictor = TiffPredictor.None;
 
         private ExifProfile frameTags;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TiffFrameMetadata"/> class.
-        /// </summary>
-        public TiffFrameMetadata()
-        {
-        }
 
         /// <summary>
         /// Gets the Tiff directory tags.
@@ -48,47 +40,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         public TiffSubfileType? OldSubfileType => (TiffSubfileType?)this.ExifProfile.GetValue(ExifTag.OldSubfileType)?.Value;
 
         /// <summary>
-        /// Gets the number of columns in the image, i.e., the number of pixels per row.
-        /// </summary>
-        public Number Width
-        {
-            get
-            {
-                IExifValue<Number> width = this.ExifProfile.GetValue(ExifTag.ImageWidth);
-                if (width == null)
-                {
-                    TiffThrowHelper.ThrowImageFormatException("The TIFF image is missing the ImageWidth");
-                }
-
-                return width.Value;
-            }
-        }
-
-        /// <summary>
-        /// Gets the number of rows of pixels in the image.
-        /// </summary>
-        public Number Height
-        {
-            get
-            {
-                IExifValue<Number> height = this.ExifProfile.GetValue(ExifTag.ImageLength);
-                if (height == null)
-                {
-                    TiffThrowHelper.ThrowImageFormatException("The TIFF image is missing the ImageLength");
-                }
-
-                return height.Value;
-            }
-        }
-
-        /// <summary>
         /// Gets the number of bits per component.
         /// </summary>
         public TiffBitsPerSample BitsPerSample
         {
             get
             {
-                var bits = this.ExifProfile.GetValue(ExifTag.BitsPerSample)?.Value;
+                ushort[] bits = this.ExifProfile.GetValue(ExifTag.BitsPerSample)?.Value;
                 if (bits == null)
                 {
                     if (this.PhotometricInterpretation == TiffPhotometricInterpretation.WhiteIsZero
@@ -247,23 +205,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <see cref="SamplesPerPixel"/>
         /// </summary>
         public TiffSampleFormat[] SampleFormat => this.ExifProfile.GetValue(ExifTag.SampleFormat)?.Value?.Select(a => (TiffSampleFormat)a).ToArray();
-
-        /// <summary>
-        /// Clears the pure metadata.
-        /// </summary>
-        public void ClearMetadata()
-        {
-            var tags = new List<IExifValue>();
-            foreach (IExifValue entry in this.ExifProfile.Values)
-            {
-                if (IsFormatTag((ExifTagValue)(ushort)entry.Tag))
-                {
-                    tags.Add(entry);
-                }
-            }
-
-            this.ExifProfile = new ExifProfile(tags, this.ExifProfile.InvalidTags);
-        }
 
         /// <inheritdoc/>
         public IDeepCloneable DeepClone() => new TiffFrameMetadata() { ExifProfile = this.ExifProfile.DeepClone() };

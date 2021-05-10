@@ -28,12 +28,7 @@ namespace SixLabors.ImageSharp.Tests
             /// <summary>
             /// Writes a png file.
             /// </summary>
-            Png,
-
-            /// <summary>
-            /// Writes a tiff file.
-            /// </summary>
-            Tiff,
+            Png
         }
 
         private static readonly Dictionary<ExifTag, object> TestProfileValues = new Dictionary<ExifTag, object>
@@ -97,7 +92,6 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
-        [InlineData(TestImageWriteFormat.Tiff)]
         public void WriteFraction(TestImageWriteFormat imageFormat)
         {
             using (var memStream = new MemoryStream())
@@ -141,7 +135,6 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
-        [InlineData(TestImageWriteFormat.Tiff)]
         public void ReadWriteInfinity(TestImageWriteFormat imageFormat)
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
@@ -175,7 +168,6 @@ namespace SixLabors.ImageSharp.Tests
          https://exiftool.org/TagNames/EXIF.html */
         [InlineData(TestImageWriteFormat.Jpeg, 16)]
         [InlineData(TestImageWriteFormat.Png, 16)]
-        [InlineData(TestImageWriteFormat.Tiff, 16)]
         public void SetValue(TestImageWriteFormat imageFormat, int expectedProfileValueCount)
         {
             Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
@@ -411,7 +403,6 @@ namespace SixLabors.ImageSharp.Tests
         [Theory]
         [InlineData(TestImageWriteFormat.Jpeg)]
         [InlineData(TestImageWriteFormat.Png)]
-        [InlineData(TestImageWriteFormat.Tiff)]
         public void WritingImagePreservesExifProfile(TestImageWriteFormat imageFormat)
         {
             // Arrange
@@ -486,8 +477,6 @@ namespace SixLabors.ImageSharp.Tests
                     return WriteAndReadJpeg(image);
                 case TestImageWriteFormat.Png:
                     return WriteAndReadPng(image);
-                case TestImageWriteFormat.Tiff:
-                    return WriteAndReadTiff(image);
                 default:
                     throw new ArgumentException("Unexpected test image format, only Jpeg, Png and Tiff are allowed");
             }

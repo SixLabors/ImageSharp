@@ -177,15 +177,15 @@ namespace SixLabors.ImageSharp.Formats.Tiff
 
             private void ProcessProfiles(ImageMetadata imageMetadata, TiffFrameMetadata tiffFrameMetadata)
             {
-                if (imageMetadata.ExifProfile != null && imageMetadata.ExifProfile.Parts != ExifParts.None)
+                ExifProfile exifProfile = tiffFrameMetadata.ExifProfile;
+                if (exifProfile != null && exifProfile.Parts != ExifParts.None)
                 {
-                    imageMetadata.SyncProfiles();
-                    foreach (IExifValue entry in imageMetadata.ExifProfile.Values)
+                    foreach (IExifValue entry in exifProfile.Values)
                     {
                         if (!this.collector.Entries.Exists(t => t.Tag == entry.Tag) && entry.GetValue() != null)
                         {
                             ExifParts entryPart = ExifTags.GetPart(entry.Tag);
-                            if (entryPart != ExifParts.None && imageMetadata.ExifProfile.Parts.HasFlag(entryPart))
+                            if (entryPart != ExifParts.None && exifProfile.Parts.HasFlag(entryPart))
                             {
                                 this.collector.AddOrReplace(entry.DeepClone());
                             }

@@ -148,7 +148,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             var framesMetadata = new List<TiffFrameMetadata>();
             foreach (ExifProfile ifd in directories)
             {
-                var meta = new TiffFrameMetadata() { ExifProfile = ifd };
+                var meta = new TiffFrameMetadata(ifd);
+                meta.Initialize(ifd);
                 framesMetadata.Add(meta);
             }
 
@@ -158,7 +159,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             int width = GetImageWidth(root);
             int height = GetImageHeight(root);
 
-            return new ImageInfo(new PixelTypeInfo(root.BitsPerSample.BitsPerPixel()), width, height, metadata);
+            return new ImageInfo(new PixelTypeInfo(root.BitsPerPixel), width, height, metadata);
         }
 
         /// <summary>
@@ -175,7 +176,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         {
             var coreMetadata = new ImageFrameMetadata();
             frameMetaData = coreMetadata.GetTiffMetadata();
-            frameMetaData.ExifProfile = tags;
+            frameMetaData.Initialize(tags);
 
             this.VerifyAndParse(frameMetaData);
 

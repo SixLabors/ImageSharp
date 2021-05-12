@@ -478,7 +478,7 @@ namespace SixLabors.ImageSharp.Tests
                 case TestImageWriteFormat.Png:
                     return WriteAndReadPng(image);
                 default:
-                    throw new ArgumentException("Unexpected test image format, only Jpeg, Png and Tiff are allowed");
+                    throw new ArgumentException("Unexpected test image format, only Jpeg and Png are allowed");
             }
         }
 
@@ -503,18 +503,6 @@ namespace SixLabors.ImageSharp.Tests
 
                 memStream.Position = 0;
                 return Image.Load<Rgba32>(memStream);
-            }
-        }
-
-        private static Image<Rgba32> WriteAndReadTiff(Image<Rgba32> image)
-        {
-            using (var memStream = new MemoryStream())
-            {
-                image.SaveAsTiff(memStream, new TiffEncoder());
-                image.Dispose();
-
-                memStream.Position = 0;
-                return Image.Load<Rgba32>(memStream, new TiffDecoder());
             }
         }
 

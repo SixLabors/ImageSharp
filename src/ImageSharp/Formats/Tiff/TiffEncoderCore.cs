@@ -66,7 +66,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
             this.BitsPerPixel = options.BitsPerPixel;
             this.HorizontalPredictor = options.HorizontalPredictor;
-            this.CompressionType = options.Compression;
+            this.CompressionType = options.Compression != TiffCompression.Invalid ? options.Compression : TiffCompression.None;
             this.compressionLevel = options.CompressionLevel;
         }
 
@@ -113,7 +113,8 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             ImageMetadata metadata = image.Metadata;
             TiffMetadata tiffMetadata = metadata.GetTiffMetadata();
             TiffFrameMetadata rootFrameMetaData = image.Frames.RootFrame.Metadata.GetTiffMetadata();
-            TiffPhotometricInterpretation photometricInterpretation = rootFrameMetaData.PhotometricInterpretation;
+            TiffPhotometricInterpretation photometricInterpretation = this.Mode == TiffEncodingMode.ColorPalette
+                ? TiffPhotometricInterpretation.PaletteColor : rootFrameMetaData.PhotometricInterpretation;
 
             this.SetMode(tiffMetadata, photometricInterpretation);
             this.SetBitsPerPixel(tiffMetadata);
@@ -159,31 +160,27 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             // Write the image bytes to the steam.
             uint imageDataStart = (uint)writer.Position;
 
-            TiffBitsPerPixel? tiffBitsPerPixel = this.BitsPerPixel;
-            if (tiffBitsPerPixel != null)
-            {
-                using TiffBaseCompressor compressor = TiffCompressorFactory.Create(
-                    this.CompressionType,
-                    writer.BaseStream,
-                    this.memoryAllocator,
-                    image.Width,
-                    (int)tiffBitsPerPixel,
-                    this.compressionLevel,
-                    this.HorizontalPredictor == TiffPredictor.Horizontal ? this.HorizontalPredictor : TiffPredictor.None);
+            using TiffBaseCompressor compressor = TiffCompressorFactory.Create(
+                this.CompressionType,
+                writer.BaseStream,
+                this.memoryAllocator,
+                image.Width,
+                (int)this.BitsPerPixel,
+                this.compressionLevel,
+                this.HorizontalPredictor == TiffPredictor.Horizontal ? this.HorizontalPredictor : TiffPredictor.None);
 
-                using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(
-                    this.Mode,
-                    image.Frames.RootFrame,
-                    this.quantizer,
-                    this.memoryAllocator,
-                    this.configuration,
-                    entriesCollector,
-                    (int)tiffBitsPerPixel);
+            using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(
+                this.Mode,
+                image.Frames.RootFrame,
+                this.quantizer,
+                this.memoryAllocator,
+                this.configuration,
+                entriesCollector,
+                (int)this.BitsPerPixel);
 
-                int rowsPerStrip = this.CalcRowsPerStrip(image.Frames.RootFrame.Height, colorWriter.BytesPerRow);
+            int rowsPerStrip = this.CalcRowsPerStrip(image.Frames.RootFrame.Height, colorWriter.BytesPerRow);
 
-                colorWriter.Write(compressor, rowsPerStrip);
-            }
+            colorWriter.Write(compressor, rowsPerStrip);
 
             entriesCollector.ProcessImageFormat(this);
             entriesCollector.ProcessGeneral(image);

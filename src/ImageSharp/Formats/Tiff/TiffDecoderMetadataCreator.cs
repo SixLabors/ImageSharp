@@ -126,6 +126,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         }
 
         private static TiffBitsPerPixel GetBitsPerPixel(TiffFrameMetadata firstFrameMetaData)
-            => (TiffBitsPerPixel)firstFrameMetaData.BitsPerSample.BitsPerPixel();
+            => (TiffBitsPerPixel)firstFrameMetaData.BitsPerPixel;
     }
 }

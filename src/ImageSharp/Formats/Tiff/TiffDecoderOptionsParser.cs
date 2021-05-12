@@ -20,6 +20,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff
         /// <param name="entries">The IFD entries container to read the image format information for.</param>
         public static void VerifyAndParse(this TiffDecoderCore options, TiffFrameMetadata entries)
         {
+            if (entries.TileOffsets != null)
+            {
+                TiffThrowHelper.ThrowNotSupported("Tiled images are not supported.");
+            }
+
             if (entries.ExtraSamples != null)
             {
                 TiffThrowHelper.ThrowNotSupported("ExtraSamples is not supported.");
@@ -28,11 +33,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
             if (entries.FillOrder != TiffFillOrder.MostSignificantBitFirst)
             {
                 TiffThrowHelper.ThrowNotSupported("The lower-order bits of the byte FillOrder is not supported.");
-            }
-
-            if (entries.ExifProfile.GetValue(ExifTag.TileOffsets) != null)
-            {
-                TiffThrowHelper.ThrowNotSupported("Tiled images are not supported.");
             }
 
             if (entries.Predictor == TiffPredictor.FloatingPoint)
@@ -51,16 +51,18 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                 }
             }
 
-            if (entries.ExifProfile.GetValue(ExifTag.StripRowCounts) != null)
+            if (entries.StripRowCounts != null)
             {
                 TiffThrowHelper.ThrowNotSupported("Variable-sized strips are not supported.");
             }
 
+            entries.VerifyRequiredFieldsArePresent();
+
             options.PlanarConfiguration = entries.PlanarConfiguration;
             options.Predictor = entries.Predictor;
             options.PhotometricInterpretation = entries.PhotometricInterpretation;
-            options.BitsPerSample = entries.BitsPerSample;
-            options.BitsPerPixel = entries.BitsPerSample.BitsPerPixel();
+            options.BitsPerSample = entries.BitsPerSample.GetValueOrDefault();
+            options.BitsPerPixel = entries.BitsPerSample.GetValueOrDefault().BitsPerPixel();
 
             ParseColorType(options, entries);
             ParseCompression(options, entries);

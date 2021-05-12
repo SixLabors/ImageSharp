@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 
 namespace SixLabors.ImageSharp.Formats.Tiff
@@ -28,7 +27,6 @@ namespace SixLabors.ImageSharp.Formats.Tiff
                     return TiffConstants.BitsPerSampleRgb8Bit;
 
                 default:
-                    TiffThrowHelper.ThrowNotSupported("The bits per pixels are not supported");
                     return Array.Empty<ushort>();
             }
         }

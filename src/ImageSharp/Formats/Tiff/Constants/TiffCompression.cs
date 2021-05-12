@@ -9,6 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Constants
     public enum TiffCompression : ushort
     {
         /// <summary>
+        /// A invalid compression value.
+        /// </summary>
+        Invalid = 0,
+
+        /// <summary>
         /// No compression.
         /// </summary>
         None = 1,

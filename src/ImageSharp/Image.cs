@@ -87,7 +87,7 @@ namespace SixLabors.ImageSharp
                 return;
             }
 
-            this.Dispose(true);
+            this.DisposeManaged();
 
             this.isDisposed = true;
         }
@@ -148,10 +148,9 @@ namespace SixLabors.ImageSharp
         protected void UpdateSize(Size size) => this.size = size;
 
         /// <summary>
-        /// Disposes the object and frees resources for the Garbage Collector.
+        /// Internal routine for freeing managed resources called from <see cref="Dispose"/>
         /// </summary>
-        /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
-        protected abstract void Dispose(bool disposing);
+        protected abstract void DisposeManaged();
 
         /// <summary>
         /// Throws <see cref="ObjectDisposedException"/> if the image is disposed.

@@ -160,7 +160,7 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the root frame.
         /// </summary>
-        private IPixelSource<TPixel> PixelSource => this.Frames?.RootFrame ?? throw new ObjectDisposedException(nameof(Image<TPixel>));
+        private IPixelSource<TPixel> PixelSource => this.frames.RootFrame;
 
         /// <summary>
         /// Gets or sets the pixel at the specified position.
@@ -174,6 +174,8 @@ namespace SixLabors.ImageSharp
             [MethodImpl(InliningOptions.ShortMethod)]
             get
             {
+                this.EnsureNotDisposed();
+
                 this.VerifyCoords(x, y);
                 return this.PixelSource.PixelBuffer.GetElementUnsafe(x, y);
             }
@@ -181,6 +183,8 @@ namespace SixLabors.ImageSharp
             [MethodImpl(InliningOptions.ShortMethod)]
             set
             {
+                this.EnsureNotDisposed();
+
                 this.VerifyCoords(x, y);
                 this.PixelSource.PixelBuffer.GetElementUnsafe(x, y) = value;
             }
@@ -197,6 +201,8 @@ namespace SixLabors.ImageSharp
         {
             Guard.MustBeGreaterThanOrEqualTo(rowIndex, 0, nameof(rowIndex));
             Guard.MustBeLessThan(rowIndex, this.Height, nameof(rowIndex));
+
+            this.EnsureNotDisposed();
 
             return this.PixelSource.PixelBuffer.GetRowSpan(rowIndex);
         }

@@ -193,8 +193,6 @@ namespace SixLabors.ImageSharp.Tests
 
                 // Image<TPixel>
                 Assert.Throws<ObjectDisposedException>(() => { var prop = image.Frames; });
-                Assert.Throws<ObjectDisposedException>(() => { var prop = image.Metadata; });
-                Assert.Throws<ObjectDisposedException>(() => { var prop = image.PixelType; });
 
                 // Image
                 Assert.Throws<ObjectDisposedException>(() => { var prop = genericImage.Frames; });

@@ -78,11 +78,7 @@ namespace SixLabors.ImageSharp
         Configuration IConfigurationProvider.Configuration => this.configuration;
 
         /// <inheritdoc />
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+        public void Dispose() => this.Dispose(true);
 
         /// <summary>
         /// Saves the image to the given stream using the given image encoder.

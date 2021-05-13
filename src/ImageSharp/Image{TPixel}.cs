@@ -23,8 +23,6 @@ namespace SixLabors.ImageSharp
     public sealed class Image<TPixel> : Image
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        private bool isDisposed;
-
         private ImageFrameCollection<TPixel> frames;
 
         /// <summary>
@@ -272,25 +270,9 @@ namespace SixLabors.ImageSharp
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
             if (disposing)
             {
                 this.frames.Dispose();
-            }
-
-            this.isDisposed = true;
-        }
-
-        /// <inheritdoc/>
-        internal override void EnsureNotDisposed()
-        {
-            if (this.isDisposed)
-            {
-                throw new ObjectDisposedException("Trying to execute an operation on a disposed image.");
             }
         }
 

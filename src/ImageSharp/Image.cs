@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp
     /// </summary>
     public abstract partial class Image : IImage, IConfigurationProvider
     {
+        private bool isDisposed;
+
         private Size size;
         private readonly Configuration configuration;
 
@@ -78,7 +80,17 @@ namespace SixLabors.ImageSharp
         Configuration IConfigurationProvider.Configuration => this.configuration;
 
         /// <inheritdoc />
-        public void Dispose() => this.Dispose(true);
+        public void Dispose()
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.Dispose(true);
+
+            this.isDisposed = true;
+        }
 
         /// <summary>
         /// Saves the image to the given stream using the given image encoder.
@@ -144,7 +156,13 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Throws <see cref="ObjectDisposedException"/> if the image is disposed.
         /// </summary>
-        internal abstract void EnsureNotDisposed();
+        internal void EnsureNotDisposed()
+        {
+            if (this.isDisposed)
+            {
+                throw new ObjectDisposedException("Trying to execute an operation on a disposed image.");
+            }
+        }
 
         /// <summary>
         /// Accepts a <see cref="IImageVisitor"/>.

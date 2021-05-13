@@ -235,10 +235,10 @@ namespace SixLabors.ImageSharp
         {
             this.EnsureNotDisposed();
 
-            var clonedFrames = new ImageFrame<TPixel>[this.Frames.Count];
+            var clonedFrames = new ImageFrame<TPixel>[this.frames.Count];
             for (int i = 0; i < clonedFrames.Length; i++)
             {
-                clonedFrames[i] = this.Frames[i].Clone(configuration);
+                clonedFrames[i] = this.frames[i].Clone(configuration);
             }
 
             return new Image<TPixel>(configuration, this.Metadata.DeepClone(), clonedFrames);
@@ -254,10 +254,10 @@ namespace SixLabors.ImageSharp
         {
             this.EnsureNotDisposed();
 
-            var clonedFrames = new ImageFrame<TPixel2>[this.Frames.Count];
+            var clonedFrames = new ImageFrame<TPixel2>[this.frames.Count];
             for (int i = 0; i < clonedFrames.Length; i++)
             {
-                clonedFrames[i] = this.Frames[i].CloneAs<TPixel2>(configuration);
+                clonedFrames[i] = this.frames[i].CloneAs<TPixel2>(configuration);
             }
 
             return new Image<TPixel2>(configuration, this.Metadata.DeepClone(), clonedFrames);
@@ -273,7 +273,7 @@ namespace SixLabors.ImageSharp
 
             if (disposing)
             {
-                this.Frames.Dispose();
+                this.frames.Dispose();
             }
 
             this.isDisposed = true;
@@ -315,9 +315,12 @@ namespace SixLabors.ImageSharp
         {
             Guard.NotNull(pixelSource, nameof(pixelSource));
 
-            for (int i = 0; i < this.Frames.Count; i++)
+            this.EnsureNotDisposed();
+
+            ImageFrameCollection<TPixel> sourceFrames = pixelSource.Frames;
+            for (int i = 0; i < this.frames.Count; i++)
             {
-                this.Frames[i].SwapOrCopyPixelsBufferFrom(pixelSource.Frames[i]);
+                this.frames[i].SwapOrCopyPixelsBufferFrom(sourceFrames[i]);
             }
 
             this.UpdateSize(pixelSource.Size());

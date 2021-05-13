@@ -25,6 +25,8 @@ namespace SixLabors.ImageSharp
     {
         private bool isDisposed;
 
+        private ImageFrameCollection<TPixel> frames;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
         /// with the height and the width of the image.
@@ -84,7 +86,7 @@ namespace SixLabors.ImageSharp
         internal Image(Configuration configuration, int width, int height, ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
-            this.Frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
         }
 
         /// <summary>
@@ -104,7 +106,7 @@ namespace SixLabors.ImageSharp
             ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
-            this.Frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
         }
 
         /// <summary>
@@ -124,7 +126,7 @@ namespace SixLabors.ImageSharp
             ImageMetadata metadata)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
         {
-            this.Frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
+            this.frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
         }
 
         /// <summary>
@@ -137,7 +139,7 @@ namespace SixLabors.ImageSharp
         internal Image(Configuration configuration, ImageMetadata metadata, IEnumerable<ImageFrame<TPixel>> frames)
             : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, ValidateFramesAndGetSize(frames))
         {
-            this.Frames = new ImageFrameCollection<TPixel>(this, frames);
+            this.frames = new ImageFrameCollection<TPixel>(this, frames);
         }
 
         /// <inheritdoc />
@@ -146,7 +148,14 @@ namespace SixLabors.ImageSharp
         /// <summary>
         /// Gets the collection of image frames.
         /// </summary>
-        public new ImageFrameCollection<TPixel> Frames { get; }
+        public new ImageFrameCollection<TPixel> Frames
+        {
+            get
+            {
+                this.EnsureNotDisposed();
+                return this.frames;
+            }
+        }
 
         /// <summary>
         /// Gets the root frame.

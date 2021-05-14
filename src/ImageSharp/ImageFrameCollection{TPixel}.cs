@@ -110,7 +110,12 @@ namespace SixLabors.ImageSharp
         }
 
         /// <inheritdoc />
-        public override int IndexOf(ImageFrame frame) => frame is ImageFrame<TPixel> specific ? this.IndexOf(specific) : -1;
+        public override int IndexOf(ImageFrame frame)
+        {
+            this.EnsureNotDisposed();
+
+            return frame is ImageFrame<TPixel> specific ? this.frames.IndexOf(specific) : -1;
+        }
 
         /// <summary>
         /// Determines the index of a specific <paramref name="frame"/> in the <seealso cref="ImageFrameCollection{TPixel}"/>.

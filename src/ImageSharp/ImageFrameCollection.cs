@@ -70,7 +70,12 @@ namespace SixLabors.ImageSharp
         /// <param name="source">The <seealso cref="ImageFrame"/> to clone and insert into the <seealso cref="ImageFrameCollection"/>.</param>
         /// <exception cref="ArgumentException">Frame must have the same dimensions as the image.</exception>
         /// <returns>The cloned <see cref="ImageFrame"/>.</returns>
-        public ImageFrame InsertFrame(int index, ImageFrame source) => this.NonGenericInsertFrame(index, source);
+        public ImageFrame InsertFrame(int index, ImageFrame source)
+        {
+            this.EnsureNotDisposed();
+
+            return this.NonGenericInsertFrame(index, source);
+        }
 
         /// <summary>
         /// Clones the <paramref name="source"/> frame and appends the clone to the end of the collection.
